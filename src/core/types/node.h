@@ -1,5 +1,5 @@
-#ifndef AGENTICDSL_COMMON_TYPES_NODE_H
-#define AGENTICDSL_COMMON_TYPES_NODE_H
+#ifndef AGENTICDSL_CORE_TYPES_NODE_H
+#define AGENTICDSL_CORE_TYPES_NODE_H
 
 #include "resource.h" // 引入 ResourceType
 #include "common/llm/llm_tool.h" // 引入 LLMParams

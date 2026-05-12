@@ -1,5 +1,5 @@
-#ifndef AGENTICDSL_TYPES_COMMON_H
-#define AGENTICDSL_TYPES_COMMON_H
+#ifndef AGENTICDSL_CORE_TYPES_COMMON_H
+#define AGENTICDSL_CORE_TYPES_COMMON_H
 
 // Convenience header to include all type definitions
 #include "context.h"

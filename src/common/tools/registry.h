@@ -1,5 +1,5 @@
-#ifndef COMMON_TOOLS_REGISTRY_H
-#define COMMON_TOOLS_REGISTRY_H
+#ifndef AGENTICDSL_COMMON_TOOLS_REGISTRY_H
+#define AGENTICDSL_COMMON_TOOLS_REGISTRY_H
 
 #include <memory>
 #include <string>
