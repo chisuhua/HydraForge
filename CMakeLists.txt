@@ -5,14 +5,13 @@ option(AGENTICDSL_BUILD_TESTS "Build unit tests" OFF)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(PkgConfig REQUIRED)
 find_package(Threads REQUIRED)
 
-add_subdirectory(external/llama.cpp)
-set(LLAMA_LIB llama)
-set(LLAMA_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/external/llama.cpp/include")
-set(GGML_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/external/llama.cpp/ggml/include")
+# cpp-httplib (header-only)
+set(HTTPLIB_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/external/cpp-httplib")
 
 # nlohmann_json (header-only)
 find_path(NLOHMANN_JSON_INCLUDE_DIR nlohmann/json.hpp)
@@ -32,32 +31,34 @@ set(YAML_CPP_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/yaml-cpp yaml-cpp-build)
 set(YAML_CPP_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/external/yaml-cpp/include")
 
-include_directories(
-    ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/modules
+# INTERFACE library for common includes and dependencies
+add_library(agenticdsl_includes INTERFACE)
+
+target_include_directories(agenticdsl_includes INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/modules>
+    $<INSTALL_INTERFACE:include>
     ${NLOHMANN_JSON_INCLUDE_DIR}
     ${INJA_INCLUDE_DIR}
-    ${LLAMA_INCLUDE_DIR}
-    ${GGML_INCLUDE_DIR}
     ${YAML_CPP_INCLUDE_DIR}
+    ${HTTPLIB_INCLUDE_DIR}
 )
 
-# 添加 llama 库路径
-link_directories(${CMAKE_BINARY_DIR}/bin)
+target_link_libraries(agenticdsl_includes INTERFACE
+    yaml-cpp::yaml-cpp
+)
 
 add_library(agenticdsl_common STATIC
+    src/common/llm/http_adapter.cpp
     src/common/llm/llama_adapter.cpp
     src/common/llm/llama_tool.cpp
-    src/common/tools/registry.cpp
-    src/common/llm/llama_adapter.cpp
     src/common/tools/registry.cpp
     src/common/utils/parser_utils.cpp
     src/common/utils/template_renderer.cpp
     src/common/utils/yaml_json.cpp
 )
 target_link_libraries(agenticdsl_common PUBLIC
-    yaml-cpp::yaml-cpp
-    ${LLAMA_LIB}
+    agenticdsl_includes
 )
 
 add_subdirectory(src/modules/parser)
@@ -74,6 +75,7 @@ add_library(agenticdsl_core STATIC
 )
 
 target_link_libraries(agenticdsl_core
+    agenticdsl_includes
     agenticdsl_common
     agenticdsl_modules_parser
     agenticdsl_modules_context
@@ -95,6 +97,7 @@ add_executable(agent_basic
 )
 
 target_link_libraries(agent_basic
+    agenticdsl_includes
     agenticdsl_core
 )
 

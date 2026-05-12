@@ -1,0 +1,756 @@
+# ADR-0004: ToolRegistry 安全模型
+
+## 状态
+
+**已批准** (2026-05-12)
+
+## 背景
+
+HydraForge Agent 通过 ToolRegistry 调用外部工具（文件系统、Shell、网络等）。LLM 可能生成恶意的工具调用（如 `fs.read /etc/passwd`、`shell.exec rm -rf /`）。Phase 1 需要基础安全防护，Phase 2/3 需要 OS 级沙箱隔离。
+
+**参考框架**：
+- Claude Code：分层权限 (Allow/Ask/Deny) + bubblewrap/Seatbelt 沙箱 + 用户确认
+- DeepSeek-TUI：3 种执行模式 + Workspace 边界 + 审批门控
+- DeerFlow 2.0：配置化工具 + Docker 容器隔离
+
+**核心原则**：纵深防御 = 技术控制 + 权限分层 + 用户确认
+
+---
+
+## 决策
+
+### 1. 安全架构：三层防御
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 1: 权限分层 (Permission Tiers)                        │
+│  Allow → Ask → Deny                                        │
+│                                                              │
+│  Layer 2: 路径策略 (Path Policy)                             │
+│  allowed_prefixes + denied_patterns                         │
+│                                                              │
+│  Layer 3: Shell 参数校验 (Shell Guard)                       │
+│  危险命令检测                                               │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  用户确认层 (User Confirmation)                              │
+│  EventBus → USER_INPUT → TUI 确认对话框                      │
+│  用户点击"确认"或"拒绝"                                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2. 权限分层：Allow/Ask/Deny 三级
+
+```cpp
+// ============================================================
+// 权限级别
+// ============================================================
+
+enum class ToolPermission {
+    Allow,   // 直接执行，无确认
+    Ask,     // 发送 USER_INPUT 事件，等待用户确认
+    Deny     // 直接拒绝，返回错误
+};
+
+// ============================================================
+// 工具规格
+// ============================================================
+
+struct ToolSpec {
+    std::string name;
+    ToolPermission permission = ToolPermission::Ask;
+    std::optional<PathPolicy> path_policy;  // 文件系统工具的路径策略
+    std::optional<std::string> description;   // 用户可见的描述
+    std::optional<std::string> risk_level;   // "low", "medium", "high", "critical"
+};
+
+// ============================================================
+// 默认安全配置
+// ============================================================
+
+struct ToolSecurityConfig {
+    // 默认权限
+    ToolPermission default_permission = ToolPermission::Ask;
+
+    // 默认 Ask 的工具（需要确认）
+    std::vector<std::string> ask_tools = {
+        "fs.write",
+        "fs.delete",
+        "shell.exec"
+    };
+
+    // 默认 Deny 的工具（危险）
+    std::vector<std::string> deny_tools = {
+        "net.http_post"  // 防止数据外泄
+    };
+
+    // 默认 Allow 的工具（安全）
+    std::vector<std::string> allow_tools = {
+        "web.search",
+        "calculate",
+        "llm.call"
+    };
+
+    // 路径策略（用于 fs.* 工具）
+    PathPolicy fs_policy;
+};
+
+// ============================================================
+// 危险级别定义
+// ============================================================
+
+enum class RiskLevel {
+    Low,      // 只读，无副作用
+    Medium,   // 有副作用但可恢复
+    High,     // 不可逆操作
+    Critical  // 系统级操作，可能影响安全
+};
+
+std::string to_string(RiskLevel r) {
+    switch (r) {
+        case RiskLevel::Low: return "low";
+        case RiskLevel::Medium: return "medium";
+        case RiskLevel::High: return "high";
+        case RiskLevel::Critical: return "critical";
+    }
+}
+```
+
+### 3. 路径策略：组合模式
+
+```cpp
+// ============================================================
+// 路径策略
+// ============================================================
+
+struct PathPolicy {
+    // 允许的前缀目录（jail root）
+    std::vector<std::string> allowed_prefixes = {
+        "/tmp/hydraforge",      // 临时工作区
+        "./workspace"            // 项目工作区（相对路径）
+    };
+
+    // 拒绝的模式（正则表达式，优先级更高）
+    std::vector<std::regex> denied_patterns = {
+        std::regex(R"(/etc/passwd)"),
+        std::regex(R"(/\.ssh/)"),
+        std::regex(R"(/proc/)"),
+        std::regex(R"(/\.aws/)"),
+        std::regex(R"(C:\\Windows)"),     // Windows 系统目录
+        std::regex(R"(/\.config/)")
+    };
+
+    // 检查结果
+    struct CheckResult {
+        bool allowed;
+        std::string reason;
+        std::optional<std::string> matched_denied;  // 匹配到的拒绝模式
+    };
+
+    CheckResult check(const std::string& path) const {
+        // 1. 先检查 denied patterns（优先级高）
+        std::string canonical;
+        try {
+            canonical = std::filesystem::canonical(path);
+        } catch (...) {
+            return {false, "invalid_path", std::nullopt};
+        }
+
+        for (const auto& pattern : denied_patterns) {
+            if (std::regex_search(canonical, pattern)) {
+                return {false, "path_matches_denied_pattern", pattern.str()};
+            }
+        }
+
+        // 2. 再检查 allowed prefixes
+        bool in_allowed = allowed_prefixes.empty();  // 空 = 允许所有
+        for (const auto& prefix : allowed_prefixes) {
+            if (canonical.starts_with(prefix)) {
+                in_allowed = true;
+                break;
+            }
+        }
+
+        if (!in_allowed) {
+            return {false, "path_not_in_allowed_prefix", std::nullopt};
+        }
+
+        return {true, "allowed", std::nullopt};
+    }
+};
+```
+
+### 4. Shell 参数校验
+
+```cpp
+// ============================================================
+// Shell 命令危险检测
+// ============================================================
+
+struct ShellGuard {
+    // 危险命令模式
+    static constexpr std::array DANGEROUS_PATTERNS = {
+        "rm -rf",
+        "rm -r /",
+        "dd if=",
+        "mkfs",
+        "| bash",
+        "; bash",
+        "&& bash",
+        "> /dev/",
+        "curl | sh",
+        "wget | sh",
+        "chmod 777",
+        "chown root"
+    };
+
+    // 危险信号检测
+    static bool is_dangerous(const std::string& command) {
+        std::string lower_cmd;
+        lower_cmd.reserve(command.size());
+        std::transform(command.begin(), command.end(), std::back_inserter(lower_cmd),
+                      ::tolower);
+
+        for (const auto& pattern : DANGEROUS_PATTERNS) {
+            if (lower_cmd.find(pattern) != std::string::npos) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 建议替换命令
+    static std::optional<std::string> suggest_safe_alternative(const std::string& command) {
+        if (command.find("rm -rf") != std::string::npos) {
+            return "rm -i (interactive mode)";
+        }
+        if (command.find("| bash") != std::string::npos) {
+            return "use a dedicated tool instead";
+        }
+        return std::nullopt;
+    }
+};
+```
+
+### 5. 增强的 SecureToolRegistry
+
+```cpp
+// ============================================================
+// 安全错误类型
+// ============================================================
+
+struct SecurityError {
+    enum class Code {
+        PermissionDenied,     // 权限不足
+        PathViolation,        // 路径违规
+        DangerousCommand,      // 危险命令
+        UserCancelled,        // 用户取消
+        Unknown
+    };
+    Code code;
+    std::string message;
+    std::string tool_name;
+    std::string details;
+};
+
+// ============================================================
+// SecureToolRegistry
+// ============================================================
+
+class SecureToolRegistry {
+public:
+    explicit SecureToolRegistry(ToolSecurityConfig config)
+        : config_(std::move(config)) {
+        // 初始化默认工具权限
+        initialize_default_permissions();
+    }
+
+    // -------------------- 安全调用接口 --------------------
+
+    // 带安全检查的工具调用（用于需要用户确认的场景）
+    // 返回 expected：成功返回结果，失败返回 SecurityError
+    std::expected<nlohmann::json, SecurityError> call_secure(
+        const std::string& tool_name,
+        const nlohmann::json& args,
+        EventBus* event_bus,
+        std::stop_token cancel_token = {}
+    );
+
+    // 直接执行（仅用于 Allow 级别工具）
+    std::expected<nlohmann::json, SecurityError> call_direct(
+        const std::string& tool_name,
+        const nlohmann::json& args
+    );
+
+    // -------------------- 权限管理 --------------------
+
+    void set_permission(const std::string& tool_name, ToolPermission perm) {
+        std::lock_guard lock(mutex_);
+        tool_specs_[tool_name].permission = perm;
+    }
+
+    void set_path_policy(const std::string& tool_name, PathPolicy policy) {
+        std::lock_guard lock(mutex_);
+        tool_specs_[tool_name].path_policy = std::move(policy);
+    }
+
+    ToolPermission get_permission(const std::string& tool_name) const {
+        std::shared_lock lock(mutex_);
+        auto it = tool_specs_.find(tool_name);
+        return it != tool_specs_.end() ? it->second.permission : config_.default_permission;
+    }
+
+    // -------------------- 底层注册（保持兼容） --------------------
+
+    void register_tool(const std::string& name, ToolFunc func) {
+        base_registry_.register_tool(name, std::move(func));
+    }
+
+    bool has_tool(const std::string& name) const {
+        return base_registry_.has_tool(name);
+    }
+
+private:
+    ToolRegistry base_registry_;                    // 底层注册表
+    mutable std::shared_mutex mutex_;              // 读写锁
+    std::unordered_map<std::string, ToolSpec> tool_specs_;
+    ToolSecurityConfig config_;
+
+    // 内部安全检查
+    std::expected<void, SecurityError> check_security(
+        const std::string& tool_name,
+        const nlohmann::json& args
+    );
+
+    // 发送用户确认请求
+    std::expected<nlohmann::json, SecurityError> request_confirmation(
+        const std::string& tool_name,
+        const nlohmann::json& args,
+        EventBus* event_bus,
+        std::stop_token cancel_token
+    );
+
+    void initialize_default_permissions();
+};
+
+// ============================================================
+// 安全检查实现
+// ============================================================
+
+std::expected<void, SecurityError> SecureToolRegistry::check_security(
+    const std::string& tool_name,
+    const nlohmann::json& args
+) {
+    auto permission = get_permission(tool_name);
+
+    // Deny：直接拒绝
+    if (permission == ToolPermission::Deny) {
+        return std::unexpected(SecurityError{
+            SecurityError::Code::PermissionDenied,
+            "Tool '" + tool_name + "' is denied by security policy",
+            tool_name,
+            "permission=deny"
+        });
+    }
+
+    // Ask 和 Allow 都需要检查路径/参数
+    if (tool_name.starts_with("fs.")) {
+        if (args.contains("path")) {
+            auto path_result = config_.fs_policy.check(args["path"]);
+            if (!path_result.allowed) {
+                return std::unexpected(SecurityError{
+                    SecurityError::Code::PathViolation,
+                    "Path '" + args["path"] + "' " + path_result.reason,
+                    tool_name,
+                    path_result.matched_denied.value_or("unknown")
+                });
+            }
+        }
+    }
+
+    if (tool_name == "shell.exec" && args.contains("command")) {
+        if (ShellGuard::is_dangerous(args["command"])) {
+            return std::unexpected(SecurityError{
+                SecurityError::Code::DangerousCommand,
+                "Shell command contains dangerous pattern",
+                tool_name,
+                args["command"]
+            });
+        }
+    }
+
+    return {};
+}
+
+// ============================================================
+// 用户确认流程
+// ============================================================
+
+std::expected<nlohmann::json, SecurityError> SecureToolRegistry::request_confirmation(
+    const std::string& tool_name,
+    const nlohmann::json& args,
+    EventBus* event_bus,
+    std::stop_token cancel_token
+) {
+    if (!event_bus) {
+        return std::unexpected(SecurityError{
+            SecurityError::Code::PermissionDenied,
+            "No EventBus provided for interactive confirmation",
+            tool_name,
+            "ask_mode_requires_eventbus"
+        });
+    }
+
+    // 构造确认请求事件
+    UIEvent confirm_request;
+    confirm_request.type = EventType::USER_INPUT;
+    confirm_request.priority = EventPriority::Critical;
+    confirm_request.payload = {
+        {"intent", "tool_confirmation"},
+        {"tool", tool_name},
+        {"args", args},
+        {"risk_level", get_risk_level(tool_name)},
+        {"description", tool_specs_[tool_name].description.value_or("")}
+    };
+
+    // 创建 promise/future 等待用户响应
+    std::promise<std::optional<bool>> promise;
+    auto future = promise.get_future();
+
+    // 注册一次性回调
+    event_bus->subscribe(EventType::USER_INPUT, [&, tool_name](const UIEvent& response) {
+        if (response.payload.value("intent", "") == "tool_confirmation_response" &&
+            response.payload.value("tool", "") == tool_name) {
+            promise.set_value(response.payload.value("approved", false));
+        }
+    });
+
+    // 发送确认请求
+    event_bus->push(confirm_request);
+
+    // 等待用户响应（或取消）
+    while (future.wait_for(100ms) == std::future_status::timeout) {
+        if (cancel_token.stop_requested()) {
+            promise.set_value(std::nullopt);  // 用户取消
+            break;
+        }
+    }
+
+    auto result = future.get();
+    if (!result.has_value()) {
+        return std::unexpected(SecurityError{
+            SecurityError::Code::UserCancelled,
+            "User cancelled tool execution",
+            tool_name,
+            "cancelled"
+        });
+    }
+
+    if (!result.value()) {
+        return std::unexpected(SecurityError{
+            SecurityError::Code::UserCancelled,
+            "User denied tool execution",
+            tool_name,
+            "denied_by_user"
+        });
+    }
+
+    // 用户确认后执行
+    return call_direct(tool_name, args);
+}
+
+// ============================================================
+// 主入口
+// ============================================================
+
+std::expected<nlohmann::json, SecurityError> SecureToolRegistry::call_secure(
+    const std::string& tool_name,
+    const nlohmann::json& args,
+    EventBus* event_bus,
+    std::stop_token cancel_token
+) {
+    // 1. 安全检查
+    if (auto check = check_security(tool_name, args); !check) {
+        return std::unexpected(check.error());
+    }
+
+    auto permission = get_permission(tool_name);
+
+    // 2. 根据权限执行
+    if (permission == ToolPermission::Allow) {
+        return call_direct(tool_name, args);
+    } else if (permission == ToolPermission::Ask) {
+        return request_confirmation(tool_name, args, event_bus, cancel_token);
+    }
+
+    return std::unexpected(SecurityError{
+        SecurityError::Code::Unknown,
+        "Unknown permission",
+        tool_name,
+        "invalid_permission"
+    });
+}
+```
+
+### 6. 用户确认 TUI 集成
+
+```cpp
+// ============================================================
+// TUI 确认对话框组件
+// ============================================================
+
+class ConfirmationDialog {
+public:
+    struct Response {
+        bool approved;
+        bool dont_ask_again;  // 可选：记住用户选择
+    };
+
+    // 显示确认对话框，返回用户选择
+    std::future<Response> show(const UIEvent& request) {
+        promise_ = std::promise<Response>{};
+        return promise_.get_future();
+    }
+
+    // 从 EventBus 处理确认响应
+    void on_user_response(const UIEvent& response) {
+        if (promise_) {
+            Response r{
+                .approved = response.payload.value("approved", false),
+                .dont_ask_again = response.payload.value("dont_ask_again", false)
+            };
+            promise_.set_value(r);
+            promise_ = std::nullopt;
+        }
+    }
+
+private:
+    std::optional<std::promise<Response>> promise_;
+};
+
+// TUI 中的使用
+void HarnessTUI::handle_user_input(const UIEvent& ev) {
+    if (ev.payload.value("intent", "") == "tool_confirmation") {
+        auto dialog = std::make_shared<ConfirmationDialog>();
+        auto response_future = dialog->show(ev);
+
+        // 在 TUI 中渲染确认对话框
+        render_confirmation_dialog(
+            ev.payload["tool"],
+            ev.payload["args"],
+            ev.payload["risk_level"]
+        );
+
+        // 等待响应后发送回 EventBus
+        response_future.then([this, ev](auto response) {
+            UIEvent resp;
+            resp.type = EventType::USER_INPUT;
+            resp.payload = {
+                {"intent", "tool_confirmation_response"},
+                {"tool", ev.payload["tool"]},
+                {"approved", response.approved},
+                {"dont_ask_again", response.dont_ask_again}
+            };
+            agent_->event_bus()->push(resp);
+        });
+    }
+}
+```
+
+---
+
+## 配置示例
+
+```json
+// tool_security.json
+{
+    "default_permission": "ask",
+    "ask_tools": ["fs.write", "fs.delete", "shell.exec"],
+    "deny_tools": ["net.http_post"],
+    "allow_tools": ["web.search", "calculate", "llm.call"],
+    "path_policy": {
+        "allowed_prefixes": [
+            "/tmp/hydraforge",
+            "./workspace"
+        ],
+        "denied_patterns": [
+            "/etc/passwd",
+            "/\\.ssh/",
+            "/proc/",
+            "/\\.aws/"
+        ]
+    }
+}
+```
+
+---
+
+## Phase 2/3 扩展
+
+### Phase 2: OS 级沙箱
+
+| 平台 | 技术 | 实现方式 |
+|------|------|---------|
+| Linux | Landlock | 内核 5.13+，轻量级系统调用过滤 |
+| macOS | Seatbelt | App Sandbox，签名验证 |
+| Windows | Windows Sandbox | 容器隔离 |
+
+```cpp
+// Phase 2: 沙箱执行器
+class SandboxedExecutor {
+    // Landlock (Linux)
+    void apply_landlock_rules(const std::vector<LandlockRule>& rules);
+
+    // Seatbelt (macOS)
+    void apply_sandbox_profile(const std::string& profile);
+
+    // 执行在沙箱中
+    std::expected<json, Error> execute_in_sandbox(
+        const std::string& tool_name,
+        const json& args
+    );
+};
+```
+
+### Phase 3: 容器级隔离
+
+```cpp
+// Phase 3: 容器执行器（用于运行不受信任的 Agent）
+class ContainerExecutor {
+    std::string image_;  // Docker 镜像
+
+    // 启动隔离容器
+    void start();
+
+    // 在容器中执行工具
+    std::future<json> execute(const std::string& cmd);
+
+    // 停止容器
+    void stop();
+};
+```
+
+---
+
+## 权衡
+
+### 为什么三层防御？
+
+| 层级 | 作用 | 失效时的保护 |
+|------|------|-------------|
+| 权限分层 | 阻止所有高危工具 | 用户确认作为兜底 |
+| 路径策略 | 阻止路径遍历攻击 | Deny 模式兜底 |
+| Shell 校验 | 阻止危险命令 | 禁用 Shell 工具兜底 |
+
+### 为什么 Ask 是默认而非 Deny？
+
+- 完全 Deny 会阻止正常开发流程
+- Ask 模式让用户决定，平衡安全与效率
+- 用户可以在配置中调整为 Deny
+
+---
+
+## 实现要求
+
+### Phase 1 必须完成
+
+| # | 任务 | 验证方式 |
+|---|------|---------|
+| 1 | SecureToolRegistry 核心实现 | 单元测试：fs.read /etc/passwd 被拒绝 |
+| 2 | 路径策略 (组合模式) | 测试：allowed_prefixes + denied_patterns |
+| 3 | Shell 校验 | 测试：rm -rf / 被拒绝，ls /tmp 允许 |
+| 4 | Ask 模式 + EventBus | 集成测试：TUI 显示确认对话框 |
+| 5 | 配置文件加载 | JSON 配置正确解析并应用 |
+
+### 安全测试用例
+
+```cpp
+TEST_CASE("SecureToolRegistry blocks path traversal") {
+    SecureToolRegistry registry(config_with_path_policy);
+
+    // 尝试读取 /etc/passwd
+    auto result = registry.call_secure("fs.read",
+        {{"path", "/etc/passwd"}}, nullptr);
+
+    REQUIRE(!result);
+    CHECK(result.error().code == SecurityError::Code::PathViolation);
+}
+
+TEST_CASE("SecureToolRegistry blocks dangerous shell") {
+    SecureToolRegistry registry(default_config);
+
+    // 尝试 rm -rf
+    auto result = registry.call_secure("shell.exec",
+        {{"command", "rm -rf /home"}}, nullptr);
+
+    REQUIRE(!result);
+    CHECK(result.error().code == SecurityError::Code::DangerousCommand);
+}
+
+TEST_CASE("Ask mode triggers confirmation") {
+    SecureToolRegistry registry(config_ask_mode);
+    MockEventBus bus;
+
+    auto result = registry.call_secure("fs.write",
+        {{"path", "./workspace/test.txt"}, {"content", "hello"}}, &bus);
+
+    // 应该返回错误（需要用户确认）
+    REQUIRE(!result);
+    CHECK(result.error().code == SecurityError::Code::PermissionDenied);
+    CHECK(bus.published<EventType::USER_INPUT>());  // 确认事件已发布
+}
+```
+
+---
+
+## 影响范围
+
+| 组件 | 变更 |
+|------|------|
+| `src/common/tools/registry.h/cpp` | SecureToolRegistry 新增 |
+| `src/harness/event_bus.h/cpp` | USER_INPUT 事件类型 |
+| `src/harness/tui/harness_tui.h/cpp` | 确认对话框组件 |
+| `src/harness/tools/filesystem_tools.h/cpp` | 集成 PathPolicy |
+| `src/harness/tools/shell_tools.h/cpp` | 集成 ShellGuard |
+
+---
+
+## 替代方案
+
+### 替代 1：仅黑名单（被否决）
+
+```cpp
+std::vector<std::string> blocked = {"/etc/passwd", "~/.ssh"};
+```
+
+**否决理由**：永远有遗漏，攻击者会找到新路径。
+
+### 替代 2：完全禁用 Shell（被否决）
+
+**否决理由**：Shell 对真实工作流是必要的。Claude Code 等成熟框架都支持 Shell，只是不直接允许。
+
+### 替代 3：OS 沙箱优先（被否决）
+
+**否决理由**：Phase 1 复杂度过高。Landlock/seccomp 实现复杂，且需要内核支持。先实现应用层安全，Phase 2 再加 OS 沙箱。
+
+---
+
+## 结论
+
+采用三层纵深防御架构：
+
+- **Layer 1**: Allow/Ask/Deny 权限分层
+- **Layer 2**: 路径策略（允许前缀 + 拒绝模式）
+- **Layer 3**: Shell 命令危险检测
+- **用户确认层**: EventBus USER_INPUT + TUI 确认对话框
+
+此设计支持：
+- **Phase 1**：基础安全防护，无需 OS 沙箱
+- **Phase 2**：Landlock/Seatbelt OS 级隔离
+- **Phase 3**：容器级完全隔离
+
+---
+
+*文档版本: v1.0*
+*最后更新: 2026-05-12*
