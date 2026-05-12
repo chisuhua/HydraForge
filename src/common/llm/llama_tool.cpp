@@ -19,7 +19,8 @@ LlamaAdapter::Config LlamaTool::convert_params(const LLMParams& params) const {
         config.n_predict = params.max_tokens;
     }
     if (params.top_p > 0.0f && params.top_p < 1.0f) {
-        config.min_p = 1.0f - params.top_p;
+    }
+    if (!params.model.empty()) {
     }
     if (params.n_ctx > 0) {
         config.n_ctx = params.n_ctx;
@@ -28,7 +29,7 @@ LlamaAdapter::Config LlamaTool::convert_params(const LLMParams& params) const {
         config.n_threads = params.n_threads;
     }
     if (!params.model.empty()) {
-        config.model_path = params.model;
+        // 模型名称暂不映射到 LlamaAdapter::Config
     }
     
     return config;

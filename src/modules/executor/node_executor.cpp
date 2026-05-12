@@ -16,14 +16,8 @@ NodeExecutor::NodeExecutor(ToolRegistry& tool_registry, LlamaAdapter* llm_adapte
 }
 
 Context NodeExecutor::execute_node(Node* node, const Context& ctx) {
-    // 注入资源上下文
     Context context_with_resources = ctx;
-    //auto resources_ctx = ResourceManager::instance().get_resources_context();
-    //if (!resources_ctx.empty()) {
-    //    context_with_resources["resources"] = resources_ctx;
-    //}
 
-    // 检查权限
     check_permissions(node->permissions, node->path);
 
     // 根据节点类型分发执行

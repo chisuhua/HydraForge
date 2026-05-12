@@ -16,16 +16,15 @@ static LlamaAdapter::Config load_llm_config(const std::string& config_path = "ll
     namespace fs = std::filesystem;
 
     LlamaAdapter::Config config;
-    config.model_path = "models/qwen-0.6b.gguf"; // default
+    config.api_url = "http://localhost:8080";
+    config.api_endpoint = "/v1/chat/completions";
+    config.model = "gpt-3.5-turbo";
     config.n_ctx = 2048;
     config.n_threads = std::thread::hardware_concurrency();
     config.temperature = 0.7f;
-    config.min_p = 0.05f;
-    config.n_predict = 512;
 
     std::ifstream file(config_path);
     if (!file.is_open()) {
-        // Optional: log warning, but proceed with defaults
         return config;
     }
 
@@ -33,14 +32,18 @@ static LlamaAdapter::Config load_llm_config(const std::string& config_path = "ll
         nlohmann::json j;
         file >> j;
 
-        if (j.contains("model_path") && j["model_path"].is_string()) {
-            std::string model_rel = j["model_path"].get<std::string>();
-            // Resolve relative to config file's directory (or current dir)
-            fs::path config_dir = fs::weakly_canonical(fs::absolute(config_path)).parent_path();
-fs::path abs_model_path = fs::absolute(config_dir / model_rel);
-            config.model_path = abs_model_path.string();
+        if (j.contains("api_url") && j["api_url"].is_string()) {
+            config.api_url = j["api_url"].get<std::string>();
         }
-
+        if (j.contains("api_endpoint") && j["api_endpoint"].is_string()) {
+            config.api_endpoint = j["api_endpoint"].get<std::string>();
+        }
+        if (j.contains("api_key") && j["api_key"].is_string()) {
+            config.api_key = j["api_key"].get<std::string>();
+        }
+        if (j.contains("model") && j["model"].is_string()) {
+            config.model = j["model"].get<std::string>();
+        }
         if (j.contains("n_ctx") && j["n_ctx"].is_number_integer()) {
             config.n_ctx = j["n_ctx"].get<int>();
         }
@@ -51,14 +54,7 @@ fs::path abs_model_path = fs::absolute(config_dir / model_rel);
         if (j.contains("temperature") && j["temperature"].is_number()) {
             config.temperature = static_cast<float>(j["temperature"].get<double>());
         }
-        if (j.contains("min_p") && j["min_p"].is_number()) {
-            config.min_p = static_cast<float>(j["min_p"].get<double>());
-        }
-        if (j.contains("n_predict") && j["n_predict"].is_number_integer()) {
-            config.n_predict = j["n_predict"].get<int>();
-        }
     } catch (const std::exception& e) {
-        // Log or ignore; use defaults
     }
 
     return config;
