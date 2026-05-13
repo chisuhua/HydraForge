@@ -1,0 +1,111 @@
+# ADR-0015: IPER 闭环推理
+
+## 状态
+
+**已批准** (2026-05-13)
+
+## 背景
+
+HydraForge Phase 2 需要"意图-计划-执行-反思"（IPER）闭环推理机制，用于鲁棒的任务执行：
+
+- **Intent**：理解用户意图
+- **Plan**：将意图分解为可执行计划
+- **Execute**：执行计划
+- **Reflect**：反思执行结果，失败时重试
+
+**优势**：
+- 复杂任务自动分解 + 执行
+- 执行失败时自动重试 + 反思
+- 最终成功返回结果 或 失败返回归因报告
+
+---
+
+## 决策
+
+### 1. 子图定义
+
+#### `/lib/reasoning/iper_loop@v1`
+
+```yaml
+AgenticDSL `/lib/reasoning/iper_loop@v1`
+signature:
+  inputs:
+    - name: agent_id
+      type: string
+      required: true
+    - name: user_id
+      type: string
+      required: true
+    - name: user_intent
+      type: string
+      required: true
+      description: "原始用户请求或任务目标"
+    - name: planner_path
+      type: string
+      required: true
+      description: "生成执行计划的子图路径（如 /lib/dslgraph/generate@v1）"
+    - name: max_reflections
+      type: integer
+      default: 3
+      minimum: 1
+      maximum: 5
+      description: "最大反思/重试次数"
+  outputs:
+    - name: final_result
+      type: object
+      required: true
+      description: "最终成功结果或归因报告"
+    - name: status
+      type: string
+      enum: [success, failed, max_iterations]
+    - name: reflection_count
+      type: integer
+    - name: last_error
+      type: string
+      required: false
+version: "1.0"
+stability: stable
+permissions:
+  - generate_subgraph: { max_depth: 2 }
+```
+
+### 2. 执行逻辑
+
+```
+1. 接收 user_intent
+2. 调用 planner_path 生成 /dynamic/plan_v1
+3. 执行该计划
+4. 若成功 → 返回 final_result (status: success)
+5. 若失败 → 进入反思：
+   a. 调用 planner_path 注入错误上下文生成修复计划
+   b. reflection_count++
+   c. 若 reflection_count >= max_reflections → 返回归因 (status: max_iterations)
+   d. 否则重复步骤 3-5
+6. 失败 → 返回归因报告 (status: failed)
+```
+
+### 3. Trace 输出
+
+```json
+{
+  "iper_loop": {
+    "status": "success | failed | max_iterations",
+    "reflection_count": 2,
+    "final_result": { ... },
+    "last_error": "...",
+    "plans_generated": ["/dynamic/plan_1", "/dynamic/repair_1"]
+  }
+}
+```
+
+### 4. 与 generate_subgraph 的关系
+
+- IPER 依赖 `generate_subgraph` 生成计划子图
+- 生成的子图权限受 `permissions.generate_subgraph.max_depth` 限制
+- 计划子图写入 `/dynamic/**` 命名空间
+
+---
+
+## 参考
+
+- [ADR-0009: DSL 标准库规划](./adr-0009-dsl-standard-library.md)
