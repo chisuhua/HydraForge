@@ -1,996 +1,559 @@
+# DSL 标准库
 
-# 标准原语
+## 版本
 
-## 附录 C：核心标准库清单
+v3.10 (2026-05-13)
+
+## 概述
+
+DSL 标准库是 AgenticDSL 执行器的内置子图集合，提供可复用的推理模式、工作流、工具封装和认知策略。
+
+## 目录结构
+
+```
+lib/
+├── reasoning/                   # 推理模式
+│   ├── react.md              # ReAct 推理循环
+│   └── plan.md               # 任务分解
+│
+├── workflow/                   # 工作流
+│   ├── code_review.md        # 代码审查
+│   └── data_analysis.md      # 数据分析
+│
+├── tools/                     # 工具封装
+│   ├── fs/
+│   │   ├── read.md
+│   │   └── write.md
+│   ├── git/
+│   │   ├── clone.md
+│   │   └── diff.md
+│   └── net/
+│       └── http_get.md
+│
+├── cognitive/                 # 认知策略
+│   ├── route.md             # 意图路由
+│   └── summarize.md         # 摘要生成
+│
+└── math/                     # 数学工具
+    └── add.md
+```
+
+### 路径约定
+
+引用格式：`/lib/<category>/<name>`
+
+示例：
+- `/lib/reasoning/react`
+- `/lib/tools/fs/read`
+- `/lib/workflow/code_review`
+
+---
+
+## 标准库清单
 
 | 路径 | 用途 | 稳定性 |
 |------|------|--------|
-| `/lib/dslgraph/generate@v1` | 安全生成动态子图 | stable |
-| `/lib/reasoning/assert` | 中间结论验证 | stable |
-| `/lib/reasoning/hypothesize_and_verify` | 多假设验证 | stable |
-| `/lib/reasoning/try_catch` | 异常回溯 | stable |
-| `/lib/reasoning/stepwise_assert` | 分步断言 | stable |
-| `/lib/reasoning/graph_guided_hypothesize` | 图引导假设生成 | experimental |
-  `/lib/reasoning/counterfactual_compare@v1`|反事实推理，对比多场景|experimental|
-  `/lib/reasoning/induce_and_archive@v1`|从成功 Trace 归纳规则并归档|stable |
-  `/lib/reasoning/iper_loop@v1` | “意图-计划-执行-反思”（IPER）闭环，用于鲁棒任务执行。||
-| /lib/reasoning/generate_text@v1 | 基础生成 | stable |
-| /lib/reasoning/structured_generate@v1 | 结构化输出 | stable |
-| /lib/reasoning/continue_from_kv@v1 | KV 复用 | stable |
-| /lib/reasoning/stream_until@v1 | 流式终止 | stable |
-| /lib/reasoning/speculative_decode@v1 | 推测解码 | experimental |
-| /lib/reasoning/fallback_text@v1** | 文本降级 | stable |
-  `/lib/reasoning/iper_loop@v1`
-| `/lib/human/clarify_intent` | 请求用户澄清意图 | stable |
-| `/lib/human/approval` | 人工审批节点 | stable |
-| `/lib/workflow/parallel_map` | 基于 `fork` 的 map 封装 | experimental |
-| `/lib/conversation/start_topic` | 开启新对话话题 | stable |
-| `/lib/conversation/switch_role` | 切换对话角色上下文 | stable |
-| `/lib/conversation/meeting` | 多角色会议协调 | stable |
-| `/lib/memory/state/**` | Context（内存） |
-| `/lib/memory/kg/**` | Graphiti（首选）、Cognee |
-| `/lib/memory/vector/**` | LightRAG + Qdrant/FAISS |
-| `/lib/memory/profile/**` | Mem0 |
-| `/lib/memory/kg/query_subgraph` | 图子图查询 | stable |
-| `/lib/memory/kg/write_subgraph` | 图子图写入 | stable |
+| `/lib/reasoning/react` | ReAct 推理循环：思考 → 行动 → 观察 | stable |
+| `/lib/reasoning/plan` | 任务分解：将复杂任务分解为可执行子任务 | stable |
+| `/lib/tools/fs/read` | 安全读取文件内容 | stable |
+| `/lib/tools/fs/write` | 安全写入文件内容 | stable |
+| `/lib/tools/git/clone` | Git 仓库克隆 | stable |
+| `/lib/tools/git/diff` | Git 差异比较 | stable |
+| `/lib/tools/net/http_get` | HTTP GET 请求 | experimental |
+| `/lib/workflow/code_review` | 自动化代码审查工作流 | stable |
+| `/lib/workflow/data_analysis` | 数据分析工作流 | experimental |
+| `/lib/cognitive/route` | 意图路由 | stable |
+| `/lib/cognitive/summarize` | 摘要生成 | stable |
+| `/lib/math/add` | 基础加法 | stable |
+
 > 执行器必须预加载并校验以上子图。社区可扩展，但不得修改其 `signature`。
 
-
-
-### 10.1 子图管理（`/lib/dslgraph/**`）
-
-#### AgenticDSL `/lib/dslgraph/generate@v1`（stable）
-```yaml
-signature:
-  inputs:
-    - name: prompt_template
-      type: string
-      required: true
-    - name: signature_validation
-      type: string
-      enum: [strict, warn, ignore]
-      default: "strict"
-    - name: on_signature_violation
-      type: string
-    - name: on_generation_failure
-      type: string
-    - name: archive_on_success
-      type: string
-  outputs:
-    - name: generated_paths
-      type: array
-    - name: success
-      type: boolean
-version: "1.0"
-stability: stable
-permissions:
-  - generate_subgraph: { max_depth: 2 }
-```
-
-> ⚠️ **内部实现示意**：以下 DAG 仅为说明逻辑，实际由执行器内置实现，用户不可修改。
-
-```yaml
-# Step 1: 渲染提示 → Step 2: 调用 llm_generate_dsl → Step 3: 签名验证 → Step 4: 归档
-```yaml
-# Step 1: 渲染提示
-type: assign
-assign:
-  expr: "{{ prompt_template | render_with_context }}"
-  path: "internal.prompt"
-next: "/self/call_llm"
-
-# Step 2: 调用底层原语
-AgenticDSL `/self/call_llm`
-type: llm_generate_dsl
-prompt: "{{ $.internal.prompt }}"
-llm:
-  model: "gpt-4o"
-  seed: "{{ $.llm_seed | default(42) }}"
-  temperature: "{{ $.temperature | default(0.3) }}"
-output_constraints:
-  namespace_prefix: "/dynamic/"
-  max_blocks: 3
-  validate_json_schema: true
-permissions:
-  - generate_subgraph: { max_depth: 2 }
-on_failure: "{{ $.on_generation_failure or '/self/fallback' }}"
-next: "/self/validate_signatures"
-
-# Step 3: 签名验证（若启用）
-AgenticDSL `/self/validate_signatures`
-type: codelet_call
-runtime: internal_dsl_validator
-code: |
-  for path in dynamic_paths:
-    subgraph = get_subgraph(path)
-    if 'signature' in subgraph:
-      if not validate_signature(subgraph):
-        if signature_validation == 'strict':
-          raise ERR_SIGNATURE_VIOLATION
-        elif signature_validation == 'warn':
-          log_warning(...)
-# on_violation 跳转由外部处理
-next: "/self/archive_or_finish"
-
-# Step 4: 归档（可选）
-AgenticDSL `/self/archive_or_finish`
-type: assign
-assign:
-  expr: "{{ $.generated_paths }}"
-  path: "result.generated_paths"
-next: |
-  {% if $.archive_on_success %}
-    "/lib/dslgraph/archive_to@v1?target={{ $.archive_on_success }}"
-  {% else %}
-    "/end?termination_mode=soft&output_keys=[generated_paths, success]"
-  {% endif %}
-```
-
-#### 权限与资源联动
-
-- **资源声明要求**（在 `/__meta__/resources` 中）：
-  ```yaml
-  - type: generate_subgraph
-    max_depth: 2
-  ```
-- **权限继承**：生成的 `/dynamic/...` 子图权限 ≤ 当前上下文权限（交集原则）
-- **禁止行为**：LLM 生成的子图不得包含 `/lib/**` 写入或调用未声明工具
-
-
-### 10.2 推理原语（`/lib/reasoning/**`）  
-
-#### 10.2.1 生成多个假设并行验证，返回有效假设列表。
-
-##### AgenticDSL `/lib/reasoning/hypothesize_and_verify@v1`（stable）
-```yaml
-signature:
-  inputs:
-    - name: generator_path
-      type: string
-      description: "生成假设列表的子图路径"
-    - name: verifier_path
-      type: string
-      description: "验证单个假设的子图路径"
-    - name: max_hypotheses
-      type: integer
-      default: 3
-  outputs:
-    - name: verified_hypotheses
-      type: array
-    - name: best_hypothesis
-      type: object
-version: "1.0"
-stability: stable
-```
-
-
-**内部行为**：
-1. 调用 `generator_path` → 输出 `hypotheses[]`
-2. `fork` 并行执行 `verifier_path`
-3. 聚合结果，过滤失败项
-4. 按 `verifier` 输出的 `confidence` 排序（可选）
-
-
-#### 10.2.2 分步推理，每步后自动断言。
-
-##### AgenticDSL `/lib/reasoning/stepwise_assert@v1`（stable）
-```yaml
-signature:
-  inputs:
-    - name: steps
-      type: array
-      items:
-        type: object
-        properties:
-          reasoner: { type: string }
-          assertion: { type: string }
-    - name: on_assertion_fail
-      type: string
-  outputs:
-    - name: final_state
-      type: object
-version: "1.0"
-```
-
-#### 10.2.3 反事实推理，对比多场景。
-
-##### AgenticDSL `/lib/reasoning/counterfactual_compare@v1`（experimental）
-```yaml
-signature:
-  inputs:
-    - name: base_scenario
-    - name: variants
-    - name: evaluator_path
-  outputs:
-    - name: comparison_result
-version: "1.0"
-stability: experimental
-```
-
-#### 10.2.4 自动快照+回溯，降低心智负担。
-
-##### AgenticDSL `/lib/reasoning/try_catch@v1`（stable）
-```yaml
-signature:
-  inputs:
-    - name: try_block
-      type: string
-    - name: catch_block
-      type: string
-  outputs:
-    - name: success
-      type: boolean
-version: "1.0"
-```
-
-**内部实现**：
-- 在入口处触发快照（通过 `assert`）
-- 失败时自动恢复上下文并跳转 `catch_block`
-
-
-#### 10.2.5 从成功 Trace 归纳规则并归档。
-
-##### AgenticDSL `/lib/reasoning/induce_and_archive@v1`（stable）
-```yaml
-signature:
-  inputs:
-    - name: trace_ids
-    - name: pattern_template
-    - name: archive_path
-  outputs:
-    - name: generalized_rule
-version: "1.0"
-```
-
-#### 10.2.6 图引导推理协议
-
-##### AgenticDSL `/lib/reasoning/graph_guided_hypothesize@v1`（experimental）
-
-```yaml
-signature:
-  inputs:
-    - name: question
-      type: string
-      required: true
-      description: "需要回答的问题"
-    - name: kg_context
-      type: object
-      required: true
-      schema:
-        type: object
-        properties:
-          start_entities:
-            type: array
-            items: { type: string }
-            minItems: 1
-          query_path:
-            type: string
-          max_hops:
-            type: integer
-            default: 3
-    - name: max_hypotheses
-      type: integer
-      default: 3
-      minimum: 1
-      maximum: 10
-      description: "最大假设数量"
-  outputs:
-    - name: hypotheses
-      type: array
-      required: true
-      items:
-        type: object
-        properties:
-          text:
-            type: string
-            description: "假设文本"
-          evidence_path:
-            type: array
-            description: "支持该假设的证据路径"
-            items:
-              type: object
-              properties:
-                head: { type: string }
-                relation: { type: string }
-                tail: { type: string }
-          confidence:
-            type: number
-            minimum: 0
-            maximum: 1
-            description: "假设置信度（0-1）"
-      minItems: 0
-version: "1.0"
-stability: experimental
-permissions:
-  - kg: subgraph_query
-  - reasoning: llm_generate
-```
-#### 10.2.7 “意图-计划-执行-反思”（IPER）闭环，用于鲁棒任务执行。
-##### AgenticDSL `/lib/reasoning/iper_loop@v1`
-```yaml
-AgenticDSL `/lib/reasoning/iper_loop@v1`
-signature:
-  inputs:
-    - name: user_intent
-      type: string
-      required: true
-      description: "原始用户请求或任务目标"
-    - name: planner_path
-      type: string
-      required: true
-      description: "生成执行计划的子图路径（如 /lib/dslgraph/generate@v1）"
-    - name: max_reflections
-      type: integer
-      default: 3
-      minimum: 1
-      maximum: 5
-      description: "最大反思/重试次数"
-  outputs:
-    - name: final_result
-      type: object
-      required: true
-      description: "最终成功结果或归因报告"
-version: "1.0"
-stability: stable
-permissions:
-  - generate_subgraph: { max_depth: 2 }
-```
-
-**内部逻辑（示意）**：
-- 调用 `planner_path` 生成 `/dynamic/plan_v1`
-- 执行该计划
-- 若失败，进入反思：调用 `planner_path` 生成修复计划（注入错误上下文）
-- 重复 ≤ `max_reflections` 次
-- 成功则返回结果；失败则返回归因
-
-**Trace 扩展**：
-```json
-{
-  "iper": {
-    "reflection_count": 2,
-    "final_status": "success | failed",
-    "last_error": "..."
-  }
-}
-```
-#### 10.2.8：Agentic-native 推理原语
-
-> 以下 5 个子图构成 **推理能力契约基础**，执行器必须实现。
-
-##### 1. `/lib/reasoning/generate_text@v1`（stable）
-```yaml
-signature:
-  inputs:
-    - name: prompt; type: string; required: true
-    - name: model; type: string; required: true
-    - name: seed; type: integer; required: true
-    - name: temperature; type: number; default: 0.0
-    - name: max_tokens; type: integer; default: 256
-  outputs:
-    - name: text; type: string; required: true
-    - name: kv_handle; type: string; required: false
-version: "1.0"
-stability: stable
-requires:
-  - tool: "native_inference_core"
-permissions:
-  - reasoning: llm_generate
-on_error: "/lib/reasoning/fallback_text@v1"
-type: llm_call
-llm:
-  model: "{{ $.model }}"
-  seed: "{{ $.seed }}"
-  temperature: "{{ $.temperature }}"
-  max_tokens: "{{ $.max_tokens }}"
-  prompt: "{{ $.prompt }}"
-```
-
-##### 2. `/lib/reasoning/structured_generate@v1`（stable）
-```yaml
-signature:
-  inputs:
-    - name: prompt; type: string; required: true
-    - name: model; type: string; required: true
-    - name: seed; type: integer; required: true
-    - name: output_schema; type: object; required: true
-  outputs:
-    - name: parsed_output; type: object; required: true
-version: "1.0"
-stability: stable
-requires:
-  - lib: "/lib/reasoning/generate_text@^1.0"
-  - tool: "native_inference_core"
-permissions:
-  - reasoning: structured_generate
-on_error: "/lib/reasoning/fallback_structured@v1"
-type: llm_call
-llm:
-  model: "{{ $.model }}"
-  seed: "{{ $.seed }}"
-  temperature: 0.0
-  prompt: "{{ $.prompt }}"
-  output_schema: "{{ $.output_schema }}"
-```
-
-##### 3. `/lib/reasoning/continue_from_kv@v1`（stable）
-```yaml
-signature:
-  inputs:
-    - name: kv_handle; type: string; required: true
-    - name: new_prompt; type: string; required: true
-    - name: model; type: string; required: true
-    - name: max_tokens; type: integer; default: 256
-  outputs:
-    - name: continuation; type: string; required: true
-    - name: updated_kv_handle; type: string; required: false
-version: "1.0"
-stability: stable
-requires:
-  - tool: "native_inference_core"
-permissions:
-  - reasoning: llm_generate
-on_error: "/lib/reasoning/fallback_text@v1"
-type: llm_call
-llm:
-  model: "{{ $.model }}"
-  prompt: "{{ $.new_prompt }}"
-  kv_handle: "{{ $.kv_handle }}"
-  max_tokens: "{{ $.max_tokens }}"
-```
-
-##### 4. `/lib/reasoning/stream_until@v1`（stable）
-```yaml
-signature:
-  inputs:
-    - name: prompt; type: string; required: true
-    - name: model; type: string; required: true
-    - name: seed; type: integer; required: true
-    - name: stop_condition; type: string; required: true
-    - name: max_tokens; type: integer; default: 2048
-  outputs:
-    - name: streamed_output; type: string; required: true
-version: "1.0"
-stability: stable
-requires:
-  - tool: "native_inference_core"
-permissions:
-  - reasoning: stream_output
-on_error: "/lib/reasoning/fallback_text@v1"
-type: llm_call
-llm:
-  model: "{{ $.model }}"
-  seed: "{{ $.seed }}"
-  prompt: "{{ $.prompt }}"
-  stop_condition: "{{ $.stop_condition }}"
-  max_tokens: "{{ $.max_tokens }}"
-```
-
-##### 5. `/lib/reasoning/speculative_decode@v1`（experimental）
-```yaml
-signature:
-  inputs:
-    - name: prompt; type: string; required: true
-    - name: target_model; type: string; required: true
-    - name: draft_model; type: string; default: "phi-3-mini"
-    - name: max_speculative_tokens; type: integer; default: 5
-  outputs:
-    - name: verified_output; type: string; required: true
-    - name: acceptance_rate; type: number; required: true
-version: "1.0"
-stability: experimental
-requires:
-  - tool: "native_inference_core"
-permissions:
-  - reasoning: speculative_decode
-on_error: "/lib/reasoning/fallback_text@v1"
-type: llm_call
-llm:
-  model: "{{ $.target_model }}"
-  draft_model: "{{ $.draft_model }}"
-  prompt: "{{ $.prompt }}"
-  max_speculative_tokens: "{{ $.max_speculative_tokens }}"
-```
-
-> 所有子图均遵守：
-> - 路径命名规范（6.1）
-> - 签名契约（6.2）
-> - 权限最小化（7.2）
-> - 错误处理（`on_error`）
-
-#### 新增 fallback 子图（配套必需）
-##### `/lib/reasoning/fallback_text@v1`（stable）
-```yaml
-signature:
-  inputs:
-    - name: error_context; type: object; required: true
-  outputs:
-    - name: text; type: string; required: true
-version: "1.0"
-stability: stable
-type: assign
-assign:
-  expr: "推理失败：{{ $.error_context.message | default('未知错误') }}"
-  path: "result.text"
-```
-
-##### `/lib/reasoning/fallback_structured@v1`（stable）
-```yaml
-signature:
-  inputs:
-    - name: error_context; type: object; required: true
-  outputs:
-    - name: parsed_output; type: object; required: true
-version: "1.0"
-stability: stable
-type: assign
-assign:
-  expr: "{}"
-  path: "result.parsed_output"
-```  
 ---
 
-### 10.3 内存记忆原语
+## 核心子图定义
 
-- **接口与实现分离**：`/lib/memory/**` 仅定义标准契约，不包含任何后端细节
-- **能力声明**：通过资源声明描述所需能力，而非绑定具体技术
+### 1. ReAct 推理循环
 
-#### 10.3.1 结构化状态管理（中期记忆）
+**路径**: `/lib/reasoning/react`
+**版本**: 3.10
+**类型**: subgraph
+**描述**: ReAct 推理循环：思考 → 行动 → 观察
 
-##### AgenticDSL `/lib/memory/state/set@v1`
-```yaml
-signature:
-  inputs:
-    - name: key
-      type: string
-      description: "状态路径，如 'travel.departure_date'"
-      required: true
-    - name: value
-      type: any
-      required: true
-  outputs:
-    - name: success
-      type: boolean
-      required: true
-  version: "1.0"
-  stability: stable
-permissions:
-  - memory: state_write
-type: assign
-assign:
-  expr: "{{ $.value }}"
-  path: "memory.state.{{ $.key }}"
-context_merge_policy:
-  "memory.state.{{ $.key }}": last_write_wins
-```
+```markdown
+# 参数输入
+variables:
+  task: string              # 用户任务
+  max_iterations: int = 5  # 最大迭代次数
 
-##### AgenticDSL `/lib/memory/state/get_latest@v1`
-```yaml
-signature:
-  inputs:
-    - name: key
-      type: string
-      required: true
-  outputs:
-    - name: value
-      type: any
-      required: false  # 可能为空
-  version: "1.0"
-type: assign
-assign:
-  expr: "{{ $.memory.state[key] | default(null) }}"
-  path: "result.value"
-```
+# 内部状态
+state:
+  iteration: int = 0
+  thought: string = ""
+  action: string = ""
+  observation: string = ""
 
-#### 10.3.2 时间知识图谱操作（中期+长期）
-
-注：实际存储由外部系统（如 Graphiti）实现，本子图仅封装调用。
-
-
-##### AgenticDSL `/lib/memory/kg/query_subgraph@v1`（stable）
-
-```yaml
-signature:
-  inputs:
-    - name: start_entities
-      type: array
-      items: { type: string }
-      required: true
-      description: |
-        起始实体列表，如 ["Beijing", "Shanghai"]。
-        实体名称必须为规范化的知识库标识符。
-    - name: query_path
-      type: string
-      required: true
-      description: |
-        路径查询模式，语法由执行器定义。
-        支持多跳模式（如 "(?x)-[capital_of]->(?y)"），
-        但具体语法由适配层解释。
-    - name: max_hops
-      type: integer
-      default: 3
-      maximum: 5
-      description: "最大跳数，防止资源爆炸"
-    - name: evidence_required
-      type: boolean
-      default: true
-      description: "是否要求返回证据路径"
-  outputs:
-    - name: subgraph
-      type: object
-      required: true
-      schema:
-        type: object
-        properties:
-          nodes:
-            type: array
-            items:
-              type: object
-              properties:
-                id:
-                  type: string
-                  description: "节点唯一标识符"
-                label:
-                  type: string
-                  description: "节点显示名称"
-                type:
-                  type: string
-                  description: "节点类型（可选）"
-          edges:
-            type: array
-            items:
-              type: object
-              properties:
-                source:
-                  type: string
-                  description: "源节点ID"
-                target:
-                  type: string
-                  description: "目标节点ID"
-                relation:
-                  type: string
-                  description: "关系类型"
-    - name: explanation_paths
-      type: array
-      required: false
-      items:
-        type: array
-        items:
-          type: object
-          properties:
-            head:
-              type: string
-              description: "关系头实体"
-            relation:
-              type: string
-              description: "关系类型"
-            tail:
-              type: string
-              description: "关系尾实体"
-      description: |
-        可解释推理路径列表。
-        仅当 evidence_required=true 且后端支持时返回。
-version: "1.0"
-stability: stable
-permissions:
-  - kg: subgraph_query  # 新增权限类型
-```
-
-##### AgenticDSL `/lib/memory/kg/write_subgraph@v1`
-
-```yaml
-signature:
-  inputs:
-    - name: subgraph
-      type: object
-      required: true
-      schema:
-        type: object
-        properties:
-          nodes:
-            type: array
-            minItems: 1
-          edges:
-            type: array
-            minItems: 1
-    - name: source
-      type: string
-      default: "user_provided"
-      description: "子图来源标识"
-  outputs:
-    - name: subgraph_id
-      type: string
-      required: true
-      description: "生成的子图唯一ID"
-version: "1.0"
-stability: stable
-permissions:
-  - kg: subgraph_write
-```
-
-#### 10.3.3 语义记忆操作（长期记忆）
-
-##### AgenticDSL `/lib/memory/vector/store@v1`
-```yaml
-signature:
-  inputs:
-    - name: text
-      type: string
-      required: true
-    - name: metadata
-      type: object
-      required: false
-      schema: { type: object }
-  outputs:
-    - name: success
-      type: boolean
-  version: "1.0"
-permissions:
-  - vector: store
+AgenticDSL `/lib/reasoning/react/think`
 type: tool_call
-tool: vector_store
+tool: llm.call
 arguments:
-  text: "{{ $.text }}"
-  metadata:
-    user_id: "{{ $.user.id }}"
-    timestamp: "{{ $.now }}"
-    task_id: "{{ $.task.id }}"
-    extra: "{{ $.metadata | default({}) }}"
-output_mapping:
-  success: "result.success"
-```
+  prompt: |
+    你是一个推理助手。基于当前任务和历史信息，进行推理。
 
-##### AgenticDSL `/lib/memory/vector/recall@v1`
-```yaml
-signature:
-  inputs:
-    - name: query
-      type: string
-      required: true
-    - name: top_k
-      type: integer
-      default: 3
-  outputs:
-    - name: memories
-      type: array
-      schema:
-        type: array
-        items:
-          type: object
-          properties:
-            text: { type: string }
-            score: { type: number }
-            metadata: { type: object }
-  version: "1.0"
-permissions:
-  - vector: recall
+    任务：{{ $.task }}
+    历史想法：{{ $.state.thought }}
+    历史行动：{{ $.state.action }}
+    历史观察：{{ $.state.observation }}
+
+    请进行推理，给出下一步行动。格式：
+    想法：[你的推理]
+    行动：[要执行的工具名]
+    参数：[工具参数，如果不需要则写"无"]
+
+    推理：
+next: "/lib/reasoning/react/act"
+
+AgenticDSL `/lib/reasoning/react/act`
 type: tool_call
-tool: vector_recall
-arguments:
-  query: "{{ $.query }}"
-  top_k: "{{ $.top_k }}"
-  filter:
-    user_id: "{{ $.user.id }}"
-output_mapping:
-  memories: "result.memories"
-```
+tool: "{{ $.state.action }}"
+arguments: {{ $.state.action_args }}
+next: "/lib/reasoning/react/observe"
 
-#### 10.3.4 用户画像管理（长期记忆）
-
-##### AgenticDSL `/lib/memory/profile/update@v1`
-```yaml
-signature:
-  inputs:
-    - name: attributes
-      type: object
-      required: true
-      schema: { type: object }
-  outputs:
-    - name: success
-      type: boolean
-  version: "1.0"
-permissions:
-  - profile: update
+AgenticDSL `/lib/reasoning/react/observe`
 type: tool_call
-tool: profile_update
+tool: llm.call
 arguments:
-  user_id: "{{ $.user.id }}"
-  attributes: "{{ $.attributes }}"
-output_mapping:
-  success: "result.success"
+  prompt: |
+    观察行动结果。
+
+    行动结果：{{ $.last_result }}
+
+    如果任务已完成，给出"完成：[总结]"
+    如果需要继续，给出"继续：[原因]"
+
+    观察：
+next: "/lib/reasoning/react/check"
+
+AgenticDSL `/lib/reasoning/react/check`
+type: decision
+condition: "{{ $.iteration >= $.max_iterations }}"
+on_true: "/lib/reasoning/react/finish"
+on_false: "/lib/reasoning/react/think"
+
+AgenticDSL `/lib/reasoning/react/finish`
+type: end
+output:
+  result: "{{ $.observation }}"
 ```
 
-##### AgenticDSL `/lib/memory/profile/get@v1`
-```yaml
-signature:
-  inputs: []
-  outputs:
-    - name: profile
-      type: object
-      schema: { type: object }
-  version: "1.0"
-permissions:
-  - profile: read
+### 2. 任务分解
+
+**路径**: `/lib/reasoning/plan`
+**版本**: 3.10
+**类型**: subgraph
+**描述**: 将复杂任务分解为可执行的子任务
+
+```markdown
+variables:
+  task: string
+
+AgenticDSL `/lib/reasoning/plan/decompose`
 type: tool_call
-tool: profile_get
+tool: llm.call
 arguments:
-  user_id: "{{ $.user.id }}"
-output_mapping:
-  profile: "result.profile"
+  prompt: |
+    将以下任务分解为 3-7 个可执行的子任务。
+
+    任务：{{ $.task }}
+
+    输出格式（JSON）：
+    {
+      "subtasks": [
+        {"id": 1, "description": "子任务描述", "depends_on": []},
+        ...
+      ]
+    }
+output_keys: ["subtasks"]
+next: "/lib/reasoning/plan/create_graph"
+
+AgenticDSL `/lib/reasoning/plan/create_graph`
+type: generate_subgraph
+arguments:
+  template: "sequential_tasks"
+  tasks: "{{ $.subtasks }}"
+next: "/main/execute_tasks"
 ```
 
-#### 10.3.5 权限模型（Permissions Schema）
+### 3. 文件读取工具
 
-| 权限声明 | 说明 | 最小权限范围 |
-|--------|------|------------|
-| `memory: state_write` | 写入 `memory.state.*` | 仅限 Context 写入 |
-| `kg: temporal_fact_insert` | 插入时间事实 | 仅限当前用户图谱 |
-| `kg: temporal_fact_read` | 查询时间事实 | 仅限当前用户 |
-| `vector: store` | 存储语义记忆 | 自动附加 `user_id` |
-| `vector: recall` | 检索语义记忆 | 自动过滤 `user_id` |
-| `profile: update` | 更新用户画像 | 仅限当前用户 |
-| `profile: read` | 读取用户画像 | 仅限当前用户 |
+**路径**: `/lib/tools/fs/read`
+**版本**: 3.10
+**类型**: subgraph
+**描述**: 安全读取文件内容
 
-> ✅ 执行器必须在调度前验证权限，未授权 → 跳转 `on_error`。
+```markdown
+variables:
+  path: string          # 文件路径（相对或绝对）
+  max_lines: int = 0   # 0表示全部
 
+AgenticDSL `/lib/tools/fs/read/validate`
+type: assert
+condition: "{{ not $.path.contains('..') and not $.path.starts_with('/etc') }}"
+on_fail: "/lib/tools/fs/read/error"
 
-#### 10.3.6 工具注册要求（Tool Registration）
+AgenticDSL `/lib/tools/fs/read/execute`
+type: tool_call
+tool: fs.read
+arguments:
+  path: "{{ $.path }}"
+  max_lines: "{{ $.max_lines }}"
+output_keys: ["content"]
 
-为支持上述子图，执行器必须预注册以下工具（由开发者实现）：
-
-| 工具名 | 输入 | 输出 | 参考实现 |
-|-------|------|------|--------|
-| `vector_store` | `{text, metadata}` | `{success}` | LightRAG + Qdrant/FAISS |
-| `vector_recall` | `{query, top_k, filter}` | `{memories[]}` | LightRAG Retriever |
-| `profile_update` | `{user_id, attributes}` | `{success}` | Mem0 API Wrapper |
-| `profile_get` | `{user_id}` | `{profile}` | Mem0 API Wrapper |
-
-> 🔧 工具实现**不要求**纳入规范，但**接口契约必须一致**。
-
-#### 10.3.7 可观测性（Trace Schema 扩展）
-
-所有记忆操作 Trace 必须包含：
-
-```json
-{
-  "memory_op_type": "state_set | kg_write | vector_store | profile_update",
-  "memory_key": "travel.departure_date",
-  "backend_used": "context | graphiti | qdrant | mem0",
-  "latency_ms": 12,
-  "user_id": "user_123"
-}
+AgenticDSL `/lib/tools/fs/read/error`
+type: end
+error: "path_not_allowed"
 ```
 
-### 10.4 世界模型及环境感知原语
+### 4. 文件写入工具
 
-TODO： AgenticDSL 感知物理世界的原语
+**路径**: `/lib/tools/fs/write`
+**版本**: 3.10
+**类型**: subgraph
+**描述**: 安全写入文件内容
 
-### 10.5 对话交流原语
+```markdown
+variables:
+  path: string          # 文件路径
+  content: string       # 内容
+  max_size: int = 1048576  # 最大 1MB
 
-对话是智能体的核心交互范式。AgenticDSL 通过标准子图库 `/lib/conversation/**` 提供结构化对话协议，**复用记忆与推理原语**，支持：
+AgenticDSL `/lib/tools/fs/write/validate`
+type: assert
+condition: "{{ not $.path.contains('..') and not $.path.starts_with('/etc') }}"
+on_fail: "/lib/tools/fs/write/error"
 
-- 多轮对话状态管理  
-- 话题隔离与切换  
-- 多角色上下文隔离  
-- 会议协作与知识聚合  
+AgenticDSL `/lib/tools/fs/write/validate_size`
+type: assert
+condition: "{{ $.content.length <= $.max_size }}"
+on_fail: "/lib/tools/fs/write/error_size"
 
-所有对话能力均通过 **知识应用层标准子图** 实现，**不引入新执行原语**。
+AgenticDSL `/lib/tools/fs/write/execute`
+type: tool_call
+tool: fs.write
+arguments:
+  path: "{{ $.path }}"
+  content: "{{ $.content }}"
+output_keys: ["success"]
 
-#### 10.5.1 对话上下文模型
-- 对话状态通过标准记忆接口管理：
-  - 话题变量 → `/lib/memory/state/set`
-  - 用户偏好 → `/lib/memory/kg/qeury_subgraph`
-  - 画像 → `/lib/memory/profile/update`
-- **禁止**在主上下文（如 `$.user_input`）中直接堆叠对话历史
+AgenticDSL `/lib/tools/fs/write/error`
+type: end
+error: "path_not_allowed"
 
-#### 10.5.2 标准对话子图
-
-##### AgenticDSL `/lib/conversation/start_topic@v1`
-```yaml
-signature:
-  inputs:
-    - name: topic_id
-      type: string
-    - name: initial_context
-      type: object
-  outputs:
-    - name: context_path
-      type: string  # e.g., "/topics/booking/context"
-permissions: [memory: state_write]
+AgenticDSL `/lib/tools/fs/write/error_size`
+type: end
+error: "content_too_large"
 ```
 
-##### AgenticDSL `/lib/conversation/switch_role@v1`
-```yaml
-signature:
-  inputs:
-    - name: role_id
-      type: string
-  outputs:
-    - name: context_path
-      type: string  # e.g., "/roles/agent/context"
-permissions: [memory: state_write]
+### 5. Git 克隆
+
+**路径**: `/lib/tools/git/clone`
+**版本**: 3.10
+**类型**: subgraph
+**描述**: Git 仓库克隆
+
+```markdown
+variables:
+  url: string              # 仓库 URL
+  branch: string = "main"  # 分支名
+  depth: int = 1           # 浅克隆深度
+
+AgenticDSL `/lib/tools/git/clone/execute`
+type: tool_call
+tool: git.clone
+arguments:
+  url: "{{ $.url }}"
+  branch: "{{ $.branch }}"
+  depth: "{{ $.depth }}"
+output_keys: ["repo_path"]
 ```
 
-##### AgenticDSL `/lib/conversation/meeting@v1`
-```yaml
-signature:
-  inputs:
-    - name: meeting_id
-      type: string
-    - name: participants  # role_id list
-      type: array
-    - name: interaction_mode
-      enum: [round_robin, free_discussion, qa_session]
-  outputs:
-    - name: meeting_summary
-      type: object
-permissions: [memory: state_write, kg: temporal_fact_insert]
+### 6. Git 差异
+
+**路径**: `/lib/tools/git/diff`
+**版本**: 3.10
+**类型**: subgraph
+**描述**: Git 差异比较
+
+```markdown
+variables:
+  repo_path: string      # 仓库路径
+  base: string = "HEAD"  # 基准 commit
+  head: string = ""      # 对比 commit（空则使用工作区）
+
+AgenticDSL `/lib/tools/git/diff/execute`
+type: tool_call
+tool: git.diff
+arguments:
+  repo_path: "{{ $.repo_path }}"
+  base: "{{ $.base }}"
+  head: "{{ $.head }}"
+output_keys: ["diff_content"]
 ```
 
-#### 10.5.3 设计原则
-- 复用 `/lib/memory/state` 存话题状态
-- 角色上下文隔离
-- 会议共享上下文 + 私有上下文
+### 7. HTTP GET
 
+**路径**: `/lib/tools/net/http_get`
+**版本**: 3.10
+**类型**: subgraph
+**描述**: HTTP GET 请求
 
-#### 10.5.4 安全与权限
-- **复用现有权限**：`memory: state_write`、`kg: temporal_fact_insert`  
-- **上下文隔离**：执行器确保角色 A 无法访问角色 B 的上下文  
-- **预算控制**：`max_conversation_turns`、`max_topics`、`max_roles`
+```markdown
+variables:
+  url: string                    # 目标 URL
+  headers: map[string]string = {}  # 请求头
+  timeout: int = 30000          # 超时（毫秒）
 
-#### 10.5.5 Trace 增强
-对话节点 Trace 必须包含：
-```json
-{
-  "conversation": {
-    "topic_id": "booking",
-    "role_id": "agent",
-    "turn": 3
-  }
-}
+AgenticDSL `/lib/tools/net/http_get/execute`
+type: tool_call
+tool: http.get
+arguments:
+  url: "{{ $.url }}"
+  headers: "{{ $.headers }}"
+  timeout: "{{ $.timeout }}"
+output_keys: ["status_code", "body", "headers"]
 ```
 
-### 10.6 资源工具
+### 8. 代码审查工作流
 
-#### 10.6.1 动态查询当前可用工具及其能力标签，供 LLM 规划使用。
+**路径**: `/lib/workflow/code_review`
+**版本**: 3.10
+**类型**: subgraph
+**描述**: 自动化代码审查工作流
 
-##### AgenticDSL `/lib/tool/list_available@v1`
-```yaml
-AgenticDSL `/lib/tool/list_available@v1`
-signature:
-  inputs:
-    - name: required_capabilities
-      type: array
-      items: { type: string }
-      required: false
-      description: "所需能力列表（如 ['text_to_image', 'search']）"
-  outputs:
-    - name: matching_tools
-      type: array
-      items:
-        type: object
-        properties:
-          name: { type: string }
-          capabilities: { type: array, items: { type: string } }
-          rate_limit: { type: string }
-      required: true
-version: "1.0"
-stability: stable
-permissions: []  # 仅读取元信息，无需运行时权限
+```markdown
+variables:
+  repo_url: string
+  pr_number: int = 0
+
+AgenticDSL `/lib/workflow/code_review/clone`
+type: tool_call
+tool: git.clone
+arguments:
+  url: "{{ $.repo_url }}"
+next: "/lib/workflow/code_review/fetch_pr"
+
+AgenticDSL `/lib/workflow/code_review/review`
+type: dsl_call
+graph: "/lib/reasoning/react"
+arguments:
+  task: "审查代码变更，给出改进建议"
+next: "/lib/workflow/code_review/summarize"
+
+AgenticDSL `/lib/workflow/code_review/summarize`
+type: end
+output:
+  review_result: "{{ $.last_result }}"
 ```
 
-**行为规则**：
-- 从 `/__meta__/resources` 中提取 `type: tool` 条目
-- 过滤满足 `required_capabilities` 的工具
-- 输出结构化工具清单
+### 9. 数据分析工作流
 
-> ✅ 此子图可在 LLM prompt 中通过 `{{ available_tools_with_caps }}` 注入
+**路径**: `/lib/workflow/data_analysis`
+**版本**: 3.10
+**类型**: subgraph
+**描述**: 数据分析工作流
+
+```markdown
+variables:
+  data_source: string      # 数据源路径或 URL
+  analysis_type: string    # 分析类型：summary, trend, correlation
+
+AgenticDSL `/lib/workflow/data_analysis/load`
+type: tool_call
+tool: fs.read
+arguments:
+  path: "{{ $.data_source }}"
+next: "/lib/workflow/data_analysis/analyze"
+
+AgenticDSL `/lib/workflow/data_analysis/analyze`
+type: tool_call
+tool: llm.call
+arguments:
+  prompt: |
+    对以下数据进行 {{ $.analysis_type }} 分析。
+
+    数据：{{ $.content }}
+
+    提供分析结果和建议。
+output_keys: ["analysis_result"]
+next: "/lib/workflow/data_analysis/finish"
+
+AgenticDSL `/lib/workflow/data_analysis/finish`
+type: end
+output:
+  result: "{{ $.analysis_result }}"
+```
+
+### 10. 意图路由
+
+**路径**: `/lib/cognitive/route`
+**版本**: 3.10
+**类型**: subgraph
+**描述**: 根据用户意图路由到合适的处理流程
+
+```markdown
+variables:
+  user_input: string       # 用户输入
+  available_routes: array # 可用路由列表
+
+AgenticDSL `/lib/cognitive/route/classify`
+type: tool_call
+tool: llm.call
+arguments:
+  prompt: |
+    分析用户输入，确定最佳路由。
+
+    用户输入：{{ $.user_input }}
+    可用路由：{{ $.available_routes }}
+
+    输出格式：
+    路由：[选择的路由名]
+    理由：[选择理由]
+output_keys: ["selected_route", "reasoning"]
+next: "/lib/cognitive/route/dispatch"
+
+AgenticDSL `/lib/cognitive/route/dispatch`
+type: generate_subgraph
+arguments:
+  template: "route_dispatch"
+  route: "{{ $.selected_route }}"
+  context: "{{ $.user_input }}"
+```
+
+### 11. 摘要生成
+
+**路径**: `/lib/cognitive/summarize`
+**版本**: 3.10
+**类型**: subgraph
+**描述**: 生成文本摘要
+
+```markdown
+variables:
+  content: string              # 待摘要内容
+  max_length: int = 200        # 最大摘要长度
+  format: string = "paragraph" # 摘要格式：paragraph, bullet, json
+
+AgenticDSL `/lib/cognitive/summarize/generate`
+type: tool_call
+tool: llm.call
+arguments:
+  prompt: |
+    为以下内容生成摘要。
+
+    内容：{{ $.content }}
+
+    要求：
+    - 长度：不超过 {{ $.max_length }} 字符
+    - 格式：{{ $.format }}
+    - 保留关键信息
+output_keys: ["summary"]
+next: "/lib/cognitive/summarize/finish"
+
+AgenticDSL `/lib/cognitive/summarize/finish`
+type: end
+output:
+  summary: "{{ $.summary }}"
+```
 
 ---
 
-#### 10.6.2 工具注册要求  
-- 新增工具：`native_inference_core`
-  - 输入：`llm` 对象（含上述字段）
-  - 输出：`{ text, kv_handle?, parsed_output? }`
-  - 能力：`tokenize, kv_alloc, model_step, compile_grammar, stream_until`
+## 子图管理 API
 
+### 生成子图
 
+**路径**: `/lib/dslgraph/generate`
+
+标准库提供 `generate_subgraph` 原语，用于动态生成子图：
+
+```markdown
+AgenticDSL `/lib/dslgraph/generate`
+type: generate_subgraph
+arguments:
+  template: "sequential_tasks"  # 模板类型
+  tasks: "{{ $.subtasks }}"    # 任务列表
+output_keys: ["generated_paths", "success"]
+```
+
+### 签名验证
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `prompt_template` | string | 生成提示模板 |
+| `signature_validation` | string | 验证模式：strict, warn, ignore |
+| `archive_on_success` | string | 成功时归档路径 |
+
+---
+
+## 用户扩展机制
+
+### 本地库目录
+
+```
+~/.hydraforge/lib/           # 用户本地库目录
+├── custom/
+│   └── my_agent.md         # 用户自定义子图
+└── override/
+    └── code_review.md      # 覆盖标准库
+```
+
+### 覆盖优先级
+
+```
+用户本地库 (~/.hydraforge/lib/) > 标准库 (lib/)
+```
+
+### 加载顺序
+
+1. 标准库 (`lib/`)
+2. 用户本地库 (`~/.hydraforge/lib/`) — 相同路径会覆盖标准库
+
+---
+
+## LLM 可发现的子图列表
+
+执行器通过 `build_available_subgraphs_context()` 提供给 LLM：
+
+```
+可用标准库子图：
+
+## 推理模式
+- /lib/reasoning/react     - ReAct 推理循环
+- /lib/reasoning/plan     - 任务分解
+
+## 工作流
+- /lib/workflow/code_review - 代码审查
+- /lib/workflow/data_analysis - 数据分析
+
+## 工具
+- /lib/tools/fs/read       - 安全读取文件
+- /lib/tools/fs/write     - 安全写入文件
+- /lib/tools/git/clone    - Git 克隆
+- /lib/tools/git/diff     - Git 差异
+- /lib/tools/net/http_get  - HTTP GET
+
+## 认知
+- /lib/cognitive/route    - 意图路由
+- /lib/cognitive/summarize - 摘要生成
+```
+
+---
+
+## 版本历史
+
+| 版本 | 日期 | 变更 |
+|------|------|------|
+| v3.10 | 2026-05-13 | 完全重写，对齐 ADR-9 新结构 |
+| v3.9 | 2025-xx-xx | 上一版本（已废弃） |
+
+---
+
+*文档版本: v3.10*
+*最后更新: 2026-05-13*

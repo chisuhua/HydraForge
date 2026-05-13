@@ -29,6 +29,15 @@ docs/
 | `adr-0007-context-compression.md` | 上下文压缩机制 | ✅ 已批准 |
 | `adr-0008-structured-context.md` | 结构化 Context | ✅ 已批准 |
 | `adr-0009-dsl-standard-library.md` | DSL 标准库规划 | ✅ 已批准 |
+| `adr-0010-memory-system.md` | 记忆系统标准接口 | ✅ 已批准 |
+| `adr-0011-knowledge-graph.md` | 知识图谱与 Meta-KG 导航 | ✅ 已批准 |
+| `adr-0012-vector-memory.md` | 向量语义记忆 | ✅ 已批准 |
+| `adr-0013-user-profile.md` | 用户画像管理 | ✅ 已批准 |
+| `adr-0014-conversation-context.md` | 对话上下文隔离 | ✅ 已批准 |
+| `adr-0015-iper-loop.md` | IPER 闭环推理 | ✅ 已批准 |
+| `adr-0016-try-catch.md` | 异常自动快照回溯 | ✅ 已批准 |
+| `adr-0017-counterfactual.md` | 反事实推理 | ✅ 已批准 |
+| `adr-0018-graph-guided.md` | 图引导假设生成 | ✅ 已批准 |
 
 ---
 
@@ -43,6 +52,7 @@ docs/
 | `layer0-refactor.md` | L0 重构计划 | Layer0 重构计划 |
 | `dsl.md` | DSL 规范 v3.9 | 最新 DSL 语言规范 |
 | `dsl-lib.md` | DSL 库规范 | DSL 子图和工具库 |
+| `phase2-standard-library.md` | Phase 2 标准库规划 | ADR-0010~0018 子图清单 |
 | `stdlib.md` | 标准库规范 | 内置工具和子图 |
 | `memory.md` | 记忆系统 | 上下文和记忆管理 |
 

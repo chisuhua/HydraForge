@@ -1,9 +1,9 @@
-# AgenticDSL v3.1 开发者指南  
+# AgenticDSL v3.10 开发者指南
 **构建可验证、可进化的智能体工作流**
 
-> **最后更新**：2025年10月28日  
-> **适用对象**：AI 工程师、智能体开发者、LLM 应用架构师  
-> **前置要求**：熟悉 AgenticDSL v3.1 规范（[链接](#)）
+> **最后更新**：2026年5月13日
+> **适用对象**：AI 工程师、智能体开发者、LLM 应用架构师
+> **前置要求**：熟悉 AgenticDSL v3.10 规范（[链接](#)）
 
 ---
 
@@ -15,7 +15,7 @@
 pip install agentic-cli
 
 # 验证安装
-agentic --version  # 应输出 v3.1+
+agentic --version  # 应输出 v3.10+
 ```
 
 ### 1.2 创建 `.agent.md` 文件
@@ -24,7 +24,7 @@ agentic --version  # 应输出 v3.1+
 ```markdown
 ### AgenticDSL `/__meta__`
 yaml
-version: "3.1"
+version: "3.10"
 mode: dev
 execution_budget:
   max_nodes: 10
@@ -210,6 +210,113 @@ agentic extract-train-data solve_math.agent.md
 | `ERR_SIGNATURE_VIOLATION` | 签名不合规 | 检查 LLM 生成的子图 |
 | `ERR_BUDGET_EXCEEDED` | 预算超限 | 增加 `max_nodes` 或优化 DAG |
 
+### 4.4 ToolRegistry 安全模型（ADR-4）
+
+ADR-4 定义了三层防御安全架构：
+
+#### 权限分层：Allow/Ask/Deny
+```yaml
+type: tool_call
+tool: fs.read
+permission: ask  # 执行前需要用户确认
+```
+
+| 权限级别 | 行为 |
+|---------|------|
+| `allow` | 直接执行，无确认 |
+| `ask` | 发送 USER_INPUT 事件，等待用户确认 |
+| `deny` | 直接拒绝，返回错误 |
+
+#### 路径策略
+```yaml
+type: tool_call
+tool: fs.write
+permission: ask
+path_policy:
+  allowed_prefixes: ["/workspace/project/HydraForge", "/tmp/agentic"]
+  denied_patterns: ["**/.git/**", "**/secrets/**"]
+```
+
+#### 危险命令检测
+```yaml
+type: tool_call
+tool: shell.exec
+permission: deny
+dangerous_patterns:
+  - "rm -rf"
+  - "sudo"
+  - "mkfs"
+```
+
+### 4.5 LayeredContext 状态管理（ADR-8）
+
+ADR-8 引入了分层上下文结构，提供类型安全的上下文访问：
+
+#### 上下文分层
+| 层级 | 内容 | 压缩策略 |
+|------|------|---------|
+| L1 System | agent_prompt, tool_definitions, current_task | 永不压缩 |
+| L2 Recent | 最近 5 轮对话 | 完整保留 |
+| L3 Archive | 压缩后的历史对话 | 5-10x 压缩 |
+
+#### state.read / state.write
+```yaml
+### AgenticDSL `/lib/tools/read_context@v1`
+yaml
+type: tool_call
+tool: state.read
+args:
+  path: "user.profile.name"
+  layer: recent  # 可选：recent, archive, system
+
+### AgenticDSL `/lib/tools/write_context@v1`
+yaml
+type: tool_call
+tool: state.write
+args:
+  path: "session.intermediate_result"
+  value: "{{ $.temp }}"
+  layer: recent
+```
+
+#### 合并策略
+```yaml
+context_merge_policy:
+  "user.profile": "deep_merge"      # 递归合并对象
+  "session.results": "array_concat"  # 数组拼接
+  "config": "error_on_conflict"     # 冲突则报错
+```
+
+### 4.6 上下文压缩（ADR-7）
+
+ADR-7 定义了自动上下文压缩机制，防止超出 LLM 上下文窗口：
+
+#### 触发条件
+| 条件 | 阈值 | 行为 |
+|------|------|------|
+| Token 阈值 | n_ctx 的 70% | 启动压缩 |
+| 轮次阈值 | 100 轮 | 触发摘要 |
+| 时间阈值 | 长时间无活动 | 辅助触发 |
+
+#### 压缩效果
+```
+原始对话（50 轮）→ Recent Buffer（5 轮完整） + Archive（45 轮摘要）
+压缩比：5-10x
+```
+
+#### 配置示例
+```yaml
+### AgenticDSL `/__meta__`
+yaml
+version: "3.10"
+compression:
+  enabled: true
+  token_threshold: 0.7      # n_ctx 的 70%
+  recent_turns: 5          # 最近 5 轮完整保留
+  archive_limit: 10        # 最多 10 个摘要
+  summary_llm: "qwen-0.6b"  # 轻量模型做摘要
+```
+
 ---
 
 ## 五、高级模式：实现复杂工作流
@@ -319,7 +426,7 @@ permissions:
 | `/lib/human/approval` | `request: string` | `approved: bool, comment: string` | 人工审批 |
 | `/lib/workflow/parallel_map` | `items: array, subgraph: path` | `results: array` | 并行映射 |
 
-> 完整清单见 [AgenticDSL v3.1 规范附录 C](#)
+> 完整清单见 [AgenticDSL v3.10 规范附录 C](#)
 
 ---
 
@@ -327,5 +434,5 @@ permissions:
 > AgenticDSL 让你将 LLM 的创造力约束在可验证、可进化的工程框架中——  
 > 这正是构建可靠智能体的未来之路。
 
-**© 2025 AgenticDSL Working Group. All rights reserved.**  
+**© 2026 AgenticDSL Working Group. All rights reserved.**  
 *本指南采用 CC BY-SA 4.0 许可，欢迎社区共建。*

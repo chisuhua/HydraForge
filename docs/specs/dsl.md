@@ -74,20 +74,243 @@ AgenticDSL支持：
 
 ## 四、公共契约
 
-### 4.1 上下文模型（Context）
-全局可变字典，支持嵌套路径（如 `user.name`）
-**合并策略（字段级、可继承）**：
+### 4.1 分层上下文模型（LayeredContext）
+
+AgenticDSL v3.10 引入**分层上下文（LayeredContext）**，替代原有的扁平 `Context = nlohmann::json` 模型。分层结构提供清晰的类型边界、压缩感知和工具访问控制。
+
+#### 4.1.1 分层结构（L1-L5）
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  LayeredContext (C++ struct)                                │
+│                                                             │
+│  C++ 类型安全                                                │
+│  ├─ 分层边界清晰                                            │
+│  ├─ 编译期类型检查                                          │
+│  └─ IDE 自动补全                                            │
+│                                                             │
+│  nlohmann::json 内部                                        │
+│  ├─ 保持 AgenticDSL 的 JSON 灵活性                         │
+│  ├─ 工具层仍用 JSON 操作                                    │
+│  └─ 压缩/序列化透明                                          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+| 层级 | 名称 | 说明 | 压缩策略 |
+|------|------|------|----------|
+| L1 | System | Agent 提示词、工具定义、当前任务、DSL 版本 | **永不压缩/丢弃** |
+| L2 | Recent | 最近 N 轮对话（完整保留） | 由 ADR-7 ContextCompressor 管理 |
+| L3 | Archive | 压缩后的历史对话摘要 | 由 ADR-7 ContextCompressor 管理 |
+| L4 | Working | 当前执行状态，工具可读写 | 工具可写入 |
+| L5 | Meta | 元数据（schema_version, task_id, total_turns, compress_count） | 只读 |
+
+#### 4.1.2 C++ 结构定义
+
+```cpp
+struct LayeredContext {
+    // L1: System（永不压缩/丢弃）
+    struct SystemLayer {
+        std::string agent_prompt;                        // Agent 提示词
+        std::vector<ToolDef> tool_definitions;            // 工具定义
+        std::string current_task;                         // 当前任务描述
+        DSLVersion dsl_version;                           // DSL 版本
+    } system;
+
+    // L2: Recent（最近 N 轮，完整保留）
+    std::vector<ContextTurn> recent_turns;               // 最近 5 轮
+
+    // L3: Archive（压缩后历史）
+    std::vector<ArchiveEntry> archive;                   // 压缩归档
+
+    // L4: Working（当前执行状态，工具可写）
+    struct WorkingLayer {
+        nlohmann::json data;                             // 工具通过 state.write 写入
+        std::string& operator[](const std::string& key) { return data[key]; }
+        const nlohmann::json& at(const std::string& key) const { return data.at(key); }
+        bool contains(const std::string& key) const { return data.contains(key); }
+    } working;
+
+    // L5: Meta（元数据）
+    struct MetaLayer {
+        int schema_version = CURRENT_SCHEMA_VERSION;     // Schema 版本
+        std::string task_id;                             // 任务 ID
+        int total_turns = 0;                             // 累计轮次
+        int compress_count = 0;                           // 累计压缩次数
+        std::chrono::steady_clock::time_point created_at;
+        std::chrono::steady_clock::time_point last_updated_at;
+    } meta;
+};
+
+struct ArchiveEntry {
+    int turn_start;                                      // 起始轮次
+    int turn_end;                                        // 结束轮次
+    std::string conversation_summary;                    // 对话摘要
+    std::vector<ToolResultSummary> tool_summaries;       // 工具摘要
+    std::chrono::steady_clock::time_point timestamp;
+};
+
+struct ContextTurn {
+    int turn_number;
+    std::string user_input;
+    std::string llm_output;
+    std::vector<ToolCall> tool_calls;                    // 该轮工具调用
+    std::string error;                                   // 错误（如果有）
+};
+```
+
+#### 4.1.3 JSON 表示
+
+```json
+{
+    "system": {
+        "agent_prompt": "You are a helpful assistant...",
+        "tool_definitions": [
+            {"name": "fs.read", "description": "Read file", "params": {...}},
+            {"name": "state.write", "description": "Write to working memory", "params": {...}}
+        ],
+        "current_task": "Analyze the codebase and generate a report",
+        "dsl_version": "3.10"
+    },
+
+    "recent_turns": [
+        {
+            "turn_number": 11,
+            "user_input": "Show me the main files",
+            "llm_output": "I'll analyze the structure...",
+            "tool_calls": [
+                {"name": "fs.read", "arguments": {"path": "src/main.cpp"}, "result": "..."}
+            ]
+        },
+        {
+            "turn_number": 12,
+            "user_input": "Good, now summarize",
+            "llm_output": "Based on my analysis...",
+            "tool_calls": []
+        }
+    ],
+
+    "archive": [
+        {
+            "turn_start": 1,
+            "turn_end": 5,
+            "conversation_summary": "User explored project structure, read README and main files. Identified 3 key modules.",
+            "tool_summaries": [
+                {"tool": "fs.read", "key_output": "README.md: 200 lines", "success": true},
+                {"tool": "fs.read", "key_output": "src/main.cpp: 150 lines", "success": true}
+            ],
+            "timestamp": "2026-05-12T10:30:00Z"
+        }
+    ],
+
+    "working": {
+        "data": {
+            "analysis_results": {"modules_found": 3, "key_files": ["a.cpp", "b.cpp"]},
+            "user_preferences": {"verbose": false}
+        }
+    },
+
+    "meta": {
+        "schema_version": 1,
+        "task_id": "task_001",
+        "total_turns": 12,
+        "compress_count": 1,
+        "created_at": "2026-05-12T10:00:00Z",
+        "last_updated_at": "2026-05-12T10:35:00Z"
+    }
+}
+```
+
+#### 4.1.4 工具访问：state.read / state.write
+
+LayeredContext 通过 `StateTools` 类提供唯一的工具访问入口：
+
+```cpp
+class StateTools {
+public:
+    explicit StateTools(LayeredContext& ctx) : ctx_(ctx) {}
+
+    // 读接口
+    nlohmann::json read(const std::string& path) {
+        auto [layer, key] = parse_path(path);
+        switch (layer) {
+            case Layer::System:
+                return ctx_.system.at(key);              // system.* 只读
+            case Layer::Recent:
+                return ctx_.recent_turns.at(std::stoi(key));  // recent.* 只读
+            case Layer::Archive:
+                return ctx_.archive.at(std::stoi(key));  // archive.* 只读
+            case Layer::Working:
+                return ctx_.working.at(key);             // working.data.* 可读写
+            case Layer::Meta:
+                return ctx_.meta.at(key);               // meta.* 只读
+            default:
+                throw StateError{"Invalid path: " + path};
+        }
+    }
+
+    // 写接口（只允许 working.data.*）
+    void write(const std::string& path, const nlohmann::json& value) {
+        auto [layer, key] = parse_path(path);
+        if (layer != Layer::Working) {
+            throw StateError{
+                "Write not allowed to " + path + ". Only working.* is writable."
+            };
+        }
+        ctx_.working[key] = value;
+    }
+
+    std::vector<std::string> list_keys(const std::string& prefix);
+
+private:
+    LayeredContext& ctx_;
+    enum class Layer { System, Recent, Archive, Working, Meta };
+    std::pair<Layer, std::string> parse_path(const std::string& path);
+};
+```
+
+**DSL 中使用 state 工具**：
+
+```yaml
+AgenticDSL `/main/analyze`
+type: tool_call
+tool: state.write
+arguments:
+  path: "working.data.analysis_results"
+  value: {"modules": 3, "status": "in_progress"}
+next: "/main/continue"
+
+AgenticDSL `/main/use_memory`
+type: tool_call
+tool: state.read
+arguments:
+  path: "working.data.previous_results"
+next: "/main/continue"
+```
+
+#### 4.1.5 路径前缀与访问权限
+
+| 路径前缀 | 读权限 | 写权限 | 说明 |
+|----------|--------|--------|------|
+| `system.*` | ✅ | ❌ | Agent 配置，工具禁止修改 |
+| `recent.*` | ✅ | ❌ | 由引擎管理 |
+| `archive.*` | ✅ | ❌ | 由 ADR-7 压缩器管理 |
+| `working.*` | ✅ | ✅ | 工具的"沙箱"写入区域 |
+| `meta.*` | ✅ | ❌（仅引擎） | 元数据，只读 |
+
+#### 4.1.6 合并策略与分层集成
+
+LayeredContext 的各层遵循以下合并策略：
 
 | 策略 | 行为说明 |
 |------|----------|
 | `error_on_conflict`（默认） | 任一字段在多个分支中被写入 → 报错终止 |
-| `last_write_wins` | 以最后完成的节点写入值为准（仅用于幂等操作，禁用于 `prod` 模式） |
-| `deep_merge` | 递归合并对象；数组完全替换（非拼接）；标量覆盖（严格遵循 RFC 7396） |
-| `array_concat` | 数组拼接（保留顺序，允许重复） |
-| `array_merge_unique` | 数组拼接 + 去重（基于 JSON 序列化值） |
+| `last_write_wins` | 以最后完成的节点写入值为准 |
+| `deep_merge` | 递归合并对象；数组完全替换；标量覆盖 |
 
-✅ **字段级策略继承**：支持通配路径（如 `results.*`），子图策略优先于父图  
-✅ **结构化冲突错误**：必须包含字段路径、各分支值、来源节点、错误码 `ERR_CTX_MERGE_CONFLICT`
+**分层感知的压缩**：
+- L2（Recent）和 L3（Archive）由 ADR-7 ContextCompressor 管理
+- 压缩后的摘要存储在 `archive[]`，原始对话移至 `recent_turns[]`
+- System 层永不压缩，确保 Agent 行为一致性
 
 ### 4.2 Inja 模板引擎（安全模式）
 ✅ **允许**：变量（如 `{{ $.path }}`）、条件、循环、表达式  
@@ -296,6 +519,141 @@ auto tool = std::make_unique<LlamaTool>(LlamaAdapter::Config{
 });
 engine->register_llm_tool("llama-7b", std::move(tool));
 ```
+
+## 五点五、流式 LLM 接口（ADR-1 类型扩展）
+
+> **v3.10 新增**：本节定义 ADR-1 流式接口的类型和契约，适用于 `dsl_call` 的流式模式。
+
+### 5.5.1 IGenerationStream 接口
+
+拉取式流式生成器接口，调用方通过 `next()` 主动拉取 token：
+
+```cpp
+class IGenerationStream {
+public:
+    virtual ~IGenerationStream() = default;
+
+    // 阻塞直到下一个 token 可用
+    // - 返回 std::string: 有效的 token
+    // - 返回 std::nullopt: 生成结束
+    // - 若 token.stop_requested() 为 true，应立即返回 std::nullopt
+    virtual std::optional<std::string> next(std::stop_token token) = 0;
+
+    // 检查生成是否仍在进行
+    virtual bool is_active() const = 0;
+};
+```
+
+**设计原则**：
+- 拉取模式（调用方控制节奏）而非推送模式（回调）
+- `std::stop_token` 是 C++20 标准协作取消机制
+- 即使后端不支持真正的请求取消（如 Anthropic SSE），也可在 `next()` 中检测停止请求后丢弃后续数据
+
+### 5.5.2 LLMError 结构
+
+结构化错误类型，替代传统的 `bool success + string error` 反模式：
+
+```cpp
+struct LLMError {
+    enum class Code {
+        NetworkError,       // 网络中断，可重试
+        RateLimited,        // 限流，带 retry_after
+        AuthenticationError, // 认证失败，不重试
+        Cancelled,          // 用户取消
+        InvalidRequest,     // 参数错误
+        ServerError,        // 服务端错误，可重试
+        ContextOverflow,    // 上下文超限
+        Unknown
+    };
+
+    Code code;
+    std::string message;
+    std::optional<std::chrono::seconds> retry_after;
+
+    bool retryable() const {
+        return code == Code::RateLimited
+            || code == Code::ServerError
+            || code == Code::NetworkError;
+    }
+};
+```
+
+**错误码说明**：
+| 错误码 | 可重试 | 说明 |
+|--------|--------|------|
+| `NetworkError` | ✅ | 网络中断，客户端可自行重试 |
+| `RateLimited` | ✅ | 限流，`retry_after` 指明等待时间 |
+| `AuthenticationError` | ❌ | 认证失败，不应重试 |
+| `Cancelled` | ❌ | 用户主动取消 |
+| `InvalidRequest` | ❌ | 参数错误，修复前无法重试 |
+| `ServerError` | ✅ | 服务端错误，可重试 |
+| `ContextOverflow` | ⚠️ | 上下文超限，可能需要压缩策略 |
+| `Unknown` | ❌ | 未知错误 |
+
+### 5.5.3 generate_stream() 方法
+
+ILLMProvider 的流式生成方法：
+
+```cpp
+class ILLMProvider {
+public:
+    virtual ~ILLMProvider() = default;
+
+    // 同步模式（简单场景用）
+    virtual std::expected<GenerationResult, LLMError>
+        generate(const GenerationRequest& req,
+                 std::stop_token token = {}) = 0;
+
+    // 流式模式（返回 stream handle，调用方拉取）
+    virtual std::unique_ptr<IGenerationStream>
+        generate_stream(const GenerationRequest& req,
+                        std::stop_token token = {}) = 0;
+
+    virtual bool is_available() const = 0;
+    virtual std::string name() const = 0;
+};
+```
+
+**使用示例**：
+```cpp
+std::stop_source stop_src;
+auto stream = provider.generate_stream(req, stop_src.get_token());
+
+while (auto token = stream->next(stop_src.get_token())) {
+    std::cout << *token << std::flush;
+    if (*token == "<DONE>") break;
+}
+
+// 取消执行
+stop_src.request_stop();
+```
+
+### 5.5.4 dsl_call 流式模式
+
+`dsl_call` 支持流式输出，通过 `stream: true` 字段启用：
+
+```yaml
+type: dsl_call
+prompt_template: "请生成一个故事"
+llm_tool_name: "llama-7b"
+llm_params:
+  temperature: 0.8
+  max_tokens: 1024
+output_keys: ["story"]
+stream: true              # 启用流式输出
+next: "/main/process"
+```
+
+**执行器行为**：
+- 调用 `ILLMProvider::generate_stream()` 而非 `generate()`
+- 每个 token 实时写入 `output_keys[0]` 对应的上下文字段
+- 支持 `std::stop_token` 取消
+- 流式模式下 Trace 输出包含 `streamed_tokens` 计数
+
+**取消机制**：
+- Ctrl+C 或超时触发 `stop_source.request_stop()`
+- `IGenerationStream::next()` 检测到 `token.stop_requested()` 时立即返回 `std::nullopt`
+- 执行器清理资源并跳转到 `on_error`（若定义）
 
 ## 六、统一文档结构
 

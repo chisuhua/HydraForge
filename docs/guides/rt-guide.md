@@ -2,6 +2,10 @@
 
 > **目标**：提供一个**可验证、可嵌入、可扩展**的参考实现，完整支持 AgenticDSL v3.10+ 规范的核心能力，强化 **三层架构隔离、资源声明联动、C++ 推理内核集成、动态子图生成** 四大特性。v3.9 规范中的**安全归档**（`archive_to` 签名强制校验）当前为部分实现，计划在后续迭代中完善。
 
+> **文档边界**：本文档是 **运行时部署指南**，聚焦 HarnessEngine CLI、EventBus 配置、执行器使用示例。引擎内部模块设计、代码结构、重构计划详见 [`layer0.md`](../specs/layer0.md)。
+
+---
+
 ## 一、总体架构
 
 执行器采用 **分层 + 模块化** 设计，所有模块通过清晰接口交互，无全局状态。
@@ -902,3 +906,22 @@ DSLNode.llm_tool_name = "llama-7b"
 | 上下文合并策略 | `ContextEngine` | `test_scheduler.cpp` | error_on_conflict、last_write_wins、deep_merge |
 | 预算超限 | `BudgetController` | `test_scheduler.cpp` | max_nodes=2 时执行 3 节点，验证提前终止 |
 | 标准库加载 | `StandardLibraryLoader` | `test_library_loader.cpp` | 从目录加载 /lib/** 子图 |
+
+---
+
+## 六、跨文档索引
+
+本文档聚焦 **运行时部署和用户接口**。以下主题的 **引擎内部设计** 详见 `docs/specs/layer0.md`：
+
+| 主题 | layer0.md 章节 |
+|------|---------------|
+| 节点类型系统（详细设计） | §3 节点类型系统 |
+| ParsedGraph 完整结构 | §3.2 ParsedGraph 结构 |
+| 调度器重构计划（智能优先级） | §5.2 重构计划：智能调度增强 |
+| 执行器 state 工具支持 | §6.2 重构计划：state 工具支持 |
+| BudgetController 重构计划 | §7.2 重构计划：自适应预算 |
+| LLM 适配器多后端重构 | §10.2 重构计划：多后端适配器接口 |
+| 标准库分层重构 | §11.2 重构计划：分层标准库 |
+| 追踪模块完整设计 | §12 追踪导出模块 |
+
+**HarnessEngine 线程模型**（运行时组件，非引擎内部）：详见 `docs/adr/adr-0006-harness-engine-thread-model.md`。

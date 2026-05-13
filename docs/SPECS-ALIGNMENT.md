@@ -85,12 +85,13 @@
 
 当规范更新后，在此记录：
 
-- [ ] `specs/dsl.md` - 待更新
-- [ ] `specs/dsl-lib.md` - 待更新
-- [ ] `specs/layer0.md` - 待更新
-- [ ] `guides/developer-guide.md` - 待更新
+- [x] `specs/dsl.md` - ✅ 已更新（v3.10，流式接口、LayeredContext）
+- [x] `specs/dsl-lib.md` - ✅ 已更新（v3.10，完全重写）
+- [x] `specs/layer0.md` - ✅ 已更新（HarnessEngine）
+- [x] `guides/developer-guide.md` - ✅ 已更新（v3.10）
 - [ ] `guides/rt-guide.md` - 待更新
+- [ ] `specs/architecture.md` - 待更新（llm_generate_dsl 残留）
 
 ---
 
-*最后更新: 2026-05-12*
+*最后更新: 2026-05-13*
