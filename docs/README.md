@@ -114,6 +114,33 @@ docs/
 
 ---
 
+## agenticdsl/ - AgenticDSL 语言演进文档
+
+> **与 docs/adr/ 和 docs/specs/ 的关系**：`docs/adr/` 记录引擎实现决策，`docs/specs/` 描定当前引擎行为（v3.10）；
+> `docs/agenticdsl/` 记录**语言演进提案**，讨论 AgenticDSL 应该往哪个方向演化及其实现路径。
+
+文档组织按**话题领域**（而非文档类型），共 13 个子目录：
+
+| 目录 | 话题 | 关联现有文档 |
+|------|------|------------|
+| `vision/` | 自举愿景与演进路线图 | [specs/dsl.md](specs/dsl.md), [specs/architecture.md](specs/architecture.md) |
+| `skill-system/` | 技能分类体系、invoke/compose 语法、39 技能全量映射 | [superpowers/](superpowers/), [adr/adr-0009](adr/adr-0009-dsl-standard-library.md) |
+| `session-state/` | 四层隔离模型、ModuleState/Yield/Fork 语义、Oracle 问答 | [adr/adr-0014](adr/adr-0014-conversation-context.md), [adr/adr-0008](adr/adr-0008-structured-context.md) |
+| `inference-stdlib/` | 推理标准库接口设计与子图规格 | [adr/adr-0001](adr/adr-0001-illm-provider-streaming-interface.md), [specs/dsl-lib.md](specs/dsl-lib.md) |
+| `language-extensions/` | 类型系统、模块命名空间、标准库扩展 | [specs/dsl.md](specs/dsl.md), [specs/dsl-lib.md](specs/dsl-lib.md) |
+| `implementation-roadmap/` | 6 步实施计划与代码映射 | [src/](../src/) |
+| `research/` | 推理引擎调研报告（vLLM/SGLang/llama.cpp） | [adr/adr-0001](adr/adr-0001-illm-provider-streaming-interface.md) |
+| `architecture/` | 推理架构、路由器、质量评估器设计 | [adr/adr-0001](adr/adr-0001-illm-provider-streaming-interface.md), [adr/adr-0008](adr/adr-0008-structured-context.md) |
+| `optimization/` | 推理优化方向方案（6 维度） | — |
+| `implementation/` | 自举实施路径、阶段 0 实施方案 | [adr/adr-0001](adr/adr-0001-illm-provider-streaming-interface.md), [adr/adr-0005](adr/adr-0005-llm-backend-config-factory.md) |
+| `testing/` | 测试策略（金字塔、Mock 策略、CI） | — |
+| `api/` | CloudLLMAdapter API 设计 | [adr/adr-0001](adr/adr-0001-illm-provider-streaming-interface.md), [adr/adr-0005](adr/adr-0005-llm-backend-config-factory.md) |
+| `operations/` | 安全规范、性能基准 | [adr/adr-0004](adr/adr-0004-toolregistry-security.md) |
+
+详细索引见 [agenticdsl/README.md](agenticdsl/README.md)。
+
+---
+
 ## superpowers/ - Superpowers Skill 工件
 
 参见 `superpowers/` 目录内部索引。
@@ -124,4 +151,5 @@ docs/
 
 | 日期 | 更新内容 |
 |------|---------|
-| 2026-05-12 | 完成文档重组，新增 9 个 ADR |
+| 2026-05-20 | 新增 agenticdsl/ 目录（16 篇语言演进文档），按话题组织 |
+| 2026-05-23 | 扩展至 30+ 篇文档，新增 research/architecture/optimization/implementation/testing/api/operations 7 个目录 |
