@@ -2,7 +2,13 @@
 
 ## 状态
 
-**已批准** (2026-05-12)
+**已替代** (2026-05-25)
+
+> 本 ADR 已被 [ADR-0020: 多智能体线程模型与隔离策略](./adr-0020-thread-model-isolation.md) 替代。
+>
+> HarnessEngine 的"每 Agent 一线程"模型不再适用。详见 ADR-0020 的 CognitiveWorker + DomainWorkerPool 模型。
+
+原批准日期: 2026-05-12
 
 ## 背景
 
