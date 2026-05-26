@@ -9,7 +9,8 @@ docs/
 ├── guides/           # 用户和开发者指南
 ├── design/           # 设计文档
 ├── archive/          # 归档 (过期版本)
-└── superpowers/      # Superpowers skill 工件
+├── superpowers/      # Superpowers skill 工件
+└── implementation-roadmap.md  # 实施路线图 (跨 ADR 执行追踪)
 ```
 
 ---
@@ -25,7 +26,8 @@ docs/
 | `adr-0003-dslengine-thread-safety.md` | DSLEngine 线程安全 | ✅ 已批准 |
 | `adr-0004-toolregistry-security.md` | ToolRegistry 安全模型 | ✅ 已批准 |
 | `adr-0005-llm-backend-config-factory.md` | LLM 后端配置与工厂 | ✅ 已批准 |
-| `adr-0006-harness-engine-thread-model.md` | HarnessEngine 后台线程 | ✅ 已批准 |
+| `adr-0006-harness-engine-thread-model.md` | HarnessEngine 后台线程 | 🔄 已替代 (→ADR-0020) |
+| `relationships.md` | ADR 联合分析、依赖关系、实施顺序 | 📋 跨 ADR 参考 |<!-- 非 ADR，独立文件 -->
 | `adr-0007-context-compression.md` | 上下文压缩机制 | ✅ 已批准 |
 | `adr-0008-structured-context.md` | 结构化 Context | ✅ 已批准 |
 | `adr-0009-dsl-standard-library.md` | DSL 标准库规划 | ✅ 已批准 |
@@ -38,6 +40,11 @@ docs/
 | `adr-0016-try-catch.md` | 异常自动快照回溯 | ✅ 已批准 |
 | `adr-0017-counterfactual.md` | 反事实推理 | ✅ 已批准 |
 | `adr-0018-graph-guided.md` | 图引导假设生成 | ✅ 已批准 |
+| `adr-0019-iinteraction-bus-mvp.md` | IInteractionBus 接口与 TUI Chat MVP | 🔍 提议中 |
+| `adr-0020-thread-model-isolation.md` | 多智能体线程模型与隔离策略 | 🔍 提议中 |
+| `adr-0021-pdk-design.md` | Plugin Development Kit (PDK) 设计 | 🔍 提议中 |
+| `adr-0022-plugin-loading.md` | 插件加载机制 | 🔍 提议中 |
+| `adr-0023-tool-result-standard.md` | ToolResult 标准化 | 🔍 提议中 |
 
 ---
 
