@@ -102,15 +102,10 @@ Phase 5 — 自举与服务化 (远期)
 
 | # | 文件 | 操作 | 状态 | 说明 |
 |---|------|------|------|------|
-| P0.0 | `include/hydraforge/cognitive/` | 新建目录 | [ ] | 创建头文件目录层级 |
-| P0.0 | `include/hydraforge/policy/` | 新建目录 | [ ] | 同上 |
-| P0.0 | `include/hydraforge/types/` | 新建目录 | [ ] | 同上 |
-| P0.1 | `include/hydraforge/cognitive/icognitive_orchestrator.h` | 新建 | [ ] | `ICognitiveOrchestrator` 纯虚接口 (process 方法) |
-| P0.2 | `include/hydraforge/policy/iexecution_policy.h` | 新建 | [ ] | `IExecutionPolicy` 纯虚接口 (requires_approval 方法) |
+| P0.1 | `include/hydraforge/cognitive/icognitive_orchestrator.h` | 新建 | [ ] | `ICognitiveOrchestrator` 抽象接口 (process 方法) |
+| P0.2 | `include/hydraforge/policy/iexecution_policy.h` | 新建 | [ ] | `IExecutionPolicy` 抽象接口 (requires_approval 方法) |
 | P0.3 | `include/hydraforge/types/session_fwd.h` | 新建 | [ ] | `UserSession`, `TaskSession`, `SubtaskSession` 前置声明 |
-| P0.4 | `CMakeLists.txt` (根) | 修改 | [ ] | `target_include_directories(... include/hydraforge/)` |
-
-> **与 Phase 3 的边界**: Pre-Phase 仅声明纯虚接口 (`virtual ... = 0`)，不含任何实现。Phase 3 ADR-0031 P1 才首次提供具体 `AgentModePolicy` 类。Pre-Phase 的目的是让 Phase 0 的 `SimpleCognitiveOrchestrator` 和 Phase 3 的 `ToolCoordinator` 有统一的编译目标。
+| P0.4 | `CMakeLists.txt` (根) | 修改 | [ ] | 添加 `include/hydraforge/` 到头文件搜索路径 |
 
 ### 关键接口
 
@@ -165,17 +160,13 @@ public:
 > 2. 最小代码量，不做工程完备
 > 3. 可独立验证，有明确"通/不通"标准
 >
-> **工期估算**: 7-10 天 (3 个 Track，其中 0.1/0.3 并行，0.2 串行依赖 0.1)
+> **工期估算**: 1-2 周 (3 个并行 Track)
 
 ```
-Track 0.1 ─ 云端 LLM 集成 (独立)       3-4 天    ────┐
-Track 0.2 ─ 三层调用链验证 (依赖 0.1)    5-7 天        └──→ 0.2 开始于 0.1 之后
-Track 0.3 ─ 最小契约层 (与 0.1 并行)     2-3 天    ────┘
-                                       ─────────
-                            总工期:    7-10 天
+Track 0.1 ─ 云端 LLM 集成 (独立)
+Track 0.2 ─ 三层调用链验证 (依赖 Track 0.1)
+Track 0.3 ─ 最小契约层 (与 0.1/0.2 并行)
 ```
-
-> **任务编号说明**: `M1.x`~`M3.x` 属 Track 0.1，`M4.x` 属 Track 0.2，`M5.x`~`M6.x` 属 Track 0.3。编号不连续是因 Track 独立并行，并非遗漏。
 
 ---
 
@@ -222,7 +213,7 @@ Track 0.3 ─ 最小契约层 (与 0.1 并行)     2-3 天    ────┘
 **来源**: `docs/implementation-slices.md` Slice 01
 **目标**: 验证 ADR-0036 混合内核架构核心假设：基座层→认知层→领域层能通
 **前提**: Track 0.1 (需要 LLM 能力)
-**工期**: 5-7 天 (含 MockLLMProvider、错误路径验证和可运行示例)
+**工期**: 3-5 天
 
 #### 验证场景
 
@@ -284,10 +275,6 @@ class ICognitiveOrchestrator {
 //   3. callback(result)
 ```
 
-> **SimpleCognitiveOrchestrator 替换计划**: MVP 阶段使用 `SimpleCognitiveOrchestrator`（硬编码 ReAct）。
-> - Phase 4 ADR-0036 创建完整 `CognitiveOrchestrator`（基于 IPER 闭环）
-> - Phase 4.5 清理时删除 `SimpleCognitiveOrchestrator` 和所有 `TODO(mvp)` 标记
-
 **验证标准**:
 - ✅ `examples/slice_01_tool_call --mock` 输出完整调用链 (MockLLM→Tool→结果)，< 1 秒
 - ✅ `examples/slice_01_tool_call --live` 输出完整调用链 (真实 LLM→Tool→结果)
@@ -326,16 +313,6 @@ class ICognitiveOrchestrator {
 - MVP 阶段 `bus_` 使用 `std::mutex` (非 `std::atomic<std::shared_ptr>`)
 - `ToolResult` 信封格式: `{"ok": bool, "data": ..., "meta": {...}}`
 - 错误码格式: `ERR_<DOMAIN>.<SUB>`
-
-**IInteractionBus 三阶段演进**:
-
-```
-Phase 0 (MVP):  InMemoryBus(Mutex)     ← std::mutex + std::queue, 单线程基础版
-Phase 1:         DSLEngine 集成          ← bus_ 被 engine 持有, NodeExecutor 逐 token 推送
-Phase 2:         InMemoryBus(EventBus)  ← 后端切换为 MPMC EventBus, 接口对上层透明
-```
-
-各阶段向后兼容——上层代码 (`CognitiveWorker`, `NodeExecutor`) 无需修改。
 
 **验证**: `InMemoryBus` 单元测试通过 | `ToolResult::from_json(to_json()) == 原始值`
 
@@ -412,25 +389,18 @@ Phase 2:         InMemoryBus(EventBus)  ← 后端切换为 MPMC EventBus, 接�
 
 ---
 
-## Phase 2 — 异步架构 (ADR-0030 + ADR-0002 V2)
+## Phase 2 — 异步架构 (ADR-0030)
 
 > **前提**: Phase 1 智能体层完成
-> **状态**: ADR-0030 ✅ 已批准 / ADR-0002 V2 ✅ 已批准，全部待实施
-
-Phase 2 合并两路并行工作流：
-- **ADR-0030**: AsyncRuntime 双层异步 (Taskflow + async_simple)
-- **ADR-0002 V2**: EventBus MPMC 有界队列 (CostCollector、可观测性的基础)
+> **状态**: ✅ 已批准，待实施
 
 ### ADR-0030 P1 — 引入依赖
 
-> **注意**: 此任务由 **Slice 00** 预先完成。本处仅复用成果，无需重复实施。
-> **参考**: Slice 00 已引入 Taskflow v4.0 + async_simple v1.4 到 `external/` 并验证编译通过。
-
 | # | 文件 | 操作 | 状态 | 说明 |
 |---|------|------|------|------|
-| 6.1 | `external/taskflow/` | ✅ 复用 Slice 00 | [x] | Slice 00 已引入 |
-| 6.2 | `external/async_simple/` | ✅ 复用 Slice 00 | [x] | Slice 00 已引入 |
-| 6.3 | `CMakeLists.txt` (根) | ✅ 复用 Slice 00 | [x] | Slice 00 已配置 |
+| 6.1 | `external/taskflow/` | 引入 | [ ] | Taskflow v4.0 (header-only) |
+| 6.2 | `external/async_simple/` | 引入 | [ ] | async_simple v1.4 |
+| 6.3 | `CMakeLists.txt` (根) | 修改 | [ ] | `add_subdirectory(external/taskflow)` + `add_subdirectory(external/async_simple)` |
 
 **约束**: `await_future()` 必须使用 `FutureAwaiter`，**禁止** `while + Yield` 轮询
 
@@ -463,52 +433,9 @@ Phase 2 合并两路并行工作流：
 
 ---
 
-### ADR-0002 V2 — EventBus 核心实现 (MPMC 有界队列)
-
-> **重要性**: CostCollector (Phase 3) 和未来可观测性全部依赖 EventBus。此为前置阻塞项。
-> **参考**: ADR-0002 `docs/adr/adr-0002-eventbus-bounded-queue.md`
-
-#### P1: EventBus 核心
-
-| # | 文件 | 操作 | 状态 | 说明 |
-|---|------|------|------|------|
-| 9.4 | `src/common/event/CMakeLists.txt` | 新建 | [ ] | 静态库 `agenticdsl_event` |
-| 9.5 | `src/common/event/event_types.h` | 新建 | [ ] | 事件类型目录（命名空间组织） |
-| 9.6 | `src/common/event/bounded_queue.h` | 新建 | [ ] | MPMC 有界队列模板 (容量 4096) |
-| 9.7 | `src/common/event/event_bus.h` | 新建 | [ ] | `IEventBus` + `InMemoryEventBus` 声明 |
-| 9.8 | `src/common/event/event_bus.cpp` | 新建 | [ ] | `InMemoryEventBus` 实现 |
-| 9.9 | `tests/test_event_bus.cpp` | 新建 | [ ] | 多线程 push/pop 测试 |
-
-**约束**:
-- 全局队列容量 4096，按优先级丢弃旧事件
-- Critical 事件永不丢弃（阻塞等待空位）
-- 独立分发线程，从队列取事件分发到订阅者
-- IInteractionBus 的 Phase 3 后端切换依赖此组件
-
-#### P2: DispatchMode + ADR-0030 集成
-
-| # | 文件 | 操作 | 状态 | 说明 |
-|---|------|------|------|------|
-| 9.10 | `src/common/event/event_bus.cpp` | 修改 | [ ] | 三种 DispatchMode: Inline / TaskflowAsync / CoroSpawn |
-| 9.11 | `tests/test_dispatch_mode.cpp` | 新建 | [ ] | DispatchMode 行为测试 |
-
-**验证**: ThreadSanitizer 无 data race | 1000 events/秒 Critical 无丢包 | DispatchMode 行为正确
-
----
-
 ## Phase 3 — 执行策略与安全
 
-> **前提**: Phase 1 (ToolResult), Phase 2 (AsyncRuntime + EventBus)
-> 
-> **Phase 3 内部执行顺序**:
-> ```
-> 1. ADR-0004 V2 P1 (ToolMetadata 定义)    ← 先定义元数据类型
-> 2. ADR-0031 P1 (AgentModePolicy)          ← 再实现策略逻辑
-> 3. ADR-0031 P3 (ToolCoordinator)          ← ToolRegistry 集成中间件
-> 4. ADR-0031 P2 (Plan/Yolo + 超时)        ← 扩展更多模式
-> 5. ADR-0004 V2 P2 (Registry 元数据注册)  ← 最后接入注册系统
-> ```
-> 核心依赖：`ToolMetadata` → `IExecutionPolicy` → `ToolCoordinator`
+> **前提**: Phase 1 (ToolResult), Phase 2 (AsyncRuntime for 协程挂起)
 
 ### ADR-0031 — IExecutionPolicy (P1-P4 完整分解)
 
@@ -718,14 +645,14 @@ class SimpleCognitiveOrchestrator : public ICognitiveOrchestrator {
 ┃
 🥇 P0.6    Slice 00 基础设施                     1-2天     异步依赖就绪
 ┃
-🥇 P0      Phase 0 MVP                          7-10天‡   验证核心架构
+🥇 P0      Phase 0 MVP                          1-2周     验证核心架构
 ┃          ├─ 0.1 云端LLM集成                   3-4天     可调用云端模型
 ┃          ├─ 0.2 三层调用链验证                 5-7天†    端到端通路 + 错误路径
 ┃          └─ 0.3 最小契约层                     2-3天     接口基础
 ┃
 🥈 P1      Phase 1 智能体层                      3-4周     多Agent+插件
 ┃
-🥉 P2      Phase 2 异步架构 + EventBus           2-3周     并行执行 + 事件总线
+🥉 P2      Phase 2 异步架构                      2-3周     并行执行
 ┃
 🥉 P3      Phase 3 执行策略+安全                 2-3周     审批+预算
 ┃
@@ -737,7 +664,6 @@ class SimpleCognitiveOrchestrator : public ICognitiveOrchestrator {
 ```
 
 † 工期较原估算 (3-5天) 上调：含接口定义、MockLLMProvider、错误路径验证和可运行示例。
-‡ Phase 0 总工期 7-10 天：0.1(3-4天) 和 0.3(2-3天) 并行，0.2(5-7天) 开始于 0.1 之后。非简单累加。
 
 ---
 
@@ -813,21 +739,12 @@ EventBus (Phase 2 ADR-0002 V2)
 | ADR-0021 P1 | — | ADR-0021 P2, ADR-0022 P2 |
 | ADR-0022 P1 | — | ADR-0022 P2, ADR-0022 P3 |
 | ADR-0023 P1 (Track 0.3) | — | ADR-0023 P2, ADR-0020 P3 |
-| Pre-Phase | — | Phase 0 Track 0.2, Phase 3 |
-| Slice 00 | — | Phase 2 ADR-0030 P1 |
-| ADR-0030 P1 | Slice 00 (复用) | ADR-0030 P2 |
+| ADR-0030 P1 | — | ADR-0030 P2 |
 | ADR-0030 P2 | ADR-0030 P1 | ADR-0030 P3 |
 | ADR-0030 P3 | ADR-0030 P2, ADR-0030 P4 | — |
 | ADR-0030 P4 | ADR-0030 P1 | ADR-0030 P3 |
-| ADR-0002 V2 P1 | — | ADR-0002 V2 P2, ADR-0032 P1 |
-| ADR-0002 V2 P2 | ADR-0002 V2 P1, ADR-0030 P2 | — |
-| ADR-0031 P1 | ADR-0004 V2 P1 (ToolMetadata) | ADR-0031 P2, ADR-0031 P3 |
-| ADR-0031 P2 | ADR-0031 P1 | — |
-| ADR-0031 P3 | ADR-0031 P1 | — |
-| ADR-0031 P4 | ADR-0031 P3 | — |
-| ADR-0004 V2 P1 | — | ADR-0031 P1 |
-| ADR-0004 V2 P2 | ADR-0004 V2 P1 | — |
-| ADR-0032 P1 | ADR-0002 V2 P1 | ADR-0032 P2 |
+| ADR-0031 P1 | — | ADR-0031 P2 |
+| ADR-0032 P1 | ADR-0002 P1 | ADR-0032 P2 |
 | ADR-0033 P1 | — | ADR-0033 P2 |
 | ADR-0034 P1 | — | ADR-0034 P2 |
 | ADR-0036 | ADR-0033, ADR-0031, ADR-0034, ADR-0030, ADR-0019 | — |
