@@ -13,6 +13,16 @@
 └── ADR-0001~0018 — 8 核心模块 + Common 组件 ~4,532 行
     │
     ▼
+Pre-Phase — 核心接口定义 (仅头文件)
+│   ├── ICognitiveOrchestrator 接口
+│   ├── IExecutionPolicy 接口
+│   └── Session 类型前置声明
+│
+    ▼
+Slice 00 — 基础设施验证
+│   └── Taskflow + async_simple external/ 引入 + CMake 配置
+│
+    ▼
 Phase 0 — MVP: 云端LLM集成 + 三层调用链验证
 │   ├── 0.1 云端 LLM 适配器 (OpenAI/Claude)
 │   ├── 0.2 三层调用链 (orchestrator → LLM → tool)
@@ -32,7 +42,8 @@ Phase 2 — 异步架构
 │
     ▼
 Phase 3 — 执行策略与安全
-│   ├── ADR-0031 IExecutionPolicy (Plan/Agent/YOLO)
+│   ├── ADR-0031 IExecutionPolicy (P1-P4 完整分解)
+│   ├── ADR-0031 ToolCoordinator (call_tool_with_policy 中间件)
 │   ├── ADR-0004 V2 元数据 + 审批
 │   ├── ADR-0032 CostCollector
 │   └── ADR-0033 Session 层级体系
@@ -40,7 +51,13 @@ Phase 3 — 执行策略与安全
     ▼
 Phase 4 — 模型路由与混合内核
 │   ├── ADR-0034 IModelRouter
-│   └── ADR-0036 混合内核架构 (取代 multi-domain-agent-architecture.md)
+│   └── ADR-0036 混合内核架构
+│
+    ▼
+Phase 4.5 — MVP 清理与技术债务消除
+│   ├── 替换 SimpleCognitiveOrchestrator 为正式实现
+│   ├── 移除 MockLLMProvider 和硬编码路由
+│   └── examples/ 目录职责梳理
 │
     ▼
 Phase 5 — 自举与服务化 (远期)
@@ -69,6 +86,68 @@ Phase 5 — 自举与服务化 (远期)
 | 2 | `tests/CMakeLists.txt` llama.cpp 引用 | ✅ 已修复 | 已移除已删除的依赖路径 |
 | 3 | 其他测试二进制构建超时 | ⚠️ 待排查 | 可能 yaml-cpp 或链接耗时过长 |
 | 4 | 无 `.clang-format` / `.clang-tidy` | [ ] 待添加 | 建议基础配置 |
+
+---
+
+## Pre-Phase — 核心接口定义 (仅头文件)
+
+> **来源**: Eric 审查建议 — ICognitiveOrchestrator、IExecutionPolicy、Session 类型应在任何实施前定义
+> **目标**: 确保所有 Phase 有统一编译目标，Slice 01 可直接继承
+> **工期**: 0.5 天
+> **原则**: 仅 `.h` 头文件，无 `.cpp` 实现，无行为
+
+本阶段定义的接口将在后续 Phase 中逐步实现：
+
+### 接口清单
+
+| # | 文件 | 操作 | 状态 | 说明 |
+|---|------|------|------|------|
+| P0.1 | `include/hydraforge/cognitive/icognitive_orchestrator.h` | 新建 | [ ] | `ICognitiveOrchestrator` 抽象接口 (process 方法) |
+| P0.2 | `include/hydraforge/policy/iexecution_policy.h` | 新建 | [ ] | `IExecutionPolicy` 抽象接口 (requires_approval 方法) |
+| P0.3 | `include/hydraforge/types/session_fwd.h` | 新建 | [ ] | `UserSession`, `TaskSession`, `SubtaskSession` 前置声明 |
+| P0.4 | `CMakeLists.txt` (根) | 修改 | [ ] | 添加 `include/hydraforge/` 到头文件搜索路径 |
+
+### 关键接口
+
+```cpp
+// icognitive_orchestrator.h
+class ICognitiveOrchestrator {
+public:
+    virtual ~ICognitiveOrchestrator() = default;
+    virtual void process(const std::string& session_id,
+                         std::function<void(ExecutionResult)> on_complete) = 0;
+};
+
+// iexecution_policy.h
+class IExecutionPolicy {
+public:
+    virtual ~IExecutionPolicy() = default;
+    virtual bool requires_approval(const ToolMetadata& meta,
+                                   const ToolCallContext& ctx) const = 0;
+};
+```
+
+**验证**: 3 个头文件编译通过 | 后续 Phase 的类可直接继承
+
+---
+
+## Slice 00 — 基础设施验证
+
+> **来源**: Eric 审查建议 — Taskflow/async_simple 引入和 CMake 验证
+> **目标**: 引入异步依赖并验证编译通过，为 Phase 2 铺路
+> **前提**: 无 (可独立并行)
+> **工期**: 1-2 天
+
+| # | 文件 | 操作 | 状态 | 说明 |
+|---|------|------|------|------|
+| S0.1 | `external/taskflow/` | 引入 | [ ] | Taskflow v4.0 (header-only, git submodule) |
+| S0.2 | `external/async_simple/` | 引入 | [ ] | async_simple v1.4 |
+| S0.3 | `CMakeLists.txt` (根) | 修改 | [ ] | `add_subdirectory(external/taskflow)` |
+| S0.4 | `CMakeLists.txt` (根) | 修改 | [ ] | `add_subdirectory(external/async_simple)` |
+| S0.5 | `external/CMakeLists.txt` | 修改 | [ ] | `-DASYNC_SIMPLE_ENABLE_TESTS=OFF` |
+| S0.6 | `tests/test_taskflow_bridge.cpp` | 新建 | [ ] | 最小桥接测试: Taskflow 图可被 co_await |
+
+**验证**: `cmake .. && make -j$(nproc)` 编译通过 | 桥接测试执行成功
 
 ---
 
@@ -159,8 +238,26 @@ Track 0.3 ─ 最小契约层 (与 0.1/0.2 并行)
 | M4.5 | `src/common/llm/default_model_router.cpp` | 新建 | [ ] | 路由逻辑 |
 | M4.6 | `src/cognitive/simple_orchestrator.h` | 新建 | [ ] | `SimpleCognitiveOrchestrator` MVP |
 | M4.7 | `src/cognitive/simple_orchestrator.cpp` | 新建 | [ ] | 硬编码 ReAct: LLM→解析→回调 |
-| M4.8 | `examples/slice_01_tool_call/main.cpp` | 新建 | [ ] | 入口示例 |
-| M4.9 | `examples/slice_01_tool_call/CMakeLists.txt` | 新建 | [ ] | 构建配置 |
+| M4.8 | `src/common/llm/mock_llm_provider.h` | 新建 | [ ] | `MockLLMProvider` (离线开发/CI 用) |
+| M4.9 | `examples/slice_01_tool_call/main.cpp` | 新建 | [ ] | 入口示例 (支持 `--mock` / `--live` 模式) |
+| M4.10 | `examples/slice_01_tool_call/CMakeLists.txt` | 新建 | [ ] | 构建配置 |
+
+**离线开发支持**:
+```cpp
+// MockLLMProvider：无网络也能验证链路逻辑
+class MockLLMProvider : public ILLMProvider {
+    Result<GenerationResult, LLMError> generate(...) override {
+        // 返回预定义 JSON，模拟 LLM 解析结果
+        return GenerationResult{
+            .content = R"({"tool": "code::read_file", "args": {"path": "main.cpp"}})"
+        };
+    }
+};
+```
+
+每个示例支持两种运行模式：
+- `--mock`：使用 MockLLMProvider，验证链路逻辑（秒级完成，用于 CI/离线开发）
+- `--live`：使用真实 API，验证端到端行为
 
 #### 关键接口
 
@@ -178,7 +275,13 @@ class ICognitiveOrchestrator {
 //   3. callback(result)
 ```
 
-**验证**: `./slice_01_tool_call` 输出完整调用链 (LLM→Tool→结果)
+**验证标准**:
+- ✅ `examples/slice_01_tool_call --mock` 输出完整调用链 (MockLLM→Tool→结果)，< 1 秒
+- ✅ `examples/slice_01_tool_call --live` 输出完整调用链 (真实 LLM→Tool→结果)
+- ✅ `tests/test_slice_01.cpp` 单元测试通过 (模拟 orchestrator 各组件)
+- ✅ 错误路径验证：LLM 超时 → orchestrator 返回 `LLMError.Timeout`
+- ✅ 错误路径验证：Tool 不存在 → ToolRegistry 返回 `ToolResult{ok:false}`
+- ✅ 三层调用链延迟 < 500ms (mock 模式测量链路开销)
 
 ---
 
@@ -334,15 +437,71 @@ class ICognitiveOrchestrator {
 
 > **前提**: Phase 1 (ToolResult), Phase 2 (AsyncRuntime for 协程挂起)
 
-### ADR-0031 — IExecutionPolicy (3 模式)
+### ADR-0031 — IExecutionPolicy (P1-P4 完整分解)
+
+#### P1: 接口定义 + AgentModePolicy 实现
 
 | # | 文件 | 操作 | 状态 | 说明 |
 |---|------|------|------|------|
 | 10.1 | `src/common/policy/CMakeLists.txt` | 新建 | [ ] | 静态库 `agenticdsl_policy` |
-| 10.2 | `src/common/policy/execution_policy.h` | 新建 | [ ] | `IExecutionPolicy` 接口 |
-| 10.3 | `src/common/policy/execution_policy.cpp` | 新建 | [ ] | Plan/Agent/YOLO 三种模式 |
-| 10.4 | `src/common/tools/tool_coordinator.h` | 新建 | [ ] | `call_tool_with_policy()` |
-| 10.5 | `src/common/tools/tool_coordinator.cpp` | 新建 | [ ] | 审批 + 5min 超时 |
+| 10.2 | `src/common/policy/execution_policy.h` | 新建 | [ ] | `IExecutionPolicy` 抽象接口 |
+| 10.3 | `src/common/policy/execution_policy.cpp` | 新建 | [ ] | `AgentModePolicy` 实现 |
+
+**AgentModePolicy 行为**: 写入操作需审批 (`category != ReadOnly`)
+
+#### P2: PlanModePolicy + YoloModePolicy 实现
+
+| # | 文件 | 操作 | 状态 | 说明 |
+|---|------|------|------|------|
+| 10.4 | `src/common/policy/execution_policy.cpp` | 修改 | [ ] | 添加 `PlanModePolicy` 实现 |
+| 10.5 | `src/common/policy/execution_policy.cpp` | 修改 | [ ] | 添加 `YoloModePolicy` 实现 |
+
+**PlanModePolicy 约束**:
+- Plan 模式：写入操作需审批 (`category != ReadOnly`)
+- YOLO 模式：安全底线 (`approval.force_approval_always` 不跳过)
+- 切换到 YOLO 需要用户确认安全警告
+
+#### P3: ToolCoordinator — `call_tool_with_policy()` 中间件
+
+| # | 文件 | 操作 | 状态 | 说明 |
+|---|------|------|------|------|
+| 10.6 | `src/common/tools/tool_coordinator.h` | 新建 | [ ] | `ToolCoordinator` 类 (`call_tool_with_policy`) |
+| 10.7 | `src/common/tools/tool_coordinator.cpp` | 新建 | [ ] | 审批链: 政策检查→审批→执行→结果 |
+
+**职责归属**: ToolCoordinator 是基座层中间件，位于 ToolRegistry 上层：
+
+```
+ToolRegistry.call(name, params)  ← 原始 API（跳过策略）
+       ↑
+ToolCoordinator.call_tool_with_policy(name, params, policy)
+       ↑
+NodeExecutor / CognitiveWorker   ← 调用方
+```
+
+#### P4: 模式切换事件 + 审批超时
+
+| # | 文件 | 操作 | 状态 | 说明 |
+|---|------|------|------|------|
+| 10.8 | `src/common/policy/execution_policy.h` | 修改 | [ ] | 添加 `ModeSwitchEvent`、`ApprovalResult` 类型 |
+| 10.9 | `src/common/tools/tool_coordinator.cpp` | 修改 | [ ] | 审批超时处理 (5min → `ApprovalTimeout`) |
+| 10.10 | `tests/test_execution_policy.cpp` | 新建 | [ ] | 三模式策略单元测试 |
+
+**验证**: 每种模式审批决策正确 | 超时自动拒绝 | 模式切换可追踪
+
+---
+
+### ADR-0031 一致性映射
+
+Eric 审查指出的问题——`call_tool_with_policy()` 之前在 Roadmap 中无对应位置——已通过 P3 修复。与 `implementation-slices.md` Slice 03 的对应关系：
+
+| Slice 03 文件 | Roadmap 位置 | 说明 |
+|--------------|-------------|------|
+| `tool_metadata.h` | Phase 3 ADR-0004 V2 | ToolCategory 定义 |
+| `execution_policy.h` | Phase 3 ADR-0031 P1 | IExecutionPolicy 接口 |
+| `tool_coordinator.h/cpp` | Phase 3 ADR-0031 P3 | call_tool_with_policy 中间件 |
+| `slice_03_approval` | Phase 3 (端到端验证) | examples/ 示例 |
+
+---
 
 ### ADR-0004 V2 — 安全模型升级
 
@@ -393,6 +552,58 @@ class ICognitiveOrchestrator {
 
 ---
 
+## Phase 4.5 — MVP 清理与技术债务消除
+
+> **来源**: Eric 审查建议 — MVP 临时代码应标注清理计划
+> **目标**: 在正式功能开发前清理 MVP 阶段的 hack 代码
+> **工期**: 1-2 天
+
+### 清理清单
+
+| # | 任务 | 涉及文件 | 说明 |
+|---|------|---------|------|
+| 16.1 | 替换 `SimpleCognitiveOrchestrator` | `src/cognitive/simple_orchestrator.*` | 替换为完整的 `CognitiveOrchestrator` 实现 |
+| 16.2 | 移除 `MockLLMProvider` | `src/common/llm/mock_llm_provider.h` | (如正式实现已覆盖) |
+| 16.3 | 替换硬编码路由策略 | `src/common/llm/default_model_router.cpp` | 替换为配置驱动的路由 |
+| 16.4 | 移除 `TODO(mvp):` 标记 | 全局搜索 | 逐个确认并替换 |
+| 16.5 | 归档 `examples/agent_loop/` | `examples/archive/` | 标记为 legacy，正式环路接管后归档 |
+| 16.6 | 目录职责分离 | `examples/` vs `tests/` | examples/ 给人看，tests/ 给 CI |
+
+### examples/ 与 tests/ 职责约定
+
+```
+examples/                        # 人工可运行的演示（开发者用 ./build.sh && ./example 验证）
+├── agent_basic/                 # 已有：基础 DSL 执行
+├── agent_simple/                # 已有：简化 DSL 执行
+├── agent_loop/                  # MVP 遗留：多轮 Agent 循环（→ 16.5 归档）
+├── slice_01_tool_call/          # 新增：三层调用链验证
+├── slice_02_routing/            # 新增：多模型路由验证
+├── slice_03_approval/           # 新增：审批流程验证
+└── slice_04_fleet/              # 新增：舰队并行验证
+
+tests/                           # 自动化测试（CI 运行，无需人工介入）
+├── test_tool_registry.cpp       # 已有
+├── test_model_router.cpp        # 新增（Slice 02 的自动化版本）
+├── test_execution_policy.cpp    # 新增（Slice 03 的自动化版本）
+└── test_parallel_executor.cpp   # 新增（Slice 04 的自动化版本）
+```
+
+### MVP 代码标记约定
+
+所有 MVP 阶段的临时代码使用统一标记：
+
+```cpp
+// TODO(mvp): 替换为正式的 IPER 循环实现
+// 当前仅为验证三层调用链而硬编码
+class SimpleCognitiveOrchestrator : public ICognitiveOrchestrator {
+    ...
+};
+```
+
+**验证**: grep "TODO(mvp)" 计数归零 | 所有 MVP 标记被清理
+
+---
+
 ## Phase 5 — AgenticDSL 自举与服务化 (远期)
 
 **来源**: `docs/agenticdsl/implementation/self-bootstrapping-path.md`
@@ -426,25 +637,77 @@ class ICognitiveOrchestrator {
 ## 实施优先级总表
 
 ```
-等级      范围                    工期      收益
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🚨 紧急    修复构建+测试              <1天    解除阻塞
+等级      范围                                工期       收益
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚨 紧急    修复构建+测试                          <1天      解除阻塞
 ┃
-🥇 P0      Phase 0 MVP              1-2周    验证核心架构
-┃          ├─ 0.1 云端LLM集成       3-4天    可调用云端模型
-┃          ├─ 0.2 三层调用链验证     3-5天    端到端通路
-┃          └─ 0.3 最小契约层         2-3天    接口基础
+🥇 P0.5    Pre-Phase 接口定义                    0.5天     统一编译目标
 ┃
-🥈 P1      Phase 1 智能体层          3-4周    多Agent+插件
+🥇 P0.6    Slice 00 基础设施                     1-2天     异步依赖就绪
 ┃
-🥉 P2      Phase 2 异步架构          2-3周    并行执行
+🥇 P0      Phase 0 MVP                          1-2周     验证核心架构
+┃          ├─ 0.1 云端LLM集成                   3-4天     可调用云端模型
+┃          ├─ 0.2 三层调用链验证                 5-7天†    端到端通路 + 错误路径
+┃          └─ 0.3 最小契约层                     2-3天     接口基础
 ┃
-🥉 P3      Phase 3 执行策略+安全     2-3周    审批+预算
+🥈 P1      Phase 1 智能体层                      3-4周     多Agent+插件
 ┃
-🥉 P4      Phase 4 模型路由+内核     2-3周    舰队模式
+🥉 P2      Phase 2 异步架构                      2-3周     并行执行
 ┃
-📅 远期    Phase 5 自举服务化          —       API服务
+🥉 P3      Phase 3 执行策略+安全                 2-3周     审批+预算
+┃
+🥉 P4      Phase 4 模型路由+内核                 2-3周     舰队模式
+┃
+🥉 P4.5    Phase 4.5 MVP清理                     1-2天     消除技术债务
+┃
+📅 远期    Phase 5 自举服务化                      —        API服务
 ```
+
+† 工期较原估算 (3-5天) 上调：含接口定义、MockLLMProvider、错误路径验证和可运行示例。
+
+---
+
+## 架构层关系说明
+
+### EventBus 与 IInteractionBus 的分层关系
+
+> **来源**: Eric 审查 — ADR-0002 议题 2 决策
+> **状态**: 已锁定，本路线图基于此关系设计
+
+```
+IInteractionBus (Phase 0 Track 0.3)
+    │  高层抽象：面向 NodeExecutor / CognitiveWorker
+    │  提供：send_user_message(), subscribe_tokens(), on_tool_result()
+    │  实现：Phase 0 用 std::mutex + queue（MVP）
+    │
+    ▼ 下层转发
+EventBus (Phase 2 ADR-0002 V2)
+    │  底层传输：面向系统组件
+    │  提供：MPMC 有界队列、优先级、DispatchMode
+    │  实现：全局 MPMC 队列 + 独立分发线程
+    │
+    ▼ 物理层
+线程/协程 (Phase 2 ADR-0030)
+```
+
+**关键设计点**:
+- IInteractionBus 基于 EventBus 构建，而非替代它
+- Phase 0 MVP 用 `std::mutex` 实现，暂不依赖 EventBus
+- Phase 2 时 IInteractionBus 后端切换为 EventBus（接口不变，实现变化）
+- 迁移方式：`InMemoryBus(Mutex)` → `InMemoryBus(EventBus)`，对上层透明
+
+### Phase 通用完成标准
+
+每个 Phase 完成后必须满足以下标准，而不仅是"代码存在"：
+
+| 标准 | 说明 |
+|------|------|
+| ✅ 编译通过 | `make -j$(nproc)` 无错误 |
+| ✅ 单元测试全绿 | `ctest --output-on-failure` 100% pass |
+| ✅ 可运行示例 | `examples/slice_N_xxx/` 可执行并输出正确 |
+| ✅ LSP 诊断清洁 | 无 error / warning |
+| ✅ 错误路径覆盖 | 至少覆盖 2 种异常场景（超时、无效输入等） |
+| ✅ 无 MVP 残留 | 无 `TODO(mvp)` 标记残留 |
 
 ---
 
