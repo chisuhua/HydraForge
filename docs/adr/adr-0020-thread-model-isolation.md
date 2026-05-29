@@ -2,13 +2,16 @@
 
 ## 状态
 
-**提议中** (2026-05-25) — **V2 版**，基于 Oracle 审查讨论更新
+**提议中** (2026-05-27) — **V3 版**，基于 ADR-0030 异步架构对齐更新
 
 ## 替代关系
 
 **本 ADR 替代 ADR-0006（HarnessEngine 后台线程模型）**。
 
 ADR-0006 中定义的"每 Agent 一线程"模型不再适用。本 ADR 将智能体分为**认知智能体（编排者）** 和**领域智能体（执行者）**，对应 CognitiveWorker + DomainWorkerPool，而非 HarnessEngine 的平面 Agent 列表。
+
+> **V3 变更**：本 ADR Phase 2/4 的协程计划已迁移至 ADR-0030（AsyncRuntime 双层异步架构）。
+> 协程实现统一使用 async_simple 库，不再自研协程基础设施。
 
 ## 背景
 
@@ -54,7 +57,7 @@ HydraForge 当前实现**完全是单线程同步模型**：
 | **基座核心** (DSL/State/Registry) | **主线程** | 无隔离 | ✅ MVP |
 | **认知智能体** (编排者) | **独立工作线程** | 线程级隔离 | ✅ MVP |
 | **领域智能体** (执行者) | **独立工作线程** | 线程级隔离 | ✅ MVP |
-| **LLM Gateway** | **回调** → Phase 2 协程 | 协程级隔离 | 🔜 Phase 2 |
+| **LLM Gateway** | **回调** → ADR-0030 协程 | 协程级隔离 | 🔜 Phase 2 (依赖 ADR-0030) |
 | **危险工具** (文件/浏览器/系统) | **子进程沙箱** | **进程级隔离** | 🔜 Phase 2 |
 | **安全工具** (只读查询) | **工作线程** | 线程级隔离 | ✅ MVP |
 
@@ -523,40 +526,32 @@ public:
 
 ---
 
-### 8. 协程模型（Phase 2 预留）
+### 8. 协程模型（已迁移至 ADR-0030）
 
-LLM 流式调用使用 C++20 协程（而非 C++23 `std::generator`）：
+> **V3 变更**：本节原定义的自定义协程实现（`LLMTokenStream` 类）已废弃。
+> 协程实现统一使用 ADR-0030 定义的 AsyncRuntime + async_simple 方案。
+
+LLM 流式调用使用 async_simple 协程（参见 [ADR-0030](../adr-0030-async-runtime-dual-layer.md) 第 3 节）：
 
 ```cpp
 // src/common/llm/stream_llm.h (Phase 2)
+#include <async_simple/coro/Generator.h>
+
 namespace agenticdsl {
 
-class LLMTokenStream {
-public:
-    struct promise_type {
-        Token value;
-        std::suspend_always initial_suspend() { return {}; }
-        std::suspend_always final_suspend() noexcept { return {}; }
-        std::suspend_always yield_value(Token token) {
-            value = std::move(token);
-            return {};
-        }
-        void return_void() {}
-        LLMTokenStream get_return_object() { return LLMTokenStream{*this}; }
-        void unhandled_exception() { throw; }
-    };
-
-    Token get() { return coroutine_handle_.promise().value; }
-    bool next() { return coroutine_handle_(); }
-    ~LLMTokenStream() { if (coroutine_handle_) coroutine_handle_.destroy(); }
-
-private:
-    explicit LLMTokenStream(promise_type& p);
-    std::coroutine_handle<promise_type> coroutine_handle_;
-};
+// 使用 async_simple::Generator 替代自研 LLMTokenStream
+async_simple::coro::Generator<Token> stream_llm_response(
+    const std::string& prompt, 
+    AsyncRuntime& runtime);
 
 } // namespace agenticdsl
 ```
+
+**迁移理由**：
+- async_simple v1.4 提供完整的 C++20 协程支持（`Lazy<T>`、`Generator<T>`）
+- 性能优于 folly::coro（官方基准测试验证）
+- 避免自研协程基础设施的复杂性和维护成本
+- 与 Taskflow 计算层通过桥接层无缝集成
 
 ---
 
@@ -590,7 +585,7 @@ private:
 | **任务队列** | `std::mutex` + `std::queue` | 简单可靠，Phase 2 再优化 |
 | **ToolRegistry 锁** | `shared_lock` 读锁 + 锁外执行 | 避免阻塞权限校验 |
 | **锁顺序** | 全局排序 | 避免死锁 |
-| **协程** | MVP 不使用 | Phase 2 引入 |
+| **协程** | MVP 不使用 | Phase 2 引入（依赖 ADR-0030） |
 | **进程沙箱** | MVP 不实现 | Phase 2 引入 |
 
 ---
@@ -602,7 +597,7 @@ private:
 | **Phase 1** | 实现 `CognitiveWorker`（独立 DSLEngine）<br>实现 `DomainWorkerPool`<br>实现 `TaskQueue<T>`（mutex+queue）<br>`StateStore` 线程安全版 | 工作线程框架 |
 | **Phase 2** | Profile 瓶颈<br>按需引入 LockFreeQueue<br>LLM 回调集成 | 通信优化 |
 | **Phase 3** | `ISandboxController` 接口实现<br>cgroups/seccomp 集成<br>沙箱配置加载 | 进程隔离 |
-| **Phase 4** | C++20 协程 LLM 流式<br>替换回调为 `LLMTokenStream`<br>性能测试与调优 | 协程化 |
+| **Phase 4** | ~~C++20 协程 LLM 流式~~ → 迁移至 ADR-0030<br>集成 AsyncRuntime 协程调度<br>性能测试与调优 | 协程化 |
 
 ---
 
@@ -638,7 +633,7 @@ private:
 | **生命周期** | HarnessEngine 统一管理 | 每个 Worker 独立 start/stop |
 | **通信** | EventBus | IInteractionBus + StateStore |
 | **沙箱** | 未涉及 | Phase 2 预留接口 |
-| **协程** | 未涉及 | Phase 2 预留接口 |
+| **协程** | 未涉及 | ~~Phase 2 预留接口~~ → 迁移至 ADR-0030 |
 
 ## 附录 B: 文件变更清单
 
@@ -652,6 +647,6 @@ private:
 | **新建** | `src/core/state_store.h` |
 | **新建** | `src/core/state_store.cpp` |
 | **新建** | `src/common/sandbox/sandbox_controller.h` (Phase 2) |
-| **新建** | `src/common/llm/stream_llm.h` (Phase 2) |
+| **新建** | `src/common/async/async_runtime.h` (ADR-0030) |
 | **修改** | `src/core/engine.h` (+ atomic_bus, 独立实例安全) |
 | **修改** | `src/common/tools/registry.h` (+ shared_lock 模型) |

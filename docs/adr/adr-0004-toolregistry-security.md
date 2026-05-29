@@ -2,7 +2,7 @@
 
 ## 状态
 
-**已批准** (2026-05-12)
+**已批准** (2026-05-27) — **V2 版**，基于议题 3 (IExecutionPolicy) 对齐更新
 
 ## 背景
 
@@ -14,6 +14,12 @@ HydraForge Agent 通过 ToolRegistry 调用外部工具（文件系统、Shell�
 - DeerFlow 2.0：配置化工具 + Docker 容器隔离
 
 **核心原则**：纵深防御 = 技术控制 + 权限分层 + 用户确认
+
+> **V2 变更**：
+> - 增加 **ToolCategory**（工具安全分类：ReadOnly/WriteFile/Execute/Network/StateModify）
+> - 增加 **ApprovalPolicy**（三模式审批策略：Plan/Agent/YOLO）
+> - 增加 **LayerProfile**（调用层级限制：Workflow/Thinking/Cognitive）
+> - 与 ADR-0031 (IExecutionPolicy) 对齐，将 Allow/Ask/Deny 映射到 ApprovalPolicy
 
 ---
 
@@ -745,6 +751,159 @@ std::vector<std::string> blocked = {"/etc/passwd", "~/.ssh"};
 - **Layer 3**: Shell 命令危险检测
 - **用户确认层**: EventBus USER_INPUT + TUI 确认对话框
 
+---
+
+## V2 新增：与 ADR-0031 (IExecutionPolicy) 对齐
+
+### 6. ToolCategory（工具安全分类）
+
+```cpp
+// ============================================================
+// V2: 工具安全分类
+// ============================================================
+
+enum class ToolCategory {
+    ReadOnly,       // 只读操作：ls, cat, grep, search
+    WriteFile,      // 文件写入：edit_file, create_file, delete_file
+    Execute,        // 命令执行：exec_shell, run_tests
+    Network,        // 网络操作：http_request, api_call
+    StateModify     // 状态修改：set_mode, clear_context
+};
+```
+
+### 7. ApprovalPolicy（三模式审批策略）
+
+```cpp
+// ============================================================
+// V2: 审批策略（与 ADR-0031 IExecutionPolicy 对齐）
+// ============================================================
+
+struct ApprovalPolicy {
+    bool requires_approval_in_plan = true;    // Plan 模式
+    bool requires_approval_in_agent = true;   // Agent 模式
+    bool requires_approval_in_yolo = false;   // YOLO 模式
+    
+    // 安全底线：即使 YOLO 也强制审批的操作
+    bool force_approval_always = false;       // 用于 delete_file, rm -rf 等
+};
+
+// ADR-0004 Allow/Ask/Deny → ApprovalPolicy 映射
+ApprovalPolicy map_permission(ToolPermission perm) {
+    switch (perm) {
+        case ToolPermission::Allow:
+            return {false, false, false, false};  // 所有模式免审
+        case ToolPermission::Ask:
+            return {true, true, false, false};    // Plan/Agent 审批
+        case ToolPermission::Deny:
+            return {true, true, true, true};      // 所有模式拒绝（force_approval）
+    }
+}
+```
+
+### 8. LayerProfile（调用层级限制）
+
+```cpp
+// ============================================================
+// V2: Layer Profile（哪些层级可以调用此工具）
+// ============================================================
+
+enum class LayerProfile {
+    Workflow   = 0,   // L2：完全允许，沙箱内
+    Thinking   = 1,   // L3：只读工具
+    Cognitive  = 2    // L4：禁止 tool_call（仅 state.read）
+};
+
+// 层级权限检查
+bool check_layer_permission(ToolCategory category, LayerProfile caller_layer) {
+    switch (caller_layer) {
+        case LayerProfile::Workflow:
+            return true;  // L2 可以调用所有工具
+        case LayerProfile::Thinking:
+            return category == ToolCategory::ReadOnly;  // L3 只能调用只读工具
+        case LayerProfile::Cognitive:
+            return false;  // L4 禁止所有工具调用
+    }
+}
+```
+
+### 9. 完整的工具元数据（V2）
+
+```cpp
+// ============================================================
+// V2: 完整的工具元数据
+// ============================================================
+
+struct ToolMetadata {
+    std::string name;                   // "code::edit_file"
+    std::string description;            // "编辑指定文件"
+    std::string domain;                 // "code"
+    
+    ToolCategory category;              // 安全分类
+    LayerProfile min_layer;             // 最低调用层级
+    ApprovalPolicy approval;            // 审批策略
+    
+    // 参数 schema（用于校验）
+    nlohmann::json param_schema;
+    
+    // 预算消耗预估
+    struct CostHint {
+        bool consumes_llm_tokens = false;
+        int estimated_duration_ms = 100;
+    } cost_hint;
+};
+
+// 编程助手工具注册示例
+void register_code_tools(ToolRegistry& registry) {
+    // 只读工具——所有模式免审批
+    registry.register_tool({
+        .name = "code::read_file",
+        .category = ToolCategory::ReadOnly,
+        .min_layer = LayerProfile::Thinking,
+        .approval = {false, false, false, false}
+    }, &impl_read_file);
+    
+    // 写入工具——Plan/Agent 需审批，YOLO 免审批
+    registry.register_tool({
+        .name = "code::edit_file",
+        .category = ToolCategory::WriteFile,
+        .min_layer = LayerProfile::Workflow,
+        .approval = {true, true, false, false}
+    }, &impl_edit_file);
+    
+    // 危险工具——所有模式都需审批（安全底线）
+    registry.register_tool({
+        .name = "code::delete_file",
+        .category = ToolCategory::WriteFile,
+        .min_layer = LayerProfile::Workflow,
+        .approval = {true, true, true, true}  // force_approval_always!
+    }, &impl_delete_file);
+}
+```
+
+### 10. 决策矩阵
+
+| 工具 | Category | Plan | Agent | YOLO | Layer |
+|------|----------|:----:|:-----:|:----:|:-----:|
+| code::read_file | ReadOnly | 免审 | 免审 | 免审 | L3+ |
+| code::list_dir | ReadOnly | 免审 | 免审 | 免审 | L3+ |
+| code::edit_file | WriteFile | **审批** | **审批** | 免审 | L2 |
+| code::delete_file | WriteFile | **审批** | **审批** | **审批** | L2 |
+| code::exec_shell | Execute | **审批** | **审批** | **审批** | L2 |
+| code::run_tests | Execute | **审批** | 免审 | 免审 | L2 |
+
+---
+
+## 结论
+
+采用纵深防御安全架构：
+
+- **Layer 1**: 权限分层（Allow/Ask/Deny）→ 映射到 ApprovalPolicy
+- **Layer 2**: 路径策略（允许前缀 + 拒绝模式）
+- **Layer 3**: Shell 命令危险检测
+- **V2 新增**: ToolCategory + LayerProfile + ApprovalPolicy
+- **用户确认层**: EventBus USER_INPUT + TUI 确认对话框
+- **ADR-0031 集成**: IExecutionPolicy 定义三模式行为
+
 此设计支持：
 - **Phase 1**：基础安全防护，无需 OS 沙箱
 - **Phase 2**：Landlock/Seatbelt OS 级隔离
@@ -752,5 +911,52 @@ std::vector<std::string> blocked = {"/etc/passwd", "~/.ssh"};
 
 ---
 
-*文档版本: v1.0*
-*最后更新: 2026-05-12*
+## 与 ADR-0036 的集成补充
+
+### IExecutionPolicy 注入机制
+
+根据 ADR-0036 的混合内核架构，`call_tool_with_policy()` 归属基座层 `ToolCoordinator`（中间件），认知层负责注入 `IExecutionPolicy*`。
+
+**注入流程**：
+
+```
+应用启动时：
+  InfrastructureServices infra;               // 基座层
+  auto cognitive = make_unique<CognitiveOrch>(infra);
+  
+  // 认知层创建时构造自己的 Policy
+  auto policy = make_unique<PlanModePolicy>();
+  
+  // 认知层启动 ToolCoordinator，注入 policy
+  ToolCoordinator coordinator(
+      infra.tool_registry,
+      infra.event_bus,
+      policy.get(),          // IExecutionPolicy* 由认知层注入
+      /* PreviewGenerator 由领域层注册 */
+  );
+  
+  infra.tool_coordinator = &coordinator;
+  infra.cognitive = std::move(cognitive);
+```
+
+**调用链**：
+
+```
+CognitiveOrchestrator
+  → ToolCoordinator.call_with_policy(tool_call)     // 基座层中间件
+    → IExecutionPolicy::requires_approval()            // 认知层策略
+    → [如需审批] PreviewGenerator::generate()          // 领域层预览
+    → [EventBus] 等待用户确认                         // 基座层通信
+    → ToolRegistry::call()                             // 基座层执行
+    → [EventBus] emit("tool.call.finished")            // 基座层审计
+```
+
+**关键原则**：
+- `ToolCoordinator` 在基座层，但**不硬编码**任何审批逻辑——所有策略决策委托给 `IExecutionPolicy*`
+- 认知层可以通过切换 policy 指针实现模式切换（Plan → Agent → YOLO）
+- 领域层通过 `PreviewGenerator` 接口注册预览生成器（延迟到 IDomainAgent 就绪后）
+
+---
+
+*文档版本: v2.0*
+*最后更新: 2026-05-27*

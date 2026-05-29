@@ -2,7 +2,7 @@
 
 ## 状态
 
-**已批准** (2026-05-12)
+**已批准** (2026-05-27) — **V2 版**，基于 ADR-0030 异步架构对齐更新
 
 ## 背景
 
@@ -14,35 +14,37 @@ HydraForge Phase 1 需要 FTXUI 主线程与后台 HarnessEngine 执行线程之
 - 多 Agent 架构下事件来源隔离（每个 Agent 独立 EventBus）
 - Phase 2 需要支持 Agent 间通信
 
+> **V2 变更**：本 ADR 从纯 UI 事件总线扩展为**全系统可观测性总线**，集成 ADR-0030 的 AsyncRuntime 双层异步架构，增加 DispatchMode 分发机制。
+
 ---
 
 ## 决策
 
-### 1. 总体架构：分层 Per-Agent EventBus
+### 1. 总体架构：与 ADR-0030 集成的分层 EventBus
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Global EventBus (Phase 2 扩展)                              │
-│  - 系统级事件广播 (DAG_COMPLETE, ERROR)                       │
-│  - Agent 间通信预留                                          │
-└───────────────────────┬─────────────────────────────────────┘
-                        │ subscribe()
-┌───────────────────────┴─────────────────────────────────────┐
-│  Per-Agent EventBus                                          │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │ PriorityQueue (有界)                                    ││
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐   ││
-│  │  │ Critical Q  │  │ Normal Q    │  │ Low Q       │   ││
-│  │  │ (无界/链式) │  │ (200 上限)  │  │ (50 上限)   │   ││
-│  │  └─────────────┘  └─────────────┘  └─────────────┘   ││
-│  └─────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│  事件生产者（各层均可发布）                                       │
+│  ├── 计算层（Taskflow）: LLMCallFinished, ToolExecuted          │
+│  ├── 控制层（async_simple）: SessionStarted, ModeChanged        │
+│  └── 用户交互: UserMessage, ApprovalResponse                    │
+├───────────────────────────────────────────────────────────────┤
+│  EventBus（传输层 — 轻量路由器）                                  │
+│  ├── 全局 MPMC 有界队列（混合模式：全局队列 + Session 过滤）      │
+│  ├── 事件路由：按类型分发到订阅者                                │
+│  └── 背压策略：按优先级丢弃旧事件（Critical 永不丢弃）           │
+├───────────────────────────────────────────────────────────────┤
+│  事件消费者（DispatchMode 决定执行线程）                          │
+│  ├── Inline（同步）→ 极轻量操作（TraceRecorder）                │
+│  ├── TaskflowAsync → 计算密集型（CostCollector）                │
+│  └── CoroSpawn → IO/长等待（TUI Updater, 用户审批）             │
+└───────────────────────────────────────────────────────────────┘
 ```
 
 **设计原则**：
-- 每个 Agent 拥有独立的 EventBus，隔离事件源
-- 某个 Agent 的事件 flood 不会影响其他 Agent
+- **EventBus 是轻量路由器**，不拥有线程，消费者决定在哪个 Executor 上执行
+- **全局队列 + Session 过滤**：简化实现，同时保持 Per-Agent 隔离语义
+- **DispatchMode**：与 ADR-0030 的双层架构对齐（Taskflow 计算层 / async_simple 控制层）
 - Phase 2 可通过 Global EventBus 实现 Agent 间通信
 
 ---
@@ -112,47 +114,185 @@ struct UIEvent {
 
 ---
 
-### 3. 有界队列与背压策略
+### 3. 有界队列与背压策略（V2 更新）
+
+**V2 变更**：
+- 从 Per-Agent 多队列改为**全局单队列 + Session 过滤**
+- 背压策略从"丢弃新事件"改为"**按优先级丢弃旧事件**"
+- 增加 DispatchMode 分发机制（与 ADR-0030 集成）
 
 ```cpp
 // ============================================================
-// 优先级分队列（有界）
+// V2: 全局 MPMC 有界队列（替代 Per-Agent 多队列）
 // ============================================================
 
-struct PriorityQueues {
-    // Critical：无限容量，永不丢弃
-    std::queue<UIEvent> critical;
+template<typename T>
+class BoundedQueue {
+public:
+    explicit BoundedQueue(size_t capacity) : capacity_(capacity) {}
+    
+    // 非阻塞入队：按优先级丢弃旧事件腾出空间
+    bool try_push(T item, EventPriority priority) {
+        std::lock_guard lock(mutex_);
+        
+        if (queue_.size() >= capacity_) {
+            // 按优先级丢弃：丢弃最低优先级的旧事件
+            if (!drop_oldest_low_priority(priority)) {
+                return false;  // 无法腾出空间（全是 Critical）
+            }
+        }
+        
+        queue_.push_back({std::move(item), priority});
+        cv_.notify_one();
+        return true;
+    }
+    
+    // 阻塞入队（Critical 事件使用）
+    void push(T item, EventPriority priority) {
+        std::unique_lock lock(mutex_);
+        cv_.wait(lock, [&] {
+            return queue_.size() < capacity_ || 
+                   drop_oldest_low_priority(priority);
+        });
+        queue_.push_back({std::move(item), priority});
+    }
+    
+    // 出队（按优先级：Critical > High > Normal > Low）
+    std::optional<T> pop(std::chrono::milliseconds timeout) {
+        std::unique_lock lock(mutex_);
+        if (!cv_.wait_for(lock, timeout, [&] { return !queue_.empty(); })) {
+            return std::nullopt;
+        }
+        
+        // 找到最高优先级的元素
+        auto it = std::max_element(queue_.begin(), queue_.end(),
+            [](const auto& a, const auto& b) { return a.priority < b.priority; });
+        
+        T result = std::move(it->item);
+        queue_.erase(it);
+        return result;
+    }
 
-    // Normal：容量 200，超限丢弃最旧的
-    static constexpr size_t NORMAL_CAPACITY = 200;
-    std::deque<UIEvent> normal;
-
-    // Low：容量 50，超限批量丢弃最旧的（保留最新 10 个 token）
-    static constexpr size_t LOW_CAPACITY = 50;
-    static constexpr size_t TOKEN_BUFFER_SIZE = 10;
-    std::deque<UIEvent> low;
-
-    // LLM_TOKEN 特殊缓冲（独立于 Low 队列）
-    std::deque<std::string> recent_tokens;  // 保留最近 N 个 token
+private:
+    bool drop_oldest_low_priority(EventPriority incoming_priority) {
+        // 找到最低优先级且低于 incoming 的最旧元素
+        auto it = std::find_if(queue_.begin(), queue_.end(),
+            [&](const auto& e) { return e.priority < incoming_priority; });
+        
+        if (it != queue_.end()) {
+            queue_.erase(it);
+            return true;
+        }
+        return false;
+    }
+    
+    size_t capacity_;
+    std::deque<std::pair<T, EventPriority>> queue_;
+    std::mutex mutex_;
+    std::condition_variable cv_;
 };
 
 // ============================================================
-// EventBus 核心实现
+// V2: DispatchMode（与 ADR-0030 集成）
 // ============================================================
 
-class EventBus : public std::enable_shared_from_this<EventBus> {
+enum class DispatchMode {
+    Inline,         // 发布线程内联执行（极轻量操作：TraceRecorder）
+    TaskflowAsync,  // 提交到 Taskflow 计算池（CostCollector）
+    CoroSpawn       // 作为协程 spawn 到 async_simple（TUI Updater）
+};
+
+struct SubscribeOptions {
+    DispatchMode mode = DispatchMode::Inline;
+    std::string filter_session;  // 可选：只接收特定 session 的事件
+    int priority = 0;            // 消费者优先级
+};
+
+// ============================================================
+// V2: EventBus 接口（抽象层）
+// ============================================================
+
+class IEventBus {
+public:
+    virtual ~IEventBus() = default;
+    
+    // 发布事件（线程安全，任何线程可调用）
+    virtual void emit(Event event) = 0;
+    virtual void emit(std::string type, std::string session_id, 
+                      nlohmann::json payload = {}) = 0;
+    
+    // 订阅事件（返回 SubscriptionId 用于取消订阅）
+    virtual SubscriptionId subscribe(
+        std::string event_type,
+        std::function<void(const Event&)> handler,
+        SubscribeOptions options = {}) = 0;
+    
+    virtual void unsubscribe(SubscriptionId id) = 0;
+    virtual EventBusMetrics get_metrics() const = 0;
+};
+
+// ============================================================
+// V2: InMemoryEventBus 实现
+// ============================================================
+
+class InMemoryEventBus : public IEventBus {
 public:
     struct Config {
-        size_t normal_capacity = 200;
-        size_t low_capacity = 50;
-        size_t token_buffer_size = 10;
+        size_t queue_capacity = 4096;
+        bool drop_on_full = false;  // false: 阻塞; true: 丢弃
+        size_t batch_size = 32;     // 批量分发大小
     };
+    
+    InMemoryEventBus(Config config, AsyncRuntime& runtime);
+    
+    void emit(Event event) override;
+    
+    SubscriptionId subscribe(
+        std::string event_type,
+        std::function<void(const Event&)> handler,
+        SubscribeOptions options = {}) override;
+    
+    void unsubscribe(SubscriptionId id) override;
+    
+private:
+    void dispatch_to_subscriber(const Event& event, Subscriber& sub);
+    void dispatch_loop(std::stop_token stop);
+    
+    Config config_;
+    BoundedQueue<Event> queue_;
+    AsyncRuntime& runtime_;
+    std::jthread dispatch_thread_;
+    
+    mutable std::shared_mutex subscribers_mutex_;
+    std::unordered_map<std::string, std::vector<Subscriber>> subscribers_;
+    std::atomic<uint64_t> next_subscription_id_{0};
+    EventBusMetrics metrics_;
+};
 
-    explicit EventBus(Config config = {}) : config_(config) {}
-
-    // -------------------- 生产者接口（后台线程）--------------------
-
-    void push(UIEvent event) {
+// 分发逻辑：根据 DispatchMode 选择 Executor
+void InMemoryEventBus::dispatch_to_subscriber(
+    const Event& event, Subscriber& sub) 
+{
+    switch (sub.options.mode) {
+        case DispatchMode::Inline:
+            sub.handler(event);  // 同步执行
+            break;
+            
+        case DispatchMode::TaskflowAsync:
+            runtime_.executor().silent_async(
+                [handler = sub.handler, event]() { handler(event); });
+            break;
+            
+        case DispatchMode::CoroSpawn:
+            runtime_.spawn(
+                [handler = sub.handler, event]() 
+                -> async_simple::coro::Lazy<void> {
+                    handler(event);
+                    co_return;
+                }());
+            break;
+    }
+}
         std::lock_guard lock(mutex_);
         enqueue(std::move(event));
     }
@@ -278,6 +418,83 @@ private:
         return false;
     }
 };
+```
+
+---
+
+### 4. V2 新增：事件类型目录（与 ADR-0030 对齐）
+
+```cpp
+// ============================================================
+// 事件类型目录（编译期 constexpr 字符串）
+// ============================================================
+
+namespace EventTypes {
+    // LLM 相关
+    namespace LLM {
+        constexpr auto CallStarted    = "llm.call.started";
+        constexpr auto CallFinished   = "llm.call.finished";
+        constexpr auto TokenGenerated = "llm.token.generated";
+    }
+    
+    // 工具相关
+    namespace Tool {
+        constexpr auto CallStarted   = "tool.call.started";
+        constexpr auto CallFinished  = "tool.call.finished";
+        constexpr auto ApprovalReq   = "tool.approval.requested";
+        constexpr auto ApprovalResp  = "tool.approval.response";
+    }
+    
+    // 成本相关（ADR-0032 CostCollector）
+    namespace Cost {
+        constexpr auto Updated        = "cost.updated";
+        constexpr auto BudgetExceeded = "cost.budget.exceeded";
+    }
+    
+    // Session 相关
+    namespace Session {
+        constexpr auto Started    = "session.started";
+        constexpr auto Ended      = "session.ended";
+        constexpr auto ModeChanged = "session.mode.changed";
+    }
+    
+    // DAG 执行
+    namespace Execution {
+        constexpr auto NodeExecuted    = "execution.node.executed";
+        constexpr auto GraphCompleted  = "execution.graph.completed";
+        constexpr auto ForkStarted     = "execution.fork.started";
+        constexpr auto JoinCompleted   = "execution.join.completed";
+    }
+    
+    // 用户交互
+    namespace User {
+        constexpr auto Message    = "user.message";
+        constexpr auto Interrupt  = "user.interrupt";
+    }
+}
+
+// 事件 Payload 规范（JSON Schema）
+// LLMCallFinished
+{
+    "model": "deepseek-v4-pro",
+    "prompt_tokens": 1500,
+    "completion_tokens": 320,
+    "total_tokens": 1820,
+    "duration_ms": 2340,
+    "cache_hit": true,
+    "cache_discount": 0.9,
+    "session_id": "sess_abc123",
+    "trace_id": "trace_xyz"
+}
+
+// CostUpdated（由 CostCollector 发布）
+{
+    "session_id": "sess_abc123",
+    "delta_cost_usd": 0.0023,
+    "total_cost_usd": 0.0451,
+    "cached_savings_usd": 0.0180,
+    "model": "deepseek-v4-pro"
+}
 ```
 
 ---
@@ -474,13 +691,35 @@ TSAN_OPTIONS=halt_on_error=1 ./build/harness_cli test.agent.md
 
 ---
 
-## 影响范围
+## 影响范围（V2 更新）
 
 | 组件 | 变更 |
 |------|------|
-| `src/harness/event_bus.h/cpp` | 新增核心 EventBus 类 |
-| `src/harness/harness_engine.h/cpp` | 创建并管理 Agent EventBus |
-| `src/harness/tui/harness_tui.h/cpp` | 多路订阅 + 节流循环 |
+| `src/common/event/event_bus.h/cpp` | 新增 IEventBus + InMemoryEventBus |
+| `src/common/event/event_types.h` | 事件类型目录（命名空间组织） |
+| `src/common/event/bounded_queue.h` | MPMC 有界队列模板 |
+| `src/core/engine.h/cpp` | 集成 EventBus 发布（LLM/Tool 事件） |
+| `src/modules/executor/node_executor.cpp` | 发布 NodeExecuted 事件 |
+| `src/modules/trace/trace_exporter.cpp` | 改为 EventBus 消费者（Inline 模式） |
+| `examples/agent_chat/` | TUI 订阅事件（CoroSpawn 模式） |
+
+---
+
+## V2 变更记录
+
+| 版本 | 日期 | 变更 |
+|------|------|------|
+| V1 | 2026-05-12 | 初始版本：Per-Agent 多队列 EventBus，面向 UI |
+| V2 | 2026-05-27 | 基于 ADR-0030 扩展为全系统可观测性总线：全局队列 + DispatchMode |
+
+### V2 主要变更
+
+1. **架构扩展**：从纯 UI 事件总线扩展为全系统可观测性总线
+2. **队列模型**：Per-Agent 多队列 → 全局 MPMC 有界队列 + Session 过滤
+3. **背压策略**：丢弃新事件 → 按优先级丢弃旧事件
+4. **DispatchMode**：新增 Inline / TaskflowAsync / CoroSpawn 三种分发模式
+5. **事件类型**：增加 Cost.* 命名空间（ADR-0032 CostCollector）
+6. **集成**：明确与 ADR-0030 AsyncRuntime 的集成方式
 
 ---
 
@@ -519,20 +758,21 @@ void generate_stream(TokenCallback cb);  // 每次 token 调用 cb
 
 ## 结论
 
-采用分层 Per-Agent EventBus 架构：
+采用与 ADR-0030 集成的分层 EventBus 架构：
 
-- **4 级优先级**：Critical > High > Normal > Low
-- **混合背压**：Critical 永不丢弃，Low 优先丢弃，LLM_TOKEN 合并
-- **30Hz 节流**：合并多个 token，每帧最多一次重绘
-- **Per-Agent 隔离**：每个 Agent 独立 EventBus，TUI 多路订阅
-- **Phase 2 预留**：Global EventBus 用于 Agent 间通信
+- **传输层**：全局 MPMC 有界队列 + 独立分发线程
+- **分发层**：DispatchMode（Inline / TaskflowAsync / CoroSpawn）与 ADR-0030 双层架构对齐
+- **背压策略**：按优先级丢弃旧事件（Critical 永不丢弃）
+- **Session 隔离**：全局队列 + Per-Session 订阅过滤
+- **事件类型**：编译期 constexpr 字符串，命名空间组织
 
 此设计支持：
 - **Phase 1**：单/多 Agent 流式 TUI，无 UI 卡顿
-- **Phase 2**：Agent 间通信扩展
+- **Phase 2**：CostCollector 成本追踪（ADR-0032）
+- **Phase 3**：Agent 间通信扩展
 - **长期**：配置化参数，运行时可调
 
 ---
 
-*文档版本: v1.0*
-*最后更新: 2026-05-12*
+*文档版本: v2.0*
+*最后更新: 2026-05-27*

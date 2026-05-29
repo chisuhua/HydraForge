@@ -99,6 +99,21 @@ public:
 
     virtual bool is_available() const = 0;
     virtual std::string name() const = 0;
+
+    // ===== ADR-0034 新增：模型发现能力（默认实现，非破坏性）=====
+
+    // 返回该 Provider 支持的所有模型能力描述
+    // 默认返回空列表——不影响现有实现
+    virtual std::vector<ModelCapability> available_models() const {
+        return {};
+    }
+
+    // 检查指定模型是否可用
+    // 默认返回 true——向后兼容
+    virtual bool is_model_available(const std::string& model_id) const {
+        (void)model_id;
+        return true;
+    }
 };
 ```
 
@@ -289,5 +304,38 @@ virtual LLMResult generate(const std::string& prompt, const LLMParams& params,
 
 ---
 
-*文档版本: v1.0*
-*最后更新: YYYY-MM-DD*
+*文档版本: v1.1*
+*最后更新: 2026-05-28*
+
+---
+
+## 附录：ADR-0034 模型路由扩展
+
+### 变更说明
+
+ADR-0034 在 `ILLMProvider` 上新增了两个**默认实现方法**，用于支持模型路由：
+
+| 方法 | 用途 | 默认行为 |
+|------|------|----------|
+| `available_models()` | 查询 Provider 支持的所有模型 | 返回空列表 `{}` |
+| `is_model_available(model_id)` | 检查指定模型是否可用 | 返回 `true` |
+
+### 兼容性保证
+
+- **现有实现无需修改**：默认实现不破坏已有代码
+- **新实现可覆盖**：多模型 Provider（如 HTTP 后端）可覆盖返回实际支持的模型列表
+- **非侵入式**：不影响 `generate()` / `generate_stream()` 的现有调用方
+
+### 与 ADR-0034 的关系
+
+```
+ADR-0034 (ModelRouter)
+    │
+    ├── 使用 ILLMProvider::available_models() 获取候选模型
+    ├── 使用 ILLMProvider::is_model_available() 验证可用性
+    └── 通过 ModelRegistry 聚合多 Provider 的模型信息
+```
+
+### 参考
+
+- [ADR-0034: IModelRouter 模型路由接口](./adr-0034-model-router.md)

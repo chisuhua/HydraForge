@@ -217,8 +217,15 @@ public:
 
     // 异步运行：由 Worker 线程调用
     // 每个 DSLEngine 实例只属于一个 Worker（ADR-0003 per-agent 隔离）
+    // MVP: 基于回调的异步（Phase 1）
+    // Phase 2: 将迁移至 ADR-0030 的协程模型（async_simple::Lazy<T>）
     void run_async(const std::string& session_id,
                    const std::string& user_message);
+    
+    // 协程版本（ADR-0030 Phase 2 启用）
+    // async_simple::coro::Lazy<ExecutionResult> 
+    // run_async_coro(const std::string& session_id,
+    //                const std::string& user_message);
 
     // 获取会话上下文
     Context get_session_context(const std::string& session_id);
@@ -395,7 +402,7 @@ DSLEngine 直接包含 InMemoryBus。
 | Phase | 任务 | 产出 |
 |-------|------|------|
 | **Phase 1** | 创建 `src/common/contract/` 模块<br>实现 `IInteractionBus` + `InMemoryBus` | 契约层完成 |
-| **Phase 2** | DSLEngine 添加 `set_interaction_bus()` + `run_async()`<br>NodeExecutor Token 流推送 | 基座支持异步 |
+| **Phase 2** | DSLEngine 添加 `set_interaction_bus()` + `run_async()`<br>NodeExecutor Token 流推送<br>~~回调式异步~~ → 对齐 ADR-0030 协程模型 | 基座支持异步 |
 | **Phase 3** | 创建 `examples/agent_chat/`<br>实现 ChatClient + FTXUI TUI（修正后代码） | MVP 应用完成 |
 | **Phase 4** | 测试端到端 Token 流式 + 多轮对话<br>验证线程安全 | 可运行聊天 |
 
@@ -419,6 +426,7 @@ DSLEngine 直接包含 InMemoryBus。
 - [ADR-0003: DSLEngine 线程安全](./adr-0003-dslengine-thread-safety.md)
 - [ADR-0006: HarnessEngine 后台线程模型（已替代）](./adr-0006-harness-engine-thread-model.md)
 - [ADR-0020: 多智能体线程模型与隔离策略](./adr-0020-thread-model-isolation.md)
+- [ADR-0030: AsyncRuntime 双层异步架构](./adr-0030-async-runtime-dual-layer.md) — Phase 2 协程实现依赖
 
 ---
 
