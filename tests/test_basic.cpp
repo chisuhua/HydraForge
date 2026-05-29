@@ -2,23 +2,10 @@
 #include "catch_amalgamated.hpp"
 #include "core/engine.h"
 #include "modules/parser/markdown_parser.h"
-<<<<<<< HEAD
 #include "modules/executor/node_executor.h"
 #include "common/utils/template_renderer.h"
 #include "common/tools/registry.h"
 #include "common/utils/parser_utils.h"
-=======
-#include "common/tools/registry.h"
-#include "common/utils/template_renderer.h"
-#include "common/utils/parser_utils.h"
-#include <iostream>
-#include <string>
-#include "catch_amalgamated.hpp"
-#include "core/engine.h"
-#include "modules/parser/markdown_parser.h"
-#include "common/tools/registry.h"
-#include "common/utils/template_renderer.h"
->>>>>>> de9e7f9 (feat(engine): Add register_llm_tool() method for dependency injection)
 #include <iostream>
 #include <string>
 

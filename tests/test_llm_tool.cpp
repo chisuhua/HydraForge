@@ -23,17 +23,13 @@ TEST_CASE("LLMResult fields", "[llm_tool]") {
     REQUIRE(result.error.empty());
 }
 
-TEST_CASE("LlamaTool throws on missing model", "[llama_tool]") {
+TEST_CASE("LlamaTool model not available - is_available returns false", "[llama_tool]") {
     LlamaAdapter::Config config;
-    config.model_path = "models/nonexistent.gguf";
-    
-    bool threw = false;
-    try {
-        LlamaTool tool(config);
-    } catch (const std::runtime_error&) {
-        threw = true;
-    }
-    REQUIRE(threw);
+    config.model = "nonexistent-model";
+    config.api_url = "http://localhost:9999";  // 确保无法连接
+
+    LlamaTool tool(config);
+    REQUIRE(tool.is_available() == false);
 }
 
 TEST_CASE("LlamaTool name returns llama", "[llama_tool]") {

@@ -19,8 +19,6 @@ function(add_catch_test TEST_NAME)
     target_include_directories(${TEST_NAME} PRIVATE
         ${CATCH_INCLUDE_DIR}
         ${PROJECT_SOURCE_DIR}/include
-        ${PROJECT_SOURCE_DIR}/external/llama.cpp/include   # ← 关键：添加 llama 头文件路径
-        ${PROJECT_SOURCE_DIR}/external/llama.cpp/ggml/include   # ← 关键：添加 llama 头文件路径
         ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
         ${PROJECT_SOURCE_DIR}/external/inja/include
         ${PROJECT_SOURCE_DIR}/external/yaml-cpp/include

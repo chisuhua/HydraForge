@@ -198,58 +198,64 @@ TEST_CASE("GenerationResult default constructor", "[llm_streaming][llm_provider]
 TEST_CASE("MockProvider generate returns text", "[llm_streaming][llm_provider]") {
   class MockProvider : public ILLMProvider {
   public:
-    std::expected<GenerationResult, LLMError>
+    Result<GenerationResult, LLMError>
         generate(const GenerationRequest& req, std::stop_token) override {
-      return GenerationResult{"Mock response: " + req.prompt, 10, 5, "stop"};
+      return Result<GenerationResult, LLMError>::success(
+          GenerationResult{"Mock response: " + req.prompt, 10, 5, "stop"});
     }
 
     std::unique_ptr<IGenerationStream>
         generate_stream(const GenerationRequest& req, std::stop_token) override {
-      class final : public IGenerationStream {
-        std::vector<std::string> toks = agenticdsl::split(req.prompt);
-        size_t idx = 0;
-        bool active = true;
-      public:
-        std::optional<std::string> next(std::stop_token) override {
-          if (idx < toks.size()) return toks[idx++];
-          active = false;
-          return std::nullopt;
-        }
-        bool is_active() const override { return active; }
+      class StreamImpl : public IGenerationStream {
+          std::vector<std::string> toks;
+          size_t idx = 0;
+          bool active = true;
+        public:
+          explicit StreamImpl(std::string prompt)
+              : toks(agenticdsl::split(prompt)) {}
+          std::optional<std::string> next(std::stop_token) override {
+            if (idx < toks.size()) return toks[idx++];
+            active = false;
+            return std::nullopt;
+          }
+          bool is_active() const override { return active; }
       };
-      return std::make_unique<final>();
+      return std::make_unique<StreamImpl>(req.prompt);
     }
   };
 
   MockProvider provider;
   auto result = provider.generate(GenerationRequest{"test"}, {});
   REQUIRE(result.has_value());
-  REQUIRE(result->text == "Mock response: test");
+  REQUIRE(result.value().text == "Mock response: test");
 }
 
 TEST_CASE("MockProvider generate_stream returns tokens", "[llm_streaming][llm_provider]") {
   class MockProvider : public ILLMProvider {
   public:
-    std::expected<GenerationResult, LLMError>
+    Result<GenerationResult, LLMError>
         generate(const GenerationRequest&, std::stop_token) override {
-      return GenerationResult{"full text", 10, 10, "stop"};
+      return Result<GenerationResult, LLMError>::success(
+          GenerationResult{"full text", 10, 10, "stop"});
     }
 
     std::unique_ptr<IGenerationStream>
         generate_stream(const GenerationRequest& req, std::stop_token) override {
-      class final : public IGenerationStream {
-        std::vector<std::string> toks = agenticdsl::split(req.prompt);
-        size_t idx = 0;
-        bool active = true;
-      public:
-        std::optional<std::string> next(std::stop_token) override {
-          if (idx < toks.size()) return toks[idx++];
-          active = false;
-          return std::nullopt;
-        }
-        bool is_active() const override { return active; }
+      class StreamImpl : public IGenerationStream {
+          std::vector<std::string> toks;
+          size_t idx = 0;
+          bool active = true;
+        public:
+          explicit StreamImpl(std::string prompt)
+              : toks(agenticdsl::split(prompt)) {}
+          std::optional<std::string> next(std::stop_token) override {
+            if (idx < toks.size()) return toks[idx++];
+            active = false;
+            return std::nullopt;
+          }
+          bool is_active() const override { return active; }
       };
-      return std::make_unique<final>();
+      return std::make_unique<StreamImpl>(req.prompt);
     }
   };
 
