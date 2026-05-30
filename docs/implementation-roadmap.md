@@ -356,6 +356,12 @@ class ICognitiveOrchestrator {
 
 **前提**: 无 (独立仓库)
 
+> **IDomainAgent 与 PDK 的关系**: ADR-0021 的 `DECLARE_TOOL` 宏是 `IDomainAgent`（ADR-0036 定义）的**简化入口**。
+> - `IDomainAgent` = C++ 抽象类，提供完整生命周期钩子（`on_session_start`、`create_router` 等）
+> - `DECLARE_TOOL` = 宏封装，快速注册工具而无须实现完整 Agent 接口
+> - MVP 阶段使用 `DECLARE_TOOL`；Phase 4 后可通过实现 `IDomainAgent` 获得完整生命周期控制
+> - 两者可共存：一个 Agent 可以同时有 `DECLARE_TOOL` 注册的工具和 `IDomainAgent` 管理的工具
+
 | # | 文件 | 操作 | 状态 | 说明 |
 |---|------|------|------|------|
 | 3.1 | `include/hydraforge/pdk.h` | 新建 | [ ] | 统一入口 |
@@ -538,7 +544,20 @@ Eric 审查指出的问题——`call_tool_with_policy()` 之前在 Roadmap 中�
 |---|------|------|------|------|
 | 14.1 | `src/common/llm/model_registry.h` | 新建 | [ ] | (若 Phase 0 未创建) |
 | 14.2 | `src/common/llm/model_router.h` | 完善 | [ ] | 异步路由 `route_async()` |
-| 14.3 | `src/common/llm/llm_call_coordinator.h` | 新建 | [ ] | 并发管理 + 舰队模式 |
+| 14.3 | `src/common/llm/llm_call_coordinator.h` | 新建 | [ ] | 并发管理 |
+
+### ADR-0025 — 舰队模式并行执行
+
+> **来源**: `docs/implementation-slices.md` Slice 04
+> **目标**: 支持 16 路并行 LLM 调用，全部完成后聚合结果
+> **前提**: ADR-0034 P2 (异步路由), ADR-0030 P3 (Taskflow 并行)
+
+| # | 文件 | 操作 | 状态 | 说明 |
+|---|------|------|------|------|
+| 14.4 | `src/common/llm/fleet_orchestrator.h` | 新建 | [ ] | `FleetOrchestrator` 并行调度 |
+| 14.5 | `src/common/llm/fleet_orchestrator.cpp` | 新建 | [ ] | 分片→并行→聚合流程 |
+| 14.6 | `examples/slice_04_fleet/main.cpp` | 新建 | [ ] | 舰队模式端到端示例 |
+| 14.7 | `tests/test_fleet_orchestrator.cpp` | 新建 | [ ] | 并行调用单元测试 |
 
 ### ADR-0036 — 混合内核架构总纲
 
@@ -763,3 +782,21 @@ EventBus (Phase 2 ADR-0002 V2)
 | llama.cpp 引用 | ✅ 已移除 | CMakeLists.txt |
 | 代码格式化 | ❌ 无配置 | 无 `.clang-format` / `.clang-tidy` |
 | 文档与代码一致 | ⚠️ 基本一致 | ADR-0019~0036 已记录但未实现 |
+
+---
+
+## 附录 D: 相关文档同步清单
+
+本路线图变更时，以下文档可能需要同步更新：
+
+| 文档 | 同步条件 | 上次同步 |
+|------|---------|:--------:|
+| `docs/implementation-slices.md` | Phase 变更、Slice 增删 | 2026-05-30 |
+| `docs/prephase-slice00-phase0.md` | Pre-Phase / Slice 00 / Phase 0 任务修改 | 2026-05-30 |
+| `docs/adr/relationships.md` | ADR 依赖变更、新 ADR 创建 | 2026-05-28 |
+| `docs/agenticdsl/implementation-roadmap/01-roadmap.md` | Phase 5 任务变更 | 2026-05-22 |
+| `docs/agenticdsl/implementation/self-bootstrapping-path.md` | Phase 5 阶段调整 | 2026-05-22 |
+| `docs/agenticdsl/implementation/phase-0-implementation.md` | Track 0.1 任务变更 | 2026-05-23 |
+| `docs/archive/Roadmap.md` | 仅归档，非常规同步 | — |
+
+> 同步原则：每完成一个 Phase，检查上表中"同步条件"匹配的文档是否需要更新。

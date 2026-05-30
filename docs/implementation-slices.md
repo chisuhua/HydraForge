@@ -13,14 +13,41 @@
 3. **可独立验证**——每个切片有明确的"通/不通"标准
 4. **最小代码量**——只实现验证假设所需的最少功能，不做工程完备
 
+## 前置条件
+
+Slice 01-04 均假设以下基础设施已完成（对应 `docs/prephase-slice00-phase0.md`）：
+
+- **Pre-Phase**: 核心接口头文件（`ICognitiveOrchestrator`, `IExecutionPolicy`, Session 前置声明）
+- **Slice 00**: Taskflow v4.0 + async_simple v1.4 引入并验证编译通过
+- **Phase 0 Track 0.1**: CloudLLMAdapter / MockLLMProvider 可用
+- **Phase 0 Track 0.3**: IInteractionBus + ToolResult 标准化
+
 ## 切片依赖图
 
 ```
-Slice 01 (三层调用链)          ← 无依赖，可立即开始
-  ├──→ Slice 02 (多模型路由)   ← 依赖 01
-  │       └──→ Slice 04 (舰队并行)  ← 依赖 02
-  └──→ Slice 03 (审批流程)     ← 依赖 01，与 02 并行
+Pre-Phase (核心接口) ─ Slice 00 (异步依赖)        ← 基础设施（所有 Slice 的前置）
+     │                      │
+     └──────┬───────────────┘
+            ▼
+Phase 0 Track 0.1 (云端 LLM)    Phase 0 Track 0.3 (契约层)
+            │                          │
+            └──────┬───────────────────┘
+                   ▼
+        ┌── Slice 01 (三层调用链) ←── 无依赖，Phase 0 Track 0.2
+        │
+        ├──→ Slice 02 (多模型路由) ←── 依赖 01
+        │       └──→ Slice 04 (舰队并行) ←── 依赖 02
+        └──→ Slice 03 (审批流程)   ←── 依赖 01，与 02 并行
 ```
+
+## 切片与 Roadmap Phase 映射
+
+| Slice | 验证目标 | 对应 Roadmap Phase | 说明 |
+|-------|---------|-------------------|------|
+| **Slice 01** | 基座→认知→领域三层调用链 | **Phase 0 Track 0.2** | 最小可行路径，MockLLM 验证链路 |
+| **Slice 02** | 多模型路由（任务类型→模型） | **Phase 4 ADR-0034 P1** | DefaultModelRouter 路由逻辑 |
+| **Slice 03** | 写入审批流程 | **Phase 3 ADR-0031 + ADR-0004 V2** | IExecutionPolicy + ToolCoordinator |
+| **Slice 04** | 16 路并行 LLM 调用 | **Phase 4 ADR-0025** | FleetOrchestrator 分片→聚合 |
 
 ---
 

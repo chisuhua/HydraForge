@@ -1,9 +1,13 @@
 # Pre-Phase + Slice 00 + Phase 0 详细实施计划
 
-**版本**: v1.1（基于 2026-05-30 审查修正）
+**版本**: v1.2（基于 2026-05-30 Alex 跨文档对齐审查修正）
 **关联**: `docs/implementation-roadmap.md` Phase Pre-Phase / Slice 00 / Phase 0
 **工期**: 7-10 天
 **前提**: 无（项目第一个实施阶段）
+
+### 💡 文档对齐说明
+
+**命名冲突提醒**: `docs/agenticdsl/implementation/` 系列文档（如 `phase-0-implementation.md`）中的"Phase 0"特指 **AgenticDSL 自举路径的阶段 0（云端 LLM 集成）**，对应本路线图的 **Phase 0 Track 0.1**。如果两个文档对阶段编号的理解不一致，以 `docs/implementation-roadmap.md` 为准。详见附录 A 的跨文档对照表。
 
 ---
 
@@ -499,6 +503,13 @@ endif()
 ### 前提
 
 - Pre-Phase 完成
+
+> **IInteractionBus 后端升级时间点**: 当前 Phase 0 用 `std::mutex` + `std::queue`。
+> 当 Phase 2 ADR-0002 V2 的 `InMemoryEventBus`（MPMC 有界队列）就绪后，
+> `InMemoryBus` 的内部实现将从 `std::mutex` + `std::queue` 切换为 `EventBus` 后端。
+> **接口 `IInteractionBus` 不变**，所有上层代码（CognitiveWorker、NodeExecutor、TUI）无需修改。
+>
+> 具体切换时机：Phase 2 ADR-0002 V2 P1 完成后，修改 `InMemoryBus` 构造函数使其接受 `IEventBus&` 参数。
 
 ### 任务列表
 
