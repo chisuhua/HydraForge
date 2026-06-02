@@ -1,0 +1,16 @@
+# Added by code-review-graph
+.code-review-graph/
+
+# Build artifacts
+build/
+
+# Sisyphus orchestration
+.omo/
+.sisyphus/
+
+# Tool configurations
+.claude/
+.github/
+.mcp.json
+.opencode/
+openspec/
