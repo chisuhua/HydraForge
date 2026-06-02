@@ -19,26 +19,20 @@ StandardLibraryLoader& StandardLibraryLoader::instance() {
 }
 
 void StandardLibraryLoader::load_builtin_libraries() {
-    // Register /lib/utils/noop (defined as system node, but conceptually a library)
-    // libraries_.push_back({
-    //      "/lib/utils/noop",
-    //     std::nullopt,
-    //     {},
-    //     false // is single node
-    // });
+    libraries_.push_back({
+         "/lib/utils/noop",
+         "() -> void",
+         nlohmann::json::parse(R"({"type": "object"})"),
+         {},
+         true
+    });
 
-    // Example: Register /lib/math/add
-    // This is just a declaration, actual execution requires the full graph.
-    // The graph for /lib/math/add would be loaded separately or defined in a .md file.
-    // For v3.1, we can define a signature.
     libraries_.push_back({
          "/lib/math/add",
          "(a: number, b: number) -> {sum: number}",
-         // Parsed schema would be calculated by the parser/loader when the actual graph is loaded
-         // For built-ins, we might hardcode the schema or parse the signature string here.
-         nlohmann::json::parse(R"({"type": "object", "properties": {"sum": {"type": "number"}}})"), // Example schema
+         nlohmann::json::parse(R"({"type": "object", "properties": {"sum": {"type": "number"}}})"),
          {},
-         true // is subgraph
+         true
     });
 
     // Add other built-in library entries as needed per v3.1 spec
