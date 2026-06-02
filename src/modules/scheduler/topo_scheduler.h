@@ -47,6 +47,7 @@ private:
     std::vector<std::unique_ptr<Node>> all_nodes_;
     std::unordered_map<NodePath, Node*> node_map_;
     std::unordered_map<NodePath, std::vector<NodePath>> reverse_edges_; // 后继 -> 前驱
+    std::unordered_map<NodePath, std::vector<NodePath>> wait_for_dependents_; // 被 wait_for 引用 -> 等待者
     std::unordered_map<NodePath, int> in_degree_;
     std::queue<NodePath> ready_queue_;
     std::unordered_set<NodePath> executed_;

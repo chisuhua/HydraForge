@@ -56,6 +56,7 @@ void TopoScheduler::build_dag() {
 
         in_degree_[current_path] = 0;
         reverse_edges_[current_path] = {};
+        wait_for_dependents_[current_path] = {};
     }
 
     // 2. 构建依赖关系
@@ -114,6 +115,8 @@ void TopoScheduler::build_dag() {
                 }
                 // Add reverse edge: current depends on dep
                 reverse_edges_[current_path].push_back(dep_path);
+                // Track: dep is waited for by current
+                wait_for_dependents_[dep_path].push_back(current_path);
                 // Increment in-degree of current
                 in_degree_[current_path]++;
             }
@@ -351,13 +354,26 @@ ExecutionResult TopoScheduler::execute(Context initial_context) {
             return {true, "Paused at LLM call", context, session_result.paused_at};
         }
 
+        // Update successors via next field
+        for (const auto& next_path : current_node->next) {
+            if (--in_degree_[next_path] == 0) {
+                ready_queue_.push(next_path);
+            }
+        }
+        // Update nodes that wait_for current_path
+        for (const auto& dependent : wait_for_dependents_[current_path]) {
+            if (--in_degree_[dependent] == 0) {
+                ready_queue_.push(dependent);
+            }
+        }
+
         // Handle END node termination
         if (current_node->type == NodeType::END) {
             std::string mode = current_node->metadata.value("termination_mode", "hard");
-            if (mode == "hard" && !is_executing_fork_branches_) {
+            bool is_system_node = current_path.rfind("/__system__/", 0) == 0;
+            if (mode == "hard" && !is_executing_fork_branches_ && !is_system_node) {
                 break; // Terminate entire flow
             }
-            // Soft end: continue scheduling, but might pop call_stack_ in a more complex impl
         }
 
         if (!dynamic_graphs_.empty()) {
@@ -403,13 +419,6 @@ ExecutionResult TopoScheduler::execute(Context initial_context) {
              // This is the most straightforward way to handle the rebuild.
         }
 
-        // Update successors' in-degrees and add to ready queue if ready
-        for (const auto& next_path : current_node->next) {
-            if (--in_degree_[next_path] == 0) {
-                ready_queue_.push(next_path);
-            }
-        }
-
         // Check if any pending dynamic deps are now satisfied due to this execution
         std::unordered_set<NodePath> newly_executed = {current_path};
         session_.check_and_requeue_dynamic_deps(newly_executed);
@@ -421,15 +430,17 @@ ExecutionResult TopoScheduler::execute(Context initial_context) {
     }
 
     // Final check for unexecuted nodes (exclude system nodes)
-    std::unordered_set<NodePath> all_node_paths;
+    std::set<NodePath> all_node_paths;
     for (const auto& n : all_nodes_) {
         // Skip system nodes from unexecuted check
         if (n->path.rfind("/__system__/", 0) == 0) continue;
         all_node_paths.insert(n->path);
     }
+    // set_difference requires sorted inputs; copy unordered_set to std::set
+    std::set<NodePath> executed_sorted(executed_.begin(), executed_.end());
     std::set<NodePath> unexecuted;
     std::set_difference(all_node_paths.begin(), all_node_paths.end(),
-                        executed_.begin(), executed_.end(),
+                        executed_sorted.begin(), executed_sorted.end(),
                         std::inserter(unexecuted, unexecuted.begin()));
 
     if (!unexecuted.empty()) {
@@ -438,6 +449,7 @@ ExecutionResult TopoScheduler::execute(Context initial_context) {
 
     return {true, "Execution completed successfully", context, std::nullopt};
 }
+
 
 void TopoScheduler::append_dynamic_graphs(std::vector<ParsedGraph> new_graphs) {
     // Store the new graphs temporarily
