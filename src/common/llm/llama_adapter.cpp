@@ -6,7 +6,7 @@
 
 namespace agenticdsl {
 
-LlamaAdapter::LlamaAdapter(const Config& config) : config_(config), loaded_(true) {
+LlamaAdapter::LlamaAdapter(const Config& config) : config_(config), loaded_(false) {
 }
 
 LlamaAdapter::~LlamaAdapter() = default;
