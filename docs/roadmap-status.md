@@ -38,15 +38,20 @@
 
 | 优先级 | 任务编号 | 任务 | 文件 | 状态 | 阻塞 |
 |:------:|:--------:|------|------|:----:|:----:|
-| P0 | P0.0a | 创建 `include/hydraforge/cognitive/` | `mkdir -p` | [ ] | — |
-| P0 | P0.0b | 创建 `include/hydraforge/policy/` | `mkdir -p` | [ ] | — |
-| P0 | P0.0c | 创建 `include/hydraforge/types/` | `mkdir -p` | [ ] | — |
-| P0 | P0.1 | ICognitiveOrchestrator 接口 | `icognitive_orchestrator.h` | [ ] | — |
-| P0 | P0.2 | IExecutionPolicy 接口 | `iexecution_policy.h` | [ ] | — |
-| P0 | P0.3 | Session 前置声明 | `session_fwd.h` | [ ] | — |
-| P0 | P0.4 | CMake include 配置 | `CMakeLists.txt` | [ ] | — |
+| P0 | P0.0a | 创建 `include/agenticdsl/cognitive/` | `mkdir -p` | [ ] | — |
+| P0 | P0.0b | 创建 `include/agenticdsl/policy/` | `mkdir -p` | [ ] | — |
+| P0 | P0.0c | 创建 `include/agenticdsl/types/` | `mkdir -p` | [ ] | — |
+| P0 | P0.1 | ICognitiveOrchestrator 接口 | `include/agenticdsl/cognitive/icognitive_orchestrator.h` | [ ] | — |
+| P0 | P0.2 | IExecutionPolicy 接口 | `include/agenticdsl/policy/iexecution_policy.h` | [ ] | — |
+| P0 | P0.3 | Session 前置声明 | `include/agenticdsl/types/session_fwd.h` | [ ] | — |
+| P0 | P0.4 | CMake include 配置 | `CMakeLists.txt`（根，第 37 行附近 `target_include_directories` 处） | [ ] | — |
 
-**验证**: `cmake .. && make agenticdsl_core` 编译通过
+**验收任务**
+
+| 优先级 | 验收编号 | 验收内容 | 验证命令 | 状态 |
+|:------:|:--------:|------|---------|:----:|
+| V | V0.1 | 编译通过 | `cmake .. && make agenticdsl_core` | [ ] |
+| V | V0.2 | 头文件可被 include | `echo '#include "agenticdsl/cognitive/icognitive_orchestrator.h"' \| g++ -x c++ -fsyntax-only -` | [ ] |
 
 ### Slice 00 — 异步基础设施验证（1-2 天）
 
@@ -59,7 +64,12 @@
 | S0 | S0.5 | 编译选项（禁用测试/demo） | `external/CMakeLists.txt` | [ ] | S0.4 |
 | S0 | S0.6 | 桥接验证测试 | `tests/test_async_bridge.cpp` | [ ] | S0.3, P0.4 |
 
-**验证**: `./tests/test_async_bridge` 3 测试通过
+**验收任务**
+
+| 优先级 | 验收编号 | 验收内容 | 验证命令 | 状态 |
+|:------:|:--------:|------|---------|:----:|
+| V | V0.3 | 全量编译通过 | `cmake .. && make -j$(nproc)` | [ ] |
+| V | V0.4 | 异步桥接测试通过 | `ctest -R test_async_bridge` | [ ] |
 
 ### Track 0.1 — 云端 LLM 集成（3-4 天，等待启动）
 
@@ -77,6 +87,38 @@
 | M3 | M3.2 | SSE 解析测试 | `tests/test_sse_stream.cpp` | [ ] | M1.6 |
 | M3 | M3.3 | 集成测试（可选） | `tests/test_cloud_llm_live.cpp` | [ ] | M1.5 |
 
+**验收任务**
+
+| 优先级 | 验收编号 | 验收内容 | 验证命令 | 状态 |
+|:------:|:--------:|------|---------|:----:|
+| V | V1.1 | CloudLLM mock 测试通过 | `ctest -R test_cloud_llm` | [ ] |
+| V | V1.2 | SSE 解析测试通过 | `ctest -R test_sse_stream` | [ ] |
+| V | V1.3 | LLM 模块编译通过 | `make agenticdsl_core` 无 error | [ ] |
+
+### Track 0.2 — 三层调用链验证（5-7 天，依赖 Track 0.1）
+
+| 优先级 | 任务编号 | 任务 | 文件 | 状态 | 阻塞 |
+|:------:|:--------:|------|------|:----:|:----:|
+| M4 | M4.1 | IModelRouter 接口 | `src/common/llm/imodel_router.h` | [ ] | — |
+| M4 | M4.2 | ModelRegistry 头文件 | `src/common/llm/model_registry.h` | [ ] | — |
+| M4 | M4.3 | ModelRegistry 实现 | `src/common/llm/model_registry.cpp` | [ ] | M4.2 |
+| M4 | M4.4 | DefaultModelRouter 头文件 | `src/common/llm/default_router.h` | [ ] | — |
+| M4 | M4.5 | DefaultModelRouter 实现 | `src/common/llm/default_router.cpp` | [ ] | M4.4 |
+| M4 | M4.6 | SimpleCognitiveOrchestrator 头文件 | `src/cognitive/simple_orchestrator.h` | [ ] | — |
+| M4 | M4.7 | SimpleCognitiveOrchestrator 实现 | `src/cognitive/simple_orchestrator.cpp` | [ ] | M4.6 |
+| M4 | M4.8 | 端到端示例 main.cpp | `examples/slice_01_tool_call/main.cpp` | [ ] | M4.7 |
+| M4 | M4.9 | 端到端示例 CMake | `examples/slice_01_tool_call/CMakeLists.txt` | [ ] | — |
+| M4 | M4.10 | cognitive/ CMakeLists.txt | `src/cognitive/CMakeLists.txt` | [ ] | — |
+
+**验收任务**
+
+| 优先级 | 验收编号 | 验收内容 | 验证命令 | 状态 |
+|:------:|:--------:|------|---------|:----:|
+| V | V2.1 | Mock 模式完整调用链 | `./examples/slice_01_tool_call --mock` | [ ] |
+| V | V2.2 | ModelRegistry 测试通过 | `ctest -R test_model_registry` | [ ] |
+| V | V2.3 | DefaultRouter 测试通过 | `ctest -R test_default_router` | [ ] |
+| V | V2.4 | 三层调用链编译通过 | `make agenticdsl_core` 无 error | [ ] |
+
 ### Track 0.3 — 最小契约层（2-3 天，等待启动）
 
 | 优先级 | 任务编号 | 任务 | 文件 | 状态 | 阻塞 |
@@ -90,6 +132,15 @@
 | M6 | M6.1 | InMemoryBus 单元测试 | `tests/test_interaction_bus.cpp` | [ ] | M5.5 |
 | M6 | M6.2 | 多线程安全测试 | `tests/test_interaction_bus.cpp` | [ ] | M6.1 |
 | M6 | M6.3 | ToolResult 测试 | `tests/test_tool_result.cpp` | [ ] | M5.6 |
+
+**验收任务**
+
+| 优先级 | 验收编号 | 验收内容 | 验证命令 | 状态 |
+|:------:|:--------:|------|---------|:----:|
+| V | V3.1 | InteractionBus 测试通过 | `ctest -R test_interaction_bus` | [ ] |
+| V | V3.2 | ToolResult 测试通过 | `ctest -R test_tool_result` | [ ] |
+| V | V3.3 | 并发安全验证 | 并发 emit 1000 次无死锁（测试内验证） | [ ] |
+| V | V3.4 | Contract 模块编译通过 | `make agenticdsl_core` 无 error | [ ] |
 
 ---
 
@@ -143,6 +194,7 @@
 ### Sprint 结束前检查
 
 - [ ] 所有 Sprint 任务 `[x]` 或 `[~]`
+- [ ] 所有验收任务 `[x]` 或 `[~]`
 - [ ] 阻塞项已记录原因
 - [ ] 验证状态已更新
 - [ ] 实施日志已补充

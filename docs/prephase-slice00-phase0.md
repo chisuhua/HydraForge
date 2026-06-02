@@ -17,7 +17,7 @@
 
 | # | 审查问题 | 修正 |
 |---|---------|------|
-| 🚨 1 | 命名空间 `hydraforge` 与现有 `agenticdsl` 冲突 | 统一为 `agenticdsl` |
+| 🚨 1 | 原 `hydraforge` 命名空间与现有 `agenticdsl` 冲突 | 统一为 `agenticdsl`（目录改为 `include/agenticdsl/`）|
 | 🚨 2 | 测试使用 `test_runner`（不存在） | 改为独立测试二进制名（`test_<模块>`） |
 | 🚨 3 | 引用不存在的 `illm_provider.h` | 遵循 `phase-0-implementation.md`，deprecate `ILLMAdapter` |
 | ⚠️ 4 | CMake 直接改 `agenticdsl_core` | 改为使用 `agenticdsl_includes` INTERFACE 库 |
@@ -74,12 +74,12 @@ Phase 0 — 三条并行 Track
 
 | # | 任务 | 文件 | 操作 | 验证标准 |
 |---|------|------|:----:|---------|
-| P0.0a | 创建公共头文件目录 | `include/hydraforge/cognitive/` | 新建 | 目录存在 |
-| P0.0b | 创建策略头文件目录 | `include/hydraforge/policy/` | 新建 | 目录存在 |
-| P0.0c | 创建类型头文件目录 | `include/hydraforge/types/` | 新建 | 目录存在 |
-| P0.1 | 认知层入口接口 | `include/hydraforge/cognitive/icognitive_orchestrator.h` | 新建 | 编译通过 |
-| P0.2 | 执行策略接口 | `include/hydraforge/policy/iexecution_policy.h` | 新建 | 编译通过 |
-| P0.3 | Session 前置声明 | `include/hydraforge/types/session_fwd.h` | 新建 | 编译通过 |
+| P0.0a | 创建公共头文件目录 | `include/agenticdsl/cognitive/` | 新建 | 目录存在 |
+| P0.0b | 创建策略头文件目录 | `include/agenticdsl/policy/` | 新建 | 目录存在 |
+| P0.0c | 创建类型头文件目录 | `include/agenticdsl/types/` | 新建 | 目录存在 |
+| P0.1 | 认知层入口接口 | `include/agenticdsl/cognitive/icognitive_orchestrator.h` | 新建 | 编译通过 |
+| P0.2 | 执行策略接口 | `include/agenticdsl/policy/iexecution_policy.h` | 新建 | 编译通过 |
+| P0.3 | Session 前置声明 | `include/agenticdsl/types/session_fwd.h` | 新建 | 编译通过 |
 | P0.4 | CMake include 配置 | `CMakeLists.txt`（根） | 修改 | include 路径生效 |
 
 > **与 Phase 3 的边界**: Pre-Phase 仅声明纯虚接口（`virtual ... = 0`），不含任何实现。Phase 3 ADR-0031 P1 才首次提供具体 `AgentModePolicy` 类。
@@ -89,7 +89,7 @@ Phase 0 — 三条并行 Track
 #### P0.1: ICognitiveOrchestrator
 
 ```cpp
-// include/hydraforge/cognitive/icognitive_orchestrator.h
+// include/agenticdsl/cognitive/icognitive_orchestrator.h
 #pragma once
 
 #include <string>
@@ -126,7 +126,7 @@ public:
 #### P0.2: IExecutionPolicy
 
 ```cpp
-// include/hydraforge/policy/iexecution_policy.h
+// include/agenticdsl/policy/iexecution_policy.h
 #pragma once
 
 #include <string>
@@ -167,7 +167,7 @@ public:
 #### P0.3: Session 前置声明
 
 ```cpp
-// include/hydraforge/types/session_fwd.h
+// include/agenticdsl/types/session_fwd.h
 #pragma once
 
 #include <string>
@@ -676,7 +676,7 @@ target_link_libraries(agenticdsl_core PUBLIC agenticdsl_cognitive)
 // TODO(mvp): 替换为正式的 IPER 循环实现（Phase 4 ADR-0036）
 // 当前仅为验证三层调用链而硬编码
 #pragma once
-#include "hydraforge/cognitive/icognitive_orchestrator.h"
+#include "agenticdsl/cognitive/icognitive_orchestrator.h"
 #include "common/tools/registry.h"
 #include "common/llm/llm_adapter.h"
 
@@ -835,7 +835,7 @@ Phase 4.5: 删除 SimpleCognitiveOrchestrator             ← 清理
 ```
 HydraForge/
 ├── include/                          ← 新增
-│   └── hydraforge/
+│   └── agenticdsl/
 │       ├── cognitive/
 │       │   └── icognitive_orchestrator.h    (P0.1)
 │       ├── policy/
