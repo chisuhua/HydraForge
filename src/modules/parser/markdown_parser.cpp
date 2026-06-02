@@ -202,6 +202,9 @@ std::unique_ptr<Node> MarkdownParser::create_node_from_json(const NodePath& path
 
     // Parse metadata
     nlohmann::json metadata = node_json.value("metadata", nlohmann::json::object());
+    if (node_json.contains("wait_for")) {
+        metadata["wait_for"] = node_json["wait_for"];
+    }
 
     // Extract node-level signature / permissions (v3.1)
     std::optional<std::string> signature = std::nullopt;
@@ -234,7 +237,17 @@ std::unique_ptr<Node> MarkdownParser::create_node_from_json(const NodePath& path
         std::unordered_map<std::string, std::string> assign;
         if (node_json.contains("assign") && node_json["assign"].is_object()) {
             for (auto& [key, value] : node_json["assign"].items()) {
-                assign[key] = value.get<std::string>();
+                if (value.is_string()) {
+                    assign[key] = value.get<std::string>();
+                } else if (value.is_number_integer()) {
+                    assign[key] = std::to_string(value.get<long long>());
+                } else if (value.is_number_float()) {
+                    assign[key] = std::to_string(value.get<double>());
+                } else if (value.is_boolean()) {
+                    assign[key] = value.get<bool>() ? "true" : "false";
+                } else {
+                    assign[key] = value.dump();
+                }
             }
         }
         auto node = std::make_unique<AssignNode>(path, std::move(assign), std::move(next_paths));
@@ -286,10 +299,17 @@ std::unique_ptr<Node> MarkdownParser::create_node_from_json(const NodePath& path
         std::unordered_map<std::string, std::string> args;
         if (node_json.contains("arguments") && node_json["arguments"].is_object()) {
             for (auto& [key, value] : node_json["arguments"].items()) {
-                if (!value.is_string()) {
-                    throw std::runtime_error("Argument '" + key + "' is not a string");
+                if (value.is_string()) {
+                    args[key] = value.get<std::string>();
+                } else if (value.is_number_integer()) {
+                    args[key] = std::to_string(value.get<long long>());
+                } else if (value.is_number_float()) {
+                    args[key] = std::to_string(value.get<double>());
+                } else if (value.is_boolean()) {
+                    args[key] = value.get<bool>() ? "true" : "false";
+                } else {
+                    throw std::runtime_error("Argument '" + key + "' has unsupported type");
                 }
-                args[key] = value.get<std::string>();
             }
         }
         auto node = std::make_unique<ToolCallNode>(path, std::move(tool), std::move(args), std::move(output_keys), std::move(next_paths));
