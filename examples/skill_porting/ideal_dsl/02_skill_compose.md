@@ -299,6 +299,6 @@ skills:
 
 ## 验证方式
 
-1. 将 `examples/skill_porting/agenticdsl/axis1_process/brainstorming.agent.md` 中的链式 dsl_call 改写为 skill_compose
+1. 选取任一含链式 `dsl_call` 的 `.agent.md` 示例（如 `examples/skill_porting/agenticdsl/axis1_process/systematic_debugging.agent.md`），将其中的链式 dsl_call 改写为 skill_compose
 2. 验证数据流正确性
 3. 对比执行结果一致性

@@ -156,7 +156,8 @@
 
 | 日期 | 任务 | 耗时 | 结果 | 备注 |
 |------|------|:----:|------|------|
-| — | — | — | — | — |
+| 2026-05-30 ~ 2026-06-02 | Pre-Phase 准备：7 个测试修复 | ~0.5 天 | ✅ 12/12 通过 | 见 `docs/archive/superpowers/plans/2026-06-02-test-fixes-for-prephase.md`；commits `1148845` (llm), `d6e8ce5` (library), `4ae97d9` (parser), `4b45a5b` (scheduler), `0166f1e` (executor) |
+| 2026-06-03 | 文档基线对齐 | 0.5h | ✅ 完成 | 修正 roadmap-status.md / implementation-roadmap.md 中过时的测试断言；迁移 superpowers spec 方案对比至 ADR-0010；归档 3 个过期 superpowers 文档 |
 
 ---
 
@@ -164,18 +165,19 @@
 
 | 测试二进制 | 模块 | 状态 | 最后运行 | 通过率 |
 |-----------|------|:----:|:-------:|:-----:|
-| test_basic | 基础 | ✅ | 2026-05-29 | 3/5（预存失败） |
-| test_parser | Parser | ⏳ | — | — |
-| test_scheduler | Scheduler | ⏳ | — | — |
-| test_executor | Executor | ⏳ | — | — |
-| test_engine | Engine | ⏳ | — | — |
-| test_tool_registry | ToolRegistry | ⏳ | — | — |
-| test_llm_tool | LLM | ⏳ | — | — |
-| test_llm_streaming | LLM 流式 | ⏳ | — | — |
-| test_library_loader | 标准库 | ⏳ | — | — |
-| test_no_llm | 无 LLM 模式 | ⏳ | — | — |
-| test_prompt_builder | Prompt | ⏳ | — | — |
-| test_path_resolution | 路径解析 | ⏳ | — | — |
+| test_basic | 基础 | ✅ | 2026-06-03 | 5/5 |
+| test_parser | Parser | ✅ | 2026-06-03 | 12/12 |
+| test_scheduler | Scheduler | ✅ | 2026-06-03 | 全通过 |
+| test_executor | Executor | ✅ | 2026-06-03 | 全通过 |
+| test_engine | Engine | ✅ | 2026-06-03 | 全通过 |
+| test_tool_registry | ToolRegistry | ✅ | 2026-06-03 | 全通过 |
+| test_llm_tool | LLM | ✅ | 2026-06-03 | 全通过 |
+| test_llm_streaming | LLM 流式 | ✅ | 2026-06-03 | 全通过 |
+| test_library_loader | 标准库 | ✅ | 2026-06-03 | 全通过 |
+| test_no_llm | 无 LLM 模式 | ✅ | 2026-06-03 | 全通过 |
+| test_prompt_builder | Prompt | ✅ | 2026-06-03 | 全通过 |
+| test_path_resolution | 路径解析 | ✅ | 2026-06-03 | 全通过 |
+| **整体** | **全部 12 个测试** | ✅ | **2026-06-03** | **12/12 (100%)** |
 | **test_async_bridge** | Slice 00 | ⏳ | — | — |
 | **test_cloud_llm** | Track 0.1 | ⏳ | — | — |
 | **test_sse_stream** | Track 0.1 | ⏳ | — | — |

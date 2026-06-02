@@ -114,4 +114,4 @@
 | [01-taxonomy.md](01-taxonomy.md) | 本文的分类框架定义 — 映射表的理论基础 |
 | [02-invoke-compose.md](02-invoke-compose.md) | invoke/compose 语法设计，映射表用于分类配置 |
 | [04-skill-compiler-design.md](04-skill-compiler-design.md) | 编译模板列的对应实现 — 每轴在编译器中有专用 DAG 模板 |
-| [docs/superpowers/](../../superpowers/) | 39 个技能的原始 .md 文件 — 数据源 |
+| [examples/skill_porting/skills/](../../../examples/skill_porting/skills/) | 当前 6 技能的原始 SKILL.md 文件 — 数据源（规划 39） |

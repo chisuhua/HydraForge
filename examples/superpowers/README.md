@@ -13,20 +13,18 @@
 
 | # | 文件 | 对应 Superpowers 技能 | 关键 DSL 特性 |
 |---|------|----------------------|-------------|
-| 1 | `01_brainstorming.agent.md` | brainstorming | user_input, dsl_call, state |
-| 2 | `02_writing_plans.agent.md` | writing-plans | dsl_call, tool_call, state |
-| 3 | `03_executing_plans.agent.md` | executing-plans | assert, tool_call, generate_subgraph |
-| 4 | `04_subagent_driven_development.agent.md` | subagent-driven-development | **fork/join**, generate_subgraph |
-| 5 | `05_dispatching_parallel_agents.agent.md` | dispatching-parallel-agents | **fork/join**, state |
-| 6 | `06_finishing_development_branch.agent.md` | finishing-a-development-branch | tool_call, user_input, state |
-| 7 | `07_systematic_debugging.agent.md` | systematic-debugging | state, dsl_call, tool_call |
-| 8 | `08_verification_before_completion.agent.md` | verification-before-completion | assert, tool_call |
-| 9 | `09_using_git_worktrees.agent.md` | using-git-worktrees | tool_call, state, assert |
-| 10 | `10_test_driven_development.agent.md` | test-driven-development | assert, tool_call, loop |
-| 11 | `11_writing_skills.agent.md` | writing-skills | state, generate_subgraph, user_input |
-| 12 | `12_receiving_code_review.agent.md` | receiving-code-review | dsl_call, user_input, state |
-| 13 | `13_requesting_code_review.agent.md` | requesting-code-review | fork/join, dsl_call |
-| 14 | `14_using_superpowers.agent.md` | using-superpowers | **generate_subgraph**, state |
+| 1 | `03_executing_plans.agent.md` | executing-plans | assert, tool_call, generate_subgraph |
+| 2 | `04_subagent_driven_development.agent.md` | subagent-driven-development | **fork/join**, generate_subgraph |
+| 3 | `05_dispatching_parallel_agents.agent.md` | dispatching-parallel-agents | **fork/join**, state |
+| 4 | `06_finishing_development_branch.agent.md` | finishing-a-development-branch | tool_call, user_input, state |
+| 5 | `07_systematic_debugging.agent.md` | systematic-debugging | state, dsl_call, tool_call |
+| 6 | `08_verification_before_completion.agent.md` | verification-before-completion | assert, tool_call |
+| 7 | `09_using_git_worktrees.agent.md` | using-git-worktrees | tool_call, state, assert |
+| 8 | `10_test_driven_development.agent.md` | test-driven-development | assert, tool_call, loop |
+| 9 | `11_writing_skills.agent.md` | writing-skills | state, generate_subgraph, user_input |
+| 10 | `12_receiving_code_review.agent.md` | receiving-code-review | dsl_call, user_input, state |
+| 11 | `13_requesting_code_review.agent.md` | requesting-code-review | fork/join, dsl_call |
+| 12 | `14_using_superpowers.agent.md` | using-superpowers | **generate_subgraph**, state |
 
 ## 所需 AgenticDSL 增强特性
 
@@ -47,8 +45,8 @@
 # 编译 AgenticDSL（含增强特性）
 mkdir build && cd build && cmake .. -DAGENTICDSL_BUILD_EXAMPLES=ON && make
 
-# 运行技能示例
-./build/examples/superpowers/run_skill examples/superpowers/01_brainstorming.agent.md
+# 运行技能示例（任选一个保留的示例）
+./build/examples/superpowers/run_skill examples/superpowers/03_executing_plans.agent.md
 
 # 运行全部示例作为集成测试
 ctest --test-dir build --output-on-failure
@@ -58,8 +56,6 @@ ctest --test-dir build --output-on-failure
 
 | 技能 | 顺序 | 并行 | LLM | 工具 | 交互 | 状态 | 动态 |
 |------|------|------|-----|------|------|------|------|
-| 01_brainstorming | ✅ | ❌ | ✅ | ❌ | ✅ | ✅ | ❌ |
-| 02_writing_plans | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ |
 | 03_executing_plans | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
 | 04_subagent_driven_dev | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
 | 05_dispatching_parallel | ✅ | ✅ | ❌ | ✅ | ❌ | ✅ | ❌ |

@@ -1,5 +1,7 @@
 # HydraForge L4 Working Memory Interface Design
 
+> **⚠️ 归档说明 (2026-06-03)**：本文档为 ADR-0010 (记忆系统标准接口) 的前置设计稿，已被 ADR-0010 正式批准并取代。**关键内容（3 方案对比）已迁移至 `docs/adr/adr-0010-memory-system.md` "替代方案" 章节**。归档至 `docs/archive/superpowers/specs/`，仅供历史参考。
+
 > **作者**: Oracle  
 > **日期**: 2026-05-13  
 > **版本**: 1.0  

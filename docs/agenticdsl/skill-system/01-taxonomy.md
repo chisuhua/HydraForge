@@ -88,5 +88,5 @@
 | [02-invoke-compose.md](02-invoke-compose.md) | 基于分类框架的 skill_invoke/skill_compose 语法设计 |
 | [docs/adr/adr-0009-dsl-standard-library.md](../../adr/adr-0009-dsl-standard-library.md) | 当前标准库分类方式（reasoning/workflow/tools/cognitive）— 本文 5 维度与之互补 |
 | [docs/specs/dsl-lib.md](../../specs/dsl-lib.md) | 当前 DSL 标准库目录结构，技能分类的工程映射 |
-| [docs/superpowers/](../../superpowers/) | 39 个技能的原始技能文件 — 分类的实证基础 |
+| [examples/skill_porting/skills/](../../../examples/skill_porting/skills/) | 当前 6 技能原始 SKILL.md 文件 — 分类的实证基础（规划 39 技能） |
 | [examples/skill_porting/](../../../examples/skill_porting/) | 技能分类的 DSL 映射示例 |

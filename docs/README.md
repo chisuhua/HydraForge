@@ -9,7 +9,6 @@ docs/
 ├── guides/           # 用户和开发者指南
 ├── design/           # 设计文档
 ├── archive/          # 归档 (过期版本)
-├── superpowers/      # Superpowers skill 工件
 └── implementation-roadmap.md  # 实施路线图 (跨 ADR 执行追踪)
 ```
 
@@ -131,7 +130,7 @@ docs/
 | 目录 | 话题 | 关联现有文档 |
 |------|------|------------|
 | `vision/` | 自举愿景与演进路线图 | [specs/dsl.md](specs/dsl.md), [specs/architecture.md](specs/architecture.md) |
-| `skill-system/` | 技能分类体系、invoke/compose 语法、39 技能全量映射 | [superpowers/](superpowers/), [adr/adr-0009](adr/adr-0009-dsl-standard-library.md) |
+| `skill-system/` | 技能分类体系、invoke/compose 语法、当前 6 技能映射（规划 39） | [examples/skill_porting/skills/](../../examples/skill_porting/skills/), [adr/adr-0009](adr/adr-0009-dsl-standard-library.md) |
 | `session-state/` | 四层隔离模型、ModuleState/Yield/Fork 语义、Oracle 问答 | [adr/adr-0014](adr/adr-0014-conversation-context.md), [adr/adr-0008](adr/adr-0008-structured-context.md) |
 | `inference-stdlib/` | 推理标准库接口设计与子图规格 | [adr/adr-0001](adr/adr-0001-illm-provider-streaming-interface.md), [specs/dsl-lib.md](specs/dsl-lib.md) |
 | `language-extensions/` | 类型系统、模块命名空间、标准库扩展 | [specs/dsl.md](specs/dsl.md), [specs/dsl-lib.md](specs/dsl-lib.md) |
@@ -148,9 +147,13 @@ docs/
 
 ---
 
-## superpowers/ - Superpowers Skill 工件
+## superpowers/ - 已归档
 
-参见 `superpowers/` 目录内部索引。
+> **2026-06-03 更新**：`docs/superpowers/` 目录已删除。原内容（3 个文件：2 个设计稿 + 1 个已执行的实施计划）已归档至 `docs/archive/superpowers/`。
+>
+> - `specs/2026-05-12-dsl-standard-library-design.md` → 已被 `docs/adr/adr-0009-dsl-standard-library.md` 取代
+> - `specs/2026-05-13-memory-state-interface-design.md` → 已被 `docs/adr/adr-0010-memory-system.md` 取代（关键方案对比已迁移至 ADR 替代方案章节）
+> - `plans/2026-06-02-test-fixes-for-prephase.md` → 7 任务已全部执行，12 个测试 100% 通过
 
 ---
 

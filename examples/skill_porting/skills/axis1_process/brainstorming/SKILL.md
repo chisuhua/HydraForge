@@ -51,14 +51,9 @@
 
 ## AgenticDSL Example
 
-**对应文件**: `../../agenticdsl/axis1_process/brainstorming.agent.md`
-
-该文件展示了如何用 AgenticDSL 实现 brainstorm 工作流，包含：
-- `user_input` — 交互式澄清问题
-- `dsl_call` — LLM 分析意图
-- `assert` — 路由分支
-- `state` — 持久化会话状态
-- `skill_invoke` — （理想扩展）调用其他技能
+> 2026-06-03 更新：原 `axis1_process/brainstorming.agent.md` 已被移除。
+> 当前 brainstorming 技能未提供 AgenticDSL 实现示例，仅作为 SKILL.md 标准格式的参考。
+> 完整的 AgenticDSL 工作流模式参见 `examples/skill_porting/ideal_dsl/03_workflow_skill.md`。
 
 ## Ideal DSL Extension
 

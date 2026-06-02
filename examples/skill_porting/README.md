@@ -119,15 +119,15 @@ P2 (扩展):
 
 ```
 skills/axis1_process/brainstorming/SKILL.md
-    ↕ 对照
-agenticdsl/axis1_process/brainstorming.agent.md
     ↕ 理想 DSL 扩展
 ideal_dsl/03_workflow_skill.md
 ```
 
+> 2026-06-03 更新：原 axis1_process/brainstorming.agent.md 已被移除（关联的 superpowers 工作流已废弃），保留 SKILL.md ↔ ideal_dsl 对照关系。
+
 每个技能目录包含：
 1. **SKILL.md** — 技能定义（标准格式）
-2. **对应 .agent.md** — AgenticDSL 实现
+2. **对应 .agent.md** — AgenticDSL 实现（部分技能提供，参见 `agenticdsl/` 子目录）
 3. **scripts/reference/** — （如需要）参考资料
 
 ---
@@ -139,7 +139,7 @@ ideal_dsl/03_workflow_skill.md
 ```bash
 # 查看轴1流程技能
 cat skills/axis1_process/brainstorming/SKILL.md
-cat agenticdsl/axis1_process/brainstorming.agent.md
+cat agenticdsl/axis1_process/systematic_debugging.agent.md
 
 # 查看理想 DSL 扩展
 cat ideal_dsl/01_skill_invoke.md

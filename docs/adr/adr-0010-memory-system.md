@@ -3,6 +3,7 @@
 ## 状态
 
 **已批准** (2026-05-13)
+**修订** (2026-06-03)：补充"替代方案"章节，从 `docs/archive/superpowers/specs/2026-05-13-memory-state-interface-design.md` 迁移而来
 
 ## 背景
 
@@ -245,6 +246,34 @@ L2 Recent (recent_turns)
 L3 Archive (archive)
   └─ search@v1 可跨越 L4 + L3 搜索
 ```
+
+---
+
+## 替代方案
+
+> 来源：`docs/archive/superpowers/specs/2026-05-13-memory-state-interface-design.md` 第 36-50 行
+
+| # | 方案 | 优点 | 缺点 | 工作量 |
+|---|------|------|------|--------|
+| **A** | **Flat KV 扩展** — 仅扩展 `state.read`/`state.write`，增加 `delete` + `batch` | 完全向后兼容；仅需新增 1-2 个工具 | 无组织、无作用域、无语义能力；未利用 MemGPT/LlamaIndex 洞察 | Short (2-4h) |
+| **B** | **分层命名空间** — 强制 `user.*`/`task.*`/`agent.*` 路径约定，提供类型化访问 | 清晰的归属关系；作用域隔离；契合 MemGPT 分层思想 | 需要路径验证逻辑；无查询/发现层；DSL 子图实现冗长 | Medium (1-2d) |
+| **C** | **混合分层 API** — 低层 KV + 中层类型化命名空间 + 高层语义查询（Phase 2） | 覆盖全场景；渐进式采用；匹配行业最佳实践；向后兼容 | 需要注册更多工具；类型层需要 Schema 定义 | Medium (1-2d) Phase 1; Large (3d+) Phase 2 |
+
+### 采纳方案：C（混合分层 API）
+
+**理由**：
+1. HydraForge L4 Working 是唯一工具可写层，必须同时服务三种场景：通用工具状态、结构化用户数据、语义检索
+2. 单一抽象无法同时满足这三种需求（MemGPT 使用多层，LangChain 使用 Chain 组合）
+3. 混合方案每层都是可选的——简单工具继续使用 `state.read`/`state.write`，复杂场景使用类型化接口
+4. Phase 1 即可实现低层和中层，语义搜索作为 Phase 2 扩展，不阻塞主线开发
+
+### 替代 1：Flat KV 扩展（被否决）
+
+**否决理由**：无法支撑多用户/多 Agent 场景下的作用域隔离；无查询/发现层，难以构建结构化 L4 Working。
+
+### 替代 2：分层命名空间（被否决）
+
+**否决理由**：缺乏查询/发现层与语义搜索能力；DSL 子图实现路径验证逻辑冗长，渐进式演进困难。
 
 ---
 

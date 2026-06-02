@@ -2,7 +2,7 @@
 
 > 全项目实施追踪：综合 ADR-0001~0036、Implementation Slices、AgenticDSL 自举路径。
 >
-> **最后更新**: 2026-05-29 | **状态约定**: `[ ]` 待实施 / `[x]` 已完成 / `[~]` 进行中 / `[!]` 阻塞
+> **最后更新**: 2026-06-03 | **状态约定**: `[ ]` 待实施 / `[x]` 已完成 / `[~]` 进行中 / `[!]` 阻塞
 
 ---
 
@@ -76,7 +76,7 @@ Phase 5 — 自举与服务化 (远期)
 | **Common 组件** (llm/tools/utils) | ✅ 已实现 | 含 HttpAdapter + LlamaAdapter |
 | **ADR-0019~0036 新增组件** (contract/worker/plugin/async/event/cost/sandbox/pdk/cognitive) | ❌ 零代码 | 13 个目录全部不存在 |
 | **外部依赖** (Taskflow / async_simple) | ❌ 未引入 | 依赖 llama.cpp 已移除 |
-| **测试** | ⚠️ 部分可用 | test_basic 可运行，其余因构建超时未验证 |
+| **测试** | ✅ 全部通过 | 12/12 全部通过 (2026-06-03 验证) |
 
 ### 紧急问题 (需立即修复)
 
@@ -84,8 +84,8 @@ Phase 5 — 自举与服务化 (远期)
 |---|------|------|------|
 | 1 | `tests/test_basic.cpp` 合并冲突 | ✅ 已修复 | 选择 HEAD 版本 |
 | 2 | `tests/CMakeLists.txt` llama.cpp 引用 | ✅ 已修复 | 已移除已删除的依赖路径 |
-| 3 | 其他测试二进制构建超时 | ⚠️ 待排查 | 可能 yaml-cpp 或链接耗时过长 |
-| 4 | 无 `.clang-format` / `.clang-tidy` | [ ] 待添加 | 建议基础配置 |
+| 3 | 其他测试二进制构建超时 | ✅ 已解决 | 2026-06-03 验证 12/12 全部构建+运行通过 |
+| 4 | 无 `.clang-format` / `.clang-tidy` | [ ] 待添加 | 建议基础配置（非阻塞） |
 
 ---
 
@@ -775,9 +775,9 @@ EventBus (Phase 2 ADR-0002 V2)
 | 检查项 | 状态 | 说明 |
 |--------|------|------|
 | LSP 诊断 (src/core/) | ✅ 清洁 | 无错误 |
-| 核心库构建 (agenticdsl_core) | ✅ 100% | `make agenticdsl_core` 通过 |
-| test_basic 编译 | ✅ 通过 | 3 passed / 2 failed (预存在) |
-| 全量测试 (ctest) | ⚠️ 仅 test_basic 可运行 | 其他待构建 |
+| 核心库构建 (agenticdsl_core) | ✅ 100% | `make agenticdsl_core` 通过 (2026-06-03) |
+| test_basic 编译 | ✅ 通过 | 5/5 (2026-06-03) |
+| 全量测试 (ctest) | ✅ 12/12 通过 | `ctest` 全部 100% pass (2026-06-03) |
 | 合并冲突 | ✅ 已修复 | test_basic.cpp |
 | llama.cpp 引用 | ✅ 已移除 | CMakeLists.txt |
 | 代码格式化 | ❌ 无配置 | 无 `.clang-format` / `.clang-tidy` |

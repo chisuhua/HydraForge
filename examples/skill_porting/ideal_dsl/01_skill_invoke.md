@@ -225,6 +225,6 @@ void validate_skill_invoke(const SkillInvokeNode& node, const SkillRegistry& reg
 
 ## 验证方式
 
-1. 将 `examples/skill_porting/agenticdsl/axis1_process/brainstorming.agent.md` 中的 `dsl_call` 改写为 `skill_invoke`
+1. 选取任一含 `dsl_call` 的 `.agent.md` 示例（如 `examples/skill_porting/agenticdsl/axis1_process/systematic_debugging.agent.md`），将其中的 `dsl_call` 改写为 `skill_invoke`
 2. 验证行为一致性
 3. 运行测试确保功能不变

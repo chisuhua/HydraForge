@@ -57,9 +57,9 @@ docs/agenticdsl/
 
 | # | 标题 | 描述 | 关联现存文档 |
 |---|------|------|------------|
-| 01 | [Skill 分类体系](skill-system/01-taxonomy.md) | 5 维度分类，跨轴处理，分类判断流程 | [docs/superpowers/](../../superpowers/) |
+| 01 | [Skill 分类体系](skill-system/01-taxonomy.md) | 5 维度分类，跨轴处理，分类判断流程 | [examples/skill_porting/skills/](../../../examples/skill_porting/skills/) |
 | 02 | [Skill Invoke/Compose](skill-system/02-invoke-compose.md) | skill_invoke / skill_compose 节点语法定义 | [specs/dsl.md](../specs/dsl.md) |
-| 03 | [Skill 全量映射表](skill-system/03-taxonomy-mapping.md) | 39 个技能的 5 维度映射 + 触发词 | [docs/superpowers/](../../superpowers/) |
+| 03 | [Skill 全量映射表](skill-system/03-taxonomy-mapping.md) | 当前 6 技能（规划 39）的 5 维度映射 + 触发词 | [examples/skill_porting/skills/](../../../examples/skill_porting/skills/) |
 | 04 | [Skill 编译器设计](skill-system/04-skill-compiler-design.md) | SKILL.md → .agent.md 模板驱动的编译映射方案 | [SKILL.md files](../../../.opencode/skills/) |
 
 ### Session & State（会话与状态）
