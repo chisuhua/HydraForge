@@ -162,6 +162,10 @@ ExecutionSession::ExecutionResult ExecutionSession::execute_node(Node* node, con
     } catch (const std::exception& e) {
         result.success = false;
         result.message = std::string("Node execution failed: ") + e.what();
+        // DSL_CALL nodes that fail (e.g., LLM unavailable) should pause so caller can supply content
+        if (node->type == NodeType::DSL_CALL) {
+            result.paused_at = node->path;
+        }
     }
 
     // 4. 记录 Trace 结束

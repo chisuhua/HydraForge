@@ -114,30 +114,36 @@ Context NodeExecutor::execute_llm_call(const LLMCallNode* node, const Context& c
 }
 Context NodeExecutor::execute_dsl_node(const DSLNode* node, const Context& ctx) {
     Context new_context = ctx;
-    
+
+    if (node->output_keys.empty()) {
+        throw std::runtime_error("DSLNode has no output_keys: " + node->path);
+    }
+    const std::string& key = node->output_keys[0];
+
+    // If context already supplies a value for this output_key, treat it as a mock and skip LLM call
+    if (ctx.contains(key)) {
+        new_context[key] = ctx[key];
+        return new_context;
+    }
+
     try {
         // Render prompt template
         std::string rendered_prompt = InjaTemplateRenderer::render(node->prompt_template, ctx);
-        
+
         // Call LLM via ToolRegistry
         nlohmann::json result = tool_registry_.call_llm_tool(node->llm_tool_name, rendered_prompt, node->llm_params);
-        
+
         // Check result
         if (!result.value("success", false)) {
             throw std::runtime_error("LLM generation failed: " + result.value("error", "Unknown error"));
         }
-        
-        // Assign output to context
-        if (!node->output_keys.empty()) {
-            new_context[node->output_keys[0]] = result["text"].get<std::string>();
-        } else {
-            throw std::runtime_error("DSLNode has no output_keys: " + node->path);
-        }
-        
+
+        new_context[key] = result["text"].get<std::string>();
+
     } catch (const inja::RenderError& e) {
         throw std::runtime_error("Prompt template rendering failed for node '" + node->path + "': " + std::string(e.what()));
     }
-    
+
     return new_context;
 }
 
