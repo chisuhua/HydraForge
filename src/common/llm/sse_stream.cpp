@@ -132,9 +132,12 @@ void SSEDecoder::dispatch_event() {
     impl_->current_data.clear();
   }
 
-  // 检测 OpenAI [DONE] 标记
+  // 检测 OpenAI [DONE] 哨兵：标记流结束，不入队
+  // 消费者通过 is_done() 检测流终止，而非收到 [DONE] 事件
   if (impl_->current.data == "[DONE]") {
     impl_->done = true;
+    impl_->current = SSEEvent{};
+    return;
   }
 
   // 仅当 data 非空时才入队（空 data 的 event_type-only 不构成可消费事件）
