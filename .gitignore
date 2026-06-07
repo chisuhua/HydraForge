@@ -14,3 +14,4 @@ build/
 .mcp.json
 .opencode/
 openspec/
+.opencode.json
