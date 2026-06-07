@@ -31,6 +31,15 @@ set(YAML_CPP_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/yaml-cpp yaml-cpp-build)
 set(YAML_CPP_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/external/yaml-cpp/include")
 
+# Taskflow (header-only, v3.9.0)
+# 关闭其内部测试与示例，避免 gtest 等额外依赖与编译时间
+set(TF_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(TF_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+add_subdirectory(external/taskflow)
+
+# async_simple（通过 external/CMakeLists.txt 配置，禁用测试）
+add_subdirectory(external)
+
 # INTERFACE library for common includes and dependencies
 add_library(agenticdsl_includes INTERFACE)
 
