@@ -179,7 +179,8 @@ TEST_CASE("GenerationRequest default constructor", "[llm_streaming][llm_provider
   GenerationRequest req;
   REQUIRE(req.prompt.empty());
   REQUIRE(req.params.temperature == 0.7f);
-  REQUIRE(req.params.max_tokens == 512);
+  // LLMParams 已合并到统一 LLMConfig（llm_config.h），max_tokens 默认值改为 2048
+  REQUIRE(req.params.max_tokens == 2048);
 }
 
 TEST_CASE("GenerationRequest with prompt", "[llm_streaming][llm_provider]") {

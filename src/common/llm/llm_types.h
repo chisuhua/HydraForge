@@ -1,6 +1,15 @@
 #ifndef AGENTICDSL_LLM_LLM_TYPES_H
 #define AGENTICDSL_LLM_LLM_TYPES_H
 
+// 文件头注释
+// 功能描述：LLM 公共类型（LLMError / Result / IGenerationStream / ILLMProvider）
+//          新版流式 LLM 接口（ADR-0001）入口头文件
+// 设计依据：ADR-0001（ILLMProvider 流式接口）、track-01-cloud-llm.md M1.3
+// 作者：AgenticDSL Track 0.1
+// 最后修改日期：2026-06-07
+
+#include "llm_config.h"
+
 #include <string>
 #include <vector>
 #include <optional>
@@ -45,14 +54,10 @@ public:
   virtual bool is_active() const = 0;
 };
 
-struct LLMParams {
-  float temperature = 0.7f;
-  int max_tokens = 512;
-  float top_p = 0.95f;
-  int n_ctx = 2048;
-  int n_threads = 4;
-  std::string model;
-};
+// LLMParams 已迁移至 llm_config.h 中的统一 LLMConfig
+// 为保持向后兼容，保留 LLMParams 作为别名
+// 注意：LLMConfig 字段集是 LLMParams 的超集
+using LLMParams = LLMConfig;
 
 struct GenerationRequest {
   std::string prompt;
@@ -119,6 +124,6 @@ inline std::vector<std::string> split(const std::string& s) {
   return result;
 }
 
-} // namespace
+} // namespace agenticdsl
 
 #endif
