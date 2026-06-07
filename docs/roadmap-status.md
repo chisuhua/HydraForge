@@ -75,25 +75,25 @@
 
 | 优先级 | 任务编号 | 任务 | 文件 | 状态 | 阻塞 |
 |:------:|:--------:|------|------|:----:|:----:|
-| M1 | M1.1 | llm_config.h 统一配置 | `src/common/llm/llm_config.h` | [ ] | — |
-| M1 | M1.2 | 标记 ILLMAdapter deprecated | `src/common/llm/llm_adapter.h` | [ ] | — |
-| M1 | M1.3 | llm_types.h 更新 | `src/common/llm/llm_types.h` | [ ] | M1.1 |
-| M1 | M1.4 | CloudLLMAdapter 头文件 | `src/common/llm/cloud_adapter.h` | [ ] | M1.1 |
-| M1 | M1.5 | CloudLLMAdapter 实现 | `src/common/llm/cloud_adapter.cpp` | [ ] | M1.4 |
-| M1 | M1.6 | SSE 流式解析器 | `src/common/llm/sse_stream.h/cpp` | [ ] | — |
-| M1 | M1.7 | MockLLMProvider 头文件+实现 | `src/common/llm/mock_provider.h/cpp` | [ ] | — |
-| M2 | M2.1 | llm_config.json 更新 | `llm_config.json` | [ ] | — |
-| M3 | M3.1 | CloudLLM 单元测试 | `tests/test_cloud_llm.cpp` | [ ] | M1.5 |
-| M3 | M3.2 | SSE 解析测试 | `tests/test_sse_stream.cpp` | [ ] | M1.6 |
-| M3 | M3.3 | 集成测试（可选） | `tests/test_cloud_llm_live.cpp` | [ ] | M1.5 |
+| M1 | M1.1 | llm_config.h 统一配置 | `src/common/llm/llm_config.h` | [x] | — |
+| M1 | M1.2 | 标记 ILLMAdapter deprecated | `src/common/llm/llm_adapter.h` | [x] | — |
+| M1 | M1.3 | llm_types.h 更新 | `src/common/llm/llm_types.h` | [x] | M1.1 |
+| M1 | M1.4 | CloudLLMAdapter 头文件 | `src/common/llm/cloud_adapter.h` | [x] | M1.1 |
+| M1 | M1.5 | CloudLLMAdapter 实现 | `src/common/llm/cloud_adapter.cpp` | [x] | M1.4 |
+| M1 | M1.6 | SSE 流式解析器 | `src/common/llm/sse_stream.h/cpp` | [x] | — |
+| M1 | M1.7 | MockLLMProvider 头文件+实现 | `src/common/llm/mock_provider.h/cpp` | [x] | — |
+| M2 | M2.1 | llm_config.json 更新 | `llm_config.json` | [x] | — |
+| M3 | M3.1 | CloudLLM 单元测试 | `tests/test_cloud_llm.cpp` | [x] | M1.5 |
+| M3 | M3.2 | SSE 解析测试 | `tests/test_sse_stream.cpp` | [x] | M1.6 |
+| M3 | M3.3 | 集成测试（可选） | `tests/test_cloud_llm_live.cpp` | [x] | M1.5 |
 
 **验收任务**
 
 | 优先级 | 验收编号 | 验收内容 | 验证命令 | 状态 |
 |:------:|:--------:|------|---------|:----:|
-| V | V1.1 | CloudLLM mock 测试通过 | `ctest -R test_cloud_llm` | [ ] |
-| V | V1.2 | SSE 解析测试通过 | `ctest -R test_sse_stream` | [ ] |
-| V | V1.3 | LLM 模块编译通过 | `make agenticdsl_core` 无 error | [ ] |
+| V | V1.1 | CloudLLM mock 测试通过 | `ctest -R test_cloud_llm` | [x] |
+| V | V1.2 | SSE 解析测试通过 | `ctest -R test_sse_stream` | [x] |
+| V | V1.3 | LLM 模块编译通过 | `make agenticdsl_core` 无 error | [x] |
 
 ### Track 0.2 — 三层调用链验证（5-7 天，依赖 Track 0.1）
 
@@ -159,7 +159,8 @@
 | 2026-05-30 ~ 2026-06-02 | Pre-Phase 准备：7 个测试修复 | ~0.5 天 | ✅ 12/12 通过 | 见 `docs/archive/superpowers/plans/2026-06-02-test-fixes-for-prephase.md`；commits `1148845` (llm), `d6e8ce5` (library), `4ae97d9` (parser), `4b45a5b` (scheduler), `0166f1e` (executor) |
 | 2026-06-03 | 文档基线对齐 | 0.5h | ✅ 完成 | 修正 roadmap-status.md / implementation-roadmap.md 中过时的测试断言；迁移 superpowers spec 方案对比至 ADR-0010；归档 3 个过期 superpowers 文档 |
 | 2026-06-07 | **Pre-Phase 完成** (P0.0a–P0.4 + V0.1 + V0.2) | 0.5h | ✅ 全部通过 | 交付 3 个核心接口头文件 (ICognitiveOrchestrator / IExecutionPolicy 8 方法 / Session 三级体系) + 根 CMakeLists.txt 添加 `${CMAKE_SOURCE_DIR}/include` 搜索路径；V0.1 全量编译 + V0.2 三头独立 include 测试均通过；现有 12/12 测试零回归。修复预存 `node.h:125` `[[deprecated]]` 属性位置警告（原被屏蔽，修复后浮现 2 个 `node_executor.{h:45, cpp:90}` 使用弃用类型的 `-Wdeprecated-declarations` 警告——已在 roadmap 阻塞项中记录） |
-| 2026-06-07 | **Slice 00 完成** (S0.1–S0.6 + V0.3 + V0.4) | 2h | ✅ 13/13 通过 | 下载 Taskflow v3.9.0 + async_simple master，配置 CMake（禁用测试/demo/ASAN），新建 test_async_bridge.cpp（3 TEST_CASE：Taskflow 基础功能 / async_simple 协程 / 共存验证）。V0.3 编译通过，V0.4 3/3 通过，回归 13/13 通过。
+| 2026-06-07 | **Slice 00 完成** (S0.1–S0.6 + V0.3 + V0.4) | 2h | ✅ 13/13 通过 |
+| 2026-06-07 | **Track 0.1 完成** (M1.1-M3.3 + V1.1-V1.3) | 2h | ✅ 16/16 通过 | 实现 llm_config.h 统一 LLMConfig (合并 LLMConfig+LLMParams)；标记 ILLMAdapter [[deprecated]]；新建 cloud_adapter.h/cpp (OpenAI 协议 + 重试 + 错误映射) + sse_stream.h/cpp (通用 SSE 状态机)；新建 mock_provider.h/cpp (队列/固定/错误/延迟模拟)；新建 3 个测试文件 (30 个新增测试用例)；llm_config.json 双层兼容。V1.1 test_cloud_llm 19/19 通过，V1.2 test_sse_stream 11/11 通过，V1.3 LLM 模块编译 0 错误，全量 16/16 通过 (1.86s)。 下载 Taskflow v3.9.0 + async_simple master，配置 CMake（禁用测试/demo/ASAN），新建 test_async_bridge.cpp（3 TEST_CASE：Taskflow 基础功能 / async_simple 协程 / 共存验证）。V0.3 编译通过，V0.4 3/3 通过，回归 13/13 通过。
 
 ---
 
@@ -168,6 +169,8 @@
 | 测试二进制 | 模块 | 状态 | 最后运行 | 通过率 |
 |-----------|------|:----:|:-------:|:-----:|
 | test_basic | 基础 | ✅ | 2026-06-07 | 5/5 |
+| test_cloud_llm | CloudLLM + Mock | ✅ | 2026-06-07 | 19/19 |
+| test_sse_stream | SSE 解析器 | ✅ | 2026-06-07 | 11/11 |
 | test_parser | Parser | ✅ | 2026-06-07 | 12/12 |
 | test_scheduler | Scheduler | ✅ | 2026-06-07 | 全通过 |
 | test_executor | Executor | ✅ | 2026-06-07 | 全通过 |
@@ -179,7 +182,7 @@
 | test_no_llm | 无 LLM 模式 | ✅ | 2026-06-07 | 全通过 |
 | test_prompt_builder | Prompt | ✅ | 2026-06-07 | 全通过 |
 | test_path_resolution | 路径解析 | ✅ | 2026-06-07 | 全通过 |
-| **整体** | **全部 13 个测试** | ✅ | **2026-06-07** | **13/13 (100%)** | |
+| **整体** | **全部 16 个测试** | ✅ | **2026-06-07** | **16/16 (100%)** | |
 | test_async_bridge | 异步桥接 | ✅ | 2026-06-07 | 3/3 通过 |
 | **test_async_bridge** | Slice 00 | ⏳ | — | — |
 | **test_cloud_llm** | Track 0.1 | ⏳ | — | — |
