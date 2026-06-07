@@ -122,8 +122,7 @@ struct DSLNode : public Node {
 };
 
 // LLM Call Node (deprecated - use DSLNode instead, v3.10)
-[[deprecated("Use DSLNode instead")]]
-struct LLMCallNode : public Node {
+struct [[deprecated("Use DSLNode instead")]] LLMCallNode : public Node {
     std::string prompt_template;
     std::vector<std::string> output_keys;
 
