@@ -57,19 +57,19 @@
 
 | 优先级 | 任务编号 | 任务 | 文件 | 状态 | 阻塞 |
 |:------:|:--------:|------|------|:----:|:----:|
-| S0 | S0.1 | 引入 Taskflow v4.0 | `external/taskflow/` | [ ] | 需网络 |
-| S0 | S0.2 | 引入 async_simple v1.4 | `external/async_simple/` | [ ] | 需网络 |
-| S0 | S0.3 | Taskflow CMake 配置 | `CMakeLists.txt`（根） | [ ] | S0.1 |
-| S0 | S0.4 | async_simple CMake 配置 | `external/CMakeLists.txt` | [ ] | S0.2 |
-| S0 | S0.5 | 编译选项（禁用测试/demo） | `external/CMakeLists.txt` | [ ] | S0.4 |
-| S0 | S0.6 | 桥接验证测试 | `tests/test_async_bridge.cpp` | [ ] | S0.3, P0.4 |
+| S0 | S0.1 | 引入 Taskflow v4.0 | `external/taskflow/` | [x] | 需网络 |
+| S0 | S0.2 | 引入 async_simple v1.4 | `external/async_simple/` | [x] | 需网络 |
+| S0 | S0.3 | Taskflow CMake 配置 | `CMakeLists.txt`（根） | [x] | S0.1 |
+| S0 | S0.4 | async_simple CMake 配置 | `external/CMakeLists.txt` | [x] | S0.2 |
+| S0 | S0.5 | 编译选项（禁用测试/demo） | `external/CMakeLists.txt` | [x] | S0.4 |
+| S0 | S0.6 | 桥接验证测试 | `tests/test_async_bridge.cpp` | [x] | S0.3, P0.4 |
 
 **验收任务**
 
 | 优先级 | 验收编号 | 验收内容 | 验证命令 | 状态 |
 |:------:|:--------:|------|---------|:----:|
-| V | V0.3 | 全量编译通过 | `cmake .. && make -j$(nproc)` | [ ] |
-| V | V0.4 | 异步桥接测试通过 | `ctest -R test_async_bridge` | [ ] |
+| V | V0.3 | 全量编译通过 | `cmake .. | V | V0.3 | 全量编译通过 | `cmake .. && make -j$(nproc)` | [ ]| V | V0.3 | 全量编译通过 | `cmake .. && make -j$(nproc)` | [ ] make -j$(nproc)` | [x] |
+| V | V0.4 | 异步桥接测试通过 | `ctest -R test_async_bridge` | [x] |
 
 ### Track 0.1 — 云端 LLM 集成（3-4 天，等待启动）
 
@@ -159,6 +159,7 @@
 | 2026-05-30 ~ 2026-06-02 | Pre-Phase 准备：7 个测试修复 | ~0.5 天 | ✅ 12/12 通过 | 见 `docs/archive/superpowers/plans/2026-06-02-test-fixes-for-prephase.md`；commits `1148845` (llm), `d6e8ce5` (library), `4ae97d9` (parser), `4b45a5b` (scheduler), `0166f1e` (executor) |
 | 2026-06-03 | 文档基线对齐 | 0.5h | ✅ 完成 | 修正 roadmap-status.md / implementation-roadmap.md 中过时的测试断言；迁移 superpowers spec 方案对比至 ADR-0010；归档 3 个过期 superpowers 文档 |
 | 2026-06-07 | **Pre-Phase 完成** (P0.0a–P0.4 + V0.1 + V0.2) | 0.5h | ✅ 全部通过 | 交付 3 个核心接口头文件 (ICognitiveOrchestrator / IExecutionPolicy 8 方法 / Session 三级体系) + 根 CMakeLists.txt 添加 `${CMAKE_SOURCE_DIR}/include` 搜索路径；V0.1 全量编译 + V0.2 三头独立 include 测试均通过；现有 12/12 测试零回归。修复预存 `node.h:125` `[[deprecated]]` 属性位置警告（原被屏蔽，修复后浮现 2 个 `node_executor.{h:45, cpp:90}` 使用弃用类型的 `-Wdeprecated-declarations` 警告——已在 roadmap 阻塞项中记录） |
+| 2026-06-07 | **Slice 00 完成** (S0.1–S0.6 + V0.3 + V0.4) | 2h | ✅ 13/13 通过 | 下载 Taskflow v3.9.0 + async_simple master，配置 CMake（禁用测试/demo/ASAN），新建 test_async_bridge.cpp（3 TEST_CASE：Taskflow 基础功能 / async_simple 协程 / 共存验证）。V0.3 编译通过，V0.4 3/3 通过，回归 13/13 通过。
 
 ---
 
@@ -178,7 +179,8 @@
 | test_no_llm | 无 LLM 模式 | ✅ | 2026-06-07 | 全通过 |
 | test_prompt_builder | Prompt | ✅ | 2026-06-07 | 全通过 |
 | test_path_resolution | 路径解析 | ✅ | 2026-06-07 | 全通过 |
-| **整体** | **全部 12 个测试** | ✅ | **2026-06-07** | **12/12 (100%)** |
+| **整体** | **全部 13 个测试** | ✅ | **2026-06-07** | **13/13 (100%)** | |
+| test_async_bridge | 异步桥接 | ✅ | 2026-06-07 | 3/3 通过 |
 | **test_async_bridge** | Slice 00 | ⏳ | — | — |
 | **test_cloud_llm** | Track 0.1 | ⏳ | — | — |
 | **test_sse_stream** | Track 0.1 | ⏳ | — | — |
