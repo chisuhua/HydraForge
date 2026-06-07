@@ -59,9 +59,11 @@ target_link_libraries(agenticdsl_includes INTERFACE
 )
 
 add_library(agenticdsl_common STATIC
+    src/common/llm/cloud_adapter.cpp
     src/common/llm/http_adapter.cpp
     src/common/llm/llama_adapter.cpp
     src/common/llm/llama_tool.cpp
+    src/common/llm/sse_stream.cpp
     src/common/tools/registry.cpp
     src/common/utils/parser_utils.cpp
     src/common/utils/template_renderer.cpp
