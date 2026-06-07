@@ -2,8 +2,27 @@
 
 **ID**: API-001
 **日期**: 2026-05-23
-**状态**: 已批准
+**状态**: ~~已批准~~ **已废弃（superseded）**
 **关联**: BOOT-001, TEST-001, ROUTER-001, ADR-0001, ADR-0005
+
+> ## ⚠️ 文档状态：已废弃
+>
+> **实际实现已采用 [ADR-0001](../../adr/adr-0001-illm-provider-streaming-interface.md) 的 `ILLMProvider` 流式接口**，本文件提议的独立 `ICloudLLMAdapter` + 回调式 `generate_stream(on_token)` **未被采用**。
+>
+> **当前实现**（参考）：
+> - `src/common/llm/cloud_adapter.h:38` — `class CloudLLMAdapter : public ILLMProvider`
+> - `src/common/llm/cloud_adapter.h:50-60` — 拉模式 `Result<GenerationResult, LLMError> generate(req, token)` + `std::unique_ptr<IGenerationStream> generate_stream(req, token)`
+> - `src/common/llm/sse_stream.h` — 通用 SSE 状态机（`SSEDecoder`），同时支持 OpenAI / Anthropic 协议
+>
+> **设计决策依据**：
+> 1. ADR-0001 是权威架构决策，`phase-0-implementation.md` §3.3 早期提议的 `ICloudLLMAdapter` 接口在 Phase 0 Track 0.1 (commit `06dfe5b`) 时已被实际实现推翻
+> 2. `phase-0-implementation.md` §4.1 (`LLMRouter`) 同样遵循 ADR-0001 stream-handle 设计
+> 3. `inference-stdlib/01-interface-design.md` line 247 的 Oracle 评估确认 stream-handle 路径
+>
+> 本文件保留作为历史参考。后续请参考 `src/common/llm/cloud_adapter.h` 实际实现 + ADR-0001 规范。
+>
+> **归档时间**: 2026-06-07
+> **关联 commit**: `36d9711` (test) + `691a88e` (mock) + `ebe0ba9` (cloud) + `06dfe5b` (unify)
 
 ---
 
