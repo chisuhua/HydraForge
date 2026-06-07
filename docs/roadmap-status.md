@@ -38,20 +38,20 @@
 
 | 优先级 | 任务编号 | 任务 | 文件 | 状态 | 阻塞 |
 |:------:|:--------:|------|------|:----:|:----:|
-| P0 | P0.0a | 创建 `include/agenticdsl/cognitive/` | `mkdir -p` | [ ] | — |
-| P0 | P0.0b | 创建 `include/agenticdsl/policy/` | `mkdir -p` | [ ] | — |
-| P0 | P0.0c | 创建 `include/agenticdsl/types/` | `mkdir -p` | [ ] | — |
-| P0 | P0.1 | ICognitiveOrchestrator 接口 | `include/agenticdsl/cognitive/icognitive_orchestrator.h` | [ ] | — |
-| P0 | P0.2 | IExecutionPolicy 接口 | `include/agenticdsl/policy/iexecution_policy.h` | [ ] | — |
-| P0 | P0.3 | Session 前置声明 | `include/agenticdsl/types/session_fwd.h` | [ ] | — |
-| P0 | P0.4 | CMake include 配置 | `CMakeLists.txt`（根，第 37 行附近 `target_include_directories` 处） | [ ] | — |
+| P0 | P0.0a | 创建 `include/agenticdsl/cognitive/` | `mkdir -p` | [x] | — |
+| P0 | P0.0b | 创建 `include/agenticdsl/policy/` | `mkdir -p` | [x] | — |
+| P0 | P0.0c | 创建 `include/agenticdsl/types/` | `mkdir -p` | [x] | — |
+| P0 | P0.1 | ICognitiveOrchestrator 接口 | `include/agenticdsl/cognitive/icognitive_orchestrator.h` | [x] | — |
+| P0 | P0.2 | IExecutionPolicy 接口 | `include/agenticdsl/policy/iexecution_policy.h` | [x] | — |
+| P0 | P0.3 | Session 前置声明 | `include/agenticdsl/types/session_fwd.h` | [x] | — |
+| P0 | P0.4 | CMake include 配置 | `CMakeLists.txt`（根，第 37 行附近 `target_include_directories` 处） | [x] | — |
 
 **验收任务**
 
 | 优先级 | 验收编号 | 验收内容 | 验证命令 | 状态 |
 |:------:|:--------:|------|---------|:----:|
-| V | V0.1 | 编译通过 | `cmake .. && make agenticdsl_core` | [ ] |
-| V | V0.2 | 头文件可被 include | `echo '#include "agenticdsl/cognitive/icognitive_orchestrator.h"' \| g++ -x c++ -fsyntax-only -` | [ ] |
+| V | V0.1 | 编译通过 | `cmake .. && make agenticdsl_core` | [x] |
+| V | V0.2 | 头文件可被 include | `echo '#include "agenticdsl/cognitive/icognitive_orchestrator.h"' \| g++ -x c++ -fsyntax-only -` | [x] |
 
 ### Slice 00 — 异步基础设施验证（1-2 天）
 
@@ -148,7 +148,7 @@
 
 | # | 描述 | 影响范围 | 提出日 | 状态 |
 |---|------|---------|--------|:----:|
-| — | 当前无阻塞项 | — | — | ✅ 清洁 |
+| 1 | `node_executor.{h:45, cpp:90}` 使用已弃用类型 `LLMCallNode`（v3.10 已迁移至 DSLNode） | Executor 模块编译产生 2 个 `-Wdeprecated-declarations` 警告；非阻塞（不导致错误） | 2026-06-07 | 🆕 建议后续清理 |
 
 ---
 
@@ -158,6 +158,7 @@
 |------|------|:----:|------|------|
 | 2026-05-30 ~ 2026-06-02 | Pre-Phase 准备：7 个测试修复 | ~0.5 天 | ✅ 12/12 通过 | 见 `docs/archive/superpowers/plans/2026-06-02-test-fixes-for-prephase.md`；commits `1148845` (llm), `d6e8ce5` (library), `4ae97d9` (parser), `4b45a5b` (scheduler), `0166f1e` (executor) |
 | 2026-06-03 | 文档基线对齐 | 0.5h | ✅ 完成 | 修正 roadmap-status.md / implementation-roadmap.md 中过时的测试断言；迁移 superpowers spec 方案对比至 ADR-0010；归档 3 个过期 superpowers 文档 |
+| 2026-06-07 | **Pre-Phase 完成** (P0.0a–P0.4 + V0.1 + V0.2) | 0.5h | ✅ 全部通过 | 交付 3 个核心接口头文件 (ICognitiveOrchestrator / IExecutionPolicy 8 方法 / Session 三级体系) + 根 CMakeLists.txt 添加 `${CMAKE_SOURCE_DIR}/include` 搜索路径；V0.1 全量编译 + V0.2 三头独立 include 测试均通过；现有 12/12 测试零回归。修复预存 `node.h:125` `[[deprecated]]` 属性位置警告（原被屏蔽，修复后浮现 2 个 `node_executor.{h:45, cpp:90}` 使用弃用类型的 `-Wdeprecated-declarations` 警告——已在 roadmap 阻塞项中记录） |
 
 ---
 
@@ -165,19 +166,19 @@
 
 | 测试二进制 | 模块 | 状态 | 最后运行 | 通过率 |
 |-----------|------|:----:|:-------:|:-----:|
-| test_basic | 基础 | ✅ | 2026-06-03 | 5/5 |
-| test_parser | Parser | ✅ | 2026-06-03 | 12/12 |
-| test_scheduler | Scheduler | ✅ | 2026-06-03 | 全通过 |
-| test_executor | Executor | ✅ | 2026-06-03 | 全通过 |
-| test_engine | Engine | ✅ | 2026-06-03 | 全通过 |
-| test_tool_registry | ToolRegistry | ✅ | 2026-06-03 | 全通过 |
-| test_llm_tool | LLM | ✅ | 2026-06-03 | 全通过 |
-| test_llm_streaming | LLM 流式 | ✅ | 2026-06-03 | 全通过 |
-| test_library_loader | 标准库 | ✅ | 2026-06-03 | 全通过 |
-| test_no_llm | 无 LLM 模式 | ✅ | 2026-06-03 | 全通过 |
-| test_prompt_builder | Prompt | ✅ | 2026-06-03 | 全通过 |
-| test_path_resolution | 路径解析 | ✅ | 2026-06-03 | 全通过 |
-| **整体** | **全部 12 个测试** | ✅ | **2026-06-03** | **12/12 (100%)** |
+| test_basic | 基础 | ✅ | 2026-06-07 | 5/5 |
+| test_parser | Parser | ✅ | 2026-06-07 | 12/12 |
+| test_scheduler | Scheduler | ✅ | 2026-06-07 | 全通过 |
+| test_executor | Executor | ✅ | 2026-06-07 | 全通过 |
+| test_engine | Engine | ✅ | 2026-06-07 | 全通过 |
+| test_tool_registry | ToolRegistry | ✅ | 2026-06-07 | 全通过 |
+| test_llm_tool | LLM | ✅ | 2026-06-07 | 全通过 |
+| test_llm_streaming | LLM 流式 | ✅ | 2026-06-07 | 全通过 |
+| test_library_loader | 标准库 | ✅ | 2026-06-07 | 全通过 |
+| test_no_llm | 无 LLM 模式 | ✅ | 2026-06-07 | 全通过 |
+| test_prompt_builder | Prompt | ✅ | 2026-06-07 | 全通过 |
+| test_path_resolution | 路径解析 | ✅ | 2026-06-07 | 全通过 |
+| **整体** | **全部 12 个测试** | ✅ | **2026-06-07** | **12/12 (100%)** |
 | **test_async_bridge** | Slice 00 | ⏳ | — | — |
 | **test_cloud_llm** | Track 0.1 | ⏳ | — | — |
 | **test_sse_stream** | Track 0.1 | ⏳ | — | — |
