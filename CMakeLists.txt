@@ -35,6 +35,7 @@ set(YAML_CPP_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/external/yaml-cpp/include")
 add_library(agenticdsl_includes INTERFACE)
 
 target_include_directories(agenticdsl_includes INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/modules>
     $<INSTALL_INTERFACE:include>
