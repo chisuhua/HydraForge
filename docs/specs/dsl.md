@@ -463,7 +463,7 @@ next: "/dynamic/repair_123"
 ```yaml
 type: dsl_call
 prompt_template: "请分析 {{ $.input }} 并给出结论"   # Inja 模板，执行前渲染
-llm_tool_name: "llama-7b"                             # 对应 register_llm_tool() 注册的名称
+llm_tool_name: "llama-7b"                             # C1 后保留为可选字段；首选 set_llm_provider() 注入 ILLMProvider
 llm_params:
   temperature: 0.7        # 默认 0.7
   max_tokens: 512         # 默认 512
@@ -474,6 +474,11 @@ llm_params:
 output_keys: ["analysis"]  # 写入上下文的字段名（LLM 输出文本写入第一个 key）
 next: "/main/verify"
 ```
+
+> **C1（2026-06-08）变更说明**：参考执行器 v1.0 已迁移到 `ILLMProvider` 流式接口
+> （ADR-0001）。`dsl_call` 节点的 LLM 提供方由 `DSLEngine::set_llm_provider()` 注入，
+> 不再通过 `register_llm_tool()` 显式注册（后者保留为向后兼容路径）。
+> 默认 provider 为 `MockLLMProvider`（CI 无需本地 LLM）。
 
 **向后兼容格式**（`llm_call`，使用默认工具 `"llama-default"`）：
 ```yaml
@@ -511,14 +516,19 @@ next: "/main/end"
 
 **权限要求**：建议声明对应推理权限（如 `reasoning: llm_generate`）
 
-**注册方式（C++ 宿主代码）**：
+**注册方式（C++ 宿主代码，C1 后推荐）**：
 ```cpp
-auto engine = DSLEngine::from_markdown(dsl_content);
-auto tool = std::make_unique<LlamaTool>(LlamaAdapter::Config{
-    .model_path = "/models/llama-2-7b.gguf"
-});
-engine->register_llm_tool("llama-7b", std::move(tool));
+auto engine = DSLEngine::from_markdown(dsl_content);  // 默认创建 MockLLMProvider
+// 真实 LLM 场景（C1 路径）：
+engine->set_llm_provider(std::make_unique<LlamaAdapterProvider>(
+    LlamaAdapter::Config{ .model_path = "/models/llama-2-7b.gguf" }));
+// 或者云端：
+// engine->set_llm_provider(std::make_unique<CloudLLMAdapter>(config));
 ```
+
+> **向后兼容**：旧式 `engine->register_llm_tool(name, tool)` 路径仍可用，
+> 但建议迁移到 `set_llm_provider` 以获得完整的 `ILLMProvider` 能力
+> （流式生成、错误传递契约 `IGenerationStream::error()`、取消支持等）。
 
 ## 五点五、流式 LLM 接口（ADR-1 类型扩展）
 
@@ -1156,52 +1166,59 @@ class ToolAdapter:
 
 ### G.2 C++ 推理核心集成点
 
-参考执行器通过 `ILLMTool` 接口和 `LlamaAdapter` 类封装推理核心，采用 C++ RAII 风格（非 C API）：
+> **C1 后状态（2026-06-08）**：参考执行器已从 `ILLMTool` + `LlamaAdapter` 直接集成
+> 迁移到 `ILLMProvider` + `IGenerationStream` 流式接口（ADR-0001）。
+> 旧式 `ILLMTool::generate(prompt, LLMParams)` 路径保留为向后兼容，但新增
+> provider 应实现 `ILLMProvider`。
+> `LLMParams` 现为 `LLMConfig` 的类型别名（`llm_types.h`），二者字段集完全一致。
 
 ```cpp
-// 1. 实现 ILLMTool 接口（src/common/llm/llm_tool.h）
-class ILLMTool {
+// 1. ILLMProvider 接口（src/common/llm/llm_types.h, C1 标准）
+class ILLMProvider {
 public:
-    virtual LLMResult generate(const std::string& prompt,
-                               const LLMParams& params = {}) = 0;
-    virtual bool is_available() const = 0;
-    virtual std::string name() const = 0;
+    virtual ~ILLMProvider() = default;
+    virtual Result<GenerationResult, LLMError>
+        generate(const GenerationRequest& req, std::stop_token token) = 0;
+    virtual std::unique_ptr<IGenerationStream>
+        generate_stream(const GenerationRequest& req, std::stop_token token) = 0;
 };
 
-// 2. 内置实现：LlamaAdapter（src/common/llm/llama_adapter.h）
+// 2. 内置实现：LlamaAdapter（src/common/llm/llama_adapter.h, 旧 API）
 class LlamaAdapter {
 public:
-    struct Config {
-        std::string model_path;
-        int n_ctx = 2048;
-        int n_threads = 4;
-        float temperature = 0.7f;
-        float min_p = 0.05f;
-        int n_predict = 512;
-    };
+    struct Config { /* 同前 */ };
     explicit LlamaAdapter(const Config& config);
-    std::string generate(const std::string& prompt);
+    std::string generate(const std::string& prompt);  // 同步，throw on error
     bool is_loaded() const;
 };
 
-// 3. LlamaTool：将 LlamaAdapter 适配为 ILLMTool
-class LlamaTool : public ILLMTool {
+// 3. C1 适配器：LlamaAdapterProvider（src/common/llm/llama_adapter_provider.h）
+//    把同步 throw-on-error 的 LlamaAdapter 适配为流式 ILLMProvider
+class LlamaAdapterProvider : public ILLMProvider {
 public:
-    explicit LlamaTool(const LlamaAdapter::Config& config);
-    LLMResult generate(const std::string& prompt,
-                       const LLMParams& params = {}) override;
+    explicit LlamaAdapterProvider(std::unique_ptr<LlamaAdapter> adapter);
+    explicit LlamaAdapterProvider(const LlamaAdapter::Config& config);
+    // 实现 generate() — 捕获 std::exception 转换为 LLMError
+    // 实现 generate_stream() — 错误流通过 IGenerationStream::error() 传递
+};
+
+// 4. 模拟实现：MockLLMProvider（src/common/llm/mock_provider.h, 默认）
+class MockLLMProvider : public ILLMProvider {
+    // 支持队列/固定响应/错误注入/延迟模拟；CI 默认使用
 };
 ```
 
-**集成流程**：
-1. 实现 `ILLMTool`（或使用内置 `LlamaTool`）
-2. 通过 `DSLEngine::register_llm_tool(name, tool)` 注册到引擎
-3. DSL 中 `dsl_call` 节点通过 `llm_tool_name` 字段引用该工具
-4. 执行器通过 `ToolRegistry::call_llm_tool()` 调用，返回 `LLMResult.text`
+**集成流程（C1 后）**：
+1. 选择或实现一个 `ILLMProvider`（或使用内置 `MockLLMProvider` / `LlamaAdapterProvider`）
+2. 通过 `DSLEngine::set_llm_provider(std::unique_ptr<ILLMProvider>)` 注入
+3. DSL 中 `dsl_call` / `generate_subgraph` 节点无需 `llm_tool_name`，直接使用注入的 provider
+4. 执行器（`NodeExecutor` 持有 `ILLMProvider*`）通过 `ILLMProvider::generate_stream()` 调用，
+   通过 `IGenerationStream::error()` 获取错误
+
+**向后兼容路径**：旧式 `engine->register_llm_tool(name, tool)` + `ILLMTool::generate(prompt, LLMParams)` 
+仍可工作（`llm_tool.h` / `llama_tool.h` 保留），但**新增代码应使用 `set_llm_provider`**。
 
 **能力扩展**：通过 `ResourceManager` 注册 `Resource`（类型 `CUSTOM`，`metadata["capabilities"]` 声明能力列表），供节点权限检查使用。
-
-> 📌 参考实现通过 `ILLMTool::is_available()` 和资源声明协商能力，不再依赖 C API 注册机制。
 
 ---
 
