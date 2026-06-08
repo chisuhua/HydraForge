@@ -37,8 +37,9 @@ AgenticDSL (2020s):
                               持续进化 → 超越传统语言
 ```
 
-> ⚠️ 注意：AgenticDSL 当前通过 **LlamaAdapter HTTP 调用** llama.cpp（`localhost:8080`），
-> 并非库函数直调。阶段演进的核心是从 **"硬编码推理参数"** 到 **"DSL 动态控制推理参数"**。
+> ⚠️ 注意（C1 后 2026-06-08 已更新）：C1 迁移后 LLM 访问统一通过 `ILLMProvider` 接口
+> （ADR-0001），调用链为 `DSL → ILLMProvider → (CloudLLMAdapter | LlamaAdapterProvider → LlamaAdapter
+> | MockLLMProvider)`。阶段演进的核心是从 **"硬编码推理参数"** 到 **"DSL 动态控制推理参数"**。
 > 同时需要接入云端 LLM 作为老师模型，确保推理质量。
 
 ---
@@ -49,11 +50,22 @@ AgenticDSL (2020s):
 
 ```
 云端 LLM (老师模型) ──→ AgenticDSL Runtime ──→ AgenticDSL Workflows
-      │
-      └──────→ LlamaAdapter (HTTP 调用 llama.cpp) ──→ 本地推理 (低质量)
+      │                                        │
+      │                                        ▼
+      │                                  ILLMProvider
+      │                                        │
+      └──────────────────┬─────────────────────┼──────────────┐
+                         ▼                     ▼              ▼
+                   CloudLLMAdapter     LlamaAdapterProvider   MockLLMProvider
+                         │                     │
+                         ▼                     ▼
+                      HTTP               LlamaAdapter ──→ llama.cpp (本地推理, 低质量)
 ```
 
-- 推理通过 **HTTP 调用**：`LlamaAdapter` → `localhost:8080` → llama.cpp
+> C1 后 (2026-06-08) 已实现：`ILLMProvider` 流式接口（ADR-0001），云端走
+> `CloudLLMAdapter`，本地走 `LlamaAdapterProvider → LlamaAdapter`。
+
+- 推理通过 `ILLMProvider` 接口调用（C1 后 2026-06-08）：本地走 `LlamaAdapterProvider → LlamaAdapter` 直连 llama.cpp C API；云端走 `CloudLLMAdapter` 调 HTTP
 - 推理参数（temperature, seed 等）在 C++ 代码或配置文件中硬编码
 - Agent 工作流可以调用推理，但 **不能动态调整推理策略**
 - **云端 LLM 作为老师模型**：提供高质量推理输出，指导 AgenticDSL 工作
@@ -74,7 +86,7 @@ AgenticDSL (2020s):
       │                └── memory.md      内存配置
       │                        │
       │                        ▼
-      │              LlamaAdapter (HTTP 调用，参数来自 DSL)
+      │              ILLMProvider (参数来自 DSL, C1 后 2026-06-08)
       │                        │
       └──────────────────────→ 本地推理 (低质量)
 ```
@@ -189,7 +201,7 @@ AgenticDSL Runtime 提供推理 API 服务
 | 问号 | Oracle 结论 |
 |------|------------|
 | 自举计划可信吗？ | ✅ **可行。关键区分："编译器自举" vs "语言生态自举"** — C++ 运行时 + CUDA kernel 构成"自举平台"（如同硬件指令集之于 Forth），推理标准库是 DSL 的"微码层"。自举核心是参数从硬编码变为 DSL 可编程，而非重写 C++ 运行时。 |
-| 推理调用路径：HTTP 还是库函数直调？ | ✅ **库函数直调是正解** — AgenticDSL 当前已通过 LlamaAdapter 编译时链接 llama.cpp。对内永远走库函数直调（零拷贝、低延迟、原生流式）。HTTP 仅为**可选的外层**——需要对外暴露推理能力时才加。 |
+| 推理调用路径：HTTP 还是库函数直调？ | ✅ **库函数直调是正解** — C1 迁移（2026-06-08）后本地路径为 `ILLMProvider → LlamaAdapterProvider → LlamaAdapter`（编译时链接 llama.cpp C API）；云端路径为 `ILLMProvider → CloudLLMAdapter`（HTTP）。对内永远走库函数直调（零拷贝、低延迟、原生流式）。HTTP 仅为**可选的外层**——需要对外暴露推理能力或对接云端时才加。 |
 | 阶段2 范围风险？ | ⚠️ **核心风险不是 HTTP，是范围蔓延** — 重新定义后的阶段2（Agent 编排推理策略）比原版（HTTP 服务）更聚焦、更可行。但仍需警惕"为了让 Agent 编排得更灵活，不断往 DSL 里加能力"的倾向。 |
 | 阶段3 (自进化) 最大风险？ | ⚠️ **"Oracle 验证 Oracle"的自指问题** — Agent 生成的新 Skill 需要人在回路中做最终批准。局部最优陷阱和反馈循环发散是经典失效模式。 |
 | 最关键的建议？ | 🚨 **按边界切分，逐步推进** — 库函数直调（已有）→ 推理标准库（新增子图）→ Agent 编排（新增能力）→ 自进化（远期）。每一步都是纯增量，不破坏现有功能。 |
@@ -208,9 +220,9 @@ AgenticDSL Runtime 提供推理 API 服务
 | Fork | 有模拟基础（start_fork_simulation/execute_fork_branches/complete_fork） | 无 COW，无 per-field 声明 | 🟢 可扩展 |
 | 类型系统 | 无 | 签名校验 + 可选类型标注 | 🟡 纯新增 |
 | 工具注册 | ToolRegistry 是 DSLEngine 成员（非单例） | 推理工具注入 | 🟢 基础设施就绪 |
-| LLM 接口 | LlamaAdapter 封装 llama.cpp | tool_call 包装的推理工具 | 🟢 已有基础 |
+| LLM 接口 | `ILLMProvider` 流式接口（ADR-0001, C1 后 2026-06-08），本地走 `LlamaAdapterProvider → LlamaAdapter` 封装 llama.cpp，云端走 `CloudLLMAdapter` | tool_call 包装的推理工具 | 🟢 已有基础 |
 
-**积极信号**：ToolRegistry 是成员而非全局单例、已有 fork 模拟基础设施、LlamaAdapter 已封装好 — 说明部分基础设施就位，阶段0→1 的距离小于预期。
+**积极信号**：ToolRegistry 是成员而非全局单例、已有 fork 模拟基础设施、`ILLMProvider` 接口（C1 后 2026-06-08）已统一 LLM 访问、`LlamaAdapter` / `CloudLLMAdapter` 已就绪 — 说明部分基础设施就位，阶段0→1 的距离小于预期。
 
 ### 历史先例对比
 
@@ -227,7 +239,7 @@ AgenticDSL Runtime 提供推理 API 服务
 
 2. **阶段2 的范围边界** — 严格约定：C++ 层负责网络监听 + 请求调度 + 并发管理；DSL 层（llm_inference.agent.md）只负责推理策略编排。llm_inference.agent.md 不是全能 Web 服务器，而是"推理请求处理 DAG"。
 
-3. **阶段0→1 距离小于预期** — ToolRegistry 和 LlamaAdapter 已就绪，推理工具注册几乎没有障碍。主要工作量在 Session 隔离和 YIELD 节点。
+3. **阶段0→1 距离小于预期** — ToolRegistry 和 `ILLMProvider`（含 `LlamaAdapterProvider`、`CloudLLMAdapter`，C1 后 2026-06-08）已就绪，推理工具注册几乎没有障碍。主要工作量在 Session 隔离和 YIELD 节点。
 
 4. **阶段1→2 距离大于预期** — 需要 SessionRegistry、并发模型改造、网络 listener 支持。
 

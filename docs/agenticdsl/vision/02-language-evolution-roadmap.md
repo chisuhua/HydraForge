@@ -19,7 +19,7 @@ AgenticDSL = 工作流 DAG 引擎
   ├── 调度: TopoScheduler（DAG 拓扑排序, 有 fork 模拟基础: start_fork_simulation/execute_fork_branches/complete_fork）
   ├── 会话: ExecutionSession（单次执行封装, 构造于 TopoScheduler::run() 内, run 结束即销毁, 无隔离概念）
   ├── 标准库: 4 个 lib/ 子图（auth/human/math/utils）
-  ├── LLM 集成: LlamaAdapter 封装 llama.cpp（已有流式接口 IGenerationStream）
+  ├── LLM 集成: `ILLMProvider` 流式接口（ADR-0001），`LlamaAdapterProvider` 适配本地 llama.cpp，`CloudLLMAdapter` 适配 OpenAI/Anthropic（C1 后 2026-06-08 已落地）
   ├── 线程模型: 单线程无锁, DSLEngine 多实例实现并发安全
   └── 技能示例: 14 个 examples/superpowers/ .agent.md
 ```

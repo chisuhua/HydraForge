@@ -301,22 +301,43 @@ Oracle 确认：所有隐藏项应继续隐藏。Agent 无法在 CUDA kernel lau
 
 ### 当前架构问题
 
-当前 `LlamaAdapter` 通过 HTTP 调用 llama.cpp server：
+> **C1 迁移 (2026-06-08) 已完成**：本节描述的"当前架构问题"已在 C1 中通过
+> `ILLMProvider` 流式接口（ADR-0001）统一 LLM 访问解决。以下保留作为历史背景，
+> 标注 C1 前/后状态。
+
+**C1 前**（2026-05-20 基线）：`LlamaAdapter` 通过 HTTP 调用 llama.cpp server：
 ```
 AgenticDSL → LlamaAdapter → HttpLLMAdapter → HTTP → llama.cpp server
 ```
 
-**问题**：
+**问题**（C1 前）：
 1. HTTP 延迟 10-50ms
 2. 无法访问 llama.cpp C API（KV cache、batching、采样器链）
 3. 参数通过 JSON 传递，类型转换开销
 
-**目标架构**（阶段 0 实施）：
+**C1 后**（2026-06-08，当前目标架构）：
 ```
-AgenticDSL → LlamaAdapter → llama.cpp C API → CUDA/GPU
+AgenticDSL → ILLMProvider
+                │
+                ├──→ MockLLMProvider           (测试桩)
+                │
+                ├──→ LlamaAdapterProvider
+                │       │
+                │       └──→ LlamaAdapter
+                │                │
+                │                └──→ llama.cpp C API → CUDA/GPU
+                │
+                └──→ CloudLLMAdapter
+                        │
+                        └──→ HTTP → OpenAI / Anthropic
 ```
 
-**实施路径**：见 [BOOT-001: 自举实施路径方案](../implementation/self-bootstrapping-path.md)
+**C1 收益**：
+1. 本地路径零 HTTP 开销，直接调 llama.cpp C API（KV cache、batching、采样器链全可用）
+2. 统一流式接口（`ILLMProvider::generate_stream`），云端/本地/测试三路径同一编程模型
+3. DSL 工作流对后端无感知，路由决策由 `LLMRouter`（ADR-0005）按策略选择
+
+**实施路径**：见 [BOOT-001: 自举实施路径方案](../implementation/self-bootstrapping-path.md)（C1 部分已实施完成）
 
 ---
 
