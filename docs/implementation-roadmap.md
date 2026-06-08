@@ -592,7 +592,7 @@ Eric 审查指出的问题——`call_tool_with_policy()` 之前在 Roadmap 中�
 
 | # | 任务 | 涉及文件 | 说明 |
 |---|------|---------|------|
-| 16.1 | 替换 `SimpleCognitiveOrchestrator` | `src/cognitive/simple_orchestrator.*` | 替换为完整的 `CognitiveOrchestrator` 实现 |
+| 16.1 | 替换 `SimpleCognitiveOrchestrator` | `include/agenticdsl/cognitive/simple_orchestrator.h` + `src/modules/cognitive/simple_orchestrator.cpp` | 替换为完整的 `CognitiveOrchestrator` 实现 |
 | 16.2 | 移除 `MockLLMProvider` | `src/common/llm/mock_llm_provider.h` | (如正式实现已覆盖) |
 | 16.3 | 替换硬编码路由策略 | `src/common/llm/default_model_router.cpp` | 替换为配置驱动的路由 |
 | 16.4 | 移除 `TODO(mvp):` 标记 | 全局搜索 | 逐个确认并替换 |

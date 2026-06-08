@@ -4,6 +4,8 @@
 
 **已批准 (2026-06-08, 通过 phase-c1-migration)** — V2.1 版，IInteractionBus + InMemoryBus MVP 已实施（commits 5f21ea3, f07a4b4）。后续 P2（DSLEngine bus 集成）移交 Phase 1。
 
+> **2026-06-08 截至 (commit f07a4b4)**：`IInteractionBus` 与 `InMemoryBus` 的公共头文件迁移到 `include/agenticdsl/contract/`，实现文件 (`inmemory_bus.cpp`) 与 `CMakeLists.txt` 保留在 `src/common/contract/`。`events.h` 在 M5.2 简化跳过，Event/Token/Session 类型内联到 `IInteractionBus` 头文件。
+
 ## 背景
 
 ### 问题
@@ -62,9 +64,11 @@ HydraForge 当前架构存在以下问题：
 ```
 src/common/contract/
 ├── CMakeLists.txt
-├── iinteraction_bus.h       # 核心接口 (abstract class)
-├── events.h                 # Event/Token 结构
-└── inmemory_bus.cpp/h       # MVP 实现
+└── inmemory_bus.cpp # MVP 实现
+
+include/agenticdsl/contract/
+├── iinteraction_bus.h # 核心接口 (abstract class)
+└── inmemory_bus.h # InMemoryBus 声明
 ```
 
 #### 2.2 Event 类型
@@ -72,7 +76,7 @@ src/common/contract/
 EventType 继承 ADR-0002 的分类思路，但简化到应用层所需的最小集：
 
 ```cpp
-// src/common/contract/events.h
+// events.h 在 M5.2 阶段简化跳过；Event/Token/Session 类型直接内联到 IInteractionBus 头文件中
 namespace agenticdsl {
 
 // 应用层事件类型
@@ -120,7 +124,7 @@ struct Session {
 #### 2.3 IInteractionBus 抽象接口
 
 ```cpp
-// src/common/contract/iinteraction_bus.h
+// include/agenticdsl/contract/iinteraction_bus.h
 namespace agenticdsl {
 
 using TokenCallback = std::function<void(const Token&)>;
@@ -153,7 +157,7 @@ public:
 ### 3. InMemoryBus 实现 (MVP)
 
 ```cpp
-// src/common/contract/inmemory_bus.h
+// include/agenticdsl/contract/inmemory_bus.h
 namespace agenticdsl {
 
 class InMemoryBus : public IInteractionBus {
@@ -435,9 +439,9 @@ DSLEngine 直接包含 InMemoryBus。
 | 操作 | 文件路径 |
 |------|---------|
 | **新建** | `src/common/contract/CMakeLists.txt` |
-| **新建** | `src/common/contract/events.h` |
-| **新建** | `src/common/contract/iinteraction_bus.h` |
-| **新建** | `src/common/contract/inmemory_bus.h` |
+| **跳过** | `src/common/contract/events.h` — M5.2 简化，事件类型内联到 `IInteractionBus` 头文件 |
+| **新建** | `include/agenticdsl/contract/iinteraction_bus.h` |
+| **新建** | `include/agenticdsl/contract/inmemory_bus.h` |
 | **新建** | `src/common/contract/inmemory_bus.cpp` |
 | **修改** | `src/core/engine.h` (+ atomic_bus, run_async) |
 | **修改** | `src/core/engine.cpp` (+ bus 集成) |

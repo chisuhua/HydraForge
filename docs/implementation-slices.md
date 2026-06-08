@@ -88,8 +88,8 @@ Phase 0 Track 0.1 (云端 LLM)    Phase 0 Track 0.3 (契约层)
 | `src/common/llm/model_registry.cpp` | 新建 | `register_model()` / `get_provider()` |
 | `src/common/llm/model_router.h` | 新建 | `IModelRouter` 接口 + `RoutingContext` |
 | `src/common/llm/default_model_router.h` | 新建 | `DefaultModelRouter`（始终返回第一个模型） |
-| `src/cognitive/simple_orchestrator.h` | 新建 | `SimpleCognitiveOrchestrator` MVP 实现 |
-| `src/cognitive/simple_orchestrator.cpp` | 新建 | 硬编码 ReAct：LLM → 解析工具调用 → 执行 |
+| `include/agenticdsl/cognitive/simple_orchestrator.h` | 新建 | `SimpleCognitiveOrchestrator` MVP 实现 |
+| `src/modules/cognitive/simple_orchestrator.cpp` | 新建 | 硬编码 ReAct：LLM → 解析工具调用 → 执行 |
 | `examples/slice_01_tool_call/main.cpp` | 新建 | 入口：构建服务 → 注册工具 → process → 输出 |
 | `examples/slice_01_tool_call/CMakeLists.txt` | 新建 | 链接 `agenticdsl_core` |
 
