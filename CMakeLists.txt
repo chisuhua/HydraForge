@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.20)
 project(AgenticDSL LANGUAGES CXX)
 
 option(AGENTICDSL_BUILD_TESTS "Build unit tests" OFF)
+
+# A 阶段：ThreadSanitizer 选项（验证 InMemoryBus 多线程安全）
+option(AGENTICDSL_ENABLE_TSAN "Enable ThreadSanitizer (InMemoryBus verification)" OFF)
+if(AGENTICDSL_ENABLE_TSAN)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -g")
+  set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=thread")
+endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -85,6 +92,7 @@ add_subdirectory(src/modules/trace)
 add_subdirectory(src/modules/library)
 add_subdirectory(src/modules/system)
 add_subdirectory(src/modules/cognitive)
+add_subdirectory(src/common/contract)
 
 add_library(agenticdsl_core STATIC
     src/core/engine.cpp
@@ -102,6 +110,7 @@ target_link_libraries(agenticdsl_core
     agenticdsl_modules_library
     agenticdsl_modules_system
     agenticdsl_modules_cognitive
+    agenticdsl_contract
     Threads::Threads
 )
 
