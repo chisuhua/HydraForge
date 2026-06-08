@@ -210,10 +210,13 @@ Track 0.3 ─ 最小契约层 (与 0.1/0.2 并行)
 
 ### Track 0.2: 三层调用链验证 (Slice 01)
 
+> **状态 (2026-06-08)**: 本轨道核心交付物（M4.6-M4.10）已在 **phase-c1-migration PR #6 (commit `dcbca37`)** 中完成。`SimpleCognitiveOrchestrator` + `slice_01_tool_call` 端到端示例已可运行，错误路径已覆盖。
+> **M4.1-M4.5（IModelRouter / ModelRegistry / DefaultModelRouter）**: 未实施，按 Phase 1 ADR-0034 移交至 Phase 1 智能体层。
+
 **来源**: `docs/implementation-slices.md` Slice 01
 **目标**: 验证 ADR-0036 混合内核架构核心假设：基座层→认知层→领域层能通
 **前提**: Track 0.1 (需要 LLM 能力)
-**工期**: 5-7 天（含接口定义、MockLLMProvider、错误路径验证和可运行示例）
+**工期**: 5-7 天（已完成核心部分；模型路由部分移交 Phase 1）
 
 #### 验证场景
 
@@ -230,17 +233,17 @@ Track 0.3 ─ 最小契约层 (与 0.1/0.2 并行)
 #### 涉及文件
 
 | # | 文件 | 操作 | 状态 | 说明 |
-|---|------|------|------|------|
-| M4.1 | `src/common/llm/llm_types.h` | 修改 | [ ] | 添加 `ModelCapability` + `available_models()` |
-| M4.2 | `src/common/llm/model_registry.h` | 新建 | [ ] | `ModelRegistry` 多模型注册 |
-| M4.3 | `src/common/llm/model_router.h` | 新建 | [ ] | `IModelRouter` + `RoutingContext` |
-| M4.4 | `src/common/llm/default_model_router.h` | 新建 | [ ] | `DefaultModelRouter` (首个可用模型) |
-| M4.5 | `src/common/llm/default_model_router.cpp` | 新建 | [ ] | 路由逻辑 |
-| M4.6 | `src/cognitive/simple_orchestrator.h` | 新建 | [ ] | `SimpleCognitiveOrchestrator` MVP |
-| M4.7 | `src/cognitive/simple_orchestrator.cpp` | 新建 | [ ] | 硬编码 ReAct: LLM→解析→回调 |
-| M4.8 | `src/common/llm/mock_llm_provider.h` | 新建 | [ ] | `MockLLMProvider` (离线开发/CI 用) |
-| M4.9 | `examples/slice_01_tool_call/main.cpp` | 新建 | [ ] | 入口示例 (支持 `--mock` / `--live` 模式) |
-| M4.10 | `examples/slice_01_tool_call/CMakeLists.txt` | 新建 | [ ] | 构建配置 |
+|---|------|------|:----:|------|
+| M4.1 | `src/common/llm/llm_types.h` | 修改 | [ ] | 添加 `ModelCapability` + `available_models()` — **移交 Phase 1** |
+| M4.2 | `src/common/llm/model_registry.h` | 新建 | [ ] | `ModelRegistry` 多模型注册 — **移交 Phase 1** |
+| M4.3 | `src/common/llm/model_router.h` | 新建 | [ ] | `IModelRouter` + `RoutingContext` — **移交 Phase 1** |
+| M4.4 | `src/common/llm/default_model_router.h` | 新建 | [ ] | `DefaultModelRouter` (首个可用模型) — **移交 Phase 1** |
+| M4.5 | `src/common/llm/default_model_router.cpp` | 新建 | [ ] | 路由逻辑 — **移交 Phase 1** |
+| M4.6 | `include/agenticdsl/cognitive/simple_orchestrator.h` | 新建 | [x] | `SimpleCognitiveOrchestrator` MVP — **2026-06-08** |
+| M4.7 | `src/modules/cognitive/simple_orchestrator.cpp` | 新建 | [x] | 硬编码 ReAct: LLM→解析→回调 — **2026-06-08** |
+| M4.8 | `src/common/llm/mock_provider.h/cpp` | 新建 | [x] | `MockLLMProvider` (离线开发/CI 用) — **2026-06-07** (Track 0.1) |
+| M4.9 | `examples/slice_01_tool_call/main.cpp` | 新建 | [x] | 入口示例 (支持 `--mock` / `--live` 模式) — **2026-06-08** |
+| M4.10 | `examples/slice_01_tool_call/CMakeLists.txt` | 新建 | [x] | 构建配置 — **2026-06-08** |
 
 **离线开发支持**:
 ```cpp
@@ -257,64 +260,72 @@ class MockLLMProvider : public ILLMProvider {
 
 每个示例支持两种运行模式：
 - `--mock`：使用 MockLLMProvider，验证链路逻辑（秒级完成，用于 CI/离线开发）
-- `--live`：使用真实 API，验证端到端行为
+- `--live`：占位（`std::cerr << "Live mode not yet implemented\n"`，Phase 1 实施）
 
 #### 关键接口
 
 ```cpp
-// ICognitiveOrchestrator（认知层）
+// ICognitiveOrchestrator（认知层，已在 Pre-Phase 定义于 include/agenticdsl/cognitive/icognitive_orchestrator.h）
 class ICognitiveOrchestrator {
     virtual void process(const std::string& session_id,
                          std::function<void(ExecutionResult)> on_complete) = 0;
 };
 
-// SimpleCognitiveOrchestrator：单轮 ReAct
+// SimpleCognitiveOrchestrator：单轮 ReAct（实际交付的回调载荷为 ToolResult 而非 ExecutionResult，详见头文件注释）
 // process() 内部：
 //   1. 调 LLM → 解析出 tool_call
 //   2. registry.call(tool_call)
-//   3. callback(result)
+//   3. callback(ToolResult)
 ```
 
 **验证标准**:
-- ✅ `examples/slice_01_tool_call --mock` 输出完整调用链 (MockLLM→Tool→结果)，< 1 秒
-- ✅ `examples/slice_01_tool_call --live` 输出完整调用链 (真实 LLM→Tool→结果)
-- ✅ `tests/test_slice_01.cpp` 单元测试通过 (模拟 orchestrator 各组件)
-- ✅ 错误路径验证：LLM 超时 → orchestrator 返回 `LLMError.Timeout`
-- ✅ 错误路径验证：Tool 不存在 → ToolRegistry 返回 `ToolResult{ok:false}`
-- ✅ 三层调用链延迟 < 500ms (mock 模式测量链路开销)
+- [x] `examples/slice_01_tool_call --mock` 输出完整调用链 (MockLLM→Tool→结果)，< 1 秒
+- [ ] `examples/slice_01_tool_call --live` 输出完整调用链 (真实 LLM→Tool→结果) — **Phase 1 实施**
+- [x] `tests/test_simple_orchestrator.cpp` 单元测试通过 (模拟 orchestrator 各组件) — 25 assertions / 5 cases
+- [x] 错误路径验证：LLM 超时 → orchestrator 返回 `ERR_LLM.SERVER` — `test_simple_orchestrator` 覆盖
+- [x] 错误路径验证：Tool 不存在 → orchestrator 返回 `ERR_TOOL.NOT_FOUND` — `test_simple_orchestrator` 覆盖
+- [x] JSON 解析失败 → `ERR_ORCHESTRATOR.PARSE_FAILED` — `test_simple_orchestrator` 覆盖
+- [x] 三层调用链延迟 < 500ms (mock 模式测量链路开销) — e2e 输出实测 < 100ms
 
 ---
 
 ### Track 0.3: 最小契约层
 
+> **状态 (2026-06-08)**: 本轨道核心交付物（M5.1, M5.3-M5.5, M6.1）已在 **phase-c1-migration PR #6 (commit `dcbca37`)** 中完成。`IInteractionBus` / `InMemoryBus` / `ToolResult` MVP 已交付。
+> **M5.2（`events.h` 中间类型抽象层）**: 未实施，简化路径直接用 `ToolResult` 作为 emit 载荷。
+> **M6.2-M6.3（`call_tool()` 签名改造）**: 未实施，按 Phase 1 ADR-0023 P2-P4 移交。
+
 **来源**: ADR-0019 P1 (简化), ADR-0023 P1 (简化)
 **目标**: 定义契约层核心接口，为智能体层提供基础
-**工期**: 2-3 天 (与 Track 0.1/0.2 并行)
+**工期**: 2-3 天 (核心已完成；call_tool 签名改造移交 Phase 1)
 
 #### Step 0.3.1: IInteractionBus + InMemoryBus (精简版)
 
 | # | 文件 | 操作 | 状态 | 说明 |
-|---|------|------|------|------|
-| M5.1 | `src/common/contract/CMakeLists.txt` | 新建 | [ ] | 静态库 `agenticdsl_contract` |
-| M5.2 | `src/common/contract/events.h` | 新建 | [ ] | `EventType`, `Event`, `Token`, `Session` 基础结构 |
-| M5.3 | `src/common/contract/iinteraction_bus.h` | 新建 | [ ] | `IInteractionBus` 抽象接口 |
-| M5.4 | `src/common/contract/inmemory_bus.h` | 新建 | [ ] | `InMemoryBus` 声明 |
-| M5.5 | `src/common/contract/inmemory_bus.cpp` | 新建 | [ ] | `InMemoryBus` 实现 (mutex + queue) |
+|---|------|------|:----:|------|
+| M5.1 | `src/common/contract/CMakeLists.txt` | 新建 | [x] | 静态库 `agenticdsl_contract` — **2026-06-08** |
+| M5.2 | `src/common/contract/events.h` | 新建 | [ ] | `EventType`, `Event`, `Token`, `Session` 基础结构 — **简化跳过** |
+| M5.3 | `include/agenticdsl/contract/iinteraction_bus.h` | 新建 | [x] | `IInteractionBus` 抽象接口 — **2026-06-08** |
+| M5.4 | `include/agenticdsl/contract/inmemory_bus.h` | 新建 | [x] | `InMemoryBus` 声明 — **2026-06-08** |
+| M5.5 | `src/common/contract/inmemory_bus.cpp` | 新建 | [x] | `InMemoryBus` 实现 (mutex + queue) — **2026-06-08** |
 
 #### Step 0.3.2: ToolResult 标准化 (精简版)
 
 | # | 文件 | 操作 | 状态 | 说明 |
-|---|------|------|------|------|
-| M6.1 | `src/core/types/tool_result.h` | 新建 | [ ] | `ToolResult` 结构体 + `to_json()`/`from_json()` |
-| M6.2 | `src/common/tools/registry.h` | 修改 | [ ] | `call_tool()` 签名改为返回 `ToolResult` |
-| M6.3 | `src/common/tools/registry.cpp` | 修改 | [ ] | 返回值改造 + 错误码化 |
+|---|------|------|:----:|------|
+| M6.1 | `src/core/types/tool_result.h` | 新建 | [x] | `ToolResult` 结构体 + `to_json()`/`from_json()` — **2026-06-08** |
+| M6.2 | `src/common/tools/registry.h` | 修改 | [ ] | `call_tool()` 签名改为返回 `ToolResult` — **移交 Phase 1** |
+| M6.3 | `src/common/tools/registry.cpp` | 修改 | [ ] | 返回值改造 + 错误码化 — **移交 Phase 1** |
 
 **约束**:
 - MVP 阶段 `bus_` 使用 `std::mutex` (非 `std::atomic<std::shared_ptr>`)
 - `ToolResult` 信封格式: `{"ok": bool, "data": ..., "meta": {...}}`
 - 错误码格式: `ERR_<DOMAIN>.<SUB>`
 
-**验证**: `InMemoryBus` 单元测试通过 | `ToolResult::from_json(to_json()) == 原始值`
+**验证**:
+- [x] `InMemoryBus` 单元测试通过 — 18 assertions / 4 cases（含 10 线程 × 100 emit 并发）
+- [x] `ToolResult::from_json(to_json()) == 原始值` — `test_tool_result` 24/24 通过
+- [x] `IGenerationStream::error()` 错误传播契约 — 2026-06-08 修复
 
 ---
 
