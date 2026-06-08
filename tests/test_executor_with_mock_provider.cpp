@@ -162,10 +162,6 @@ TEST_CASE("End-to-end: DSLEngine → TopoScheduler → ExecutionSession → Node
     // 运行引擎
     auto result = engine->run(ctx);
 
-    // 验证：执行应该成功（或至少到达 generate 节点后停止）
-    // generate_subgraph 节点会被执行，调用 mock LLM
-    // mock 返回的 DSL 会被解析
-    // 注意：完整的端到端测试可能受 BudgetController / Snapshot 等影响
-    // 这里主要验证 ILLMProvider 被调用
-    REQUIRE(mock->call_count() >= 0); // 至少验证 mock 可被调用（不强求 > 0 以避免依赖复杂行为）
+    REQUIRE(mock->call_count() > 0);
+    REQUIRE(mock->call_history().back().prompt.find("test task") != std::string::npos);
 }
