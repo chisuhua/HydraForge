@@ -495,7 +495,7 @@ ToolResult wrap_legacy_tool(
 | **修改** | `src/common/tools/registry.cpp` — 返回值 + 3 个默认工具迁移 |
 | **修改** | `src/modules/executor/node_executor.cpp` — 消费 `ToolResult` |
 | **修改** | `src/core/types/node.h` — `execute_tool_call` 签名 |
-| **修改** | `src/common/contract/events.h` — `Event.content` 改为 `nlohmann::json` |
+|事件类型抽象在 M5.2 阶段简化跳过，直接以 `ToolResult` 作为 `emit()` 载荷（见 ADR-0019 实际实施） |
 
 ## 附录 B: 与 ADR-0021 (PDK) 的协作
 
