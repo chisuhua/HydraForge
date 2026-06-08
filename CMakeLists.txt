@@ -84,6 +84,7 @@ add_subdirectory(src/modules/executor)
 add_subdirectory(src/modules/trace)
 add_subdirectory(src/modules/library)
 add_subdirectory(src/modules/system)
+add_subdirectory(src/modules/cognitive)
 
 add_library(agenticdsl_core STATIC
     src/core/engine.cpp
@@ -100,6 +101,7 @@ target_link_libraries(agenticdsl_core
     agenticdsl_modules_trace
     agenticdsl_modules_library
     agenticdsl_modules_system
+    agenticdsl_modules_cognitive
     Threads::Threads
 )
 
@@ -115,6 +117,9 @@ target_link_libraries(agent_basic
     agenticdsl_includes
     agenticdsl_core
 )
+
+# --- Sample: slice_01_tool_call (Track 0.2 / B) ---
+add_subdirectory(examples/slice_01_tool_call)
 
 # Create alias for tests
 
