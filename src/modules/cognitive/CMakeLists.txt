@@ -9,8 +9,6 @@ add_library(agenticdsl_modules_cognitive STATIC
     simple_orchestrator.cpp
 )
 
-target_include_directories(agenticdsl_modules_cognitive PUBLIC include)
-
 target_link_libraries(agenticdsl_modules_cognitive PUBLIC
     agenticdsl_includes
     agenticdsl_common

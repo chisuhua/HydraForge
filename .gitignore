@@ -3,6 +3,12 @@
 
 # Build artifacts
 build/
+# ThreadSanitizer build directory (rebuild with: cmake -B build_tsan -DAGENTICDSL_ENABLE_TSAN=ON)
+build_tsan/
+
+# Async dependencies (cloned manually; rebuild via CMake add_subdirectory)
+external/async_simple/
+external/taskflow/
 
 # Sisyphus orchestration
 .omo/

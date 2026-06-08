@@ -1,4 +1,4 @@
-// src/common/contract/inmemory_bus.h
+// include/agenticdsl/contract/inmemory_bus.h
 // 文件头注释
 // 功能描述：IInteractionBus 的内存实现（mutex + queue + 多 subscriber）。
 //          MVP 实现：不引入 lock-free；callback 调用严格在锁外完成以防止死锁。
@@ -7,7 +7,7 @@
 // 最后修改日期：2026-06-08
 #pragma once
 
-#include "common/contract/iinteraction_bus.h"
+#include "agenticdsl/contract/iinteraction_bus.h"
 
 #include <condition_variable>
 #include <cstddef>

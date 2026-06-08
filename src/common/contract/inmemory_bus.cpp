@@ -6,7 +6,7 @@
 // 作者：AgenticDSL Phase 0 / Track A
 // 最后修改日期：2026-06-08
 
-#include "common/contract/inmemory_bus.h"
+#include "agenticdsl/contract/inmemory_bus.h"
 
 #include <algorithm>
 #include <utility>

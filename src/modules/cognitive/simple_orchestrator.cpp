@@ -7,7 +7,7 @@
 // 作者：AgenticDSL Phase 0 / Track B
 // 最后修改日期：2026-06-08
 
-#include "modules/cognitive/simple_orchestrator.h"
+#include "agenticdsl/cognitive/simple_orchestrator.h"
 
 #include "common/llm/llm_types.h"
 

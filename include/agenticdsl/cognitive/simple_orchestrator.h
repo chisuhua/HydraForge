@@ -1,4 +1,4 @@
-// src/modules/cognitive/simple_orchestrator.h
+// include/agenticdsl/cognitive/simple_orchestrator.h
 // 文件头注释
 // 功能描述：SimpleCognitiveOrchestrator — B 轨道（Track 0.2）单轮 ReAct 编排器。
 //          通过 ToolRegistry + ILLMProvider 完成 "LLM 返回 JSON tool_call → 调用工具 → 包装为 ToolResult" 的最小闭环。

@@ -8,8 +8,8 @@
 
 #include "catch_amalgamated.hpp"
 
-#include "common/contract/iinteraction_bus.h"
-#include "common/contract/inmemory_bus.h"
+#include "agenticdsl/contract/iinteraction_bus.h"
+#include "agenticdsl/contract/inmemory_bus.h"
 #include "core/types/tool_result.h"
 
 #include <atomic>

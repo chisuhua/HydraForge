@@ -12,7 +12,7 @@
 #include "core/types/tool_result.h"
 #include "common/llm/mock_provider.h"
 #include "common/llm/llm_types.h"
-#include "modules/cognitive/simple_orchestrator.h"
+#include "agenticdsl/cognitive/simple_orchestrator.h"
 
 #include <atomic>
 #include <memory>

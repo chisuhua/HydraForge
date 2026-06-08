@@ -21,8 +21,6 @@ class ILLMProvider;
 
 using AppendGraphsCallback = std::function<void(std::vector<ParsedGraph>)>;
 
-using AppendGraphsCallback = std::function<void(std::vector<ParsedGraph>)>;
-
 class NodeExecutor {
 public:
     // C₁.2 迁移：构造函数从 LlamaAdapter* 改为 ILLMProvider*（向后兼容：仍可传 nullptr）

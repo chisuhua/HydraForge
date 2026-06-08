@@ -12,7 +12,7 @@
 // 最后修改日期：2026-06-08
 
 #include "core/engine.h"
-#include "modules/cognitive/simple_orchestrator.h"
+#include "agenticdsl/cognitive/simple_orchestrator.h"
 #include "core/types/tool_result.h"
 #include "common/llm/mock_provider.h"
 #include "common/llm/llm_types.h"

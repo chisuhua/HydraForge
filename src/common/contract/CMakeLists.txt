@@ -9,8 +9,6 @@ add_library(agenticdsl_contract STATIC
     inmemory_bus.cpp
 )
 
-target_include_directories(agenticdsl_contract PUBLIC include)
-
 target_link_libraries(agenticdsl_contract PUBLIC
     agenticdsl_includes
     agenticdsl_common

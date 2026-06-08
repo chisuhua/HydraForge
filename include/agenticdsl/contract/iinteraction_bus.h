@@ -1,8 +1,8 @@
-// src/common/contract/iinteraction_bus.h
+// include/agenticdsl/contract/iinteraction_bus.h
 // 文件头注释
 // 功能描述：交互总线抽象接口（ADR-0019）。
 //          Phase 1 异步交互层契约：emit/subscribe/unsubscribe + 非阻塞 try_pop。
-//          MVP 实现由 InMemoryBus（src/common/contract/inmemory_bus.h）提供。
+//          MVP 实现由 InMemoryBus（include/agenticdsl/contract/inmemory_bus.h）提供。
 // 设计依据：ADR-0019（IInteractionBus 设计）+ plan §12。
 // 作者：AgenticDSL Phase 0 / Track A
 // 最后修改日期：2026-06-08
