@@ -62,6 +62,7 @@ add_library(agenticdsl_common STATIC
     src/common/llm/cloud_adapter.cpp
     src/common/llm/http_adapter.cpp
     src/common/llm/llama_adapter.cpp
+    src/common/llm/llama_adapter_provider.cpp
     src/common/llm/llama_tool.cpp
     src/common/llm/mock_provider.cpp
     src/common/llm/sse_stream.cpp
