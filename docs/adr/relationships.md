@@ -14,11 +14,11 @@
 |-----|------|------|---------|
 | ADR-0001 ~ 0018 | 基础设施/推理/记忆/DSL | ✅ 已批准 | — |
 | ADR-0006 | HarnessEngine 后台线程模型 | 🔄 已替代 | → ADR-0020 |
-| **ADR-0019** | IInteractionBus + TUI Chat MVP | 🔍 提议中 | — |
-| **ADR-0020** | 多智能体线程模型与隔离策略 | 🔍 提议中 | ← 替代 ADR-0006 |
+| **ADR-0019** | IInteractionBus + TUI Chat MVP | ✅ 已批准 (C1 A-stage) | — |
+| **ADR-0020** | 多智能体线程模型与隔离策略 | 🔄 部分实施 (C1 B-stage) | ← 替代 ADR-0006 |
 | **ADR-0021** | Plugin Development Kit (PDK) | 🔍 提议中 | — |
 | **ADR-0022** | 插件加载机制 (已规划) | 📋 待创建 | — |
-| **ADR-0023** | ToolResult 标准化 (已规划) | 📋 待创建 | — |
+| **ADR-0023** | ToolResult 标准化 | 🔄 P1 已实施, P2-P4 待 | 简化为 {ok, data, meta} 信封 |
 | **ADR-0030** | AsyncRuntime 双层异步架构 | ✅ 已批准 | → 替代 ADR-0020 Phase 2/4 协程计划 |
 | **ADR-0032** | CostCollector 成本收集 | 🔍 提议中 | — |
 | **ADR-0031** | IExecutionPolicy 执行策略 | 🔍 提议中 | — |

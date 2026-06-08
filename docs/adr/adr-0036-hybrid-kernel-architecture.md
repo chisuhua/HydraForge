@@ -103,7 +103,7 @@ HydraForge 模型：
 #### 2.1 基座 → 认知层：ICognitiveOrchestrator
 
 ```cpp
-// src/cognitive/icognitive_orchestrator.h
+// include/agenticdsl/cognitive/icognitive_orchestrator.h
 // 类比：kernel 启动 shell 进程
 
 // 认知层可访问的服务——通过依赖注入实现真正的隔离

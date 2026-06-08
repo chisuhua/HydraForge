@@ -2,7 +2,7 @@
 
 ## 状态
 
-**提议中** (2026-05-25) — **V2 版**，基于 Oracle 审查讨论更新
+**已批准 (2026-06-08, 通过 phase-c1-migration)** — V2.1 版，IInteractionBus + InMemoryBus MVP 已实施（commits 5f21ea3, f07a4b4）。后续 P2（DSLEngine bus 集成）移交 Phase 1。
 
 ## 背景
 
