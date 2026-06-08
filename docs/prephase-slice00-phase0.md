@@ -513,75 +513,71 @@ endif()
 
 ### 任务列表
 
-| # | 任务 | 文件 | 操作 | 验证标准 |
-|---|------|------|:----:|---------|
-| M5.1 | Contract 库 CMake | `src/common/contract/CMakeLists.txt` | **新建** | 静态库 `agenticdsl_contract` |
-| M5.2 | IInteractionBus 接口 | `src/common/contract/iinteraction_bus.h` | **新建** | 编译通过 |
-| M5.3 | 事件类型定义 | `src/common/contract/event_types.h` | **新建** | constexpr 字符串 |
-| M5.4 | InMemoryBus 头文件 | `src/common/contract/inmemory_bus.h` | **新建** | 编译通过 |
-| M5.5 | InMemoryBus 实现 | `src/common/contract/inmemory_bus.cpp` | **新建** | 单元测试通过 |
-| M5.6 | ToolResult 标准化 | `src/core/types/tool_result.h` | **新建** | 编译通过 |
-| M6.1 | InMemoryBus 单元测试 | `tests/test_interaction_bus.cpp` | **新建** | emit/subscribe 工作 |
-| M6.2 | 多线程安全测试 | `tests/test_interaction_bus.cpp` | 扩展 | 并发 emit 无死锁 |
-| M6.3 | ToolResult 测试 | `tests/test_tool_result.cpp` | **新建** | 序列化/反序列化 |
+> **C1 实际交付路径（2026-06-08）**：公共头文件已迁移到 `include/agenticdsl/contract/`，
+> 实现文件保留在 `src/common/contract/`（CMakeLists.txt 同样保留）。
+> `events.h` 中间类型抽象（M5.2）在实际实施中**简化跳过**——直接用 `ToolResult` 作为
+> `emit` 载荷，避免不必要的类型层级。
+
+| # | 任务 | 文件 | 操作 | 验证标准 | 实际状态 |
+|---|------|------|:----:|---------|:--------:|
+| M5.1 | Contract 库 CMake | `src/common/contract/CMakeLists.txt` | **新建** | 静态库 `agenticdsl_contract` | [x] |
+| M5.2 | IInteractionBus 接口 | `include/agenticdsl/contract/iinteraction_bus.h` | **新建** | 编译通过 | [x] |
+| M5.3 | 事件类型定义 | ~~`src/common/contract/event_types.h`~~ | — | 简化跳过 | — |
+| M5.4 | InMemoryBus 头文件 | `include/agenticdsl/contract/inmemory_bus.h` | **新建** | 编译通过 | [x] |
+| M5.5 | InMemoryBus 实现 | `src/common/contract/inmemory_bus.cpp` | **新建** | 单元测试通过 | [x] |
+| M5.6 | ToolResult 标准化 | `src/core/types/tool_result.h` | **新建** | 编译通过 | [x] |
+| M6.1 | InMemoryBus 单元测试 | `tests/test_interaction_bus.cpp` | **新建** | emit/subscribe 工作 | [x] |
+| M6.2 | 多线程安全测试 | `tests/test_interaction_bus.cpp` | 扩展 | 并发 emit 无死锁 | [x] |
+| M6.3 | ToolResult 测试 | `tests/test_tool_result.cpp` | **新建** | 序列化/反序列化 | [x] |
 
 ### 关键代码骨架
 
 ```cpp
-// src/common/contract/iinteraction_bus.h
+// include/agenticdsl/contract/iinteraction_bus.h（C1 实际位置）
 #pragma once
-#include <string>
+#include "core/types/tool_result.h"
+
+#include <cstddef>
 #include <functional>
-#include <cstdint>
-#include <nlohmann/json.hpp>
+#include <string>
 
 namespace agenticdsl {
-
-struct BusEvent {
-    std::string type;
-    std::string session_id;
-    nlohmann::json payload;
-};
-
-using EventHandler = std::function<void(const BusEvent&)>;
-using SubscriptionId = uint64_t;
 
 /// 交互总线接口（MVP: mutex + queue）
 /// 三阶段演进：Phase 0(mutex) → Phase 1(Engine集成) → Phase 2(EventBus后端)
 class IInteractionBus {
 public:
     virtual ~IInteractionBus() = default;
-    virtual void emit(BusEvent event) = 0;
-    virtual SubscriptionId subscribe(const std::string& event_type,
-                                      EventHandler handler) = 0;
-    virtual void unsubscribe(SubscriptionId id) = 0;
+    virtual void emit(const std::string& event_type,
+                      const ToolResult& payload) = 0;
+    virtual size_t subscribe(
+        const std::string& event_type,
+        std::function<void(const ToolResult&)> callback) = 0;
+    virtual void unsubscribe(size_t token) = 0;
 };
 
 } // namespace agenticdsl
 ```
 
 ```cpp
-// src/core/types/tool_result.h
+// src/core/types/tool_result.h（C1 实际实现）
 #pragma once
-#include <string>
 #include <nlohmann/json.hpp>
+#include <string>
 
 namespace agenticdsl {
 
-/// 统一工具调用结果
+/// 统一工具调用结果（C1 MVP 实际实现）
 struct ToolResult {
     bool ok = false;
-    std::string data;       // 成功时的输出
-    std::string error;      // 失败时的错误信息
-    std::string error_code; // 格式: ERR_<DOMAIN>.<SUB>
-    nlohmann::json meta;    // 额外元数据（耗时、token数等）
+    nlohmann::json data;    // 成功时的输出（nlohmann::json 而非 std::string）
+    nlohmann::json meta;    // 错误时含 error_code / error_message；成功时含 tool_name 等
+
+    static ToolResult success(nlohmann::json d, nlohmann::json m = {});
+    static ToolResult error(std::string code, std::string msg, nlohmann::json m = {});
 
     nlohmann::json to_json() const;
     static ToolResult from_json(const nlohmann::json& j);
-    static ToolResult ok_result(const std::string& data,
-                                const nlohmann::json& meta = {});
-    static ToolResult err_result(const std::string& error,
-                                 const std::string& error_code = "ERR_GENERAL.UNKNOWN");
 };
 
 } // namespace agenticdsl
@@ -626,15 +622,15 @@ cd build && cmake .. -DAGENTICDSL_BUILD_TESTS=ON && make -j$(nproc)
 
 | # | 任务 | 文件 | 操作 | 验证标准 |
 |---|------|------|:----:|---------|
-| M4.1 | IModelRouter 接口 | `src/common/llm/imodel_router.h` | **新建** | 编译通过 |
-| M4.2 | ModelRegistry 头文件 | `src/common/llm/model_registry.h` | **新建** | 注册/查询工作 |
-| M4.3 | ModelRegistry 实现 | `src/common/llm/model_registry.cpp` | **新建** | 单元测试通过 |
-| M4.4 | DefaultModelRouter 头文件 | `src/common/llm/default_router.h` | **新建** | 按任务类型路由 |
-| M4.5 | DefaultModelRouter 实现 | `src/common/llm/default_router.cpp` | **新建** | 测试通过 |
-| M4.6 | SimpleCognitiveOrchestrator 头文件 | `src/cognitive/simple_orchestrator.h` | **新建** | 继承接口 |
-| M4.7 | SimpleCognitiveOrchestrator 实现 | `src/cognitive/simple_orchestrator.cpp` | **新建** | 单轮调用链通过 |
-| M4.8 | 端到端示例 main.cpp | `examples/slice_01_tool_call/main.cpp` | **新建** | 可运行 |
-| M4.9 | 端到端示例 CMake | `examples/slice_01_tool_call/CMakeLists.txt` | **新建** | 构建配置 |
+| M4.1 | IModelRouter 接口 | `src/common/llm/imodel_router.h` | **新建** | 编译通过 | 移交 Phase 1 |
+| M4.2 | ModelRegistry 头文件 | `src/common/llm/model_registry.h` | **新建** | 注册/查询工作 | 移交 Phase 1 |
+| M4.3 | ModelRegistry 实现 | `src/common/llm/model_registry.cpp` | **新建** | 单元测试通过 | 移交 Phase 1 |
+| M4.4 | DefaultModelRouter 头文件 | `src/common/llm/default_router.h` | **新建** | 按任务类型路由 | 移交 Phase 1 |
+| M4.5 | DefaultModelRouter 实现 | `src/common/llm/default_router.cpp` | **新建** | 测试通过 | 移交 Phase 1 |
+| M4.6 | SimpleCognitiveOrchestrator 头文件 | `include/agenticdsl/cognitive/simple_orchestrator.h` | **新建** | 继承接口 | [x] |
+| M4.7 | SimpleCognitiveOrchestrator 实现 | `src/modules/cognitive/simple_orchestrator.cpp` | **新建** | 单轮调用链通过 | [x] |
+| M4.8 | 端到端示例 main.cpp | `examples/slice_01_tool_call/main.cpp` | **新建** | 可运行 | [x] |
+| M4.9 | 端到端示例 CMake | `examples/slice_01_tool_call/CMakeLists.txt` | **新建** | 构建配置 | [x] |
 
 > **变更说明**: 与初版计划相比，移除了 `src/domains/` 目录和 `workflow.agent.md`。示例工具在 `main.cpp` 中通过 `engine.register_tool()` 内联注册，避免新增架构层。DSL 文件的加载依赖 parser 模块，MVP 阶段用 C++ 直接注册更高效。
 
@@ -657,47 +653,58 @@ cd build && cmake .. -DAGENTICDSL_BUILD_TESTS=ON && make -j$(nproc)
 
 ### CMake 配置
 
+> **C1 实际实现**：cognitive 模块使用 `src/modules/cognitive/` 路径（与现有 8 个
+> 模块同级），库目标名为 `agenticdsl_modules_cognitive`（与现有 `agenticdsl_modules_*`
+> 命名一致），`include/agenticdsl/cognitive/` 为公共头搜索路径（通过根
+> `agenticdsl_includes` INTERFACE 库自动包含）。
+
 ```cmake
-# src/cognitive/CMakeLists.txt（新建）
-add_library(agenticdsl_cognitive STATIC
+# src/modules/cognitive/CMakeLists.txt（实际位置）
+add_library(agenticdsl_modules_cognitive STATIC
     simple_orchestrator.cpp
 )
-target_link_libraries(agenticdsl_cognitive PUBLIC agenticdsl_includes agenticdsl_common)
+target_link_libraries(agenticdsl_modules_cognitive PUBLIC
+    agenticdsl_includes
+    agenticdsl_common
+    agenticdsl_core
+)
 
 # CMakeLists.txt（根）添加：
-add_subdirectory(src/cognitive)
-target_link_libraries(agenticdsl_core PUBLIC agenticdsl_cognitive)
+add_subdirectory(src/modules/cognitive)
+target_link_libraries(agenticdsl_core PUBLIC agenticdsl_modules_cognitive)
 ```
 
 ### 关键代码骨架
 
+> **C1 实际实现路径（2026-06-08）**：cognitive 模块位于 `src/modules/cognitive/`，
+> 头文件位于 `include/agenticdsl/cognitive/`。`SimpleCognitiveOrchestrator` 不再继承
+> `ICognitiveOrchestrator`（Pre-Phase 接口）——其回调载荷为 `ToolResult` 而非
+> `ExecutionResult`，定位为 MVP/B 轨道层。`interrupt` / `on_mode_changed` 属于
+> Pre-Phase 接口的 Phase 1+ 高层方法，当前未实现。
+
 ```cpp
-// src/cognitive/simple_orchestrator.h
-// TODO(mvp): 替换为正式的 IPER 循环实现（Phase 4 ADR-0036）
-// 当前仅为验证三层调用链而硬编码
+// include/agenticdsl/cognitive/simple_orchestrator.h
 #pragma once
-#include "agenticdsl/cognitive/icognitive_orchestrator.h"
 #include "common/tools/registry.h"
-#include "common/llm/llm_adapter.h"
+#include "common/llm/llm_types.h"
+#include "core/types/tool_result.h"
 
 namespace agenticdsl {
 
-class SimpleCognitiveOrchestrator : public ICognitiveOrchestrator {
+class SimpleCognitiveOrchestrator {
 public:
-    SimpleCognitiveOrchestrator(
-        ILLMAdapter& llm,
-        ToolRegistry& registry);
+    // Phase 1 预留：构造时允许 nullptr（MVP 允许依赖缺失）
+    explicit SimpleCognitiveOrchestrator(
+        ToolRegistry* registry = nullptr,
+        ILLMProvider* llm = nullptr);
 
     void process(const std::string& session_id,
-                 std::function<void(ExecutionResult)> on_complete) override;
-    void interrupt(const std::string& session_id) override;
-    void on_mode_changed(const std::string& session_id,
-                          SessionMode new_mode) override;
+                 std::function<void(ToolResult)> on_complete);
 
 private:
-    ILLMAdapter& llm_;
-    ToolRegistry& registry_;
-    std::atomic<bool> interrupted_{false};
+    ToolRegistry* registry_;
+    ILLMProvider* llm_;
+    ToolResult react_once(const std::string& user_prompt);  // 单轮 ReAct（MVP）
 };
 
 } // namespace agenticdsl
