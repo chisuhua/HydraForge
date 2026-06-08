@@ -14,11 +14,12 @@
 
 | Phase | 进度 | 状态 | 工期 | 依赖 |
 |-------|:----:|:----:|:----:|:----:|
-| Pre-Phase | 0% ░░░░░░░░░░ | ⏸ 未开始 | 0.5 天 | 无 |
-| Slice 00 | 0% ░░░░░░░░░░ | ⏸ 未开始 | 1-2 天 | Pre-Phase (CMake) |
-| **Phase 0 MVP** | 0% ░░░░░░░░░░ | **🎯 当前焦点** | **7-10 天** | Pre-Phase + Slice 00 |
-| ├─ Track 0.1 | 0% ░░░░░░░░░░ | ⏸ 未开始 | 3-4 天 | Pre-Phase |
-| ├─ Track 0.2 | 0% ░░░░░░░░░░ | ⏸ 未开始 | 5-7 天 | Track 0.1 |
+| Pre-Phase | 100% ██████████ | ✅ 已完成 | 0.5 天 | 无 |
+| Slice 00 | 100% ██████████ | ✅ 已完成 | 1-2 天 | Pre-Phase (CMake) |
+| **Phase 0 MVP** | 30% ███░░░░░░░ | **🎯 当前焦点** | **7-10 天** | Pre-Phase + Slice 00 |
+| ├─ Track 0.1 | 100% ██████████ | ✅ 已完成 | 3-4 天 | Pre-Phase |
+| ├─ Track 0.1.5 (C₁) | 100% ██████████ | ✅ 已完成 | 0.5 天 | Track 0.1 |
+| ├─ Track 0.2 | 0% ░░░░░░░░░░ | ⏸ 未开始 | 5-7 天 | Track 0.1 + C₁ |
 | └─ Track 0.3 | 0% ░░░░░░░░░░ | ⏸ 未开始 | 2-3 天 | Pre-Phase |
 | Phase 1 智能体层 | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 3-4 周 | Phase 0 |
 | Phase 2 异步+EventBus | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 2-3 周 | Phase 1 |
@@ -148,7 +149,7 @@
 
 | # | 描述 | 影响范围 | 提出日 | 状态 |
 |---|------|---------|--------|:----:|
-| 1 | `node_executor.{h:45, cpp:90}` 使用已弃用类型 `LLMCallNode`（v3.10 已迁移至 DSLNode） | Executor 模块编译产生 2 个 `-Wdeprecated-declarations` 警告；非阻塞（不导致错误） | 2026-06-07 | 🆕 建议后续清理 |
+| ~~1~~ | ~~`node_executor.{h:45, cpp:90}` 使用已弃用类型 `LLMCallNode`（v3.10 已迁移至 DSLNode）~~ | ~~Executor 模块编译产生 2 个 `-Wdeprecated-declarations` 警告~~ | 2026-06-07 | ✅ **已修复**（C₁.2 删除 `execute_llm_call()` 死代码） |
 
 ---
 
@@ -160,6 +161,7 @@
 | 2026-06-03 | 文档基线对齐 | 0.5h | ✅ 完成 | 修正 roadmap-status.md / implementation-roadmap.md 中过时的测试断言；迁移 superpowers spec 方案对比至 ADR-0010；归档 3 个过期 superpowers 文档 |
 | 2026-06-07 | **Pre-Phase 完成** (P0.0a–P0.4 + V0.1 + V0.2) | 0.5h | ✅ 全部通过 | 交付 3 个核心接口头文件 (ICognitiveOrchestrator / IExecutionPolicy 8 方法 / Session 三级体系) + 根 CMakeLists.txt 添加 `${CMAKE_SOURCE_DIR}/include` 搜索路径；V0.1 全量编译 + V0.2 三头独立 include 测试均通过；现有 12/12 测试零回归。修复预存 `node.h:125` `[[deprecated]]` 属性位置警告（原被屏蔽，修复后浮现 2 个 `node_executor.{h:45, cpp:90}` 使用弃用类型的 `-Wdeprecated-declarations` 警告——已在 roadmap 阻塞项中记录） |
 | 2026-06-07 | **Slice 00 完成** (S0.1–S0.6 + V0.3 + V0.4) | 2h | ✅ 13/13 通过 |
+| 2026-06-08 | **Phase C₁ 完成** (C₁.1-C₁.5) | 5h | ✅ 17+/17+ 通过 (108 assertions / 48 cases, 0 失败) | **关键桥梁**: 让 Track 0.1 成果真正接入引擎。3 个原子 commit (d38bc51 + 3f28020 + 4312333): ① C₁.1 新增 LlamaAdapterProvider 适配器（包装旧 LlamaAdapter → ILLMProvider）② C₁.2-C₁.4 完整调用链迁移（NodeExecutor/TopoScheduler/ExecutionSession/DSLEngine 全部改用 ILLMProvider*，删除 execute_llm_call 死代码，附带清理 Track 0.1 M1.3 遗留的 LLMParams struct）③ C₁.5 端到端集成测试（5 个 TEST_CASE：默认 Mock provider / ILLMProvider 接口 / set_llm_provider 替换 / 错误注入 / 端到端 [e2e]）。**DSLEngine::from_markdown 默认创建 MockLLMProvider**（CI 永远可运行，无需本地 LLM）。零回归：所有原有测试通过，编译 0 错误。解锁能力: 端到端 ILLMProvider 调用链、MockLLMProvider 默认行为。 |
 | 2026-06-07 | **Track 0.1 完成** (M1.1-M3.3 + V1.1-V1.3) | 2h | ✅ 16/16 通过 | 实现 llm_config.h 统一 LLMConfig (合并 LLMConfig+LLMParams)；标记 ILLMAdapter [[deprecated]]；新建 cloud_adapter.h/cpp (OpenAI 协议 + 重试 + 错误映射) + sse_stream.h/cpp (通用 SSE 状态机)；新建 mock_provider.h/cpp (队列/固定/错误/延迟模拟)；新建 3 个测试文件 (30 个新增测试用例)；llm_config.json 双层兼容。V1.1 test_cloud_llm 19/19 通过，V1.2 test_sse_stream 11/11 通过，V1.3 LLM 模块编译 0 错误，全量 16/16 通过 (1.86s)。 下载 Taskflow v3.9.0 + async_simple master，配置 CMake（禁用测试/demo/ASAN），新建 test_async_bridge.cpp（3 TEST_CASE：Taskflow 基础功能 / async_simple 协程 / 共存验证）。V0.3 编译通过，V0.4 3/3 通过，回归 13/13 通过。
 
 ---
@@ -182,7 +184,9 @@
 | test_no_llm | 无 LLM 模式 | ✅ | 2026-06-07 | 全通过 |
 | test_prompt_builder | Prompt | ✅ | 2026-06-07 | 全通过 |
 | test_path_resolution | 路径解析 | ✅ | 2026-06-07 | 全通过 |
-| **整体** | **全部 16 个测试** | ✅ | **2026-06-07** | **16/16 (100%)** | |
+| **整体（C₁ 前）** | **16 个测试** | ✅ | **2026-06-07** | **16/16 (100%)** | |
+| test_executor_with_mock_provider | 端到端 Mock 集成 | ✅ | 2026-06-08 | 16/5 通过（C₁.5 新增） |
+| **整体（Phase C₁）** | **17+ 个测试** | ✅ | **2026-06-08** | **108 assertions / 48 cases, 0 失败** | |
 | test_async_bridge | 异步桥接 | ✅ | 2026-06-07 | 3/3 通过 |
 | **test_async_bridge** | Slice 00 | ⏳ | — | — |
 | **test_cloud_llm** | Track 0.1 | ⏳ | — | — |
