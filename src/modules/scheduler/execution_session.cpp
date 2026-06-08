@@ -54,7 +54,7 @@ nlohmann::json ExecutionSession::build_available_subgraphs_context() const {
     // 2. 动态生成子图（/dynamic/**）
     if (full_graphs_) {
         for (const auto& graph : *full_graphs_) {
-            if (graph.path.rfind("/dynamic/", 0) == 0 && !graph.output_schema->is_null()) {
+            if (graph.path.rfind("/dynamic/", 0) == 0 && graph.output_schema && !graph.output_schema->is_null()) {
                 nlohmann::json lib;
                 lib["path"] = graph.path;
                 lib["signature"] = {
