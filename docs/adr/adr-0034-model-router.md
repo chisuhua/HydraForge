@@ -24,11 +24,11 @@
 | 组件 | 现状 | 评估 |
 |------|------|------|
 | **ILLMProvider** | ⚠️ 基础实现——仅有 `generate()` + `generate_stream()` | 需扩展模型查询能力 |
-| **LlamaAdapter** | ⚠️ 同步实现——简单 `generate(prompt)` | 需支持多模型标识 |
+| **LlamaAdapter** | ~~⚠️ 同步实现——简单 `generate(prompt)`~~ ✅ **已修复 (C1.2, commit 3f28020)**：LlamaAdapter 已通过 `LlamaAdapterProvider` 适配为 ILLMProvider | 需支持多模型标识 |
 | **HttpLLMAdapter** | ⚠️ HTTP 实现——使用 cpp-httplib | 需支持模型标识 |
 | **ILLMTool** | ⚠️ 工具接口——独立于 Provider | 无路由感知 |
 | **LLM 配置** | ⚠️ 运行时配置——`llm_config.json` | 无模型发现机制 |
-| **NodeExecutor** | ⚠️ 直接调用——`execute_llm_call()` 无路由层 | 需解耦 |
+| **NodeExecutor** | ~~⚠️ 直接调用——`execute_llm_call()` 无路由层~~ ✅ **已修复 (C1.2, commit 3f28020)**：`execute_llm_call` 已删除，引擎通过 `ILLMProvider` 路由 | 需解耦 |
 
 ### 问题
 
@@ -275,7 +275,7 @@ if (result.has_value()) {
 - [ ] 实现 `ModelRegistry` 类
 - [ ] 实现 `IModelRouter` 接口
 - [ ] 实现 `DefaultModelRouter` 类
-- [ ] 集成到 NodeExecutor：`execute_llm_call()` 使用路由器
+- [x] 集成到 NodeExecutor：`execute_dsl_node()` 使用路由器 ✅ (C1.2, commit 3f28020)
 
 #### Phase 2：异步/流式支持（ADR-0030 就绪后）
 
@@ -305,7 +305,7 @@ if (result.has_value()) {
 
 ### 非破坏性验证
 
-6. **现有代码兼容**：现有 `LlamaAdapter` 和 `HttpLLMAdapter` 无需修改即可编译
+6. **现有代码兼容**：现有 `LlamaAdapter` 现需通过 `LlamaAdapterProvider` 包装为 `ILLMProvider` 后注入引擎；`HttpLLMAdapter` 同理。C1 后 (commit 3f28020) 已完成适配器包装层。
 7. **默认行为一致**：未配置路由器时，使用第一个注册的模型（向后兼容）
 
 ### 性能验证

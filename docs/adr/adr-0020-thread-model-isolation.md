@@ -2,7 +2,9 @@
 
 ## 状态
 
-**提议中** (2026-05-27) — **V3 版**，基于 ADR-0030 异步架构对齐更新
+**🔄 部分实施 (2026-06-08)** — V3.1 版。SimpleCognitiveOrchestrator（MVP 单轮 ReAct）已在 C1 B-stage 实施（commit 9b347db）。CognitiveWorker + DomainWorkerPool 移交 Phase 1 智能体层。
+
+> **C1 迁移注记 (2026-06-08, commit 3f28020)**：引擎 LLM 注入接口由 `LlamaAdapter*` 改为 `ILLMProvider*`（抽象流式接口，详见 ADR-0001）。原 `LlamaAdapter` 仍可用但需通过 `LlamaAdapterProvider` 包装。本 ADR 中 §2 的成员变量 `llm_provider_` 已同步更新。
 
 ## 替代关系
 
@@ -137,8 +139,9 @@ class DSLEngine {
     // InteractionBus — 跨线程安全（主线程设，Worker 线程用）
     std::atomic<std::shared_ptr<IInteractionBus>> bus_{nullptr};
 
-    // LLM 适配器 — 只在 Worker 线程调用
-    LlamaAdapter* llm_adapter_;
+    // LLM 抽象 — 只在 Worker 线程调用
+    // C1 后 (commit 3f28020) 引擎通过 ILLMProvider* 注入 LLM，原 LlamaAdapter 仍可用但需通过 LlamaAdapterProvider 包装。
+    ILLMProvider* llm_provider_;
 };
 ```
 

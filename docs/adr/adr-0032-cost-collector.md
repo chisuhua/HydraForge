@@ -301,7 +301,9 @@ ExecutionResult DSLEngine::run(const Context& context) {
 
 ### 6. 事件 Payload 规范
 
-**LLMCallFinished**（由 LlamaAdapter / HTTP 适配器发布）：
+> **C1 迁移注记 (2026-06-08, commit 33096f0)**：C1 之前 LLM 错误/完成事件由适配器通过 EventBus 推送式发布（`LLMCallFinished`）。C1 后改为 `IGenerationStream::error()` 拉取式传递（详见 ADR-0001），不再走 EventBus 推送路径。
+
+**LLMCallFinished**（C1 后错误通过 `IGenerationStream::error()` 拉取式传递，commit 33096f0，而非 EventBus 推送式发布）：
 
 ```json
 {

@@ -132,7 +132,7 @@ public:
     // 访问器
     ToolRegistry& get_tool_registry();
     const ToolRegistry& get_tool_registry() const;
-    LlamaAdapter* get_llm_adapter();
+    ILLMProvider* get_llm_provider();  // C1 后 (commit 3f28020)：引擎通过 ILLMProvider 注入 LLM
     std::vector<TraceRecord> get_last_traces() const;
 
     // 构造（通常通过工厂方法创建）
@@ -141,7 +141,7 @@ public:
 private:
     std::vector<ParsedGraph> full_graphs_;
     ToolRegistry tool_registry_;              // 成员变量，非单例
-    std::unique_ptr<LlamaAdapter> llama_adapter_;
+    std::unique_ptr<ILLMProvider> llm_provider_;  // C1 后 (commit 3f28020)：持有 ILLMProvider 抽象
     std::vector<TraceRecord> last_traces_;
 };
 ```
@@ -203,7 +203,7 @@ struct Node {
 | `END` | `EndNode` | `metadata.termination_mode`（`hard`/`soft`） |
 | `ASSIGN` | `AssignNode` | `assign`（`map<key, Inja模板>`） |
 | `DSL_CALL` | `DSLNode` | `prompt_template`, `llm_tool_name`, `llm_params`, `output_keys` |
-| `DSL_CALL`（旧） | `LLMCallNode` ⚠️ | `prompt_template`, `output_keys`（**已弃用**，v3.10 前向兼容） |
+| `DSL_CALL`（旧） | ~~`LLMCallNode` ⚠️~~ | `prompt_template`, `output_keys`（**已弃用**，v3.10 前向兼容）✅ **C1.2 (commit 3f28020)**：执行器不再调用其 `execute()` 方法 |
 | `TOOL_CALL` | `ToolCallNode` | `tool_name`, `arguments`, `output_keys` |
 | `RESOURCE` | `ResourceNode` | `resource_type`, `uri`, `scope` |
 | `FORK` | `ForkNode` | `branches`（分支路径列表） |
@@ -340,7 +340,7 @@ public:
     };
 
     TopoScheduler(Config config, ToolRegistry& tool_registry,
-                  LlamaAdapter* llm_adapter,
+                  ILLMProvider* llm_provider,  // C1 后 (commit 3f28020)
                   const std::vector<ParsedGraph>* full_graphs = nullptr);
 
     // 节点注册与 DAG 构建
@@ -415,7 +415,7 @@ public:
     ExecutionSession(
         std::optional<ExecutionBudget> initial_budget,
         ToolRegistry& tool_registry,
-        LlamaAdapter* llm_adapter,
+        ILLMProvider* llm_provider,  // C1 后 (commit 3f28020)
         ResourceManager& resource_manager,
         const std::vector<ParsedGraph>* full_graphs,
         AppendGraphsCallback append_graphs_callback = nullptr
@@ -481,14 +481,14 @@ private:
 ```cpp
 class NodeExecutor {
 public:
-    NodeExecutor(ToolRegistry& tool_registry, LlamaAdapter* llm_adapter = nullptr);
+    NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider = nullptr);  // C1 后 (commit 3f28020)
 
     Context execute_node(Node* node, const Context& ctx);
     void set_append_graphs_callback(AppendGraphsCallback cb);
 
 private:
     ToolRegistry& tool_registry_;
-    LlamaAdapter* llm_adapter_;
+    ILLMProvider* llm_provider_;  // C1 后 (commit 3f28020)
     AppendGraphsCallback append_graphs_callback_;
     MarkdownParser markdown_parser_;  // 内部用于解析动态生成的 DSL
 
@@ -500,7 +500,7 @@ private:
     Context execute_end(const EndNode* node, const Context& ctx);
     Context execute_assign(const AssignNode* node, const Context& ctx);
     Context execute_dsl_node(const DSLNode* node, const Context& ctx);        // v3.10
-    Context execute_llm_call(const LLMCallNode* node, const Context& ctx);    // 已弃用，向后兼容
+    Context execute_llm_call(const LLMCallNode* node, const Context& ctx);    // **已删除 (C1.2, commit 3f28020)**，参考 ADR-0001 ILLMProvider 流式接口
     Context execute_tool_call(const ToolCallNode* node, const Context& ctx);
     Context execute_resource(const ResourceNode* node, const Context& ctx);
     Context execute_fork(const ForkNode* node, const Context& ctx);
@@ -849,6 +849,8 @@ private:
 
 ## 三、与 C++ 推理内核的集成
 
+> **C1.2 状态 (commit 3f28020)**：本节描述的是 C1 之前的双层抽象。引擎现已统一通过 `ILLMProvider*` 注入 LLM，原 `LlamaAdapter` 需经 `LlamaAdapterProvider` 包装后注入。`LlamaAdapter` 本身的实现仍保留在 `src/common/llm/llama_adapter.h`（详见 §2.12），仅与引擎的耦合点发生变化。
+
 执行器通过 `LlamaAdapter` / `ILLMTool` 双层抽象与推理内核交互：
 
 1. **直接使用 LlamaAdapter**：`DSLEngine` 可持有 `std::unique_ptr<LlamaAdapter>`，由 `TopoScheduler` → `ExecutionSession` → `NodeExecutor` 层层传递（仅传指针）。适用于需要底层控制的场景。
@@ -869,7 +871,7 @@ DSLNode.llm_tool_name = "llama-7b"
 
 ### 4.1 已实现
 - 完整支持核心节点类型：`assign`、`tool_call`、`dsl_call`（`DSLNode`）、`generate_subgraph`、`assert`、`fork/join`。
-- `LLMCallNode`（旧 `llm_call`）向后兼容保留，但标记为 `[[deprecated]]`。
+- `LLMCallNode`（旧 `llm_call`）向后兼容保留，但标记为 `[[deprecated]]`。**C1.2 状态 (commit 3f28020)**：`LLMCallNode` struct 与 `node.cpp` 中的实现仍存在（待 Phase 4.5 MVP 清理），但执行器不再调用其 `execute()` 方法。
 - 基于拓扑排序（入度队列）的 DAG 调度。
 - Fork/Join **顺序模拟**（非真正并发）。
 - `ContextEngine`：五种合并策略 + FIFO 快照管理。

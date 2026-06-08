@@ -4,6 +4,8 @@
 
 **提议中** (2026-05-28)
 
+> **C1 迁移注记 (2026-06-08, commit 3f28020)**：`DagExecutionContext` 构造参数与成员变量中 `LlamaAdapter* llm_adapter` 已替换为 `ILLMProvider* llm_provider`（抽象流式接口，详见 ADR-0001）。原 `LlamaAdapter` 仍可用但需通过 `LlamaAdapterProvider` 包装后注入。
+
 ## 领域
 
 基座 / 会话管理 / 状态编排
@@ -349,7 +351,8 @@ public:
     DagExecutionContext(
         std::optional<ExecutionBudget> initial_budget,
         ToolRegistry& tool_registry,
-        LlamaAdapter* llm_adapter,
+        ILLMProvider* llm_provider, // C1 后 (commit 3f28020) 通过 ILLMProvider 注入 LLM
+        // 原 LlamaAdapter 仍可用但需通过 LlamaAdapterProvider 包装。
         ResourceManager& resource_manager,
         const std::vector<ParsedGraph>* full_graphs,
         AppendGraphsCallback append_graphs_callback = nullptr
@@ -375,7 +378,7 @@ private:
     BudgetController budget_controller_;
     TraceExporter trace_exporter_;
     ToolRegistry& tool_registry_;
-    LlamaAdapter* llm_adapter_;
+    ILLMProvider* llm_provider_;
     const std::vector<ParsedGraph>* full_graphs_;
     AppendGraphsCallback append_graphs_callback_;
     std::unordered_map<NodePath, std::vector<NodePath>> pending_dynamic_deps_;
