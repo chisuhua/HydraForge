@@ -298,20 +298,26 @@ struct NodePriority {
 
 ### 6.1 现有实现（`NodeExecutor`）
 
+> **C1 后状态（2026-06-08）**：`NodeExecutor` 已迁移至 `ILLMProvider` 接口（ADR-0001），
+> `execute_llm_call()` 死代码已删除（commit `3f28020`），改由 `execute_dsl_node()`
+> 统一处理 `DSLNode`（旧 `LLMCallNode` 的 v3.10 后继类型）。
+
 ```cpp
 class NodeExecutor {
 public:
-    NodeExecutor(ToolRegistry& tool_registry, LlamaAdapter* llm_adapter = nullptr);
+    // C₁.2: 构造函数改为 ILLMProvider*（向后兼容：仍可传 nullptr）
+    NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider = nullptr);
 
     // 纯函数式执行：接受 Context，返回新 Context（不修改原始 Context）
     Context execute_node(Node* node, const Context& ctx);
-    
+
     // 动态子图回调
     void set_append_graphs_callback(AppendGraphsCallback cb);
-    
+
 private:
     ToolRegistry& tool_registry_;
-    LlamaAdapter* llm_adapter_;
+    // C₁.2: ILLMProvider 接口注入点（可为 nullptr）
+    ILLMProvider* llm_provider_;
     AppendGraphsCallback append_graphs_callback_;
     MarkdownParser markdown_parser_;  // 用于 generate_subgraph 解析
 
@@ -322,7 +328,8 @@ private:
     Context execute_start(const StartNode* node, const Context& ctx);
     Context execute_end(const EndNode* node, const Context& ctx);
     Context execute_assign(const AssignNode* node, const Context& ctx);
-    Context execute_llm_call(const LLMCallNode* node, const Context& ctx);
+    // C₁.2: execute_llm_call 已删除（LLMCallNode 死代码，分发 switch 中无对应 case）
+    Context execute_dsl_node(const DSLNode* node, const Context& ctx);
     Context execute_tool_call(const ToolCallNode* node, const Context& ctx);
     Context execute_resource(const ResourceNode* node, const Context& ctx);
     Context execute_generate_subgraph(const GenerateSubgraphNode* node, const Context& ctx);
@@ -331,6 +338,11 @@ private:
     Context execute_assert(const AssertNode* node, const Context& ctx);
 };
 ```
+
+> **LLM 提供方注入流程**：
+> - `DSLEngine::from_markdown()` 默认创建 `MockLLMProvider`（CI 永远可运行，无本地 LLM）
+> - 真实 LLM 场景：`engine->set_llm_provider(std::make_unique<LlamaAdapterProvider>(...))`
+>   - `LlamaAdapterProvider`（C₁.1, commit `d38bc51`）包装旧的 `LlamaAdapter` 适配为 `ILLMProvider`
 
 ### 6.2 重构计划：state 工具支持
 
