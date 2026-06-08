@@ -12,7 +12,8 @@ TEST_CASE("ILLMTool interface exists", "[llm_tool]") {
 TEST_CASE("LLMParams has default values", "[llm_tool]") {
     LLMParams params;
     REQUIRE(params.temperature == 0.7f);
-    REQUIRE(params.max_tokens == 512);
+    // C₁: max_tokens 默认值从 512 改为 2048（合并 LLMConfig 时 Track 0.1 M1.3 调整）
+    REQUIRE(params.max_tokens == 2048);
     REQUIRE(params.n_ctx == 2048);
 }
 

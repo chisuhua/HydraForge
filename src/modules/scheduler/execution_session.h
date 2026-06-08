@@ -10,7 +10,6 @@
 #include "modules/trace/trace_exporter.h"
 #include "modules/executor/node_executor.h"
 #include "common/tools/registry.h"
-#include "common/llm/llama_adapter.h"
 #include "modules/parser/markdown_parser.h" // 引入 MarkdownParser (for GenerateSubgraph)
 #include "modules/library/library_loader.h" // ← 新增：用于构建 available_subgraphs
 #include "resource_manager.h" // ← 新增：用于构建 available_subgraphs
@@ -24,6 +23,8 @@
 namespace agenticdsl {
 
 class DSLEngine; // Forward declaration
+class ILLMProvider; // C₁.3: 前向声明 ILLMProvider
+
 //
 // ExecutionSession 封装了单次执行的所有状态和逻辑
 class ExecutionSession {
@@ -31,10 +32,11 @@ public:
 
     using AppendGraphsCallback = std::function<void(std::vector<ParsedGraph>)>;
 
+    // C₁.3 迁移：从 LlamaAdapter* 改为 ILLMProvider*
     ExecutionSession(
         std::optional<ExecutionBudget> initial_budget,
         ToolRegistry& tool_registry,
-        LlamaAdapter* llm_adapter,
+        ILLMProvider* llm_provider,
         ResourceManager& resource_manager, // ← 新增参数
         const std::vector<ParsedGraph>* full_graphs, // ← 新增：指向完整图集
         AppendGraphsCallback append_graphs_callback = nullptr // New parameter

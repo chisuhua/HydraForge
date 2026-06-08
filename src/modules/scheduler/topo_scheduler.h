@@ -7,7 +7,6 @@
 #include "core/types/budget.h"  // 引入 ExecutionBudget
 #include "scheduler/execution_session.h" // 引入 ExecutionSession
 #include "common/tools/registry.h" // 引入 ToolRegistry
-#include "common/llm/llama_adapter.h" // 引入 LlamaAdapter
 #include "modules/parser/markdown_parser.h" // 引入 ParsedGraph
 #include "modules/scheduler/resource_manager.h" // 引入 ParsedGraph
 #include <vector>
@@ -19,6 +18,9 @@
 
 namespace agenticdsl {
 
+// C₁.3: 前向声明 ILLMProvider（避免循环 include）
+class ILLMProvider;
+
 class TopoScheduler {
 public:
     struct Config {
@@ -27,7 +29,8 @@ public:
         Config() = default;
     };
 
-    TopoScheduler(Config config, ToolRegistry& tool_registry, LlamaAdapter* llm_adapter, const std::vector<ParsedGraph>* full_graphs_ = nullptr);
+    // C₁.3 迁移：从 LlamaAdapter* 改为 ILLMProvider*
+    TopoScheduler(Config config, ToolRegistry& tool_registry, ILLMProvider* llm_provider, const std::vector<ParsedGraph>* full_graphs_ = nullptr);
 
     void register_node(std::unique_ptr<Node> node);
     void build_dag(); // 构建依赖图
