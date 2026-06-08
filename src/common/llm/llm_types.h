@@ -52,6 +52,9 @@ public:
   virtual ~IGenerationStream() = default;
   virtual std::optional<std::string> next(std::stop_token token) = 0;
   virtual bool is_active() const = 0;
+  /// 流结束（is_active() == false）后调用，返回错误（若有）。
+  /// 成功完成的流返回 nullopt。
+  virtual std::optional<LLMError> error() const { return std::nullopt; }
 };
 
 // LLMParams 已迁移至 llm_config.h 中的统一 LLMConfig

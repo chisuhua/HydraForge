@@ -23,6 +23,10 @@ public:
     explicit AdapterGenerationStream(std::string text)
         : text_(std::move(text)), pos_(0), active_(true) {}
 
+    // 错误流构造：立即 inactive，并通过 error() 报告错误
+    explicit AdapterGenerationStream(LLMError err)
+        : error_(std::move(err)), pos_(0), active_(false) {}
+
     std::optional<std::string> next(std::stop_token token) override {
         if (!active_) {
             return std::nullopt;
@@ -46,8 +50,11 @@ public:
 
     bool is_active() const override { return active_; }
 
+    std::optional<LLMError> error() const override { return error_; }
+
 private:
     std::string text_;
+    std::optional<LLMError> error_;
     size_t pos_;
     bool active_;
 };
@@ -109,9 +116,9 @@ LlamaAdapterProvider::generate_stream(const GenerationRequest& req, std::stop_to
         std::string text = adapter_->generate(req.prompt);
         return std::make_unique<AdapterGenerationStream>(std::move(text));
     } catch (const std::exception& e) {
-        // 错误时返回包含错误信息的单 chunk 流
-        std::string error_msg = std::string("ERROR: ") + e.what();
-        return std::make_unique<AdapterGenerationStream>(std::move(error_msg));
+        // 错误流：is_active() == false，error() 返回 LLMError
+        LLMError err{LLMError::Code::ServerError, e.what()};
+        return std::make_unique<AdapterGenerationStream>(std::move(err));
     }
 }
 

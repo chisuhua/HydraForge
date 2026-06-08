@@ -25,55 +25,56 @@ namespace agenticdsl {
  */
 class LlamaAdapterProvider : public ILLMProvider {
 public:
-    /**
-     * @brief 构造（接管现有 LlamaAdapter 所有权）
-     * @param adapter 已存在的 LlamaAdapter（必须非空）
-     */
-    explicit LlamaAdapterProvider(std::unique_ptr<LlamaAdapter> adapter);
+  /**
+   * @brief 构造（接管现有 LlamaAdapter 所有权）
+   * @param adapter 已存在的 LlamaAdapter（必须非空）
+   */
+  explicit LlamaAdapterProvider(std::unique_ptr<LlamaAdapter> adapter);
 
-    /**
-     * @brief 构造（从 Config 创建新的 LlamaAdapter）
-     * @param config LlamaAdapter 配置
-     */
-    explicit LlamaAdapterProvider(const LlamaAdapter::Config& config);
+  /**
+   * @brief 构造（从 Config 创建新的 LlamaAdapter）
+   * @param config LlamaAdapter 配置
+   */
+  explicit LlamaAdapterProvider(const LlamaAdapter::Config& config);
 
-    ~LlamaAdapterProvider() override;
+  ~LlamaAdapterProvider() override;
 
-    // === ILLMProvider 接口 ===
+  // === ILLMProvider 接口 ===
 
-    /**
-     * @brief 同步生成（实现 ILLMProvider 接口）
-     *
-     * 内部调用 LlamaAdapter::generate()，捕获 std::exception 转换为 LLMError。
-     *
-     * @param req  生成请求
-     * @param token 取消 token（默认空，即不可取消）
-     * @return 成功时返回 GenerationResult，失败时返回 LLMError
-     */
-    Result<GenerationResult, LLMError>
-        generate(const GenerationRequest& req, std::stop_token token) override;
+  /**
+   * @brief 同步生成（实现 ILLMProvider 接口）
+   *
+   * 内部调用 LlamaAdapter::generate()，捕获 std::exception 转换为 LLMError。
+   *
+   * @param req  生成请求
+   * @param token 取消 token（默认空，即不可取消）
+   * @return 成功时返回 GenerationResult，失败时返回 LLMError
+   */
+  Result<GenerationResult, LLMError>
+  generate(const GenerationRequest& req, std::stop_token token) override;
 
-    /**
-     * @brief 流式生成（实现 ILLMProvider 接口）
-     *
-     * 返回一个 IGenerationStream handle，调用方通过 next() 拉取 chunk。
-     * 本实现把 generate() 结果切分为 8 字符 chunk 模拟流式输出。
-     *
-     * @param req  生成请求
-     * @param token 取消 token
-     * @return stream handle（unique_ptr）
-     */
-    std::unique_ptr<IGenerationStream>
-        generate_stream(const GenerationRequest& req, std::stop_token token) override;
+  /**
+   * @brief 流式生成（实现 ILLMProvider 接口）
+   *
+   * 返回一个 IGenerationStream handle，调用方通过 next() 拉取 chunk。
+   * 本实现把 generate() 结果切分为 8 字符 chunk 模拟流式输出。
+   * 若底层调用抛异常，stream 立即 inactive 并通过 error() 报告错误。
+   *
+   * @param req  生成请求
+   * @param token 取消 token
+   * @return stream handle（unique_ptr）
+   */
+  std::unique_ptr<IGenerationStream>
+  generate_stream(const GenerationRequest& req, std::stop_token token) override;
 
-    /// 获取底层 LlamaAdapter（用于测试/调试）
-    LlamaAdapter* underlying() { return adapter_.get(); }
+  /// 获取底层 LlamaAdapter（用于测试/调试）
+  LlamaAdapter* underlying() { return adapter_.get(); }
 
 private:
-    std::unique_ptr<LlamaAdapter> adapter_;
+  std::unique_ptr<LlamaAdapter> adapter_;
 
-    // === 内部流实现 ===
-    class AdapterGenerationStream;
+  // === 内部流实现 ===
+  class AdapterGenerationStream;
 };
 
 } // namespace agenticdsl
