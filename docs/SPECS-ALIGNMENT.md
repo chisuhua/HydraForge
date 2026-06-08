@@ -94,4 +94,6 @@
 
 ---
 
+**2026-06-08 更新**: layer0.md §6.1（C1 NodeExecutor 示例）与 dsl.md §5.9 / G.2（C1 ILLMProvider 集成点）已对齐代码实际状态。
+
 *最后更新: 2026-05-13*

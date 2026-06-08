@@ -168,3 +168,17 @@ agenticdsl ←────────── specs
 | `architecture.md` v2.2 | `vision/` | ✅ 无冲突 |
 
 **结论**：specs 描述当前实现，agenticdsl 描述未来提案。关系是"基线 vs 增量"，**无直接冲突**。
+
+
+---
+
+## 5. 2026-06-08 更新（C1 迁移后）
+
+C1 迁移已于 2026-06-08 完成。以下为本次迁移对本审查报告中"已修复"项的实际落地状态：
+
+- **公共头文件迁移**：原散落各处的 cognitive/contract 头文件已统一至 `include/agenticdsl/{cognitive,contract}/`（commit `f07a4b4`）。
+- **LLM 接口统一**：引擎 LLM 接口已统一为 `ILLMProvider` 流式接口，`LLMParams` 现为 `LLMConfig` 的别名（commit `3f28020`，参见 `llm_types.h:60`）。
+- **ToolResult MVP 实施**：ADR-0023 中描述的 ToolResult 标准化已部分落地（commit `fe448a0`，P1 范围）。
+- **头文件清理**：`using` 声明重复导致的多重定义问题已清理（commit `13cc12e`）。
+
+> 本节为追加更新，前文第 1-4 节所列问题描述以 C1 之前的状态为准，未追溯修改。

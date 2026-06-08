@@ -43,7 +43,7 @@ AgenticDSL v3.10 现状
 | **并发** | 单线程调度器 | 协程异步执行 | 🔴 致命 |
 | **用户交互** | 无 user_input 节点 | 交互式工作流 | 🔴 致命 |
 | **状态持久化** | 快照仅内存 | 磁盘序列化/恢复 | 🟡 重要 |
-| **LLM 类型** | 2 个冲突的 LLMParams | 统一类型系统 | 🟡 重要 |
+| **LLM 类型** | ~~2 个冲突的 LLMParams~~ | ✅ 已统一：`LLMParams` 现为 `LLMConfig` 的别名（`llm_types.h:60`） | ✅ 已解决 (C1) |
 | **流式** | 无 streaming | SSE/WebSocket | 🟢 可增强 |
 | **标准库** | 3/5 stub | 20+ 可组合子图 | 🟡 重要 |
 | **资源管理** | 仅声明 | 连接/释放/池化 | 🟢 可增强 |
@@ -1207,11 +1207,14 @@ output_keys: ["test_output"]
 
 ```
 lib/
-├── auth/verify_session.md    (0 bytes - 空)
-├── human/confirm_action.md   (0 bytes - 空)
-├── human/clarify_input.md    (0 bytes - 空)
-├── math/add.md               (实现: 两数相加)
-└── utils/noop.md             (实现: 空操作)
+├── auth/verify_session.md         (0 bytes - 空)
+├── human/clarify_input.md         (0 bytes - 空)
+├── human/confirm_action.md        (0 bytes - 空)
+├── inference/engine.md            (实现: 推理引擎子图)
+├── inference/model.md             (实现: 模型子图)
+├── inference/session.md           (实现: 会话子图)
+├── math/add.md                    (实现: 两数相加)
+└── utils/noop.md                  (实现: 空操作)
 ```
 
 ### 8.2 目标标准库

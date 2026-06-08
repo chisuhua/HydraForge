@@ -39,11 +39,18 @@ docs/
 | `adr-0016-try-catch.md` | 异常自动快照回溯 | ✅ 已批准 |
 | `adr-0017-counterfactual.md` | 反事实推理 | ✅ 已批准 |
 | `adr-0018-graph-guided.md` | 图引导假设生成 | ✅ 已批准 |
-| `adr-0019-iinteraction-bus-mvp.md` | IInteractionBus 接口与 TUI Chat MVP | 🔍 提议中 |
-| `adr-0020-thread-model-isolation.md` | 多智能体线程模型与隔离策略 | 🔍 提议中 |
+| `adr-0019-iinteraction-bus-mvp.md` | IInteractionBus 接口与 TUI Chat MVP | ✅ 已批准 |
+| `adr-0020-thread-model-isolation.md` | 多智能体线程模型与隔离策略 | 🔄 部分实施 |
 | `adr-0021-pdk-design.md` | Plugin Development Kit (PDK) 设计 | 🔍 提议中 |
 | `adr-0022-plugin-loading.md` | 插件加载机制 | 🔍 提议中 |
-| `adr-0023-tool-result-standard.md` | ToolResult 标准化 | 🔍 提议中 |
+| `adr-0023-tool-result-standard.md` | ToolResult 标准化 | 🔄 部分实施 (P1) |
+| `adr-0030-async-runtime-dual-layer.md` | 异步运行时双层架构 | 🔄 部分实施 |
+| `adr-0031-execution-policy.md` | 执行策略 | 🔄 部分实施 |
+| `adr-0032-cost-collector.md` | 成本收集器 | 🔄 部分实施 |
+| `adr-0033-session-hierarchy.md` | 会话层次结构 | 🔄 部分实施 |
+| `adr-0034-model-router.md` | 模型路由 | 🔄 部分实施 |
+| `adr-0036-hybrid-kernel-architecture.md` | 混合内核架构 | 🔄 部分实施 |
+
 
 ---
 
@@ -56,8 +63,8 @@ docs/
 | `architecture.md` | AgenticOS 架构 | 8 层架构定义 |
 | `layer0.md` | L0 运行时规范 | DSL 引擎核心行为 |
 | `layer0-refactor.md` | L0 重构计划 | Layer0 重构计划 |
-| `dsl.md` | DSL 规范 v3.9 | 最新 DSL 语言规范 |
-| `dsl-lib.md` | DSL 库规范 | DSL 子图和工具库 |
+| `dsl.md` | DSL 规范 v3.10 | 最新 DSL 语言规范 |
+| `dsl-lib.md` | DSL 库规范 v3.10 | DSL 子图和工具库 |
 | `phase2-standard-library.md` | Phase 2 标准库规划 | ADR-0010~0018 子图清单 |
 | `stdlib.md` | 标准库规范 | 内置工具和子图 |
 | `memory.md` | 记忆系统 | 上下文和记忆管理 |
@@ -163,3 +170,4 @@ docs/
 |------|---------|
 | 2026-05-20 | 新增 agenticdsl/ 目录（16 篇语言演进文档），按话题组织 |
 | 2026-05-23 | 扩展至 30+ 篇文档，新增 research/architecture/optimization/implementation/testing/api/operations 7 个目录 |
+| 2026-06-08 | C1 迁移：ADR-0019/0020/0023 状态更新；ADR-0030~0036 补录；`dsl.md`/`dsl-lib.md` 版本升至 v3.10 |
