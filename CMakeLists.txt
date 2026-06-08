@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.20)
 project(AgenticDSL LANGUAGES CXX)
 
 option(AGENTICDSL_BUILD_TESTS "Build unit tests" OFF)
+
+# A 阶段：ThreadSanitizer 选项（验证 InMemoryBus 多线程安全）
+option(AGENTICDSL_ENABLE_TSAN "Enable ThreadSanitizer (InMemoryBus verification)" OFF)
+if(AGENTICDSL_ENABLE_TSAN)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -g")
+  set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=thread")
+endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -62,6 +69,7 @@ add_library(agenticdsl_common STATIC
     src/common/llm/cloud_adapter.cpp
     src/common/llm/http_adapter.cpp
     src/common/llm/llama_adapter.cpp
+    src/common/llm/llama_adapter_provider.cpp
     src/common/llm/llama_tool.cpp
     src/common/llm/mock_provider.cpp
     src/common/llm/sse_stream.cpp
@@ -69,6 +77,7 @@ add_library(agenticdsl_common STATIC
     src/common/utils/parser_utils.cpp
     src/common/utils/template_renderer.cpp
     src/common/utils/yaml_json.cpp
+    src/core/types/tool_result.cpp
 )
 target_link_libraries(agenticdsl_common PUBLIC
     agenticdsl_includes
@@ -82,6 +91,8 @@ add_subdirectory(src/modules/executor)
 add_subdirectory(src/modules/trace)
 add_subdirectory(src/modules/library)
 add_subdirectory(src/modules/system)
+add_subdirectory(src/modules/cognitive)
+add_subdirectory(src/common/contract)
 
 add_library(agenticdsl_core STATIC
     src/core/engine.cpp
@@ -98,6 +109,8 @@ target_link_libraries(agenticdsl_core
     agenticdsl_modules_trace
     agenticdsl_modules_library
     agenticdsl_modules_system
+    agenticdsl_modules_cognitive
+    agenticdsl_contract
     Threads::Threads
 )
 
@@ -113,6 +126,9 @@ target_link_libraries(agent_basic
     agenticdsl_includes
     agenticdsl_core
 )
+
+# --- Sample: slice_01_tool_call (Track 0.2 / B) ---
+add_subdirectory(examples/slice_01_tool_call)
 
 # Create alias for tests
 

@@ -1,6 +1,7 @@
 // src/core/engine.cpp
 #include "engine.h"
-#include "common/llm/llama_adapter.h"
+#include "common/llm/llama_adapter.h" // C₁.4: 保留，仅用于 LlamaAdapterProvider（向后兼容）
+#include "common/llm/llama_adapter_provider.h" // C₁.4: 适配器（可选真实 provider）
 #include "modules/scheduler/topo_scheduler.h"
 #include "modules/system/system_nodes.h"
 #include <fstream>
@@ -76,12 +77,14 @@ std::unique_ptr<DSLEngine> DSLEngine::from_markdown(const std::string& markdown_
         throw std::runtime_error("Required /main subgraph not found");
     }
 
-    auto config = load_llm_config();
+    (void)load_llm_config(); // 保留配置加载（向后兼容），但不再自动创建 LlamaAdapter
 
-    auto llama_adapter = std::make_unique<LlamaAdapter>(config);
+    // C₁.4: 默认使用 MockLLMProvider（CI 永远可运行，无需本地 LLM）
+    // 如需真实 LLM，用户可通过 set_llm_provider() 注入自定义 provider
+    auto llm_provider = std::make_unique<MockLLMProvider>();
 
     auto engine = std::make_unique<DSLEngine>(std::move(graphs));
-    engine->llama_adapter_ = std::move(llama_adapter);
+    engine->llm_provider_ = std::move(llm_provider);
     return engine;
 }
 
@@ -115,7 +118,8 @@ ExecutionResult DSLEngine::run(const Context& context) {
     // 创建调度器
     TopoScheduler::Config config;
     config.initial_budget = std::move(budget);
-    TopoScheduler scheduler(std::move(config), tool_registry_, llama_adapter_.get(), &full_graphs_);
+    // C₁.4 迁移：传递 ILLMProvider* 而非 LlamaAdapter*
+    TopoScheduler scheduler(std::move(config), tool_registry_, llm_provider_.get(), &full_graphs_);
 
     // 注册所有节点（包括系统节点）
     auto sys_nodes = create_system_nodes();

@@ -1,5 +1,6 @@
 // modules/scheduler/src/topo_scheduler.cpp
 #include "scheduler/topo_scheduler.h"
+#include "common/llm/llm_types.h" // C₁.3: 需要完整 ILLMProvider 定义
 #include "common/utils/template_renderer.h"
 #include <stdexcept>
 #include <algorithm>
@@ -14,10 +15,11 @@ struct HardEndException : public std::exception {
     }
 };
 
-TopoScheduler::TopoScheduler(Config config, ToolRegistry& tool_registry, LlamaAdapter* llm_adapter, const std::vector<ParsedGraph>* full_graphs)
+// C₁.3 迁移：从 LlamaAdapter* 改为 ILLMProvider*
+TopoScheduler::TopoScheduler(Config config, ToolRegistry& tool_registry, ILLMProvider* llm_provider, const std::vector<ParsedGraph>* full_graphs)
     : full_graphs_(full_graphs),
       resource_manager_(),
-      session_(std::move(config.initial_budget), tool_registry, llm_adapter, resource_manager_, 
+      session_(std::move(config.initial_budget), tool_registry, llm_provider, resource_manager_,
                full_graphs_,
                [this](std::vector<ParsedGraph> graphs) { this->append_dynamic_graphs(std::move(graphs)); }) { // Pass callback to ExecutionSession
     // Initial budget is now handled by ExecutionSession

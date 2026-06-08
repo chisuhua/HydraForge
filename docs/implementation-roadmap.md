@@ -102,10 +102,10 @@ Phase 5 — 自举与服务化 (远期)
 
 | # | 文件 | 操作 | 状态 | 说明 |
 |---|------|------|------|------|
-| P0.1 | `include/hydraforge/cognitive/icognitive_orchestrator.h` | 新建 | [ ] | `ICognitiveOrchestrator` 抽象接口 (process 方法) |
-| P0.2 | `include/hydraforge/policy/iexecution_policy.h` | 新建 | [ ] | `IExecutionPolicy` 抽象接口 (requires_approval 方法) |
-| P0.3 | `include/hydraforge/types/session_fwd.h` | 新建 | [ ] | `UserSession`, `TaskSession`, `SubtaskSession` 前置声明 |
-| P0.4 | `CMakeLists.txt` (根) | 修改 | [ ] | 添加 `include/hydraforge/` 到头文件搜索路径 |
+| P0.1 | `include/hydraforge/cognitive/icognitive_orchestrator.h` | 新建 | [x] | `ICognitiveOrchestrator` 抽象接口 (process 方法) |
+| P0.2 | `include/hydraforge/policy/iexecution_policy.h` | 新建 | [x] | `IExecutionPolicy` 抽象接口 (requires_approval 方法) |
+| P0.3 | `include/hydraforge/types/session_fwd.h` | 新建 | [x] | `UserSession`, `TaskSession`, `SubtaskSession` 前置声明 |
+| P0.4 | `CMakeLists.txt` (根) | 修改 | [x] | 添加 `include/hydraforge/` 到头文件搜索路径 |
 
 ### 关键接口
 
@@ -140,12 +140,12 @@ public:
 
 | # | 文件 | 操作 | 状态 | 说明 |
 |---|------|------|------|------|
-| S0.1 | `external/taskflow/` | 引入 | [ ] | Taskflow v4.0 (header-only, git submodule) |
-| S0.2 | `external/async_simple/` | 引入 | [ ] | async_simple v1.4 |
-| S0.3 | `CMakeLists.txt` (根) | 修改 | [ ] | `add_subdirectory(external/taskflow)` |
-| S0.4 | `CMakeLists.txt` (根) | 修改 | [ ] | `add_subdirectory(external/async_simple)` |
-| S0.5 | `external/CMakeLists.txt` | 修改 | [ ] | `-DASYNC_SIMPLE_ENABLE_TESTS=OFF` |
-| S0.6 | `tests/test_taskflow_bridge.cpp` | 新建 | [ ] | 最小桥接测试: Taskflow 图可被 co_await |
+| S0.1 | `external/taskflow/` | 引入 | [x] | Taskflow v4.0 (header-only, git submodule) |
+| S0.2 | `external/async_simple/` | 引入 | [x] | async_simple v1.4 |
+| S0.3 | `CMakeLists.txt` (根) | 修改 | [x] | `add_subdirectory(external/taskflow)` |
+| S0.4 | `CMakeLists.txt` (根) | 修改 | [x] | `add_subdirectory(external/async_simple)` |
+| S0.5 | `external/CMakeLists.txt` | 修改 | [x] | `-DASYNC_SIMPLE_ENABLE_TESTS=OFF` |
+| S0.6 | `tests/test_taskflow_bridge.cpp` | 新建 | [x] | 最小桥接测试: Taskflow 图可被 co_await |
 
 **验证**: `cmake .. && make -j$(nproc)` 编译通过 | 桥接测试执行成功
 
@@ -180,29 +180,29 @@ Track 0.3 ─ 最小契约层 (与 0.1/0.2 并行)
 
 | # | 文件 | 操作 | 状态 | 说明 |
 |---|------|------|------|------|
-| M1.1 | `src/common/llm/llm_config.h` | 新建 | [ ] | 统一配置结构 (合并 LLMConfig + LLMParams) |
-| M1.2 | `src/common/llm/llm_adapter.h` | 修改 | [ ] | 标记 `ILLMAdapter` 为 `[[deprecated]]` |
-| M1.3 | `src/common/llm/llm_types.h` | 修改 | [ ] | 导入统一配置，移除重复定义 |
+| M1.1 | `src/common/llm/llm_config.h` | 新建 | [x] | 统一配置结构 (合并 LLMConfig + LLMParams) |
+| M1.2 | `src/common/llm/llm_adapter.h` | 修改 | [x] | 标记 `ILLMAdapter` 为 `[[deprecated]]` |
+| M1.3 | `src/common/llm/llm_types.h` | 修改 | [x] | 导入统一配置，移除重复定义 |
 
 #### Step 0.1.2: CloudLLMAdapter (1-2 天)
 
 | # | 文件 | 操作 | 状态 | 说明 |
 |---|------|------|------|------|
-| M2.1 | `src/common/llm/cloud_llm_adapter.h` | 新建 | [ ] | CloudLLMAdapter 接口 |
-| M2.2 | `src/common/llm/openai_adapter.h` | 新建 | [ ] | OpenAI 适配器声明 |
-| M2.3 | `src/common/llm/openai_adapter.cpp` | 新建 | [ ] | OpenAI API 调用实现 |
-| M2.4 | `src/common/llm/anthropic_adapter.h` | 新建 | [ ] | Anthropic 适配器声明 |
-| M2.5 | `src/common/llm/anthropic_adapter.cpp` | 新建 | [ ] | Claude API 调用实现 |
-| M2.6 | `src/common/llm/http_client.h` | 新建 | [ ] | HTTP 客户端封装 |
-| M2.7 | `src/common/llm/http_client.cpp` | 新建 | [ ] | HTTP 实现 (复用 cpp-httplib) |
+| M2.1 | `src/common/llm/cloud_llm_adapter.h` | 新建 | [x] | CloudLLMAdapter 接口 |
+| M2.2 | `src/common/llm/openai_adapter.h` | 新建 | [x] | OpenAI 适配器声明 |
+| M2.3 | `src/common/llm/openai_adapter.cpp` | 新建 | [x] | OpenAI API 调用实现 |
+| M2.4 | `src/common/llm/anthropic_adapter.h` | 新建 | [x] | Anthropic 适配器声明 |
+| M2.5 | `src/common/llm/anthropic_adapter.cpp` | 新建 | [x] | Claude API 调用实现 |
+| M2.6 | `src/common/llm/http_client.h` | 新建 | [x] | HTTP 客户端封装 |
+| M2.7 | `src/common/llm/http_client.cpp` | 新建 | [x] | HTTP 实现 (复用 cpp-httplib) |
 
 #### Step 0.1.3: LLMRouter (1 天)
 
 | # | 文件 | 操作 | 状态 | 说明 |
 |---|------|------|------|------|
-| M3.1 | `src/common/llm/llm_router.h` | 新建 | [ ] | `LLMRouter` 路由决策 |
-| M3.2 | `src/common/llm/llm_router.cpp` | 新建 | [ ] | 云端/本地自动路由 |
-| M3.3 | `src/core/engine.cpp` | 修改 | [ ] | 注册云端推理工具 |
+| M3.1 | `src/common/llm/llm_router.h` | 新建 | [x] | `LLMRouter` 路由决策 |
+| M3.2 | `src/common/llm/llm_router.cpp` | 新建 | [x] | 云端/本地自动路由 |
+| M3.3 | `src/core/engine.cpp` | 修改 | [x] | 注册云端推理工具 |
 
 **验证**: `cloud_adapter->generate("你好")` 返回内容 | 路由选择正确后端
 

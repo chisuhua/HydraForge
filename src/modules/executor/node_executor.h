@@ -7,7 +7,6 @@
 #include "core/types/resource.h" // 引入 ResourceType
 #include "common/utils/template_renderer.h" // 引入 InjaTemplateRenderer
 #include "common/tools/registry.h" // 引入 ToolRegistry
-#include "common/llm/llama_adapter.h" // 引入 LlamaAdapter
 #include "modules/parser/markdown_parser.h" // 引入 ResourceManager
 #include <nlohmann/json.hpp>
 #include <string>
@@ -17,11 +16,17 @@
 
 namespace agenticdsl {
 
+// C₁.2: 前向声明 ILLMProvider（避免 llm_tool.h 的 LLMParams struct 与 llm_types.h 的 alias 冲突）
+class ILLMProvider;
+
+using AppendGraphsCallback = std::function<void(std::vector<ParsedGraph>)>;
+
 using AppendGraphsCallback = std::function<void(std::vector<ParsedGraph>)>;
 
 class NodeExecutor {
 public:
-    NodeExecutor(ToolRegistry& tool_registry, LlamaAdapter* llm_adapter = nullptr);
+    // C₁.2 迁移：构造函数从 LlamaAdapter* 改为 ILLMProvider*（向后兼容：仍可传 nullptr）
+    NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider = nullptr);
 
     // 执行一个节点，返回新的上下文
     Context execute_node(Node* node, const Context& ctx);
@@ -31,7 +36,8 @@ public:
 
 private:
     ToolRegistry& tool_registry_;
-    LlamaAdapter* llm_adapter_; // 可为 nullptr
+    // C₁.2: ILLMProvider 接口注入点（可为 nullptr）
+    ILLMProvider* llm_provider_;
     AppendGraphsCallback append_graphs_callback_;
     MarkdownParser markdown_parser_; // ← 新增成员
 
@@ -42,7 +48,7 @@ private:
     Context execute_start(const StartNode* node, const Context& ctx);
     Context execute_end(const EndNode* node, const Context& ctx);
     Context execute_assign(const AssignNode* node, const Context& ctx);
-    Context execute_llm_call(const LLMCallNode* node, const Context& ctx);
+    // C₁.2: execute_llm_call 已删除（LLMCallNode 死代码，分发 switch 中无对应 case）
     Context execute_dsl_node(const DSLNode* node, const Context& ctx);
     Context execute_tool_call(const ToolCallNode* node, const Context& ctx);
     Context execute_resource(const ResourceNode* node, const Context& ctx);

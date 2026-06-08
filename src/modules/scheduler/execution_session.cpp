@@ -1,5 +1,6 @@
 // modules/scheduler/src/execution_session.cpp
 #include "scheduler/execution_session.h"
+#include "common/llm/llm_types.h" // C₁.3: 需要完整 ILLMProvider 定义
 #include "common/utils/template_renderer.h" // 引入 InjaTemplateRenderer (for Trace context delta)
 //#include "agenticdsl/llm/prompt_builder.h" // 引入 PromptBuilder
 #include <stdexcept>
@@ -7,22 +8,23 @@
 
 namespace agenticdsl {
 
+// C₁.3 迁移：从 LlamaAdapter* 改为 ILLMProvider*
 ExecutionSession::ExecutionSession(
     std::optional<ExecutionBudget> initial_budget,
     ToolRegistry& tool_registry,
-    LlamaAdapter* llm_adapter,
+    ILLMProvider* llm_provider,
     ResourceManager& resource_manager, // ← 新增
     const std::vector<ParsedGraph>* full_graphs,
     AppendGraphsCallback append_graphs_callback)
     : budget_controller_(std::move(initial_budget)),
-      node_executor_(tool_registry, llm_adapter),
+      node_executor_(tool_registry, llm_provider),
       resource_manager_(resource_manager), // ← 初始化
       full_graphs_(full_graphs),
       append_graphs_callback_(std::move(append_graphs_callback)) { // Store callback
 
     node_executor_.set_append_graphs_callback(append_graphs_callback_);
     if (initial_budget.has_value()) {
-        size_t max_snapshots = (initial_budget->max_snapshots >= 0) 
+        size_t max_snapshots = (initial_budget->max_snapshots >= 0)
             ? static_cast<size_t>(initial_budget->max_snapshots) : 10;
         context_engine_.set_snapshot_limits(max_snapshots, initial_budget->snapshot_max_size_kb);
     } else {

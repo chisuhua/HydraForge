@@ -1,5 +1,6 @@
 // modules/executor/src/node_executor.cpp
 #include "executor/node_executor.h"
+#include "common/llm/llm_types.h" // C₁.2: 需要完整定义（生成 GenerationRequest/ILLMProvider）
 #include "common/utils/template_renderer.h" // 引入 InjaTemplateRenderer (for rendering)
 #include "modules/parser/markdown_parser.h" // ← 新增：包含 MarkdownParser
 #include <stdexcept>
@@ -10,9 +11,10 @@
 
 namespace agenticdsl {
 
-NodeExecutor::NodeExecutor(ToolRegistry& tool_registry, LlamaAdapter* llm_adapter)
-    : tool_registry_(tool_registry), llm_adapter_(llm_adapter), markdown_parser_() {
-    // llm_adapter_ 可能为 nullptr，NodeExecutor 需要处理这种情况
+// C₁.2 迁移：构造函数从 LlamaAdapter* 改为 ILLMProvider*
+NodeExecutor::NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider)
+    : tool_registry_(tool_registry), llm_provider_(llm_provider), markdown_parser_() {
+    // llm_provider_ 可能为 nullptr，NodeExecutor 需要处理这种情况
 }
 
 Context NodeExecutor::execute_node(Node* node, const Context& ctx) {
@@ -87,31 +89,6 @@ Context NodeExecutor::execute_assign(const AssignNode* node, const Context& ctx)
     return new_context;
 }
 
-Context NodeExecutor::execute_llm_call(const LLMCallNode* node, const Context& ctx) {
-    if (!llm_adapter_) {
-        throw std::runtime_error("LLM adapter not available for node: " + node->path);
-    }
-
-    Context new_context = ctx;
-    try {
-        // 使用 PromptBuilder 注入库信息
-        std::string rendered_prompt = InjaTemplateRenderer::render(node->prompt_template, ctx);
-
-        std::string llm_response = llm_adapter_->generate(rendered_prompt);
-
-        // 将 LLM 响应赋值到上下文
-        if (!node->output_keys.empty()) {
-            new_context[node->output_keys[0]] = llm_response;
-        } else {
-            // 如果没有 output_keys，可能需要特殊处理，或者规范应强制要求
-            // 此处假设至少有一个 output_key
-            throw std::runtime_error("LLMCallNode has no output_keys: " + node->path);
-        }
-    } catch (const inja::RenderError& e) {
-        throw std::runtime_error("Prompt template rendering failed for node '" + node->path + "': " + std::string(e.what()));
-    }
-    return new_context;
-}
 Context NodeExecutor::execute_dsl_node(const DSLNode* node, const Context& ctx) {
     Context new_context = ctx;
 
@@ -284,12 +261,18 @@ Context NodeExecutor::execute_generate_subgraph(const GenerateSubgraphNode* node
          // For now, assume budget info is added by the calling context or PromptBuilder
          // prompt_ctx["budget"] = ...; // Access budget from ExecutionSession
 
-        // 2. Call LLM
+        // 2. Call LLM（C₁.2: 使用 ILLMProvider 接口，Result<T,E> 风格）
         std::string generated_dsl;
-        if (llm_adapter_) {
-            generated_dsl = llm_adapter_->generate(rendered_prompt);
+        if (llm_provider_) {
+            GenerationRequest req;
+            req.prompt = rendered_prompt;
+            auto result = llm_provider_->generate(req, {});
+            if (!result.has_value()) {
+                throw std::runtime_error("LLM provider error: " + result.error().message);
+            }
+            generated_dsl = std::move(result.value().text);
         } else {
-            throw std::runtime_error("LLM adapter not available for generate_subgraph");
+            throw std::runtime_error("LLM provider not available for generate_subgraph");
         }
 
         // 3. Parse LLM output for `### AgenticDSL '/dynamic/...'` blocks
