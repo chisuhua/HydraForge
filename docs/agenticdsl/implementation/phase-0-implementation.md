@@ -2,9 +2,20 @@
 
 **文档 ID**: IP-Phase0
 **日期**: 2026-05-23
-**状态**: 待实施
+**状态**: ✅ 已完成（2026-06-08, phase-c1-migration）
 **关联**: BOOT-001, IP-001, ADR-0001, ADR-0005
 **预计工期**: 3-4 天（0.5 + 1 + 1 + 1）
+
+> **2026-06-08 更新**：Phase 0 全部交付（Pre-Phase + Slice 00 + Track 0.1 + C1 迁移）。
+> 本计划原 §2.4 / §3.2 等处描述的文件名与实际略有差异（详见文末"实际实现差异"小节）。
+> 主要差异：
+>
+> | 原计划 | 实际 |
+> |--------|------|
+> | `cloud_llm_adapter.h/cpp` | `cloud_adapter.h/cpp` |
+> | `llama_adapter.h` 修改继承新配置 | `LlamaAdapterProvider` 适配器（commit d38bc51），原 `LlamaAdapter` 保持同步签名 |
+> | `llm_router.{h,cpp}` 路由器 | 移交 Phase 1（ADR-0034），M3.x 任务未实施 |
+> | 单一阶段 "云端 LLM 集成" | 实际为 5 个原子 commit (d38bc51, 3f28020, 4312333, 5f21ea3, fe448a0) |
 
 ---
 
