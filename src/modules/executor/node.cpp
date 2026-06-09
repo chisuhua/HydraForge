@@ -67,30 +67,6 @@ std::unique_ptr<Node> AssignNode::clone() const {
 }
 
 // ————————————————————————
-// LLMCallNode
-// ————————————————————————
-
-LLMCallNode::LLMCallNode(NodePath path,
-                         std::string prompt,
-                         std::vector<std::string> output_keys,
-                         std::vector<NodePath> next_paths)
-    : Node(std::move(path), NodeType::DSL_CALL, std::move(next_paths)),
-      prompt_template(std::move(prompt)),
-      output_keys(std::move(output_keys)) {}
-
-Context LLMCallNode::execute(Context& context) {
-    return context; // 实际逻辑在 NodeExecutor
-}
-
-std::unique_ptr<Node> LLMCallNode::clone() const {
-    auto node = std::make_unique<LLMCallNode>(path, prompt_template, output_keys, next);
-    node->metadata = metadata;
-    node->signature = signature;
-    node->permissions = permissions;
-    return node;
-}
-
-// ————————————————————————
 // DSLNode (v3.10 - replaces LLMCallNode)
 // ————————————————————————
 

@@ -69,7 +69,7 @@ scope: global
 }
 
 // Test 2: Parse single llm_call node (backward compatibility - creates DSLNode)
-TEST_CASE("Parse LLMCallNode (backward compat)", "[parser]") {
+TEST_CASE("Parse llm_call syntax backward compat (creates DSLNode)", "[parser]") {
     std::string yaml = R"(
 type: llm_call
 prompt_template: "Summarize: {{ input }}"

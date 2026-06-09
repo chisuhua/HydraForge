@@ -121,19 +121,6 @@ struct DSLNode : public Node {
     std::unique_ptr<Node> clone() const override;
 };
 
-// LLM Call Node (deprecated - use DSLNode instead, v3.10)
-struct [[deprecated("Use DSLNode instead")]] LLMCallNode : public Node {
-    std::string prompt_template;
-    std::vector<std::string> output_keys;
-
-    LLMCallNode(NodePath path,
-                std::string prompt,
-                std::vector<std::string> output_keys,
-                std::vector<NodePath> next_paths = {});
-    [[nodiscard]] Context execute(Context& context) override;
-    std::unique_ptr<Node> clone() const override;
-};
-
 // Tool Call Node
 struct ToolCallNode : public Node {
     std::string tool_name;
