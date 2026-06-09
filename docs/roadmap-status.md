@@ -149,7 +149,7 @@
 
 | # | 描述 | 影响范围 | 提出日 | 状态 |
 |---|------|---------|--------|:----:|
-| ~~1~~ | ~~`node_executor.{h:45, cpp:90}` 使用已弃用类型 `LLMCallNode`（v3.10 已迁移至 DSLNode）~~ | ~~Executor 模块编译产生 2 个 `-Wdeprecated-declarations` 警告~~ | 2026-06-07 | ✅ **已修复**（C₁.2 删除 `execute_llm_call()` 死代码） |
+| 1 | `node.h:125` 保留已弃用类型 `LLMCallNode` struct（Phase 4.5 清理）; `node_executor` 已于 C₁.2 移除 `execute_llm_call()` 分发 | 任何包含 `node.h` 的翻译单元均产生 `-Wdeprecated-declarations` 警告 | 2026-06-07 | ✅ **完全修复**（Phase 0 收尾：删除 struct + impl + 重命名 backward-compat 测试，零功能影响） |
 
 ---
 
