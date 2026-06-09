@@ -21,35 +21,35 @@ docs/
 | 文件 | 议题 | 状态 |
 |------|------|------|
 | `adr-0001-illm-provider-streaming-interface.md` | ILLMProvider 流式接口 | ✅ 已批准 |
-| `adr-0002-eventbus-bounded-queue.md` | EventBus 有界队列 | ✅ 已批准 |
+| `adr-0002-eventbus-bounded-queue.md` | EventBus 有界队列 | ❌ 未实施 |
 | `adr-0003-dslengine-thread-safety.md` | DSLEngine 线程安全 | ✅ 已批准 |
-| `adr-0004-toolregistry-security.md` | ToolRegistry 安全模型 | ✅ 已批准 |
+| `adr-0004-toolregistry-security.md` | ToolRegistry 安全模型 | ❌ 未实施 |
 | `adr-0005-llm-backend-config-factory.md` | LLM 后端配置与工厂 | ✅ 已批准 |
-| `adr-0006-harness-engine-thread-model.md` | HarnessEngine 后台线程 | 🔄 已替代 (→ADR-0020) |
+| `adr-0006-harness-engine-thread-model.md` | HarnessEngine 后台线程 | ⛔ 已废弃 (被 ADR-0020 替代) |
 | `relationships.md` | ADR 联合分析、依赖关系、实施顺序 | 📋 跨 ADR 参考 |<!-- 非 ADR，独立文件 -->
-| `adr-0007-context-compression.md` | 上下文压缩机制 | ✅ 已批准 |
-| `adr-0008-structured-context.md` | 结构化 Context | ✅ 已批准 |
+| `adr-0007-context-compression.md` | 上下文压缩机制 | 🟡 部分实施 (快照有,无 LLM 压缩) |
+| `adr-0008-structured-context.md` | 结构化 Context | ❌ 未实施 (LayeredContext 不存在) |
 | `adr-0009-dsl-standard-library.md` | DSL 标准库规划 | ✅ 已批准 |
-| `adr-0010-memory-system.md` | 记忆系统标准接口 | ✅ 已批准 |
-| `adr-0011-knowledge-graph.md` | 知识图谱与 Meta-KG 导航 | ✅ 已批准 |
-| `adr-0012-vector-memory.md` | 向量语义记忆 | ✅ 已批准 |
-| `adr-0013-user-profile.md` | 用户画像管理 | ✅ 已批准 |
-| `adr-0014-conversation-context.md` | 对话上下文隔离 | ✅ 已批准 |
-| `adr-0015-iper-loop.md` | IPER 闭环推理 | ✅ 已批准 |
-| `adr-0016-try-catch.md` | 异常自动快照回溯 | ✅ 已批准 |
-| `adr-0017-counterfactual.md` | 反事实推理 | ✅ 已批准 |
-| `adr-0018-graph-guided.md` | 图引导假设生成 | ✅ 已批准 |
+| `adr-0010-memory-system.md` | 记忆系统标准接口 | ❌ 未实施 (规划中) |
+| `adr-0011-knowledge-graph.md` | 知识图谱与 Meta-KG 导航 | ❌ 未实施 (规划中) |
+| `adr-0012-vector-memory.md` | 向量语义记忆 | ❌ 未实施 (规划中) |
+| `adr-0013-user-profile.md` | 用户画像管理 | ❌ 未实施 (规划中) |
+| `adr-0014-conversation-context.md` | 对话上下文隔离 | ❌ 未实施 (规划中) |
+| `adr-0015-iper-loop.md` | IPER 闭环推理 | ❌ 未实施 (规划中) |
+| `adr-0016-try-catch.md` | 异常自动快照回溯 | ❌ 未实施 (规划中) |
+| `adr-0017-counterfactual.md` | 反事实推理 | ❌ 未实施 (规划中) |
+| `adr-0018-graph-guided.md` | 图引导假设生成 | ❌ 未实施 (规划中) |
 | `adr-0019-iinteraction-bus-mvp.md` | IInteractionBus 接口与 TUI Chat MVP | ✅ 已批准 |
 | `adr-0020-thread-model-isolation.md` | 多智能体线程模型与隔离策略 | 🔄 部分实施 |
 | `adr-0021-pdk-design.md` | Plugin Development Kit (PDK) 设计 | 🔍 提议中 |
 | `adr-0022-plugin-loading.md` | 插件加载机制 | 🔍 提议中 |
 | `adr-0023-tool-result-standard.md` | ToolResult 标准化 | 🔄 部分实施 (P1) |
-| `adr-0030-async-runtime-dual-layer.md` | 异步运行时双层架构 | 🔄 部分实施 |
-| `adr-0031-execution-policy.md` | 执行策略 | 🔄 部分实施 |
-| `adr-0032-cost-collector.md` | 成本收集器 | 🔄 部分实施 |
-| `adr-0033-session-hierarchy.md` | 会话层次结构 | 🔄 部分实施 |
-| `adr-0034-model-router.md` | 模型路由 | 🔄 部分实施 |
-| `adr-0036-hybrid-kernel-architecture.md` | 混合内核架构 | 🔄 部分实施 |
+| `adr-0030-async-runtime-dual-layer.md` | 异步运行时双层架构 | ❌ 未实施 |
+| `adr-0031-execution-policy.md` | 执行策略 | 🟡 仅头文件 stub |
+| `adr-0032-cost-collector.md` | 成本收集器 | ❌ 未实施 |
+| `adr-0033-session-hierarchy.md` | 会话层次结构 | 🟡 仅前向声明 |
+| `adr-0034-model-router.md` | 模型路由 | ❌ 未实施 |
+| `adr-0036-hybrid-kernel-architecture.md` | 混合内核架构 | ❌ 未实施 |
 
 
 ---

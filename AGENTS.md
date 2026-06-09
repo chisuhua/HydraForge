@@ -17,7 +17,7 @@ HydraForge/
 │   │   ├── llm/       # LlamaAdapter (llama.cpp 封装)
 │   │   ├── tools/     # ToolRegistry (工具注册表)
 │   │   └── utils/     # YAML/JSON 解析、模板渲染
-│   └── modules/       # 8 个功能模块
+│   └── modules/       # 10 个功能模块
 │       ├── parser/    # MarkdownParser → ParsedGraph
 │       ├── scheduler/ # TopoScheduler (DAG 拓扑调度)
 │       ├── executor/  # NodeExecutor (节点执行器)
@@ -25,14 +25,18 @@ HydraForge/
 │       ├── budget/    # BudgetController (预算控制)
 │       ├── trace/     # TraceRecord 追踪
 │       ├── library/   # StandardLibraryLoader (标准库加载)
-│       └── system/    # System 模块
+│       ├── system/    # System 模块
+│       ├── cognitive/ # 认知编排 (SimpleCognitiveOrchestrator, ADR-0019/0020)
+│       └── exports/   # 导出类型定义与设计稿
 ├── lib/               # DSL 标准库 (.md 文件)
 │   ├── auth/          # 认证相关 DSL
 │   ├── human/         # 人类交互 DSL
 │   ├── math/          # 数学工具 DSL
-│   └── utils/         # 通用工具 DSL
+│   ├── utils/         # 通用工具 DSL
+│   └── inference/     # 推理控制面 (engine, model, session 子图)
 ├── external/          # 第三方依赖 (llama.cpp, nlohmann_json, inja, yaml-cpp)
-├── tests/             # Catch2 单元测试 (15 个测试文件)
+├── include/           # 公共头文件 (ADR-0019 契约层: contract/cognitive/policy/types)
+├── tests/             # Catch2 单元测试 (20 个测试文件)
 └── examples/          # 3 个示例程序
     ├── agent_basic/   # 主要示例：加载 .agent.md 工作流
     ├── agent_simple/  # 简化示例
@@ -78,7 +82,7 @@ HydraForge/
 
 ## BUILD SYSTEM
 - CMake 3.20+，C++20
-- 根 `CMakeLists.txt` 聚合 8 个模块静态库 → `agenticdsl_core`
+- 根 `CMakeLists.txt` 聚合 10 个模块静态库 → `agenticdsl_core`
 - 构建：`./build.sh` 或 `mkdir build && cd build && cmake .. && make -j$(nproc)`
 - 测试：`cmake .. -DAGENTICDSL_BUILD_TESTS=ON && make && ctest --output-on-failure`
 
@@ -87,6 +91,7 @@ HydraForge/
 - `lib/` 目录存放 `.md` DSL 文件，非 C++ 库
 - `src/modules/exports/` 存放导出类型定义
 - `src/modules/prompts.yaml` 包含 LLM prompt 模板
+- `src/common/contract/` ADR-0019 契约层 (IInteractionBus, InMemoryBus) — 与 `include/agenticdsl/contract/` 头文件配套
 - `llm_config.json` 运行时 LLM 配置（模型路径、温度等）
 - 无 `.clang-format` / `.clang-tidy` / `compile_commands.json`
 - 无 GitHub Actions CI

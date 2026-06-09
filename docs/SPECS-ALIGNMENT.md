@@ -92,8 +92,22 @@
 - [ ] `guides/rt-guide.md` - 待更新
 - [ ] `specs/architecture.md` - 待更新（llm_generate_dsl 残留）
 
+> **2026-06-09 审计修正（docs-code-alignment-fixes 变更）**：
+> - `specs/dsl.md` (LayeredContext) — **该声称与代码不符,见 ADR-0008 当前状态** (`docs/README.md` 已降级为 ❌ 未实施)。
+> - `specs/layer0.md` (HarnessEngine) — **该声称与代码不符**,ADR-0006 已被 ADR-0020 替代。
+> - 本审计变更已修正 `docs/README.md` 的 ADR 状态标签,后续本节"已完成"勾选待重新审计后再勾选。
+> - `specs/architecture.md` 实际路径应为 `docs/agenticdsl/architecture/`。
+
 ---
 
 **2026-06-08 更新**: layer0.md §6.1（C1 NodeExecutor 示例）与 dsl.md §5.9 / G.2（C1 ILLMProvider 集成点）已对齐代码实际状态。
 
 *最后更新: 2026-05-13*
+
+---
+
+## 附录：本文件跟踪的审计变更
+
+| 变更 ID | 链接 | 严重度 | 状态 |
+|---------|------|:------:|:----:|
+| `docs-code-alignment-fixes` | [OpenSpec change](openspec/changes/docs-code-alignment-fixes/) | 🔴 P0 4 / 🟠 P1 16 / 🟡 P2 8 | 进行中 |

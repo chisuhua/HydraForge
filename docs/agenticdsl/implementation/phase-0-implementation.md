@@ -105,7 +105,7 @@ struct LLMConfig {
     // === 采样参数 ===
     float temperature = 0.7f;
     float top_p = 0.95f;
-    int max_tokens = 512;
+    int max_tokens = 2048;  // Track 0.1 M1.3: 默认从 512 调整为 2048
     std::vector<std::string> stop_tokens;
     
     // === 性能配置（本地 llama.cpp）===
@@ -145,7 +145,7 @@ struct LLMConfig {
     std::string api_key;
     std::string model = "gpt-3.5-turbo";
     float temperature = 0.7f;
-    int max_tokens = 512;
+    int max_tokens = 2048;  // Track 0.1 M1.3: 默认从 512 调整为 2048
     int n_ctx = 2048;
     int n_threads = 4;
 };
@@ -167,7 +167,7 @@ struct LLMConfig {
     // 采样参数（统一）
     float temperature = 0.7f;
     float top_p = 0.95f;
-    int max_tokens = 512;
+    int max_tokens = 2048;  // Track 0.1 M1.3: 默认从 512 调整为 2048
     std::vector<std::string> stop_tokens;
     
     // 本地/云端专用

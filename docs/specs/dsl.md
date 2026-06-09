@@ -466,7 +466,7 @@ prompt_template: "请分析 {{ $.input }} 并给出结论"   # Inja 模板，执
 llm_tool_name: "llama-7b"                             # C1 后保留为可选字段；首选 set_llm_provider() 注入 ILLMProvider
 llm_params:
   temperature: 0.7        # 默认 0.7
-  max_tokens: 512         # 默认 512
+  max_tokens: 2048        # 默认 2048 (Track 0.1 M1.3 调整)
   top_p: 0.95             # 默认 0.95
   n_ctx: 2048             # 默认 2048
   n_threads: 4            # 默认 4

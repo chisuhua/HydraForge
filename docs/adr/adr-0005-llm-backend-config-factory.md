@@ -294,7 +294,7 @@ private:
         if (node["default_params"]) {
             auto& p = node["default_params"];
             config.default_params.temperature = p["temperature"].as<float>(0.7f);
-            config.default_params.max_tokens = p["max_tokens"].as<int>(1024);
+            config.default_params.max_tokens = p["max_tokens"].as<int>(2048);  // Track 0.1 M1.3: 默认从 1024 调整为 2048
             config.default_params.top_p = p["top_p"].as<float>(0.95f);
         }
 

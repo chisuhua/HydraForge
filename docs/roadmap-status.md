@@ -252,6 +252,17 @@
 - 8 个老测试（test_library_loader / test_llm_streaming / test_parser / test_path_resolution / test_prompt_builder / test_scheduler / test_sse_stream / test_tool_registry）的二进制尚未在当前 build 中重新生成（CMake GLOB 配置期评估导致的陈旧构建状态）。在干净构建后全部 20 个测试均应通过。
 - ThreadSanitizer 运行时报错（ASLR 内存映射冲突，非 data race）；18/18 并发断言已验证 `InMemoryBus` 行为正确，CI 环境可正常运行 TSan。
 
+### 跨 Phase 活跃变更（由 OpenSpec 跟踪）
+
+> **约束**: 本节为引用区,任务明细由 OpenSpec `tasks.md` 维护,不在此拆分新任务
+> (符合 line 7-9 约束)。
+
+| 变更 ID | 标题 | 严重度 | 任务数 | 链接 |
+|---------|------|:------:|:------:|------|
+| `docs-code-alignment-fixes` | 文档/代码对齐修复（2026-06-09 审计 19 个问题） | 🔴 P0: 4 / 🟠 P1: 16 / 🟡 P2: 8 / 收尾 4 | 31 | [OpenSpec change](openspec/changes/docs-code-alignment-fixes/) |
+
+**变更摘要**: 修复 `registry.cpp:116` 硬编码默认值 bug + 9 个 ADR 状态降级 + 6 处文档 `max_tokens` 默认值对齐 + 根 `AGENTS.md` 模块/测试清单更新。**`openspec validate` 已通过,apply-ready。**
+
 ### Phase 1 候选入口（待启动）
 
 > Phase 0 收官后，下一步是 Phase 1 智能体层（详见 `docs/implementation-roadmap.md` §Phase 1）。

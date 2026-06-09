@@ -729,7 +729,7 @@ private:
 ```cpp
 struct LLMParams {
     float temperature = 0.7f;
-    int max_tokens = 512;
+    int max_tokens = 2048;  // Track 0.1 M1.3: 默认从 512 调整为 2048
     float top_p = 0.95f;
     int n_ctx = 2048;
     int n_threads = 4;
@@ -913,7 +913,7 @@ DSLNode.llm_tool_name = "llama-7b"
 
 ## 六、跨文档索引
 
-本文档聚焦 **运行时部署和用户接口**。以下主题的 **引擎内部设计** 详见 `docs/specs/layer0.md`：
+本文档聚焦 **运行时部署和用户接口**。以下主题的 **引擎内部设计** 详见 `docs/specs/layer0-refactor.md`：
 
 | 主题 | layer0.md 章节 |
 |------|---------------|

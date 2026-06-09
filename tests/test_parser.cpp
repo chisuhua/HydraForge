@@ -157,9 +157,9 @@ output_keys: "result"
     REQUIRE(dsl_node != nullptr);
     REQUIRE(dsl_node->llm_tool_name == "gpt-4");
     
-    // Default LLM params
+    // Default LLM params (Track 0.1 M1.3: 合并 LLMConfig 后 max_tokens 默认值从 512 调整为 2048)
     REQUIRE(dsl_node->llm_params.temperature == 0.7f); // Default
-    REQUIRE(dsl_node->llm_params.max_tokens == 512);    // Default
+    REQUIRE(dsl_node->llm_params.max_tokens == 2048);   // Default
 }
 
 // Test 5: Parse tool_call with arguments and array output_keys

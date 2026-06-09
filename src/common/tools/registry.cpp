@@ -111,12 +111,17 @@ nlohmann::json ToolRegistry::call_llm_tool(const std::string& name, const std::s
 
     try {
         // Merge default params with provided params
+        // Sentinel values MUST be derived from LLMConfig{} defaults (single source of truth).
+        // Track 0.1 M1.3 changed max_tokens default from 512 to 2048; using a hardcoded
+        // sentinel caused explicit user values equal to the old default (e.g. 512) to be
+        // silently dropped. See openspec/changes/docs-code-alignment-fixes/.
+        const LLMParams kDefaults{};
         LLMParams merged_params = it->second.default_params;
-        if (params.temperature != 0.7f) merged_params.temperature = params.temperature;
-        if (params.max_tokens != 512) merged_params.max_tokens = params.max_tokens;
-        if (params.top_p != 0.95f) merged_params.top_p = params.top_p;
-        if (params.n_ctx != 2048) merged_params.n_ctx = params.n_ctx;
-        if (params.n_threads != 4) merged_params.n_threads = params.n_threads;
+        if (params.temperature != kDefaults.temperature) merged_params.temperature = params.temperature;
+        if (params.max_tokens != kDefaults.max_tokens) merged_params.max_tokens = params.max_tokens;
+        if (params.top_p != kDefaults.top_p) merged_params.top_p = params.top_p;
+        if (params.n_ctx != kDefaults.n_ctx) merged_params.n_ctx = params.n_ctx;
+        if (params.n_threads != kDefaults.n_threads) merged_params.n_threads = params.n_threads;
         if (!params.model.empty()) merged_params.model = params.model;
 
         auto result = it->second.tool->generate(prompt, merged_params);

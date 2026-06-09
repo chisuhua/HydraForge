@@ -400,7 +400,7 @@ struct LLMConfig {
     // === 采样参数 ===
     float temperature = 0.7f;
     float top_p = 0.95f;
-    int max_tokens = 512;
+    int max_tokens = 2048;  // Track 0.1 M1.3: 默认从 512 调整为 2048
     std::vector<std::string> stop_tokens;
 };
 
