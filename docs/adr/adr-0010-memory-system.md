@@ -1,8 +1,9 @@
 # ADR-0010: 记忆系统标准接口
+> ⛔ **已废弃 (2026-06-09)** — 代码侧 0 命中,仅作设计历史保留。详见 OpenSpec change `tech-debt-and-doc-cleanup`
 
 ## 状态
 
-**已批准** (2026-05-13)
+**❌ 未实施** (2026-05-13, 2026-06-09 标注废弃)
 **修订** (2026-06-03)：补充"替代方案"章节，从 `docs/archive/superpowers/specs/2026-05-13-memory-state-interface-design.md` 迁移而来
 
 ## 背景

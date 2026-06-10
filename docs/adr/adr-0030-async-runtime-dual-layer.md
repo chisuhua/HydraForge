@@ -1,8 +1,8 @@
 # ADR-0030：AsyncRuntime 双层异步架构（Taskflow + async_simple）
-
+> ⛔ **已废弃 (2026-06-09)** — 代码侧 0 命中,仅作设计历史保留。详见 OpenSpec change `tech-debt-and-doc-cleanup`
 ## 状态
 
-**已批准** (2026-05-27) — **V1 版**，基于 Oracle 审查与 Taskflow v4.0 调研结论锁定
+**❌ 未实施** (2026-05-27, 2026-06-09 标注废弃) — **V1 版**，基于 Oracle 审查与 Taskflow v4.0 调研结论锁定
 
 ## 领域
 

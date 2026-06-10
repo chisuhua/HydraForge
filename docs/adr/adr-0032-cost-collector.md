@@ -1,8 +1,10 @@
 # ADR-0032: CostCollector 成本收集与预算控制
-
+> ⛔ **已废弃 (2026-06-09)** — 代码侧 0 命中,仅作设计历史保留。详见 OpenSpec change `tech-debt-and-doc-cleanup`
 ## 状态
 
-**提议中** (2026-05-27)
+**❌ 未实施** (2026-05-27, 2026-06-09 标注废弃)
+
+代码侧无 `CostCollector` 类,`BudgetController` 也无 cost 字段。详见 OpenSpec change `tech-debt-and-doc-cleanup`。
 
 ## 领域
 

@@ -1,6 +1,8 @@
 # ADR-0036：三层服务协议与调用契约（混合内核架构）
+> ⛔ **已废弃 (2026-06-09)** — 代码侧 0 命中,仅作设计历史保留。详见 OpenSpec change `tech-debt-and-doc-cleanup`
+**状态**：❌ 未实施 (2026-05-28, 2026-06-09 标注废弃)
 
-**状态**：提议中
+代码侧无 `HybridKernel` 类。详见 OpenSpec change `tech-debt-and-doc-cleanup`。
 **日期**：2026-05-28
 **领域**：基座 / 系统架构
 **关联**：ADR-0019（IInteractionBus）、ADR-0020（线程模型）、ADR-0030（AsyncRuntime）、ADR-0031（IExecutionPolicy）、ADR-0033（Session 层级）、ADR-0034（ModelRouter）

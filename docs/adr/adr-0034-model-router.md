@@ -1,8 +1,10 @@
 # ADR-0034: IModelRouter 模型路由接口
-
+> ⛔ **已废弃 (2026-06-09)** — 代码侧 0 命中,仅作设计历史保留。详见 OpenSpec change `tech-debt-and-doc-cleanup`
 ## 状态
 
-**提议中** (2026-05-28)
+**❌ 未实施** (2026-05-28, 2026-06-09 标注废弃)
+
+代码侧无 `IModelRouter`/`ModelRouter`/`DefaultModelRouter` 类。详见 OpenSpec change `tech-debt-and-doc-cleanup`。
 
 ## 领域
 
