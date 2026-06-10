@@ -1,5 +1,6 @@
 // modules/context/src/context_engine.cpp
 #include "context/context_engine.h"
+#include "common/log/log.h"  // agenticdsl::log facade
 #include <algorithm>
 #include <sstream>
 #include <iostream> // For debugging if needed
@@ -148,7 +149,7 @@ void ContextEngine::save_snapshot(const NodePath& key, const Context& ctx) {
         // Re-check after enforcement
         if (snapshots_.size() >= max_snapshots_ || (current_total_size_kb_ + new_snapshot_size_kb) > max_snapshot_size_kb_) {
             // Still over budget, cannot add. Log or ignore.
-            std::cerr << "[WARNING] Cannot save snapshot, budget exceeded after enforcement. Key: " << key << std::endl;
+            LOG_WARN("Cannot save snapshot, budget exceeded after enforcement. Key: " << key);
             return;
         }
     }

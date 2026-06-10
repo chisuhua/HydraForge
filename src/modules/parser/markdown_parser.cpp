@@ -1,6 +1,7 @@
 // modules/parser/src/markdown_parser.cpp
 #include "parser/markdown_parser.h"
 #include "common/utils/parser_utils.h"
+#include "common/log/log.h"  // agenticdsl::log facade
 #include "common/utils/yaml_json.h"
 #include "common/utils/template_renderer.h"
 #include "core/types/node.h" 
@@ -184,7 +185,7 @@ std::vector<ParsedGraph> MarkdownParser::parse_from_file(const std::string& file
 }
 
 std::unique_ptr<Node> MarkdownParser::create_node_from_json(const NodePath& path, const nlohmann::json& node_json) {
-    std::cout << "[DEBUG] Parsing node at " << path << ": " << node_json.dump(2) << std::endl;
+    LOG_DEBUG("Parsing node at " << path << ": " << node_json.dump(2));
     std::string type_str = node_json.at("type").get<std::string>();
 
     // Parse next
@@ -419,7 +420,7 @@ std::optional<nlohmann::json> MarkdownParser::parse_output_schema_from_signature
             return schema;
         } catch (const std::exception& e) {
             // If parsing the output part fails, log a warning but don't fail the whole parse
-            std::cerr << "[WARNING] Could not parse output schema from signature '" << signature_str << "': " << e.what() << std::endl;
+            LOG_WARN("Could not parse output schema from signature '" << signature_str << "': " << e.what());
             // Return empty object or null if parsing fails
             return nlohmann::json::object();
         }

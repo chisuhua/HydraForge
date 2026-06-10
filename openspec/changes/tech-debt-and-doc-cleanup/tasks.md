@@ -144,7 +144,7 @@
 - [x] 5.5 修复 `app-dev-guide.md:6` 时间戳:
   - `2025年11月10日` → `2026-06-09`
   - 同时检查 `app-dev-guide.md:473` API key 示例 `xxx` → `<your-api-key>`
-- [ ] 5.6 同步 `docs/audits/` 目录到 git:
+- [x] 5.6 同步 `docs/audits/` 目录到 git (已在 commit ac9e684 中完成)
   - `git add docs/audits/`
   - 关联: 持久化审计工件
 - [x] 5.7 修复 5 处 `TBD` 占位符:

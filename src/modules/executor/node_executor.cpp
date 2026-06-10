@@ -1,6 +1,7 @@
 // modules/executor/src/node_executor.cpp
 #include "executor/node_executor.h"
 #include "common/llm/llm_types.h" // C₁.2: 需要完整定义（生成 GenerationRequest/ILLMProvider）
+#include "common/log/log.h"  // agenticdsl::log facade
 #include "common/utils/template_renderer.h" // 引入 InjaTemplateRenderer (for rendering)
 #include "modules/parser/markdown_parser.h" // ← 新增：包含 MarkdownParser
 #include <stdexcept>
@@ -301,7 +302,7 @@ Context NodeExecutor::execute_generate_subgraph(const GenerateSubgraphNode* node
                          }
                     } else if (!is_valid && node->signature_validation == "warn") {
                         // Log warning but continue
-                        std::cerr << "[WARNING] Signature validation failed (warn mode) for generated graph: " << graph.path << std::endl;
+                        LOG_WARN("Signature validation failed (warn mode) for generated graph: " << graph.path);
                     } // ignore: do nothing
                 }
                 dynamic_paths.push_back(graph.path);

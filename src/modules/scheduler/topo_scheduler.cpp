@@ -2,6 +2,7 @@
 #include "scheduler/topo_scheduler.h"
 #include "common/llm/llm_types.h" // C₁.3: 需要完整 ILLMProvider 定义
 #include "common/utils/template_renderer.h"
+#include "common/log/log.h"        // agenticdsl::log 日志门面（tech-debt-and-doc-cleanup）
 #include <stdexcept>
 #include <algorithm>
 #include <set>
@@ -126,9 +127,9 @@ void TopoScheduler::build_dag() {
         // Dynamic wait_for (expressions resolved at runtime) is handled in execute_node loop
     }
 
-    std::cout << "[DEBUG] Ready queue size: " << ready_queue_.size() << std::endl;
+    LOG_DEBUG("Ready queue size: " << ready_queue_.size());
     while (!ready_queue_.empty()) {
-        std::cout << "  - " << ready_queue_.front() << std::endl;
+        LOG_DEBUG("  - " << ready_queue_.front());
         ready_queue_.pop();
     }
 
@@ -197,7 +198,7 @@ ExecutionResult TopoScheduler::execute(Context initial_context) {
                  // If JoinNode is not in the queue, it means the graph structure might be wrong or `wait_for` is needed.
                  // Let's continue the main loop to see if JoinNode appears.
                  // If it doesn't, the final "unexecuted nodes" check will catch it.
-                 std::cout << "[DEBUG] Fork branches done, waiting for JoinNode." << std::endl;
+                 LOG_DEBUG("Fork branches done, waiting for JoinNode.");
              }
              // If branches are still running, the loop will go to the next iteration.
              // If all branches are done, it will exit this `if` block and check the main queue.
@@ -302,7 +303,7 @@ ExecutionResult TopoScheduler::execute(Context initial_context) {
                 size_t pos = session_result.message.find("Jumping to:");
                 if (pos != std::string::npos) {
                     NodePath target = session_result.message.substr(pos + 12); // "Jumping to: " is 12 chars
-                    std::cout << "[DEBUG] Node " << current_path << " failed assert, jumping to " << target << std::endl;
+                    LOG_DEBUG("Node " << current_path << " failed assert, jumping to " << target);
                     // Clear queue and add jump target
                     std::queue<NodePath> empty_queue;
                     ready_queue_.swap(empty_queue);
@@ -337,7 +338,7 @@ ExecutionResult TopoScheduler::execute(Context initial_context) {
                  start_join_simulation(dynamic_cast<const JoinNode*>(current_node));
                  finish_join_simulation(context); // Merge results into main context
                  finish_fork_simulation(); // Clean up fork state (results were used)
-                 std::cout << "[DEBUG] Join completed, merged context." << std::endl;
+                 LOG_DEBUG("Join completed, merged context.");
                  // Continue with main execution flow using the merged context
              } else {
                  // JoinNode encountered before all branches are done - This is an error or requires complex waiting logic
@@ -345,7 +346,7 @@ ExecutionResult TopoScheduler::execute(Context initial_context) {
                  // If branches are still running, the main loop should wait until they finish (handled by is_executing_fork_branches_ flag).
                  // If branches are done but Join is encountered, the logic above handles it.
                  // If branches are not done, this node should wait. The loop will come back to it.
-                 std::cout << "[DEBUG] JoinNode " << current_path << " encountered, waiting for branches to finish." << std::endl;
+                 LOG_DEBUG("JoinNode " << current_path << " encountered, waiting for branches to finish.");
                  ready_queue_.push(current_path); // Re-queue JoinNode to check again later
                  continue; // Go to next loop iteration (likely processing next branch or another node)
              }
@@ -468,7 +469,7 @@ void TopoScheduler::start_fork_simulation(const ForkNode* fork_node, const Conte
     is_executing_fork_branches_ = true;
     // The fork_context_snapshot is already saved by ExecutionSession
     // We just need to remember the branches to execute.
-    std::cout << "[DEBUG] Started fork simulation for node " << fork_node->path << " with " << current_fork_branches_.size() << " branches." << std::endl;
+    LOG_DEBUG("Started fork simulation for node " << fork_node->path << " with " << current_fork_branches_.size() << " branches.");
 }
 
 void TopoScheduler::execute_fork_branches() {
@@ -482,7 +483,7 @@ void TopoScheduler::execute_fork_branches() {
     // Execute branches sequentially
     while (current_fork_branch_index_ < current_fork_branches_.size()) {
         const NodePath& branch_path = current_fork_branches_[current_fork_branch_index_];
-        std::cout << "[DEBUG] Executing fork branch: " << branch_path << std::endl;
+        LOG_DEBUG("Executing fork branch: " << branch_path);
 
         // 1. Restore snapshot for this branch
         Context branch_initial_ctx = *fork_snapshot; // Copy the snapshot
@@ -499,12 +500,12 @@ void TopoScheduler::execute_fork_branches() {
             throw;
         }
 
-        std::cout << "[DEBUG] Branch " << branch_path << " completed. Result stored. Branch " << current_fork_branch_index_ << " / " << current_fork_branches_.size() << " done." << std::endl;
+        LOG_DEBUG("Branch " << branch_path << " completed. Result stored. Branch " << current_fork_branch_index_ << " / " << current_fork_branches_.size() << " done.");
     }
 
     // All branches executed, simulation phase is done for fork
     // The join logic will be handled when the corresponding JoinNode is encountered
-    std::cout << "[DEBUG] All fork branches completed. Ready for join." << std::endl;
+    LOG_DEBUG("All fork branches completed. Ready for join.");
 }
 Context TopoScheduler::execute_single_branch(const NodePath& branch_path, const Context& initial_context) {
     // This is a simplified way to execute a subgraph path.
@@ -532,7 +533,7 @@ Context TopoScheduler::execute_single_branch(const NodePath& branch_path, const 
         throw std::runtime_error("No starting node found for branch path: " + branch_path);
     }
 
-    std::cout << "[DEBUG] Found start node for branch " << branch_path << ": " << start_node_path << std::endl;
+    LOG_DEBUG("Found start node for branch " << branch_path << ": " << start_node_path);
 
     // --- Execute the subgraph starting from start_node_path ---
     // This requires temporarily modifying the scheduler's state (queue, executed set) to run only this subgraph.
@@ -630,7 +631,7 @@ void TopoScheduler::finish_fork_simulation() {
     // Fork simulation is considered finished when all branches are executed (handled in execute_fork_branches).
     // This function can be used to clean up state if needed after all branches finish.
     is_executing_fork_branches_ = false;
-    std::cout << "[DEBUG] Finished fork simulation for node " << current_fork_node_path_.value() << std::endl;
+    LOG_DEBUG("Finished fork simulation for node " << current_fork_node_path_.value());
     current_fork_node_path_.reset();
     current_fork_branches_.clear();
     // current_fork_branch_results_ is kept until join is processed
@@ -649,7 +650,7 @@ void TopoScheduler::start_join_simulation(const JoinNode* join_node) {
     } else {
         join_wait_for_ = join_node->wait_for; // Use explicit dependencies if provided
     }
-    std::cout << "[DEBUG] Started join simulation for node " << join_node->path << " with strategy " << join_merge_strategy_ << std::endl;
+    LOG_DEBUG("Started join simulation for node " << join_node->path << " with strategy " << join_merge_strategy_);
 }
 
 void TopoScheduler::finish_join_simulation(Context& main_context) {
@@ -657,7 +658,7 @@ void TopoScheduler::finish_join_simulation(Context& main_context) {
         throw std::runtime_error("JoinNode: Not all fork branches have results for merging.");
     }
 
-    std::cout << "[DEBUG] Merging " << current_fork_branch_results_.size() << " branch results using strategy: " << join_merge_strategy_ << std::endl;
+    LOG_DEBUG("Merging " << current_fork_branch_results_.size() << " branch results using strategy: " << join_merge_strategy_);
 
     if (!current_fork_branch_results_.empty()) {
         // Apply merge strategy iteratively
@@ -672,7 +673,7 @@ void TopoScheduler::finish_join_simulation(Context& main_context) {
     current_join_node_path_.reset();
     current_fork_branch_results_.clear();
     join_wait_for_.clear();
-    std::cout << "[DEBUG] Finished join simulation for node " << current_join_node_path_.value() << std::endl;
+    LOG_DEBUG("Finished join simulation for node " << current_join_node_path_.value());
 }
 
 void TopoScheduler::load_graphs(const std::vector<std::unique_ptr<Node>>& nodes) {

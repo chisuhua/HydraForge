@@ -1,6 +1,7 @@
 // src/core/engine.cpp
 #include "engine.h"
 #include "common/llm/llama_adapter.h" // C₁.4: 保留，仅用于 LlamaAdapterProvider（向后兼容）
+#include "common/log/log.h"  // agenticdsl::log facade
 #include "common/llm/llama_adapter_provider.h" // C₁.4: 适配器（可选真实 provider）
 #include "modules/scheduler/topo_scheduler.h"
 #include "modules/system/system_nodes.h"
@@ -102,7 +103,7 @@ std::unique_ptr<DSLEngine> DSLEngine::from_file(const std::string& file_path) {
 DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
     : full_graphs_(std::move(initial_graphs)),
       tool_registry_() {
-    std::cout << "Graphs loaded: " << full_graphs_.size() << std::endl;
+    LOG_INFO("Graphs loaded: " << full_graphs_.size());
 }
 
 ExecutionResult DSLEngine::run(const Context& context) {
