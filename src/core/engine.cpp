@@ -104,6 +104,20 @@ DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
     : full_graphs_(std::move(initial_graphs)),
       tool_registry_() {
     LOG_INFO("Graphs loaded: " << full_graphs_.size());
+
+    // 阶段 4 任务 4.3: 一次性将 BudgetController::record_llm_call 绑定到 tool_registry_
+    // 注意：budget_controller_ 是非静态成员，按引用捕获以保证生命周期与 engine 一致。
+    // 此回调在每次 LLM tool 成功调用后触发。
+    tool_registry_.set_cost_callback(
+        [this](int tokens, const std::string& model) {
+            budget_controller_.record_llm_call(tokens, model);
+        }
+    );
+}
+
+// 阶段 4 任务 4.3: 返回 session 累计成本
+double DSLEngine::get_session_cost() const {
+    return budget_controller_.get_total_cost_usd();
 }
 
 ExecutionResult DSLEngine::run(const Context& context) {

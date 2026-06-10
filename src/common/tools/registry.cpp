@@ -131,6 +131,16 @@ nlohmann::json ToolRegistry::call_llm_tool(const std::string& name, const std::s
         if (result.success) {
             json_result["text"] = result.text;
             json_result["tokens_generated"] = result.tokens_generated;
+
+            // 阶段 4 任务 4.2: 成功后触发成本跟踪回调
+            // 模型名取自合并后的 params.model，回调若未设置则跳过
+            if (cost_callback_) {
+                try {
+                    cost_callback_(result.tokens_generated, merged_params.model);
+                } catch (...) {
+                    // 回调内部异常不污染主调用路径
+                }
+            }
         } else {
             json_result["error"] = result.error;
         }
