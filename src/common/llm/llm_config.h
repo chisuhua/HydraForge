@@ -33,6 +33,8 @@ struct LLMConfig {
   // === 连接配置 ===
   /// API 基础 URL（云端默认 OpenAI，本地默认 llama.cpp server）
   std::string api_url = "https://api.openai.com/v1";
+  /// API 端点路径（默认 /v1/chat/completions；本地服务可自定义）
+  std::string api_endpoint = "/v1/chat/completions";
   /// 直填 API Key（最低优先级，仅作旧版兼容；不推荐在配置文件中明文保存）
   std::string api_key;
   /// 环境变量名，优先于 api_key / api_key_file
