@@ -110,4 +110,4 @@
 
 | 变更 ID | 链接 | 严重度 | 状态 |
 |---------|------|:------:|:----:|
-| `docs-code-alignment-fixes` | [OpenSpec change](openspec/changes/docs-code-alignment-fixes/) | 🔴 P0 4 / 🟠 P1 16 / 🟡 P2 8 | 进行中 |
+| `docs-code-alignment-fixes` | [OpenSpec change](openspec/changes/archive/2026-06-09-docs-code-alignment-fixes/) | 🔴 P0 4 / 🟠 P1 16 / 🟡 P2 8 | ✅ 已归档 |

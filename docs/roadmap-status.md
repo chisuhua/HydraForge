@@ -259,7 +259,7 @@
 
 | 变更 ID | 标题 | 严重度 | 任务数 | 链接 |
 |---------|------|:------:|:------:|------|
-| `docs-code-alignment-fixes` | 文档/代码对齐修复（2026-06-09 审计 19 个问题） | 🔴 P0: 4 / 🟠 P1: 16 / 🟡 P2: 8 / 收尾 4 | 31 | [OpenSpec change](openspec/changes/docs-code-alignment-fixes/) |
+| `docs-code-alignment-fixes` | 文档/代码对齐修复（2026-06-09 审计 19 个问题） | 🔴 P0: 4 / 🟠 P1: 16 / 🟡 P2: 8 / 收尾 4 | 31 | [OpenSpec change](openspec/changes/archive/2026-06-09-docs-code-alignment-fixes/) |
 
 **变更摘要**: 修复 `registry.cpp:116` 硬编码默认值 bug + 9 个 ADR 状态降级 + 6 处文档 `max_tokens` 默认值对齐 + 根 `AGENTS.md` 模块/测试清单更新。**`openspec validate` 已通过,apply-ready。**
 

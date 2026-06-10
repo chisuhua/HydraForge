@@ -4,7 +4,7 @@
 **日期：** 2026-02-25  
 **范围：** agentic-dsl-runtime（C++ 核心运行时）  
 **状态：** 基于现有 AgenticDSL 代码库分析，面向 AgenticOS v2.2 架构的重构计划  
-**依赖：** AgenticOS-Architecture-v2.2（`docs/AgenticOS_Architecture.md`）  
+**依赖：** Architecture-v2.2（`docs/agenticdsl/architecture/`）  
 **基础代码：** `chisuhua/AgenticDSL`（`src/` 目录）
 
 ---
@@ -669,7 +669,7 @@ PYBIND11_MODULE(agentic_dsl_runtime, m) {
 ## 14. 重构实施计划
 
 > **完整实施细节已提取为独立文档：**
-> 📄 [AgenticOS_Layer0_RefactoringPlan.md](AgenticOS_Layer0_RefactoringPlan.md)
+> 📄 [Layer 0 Refactoring Plan](layer0-refactor.md)
 >
 > 包含五个重构阶段的逐行代码差异、新增文件列表、接口修改说明和测试用例。
 
@@ -853,9 +853,9 @@ traces = engine.get_last_traces()
 
 | 文档 | 路径 | 状态 |
 | :--- | :--- | :--- |
-| AgenticOS 架构总纲 | `docs/AgenticOS_Architecture.md` | 已发布 |
-| **Layer 0 重构规范**（本文档） | `docs/AgenticOS_Layer0_Spec.md` | **当前** |
-| **Layer 0 重构实施计划（五阶段详细）** | `docs/AgenticOS_Layer0_RefactoringPlan.md` | **当前** |
+| 架构总纲 | `docs/agenticdsl/architecture/` | 已发布 |
+| **Layer 0 规范**（本文档） | `docs/specs/layer0.md` | **当前** |
+| **Layer 0 重构实施计划（五阶段详细）** | `docs/specs/layer0-refactor.md` | **当前** |
 | DSL 标准库规范 | `docs/AgenticDSL_LibSpec_v3.9.md` | 已发布 |
 | DSL 语言规范 | `docs/AgenticDSL_v3.9.md` | 已发布 |
 | 运行时开发指南 | `docs/AgenticDSL_RTGuide.md` | 已发布 |

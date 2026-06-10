@@ -3,10 +3,10 @@
 **文档版本：** v2.2.0  
 **日期：** 2026-02-25  
 **范围：** agentic-dsl-runtime 重构实施 – 完整五阶段计划  
-**关联文档：** [Layer 0 规范总览](AgenticOS_Layer0_Spec.md)  
+**关联文档：** [Layer 0 规范总览](layer0.md)  
 **基础代码：** `chisuhua/AgenticDSL`（`src/` 目录）
 
-> 本文档从 [`AgenticOS_Layer0_Spec.md`](AgenticOS_Layer0_Spec.md) 第 14 节独立提取，包含五个重构阶段的完整代码级实施细节：接口修改、代码差异、新增文件列表和测试用例。
+> 本文档从 [`layer0.md`](layer0.md) 第 14 节独立提取，包含五个重构阶段的完整代码级实施细节：接口修改、代码差异、新增文件列表和测试用例。
 
 ---
 
@@ -1592,5 +1592,5 @@ while (result.paused_at.has_value() &&
 ---
 
 **文档结束**  
-**关联文档：** [AgenticOS Layer 0 规范总览](AgenticOS_Layer0_Spec.md) | [AgenticOS 架构总纲](AgenticOS_Architecture.md)  
+**关联文档：** [Layer 0 规范总览](layer0.md) | [架构总纲](architecture.md)  
 **基于代码库：** `chisuhua/AgenticDSL`（`src/` 目录，2026-02-25）

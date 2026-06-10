@@ -40,7 +40,7 @@ docs/
 | `adr-0017-counterfactual.md` | 反事实推理 | ❌ 未实施 (规划中) |
 | `adr-0018-graph-guided.md` | 图引导假设生成 | ❌ 未实施 (规划中) |
 | `adr-0019-iinteraction-bus-mvp.md` | IInteractionBus 接口与 TUI Chat MVP | ✅ 已批准 |
-| `adr-0020-thread-model-isolation.md` | 多智能体线程模型与隔离策略 | 🔄 部分实施 |
+| `adr-0020-thread-model-isolation.md` | 多智能体线程模型与隔离策略 | ❌ 未实施 (SimpleCognitiveOrchestrator 有,WorkerPool 无) |
 | `adr-0021-pdk-design.md` | Plugin Development Kit (PDK) 设计 | 🔍 提议中 |
 | `adr-0022-plugin-loading.md` | 插件加载机制 | 🔍 提议中 |
 | `adr-0023-tool-result-standard.md` | ToolResult 标准化 | 🔄 部分实施 (P1) |
