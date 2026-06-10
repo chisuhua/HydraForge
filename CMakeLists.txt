@@ -93,25 +93,27 @@ add_subdirectory(src/modules/library)
 add_subdirectory(src/modules/system)
 add_subdirectory(src/modules/cognitive)
 add_subdirectory(src/common/contract)
+add_subdirectory(src/common/policy)
 
 add_library(agenticdsl_core STATIC
-    src/core/engine.cpp
+ src/core/engine.cpp
 )
 
 target_link_libraries(agenticdsl_core
-    agenticdsl_includes
-    agenticdsl_common
-    agenticdsl_modules_parser
-    agenticdsl_modules_context
-    agenticdsl_modules_budget
-    agenticdsl_modules_executor
-    agenticdsl_modules_scheduler
-    agenticdsl_modules_trace
-    agenticdsl_modules_library
-    agenticdsl_modules_system
-    agenticdsl_modules_cognitive
-    agenticdsl_contract
-    Threads::Threads
+ agenticdsl_includes
+ agenticdsl_common
+ agenticdsl_modules_parser
+ agenticdsl_modules_context
+ agenticdsl_modules_budget
+ agenticdsl_modules_executor
+ agenticdsl_modules_scheduler
+ agenticdsl_modules_trace
+ agenticdsl_modules_library
+ agenticdsl_modules_system
+ agenticdsl_modules_cognitive
+ agenticdsl_contract
+ agenticdsl_policy
+ Threads::Threads
 )
 
 # Alias target for tests
