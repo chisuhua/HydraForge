@@ -73,11 +73,11 @@
 
 | # | 任务 | 负责人 | 优先级 |
 |---|------|--------|--------|
-| 1 | 更新 `specs/dsl.md` 对齐 ADR-1,3,8 | TBD | 🔴 高 |
-| 2 | 更新 `specs/dsl-lib.md` 对齐 ADR-9 | TBD | 🔴 高 |
-| 3 | 更新 `specs/layer0.md` 对齐 ADR-3,6 | TBD | 🔴 高 |
-| 4 | 更新 `guides/developer-guide.md` | TBD | 🟡 中 |
-| 5 | 更新 `guides/rt-guide.md` | TBD | 🟡 中 |
+| 1 | 更新 `specs/dsl.md` 对齐 ADR-1,3,8 | TBA | 🔴 高 |
+| 2 | 更新 `specs/dsl-lib.md` 对齐 ADR-9 | TBA | 🔴 高 |
+| 3 | 更新 `specs/layer0.md` 对齐 ADR-3,6 | TBA | 🔴 高 |
+| 4 | 更新 `guides/developer-guide.md` | TBA | 🟡 中 |
+| 5 | 更新 `guides/rt-guide.md` | TBA | 🟡 中 |
 
 ---
 

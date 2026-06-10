@@ -75,7 +75,7 @@ void StandardLibraryLoader::load_from_directory(const std::string& lib_dir) {
                 }
             } catch (const std::exception& e) {
                 // Log error, but don't interrupt loading
-                // std::cerr << "[WARNING] Failed to load library from " << entry.path() << ": " << e.what() << std::endl;
+                // [DEBUG-removed] std::cerr << "[WARNING] Failed to load library from " << entry.path() << ": " << e.what() << std::endl;
                 continue;
             }
         }

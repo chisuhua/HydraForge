@@ -255,11 +255,11 @@ Context NodeExecutor::execute_generate_subgraph(const GenerateSubgraphNode* node
         }
         std::string rendered_prompt = ctx.at("__rendered_prompt__").get<std::string>();
         // Add budget info to prompt context if needed by LLM
-        //Context prompt_ctx = ctx;
-        //prompt_ctx["available_subgraphs"] = PromptBuilder::build_available_libraries_context();
+        // [DEBUG-removed] Context prompt_ctx = ctx;
+        // [DEBUG-removed] prompt_ctx["available_subgraphs"] = PromptBuilder::build_available_libraries_context();
          // Add budget info (nodes_left, depth_left, etc.) - This requires access to ExecutionSession's budget
-         // For now, assume budget info is added by the calling context or PromptBuilder
-         // prompt_ctx["budget"] = ...; // Access budget from ExecutionSession
+         // [DEBUG-removed] For now, assume budget info is added by the calling context or PromptBuilder
+         // [DEBUG-removed] prompt_ctx["budget"] = ...; // Access budget from ExecutionSession
 
         // 2. Call LLM（C₁.2: 使用 ILLMProvider 接口，Result<T,E> 风格）
         std::string generated_dsl;

@@ -2148,7 +2148,7 @@ std::unique_ptr<Node> MarkdownParser::create_node_from_json(const NodePath& path
     } else if (type_str == "llm_call") {
         std::string prompt = node_json.at("prompt_template").get<std::string>();
         auto output_keys = parse_output_keys(node_json, path);
-        auto node = std::make_unique<LLMCallNode>(path, std::move(prompt), std::move(output_keys), std::move(next_paths));
+        <!-- ARCHIVED: superseded by DSLNode (v3.10) --> auto node = std::make_unique<LLMCallNode>(path, std::move(prompt), std::move(output_keys), std::move(next_paths));
         node->metadata = metadata;
         node->signature = signature;
         node->permissions = permissions;
@@ -2385,7 +2385,7 @@ private:
     Context execute_start(const StartNode* node, const Context& ctx);
     Context execute_end(const EndNode* node, const Context& ctx);
     Context execute_assign(const AssignNode* node, const Context& ctx);
-    Context execute_llm_call(const LLMCallNode* node, const Context& ctx);
+    <!-- ARCHIVED: superseded by DSLNode (v3.10) --> Context execute_llm_call(const LLMCallNode* node, const Context& ctx);
     Context execute_tool_call(const ToolCallNode* node, const Context& ctx);
     Context execute_resource(const ResourceNode* node, const Context& ctx);
 };
@@ -2436,7 +2436,7 @@ Context NodeExecutor::execute_node(Node* node, const Context& ctx) {
         case NodeType::ASSIGN:
             return execute_assign(dynamic_cast<const AssignNode*>(node), context_with_resources);
         case NodeType::LLM_CALL:
-            return execute_llm_call(dynamic_cast<const LLMCallNode*>(node), context_with_resources);
+            <!-- ARCHIVED: superseded by DSLNode (v3.10) --> return execute_llm_call(dynamic_cast<const LLMCallNode*(node), context_with_resources);
         case NodeType::TOOL_CALL:
             return execute_tool_call(dynamic_cast<const ToolCallNode*>(node), context_with_resources);
         case NodeType::RESOURCE:
@@ -2493,7 +2493,7 @@ Context NodeExecutor::execute_assign(const AssignNode* node, const Context& ctx)
     return new_context;
 }
 
-Context NodeExecutor::execute_llm_call(const LLMCallNode* node, const Context& ctx) {
+<!-- ARCHIVED: superseded by DSLNode (v3.10) --> Context NodeExecutor::execute_llm_call(const LLMCallNode* node, const Context& ctx) {
     if (!llm_adapter_) {
         throw std::runtime_error("LLM adapter not available for node: " + node->path);
     }
@@ -2511,7 +2511,7 @@ Context NodeExecutor::execute_llm_call(const LLMCallNode* node, const Context& c
         } else {
             // 如果没有 output_keys，可能需要特殊处理，或者规范应强制要求
             // 此处假设至少有一个 output_key
-            throw std::runtime_error("LLMCallNode has no output_keys: " + node->path);
+            <!-- ARCHIVED: superseded by DSLNode (v3.10) --> throw std::runtime_error("LLMCallNode has no output_keys: " + node->path);
         }
     } catch (const inja::RenderError& e) {
         throw std::runtime_error("Prompt template rendering failed for node '" + node->path + "': " + std::string(e.what()));
