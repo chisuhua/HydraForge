@@ -1,5 +1,5 @@
 # ADR-0011: 知识图谱系统与 Meta-KG 导航
-> ⛔ **已废弃 (2026-06-09)** — 代码侧 0 命中,仅作设计历史保留。详见 OpenSpec change `tech-debt-and-doc-cleanup`
+> 📋 **Phase 2 规划: 记忆系统** (规划于 2026-05/06, 2026-06-09 整理归档) — 见 `implementation-roadmap.md`
 ## 状态
 
 **❌ 未实施** (2026-05-13, 2026-06-09 标注废弃)
@@ -431,4 +431,4 @@ L1 System:  Agent 提示词 + 工具定义
 - [Graphiti: Temporal Knowledge Graph](https://github.com/mem0ai/graphiti)
 - [Cognee: Multi-modal Knowledge Graphs](https://github.com/mem0ai/cognee)
 - [MemGPT: Memory management for LLMs](https://github.com/MemGPT/MemGPT)
-- [ADR-0010: 记忆系统标准接口](./archive/adr-0010-memory-system.md)
+- [ADR-0010: 记忆系统标准接口](./adr-0010-memory-system.md)

@@ -534,7 +534,7 @@ public:
 > **V3 变更**：本节原定义的自定义协程实现（`LLMTokenStream` 类）已废弃。
 > 协程实现统一使用 ADR-0030 定义的 AsyncRuntime + async_simple 方案。
 
-LLM 流式调用使用 async_simple 协程（参见 [ADR-0030](../archive/adr-0030-async-runtime-dual-layer.md) 第 3 节）：
+LLM 流式调用使用 async_simple 协程（参见 [ADR-0030](../phase-5-async/adr-0030-async-runtime-dual-layer.md) 第 3 节）：
 
 ```cpp
 // src/common/llm/stream_llm.h (Phase 2)

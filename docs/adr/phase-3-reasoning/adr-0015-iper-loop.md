@@ -1,5 +1,5 @@
 # ADR-0015: IPER 闭环推理
-> ⛔ **已废弃 (2026-06-09)** — 代码侧 0 命中,仅作设计历史保留。详见 OpenSpec change `tech-debt-and-doc-cleanup`
+> 📋 **Phase 3 规划: 推理能力** (规划于 2026-05/06, 2026-06-09 整理归档) — 见 `implementation-roadmap.md`
 ## 状态
 
 **❌ 未实施** (2026-05-13, 2026-06-09 标注废弃)
@@ -86,7 +86,7 @@ permissions:
 
 > **实现说明**：IPER 循环在 ADR-0030 中由 async_simple `Lazy<T>` 协程状态机实现，
 > 支持 `co_await` 挂起等待（如用户审批）和 `co_yield` 流式推送（如计划生成过程）。
-> 参见 [ADR-0030 第 3 节](./archive/adr-0030-async-runtime-dual-layer.md) IPER 循环示例。
+> 参见 [ADR-0030 第 3 节](../phase-5-async/adr-0030-async-runtime-dual-layer.md) IPER 循环示例。
 
 ### 3. Trace 输出
 
@@ -113,4 +113,4 @@ permissions:
 ## 参考
 
 - [ADR-0009: DSL 标准库规划](./adr-0009-dsl-standard-library.md)
-- [ADR-0030: AsyncRuntime 双层异步架构](./archive/adr-0030-async-runtime-dual-layer.md) — IPER 循环的协程状态机实现（`Lazy<T>`）
+- [ADR-0030: AsyncRuntime 双层异步架构](../phase-5-async/adr-0030-async-runtime-dual-layer.md) — IPER 循环的协程状态机实现（`Lazy<T>`）

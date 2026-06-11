@@ -286,10 +286,10 @@
 
 ### 文档冲突已解决（历史记录）
 
-`docs/agenticdsl/api/cloud-llm-adapter.md` 已在 2026-06-07 标注为 **superseded by ADR-0001**。
+`docs/adr/agenticdsl/api/cloud-llm-adapter.md` 已在 2026-06-07 标注为 **superseded by ADR-0001**。
 - 实际实现遵循 ADR-0001 的 `ILLMProvider` stream-handle 设计
 - 文档提议的独立 `ICloudLLMAdapter` 未被采用
-- 完整决策记录见 `docs/agenticdsl/api/cloud-llm-adapter.md` 头部说明
+- 完整决策记录见 `docs/adr/agenticdsl/api/cloud-llm-adapter.md` 头部说明
 
 ---
 

@@ -338,4 +338,4 @@ ADR-0034 (ModelRouter)
 
 ### 参考
 
-- [ADR-0034: IModelRouter 模型路由接口](./archive/adr-0034-model-router.md)
+- [ADR-0034: IModelRouter 模型路由接口](./phase-7-router/adr-0034-model-router.md)

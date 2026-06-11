@@ -1,5 +1,5 @@
 # ADR-0017: 反事实推理
-> ⛔ **已废弃 (2026-06-09)** — 代码侧 0 命中,仅作设计历史保留。详见 OpenSpec change `tech-debt-and-doc-cleanup`
+> 📋 **Phase 3 规划: 推理能力** (规划于 2026-05/06, 2026-06-09 整理归档) — 见 `implementation-roadmap.md`
 ## 状态
 
 **❌ 未实施** (2026-05-13, 2026-06-09 标注废弃)
@@ -80,4 +80,4 @@ permissions:
 
 ## 参考
 
-- [ADR-0015: IPER 闭环推理](./archive/adr-0015-iper-loop.md)
+- [ADR-0015: IPER 闭环推理](./adr-0015-iper-loop.md)

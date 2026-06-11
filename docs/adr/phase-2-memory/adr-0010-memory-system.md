@@ -1,5 +1,5 @@
 # ADR-0010: 记忆系统标准接口
-> ⛔ **已废弃 (2026-06-09)** — 代码侧 0 命中,仅作设计历史保留。详见 OpenSpec change `tech-debt-and-doc-cleanup`
+> 📋 **Phase 2 规划: 记忆系统** (规划于 2026-05/06, 2026-06-09 整理归档) — 见 `implementation-roadmap.md`
 
 ## 状态
 

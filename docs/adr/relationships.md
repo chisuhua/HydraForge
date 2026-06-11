@@ -349,9 +349,9 @@ Phase 5 (安全与执行策略)
 | `adr-0021-pdk-design.md` | Plugin Development Kit | 本分析 |
 | `adr-0022-plugin-loading.md` | 插件加载机制 | 🔍 提议中 |
 | `adr-0023-tool-result-standard.md` | ToolResult 标准化 | 🔍 提议中 |
-| `archive/adr-0030-async-runtime-dual-layer.md` | AsyncRuntime 双层异步架构 | ✅ 已批准 |
+| `phase-5-async/adr-0030-async-runtime-dual-layer.md` | AsyncRuntime 双层异步架构 | ✅ 已批准 |
 | `adr-0031-execution-policy.md` | IExecutionPolicy 执行策略 | 🔍 提议中 |
-| `archive/adr-0032-cost-collector.md` | CostCollector 成本收集 | 🔍 提议中 |
+| `phase-5-policy/adr-0032-cost-collector.md` | CostCollector 成本收集 | 🔍 提议中 |
 | `adr-0033-session-hierarchy.md` | Session 层级模型 | 🔍 提议中 |
-| `archive/adr-0034-model-router.md` | IModelRouter 模型路由 | 🔍 提议中 |
-| `archive/adr-0036-hybrid-kernel-architecture.md` | 混合内核三层架构 | 🔍 提议中 |
+| `phase-7-router/adr-0034-model-router.md` | IModelRouter 模型路由 | 🔍 提议中 |
+| `phase-8-kernel/adr-0036-hybrid-kernel-architecture.md` | 混合内核三层架构 | 🔍 提议中 |

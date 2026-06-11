@@ -1,5 +1,5 @@
 # ADR-0032: CostCollector 成本收集与预算控制
-> ⛔ **已废弃 (2026-06-09)** — 代码侧 0 命中,仅作设计历史保留。详见 OpenSpec change `tech-debt-and-doc-cleanup`
+> 📋 **Phase 5 规划: 安全与策略** (规划于 2026-05/06, 2026-06-09 整理归档) — 见 `implementation-roadmap.md`
 ## 状态
 
 **❌ 未实施** (2026-05-27, 2026-06-09 标注废弃)
@@ -404,7 +404,7 @@ ExecutionResult DSLEngine::run(const Context& context) {
 ## 参考
 
 - [ADR-0002: EventBus 有界队列架构](./adr-0002-eventbus-bounded-queue.md) — 事件传输层
-- [ADR-0030: AsyncRuntime 双层异步架构](./archive/adr-0030-async-runtime-dual-layer.md) — TaskflowAsync 分发模式
+- [ADR-0030: AsyncRuntime 双层异步架构](../phase-5-async/adr-0030-async-runtime-dual-layer.md) — TaskflowAsync 分发模式
 - [ADR-0029: 成本监控](./adr-0029-cost-monitoring.md) — 从编程助手层迁移至基座层
 
 ---

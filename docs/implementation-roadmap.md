@@ -172,7 +172,7 @@ Track 0.3 ─ 最小契约层 (与 0.1/0.2 并行)
 
 ### Track 0.1: 云端 LLM 集成
 
-**来源**: `docs/agenticdsl/implementation/phase-0-implementation.md` + `docs/agenticdsl/implementation/self-bootstrapping-path.md`
+**来源**: `docs/adr/agenticdsl/implementation/phase-0-implementation.md` + `docs/adr/agenticdsl/implementation/self-bootstrapping-path.md`
 **目标**: 实现 OpenAI/Claude 兼容的云端 LLM 适配器，建立路由器
 **工期**: 3-4 天
 
@@ -636,7 +636,7 @@ class SimpleCognitiveOrchestrator : public ICognitiveOrchestrator {
 
 ## Phase 5 — AgenticDSL 自举与服务化 (远期)
 
-**来源**: `docs/agenticdsl/implementation/self-bootstrapping-path.md`
+**来源**: `docs/adr/agenticdsl/implementation/self-bootstrapping-path.md`
 **前提**: Phase 1~4 完成 (完整智能体基础设施)
 
 ### 阶段 1: DSL 可编程参数 + Session 隔离
@@ -748,9 +748,9 @@ EventBus (Phase 2 ADR-0002 V2)
 | 文档 | 概念 | 对应本路线图位置 |
 |------|------|-----------------|
 | `docs/implementation-slices.md` | Slice 01 三层调用链 | Phase 0 Track 0.2 |
-| `docs/agenticdsl/implementation/phase-0-implementation.md` | 云端 LLM 集成 (4 Steps) | Phase 0 Track 0.1 |
-| `docs/agenticdsl/implementation/self-bootstrapping-path.md` | 阶段 0: 云端集成 + 质量保障 | Phase 0 Track 0.1 |
-| `docs/agenticdsl/implementation-roadmap/01-roadmap.md` (IP-001) | 阶段 1: 核心自举能力 | Phase 5 阶段 1 |
+| `docs/adr/agenticdsl/implementation/phase-0-implementation.md` | 云端 LLM 集成 (4 Steps) | Phase 0 Track 0.1 |
+| `docs/adr/agenticdsl/implementation/self-bootstrapping-path.md` | 阶段 0: 云端集成 + 质量保障 | Phase 0 Track 0.1 |
+| `docs/adr/agenticdsl/implementation-roadmap/01-roadmap.md` (IP-001) | 阶段 1: 核心自举能力 | Phase 5 阶段 1 |
 | `docs/adr/adr-0019-iinteraction-bus-mvp.md` | IInteractionBus + TUI Chat | Phase 0 Track 0.3 + Phase 1 |
 | `docs/archive/Roadmap.md` | v3.2 对话记忆 MVP | 远期/参考 |
 | `docs/compiler/plan-phase1-foundation.md` | Compiler 阶段 1 | 独立编译器项目 |
@@ -805,9 +805,9 @@ EventBus (Phase 2 ADR-0002 V2)
 | `docs/implementation-slices.md` | Phase 变更、Slice 增删 | 2026-05-30 |
 | `docs/prephase-slice00-phase0.md` | Pre-Phase / Slice 00 / Phase 0 任务修改 | 2026-05-30 |
 | `docs/adr/relationships.md` | ADR 依赖变更、新 ADR 创建 | 2026-05-28 |
-| `docs/agenticdsl/implementation-roadmap/01-roadmap.md` | Phase 5 任务变更 | 2026-05-22 |
-| `docs/agenticdsl/implementation/self-bootstrapping-path.md` | Phase 5 阶段调整 | 2026-05-22 |
-| `docs/agenticdsl/implementation/phase-0-implementation.md` | Track 0.1 任务变更 | 2026-05-23 |
+| `docs/adr/agenticdsl/implementation-roadmap/01-roadmap.md` | Phase 5 任务变更 | 2026-05-22 |
+| `docs/adr/agenticdsl/implementation/self-bootstrapping-path.md` | Phase 5 阶段调整 | 2026-05-22 |
+| `docs/adr/agenticdsl/implementation/phase-0-implementation.md` | Track 0.1 任务变更 | 2026-05-23 |
 | `docs/archive/Roadmap.md` | 仅归档，非常规同步 | — |
 
 > 同步原则：每完成一个 Phase，检查上表中"同步条件"匹配的文档是否需要更新。

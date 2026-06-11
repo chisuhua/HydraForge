@@ -96,7 +96,7 @@
 > - `specs/dsl.md` (LayeredContext) — **该声称与代码不符,见 ADR-0008 当前状态** (`docs/README.md` 已降级为 ❌ 未实施)。
 > - `specs/layer0.md` (HarnessEngine) — **该声称与代码不符**,ADR-0006 已被 ADR-0020 替代。
 > - 本审计变更已修正 `docs/README.md` 的 ADR 状态标签,后续本节"已完成"勾选待重新审计后再勾选。
-> - `specs/architecture.md` 实际路径应为 `docs/agenticdsl/architecture/`。
+> - `specs/architecture.md` 实际路径应为 `docs/adr/agenticdsl/architecture/`。
 
 ---
 

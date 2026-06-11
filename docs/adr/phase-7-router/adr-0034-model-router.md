@@ -1,5 +1,5 @@
 # ADR-0034: IModelRouter 模型路由接口
-> ⛔ **已废弃 (2026-06-09)** — 代码侧 0 命中,仅作设计历史保留。详见 OpenSpec change `tech-debt-and-doc-cleanup`
+> 📋 **Phase 7 规划: 模型路由** (规划于 2026-05/06, 2026-06-09 整理归档) — 见 `implementation-roadmap.md`
 ## 状态
 
 **❌ 未实施** (2026-05-28, 2026-06-09 标注废弃)
@@ -331,7 +331,7 @@ if (result.has_value()) {
 ## 参考
 
 - [ADR-0001: ILLMProvider 流式接口](./adr-0001-illm-provider-streaming-interface.md)
-- [ADR-0030: AsyncRuntime 双层协程](./archive/adr-0030-async-runtime-dual-layer.md)
+- [ADR-0030: AsyncRuntime 双层协程](../phase-5-async/adr-0030-async-runtime-dual-layer.md)
 - [ADR-0002: EventBus 有界队列](./adr-0002-eventbus-bounded-queue.md)
 - [ADR-0033: SessionHierarchy](./adr-0033-session-hierarchy.md)
 - [llm_types.h 源文件](../../../src/common/llm/llm_types.h)

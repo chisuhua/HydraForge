@@ -4,7 +4,14 @@
 
 ```
 docs/
-├── adr/              # Architecture Decision Records (架构决策)
+├── adr/              # Architecture Decision Records (架构决策, 阶段化分类)
+│   ├── phase-2-memory/  # 5 ADR: 记忆系统
+│   ├── phase-3-reasoning/  # 4 ADR: 推理能力
+│   ├── phase-5-async/  # 1 ADR: 异步架构
+│   ├── phase-5-policy/  # 1 ADR: 安全与策略
+│   ├── phase-7-router/  # 1 ADR: 模型路由
+│   ├── phase-8-kernel/  # 1 ADR: 混合内核架构
+│   └── agenticdsl/   # 32 docs: AgenticDSL 语言演进
 ├── specs/            # 规范文档 (当前有效版本)
 ├── guides/           # 用户和开发者指南
 ├── design/           # 设计文档
@@ -30,26 +37,26 @@ docs/
 | `adr-0007-context-compression.md` | 上下文压缩机制 | 🟡 部分实施 (快照有,无 LLM 压缩) |
 | `adr-0008-structured-context.md` | 结构化 Context | ❌ 未实施 (LayeredContext 不存在) |
 | `adr-0009-dsl-standard-library.md` | DSL 标准库规划 | ✅ 已批准 |
-| `archive/adr-0010-memory-system.md` | 记忆系统标准接口 | ❌ 未实施 (规划中) |
-| `archive/adr-0011-knowledge-graph.md` | 知识图谱与 Meta-KG 导航 | ❌ 未实施 (规划中) |
-| `archive/adr-0012-vector-memory.md` | 向量语义记忆 | ❌ 未实施 (规划中) |
-| `archive/adr-0013-user-profile.md` | 用户画像管理 | ❌ 未实施 (规划中) |
-| `archive/adr-0014-conversation-context.md` | 对话上下文隔离 | ❌ 未实施 (规划中) |
-| `archive/adr-0015-iper-loop.md` | IPER 闭环推理 | ❌ 未实施 (规划中) |
-| `archive/adr-0016-try-catch.md` | 异常自动快照回溯 | ❌ 未实施 (规划中) |
-| `archive/adr-0017-counterfactual.md` | 反事实推理 | ❌ 未实施 (规划中) |
-| `archive/adr-0018-graph-guided.md` | 图引导假设生成 | ❌ 未实施 (规划中) |
+| `phase-2-memory/adr-0010-memory-system.md` | 记忆系统标准接口 | ❌ 未实施 (规划中) |
+| `phase-2-memory/adr-0011-knowledge-graph.md` | 知识图谱与 Meta-KG 导航 | ❌ 未实施 (规划中) |
+| `phase-2-memory/adr-0012-vector-memory.md` | 向量语义记忆 | ❌ 未实施 (规划中) |
+| `phase-2-memory/adr-0013-user-profile.md` | 用户画像管理 | ❌ 未实施 (规划中) |
+| `phase-2-memory/adr-0014-conversation-context.md` | 对话上下文隔离 | ❌ 未实施 (规划中) |
+| `phase-3-reasoning/adr-0015-iper-loop.md` | IPER 闭环推理 | ❌ 未实施 (规划中) |
+| `phase-3-reasoning/adr-0016-try-catch.md` | 异常自动快照回溯 | ❌ 未实施 (规划中) |
+| `phase-3-reasoning/adr-0017-counterfactual.md` | 反事实推理 | ❌ 未实施 (规划中) |
+| `phase-3-reasoning/adr-0018-graph-guided.md` | 图引导假设生成 | ❌ 未实施 (规划中) |
 | `adr-0019-iinteraction-bus-mvp.md` | IInteractionBus 接口与 TUI Chat MVP | ✅ 已批准 |
 | `adr-0020-thread-model-isolation.md` | 多智能体线程模型与隔离策略 | ❌ 未实施 (SimpleCognitiveOrchestrator 有,WorkerPool 无) |
 | `adr-0021-pdk-design.md` | Plugin Development Kit (PDK) 设计 | 🔍 提议中 |
 | `adr-0022-plugin-loading.md` | 插件加载机制 | 🔍 提议中 |
 | `adr-0023-tool-result-standard.md` | ToolResult 标准化 | 🔄 部分实施 (P1) |
-| `archive/adr-0030-async-runtime-dual-layer.md` | 异步运行时双层架构 | ❌ 未实施 |
+| `phase-5-async/adr-0030-async-runtime-dual-layer.md` | 异步运行时双层架构 | ❌ 未实施 |
 | `adr-0031-execution-policy.md` | 执行策略 | 🟡 仅头文件 stub |
-| `archive/adr-0032-cost-collector.md` | 成本收集器 | ❌ 未实施 |
+| `phase-5-policy/adr-0032-cost-collector.md` | 成本收集器 | ❌ 未实施 |
 | `adr-0033-session-hierarchy.md` | 会话层次结构 | 🟡 仅前向声明 |
-| `archive/adr-0034-model-router.md` | 模型路由 | ❌ 未实施 |
-| `archive/adr-0036-hybrid-kernel-architecture.md` | 混合内核架构 | ❌ 未实施 |
+| `phase-7-router/adr-0034-model-router.md` | 模型路由 | ❌ 未实施 |
+| `phase-8-kernel/adr-0036-hybrid-kernel-architecture.md` | 混合内核架构 | ❌ 未实施 |
 
 
 ---
@@ -130,9 +137,9 @@ docs/
 ## agenticdsl/ - AgenticDSL 语言演进文档
 
 > **与 docs/adr/ 和 docs/specs/ 的关系**：`docs/adr/` 记录引擎实现决策，`docs/specs/` 描定当前引擎行为（v3.10）；
-> `docs/agenticdsl/` 记录**语言演进提案**，讨论 AgenticDSL 应该往哪个方向演化及其实现路径。
+> `docs/adr/agenticdsl/` 记录**语言演进提案**，讨论 AgenticDSL 应该往哪个方向演化及其实现路径。
 
-文档组织按**话题领域**（而非文档类型），共 13 个子目录：
+文档组织按**话题领域**（而非文档类型），共 14 个子目录：
 
 | 目录 | 话题 | 关联现有文档 |
 |------|------|------------|

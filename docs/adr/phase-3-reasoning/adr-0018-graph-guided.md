@@ -1,5 +1,5 @@
 # ADR-0018: 图引导假设生成
-> ⛔ **已废弃 (2026-06-09)** — 代码侧 0 命中,仅作设计历史保留。详见 OpenSpec change `tech-debt-and-doc-cleanup`
+> 📋 **Phase 3 规划: 推理能力** (规划于 2026-05/06, 2026-06-09 整理归档) — 见 `implementation-roadmap.md`
 ## 状态
 
 **❌ 未实施** (2026-05-13, 2026-06-09 标注废弃)
@@ -102,4 +102,4 @@ permissions:
 
 ## 参考
 
-- [ADR-0011: 知识图谱与 Meta-KG 导航](./archive/adr-0011-knowledge-graph.md)
+- [ADR-0011: 知识图谱与 Meta-KG 导航](../phase-2-memory/adr-0011-knowledge-graph.md)

@@ -215,7 +215,7 @@
 
 ## 9. 未审计范围 (留给后续)
 
-- `docs/agenticdsl/` 16+ 篇语言演进文档深度审计
+- `docs/adr/agenticdsl/` 16+ 篇语言演进文档深度审计
 - `docs/compiler/` 10 文件与 superpowers archive 关系
 - `external/` 第三方依赖状态 (llama.cpp / yaml-cpp / inja / nlohmann_json)
 - `examples/` 4 个示例的 CMake 集成状态
