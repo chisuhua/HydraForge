@@ -331,7 +331,7 @@ if (result.has_value()) {
 ## 参考
 
 - [ADR-0001: ILLMProvider 流式接口](./adr-0001-illm-provider-streaming-interface.md)
-- [ADR-0030: AsyncRuntime 双层协程](./adr-0030-async-runtime-dual-layer.md)
+- [ADR-0030: AsyncRuntime 双层协程](./archive/adr-0030-async-runtime-dual-layer.md)
 - [ADR-0002: EventBus 有界队列](./adr-0002-eventbus-bounded-queue.md)
 - [ADR-0033: SessionHierarchy](./adr-0033-session-hierarchy.md)
 - [llm_types.h 源文件](../../../src/common/llm/llm_types.h)

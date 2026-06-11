@@ -419,7 +419,7 @@ Lazy<void> handle_mode_change(
 
 - [ADR-0004: ToolRegistry 安全模型](./adr-0004-toolregistry-security.md) — ToolCategory、ApprovalPolicy、LayerProfile
 - [ADR-0002: EventBus 有界队列架构](./adr-0002-eventbus-bounded-queue.md) — 审批事件传输
-- [ADR-0030: AsyncRuntime 双层异步架构](./adr-0030-async-runtime-dual-layer.md) — 协程挂起等待
+- [ADR-0030: AsyncRuntime 双层异步架构](./archive/adr-0030-async-runtime-dual-layer.md) — 协程挂起等待
 - [ADR-0027: 三模式](./adr-0027-three-modes.md) — Plan/Agent/YOLO 模式定义
 - [ADR-0033: Session Hierarchy 执行会话层级体系](./adr-0033-session-hierarchy.md) — TaskSession 持有当前策略，模式切换与会话生命周期绑定
 

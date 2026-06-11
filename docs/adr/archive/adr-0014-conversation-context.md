@@ -163,4 +163,4 @@ memory.conversation.{agent_id}.{user_id}.meetings.{meeting_id}  # 会议上下�
 
 ## 参考
 
-- [ADR-0010: 记忆系统标准接口](./adr-0010-memory-system.md)
+- [ADR-0010: 记忆系统标准接口](./archive/adr-0010-memory-system.md)

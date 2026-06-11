@@ -95,4 +95,4 @@ permissions:
 ## 参考
 
 - [ADR-0008: 结构化 Context](./adr-0008-structured-context.md)
-- [ADR-0010: 记忆系统标准接口](./adr-0010-memory-system.md)
+- [ADR-0010: 记忆系统标准接口](./archive/adr-0010-memory-system.md)

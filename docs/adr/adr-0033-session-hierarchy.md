@@ -586,9 +586,9 @@ Context.token_count > limit 时：
 
 ## 参考
 - [ADR-0031 执行策略](./adr-0031-execution-policy.md)
-- [ADR-0032 成本收集](./adr-0032-cost-collector.md)
+- [ADR-0032 成本收集](./archive/adr-0032-cost-collector.md)
 - [ADR-0023 ToolResult 标准化](./adr-0023-tool-result-standard.md)
-- [ADR-0030 AsyncRuntime](./adr-0030-async-runtime-dual-layer.md)
+- [ADR-0030 AsyncRuntime](./archive/adr-0030-async-runtime-dual-layer.md)
 - [ADR-0004 ToolRegistry 安全](./adr-0004-toolregistry-security.md)
 - `src/core/types/context.h` — Context 类型定义
 - `src/modules/scheduler/execution_session.h` — 现有 ExecutionSession

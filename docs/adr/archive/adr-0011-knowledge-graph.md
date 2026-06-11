@@ -431,4 +431,4 @@ L1 System:  Agent 提示词 + 工具定义
 - [Graphiti: Temporal Knowledge Graph](https://github.com/mem0ai/graphiti)
 - [Cognee: Multi-modal Knowledge Graphs](https://github.com/mem0ai/cognee)
 - [MemGPT: Memory management for LLMs](https://github.com/MemGPT/MemGPT)
-- [ADR-0010: 记忆系统标准接口](./adr-0010-memory-system.md)
+- [ADR-0010: 记忆系统标准接口](./archive/adr-0010-memory-system.md)

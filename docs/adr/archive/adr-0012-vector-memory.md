@@ -275,4 +275,4 @@ L1 System:  Agent 提示词 + 工具定义
 
 - [LightRAG: Simple and Fast RAG](https://github.com/netease-youdao/LightRAG)
 - [Mem0: Memory system for AI](https://github.com/mem0ai/mem0)
-- [ADR-0010: 记忆系统标准接口](./adr-0010-memory-system.md)
+- [ADR-0010: 记忆系统标准接口](./archive/adr-0010-memory-system.md)

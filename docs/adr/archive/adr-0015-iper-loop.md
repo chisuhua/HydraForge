@@ -86,7 +86,7 @@ permissions:
 
 > **实现说明**：IPER 循环在 ADR-0030 中由 async_simple `Lazy<T>` 协程状态机实现，
 > 支持 `co_await` 挂起等待（如用户审批）和 `co_yield` 流式推送（如计划生成过程）。
-> 参见 [ADR-0030 第 3 节](./adr-0030-async-runtime-dual-layer.md) IPER 循环示例。
+> 参见 [ADR-0030 第 3 节](./archive/adr-0030-async-runtime-dual-layer.md) IPER 循环示例。
 
 ### 3. Trace 输出
 
@@ -113,4 +113,4 @@ permissions:
 ## 参考
 
 - [ADR-0009: DSL 标准库规划](./adr-0009-dsl-standard-library.md)
-- [ADR-0030: AsyncRuntime 双层异步架构](./adr-0030-async-runtime-dual-layer.md) — IPER 循环的协程状态机实现（`Lazy<T>`）
+- [ADR-0030: AsyncRuntime 双层异步架构](./archive/adr-0030-async-runtime-dual-layer.md) — IPER 循环的协程状态机实现（`Lazy<T>`）

@@ -430,7 +430,7 @@ DSLEngine 直接包含 InMemoryBus。
 - [ADR-0003: DSLEngine 线程安全](./adr-0003-dslengine-thread-safety.md)
 - [ADR-0006: HarnessEngine 后台线程模型（已替代）](./adr-0006-harness-engine-thread-model.md)
 - [ADR-0020: 多智能体线程模型与隔离策略](./adr-0020-thread-model-isolation.md)
-- [ADR-0030: AsyncRuntime 双层异步架构](./adr-0030-async-runtime-dual-layer.md) — Phase 2 协程实现依赖
+- [ADR-0030: AsyncRuntime 双层异步架构](./archive/adr-0030-async-runtime-dual-layer.md) — Phase 2 协程实现依赖
 
 ---
 

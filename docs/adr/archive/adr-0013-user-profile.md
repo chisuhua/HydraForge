@@ -165,4 +165,4 @@ L4 Working: memory.state.*              (键值状态，ADR-0010)
 ## 参考
 
 - [Mem0: Memory system for AI](https://github.com/mem0ai/mem0)
-- [ADR-0010: 记忆系统标准接口](./adr-0010-memory-system.md)
+- [ADR-0010: 记忆系统标准接口](./archive/adr-0010-memory-system.md)

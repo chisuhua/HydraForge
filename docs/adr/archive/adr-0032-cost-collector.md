@@ -404,7 +404,7 @@ ExecutionResult DSLEngine::run(const Context& context) {
 ## 参考
 
 - [ADR-0002: EventBus 有界队列架构](./adr-0002-eventbus-bounded-queue.md) — 事件传输层
-- [ADR-0030: AsyncRuntime 双层异步架构](./adr-0030-async-runtime-dual-layer.md) — TaskflowAsync 分发模式
+- [ADR-0030: AsyncRuntime 双层异步架构](./archive/adr-0030-async-runtime-dual-layer.md) — TaskflowAsync 分发模式
 - [ADR-0029: 成本监控](./adr-0029-cost-monitoring.md) — 从编程助手层迁移至基座层
 
 ---

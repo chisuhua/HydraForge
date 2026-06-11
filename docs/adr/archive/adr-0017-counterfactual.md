@@ -80,4 +80,4 @@ permissions:
 
 ## 参考
 
-- [ADR-0015: IPER 闭环推理](./adr-0015-iper-loop.md)
+- [ADR-0015: IPER 闭环推理](./archive/adr-0015-iper-loop.md)

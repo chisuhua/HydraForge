@@ -102,4 +102,4 @@ permissions:
 
 ## 参考
 
-- [ADR-0011: 知识图谱与 Meta-KG 导航](./adr-0011-knowledge-graph.md)
+- [ADR-0011: 知识图谱与 Meta-KG 导航](./archive/adr-0011-knowledge-graph.md)
