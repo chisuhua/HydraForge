@@ -94,6 +94,7 @@ add_subdirectory(src/modules/system)
 add_subdirectory(src/modules/cognitive)
 add_subdirectory(src/common/contract)
 add_subdirectory(src/common/policy)
+add_subdirectory(src/common/tools)
 
 add_library(agenticdsl_core STATIC
  src/core/engine.cpp
@@ -113,6 +114,7 @@ target_link_libraries(agenticdsl_core
  agenticdsl_modules_cognitive
  agenticdsl_contract
  agenticdsl_policy
+ agenticdsl_secure_tools
  Threads::Threads
 )
 

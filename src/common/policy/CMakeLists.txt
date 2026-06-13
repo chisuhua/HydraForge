@@ -9,6 +9,7 @@ add_library(agenticdsl_policy STATIC
  plan_mode_policy.cpp
  agent_mode_policy.cpp
  yolo_mode_policy.cpp
+ path_policy.cpp
 )
 
 target_include_directories(agenticdsl_policy PUBLIC
