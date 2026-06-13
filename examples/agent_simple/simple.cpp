@@ -1,13 +1,25 @@
-// ⚠️ DEPRECATED API NOTE (2026-06-12):
-// This example uses `agenticdsl::LlamaAdapter` (removed in commit 2804eac,
-// replaced by `ILLMProvider` interface per ADR-0001) and
-// `agenticdsl::InjaTemplateRenderer` (replaced by direct inja usage).
-// After fixing the include path above, this example still will not compile
-// due to use of removed APIs. A future OpenSpec change (post-Stage 3 of
-// project-organization plan) will migrate this example to MockLLMProvider
-// or the new ILLMProvider pattern, similar to `slice_01_tool_call/main.cpp`.
+// ⚠️ ACTUAL STATE NOTE (2026-06-13, OpenSpec change docs-code-drift-audit-2026-06):
+// 本文件使用 API 的实际状态（基于 git history 审计，非原 DEPRECATED 注释的删除假设）：
+//   - `agenticdsl::LlamaAdapter`: EXIST（src/common/llm/llama_adapter.h + .cpp 仍存在；
+//     commit 2804eac 实际删除的是 src/common/llm/llm_adapter.h——`ILLMAdapter` 接口，
+//     与 `LlamaAdapter` 类不同。`LlamaAdapter` 与 `LlamaAdapterProvider`（实现 ILLMProvider）
+//     现并存于代码库，未替换。）
+//   - `agenticdsl::InjaTemplateRenderer`: EXIST（src/common/utils/template_renderer.h + .cpp；
+//     89c1cca (2026-06-13) 实际给它新增了 LayeredContext 重载，仍是 4 个 call site 的核心模板组件。）
+//   - `agenticdsl::extract_pathed_blocks`: EXIST（src/common/utils/parser_utils.h:12）
+//
+// 实际编译错误（g++ -fsyntax-only 验证）：
+//   1. `examples/agent_simple/simple.cpp:10` `#include "common/utils.h"` 不存在
+//      → 文件已重组到 `common/utils/parser_utils.h`（1 行修复）
+//   2. `from_markdown(aggregated_dsl_content, agent_context)` 调用签名错误
+//      → 当前签名只接受 `(const std::string& markdown_content)` 单参数
+//   3. `agenticdsl::LlamaAdapter` 未在 agenticdsl 命名空间找到
+//      → LSP 显示该符号在此 namespace 不存在（实际类在 global namespace）
+//
+// 迁移路径：未来 OpenSpec change（独立于本 audit change）将本 example 迁移到
+// `MockLLMProvider` 模式（参考 examples/slice_01_tool_call/main.cpp:53-69）。
 #include "core/engine.h"
-#include "common/utils.h"
+#include "common/utils/parser_utils.h"
 #include <iostream>
 #include <thread>
 #include <chrono>

@@ -43,7 +43,7 @@ HydraForge/
     └── agent_loop/    # 循环执行示例
 ```
 
-> **注意**:`examples/agent_simple/` 和 `examples/agent_loop/` 使用了已废弃的 API(`LlamaAdapter` / `PromptBuilder`),保留仅作历史参考,编译会失败。迁移至 `MockLLMProvider` 或新 `ILLMProvider` 模式的工作将在未来的 OpenSpec change 中完成(参见 `.omo/plans/project-organization.md` Stage 3 / Task 14)。
+> **注意 (2026-06-13 审计更正, OpenSpec change `docs-code-drift-audit-2026-06`)**:`examples/agent_simple/` 和 `examples/agent_loop/` 的 DEPRECATED 注释基于错误删除假设撰写——`LlamaAdapter`/`InjaTemplateRenderer`/`extract_pathed_blocks` 实际**仍存在**于代码库;`PromptBuilder` 在 commit `9a619f3` (2025-11-05) 真删(早于原注释误归的 `ac9e684` 7 个月);`get_llm_adapter()` 真删(应改 `get_llm_provider()`)。具体真实编译错误见各文件 ACTUAL STATE NOTE 注释。迁移至 `MockLLMProvider` + `ILLMProvider` 模式的工作将由独立 OpenSpec change 完成(范围超出本 audit change)。
 
 ## WHERE TO LOOK
 | Task | Location | Notes |

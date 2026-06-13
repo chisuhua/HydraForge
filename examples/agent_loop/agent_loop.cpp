@@ -14,13 +14,26 @@ std::string load_file(const std::string& path) {
     return buffer.str();
 }
 
-// ⚠️ DEPRECATED API NOTE (2026-06-12):
-// This example uses `agenticdsl::PromptBuilder` which was removed when
-// `src/modules/prompts.yaml` was deleted (commit ac9e684, 2026-06-09).
-// The `build_prompt` function below will not compile until PromptBuilder
-// is replaced or re-introduced via a future OpenSpec change.
-// See `.omo/plans/project-organization.md` Stage 3 / Task 14 for the
-// LayeredContext migration that will eventually update this example.
+// ⚠️ ACTUAL STATE NOTE (2026-06-13, OpenSpec change docs-code-drift-audit-2026-06):
+// 本文件使用 API 的实际状态（基于 git history 审计）：
+//   - `agenticdsl::PromptBuilder`: DELETED，但删除时间早于 DEPRECATED 注释声称的时间
+//     - 真删 commit: `9a619f3` (2025-11-05，"update spec to v3.7")
+//     - 误归 commit: `ac9e684` (2026-06-09) 只删了 `src/modules/prompts.yaml` 数据文件
+//       + 一个引用已不存在 header 的 stub test (该 commit message 自己承认
+//       "tests/test_prompt_builder.cpp (8-line stub for non-existent header)")
+//   - `engine->get_llm_adapter()`: DELETED — DSLEngine 公共 API 现在是
+//     `get_llm_provider()` 返回 `ILLMProvider*`（src/core/engine.h:67）；
+//     原 `LlamaAdapter` 类仍存在但 DSLEngine 不再直接暴露它。
+//
+// 实际编译错误（g++ -c 验证）：
+//   1. `examples/agent_loop/agent_loop.cpp:58` `agenticdsl::PromptBuilder` 未声明
+//   2. `examples/agent_loop/agent_loop.cpp:95` `DSLEngine::get_llm_adapter` 不存在
+//      → 应改 `get_llm_provider()` + `dynamic_cast<MockLLMProvider*>` 模式
+//
+// 迁移路径：未来 OpenSpec change（独立于本 audit change）将本 example 迁移到
+// `MockLLMProvider` + `ILLMProvider` 模式（参考 examples/slice_01_tool_call/main.cpp）。
+// 完整修复需重新实现 `build_prompt`（PromptBuilder 已无可替代类）+ 重写 `main()` 的
+// LLM 调用部分。范围超出本 audit change（设计决策：保留作为 design history）。
 
 // 构建包含历史和可用库的 prompt
 std::string build_prompt(const agenticdsl::Context& ctx, const std::string& paused_at) {

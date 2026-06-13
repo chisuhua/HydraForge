@@ -10,7 +10,8 @@
 
 ### 2026-06-12 — Stage 4 Tasks 16-20：engine.h 跨模块耦合部分解耦
 
-**问题 §1.4 (跨模块耦合) 状态变更**：⛔ 待解决 → 🟡 **部分解决**（2/3 `modules/` 直接 include 已解决，剩余 1 个 + 3 个 `common/` include 需 PIMPL 化）。
+**问题 §1.4 (跨模块耦合) 状态变更**：⛔ 待解决 → 🟡 **部分解决**（3 deep `modules/` 已移除: topo_scheduler.h/markdown_parser.h/budget_controller.h; 剩余 1 leaf `modules/trace/trace_exporter.h` + 3 `common/` (llm_types.h/mock_provider.h/registry.h) 待独立 ADR 解耦）。
+> **2026-06-13 审计更正（OpenSpec change `docs-code-drift-audit-2026-06`）**：原 "2/3 modules/ 直接 include 已解决" 描述不准确——3 deep modules/ 实际全部移除;1 leaf modules/trace/ + 3 common/ 残留待 future ADR。Plan 退出标准 `grep -c '#include "modules/\|common/' src/core/engine.h = 0` 当前实际 = 4。
 
 **已完成的解耦动作**（Stage 4 / Tasks 16-20）：
 

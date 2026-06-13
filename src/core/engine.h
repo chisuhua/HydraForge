@@ -4,22 +4,27 @@
 // 设计依据：tech-debt-and-doc-cleanup 阶段 4 任务 4.3 (REQ-cost-tracker-integration)
 //          + project-organization 计划 Stage 4 / Task 19 (engine.h 解耦第一阶段)
 // 作者：tech-debt-and-doc-cleanup change
-// 最后修改日期：2026-06-12 (Stage 4 / Task 19 — FULL decoupling, 3/3 modules/ includes removed)
+// 最后修改日期：2026-06-13 [2026-06-13 audit: 3/3 deep modules/ removed, 1 leaf modules/trace/ + 3 common/ remain]
+//                    (Stage 4 / Task 19 — PARTIAL decoupling per OpenSpec change docs-code-drift-audit-2026-06)
 
 #ifndef AGENTICDSL_CORE_ENGINE_H
 #define AGENTICDSL_CORE_ENGINE_H
 
-// === Stage 4 / Task 19: FULL decoupling achieved (3/3 deep modules/ includes removed) ===
-// 已移除：topo_scheduler.h、markdown_parser.h（这 2 个仅在 .cpp 中使用，
+// === Stage 4 / Task 19: PARTIAL decoupling (3 deep modules/ removed; 1 leaf modules/trace/ + 3 common/ remain; full = future ADR) ===
+// 已移除（3 deep modules/）：topo_scheduler.h、markdown_parser.h（这 2 个仅在 .cpp 中使用，
 //        engine.h 本身不引用 TopoScheduler / MarkdownParser 类型，
-//        故 include 是纯传递依赖，删除对编译无影响）。
-// 已移除：budget_controller.h（原本因 BudgetController 是 DSLEngine 的成员类型、
+//        故 include 是纯传递依赖，删除对编译无影响）；
+//        budget_controller.h（原本因 BudgetController 是 DSLEngine 的成员类型、
 //        内联 accessor 需要完整类型而保留。本 Task 采用 PIMPL-lite 技术解耦：
 //        前向声明 + std::unique_ptr<BudgetController> 成员 + 类外定义
 //        accessor 与 destructor，从而将完整类型依赖限制在 engine.cpp 内）。
 // 改为：移除的 2 个（topo_scheduler / markdown_parser）被替换为 contract 抽象接口
 //      （IScheduler / IParser）作为后续 Task 17-21 的演进基础。
-// 保留：3 个 common/ 头文件 + 1 个 leaf modules/trace/ 头文件（见下方说明）。
+// 保留（4 头文件，需未来 OpenSpec change 处理）：3 个 common/ 头文件 +
+//        1 个 leaf modules/trace/ 头文件（见下方说明）。
+// 验证：本文件当前仍保留 4 个跨模块 include（3 个 common/ + 1 个 modules/trace/），
+//       期望 0（待 future OpenSpec change 完成）。
+//       完整审计报告见 OpenSpec change `docs-code-drift-audit-2026-06`。
 
 #include "common/llm/llm_types.h"      // ILLMProvider*, ILLMTool, LLMParams 接口 (保留)
 #include "common/llm/mock_provider.h"  // 默认 LLM provider 实现 (保留)
@@ -28,8 +33,9 @@
 #include "agenticdsl/contract/iparser.h"    // IParser 抽象接口 (Stage 4 / Task 16)
 // 例外：TraceRecord 当前仅由 engine 暴露给外部 (get_last_traces 返回 std::vector<TraceRecord>)。
 // 该类型是 POD 结构体，定义在 modules/trace/trace_exporter.h。
-// 完整解耦需在后续 Task 将 TraceRecord 上移到 include/agenticdsl/types/ 或 contract 层。
-#include "modules/trace/trace_exporter.h" // TraceRecord POD 定义 (Stage 4+ 待迁移)
+// 完整解耦需在后续 OpenSpec change 将 TraceRecord 上移到 include/agenticdsl/types/ 或 contract 层
+// （与 Task 19 的 modules/ + common/ 剩余 include 一起处理，详见 ADR-0019 §1.4）。
+#include "modules/trace/trace_exporter.h" // TraceRecord POD 定义 (OpenSpec docs-code-drift-audit-2026-06 待迁移)
 
 #include <memory>
 #include <string>
