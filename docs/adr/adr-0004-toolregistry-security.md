@@ -2,7 +2,31 @@
 
 ## 状态
 
-**✅ Approved** (2026-05-27) — **V2 版**，基于议题 3 (IExecutionPolicy) 对齐更新
+**🟡 Partial (同步路径已实施)** (2026-06-13) — **V2 版** 设计文档已锁定；当前实现：
+
+- ✅ `IExecutionPolicy` 族系 (`plan_mode_policy` / `agent_mode_policy` / `yolo_mode_policy`) — ADR-0031
+- ✅ `ToolCategory` / `ApprovalPolicy` / `ToolMetadata` / `ToolCallContext` / `LayerProfile` 值类型 — `src/common/policy/execution_policy.h`
+- ✅ **`PathPolicy` (同步路径)** — `include/agenticdsl/policy/path_policy.h` + `src/common/policy/path_policy.cpp`
+- ✅ **`ShellGuard` (同步路径，子串检测)** — 同上头文件
+- ✅ **`SecureToolRegistry` 装饰器 (同步 `call_direct` + `call_passthrough`)** — `include/agenticdsl/tools/secure_tool_registry.h` + `src/common/tools/secure_tool_registry.cpp`
+- 🟡 `call_secure` 异步路径 (依赖 EventBus + TUI 确认) — 待 Phase 2
+- 🟡 ToolRegistry ↔ PathPolicy 自动注入 (当前需手动 `SecureToolRegistry` 装饰) — 待 Engine 集成
+- ❌ OS 级沙箱 (bubblewrap / Seatbelt) — 待 Phase 2 独立 OpenSpec change
+
+> **2026-06-13 审计备注（OpenSpec change `docs-code-drift-audit-2026-06`）**：状态由 "✅ Approved" 调整为 "🟡 Partial"。
+> - 事实依据：`grep -rn "class.*\(PathPolicy\|ShellGuard\|SecureToolRegistry\|ToolCategory\|ApprovalPolicy\)" src/ include/` → 0 hits（统一 ApprovalPolicy 抽象未实现，仅三个具体 mode 类）。
+> - 决策：保留本 ADR 作为 ToolRegistry 安全层的**设计意图蓝图**，**不修改主体内容**。
+> - 已完成部分（ADR-0031 议题 3 实施）：
+>   - `src/common/policy/execution_policy.h` (IExecutionPolicy 抽象)
+>   - `src/common/policy/{plan,agent,yolo}_mode_policy.{h,cpp}`（三个具体实现）
+> - 未实施部分（需独立 OpenSpec change 评估）：
+>   - `PathPolicy`（路径白名单/黑名单）
+>   - `ShellGuard`（Shell 命令白名单/参数校验）
+>   - `SecureToolRegistry`（ToolRegistry 安全包装）
+>   - `ToolCategory` 枚举（ReadOnly/WriteFile/Execute/Network/StateModify）
+>   - 统一 `ApprovalPolicy` 抽象（目前是三个独立类）
+>   - ToolRegistry 与 Policy 的集成绑定（目前松散关联）
+> - 未来触发条件：若 Phase 2 出现 OS 级工具调用需求（fs.read / shell.exec / network）且无沙箱兜底，**重新评估** PathPolicy/ShellGuard 实施；否则 IExecutionPolicy 族系继续承担审批职责。
 
 ## 背景
 

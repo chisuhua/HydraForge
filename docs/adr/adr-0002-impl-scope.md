@@ -1,8 +1,7 @@
 # ADR-0002 实现范围审计 (Implementation Scope Audit)
 
-> **PENDING DECISION** — 本文件由 OpenSpec change `docs-code-drift-audit-2026-06` 创建 (2026-06-13)。
-> 状态：等待用户决策（保留作为 FTXUI 系统设计历史 vs 重新起草为 InMemoryBus 描述）。
-> 决策前 **不修改** `docs/adr/adr-0002-eventbus-bounded-queue.md` 原文。
+> **✅ DECIDED (2026-06-13)** — 本文件由 OpenSpec change `docs-code-drift-audit-2026-06` 创建 (2026-06-13)。
+> 状态：决策已完成（选项 A + 附加步骤），同步更新了 `adr-0002-eventbus-bounded-queue.md` 头部状态行。
 
 ## ADR 描述（引用 ADR-0002 原文要点）
 
@@ -66,10 +65,22 @@ include/agenticdsl/contract/inmemory_bus.h
 - 优点：清晰分离已废弃 vs 当前有效
 - 缺点：13 个已废弃 ADR 已归档，再归档一个可能让目录结构变复杂
 
-## 决策需求 (PENDING)
+## 决策记录 (2026-06-13)
 
-**需用户输入**：
-- 选择 A / B / C / 其他？
-- 是否同时处理 ADR-0004（同问题）？
+**用户决策**：选项 A + 附加步骤。
 
-本 change 仅创建本 audit 文件，**不预设决策**。
+**已执行动作**：
+1. ✅ `adr-0002-eventbus-bounded-queue.md` 头部状态行： `✅ Approved` → `📦 设计历史 (未实施)`，附 2026-06-13 审计备注与未来重新评估触发条件说明。**主体内容未修改**。
+2. ✅ `adr-0019-iinteraction-bus-mvp.md` §1.1 "MVP 简化" 段落末尾：增加 "重新评估 EventBus 实施的触发条件" 段落，包含 4 个量化触发条件（吞吐瓶颈 / Per-Session 隔离 / 优先级背压 / 多 Agent 协作）与不触发则不实施原则。
+3. ✅ `adr-0004-impl-scope.md` 同问题一并处理（见该文件决策记录）。
+
+**决策依据**：
+- 架构蓝图已通过 `IInteractionBus` 抽象接口与 EventBus **解耦**——`InMemoryBus` 是当前实现，未来 EventBus 实现可作为新的 `IInteractionBus` 实现类平滑替换，不破坏 API 表面。
+- 阶段性目标（Phase 1 TUI Chat）实际吞吐 < 1K events/s，InMemoryBus (mutex + queue) 足够。
+- 重新评估路径已具象化为**量化触发条件**，避免"未来某天再说"式债务。
+
+**未触动项**（明确不动）：
+- ADR-0002 主体内容（V2 架构设计、代码示例、权衡分析等）保持原样
+- `IInteractionBus` 接口签名不变
+- `InMemoryBus` 实现不变
+- `examples/agent_chat/` TUI 仍按原计划推进（独立 OpenSpec change 范围）

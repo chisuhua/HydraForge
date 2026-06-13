@@ -113,6 +113,20 @@ HydraForge 当前架构存在以下问题：
 - `InMemoryBus` 直接实现 IInteractionBus，用 `std::mutex` 替代 EventBus 队列
 - 未来 EventBus 实现后，`InMemoryBus` 可重构为底层使用 EventBus
 
+**重新评估 EventBus 实施的触发条件**（2026-06-13 补充）：
+
+InMemoryBus 当前对 Phase 1 足够（单/多 Agent TUI Chat、< 1K events/s 量级）。当且仅当以下任一触发条件满足时，**才**重新评估 EventBus 实施：
+
+| 触发条件 | 量化阈值 | 验证方式 |
+|---|---|---|
+| 吞吐瓶颈 | `InMemoryBus::emit()` 实测 P99 延迟 > 5ms | benchmark/ 压测 10K events/s |
+| Per-Session 隔离 | 出现"某 session 高频事件阻塞其他 session"反馈 | 多 session 并发压测 |
+| 优先级背压 | Critical 事件因 Low 事件堆积而延迟 > 100ms | 混合优先级压测 |
+| 多 Agent 协作 | Phase 3 Agent 间通信需求落地 | ADR-0030 重新激活评估 |
+
+**不触发则不实施**：上述条件未满足时，InMemoryBus 路径继续演进，EventBus 维持 "📦 设计历史" 状态。
+**触发时替换路径**：`InMemoryBus` 已抽象为 `IInteractionBus` 接口；新 EventBus 实现作为 `IInteractionBus` 另一个实现类（如 `EventBusBackedInteractionBus`），通过 `set_interaction_bus()` 注入，无需修改 DSLEngine 业务逻辑。
+
 ### 2. 契约层设计
 
 #### 2.1 契约层位置
