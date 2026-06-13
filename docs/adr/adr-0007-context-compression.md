@@ -2,7 +2,7 @@
 
 ## 状态
 
-**🟡 部分实施** (2026-05-12, 2026-06-09 更新)
+**🟡 Partial** (2026-05-12, 2026-06-09 更新)
 
 快照机制 (`ContextEngine::save_snapshot`) 已实现,但 LLM 驱动的语义压缩未实施。详见 OpenSpec change `tech-debt-and-doc-cleanup`。
 

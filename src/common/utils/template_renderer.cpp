@@ -1,5 +1,6 @@
 // common/utils/template_renderer.cpp
 #include "template_renderer.h"
+#include "agenticdsl/types/context_flatten.h" // Stage 3 / Task 13: flatten(LayeredContext)
 #include <inja/inja.hpp>
 #include <stdexcept>
 #include <algorithm>
@@ -42,6 +43,24 @@ std::string InjaTemplateRenderer::render_with_env(std::string_view template_str,
     } catch (const inja::InjaError& e) {
         throw std::runtime_error("Template render error: " + std::string(e.message));
     }
+}
+
+// ============================================================
+// LayeredContext 重载实现 (Stage 3 / Task 13)
+// 内部调用 agenticdsl::flatten() 拍平为 nlohmann::json,
+// 然后复用现有 Context 重载的渲染路径, 避免重复 inja 配置逻辑。
+// ============================================================
+
+std::string InjaTemplateRenderer::render(std::string_view template_str,
+                                         const LayeredContext& context) {
+    nlohmann::json flat = flatten(context);
+    return render(template_str, flat); // 复用 Context 重载 (递归调用 static render)
+}
+
+std::string InjaTemplateRenderer::render_with_env(std::string_view template_str,
+                                                  const LayeredContext& context) {
+    nlohmann::json flat = flatten(context);
+    return render_with_env(template_str, flat); // 复用 Context 重载的 env_.render
 }
 
 } // namespace agenticdsl

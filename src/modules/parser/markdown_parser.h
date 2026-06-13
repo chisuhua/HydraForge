@@ -4,6 +4,7 @@
 
 #include "core/types/node.h" // 引入 Node, NodePath, ParsedGraph
 #include "core/types/budget.h" // 引入 ExecutionBudget
+#include "agenticdsl/contract/iparser.h"  // ADR-0019 §1.4：实现 IParser 抽象接口
 #include <string>
 #include <vector>
 #include <memory>
@@ -12,10 +13,13 @@
 
 namespace agenticdsl {
 
-class MarkdownParser {
+class MarkdownParser : public IParser {
 public:
     std::vector<ParsedGraph> parse_from_string(const std::string& markdown_content);
     std::vector<ParsedGraph> parse_from_file(const std::string& file_path);
+
+    ParsedGraph parse(const std::string& markdown) override;
+    ParsedGraph parse_file(const std::filesystem::path& p) override;
 
     std::unique_ptr<Node> create_node_from_json(const NodePath& path, const nlohmann::json& node_json);
 

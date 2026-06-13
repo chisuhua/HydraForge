@@ -7,7 +7,7 @@
 #include "core/types/resource.h" // 引入 ResourceType
 #include "common/utils/template_renderer.h" // 引入 InjaTemplateRenderer
 #include "common/tools/registry.h" // 引入 ToolRegistry
-#include "modules/parser/markdown_parser.h" // 引入 ResourceManager
+#include "agenticdsl/contract/iparser.h" // ADR-0019 §1.4: 仅依赖解析器抽象接口
 #include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
@@ -26,6 +26,10 @@ public:
     // C₁.2 迁移：构造函数从 LlamaAdapter* 改为 ILLMProvider*（向后兼容：仍可传 nullptr）
     NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider = nullptr);
 
+    // ADR-0019 §1.4 + Stage 4 Task 20: 依赖反转，注入 IParser 抽象
+    NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider,
+                 std::unique_ptr<IParser> parser);
+
     // 执行一个节点，返回新的上下文
     Context execute_node(Node* node, const Context& ctx);
     void set_append_graphs_callback(AppendGraphsCallback cb) {
@@ -37,7 +41,8 @@ private:
     // C₁.2: ILLMProvider 接口注入点（可为 nullptr）
     ILLMProvider* llm_provider_;
     AppendGraphsCallback append_graphs_callback_;
-    MarkdownParser markdown_parser_; // ← 新增成员
+    // ADR-0019 §1.4 + Stage 4 Task 20: 通过 IParser 抽象持有具体解析器
+    std::unique_ptr<IParser> parser_;
 
     // 权限检查
     void check_permissions(const std::vector<std::string>& perms, const NodePath& node_path);

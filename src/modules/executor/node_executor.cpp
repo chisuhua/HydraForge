@@ -3,7 +3,7 @@
 #include "common/llm/llm_types.h" // C₁.2: 需要完整定义（生成 GenerationRequest/ILLMProvider）
 #include "common/log/log.h"  // agenticdsl::log facade
 #include "common/utils/template_renderer.h" // 引入 InjaTemplateRenderer (for rendering)
-#include "modules/parser/markdown_parser.h" // ← 新增：包含 MarkdownParser
+#include "modules/parser/markdown_parser.h" // Stage 4 Task 20: 仅在 .cpp 内用于默认 shim，不再被 header 引入
 #include <stdexcept>
 #include <inja/inja.hpp> // For RenderError
 #include <algorithm> // For std::find
@@ -13,10 +13,17 @@
 namespace agenticdsl {
 
 // C₁.2 迁移：构造函数从 LlamaAdapter* 改为 ILLMProvider*
+// Stage 4 Task 20: 此构造函数保留为 shim，内部创建默认 MarkdownParser 并委托给主构造函数
 NodeExecutor::NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider)
-    : tool_registry_(tool_registry), llm_provider_(llm_provider), markdown_parser_() {
+    : NodeExecutor(tool_registry, llm_provider,
+                   std::make_unique<MarkdownParser>()) {
     // llm_provider_ 可能为 nullptr，NodeExecutor 需要处理这种情况
 }
+
+// Stage 4 Task 20: 主构造函数，通过 IParser 抽象注入具体解析器
+NodeExecutor::NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider,
+                            std::unique_ptr<IParser> parser)
+    : tool_registry_(tool_registry), llm_provider_(llm_provider), parser_(std::move(parser)) {}
 
 Context NodeExecutor::execute_node(Node* node, const Context& ctx) {
     Context context_with_resources = ctx;
@@ -282,7 +289,8 @@ Context NodeExecutor::execute_generate_subgraph(const GenerateSubgraphNode* node
         // For this executor, assume a global or injected mechanism or return the result for the scheduler to handle.
         // Let's assume the scheduler calls a parser and handles the dynamic graph registration.
         // Here, we just parse and return the generated paths in the context.
-        auto new_graphs = markdown_parser_.parse_from_string(generated_dsl); // ← 通过实例调用
+        // Stage 4 Task 20: 通过 IParser 抽象调用；IParser::parse 返回单 ParsedGraph，包装为 vector 以兼容下游 for-range
+        auto new_graphs = std::vector<ParsedGraph>{parser_->parse(generated_dsl)};
         std::vector<std::string> dynamic_paths; // Collect paths of generated graphs
         for (auto& graph : new_graphs) {
             if (graph.path.rfind("/dynamic/", 0) == 0) { // Ensure it's dynamic

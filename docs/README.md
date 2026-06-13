@@ -5,17 +5,12 @@
 ```
 docs/
 ├── adr/              # Architecture Decision Records (架构决策, 阶段化分类)
-│   ├── phase-2-memory/  # 5 ADR: 记忆系统
-│   ├── phase-3-reasoning/  # 4 ADR: 推理能力
-│   ├── phase-5-async/  # 1 ADR: 异步架构
-│   ├── phase-5-policy/  # 1 ADR: 安全与策略
-│   ├── phase-7-router/  # 1 ADR: 模型路由
-│   ├── phase-8-kernel/  # 1 ADR: 混合内核架构
-│   └── agenticdsl/   # 32 docs: AgenticDSL 语言演进
+│   └── (无 — AgenticDSL 演进提案已移至 docs/proposals/)
 ├── specs/            # 规范文档 (当前有效版本)
 ├── guides/           # 用户和开发者指南
 ├── design/           # 设计文档
 ├── archive/          # 归档 (过期版本)
+├── proposals/        # AgenticDSL 语言演进提案 (18 docs: 14 话题子目录 + 4 根文件)
 └── implementation-roadmap.md  # 实施路线图 (跨 ADR 执行追踪)
 ```
 
@@ -27,37 +22,25 @@ docs/
 
 | 文件 | 议题 | 状态 |
 |------|------|------|
-| `adr-0001-illm-provider-streaming-interface.md` | ILLMProvider 流式接口 | ✅ 已批准 |
-| `adr-0002-eventbus-bounded-queue.md` | EventBus 有界队列 | ❌ 未实施 |
-| `adr-0003-dslengine-thread-safety.md` | DSLEngine 线程安全 | ✅ 已批准 |
-| `adr-0004-toolregistry-security.md` | ToolRegistry 安全模型 | ❌ 未实施 |
-| `adr-0005-llm-backend-config-factory.md` | LLM 后端配置与工厂 | ✅ 已批准 |
-| `adr-0006-harness-engine-thread-model.md` | HarnessEngine 后台线程 | ⛔ 已废弃 (被 ADR-0020 替代) |
+| `adr-0001-illm-provider-streaming-interface.md` | ILLMProvider 流式接口 | ✅ Approved |
+| `adr-0002-eventbus-bounded-queue.md` | EventBus 有界队列 | ✅ Approved |
+| `adr-0003-dslengine-thread-safety.md` | DSLEngine 线程安全 | ✅ Approved |
+| `adr-0004-toolregistry-security.md` | ToolRegistry 安全模型 | ✅ Approved |
+| `adr-0005-llm-backend-config-factory.md` | LLM 后端配置与工厂 | ✅ Approved |
+| `adr-0006-harness-engine-thread-model.md` | HarnessEngine 后台线程 | ⛔ Superseded (被 ADR-0020 替代) |
 | `relationships.md` | ADR 联合分析、依赖关系、实施顺序 | 📋 跨 ADR 参考 |<!-- 非 ADR，独立文件 -->
-| `adr-0007-context-compression.md` | 上下文压缩机制 | 🟡 部分实施 (快照有,无 LLM 压缩) |
-| `adr-0008-structured-context.md` | 结构化 Context | ❌ 未实施 (LayeredContext 不存在) |
-| `adr-0009-dsl-standard-library.md` | DSL 标准库规划 | ✅ 已批准 |
-| `phase-2-memory/adr-0010-memory-system.md` | 记忆系统标准接口 | ❌ 未实施 (规划中) |
-| `phase-2-memory/adr-0011-knowledge-graph.md` | 知识图谱与 Meta-KG 导航 | ❌ 未实施 (规划中) |
-| `phase-2-memory/adr-0012-vector-memory.md` | 向量语义记忆 | ❌ 未实施 (规划中) |
-| `phase-2-memory/adr-0013-user-profile.md` | 用户画像管理 | ❌ 未实施 (规划中) |
-| `phase-2-memory/adr-0014-conversation-context.md` | 对话上下文隔离 | ❌ 未实施 (规划中) |
-| `phase-3-reasoning/adr-0015-iper-loop.md` | IPER 闭环推理 | ❌ 未实施 (规划中) |
-| `phase-3-reasoning/adr-0016-try-catch.md` | 异常自动快照回溯 | ❌ 未实施 (规划中) |
-| `phase-3-reasoning/adr-0017-counterfactual.md` | 反事实推理 | ❌ 未实施 (规划中) |
-| `phase-3-reasoning/adr-0018-graph-guided.md` | 图引导假设生成 | ❌ 未实施 (规划中) |
-| `adr-0019-iinteraction-bus-mvp.md` | IInteractionBus 接口与 TUI Chat MVP | ✅ 已批准 |
-| `adr-0020-thread-model-isolation.md` | 多智能体线程模型与隔离策略 | ❌ 未实施 (SimpleCognitiveOrchestrator 有,WorkerPool 无) |
-| `adr-0021-pdk-design.md` | Plugin Development Kit (PDK) 设计 | 🔍 提议中 |
-| `adr-0022-plugin-loading.md` | 插件加载机制 | 🔍 提议中 |
-| `adr-0023-tool-result-standard.md` | ToolResult 标准化 | 🔄 部分实施 (P1) |
-| `phase-5-async/adr-0030-async-runtime-dual-layer.md` | 异步运行时双层架构 | ❌ 未实施 |
-| `adr-0031-execution-policy.md` | 执行策略 | 🟡 仅头文件 stub |
-| `phase-5-policy/adr-0032-cost-collector.md` | 成本收集器 | ❌ 未实施 |
-| `adr-0033-session-hierarchy.md` | 会话层次结构 | 🟡 仅前向声明 |
-| `phase-7-router/adr-0034-model-router.md` | 模型路由 | ❌ 未实施 |
-| `phase-8-kernel/adr-0036-hybrid-kernel-architecture.md` | 混合内核架构 | ❌ 未实施 |
+| `adr-0007-context-compression.md` | 上下文压缩机制 | 🟡 Partial (快照有,无 LLM 压缩) |
+| `adr-0008-structured-context.md` | 结构化 Context | ✅ Approved (2026-06-12 LayeredContext 实现完成) |
+| `adr-0009-dsl-standard-library.md` | DSL 标准库规划 | ✅ Approved |
+| `adr-0019-iinteraction-bus-mvp.md` | IInteractionBus 接口与 TUI Chat MVP | ✅ Approved |
+| `adr-0020-thread-model-isolation.md` | 多智能体线程模型与隔离策略 | 🟡 Partial (SimpleCognitiveOrchestrator 有,WorkerPool 无) |
+| `adr-0021-pdk-design.md` | Plugin Development Kit (PDK) 设计 | 🔍 Proposed |
+| `adr-0022-plugin-loading.md` | 插件加载机制 | 🔍 Proposed |
+| `adr-0023-tool-result-standard.md` | ToolResult 标准化 | 🟡 Partial (P1) |
+| `adr-0031-execution-policy.md` | 执行策略 | 🟡 Partial (仅头文件 stub) |
+| `adr-0033-session-hierarchy.md` | 会话层次结构 | 🟡 Partial (仅前向声明) |
 
+> ADR 编号 0024-0028 为未来 Phase-4 / Phase-6 规划保留；占位文件 0029/0035 已删除（2026-06-12）；13 个已废弃 ADR 已归档到 [docs/archive/adr/](archive/adr/README.md)
 
 ---
 
@@ -71,10 +54,8 @@ docs/
 | `layer0.md` | L0 运行时规范 | DSL 引擎核心行为 |
 | `layer0-refactor.md` | L0 重构计划 | Layer0 重构计划 |
 | `dsl.md` | DSL 规范 v3.10 | 最新 DSL 语言规范 |
-| `dsl-lib.md` | DSL 库规范 v3.10 | DSL 子图和工具库 |
-| `phase2-standard-library.md` | Phase 2 标准库规划 | ADR-0010~0018 子图清单 |
-| `stdlib.md` | 标准库规范 | 内置工具和子图 |
-| `memory.md` | 记忆系统 | 上下文和记忆管理 |
+| `stdlib-v3.10.md` | DSL 标准库 v3.10 | 合并自 dsl-lib + stdlib (Stage 2 / Task 8) |
+| `memory-v3.10.md` | DSL 内存记忆规范 v3.10 | 合并自 memory.md (MEP-001 v3.2 Draft) + dsl.md §10.3 (Stage 2 / Task 9) |
 
 ---
 
@@ -123,6 +104,8 @@ docs/
 | `v3.1/` | DSL v3.1 规范 (过期) |
 | `v3.0/` | DSL v3.0 规范 (过期) |
 | `v2.3/` | DSL v2.3 规范 (过期) |
+| `adr/` | 归档 ADR (13 个, 2026-06-12) — 见 [archive/adr/README.md](archive/adr/README.md) |
+| `specs/` | 归档 Spec (Phase 2 标准库 v1.0, 2026-06-12) — 见 [archive/specs/phase2-standard-library-v1.0.md](archive/specs/phase2-standard-library-v1.0.md) |
 
 **其他归档文件**：
 - `AgenticDSL whitepaper.md` - 白皮书 (过期)
@@ -134,30 +117,32 @@ docs/
 
 ---
 
-## agenticdsl/ - AgenticDSL 语言演进文档
+## proposals/ - AgenticDSL 语言演进提案
 
 > **与 docs/adr/ 和 docs/specs/ 的关系**：`docs/adr/` 记录引擎实现决策，`docs/specs/` 描定当前引擎行为（v3.10）；
-> `docs/adr/agenticdsl/` 记录**语言演进提案**，讨论 AgenticDSL 应该往哪个方向演化及其实现路径。
+> `docs/proposals/` 记录**语言演进提案**，讨论 AgenticDSL 应该往哪个方向演化及其实现路径。
+>
+> 注:此目录原位于 `docs/adr/agenticdsl/`(2026-06-12 升级为顶层目录,语义边界更清晰)。
 
 文档组织按**话题领域**（而非文档类型），共 14 个子目录：
 
 | 目录 | 话题 | 关联现有文档 |
 |------|------|------------|
 | `vision/` | 自举愿景与演进路线图 | [specs/dsl.md](specs/dsl.md), [specs/architecture.md](specs/architecture.md) |
-| `skill-system/` | 技能分类体系、invoke/compose 语法、当前 6 技能映射（规划 39） | [examples/skill_porting/skills/](../../examples/skill_porting/skills/), [adr/adr-0009](adr/adr-0009-dsl-standard-library.md) |
-| `session-state/` | 四层隔离模型、ModuleState/Yield/Fork 语义、Oracle 问答 | [adr/adr-0014](adr/adr-0014-conversation-context.md), [adr/adr-0008](adr/adr-0008-structured-context.md) |
-| `inference-stdlib/` | 推理标准库接口设计与子图规格 | [adr/adr-0001](adr/adr-0001-illm-provider-streaming-interface.md), [specs/dsl-lib.md](specs/dsl-lib.md) |
-| `language-extensions/` | 类型系统、模块命名空间、标准库扩展 | [specs/dsl.md](specs/dsl.md), [specs/dsl-lib.md](specs/dsl-lib.md) |
-| `implementation-roadmap/` | 6 步实施计划与代码映射 | [src/](../src/) |
-| `research/` | 推理引擎调研报告（vLLM/SGLang/llama.cpp） | [adr/adr-0001](adr/adr-0001-illm-provider-streaming-interface.md) |
-| `architecture/` | 推理架构、路由器、质量评估器设计 | [adr/adr-0001](adr/adr-0001-illm-provider-streaming-interface.md), [adr/adr-0008](adr/adr-0008-structured-context.md) |
+| `skill-system/` | 技能分类体系、invoke/compose 语法、当前 6 技能映射（规划 39） | [examples/skill_porting/skills/](../../examples/skill_porting/skills/), [adr/adr-0009](../adr/adr-0009-dsl-standard-library.md) |
+| `session-state/` | 四层隔离模型、ModuleState/Yield/Fork 语义、Oracle 问答 | [adr/adr-0014](../adr/adr-0014-conversation-context.md), [adr/adr-0008](../adr/adr-0008-structured-context.md) |
+| `inference-stdlib/` | 推理标准库接口设计与子图规格 | [adr/adr-0001](../adr/adr-0001-illm-provider-streaming-interface.md), [specs/stdlib-v3.10.md](specs/stdlib-v3.10.md) |
+| `language-extensions/` | 类型系统、模块命名空间、标准库扩展 | [specs/dsl.md](specs/dsl.md), [specs/stdlib-v3.10.md](specs/stdlib-v3.10.md) |
+| `implementation-roadmap/` | 6 步实施计划与代码映射 | [src/](../../src/) |
+| `research/` | 推理引擎调研报告（vLLM/SGLang/llama.cpp） | [adr/adr-0001](../adr/adr-0001-illm-provider-streaming-interface.md) |
+| `architecture/` | 推理架构、路由器、质量评估器设计 | [adr/adr-0001](../adr/adr-0001-illm-provider-streaming-interface.md), [adr/adr-0008](../adr/adr-0008-structured-context.md) |
 | `optimization/` | 推理优化方向方案（6 维度） | — |
-| `implementation/` | 自举实施路径、阶段 0 实施方案 | [adr/adr-0001](adr/adr-0001-illm-provider-streaming-interface.md), [adr/adr-0005](adr/adr-0005-llm-backend-config-factory.md) |
+| `implementation/` | 自举实施路径、阶段 0 实施方案 | [adr/adr-0001](../adr/adr-0001-illm-provider-streaming-interface.md), [adr/adr-0005](../adr/adr-0005-llm-backend-config-factory.md) |
 | `testing/` | 测试策略（金字塔、Mock 策略、CI） | — |
-| `api/` | CloudLLMAdapter API 设计 | [adr/adr-0001](adr/adr-0001-illm-provider-streaming-interface.md), [adr/adr-0005](adr/adr-0005-llm-backend-config-factory.md) |
-| `operations/` | 安全规范、性能基准 | [adr/adr-0004](adr/adr-0004-toolregistry-security.md) |
+| `api/` | CloudLLMAdapter API 设计 | [adr/adr-0001](../adr/adr-0001-illm-provider-streaming-interface.md), [adr/adr-0005](../adr/adr-0005-llm-backend-config-factory.md) |
+| `operations/` | 安全规范、性能基准 | [adr/adr-0004](../adr/adr-0004-toolregistry-security.md) |
 
-详细索引见 [agenticdsl/README.md](agenticdsl/README.md)。
+详细索引见 [proposals/README.md](proposals/README.md)。
 
 ---
 
@@ -176,5 +161,9 @@ docs/
 | 日期 | 更新内容 |
 |------|---------|
 | 2026-05-20 | 新增 agenticdsl/ 目录（16 篇语言演进文档），按话题组织 |
+| 2026-06-12 | 提升 agenticdsl/ 为 docs/proposals/，明确与 docs/adr/ 语义边界 |
 | 2026-05-23 | 扩展至 30+ 篇文档，新增 research/architecture/optimization/implementation/testing/api/operations 7 个目录 |
 | 2026-06-08 | C1 迁移：ADR-0019/0020/0023 状态更新；ADR-0030~0036 补录；`dsl.md`/`dsl-lib.md` 版本升至 v3.10 |
+| 2026-06-12 | Stage 2 / Task 7：归档 13 个已废弃 ADR 到 `docs/archive/adr/`；移除 `phase-2-memory/`, `phase-3-reasoning/`, `phase-5-async/`, `phase-5-policy/`, `phase-7-router/`, `phase-8-kernel/` 6 个空目录 |
+| 2026-06-12 | Stage 2 / Task 8：合并 `dsl-lib.md` + `stdlib.md` 为 `stdlib-v3.10.md`；归档 `phase2-standard-library.md` 到 `docs/archive/specs/` |
+| 2026-06-12 | Stage 2 / Task 9：合并 `memory.md` (MEP-001 v3.2 Draft) + `dsl.md` §10.3 为 `memory-v3.10.md`；`memory.md` 已删除 |

@@ -3,6 +3,7 @@
 #include "common/llm/llama_adapter.h" // C₁.4: 保留，仅用于 LlamaAdapterProvider（向后兼容）
 #include "common/log/log.h"  // agenticdsl::log facade
 #include "common/llm/llama_adapter_provider.h" // C₁.4: 适配器（可选真实 provider）
+#include "modules/budget/budget_controller.h" // Stage 4 / Task 19: 完整类型仅在此处需要（PIMPL-lite 解耦）
 #include "modules/scheduler/topo_scheduler.h"
 #include "modules/system/system_nodes.h"
 #include <fstream>
@@ -102,7 +103,8 @@ std::unique_ptr<DSLEngine> DSLEngine::from_file(const std::string& file_path) {
 
 DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
     : full_graphs_(std::move(initial_graphs)),
-      tool_registry_() {
+      tool_registry_(),
+      budget_controller_(std::make_unique<BudgetController>()) {
     LOG_INFO("Graphs loaded: " << full_graphs_.size());
 
     // 阶段 4 任务 4.3: 一次性将 BudgetController::record_llm_call 绑定到 tool_registry_
@@ -110,15 +112,22 @@ DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
     // 此回调在每次 LLM tool 成功调用后触发。
     tool_registry_.set_cost_callback(
         [this](int tokens, const std::string& model) {
-            budget_controller_.record_llm_call(tokens, model);
+            budget_controller_->record_llm_call(tokens, model);
         }
     );
 }
 
 // 阶段 4 任务 4.3: 返回 session 累计成本
 double DSLEngine::get_session_cost() const {
-    return budget_controller_.get_total_cost_usd();
+    return budget_controller_->get_total_cost_usd();
 }
+
+// Stage 4 / Task 19: 类外定义 — 在 budget_controller.h 已 include 的 TU 中，析构可见完整类型
+DSLEngine::~DSLEngine() = default;
+
+// Stage 4 / Task 19: 类外 accessor 定义 — 头文件中仅有前向声明，这里返回引用才需要完整类型
+BudgetController& DSLEngine::get_budget_controller() { return *budget_controller_; }
+const BudgetController& DSLEngine::get_budget_controller() const { return *budget_controller_; }
 
 ExecutionResult DSLEngine::run(const Context& context) {
     // 提取预算（从 /__meta__）

@@ -2,7 +2,7 @@
 
 ## 状态
 
-**已批准** (2026-05-28)
+**✅ Approved** (2026-05-28)
 
 ## 背景
 
@@ -338,4 +338,4 @@ ADR-0034 (ModelRouter)
 
 ### 参考
 
-- [ADR-0034: IModelRouter 模型路由接口](./phase-7-router/adr-0034-model-router.md)
+- [ADR-0034: IModelRouter 模型路由接口](../archive/adr/adr-0034-model-router.md)

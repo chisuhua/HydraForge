@@ -2,7 +2,16 @@
 
 ## 状态
 
-**已批准** (2026-05-12)
+**✅ Approved** (2026-05-12 起草, 2026-06-12 实现完成)
+
+> **实现状态 (2026-06-12, Stage 3 / Tasks 12-13)**:
+> - **规范**：`docs/specs/dsl.md` §4.1 完整定义 L1-L5 结构 ✅
+> - **类型**：`include/agenticdsl/types/layered_context.h` (LayeredContext struct, 261 行) ✅
+> - **测试**：`tests/test_layered_context.cpp` (10 test cases, 23/23 ctest pass) ✅
+> - **兼容层**：`include/agenticdsl/types/context_flatten.h` (flatten 桥接) + `template_renderer` LayeredContext 重载 ✅
+> - **遗留**：`using Context = nlohmann::json;` 仍保留为兼容别名 (deprecation note 已加) — Stage 4 (core-interface-inversion) 负责彻底迁移
+>
+> **向后兼容性**：所有现有调用方（6 个 DSLNode::execute 虚函数, DSLEngine::run, InjaTemplateRenderer）继续使用 flat Context，新代码可选用 LayeredContext + flatten() 桥接。
 
 ## 背景
 

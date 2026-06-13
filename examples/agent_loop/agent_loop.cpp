@@ -1,5 +1,4 @@
-#include "agenticdsl/core/engine.h"
-#include "agenticdsl/llm/prompt_builder.h"
+#include "core/engine.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -14,6 +13,14 @@ std::string load_file(const std::string& path) {
     buffer << file.rdbuf();
     return buffer.str();
 }
+
+// ⚠️ DEPRECATED API NOTE (2026-06-12):
+// This example uses `agenticdsl::PromptBuilder` which was removed when
+// `src/modules/prompts.yaml` was deleted (commit ac9e684, 2026-06-09).
+// The `build_prompt` function below will not compile until PromptBuilder
+// is replaced or re-introduced via a future OpenSpec change.
+// See `.omo/plans/project-organization.md` Stage 3 / Task 14 for the
+// LayeredContext migration that will eventually update this example.
 
 // 构建包含历史和可用库的 prompt
 std::string build_prompt(const agenticdsl::Context& ctx, const std::string& paused_at) {

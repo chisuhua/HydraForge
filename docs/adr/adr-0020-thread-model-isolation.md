@@ -2,7 +2,7 @@
 
 ## 状态
 
-**🔄 部分实施 (2026-06-08)** — V3.1 版。SimpleCognitiveOrchestrator（MVP 单轮 ReAct）已在 C1 B-stage 实施（commit 9b347db）。CognitiveWorker + DomainWorkerPool 移交 Phase 1 智能体层。
+**🟡 Partial (2026-06-08)** — V3.1 版。SimpleCognitiveOrchestrator（MVP 单轮 ReAct）已在 C1 B-stage 实施（commit 9b347db）。CognitiveWorker + DomainWorkerPool 移交 Phase 1 智能体层。
 
 > **C1 迁移注记 (2026-06-08, commit 3f28020)**：引擎 LLM 注入接口由 `LlamaAdapter*` 改为 `ILLMProvider*`（抽象流式接口，详见 ADR-0001）。原 `LlamaAdapter` 仍可用但需通过 `LlamaAdapterProvider` 包装。本 ADR 中 §2 的成员变量 `llm_provider_` 已同步更新。
 
@@ -59,7 +59,7 @@ HydraForge 当前实现**完全是单线程同步模型**：
 | **基座核心** (DSL/State/Registry) | **主线程** | 无隔离 | ✅ MVP |
 | **认知智能体** (编排者) | **独立工作线程** | 线程级隔离 | ✅ MVP |
 | **领域智能体** (执行者) | **独立工作线程** | 线程级隔离 | ✅ MVP |
-| **LLM Gateway** | **回调** → ADR-0030 协程 | 协程级隔离 | 🔜 Phase 2 (依赖 ADR-0030) |
+| **LLM Gateway** | **回调** → 协程 | 协程级隔离 | 🔜 Phase 2 |
 | **危险工具** (文件/浏览器/系统) | **子进程沙箱** | **进程级隔离** | 🔜 Phase 2 |
 | **安全工具** (只读查询) | **工作线程** | 线程级隔离 | ✅ MVP |
 
@@ -534,7 +534,7 @@ public:
 > **V3 变更**：本节原定义的自定义协程实现（`LLMTokenStream` 类）已废弃。
 > 协程实现统一使用 ADR-0030 定义的 AsyncRuntime + async_simple 方案。
 
-LLM 流式调用使用 async_simple 协程（参见 [ADR-0030](../phase-5-async/adr-0030-async-runtime-dual-layer.md) 第 3 节）：
+LLM 流式调用使用 async_simple 协程（参见 [ADR-0030](../archive/adr/adr-0030-async-runtime-dual-layer.md) 第 3 节）：
 
 ```cpp
 // src/common/llm/stream_llm.h (Phase 2)
@@ -588,7 +588,7 @@ async_simple::coro::Generator<Token> stream_llm_response(
 | **任务队列** | `std::mutex` + `std::queue` | 简单可靠，Phase 2 再优化 |
 | **ToolRegistry 锁** | `shared_lock` 读锁 + 锁外执行 | 避免阻塞权限校验 |
 | **锁顺序** | 全局排序 | 避免死锁 |
-| **协程** | MVP 不使用 | Phase 2 引入（依赖 ADR-0030） |
+| **协程** | MVP 不使用 | Phase 2 引入 |
 | **进程沙箱** | MVP 不实现 | Phase 2 引入 |
 
 ---

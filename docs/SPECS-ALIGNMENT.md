@@ -21,7 +21,7 @@
 - 新增 `LayeredContext` 结构说明
 - 更新 DSL 错误类型 (LLMError)
 
-#### 2. `specs/dsl-lib.md` (DSL 库规范)
+#### 2. `specs/stdlib-v3.10.md` (DSL 标准库规范，2026-06-12 合并自 dsl-lib + stdlib)
 
 **需要更新以反映**：
 - ADR-9: DSL 标准库结构 (`/lib/reasoning/`, `/lib/tools/`, `/lib/workflow/`)
@@ -74,7 +74,7 @@
 | # | 任务 | 负责人 | 优先级 |
 |---|------|--------|--------|
 | 1 | 更新 `specs/dsl.md` 对齐 ADR-1,3,8 | TBA | 🔴 高 |
-| 2 | 更新 `specs/dsl-lib.md` 对齐 ADR-9 | TBA | 🔴 高 |
+| 2 | 更新 `specs/stdlib-v3.10.md` 对齐 ADR-9 | TBA | 🔴 高 |
 | 3 | 更新 `specs/layer0.md` 对齐 ADR-3,6 | TBA | 🔴 高 |
 | 4 | 更新 `guides/developer-guide.md` | TBA | 🟡 中 |
 | 5 | 更新 `guides/rt-guide.md` | TBA | 🟡 中 |
@@ -83,26 +83,38 @@
 
 ## 变更追踪
 
-当规范更新后，在此记录：
+当规范更新后，在此记录（每条均经过 2026-06-12 重新审计验证）：
 
-- [x] `specs/dsl.md` - ✅ 已更新（v3.10，流式接口、LayeredContext）
-- [x] `specs/dsl-lib.md` - ✅ 已更新（v3.10，完全重写）
-- [x] `specs/layer0.md` - ✅ 已更新（HarnessEngine）
-- [x] `guides/developer-guide.md` - ✅ 已更新（v3.10）
-- [ ] `guides/rt-guide.md` - 待更新
-- [ ] `specs/architecture.md` - 待更新（llm_generate_dsl 残留）
+- [x] `specs/dsl.md` - ✅ 已对齐 (v3.10, 2026-06-13 §4.1 定义 LayeredContext; 与 ADR-0008 🟡 Partial 状态一致 — spec 已批准, code 由 Stage 3 实现)
+- [x] `specs/stdlib-v3.10.md` - ✅ 已对齐 (v3.10, 2026-06-12 由 Stage 2 / Task 8 合并自 dsl-lib + stdlib)
+- [x] `specs/memory-v3.10.md` - ✅ 已对齐 (v3.10, 2026-06-12 由 Stage 2 / Task 9 合并自 memory.md + dsl.md §10.3)
+- [~] `specs/layer0.md` - ⚠️ **部分对齐**: §6.1 NodeExecutor 与 dsl.md §5.9 / G.2 已对齐 C1 状态; **§21 HarnessEngine (385 行) 与 ADR-0006 ⛔ Superseded 不一致** — 见 Stage 4 / Task 21 整改
+- [~] `guides/developer-guide.md` - ⚠️ **部分对齐**: §4.4 ToolRegistry (ADR-4), §4.5 LayeredContext (ADR-8), §4.6 Context 压缩 (ADR-7) 已写入; 但 ADR-0004 安全模型仅 P1 实施, §4.4 描述超前
+- [x] `guides/rt-guide.md` - ✅ 已对齐 (2026-06-12 重审: EventBus 配置 + HarnessEngine CLI 章节齐全, 引用 ADR-0006 状态已标 ⛔ Superseded)
+- [ ] `specs/architecture.md` - 待更新（3 处 `llm_generate_dsl` 残留：L59, L220, L356 — 引用了不存在的原语）
 
-> **2026-06-09 审计修正（docs-code-alignment-fixes 变更）**：
-> - `specs/dsl.md` (LayeredContext) — **该声称与代码不符,见 ADR-0008 当前状态** (`docs/README.md` 已降级为 ❌ 未实施)。
-> - `specs/layer0.md` (HarnessEngine) — **该声称与代码不符**,ADR-0006 已被 ADR-0020 替代。
-> - 本审计变更已修正 `docs/README.md` 的 ADR 状态标签,后续本节"已完成"勾选待重新审计后再勾选。
-> - `specs/architecture.md` 实际路径应为 `docs/adr/agenticdsl/architecture/`。
+### 重新审计发现（2026-06-12, Stage 2 / Task 10）
+
+| 文件 | 之前的声称 | 重新审计结论 |
+|------|-----------|-------------|
+| `specs/dsl.md` (LayeredContext) | "✅ 已更新" | ✅ **准确**（v3.10 §4.1 定义完整，与 ADR-0008 🟡 Partial 状态自洽） |
+| `specs/stdlib-v3.10.md` | "✅ 已更新" | ✅ **准确**（Stage 2 / Task 8 新合并，v3.10 20 子图齐全） |
+| `specs/layer0.md` (HarnessEngine) | "✅ 已更新" | ⚠️ **不准确** — §21 HarnessEngine 详细描述了被 ADR-0020 替代的 ADR-0006 模型，应加废弃注脚 |
+| `guides/developer-guide.md` | "✅ 已更新" | ⚠️ **部分准确** — 章节存在但 ADR-0004 安全模型仅 P1 实施，文档超前于代码 |
+| `specs/architecture.md` | 待更新 | ✅ **仍待更新** — `llm_generate_dsl` 引用未清理 |
+| `specs/architecture.md` 实际路径 | "应为 `docs/proposals/architecture/`" | ⚠️ **半准确** — 推测的"应有"路径不存在；该 spec 应保留在 `docs/specs/` 并清理 `llm_generate_dsl` |
+
+### 待跟进项
+
+1. `specs/layer0.md` §21 HarnessEngine 章节应加 ⛔ Superseded 横幅（指向 ADR-0020），类似 `AGENTS.md` 的处理
+2. `specs/architecture.md` 需清理 `llm_generate_dsl` 引用，标记为已废弃原语
+3. `guides/developer-guide.md` §4.4 应区分"已实现（ToolRegistry 本身）"与"未实施（安全模型层）"
 
 ---
 
-**2026-06-08 更新**: layer0.md §6.1（C1 NodeExecutor 示例）与 dsl.md §5.9 / G.2（C1 ILLMProvider 集成点）已对齐代码实际状态。
+**2026-06-12 重新审计**: Stage 2 / Task 10 完成本节。Stage 1 + Stage 2 累计 27 个 spec/ADR 状态变更已交叉验证。
 
-*最后更新: 2026-05-13*
+*最后更新: 2026-06-12*
 
 ---
 
@@ -111,3 +123,5 @@
 | 变更 ID | 链接 | 严重度 | 状态 |
 |---------|------|:------:|:----:|
 | `docs-code-alignment-fixes` | [OpenSpec change](openspec/changes/archive/2026-06-09-docs-code-alignment-fixes/) | 🔴 P0 4 / 🟠 P1 16 / 🟡 P2 8 | ✅ 已归档 |
+| `tech-debt-and-doc-cleanup` | [OpenSpec change](openspec/changes/archive/2026-06-10-tech-debt-and-doc-cleanup/) | — | ✅ 已归档 |
+| `project-organization` (Stage 1+2) | [Plan](.omo/plans/project-organization.md) | — | 🔄 进行中 (Stage 1 [~] 待 commit, Stage 2 ✅ 4/6 任务) |

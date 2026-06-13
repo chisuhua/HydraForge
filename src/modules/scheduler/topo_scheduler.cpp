@@ -144,8 +144,8 @@ void TopoScheduler::build_dag() {
     }
 }
 
-ExecutionResult TopoScheduler::execute(Context initial_context) {
-    Context context = std::move(initial_context);
+ExecutionResult TopoScheduler::execute(const Context& initial_context) {
+    Context context = initial_context;
 
     std::optional<NodePath> entry_point;
     if (full_graphs_) {

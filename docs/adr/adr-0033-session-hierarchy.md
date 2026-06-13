@@ -2,7 +2,7 @@
 
 ## 状态
 
-**提议中** (2026-05-28)
+**🟡 Partial** (2026-05-28, 2026-06-12 状态对齐 — 仅前向声明)
 
 > **C1 迁移注记 (2026-06-08, commit 3f28020)**：`DagExecutionContext` 构造参数与成员变量中 `LlamaAdapter* llm_adapter` 已替换为 `ILLMProvider* llm_provider`（抽象流式接口，详见 ADR-0001）。原 `LlamaAdapter` 仍可用但需通过 `LlamaAdapterProvider` 包装后注入。
 
@@ -571,7 +571,7 @@ Context.token_count > limit 时：
   4. 不阻塞认知层工作线程
 ```
 
-**Phase 2**：Flash 模型摘要（依赖 ADR-0034 + ADR-0030 就绪后）
+**Phase 2**：Flash 模型摘要（后续 Phase，按需引入）
 
 ```
 Context.token_count > limit 时：
@@ -586,9 +586,9 @@ Context.token_count > limit 时：
 
 ## 参考
 - [ADR-0031 执行策略](./adr-0031-execution-policy.md)
-- [ADR-0032 成本收集](./phase-5-policy/adr-0032-cost-collector.md)
+- [ADR-0032 成本收集](../archive/adr/adr-0032-cost-collector.md)
 - [ADR-0023 ToolResult 标准化](./adr-0023-tool-result-standard.md)
-- [ADR-0030 AsyncRuntime](./phase-5-async/adr-0030-async-runtime-dual-layer.md)
+- [ADR-0030 AsyncRuntime](../archive/adr/adr-0030-async-runtime-dual-layer.md)
 - [ADR-0004 ToolRegistry 安全](./adr-0004-toolregistry-security.md)
 - `src/core/types/context.h` — Context 类型定义
 - `src/modules/scheduler/execution_session.h` — 现有 ExecutionSession

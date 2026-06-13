@@ -4,7 +4,7 @@
 **日期：** 2026-02-25  
 **范围：** agentic-dsl-runtime（C++ 核心运行时）  
 **状态：** 基于现有 AgenticDSL 代码库分析，面向 AgenticOS v2.2 架构的重构计划  
-**依赖：** Architecture-v2.2（`docs/adr/agenticdsl/architecture/`）  
+**依赖：** Architecture-v2.2（`docs/proposals/architecture/`）  
 **基础代码：** `chisuhua/AgenticDSL`（`src/` 目录）
 
 ---
@@ -853,7 +853,7 @@ traces = engine.get_last_traces()
 
 | 文档 | 路径 | 状态 |
 | :--- | :--- | :--- |
-| 架构总纲 | `docs/adr/agenticdsl/architecture/` | 已发布 |
+| 架构总纲 | `docs/proposals/architecture/` | 已发布 |
 | **Layer 0 规范**（本文档） | `docs/specs/layer0.md` | **当前** |
 | **Layer 0 重构实施计划（五阶段详细）** | `docs/specs/layer0-refactor.md` | **当前** |
 | DSL 标准库规范 | `docs/AgenticDSL_LibSpec_v3.9.md` | 已发布 |

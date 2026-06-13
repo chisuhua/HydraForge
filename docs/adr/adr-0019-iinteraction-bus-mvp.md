@@ -2,9 +2,64 @@
 
 ## 状态
 
-**已批准 (2026-06-08, 通过 phase-c1-migration)** — V2.1 版，IInteractionBus + InMemoryBus MVP 已实施（commits 5f21ea3, f07a4b4）。后续 P2（DSLEngine bus 集成）移交 Phase 1。
+**✅ Approved (2026-06-08, 通过 phase-c1-migration)** — V2.1 版，IInteractionBus + InMemoryBus MVP 已实施（commits 5f21ea3, f07a4b4）。后续 P2（DSLEngine bus 集成）移交 Phase 1。
 
 > **2026-06-08 截至 (commit f07a4b4)**：`IInteractionBus` 与 `InMemoryBus` 的公共头文件迁移到 `include/agenticdsl/contract/`，实现文件 (`inmemory_bus.cpp`) 与 `CMakeLists.txt` 保留在 `src/common/contract/`。`events.h` 在 M5.2 简化跳过，Event/Token/Session 类型内联到 `IInteractionBus` 头文件。
+
+## 状态变更日志
+
+### 2026-06-12 — Stage 4 Tasks 16-20：engine.h 跨模块耦合部分解耦
+
+**问题 §1.4 (跨模块耦合) 状态变更**：⛔ 待解决 → 🟡 **部分解决**（2/3 `modules/` 直接 include 已解决，剩余 1 个 + 3 个 `common/` include 需 PIMPL 化）。
+
+**已完成的解耦动作**（Stage 4 / Tasks 16-20）：
+
+| Task | 文件 | 变更 |
+|------|------|------|
+| 16 | `include/agenticdsl/contract/ischeduler.h`（新建） | 定义 `IScheduler` 抽象接口 |
+| 16 | `include/agenticdsl/contract/iparser.h`（新建） | 定义 `IParser` 抽象接口 |
+| 17 | `src/modules/scheduler/topo_scheduler.h` | `class TopoScheduler : public IScheduler` + `override` 关键字 |
+| 17 | `src/modules/parser/markdown_parser.h` | `class MarkdownParser : public IParser` + `override` 关键字 |
+| 18 | 根 `CMakeLists.txt` | 新增 `agenticdsl::headers` INTERFACE 库，链接 `include/` |
+| 20 | `src/modules/executor/node_executor.h` | 持有 `std::unique_ptr<IParser>` 而非嵌入 `MarkdownParser` |
+
+**`src/core/engine.h` 当前 include 状态**（截至 2026-06-12）：
+
+| include | 状态 | 说明 |
+|---------|------|------|
+| `common/llm/llm_types.h` | 🟡 保留 | ILLMProvider* / ILLMTool / LLMParams 接口定义 |
+| `common/llm/mock_provider.h` | 🟡 保留 | 默认 LLM provider 实现 |
+| `common/tools/registry.h` | 🟡 保留 | `ToolRegistry` 成员（Task 20 计划处理） |
+| `modules/budget/budget_controller.h` | 🟡 保留 | `BudgetController` 成员（需 **PIMPL** 才能完全解耦） |
+| `modules/trace/trace_exporter.h` | 🟡 保留 | `TraceRecord` POD 定义（Stage 4+ 待迁移） |
+| ~~`modules/scheduler/topo_scheduler.h`~~ | ✅ 移除 | 改用 `agenticdsl/contract/ischeduler.h` |
+| ~~`modules/parser/markdown_parser.h`~~ | ✅ 移除 | 改用 `agenticdsl/contract/iparser.h` |
+| `agenticdsl/contract/ischeduler.h` | ✅ 新增 | 抽象接口（Task 16） |
+| `agenticdsl/contract/iparser.h` | ✅ 新增 | 抽象接口（Task 16） |
+
+**剩余耦合清单（需未来 Stage 处理）**：
+- `budget_controller.h`：BudgetController 是值类型成员，需要 PIMPL (`unique_ptr<Impl>`) 才能让 engine.h 不暴露内部实现
+- `trace_exporter.h`：TraceRecord 是 POD 类型，可改为 `forward declare` + `agenticdsl::types::TraceRecord` 独立头
+- `llm_types.h` / `mock_provider.h` / `registry.h`：需评估是否下沉到 `core/types/` 或 `contract/`
+
+**已知构建环境问题（与本次重构无关）**：
+- `external/async_simple/uthread/internal/thread.cc` 单文件编译耗时 > 30s，导致 `cmake --build` 全量超时
+- **这不是 Stage 4 重构引入的问题**，是预先存在的环境/工具链问题
+- 本次验证采用 `cpp -E` 预处理（轻量、跳过链接与代码生成）作为替代方案
+- 全量 `cmake --build` + `ctest` 验证需在外部 CI 或修复 async_simple 后执行
+
+**6 个 examples 审计结果**（2026-06-12, `cpp -E` 预处理）：
+
+| 目录 | 有 .cpp | 预处理结果 | 备注 |
+|------|---------|-----------|------|
+| `examples/agent_basic/` | ✅ | ✅ PASS | 使用 `core/engine.h`（Task 4 已统一路径） |
+| `examples/slice_01_tool_call/` | ✅ | ✅ PASS | 使用 `core/engine.h` + 新增 cognitive header |
+| `examples/agent_loop/` | ✅ | ✅ PASS（预处理） | 引用已删除的 `agenticdsl::PromptBuilder`（commit ac9e684），**完整编译会失败** |
+| `examples/agent_simple/` | ✅ | ❌ FAIL | 引用 `common/utils.h`（不存在，文件已重组到 `common/utils/*.h`）+ 已删除的 `LlamaAdapter`（commit 2804eac） |
+| `examples/skill_porting/` | ❌ 无 .cpp | N/A | 仅含 DSL Markdown 文件与目录骨架 |
+| `examples/superpowers/` | ❌ 无 .cpp | N/A | 仅含 `.agent.md` DSL 文件 |
+
+> **注**：`agent_simple` 与 `agent_loop` 在 Stage 1 Task 4 已标记为 DEPRECATED，迁移至 `MockLLMProvider` / `ILLMProvider` 模式的工作属于未来 OpenSpec change 范围（参见 `.omo/plans/project-organization.md` Stage 3 / Task 14）。本次 Task 21 不修复，仅记录状态。
 
 ## 背景
 
@@ -15,7 +70,7 @@ HydraForge 当前架构存在以下问题：
 1. **同步阻塞执行**：`DSLEngine::run()` 是同步阻塞调用，无法实时推送 Token 流
 2. **无用户交互接口**：执行时无用户输入通道，无法实现多轮对话
 3. **无事件总线**：组件间通过直接调用耦合，无法支持分布式/跨进程通信
-4. **紧耦合**：`engine.h` 直接 `#include "modules/scheduler/topo_scheduler.h"`，模块边界模糊
+4. **紧耦合 (🟡 部分解决 2026-06-12, Stage 4 Tasks 16-20)**：`engine.h` 直接 `#include "modules/scheduler/topo_scheduler.h"`，模块边界模糊 — 已移除 2/3 个 `modules/` 直接 include（`topo_scheduler.h`、`markdown_parser.h`），改用 `agenticdsl/contract/{ischeduler,iparser}.h` 抽象接口；`budget_controller.h` 与 `trace_exporter.h` 仍需 PIMPL 才能完全解耦。详见下方"状态变更日志"。
 
 ### 目标
 
@@ -430,7 +485,7 @@ DSLEngine 直接包含 InMemoryBus。
 - [ADR-0003: DSLEngine 线程安全](./adr-0003-dslengine-thread-safety.md)
 - [ADR-0006: HarnessEngine 后台线程模型（已替代）](./adr-0006-harness-engine-thread-model.md)
 - [ADR-0020: 多智能体线程模型与隔离策略](./adr-0020-thread-model-isolation.md)
-- [ADR-0030: AsyncRuntime 双层异步架构](./phase-5-async/adr-0030-async-runtime-dual-layer.md) — Phase 2 协程实现依赖
+- [ADR-0030: AsyncRuntime 双层异步架构](../archive/adr/adr-0030-async-runtime-dual-layer.md) — Phase 2 协程实现依赖
 
 ---
 

@@ -7,7 +7,7 @@
 
 ### 💡 文档对齐说明
 
-**命名冲突提醒**: `docs/adr/agenticdsl/implementation/` 系列文档（如 `phase-0-implementation.md`）中的"Phase 0"特指 **AgenticDSL 自举路径的阶段 0（云端 LLM 集成）**，对应本路线图的 **Phase 0 Track 0.1**。如果两个文档对阶段编号的理解不一致，以 `docs/implementation-roadmap.md` 为准。详见附录 A 的跨文档对照表。
+**命名冲突提醒**: `docs/proposals/implementation/` 系列文档（如 `phase-0-implementation.md`）中的"Phase 0"特指 **AgenticDSL 自举路径的阶段 0（云端 LLM 集成）**，对应本路线图的 **Phase 0 Track 0.1**。如果两个文档对阶段编号的理解不一致，以 `docs/implementation-roadmap.md` 为准。详见附录 A 的跨文档对照表。
 
 ---
 
@@ -348,7 +348,7 @@ make -j$(nproc) test_async_bridge
 ### 目标
 
 实现 CloudLLMAdapter（HTTP 后端），支持 DeepSeek/OpenAI 兼容 API。
-遵循 `docs/adr/agenticdsl/implementation/phase-0-implementation.md` 的架构路线：
+遵循 `docs/proposals/implementation/phase-0-implementation.md` 的架构路线：
 标记 `ILLMAdapter` deprecated → 统一配置 → 创建云端适配器 → 路由器。
 
 ### 前提

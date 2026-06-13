@@ -184,6 +184,26 @@ std::vector<ParsedGraph> MarkdownParser::parse_from_file(const std::string& file
     return parse_from_string(buffer.str());
 }
 
+// IParser overrides: 从 vector<ParsedGraph> 适配为单 ParsedGraph。
+// 选取策略：优先 path == "/main" 的子图，否则取第一个非空结果。
+ParsedGraph MarkdownParser::parse(const std::string& markdown) {
+    auto graphs = parse_from_string(markdown);
+    if (graphs.empty()) return ParsedGraph{};
+    for (auto& g : graphs) {
+        if (g.path == "/main") return std::move(g);
+    }
+    return std::move(graphs.front());
+}
+
+ParsedGraph MarkdownParser::parse_file(const std::filesystem::path& p) {
+    auto graphs = parse_from_file(p.string());
+    if (graphs.empty()) return ParsedGraph{};
+    for (auto& g : graphs) {
+        if (g.path == "/main") return std::move(g);
+    }
+    return std::move(graphs.front());
+}
+
 std::unique_ptr<Node> MarkdownParser::create_node_from_json(const NodePath& path, const nlohmann::json& node_json) {
     LOG_DEBUG("Parsing node at " << path << ": " << node_json.dump(2));
     std::string type_str = node_json.at("type").get<std::string>();

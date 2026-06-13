@@ -43,6 +43,8 @@ HydraForge/
     └── agent_loop/    # 循环执行示例
 ```
 
+> **注意**:`examples/agent_simple/` 和 `examples/agent_loop/` 使用了已废弃的 API(`LlamaAdapter` / `PromptBuilder`),保留仅作历史参考,编译会失败。迁移至 `MockLLMProvider` 或新 `ILLMProvider` 模式的工作将在未来的 OpenSpec change 中完成(参见 `.omo/plans/project-organization.md` Stage 3 / Task 14)。
+
 ## WHERE TO LOOK
 | Task | Location | Notes |
 |------|----------|-------|
@@ -66,6 +68,7 @@ HydraForge/
 | ToolRegistry | class | src/common/tools/registry.h | 工具注册表 |
 | LlamaAdapter | class | src/common/llm/llama_adapter.h | llama.cpp 封装 |
 | ExecutionBudget | struct | src/core/types/budget.h | 预算结构 |
+| LayeredContext | struct | include/agenticdsl/types/layered_context.h | 5-层结构化上下文 (L1-L5, ADR-0008) |
 
 ## CONVENTIONS
 - **2 空格缩进**，中文注释（避免中英混杂）
@@ -87,14 +90,18 @@ HydraForge/
 - 测试：`cmake .. -DAGENTICDSL_BUILD_TESTS=ON && make && ctest --output-on-failure`
 
 ## NOTES
-- `engine.h` 直接 `#include "modules/scheduler/topo_scheduler.h"`（跨模块耦合）
+- `engine.h` 直接 `#include` 6 个模块头文件 (scheduler/topo_scheduler, parser/markdown_parser, budget/budget_controller, common/llm/llm_types, common/llm/mock_provider, common/tools/registry) — ADR-0019 §1.4 已识别为问题待解, Stage 4 (core-interface-inversion) 处理
 - `lib/` 目录存放 `.md` DSL 文件，非 C++ 库
 - `src/modules/exports/` 存放导出类型定义
-- `src/modules/prompts.yaml` 包含 LLM prompt 模板
 - `src/common/contract/` ADR-0019 契约层 (IInteractionBus, InMemoryBus) — 与 `include/agenticdsl/contract/` 头文件配套
 - `llm_config.json` 运行时 LLM 配置（模型路径、温度等）
-- 无 `.clang-format` / `.clang-tidy` / `compile_commands.json`
-- 无 GitHub Actions CI
+- `.clang-format` / `.clang-tidy` 存在 (项目根)
+- 构建预设: `CMakePresets.json` (cmake --preset debug|release|asan|tsan|tests)
+- `compile_commands.json` 根目录软链接 (Stage 5 / Task 23, 指向 `build/compile_commands.json`)
+- GitHub Actions CI: `.github/workflows/ci.yml` (Stage 5 / Task 25, 2 presets × 2 compilers matrix)
+
+## Recent Changes
+- 2026-06-09 (commit `ac9e684`): 删除 `src/modules/prompts.yaml`（LLM prompt 模板改由各模块硬编码或 `llm_config.json` 管理）
 
 <!-- code-review-graph MCP tools -->
 ## MCP Tools: code-review-graph

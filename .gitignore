@@ -3,6 +3,8 @@
 
 # Build artifacts
 build/
+# Root symlink to build/compile_commands.json (for clangd, etc.) — generated, do not commit
+/compile_commands.json
 # ThreadSanitizer build directory (rebuild with: cmake -B build_tsan -DAGENTICDSL_ENABLE_TSAN=ON)
 build_tsan/
 # ctest temporary files (cost data, last test log, etc.)

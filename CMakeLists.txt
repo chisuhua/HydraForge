@@ -139,3 +139,20 @@ if(AGENTICDSL_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
+
+# ============================================================
+# Public headers INTERFACE library (Stage 4 / Task 18)
+#
+# Exposes include/agenticdsl/ as a proper INTERFACE target so
+# external projects (examples, plugins) can link against
+# `agenticdsl::headers` and get the include path automatically.
+# ============================================================
+add_library(agenticdsl_headers INTERFACE)
+add_library(agenticdsl::headers ALIAS agenticdsl_headers)
+
+target_include_directories(agenticdsl_headers INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+target_compile_features(agenticdsl_headers INTERFACE cxx_std_20)

@@ -1,4 +1,12 @@
-#include "agenticdsl/core/engine.h"
+// ⚠️ DEPRECATED API NOTE (2026-06-12):
+// This example uses `agenticdsl::LlamaAdapter` (removed in commit 2804eac,
+// replaced by `ILLMProvider` interface per ADR-0001) and
+// `agenticdsl::InjaTemplateRenderer` (replaced by direct inja usage).
+// After fixing the include path above, this example still will not compile
+// due to use of removed APIs. A future OpenSpec change (post-Stage 3 of
+// project-organization plan) will migrate this example to MockLLMProvider
+// or the new ILLMProvider pattern, similar to `slice_01_tool_call/main.cpp`.
+#include "core/engine.h"
 #include "common/utils.h"
 #include <iostream>
 #include <thread>

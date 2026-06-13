@@ -2,7 +2,7 @@
 
 ## 状态
 
-**已批准** (2026-05-27) — **V2 版**，基于议题 3 (IExecutionPolicy) 对齐更新
+**✅ Approved** (2026-05-27) — **V2 版**，基于议题 3 (IExecutionPolicy) 对齐更新
 
 ## 背景
 

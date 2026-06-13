@@ -994,6 +994,9 @@ assign:
 - `/lib/reasoning/fallback_structured@v1`
 
 ### 10.3 内存记忆原语（`/lib/memory/**`）
+
+> **详细内容已迁移到 [`docs/specs/memory-v3.10.md`](memory-v3.10.md)**，本节保留作为快速参考列表（Stage 2 / Task 9 整合自 `memory.md` (MEP-001 v3.2 Draft) + 本节 v3.10）。
+
 - `/lib/memory/state/set@v1`
 - `/lib/memory/state/get_latest@v1`
 - `/lib/memory/kg/query_subgraph@v1`
@@ -1003,13 +1006,7 @@ assign:
 - `/lib/memory/profile/update@v1`
 - `/lib/memory/profile/get@v1`
 
-**权限模型**：
-- `/lib/memory/state/set@v1`：`memory: state_write`
-- `/lib/memory/kg/query_subgraph@v1`：`kg: subgraph_query`
-- `/lib/memory/kg/write_subgraph@v1`：`kg: subgraph_write`
-- `/lib/memory/vector/store@v1`：`vector: store`
-- `/lib/memory/vector/recall@v1`：`vector: recall`
-- `/lib/memory/profile/update@v1`：`profile: update`
+**权限模型**：完整表见 [`docs/specs/memory-v3.10.md`](memory-v3.10.md#权限模型汇总)。
 
 **工具注册要求**：
 | 工具名 | 输入 | 输出 | 参考实现 |

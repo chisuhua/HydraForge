@@ -9,6 +9,7 @@
 #include "common/tools/registry.h" // 引入 ToolRegistry
 #include "modules/parser/markdown_parser.h" // 引入 ParsedGraph
 #include "modules/scheduler/resource_manager.h" // 引入 ParsedGraph
+#include "agenticdsl/contract/ischeduler.h"  // ADR-0019 §1.4：实现 IScheduler 抽象接口
 #include <vector>
 #include <memory> // For unique_ptr<Node>
 #include <unordered_map>
@@ -21,7 +22,7 @@ namespace agenticdsl {
 // C₁.3: 前向声明 ILLMProvider（避免循环 include）
 class ILLMProvider;
 
-class TopoScheduler {
+class TopoScheduler : public IScheduler {
 public:
     struct Config {
         std::optional<ExecutionBudget> initial_budget;
@@ -32,12 +33,12 @@ public:
     // C₁.3 迁移：从 LlamaAdapter* 改为 ILLMProvider*
     TopoScheduler(Config config, ToolRegistry& tool_registry, ILLMProvider* llm_provider, const std::vector<ParsedGraph>* full_graphs_ = nullptr);
 
-    void register_node(std::unique_ptr<Node> node);
-    void build_dag(); // 构建依赖图
-    ExecutionResult execute(Context initial_context);
+    void register_node(std::unique_ptr<Node> node) override;
+    void build_dag() override; // 构建依赖图
+    ExecutionResult execute(const Context& initial_context) override;
 
     // Method for DSLEngine to call to add new graphs dynamically
-    void append_dynamic_graphs(std::vector<ParsedGraph> new_graphs);
+    void append_dynamic_graphs(std::vector<ParsedGraph> new_graphs) override;
 
     std::vector<TraceRecord> get_last_traces() const {
         return session_.get_trace_exporter().get_traces();
