@@ -44,9 +44,18 @@ IPathPolicy::CheckResult PathPolicy::check(const std::string& path) const {
 
   // Step 3: 检查 allowed prefixes
   // 空 allowed_prefixes 表示"仅靠 denied_patterns 保护"，放行
+  // 对 allowed_prefixes 中的每个 prefix 也做 weakly_canonical，
+  // 确保相对路径前缀（如 "./workspace"）被正确解析为绝对路径后再做字符串比较
   bool in_allowed = allowed_prefixes.empty();
   for (const auto& prefix : allowed_prefixes) {
-    if (canonical.rfind(prefix, 0) == 0) {  // starts_with 等价（C++20 前）
+    std::string canonical_prefix;
+    try {
+      canonical_prefix = fs::weakly_canonical(fs::path(prefix)).string();
+    } catch (...) {
+      // 无法解析的前缀跳过（视为不存在的目录）
+      continue;
+    }
+    if (canonical.rfind(canonical_prefix, 0) == 0) {  // starts_with 等价（C++20 前）
       in_allowed = true;
       break;
     }

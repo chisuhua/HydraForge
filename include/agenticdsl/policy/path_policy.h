@@ -102,7 +102,7 @@ class PathPolicy : public IPathPolicy {
  */
 struct ShellGuard {
   // 危险命令子串模式（constexpr 数组，C++17 起允许 std::array<const char*, N>）
-  static constexpr std::array<const char*, 12> DANGEROUS_PATTERNS = {
+  static constexpr std::array<const char*, 13> DANGEROUS_PATTERNS = {
     "rm -rf",
     "rm -r /",
     "dd if=",
@@ -113,6 +113,7 @@ struct ShellGuard {
     "> /dev/",
     "curl | sh",
     "wget | sh",
+    "| sh",
     "chmod 777",
     "chown root"
   };

@@ -53,13 +53,13 @@ std::string InjaTemplateRenderer::render_with_env(std::string_view template_str,
 
 std::string InjaTemplateRenderer::render(std::string_view template_str,
                                          const LayeredContext& context) {
-    nlohmann::json flat = flatten(context);
+    nlohmann::json flat = flatten_layers(context);
     return render(template_str, flat); // 复用 Context 重载 (递归调用 static render)
 }
 
 std::string InjaTemplateRenderer::render_with_env(std::string_view template_str,
                                                   const LayeredContext& context) {
-    nlohmann::json flat = flatten(context);
+    nlohmann::json flat = flatten_layers(context);
     return render_with_env(template_str, flat); // 复用 Context 重载的 env_.render
 }
 

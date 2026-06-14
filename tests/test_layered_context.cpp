@@ -168,7 +168,7 @@ TEST_CASE("LayeredContext flatten to JSON for templates", "[layered_context][sta
   ctx.working["data"]["user_input"] = "hello";
   ctx.meta["permissions"] = nlohmann::json::array({"read", "write"});
 
-  nlohmann::json flat = agenticdsl::flatten(ctx);
+  nlohmann::json flat = agenticdsl::flatten_layers(ctx);
 
   // 结果必须是顶层 object
   CHECK(flat.is_object());
@@ -196,7 +196,7 @@ TEST_CASE("LayeredContext flatten to JSON for templates", "[layered_context][sta
 // ============================================================
 TEST_CASE("LayeredContext flatten empty context", "[layered_context][stage3]") {
   LayeredContext ctx; // 5 层均为 null JSON
-  nlohmann::json flat = agenticdsl::flatten(ctx);
+  nlohmann::json flat = agenticdsl::flatten_layers(ctx);
 
   // 返回空 object (不是 null, 不是 array)
   CHECK(flat.is_object());

@@ -290,7 +290,9 @@ Context NodeExecutor::execute_generate_subgraph(const GenerateSubgraphNode* node
         // Let's assume the scheduler calls a parser and handles the dynamic graph registration.
         // Here, we just parse and return the generated paths in the context.
         // Stage 4 Task 20: 通过 IParser 抽象调用；IParser::parse 返回单 ParsedGraph，包装为 vector 以兼容下游 for-range
-        auto new_graphs = std::vector<ParsedGraph>{parser_->parse(generated_dsl)};
+        // 注意：ParsedGraph 禁止拷贝（仅可移动），故不能使用 initializer_list 构造；改用 push_back 走移动路径
+        std::vector<ParsedGraph> new_graphs;
+        new_graphs.push_back(parser_->parse(generated_dsl));
         std::vector<std::string> dynamic_paths; // Collect paths of generated graphs
         for (auto& graph : new_graphs) {
             if (graph.path.rfind("/dynamic/", 0) == 0) { // Ensure it's dynamic
