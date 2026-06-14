@@ -101,6 +101,7 @@ HydraForge/
 - GitHub Actions CI: `.github/workflows/ci.yml` (Stage 5 / Task 25, 2 presets × 2 compilers matrix)
 
 ## Recent Changes
+- 2026-06-14 (commit `451e395`): 修复 3 个失败测试（test_layered_context / test_path_policy / test_secure_tool_registry），全部 25 个测试 100% 通过。核心修复：`flatten` 重命名为 `flatten_layers` 并修复 merge lambda 逻辑、`PathPolicy` 对 `allowed_prefixes` 同样做 `weakly_canonical`、`ShellGuard` 增加 `"| sh"` 模式
 - 2026-06-09 (commit `ac9e684`): 删除 `src/modules/prompts.yaml`（LLM prompt 模板改由各模块硬编码或 `llm_config.json` 管理）
 
 <!-- code-review-graph MCP tools -->
