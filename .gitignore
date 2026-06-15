@@ -24,6 +24,8 @@ external/taskflow/
 .opencode/
 openspec/
 .opencode.json
+# VS Code Copilot custom instructions (per-developer)
+.github/code-review-graph.instruction.md
 
 # Python cache
 __pycache__/
