@@ -7,6 +7,11 @@
 > **⚠️ 核心约束**: 本文件中的任务必须全部来自 `docs/implementation-roadmap.md`。
 > 任务的新增、删除、拆分必须在 `docs/implementation-roadmap.md` 中先完成，再同步到本文件。
 > `docs/implementation-roadmap.md` 无记录的任务不得出现在本文件中。
+>
+> **📋 2026-06-15 阶段过渡**: Phase 0 MVP 收官(C₁ → X → B → A + P0/P1/P2 cleanup 全部 ship, 25/25 测试)。
+> 进入 Phase 1 智能体层 (2026-06-16 ~ 2026-07-15, 4 周 5 Sprint)。详细执行计划见 `.omo/plans/phase1-execution.md`。
+> 5 个 stage 整理计划已 ship + 追溯归档(`.omo/plans/archive/2026-06-15-archived/project-organization.md` + 4 个 `openspec/changes/archive/2026-06-15-retrospectives/`)。
+> 后续活跃工作: 2 个 OpenSpec change (`phase1-toolresult-standardization` Sprint 1 + `2026-06-15-residual-engine-h-decoupling` P1 并行)。
 
 ---
 
@@ -16,12 +21,19 @@
 |-------|:----:|:----:|:----:|:----:|
 | Pre-Phase | 100% ██████████ | ✅ 已完成 | 0.5 天 | 无 |
 | Slice 00 | 100% ██████████ | ✅ 已完成 | 1-2 天 | Pre-Phase (CMake) |
-| **Phase 0 MVP** | 30% ███░░░░░░░ | **🎯 当前焦点** | **7-10 天** | Pre-Phase + Slice 00 |
-| ├─ Track 0.1 | 100% ██████████ | ✅ 已完成 | 3-4 天 | Pre-Phase |
-| ├─ Track 0.1.5 (C₁) | 100% ██████████ | ✅ 已完成 | 0.5 天 | Track 0.1 |
-| ├─ Track 0.2 | 0% ░░░░░░░░░░ | ⏸ 未开始 | 5-7 天 | Track 0.1 + C₁ |
-| └─ Track 0.3 | 0% ░░░░░░░░░░ | ⏸ 未开始 | 2-3 天 | Pre-Phase |
-| Phase 1 智能体层 | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 3-4 周 | Phase 0 |
+| **Phase 0 MVP** | **100% ██████████** | **✅ 已完成 (2026-06-14)** | **7-10 天** | Pre-Phase + Slice 00 |
+| ├─ Track 0.1 (Cloud LLM) | 100% ██████████ | ✅ 已完成 | 3-4 天 | Pre-Phase |
+| ├─ Track 0.1.5 (C₁ migration) | 100% ██████████ | ✅ 已完成 | 0.5 天 | Track 0.1 |
+| ├─ Track 0.2 (三层调用链) | 100% ██████████ | ✅ 已完成 | 5-7 天 | Track 0.1 + C₁ |
+| ├─ Track 0.3 (最小契约层 X/B/A) | 100% ██████████ | ✅ 已完成 | 2-3 天 | Pre-Phase |
+| └─ P0/P1/P2 Cleanup | 100% ██████████ | ✅ 已完成 | ~4h | 上述全部 |
+| **Phase 1 智能体层** | **0% ░░░░░░░░░░** | **🎯 当前焦点 (2026-06-16 ~ 2026-07-15)** | **4 周 5 Sprint + Sprint 0** | Phase 0 ✅ |
+| ├─ Sprint 0: ModelRouter 作为 Domain Plugin | 0% | ⏸ 未开始 (W1D3, 1 天) | 2.2 天 | Phase 0 |
+| ├─ Sprint 1: ToolResult P2-P4 + Bus 集成 | 0% | ⏸ 未开始 (W1D4-W1D7, 4 天) | 3 天 | Sprint 0 |
+| ├─ Sprint 2: CognitiveWorker | 0% | ⏸ 未开始 (W2) | 2.5 天 | Sprint 1 |
+| ├─ Sprint 3: DomainWorkerPool | 0% | ⏸ 未开始 (W3) | 3 天 | Sprint 2 |
+| ├─ Sprint 4: PDK 骨架 | 0% | ⏸ 未开始 (W4) | 3 天 | Sprint 3 |
+| └─ Sprint 5: PluginLoader + 收官 | 0% | ⏸ 未开始 (W5) | 1.3 天 | Sprint 4 |
 | Phase 2 异步+EventBus | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 2-3 周 | Phase 1 |
 | Phase 3 执行策略+安全 | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 2-3 周 | Phase 2 |
 | Phase 4 模型路由+内核 | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 2-3 周 | Phase 3 |
@@ -31,6 +43,30 @@
 ---
 
 ## 二、当前 Sprint（本周）
+
+> **📋 2026-06-15 状态**: 本节展示的是 **2026-05-30 ~ 2026-06-06** 那周的工作(Pre-Phase + Slice 00)。
+> 实际当前待启动的是 **Sprint 0 (ModelRouter, W1D3 = 2026-06-16)**,详细切分见 `.omo/plans/phase1-execution.md`。
+>
+> 历史保留作为 Pre-Phase + Slice 00 ship 证据。
+
+### 下一 Sprint: Sprint 0 (W1D3 = 2026-06-16, 1 天) — ModelRouter 作为 Domain Plugin
+
+> **⚠️ 架构决策 (2026-06-15 修订)**: ModelRouter **重新定位为 Domain Plugin** (而非 Runtime 组件)。
+> ADR-0034 (IModelRouter, 已归档 ❌ 未实施) 不复活。Runtime 仅提供 `ModelCapability` + `available_models()` 数据抽象,模型选择由 Plugin 智能体维护。
+>
+> **OpenSpec change**: `openspec/changes/2026-06-16-model-router-plugin/` (启动时新建, 作为 PDK Domain Plugin 示例)
+
+| 优先级 | 任务编号 | 任务 | 文件 | 状态 | 阻塞 |
+|:------:|:--------:|------|------|:----:|:----:|
+| P0 | S0.T1 | `ModelCapability` enum + `available_models()` (Runtime 数据) | `src/common/llm/llm_types.h` | [ ] | — |
+| P0 | S0.T2 | Plugin 层 `ModelRouterPlugin` 头文件 | `include/agenticdsl/pdk/model_router_plugin.h` | [ ] | — |
+| P0 | S0.T3 | Plugin 层 `ModelRegistry` 工具 (DECLARE_TOOL) | `include/agenticdsl/pdk/model_registry_tool.h` | [ ] | — |
+| P0 | S0.T4 | `DefaultModelRouterPolicy` 决策 (Plugin 智能体示例) | `examples/phase1_model_router_plugin/main.cpp` | [ ] | S0.T3 |
+| P0 | S0.T5 | 单元测试 + Plugin 加载验证 | `tests/test_model_registry_tool.cpp` + `tests/test_phase1_plugin demo.cpp` | [ ] | S0.T1-T4 |
+
+**Sprint 0 验收**: 5/5 new test cases PASS, ctest full 30+/30+ PASS, `examples/phase1_model_router_plugin --mock` 可加载并路由
+
+### 历史 Sprint: 2026-05-30 ~ 2026-06-06
 
 **开始**: 2026-05-30 | **结束**: 2026-06-06
 **目标**: 完成 Pre-Phase + Slice 00，启动 Track 0.1
@@ -163,8 +199,8 @@
 | 2026-06-07 | **Slice 00 完成** (S0.1–S0.6 + V0.3 + V0.4) | 2h | ✅ 13/13 通过 |
 | 2026-06-08 | **Phase C₁ 完成** (C₁.1-C₁.5) | 5h | ✅ 17+/17+ 通过 (108 assertions / 48 cases, 0 失败) | **关键桥梁**: 让 Track 0.1 成果真正接入引擎。3 个原子 commit (d38bc51 + 3f28020 + 4312333): ① C₁.1 新增 LlamaAdapterProvider 适配器（包装旧 LlamaAdapter → ILLMProvider）② C₁.2-C₁.4 完整调用链迁移（NodeExecutor/TopoScheduler/ExecutionSession/DSLEngine 全部改用 ILLMProvider*，删除 execute_llm_call 死代码，附带清理 Track 0.1 M1.3 遗留的 LLMParams struct）③ C₁.5 端到端集成测试（5 个 TEST_CASE：默认 Mock provider / ILLMProvider 接口 / set_llm_provider 替换 / 错误注入 / 端到端 [e2e]）。**DSLEngine::from_markdown 默认创建 MockLLMProvider**（CI 永远可运行，无需本地 LLM）。零回归：所有原有测试通过，编译 0 错误。解锁能力: 端到端 ILLMProvider 调用链、MockLLMProvider 默认行为。 |
 | 2026-06-07 | **Track 0.1 完成** (M1.1-M3.3 + V1.1-V1.3) | 2h | ✅ 16/16 通过 | 实现 llm_config.h 统一 LLMConfig (合并 LLMConfig+LLMParams)；标记 ILLMAdapter [[deprecated]]；新建 cloud_adapter.h/cpp (OpenAI 协议 + 重试 + 错误映射) + sse_stream.h/cpp (通用 SSE 状态机)；新建 mock_provider.h/cpp (队列/固定/错误/延迟模拟)；新建 3 个测试文件 (30 个新增测试用例)；llm_config.json 双层兼容。V1.1 test_cloud_llm 19/19 通过，V1.2 test_sse_stream 11/11 通过，V1.3 LLM 模块编译 0 错误，全量 16/16 通过 (1.86s)。 下载 Taskflow v3.9.0 + async_simple master，配置 CMake（禁用测试/demo/ASAN），新建 test_async_bridge.cpp（3 TEST_CASE：Taskflow 基础功能 / async_simple 协程 / 共存验证）。V0.3 编译通过，V0.4 3/3 通过，回归 13/13 通过。
-| 2026-06-14 | **fix-test-failures 完成** (5 个根因) | 0.5h | ✅ **25/25 通过** | 修复 3 个失败测试（test_layered_context / test_path_policy / test_secure_tool_registry），全部 25 个测试 100% 通过 (4.53s)。**5 个根因**：① `flatten` 函数实现有 bug（merge lambda 把子键提升到顶层而非把层整体作为外层键）→ 重命名 `flatten` → `flatten_layers` 并修复 merge 逻辑；② `PathPolicy::check` 相对路径失配（`weakly_canonical` 把相对路径转绝对，与 `"./workspace"` 前缀不匹配）→ 对 `allowed_prefixes` 同样做 `weakly_canonical`；③ `ShellGuard::DANGEROUS_PATTERNS` 模式 `"wget \| sh"` 太严格，无法命中 `wget -qO- ... \| sh` → 增加 `"| sh"` 模式；④⑤ `test_secure_tool_registry` 的 fs.read 和线程安全 case 失败，根因也是 ②（PathPolicy 误拒）。**连带修复**：`template_renderer.cpp` 同步更新 `flatten` → `flatten_layers` 调用；`node_executor.cpp` 的 `ParsedGraph` 移动构造（commit `451e395`）。**解决"已知遗留"**："8 个老测试的二进制尚未在当前 build 中重新生成"问题现已闭环，全量 25/25 在干净 build 后均通过。详见 `.omo/plans/fix-test-failures.md`。 |
-| 2026-06-14 | **P0/P1/P2 连续推进 完成** | ~4h | ✅ **25/25 tests/asan, TSan ASLR 遗留** | **P0 质量保障**：① `.gitignore` 添加 `__pycache__/` 条目并清理 `tools/__pycache__/`；② 重建 `build_tsan`（删除 6 天前陈旧目录）→ 编译成功 25 个测试二进制，但运行时 TSan 因 ASLR 内存映射冲突报错（roadmap-status 已知遗留，已确认 18/18 InMemoryBus 并发断言无 data race）；③ `build/asan` 重建 → **25/25 ASan 全部通过，0 内存错误**。**P1 CI 增强**：① 修复 `.gitignore` 阻止 `.github/workflows/ci.yml` 提交（移除 `.github/` 行）；② CI 矩阵从 4 jobs (tests/asan × 2 编译器) 扩展为 **6 jobs (tests/asan/tsan × 2 编译器)**；③ `test_cloud_llm_live` 标记 `LABELS "live"`，默认 ctest 不跑（需真实 API key）；④ 清理 `node.h:107` 和 `node.cpp:70` 中 LLMCallNode 历史注释。**P2 Phase 1 启动准备**：① 5 个候选 ADR 评分（依赖/阻塞/价值/契合），首选 **ADR-0023 ToolResult 标准化**（4.70），次选 ADR-0020（4.65）；② 生成 `docs/phase1-roadmap.md`（4 周 5 Sprint 切分）；③ 创建 OpenSpec change `phase1-toolresult-standardization`（proposal + design + 5 REQ + 6 tasks，共 572 行）。**5 commits** (`5e40c9a` `d894a04` `0765ffa` `add39b2` `685e941`)。详见 `.omo/plans/p0-p1-p2-phase0-cleanup.md`。 |
+| 2026-06-14 | **fix-test-failures 完成** (5 个根因) | 0.5h | ✅ **25/25 通过** | 修复 3 个失败测试（test_layered_context / test_path_policy / test_secure_tool_registry），全部 25 个测试 100% 通过 (4.53s)。**5 个根因**：① `flatten` 函数实现有 bug（merge lambda 把子键提升到顶层而非把层整体作为外层键）→ 重命名 `flatten` → `flatten_layers` 并修复 merge 逻辑；② `PathPolicy::check` 相对路径失配（`weakly_canonical` 把相对路径转绝对，与 `"./workspace"` 前缀不匹配）→ 对 `allowed_prefixes` 同样做 `weakly_canonical`；③ `ShellGuard::DANGEROUS_PATTERNS` 模式 `"wget \| sh"` 太严格，无法命中 `wget -qO- ... \| sh` → 增加 `"| sh"` 模式；④⑤ `test_secure_tool_registry` 的 fs.read 和线程安全 case 失败，根因也是 ②（PathPolicy 误拒）。**连带修复**：`template_renderer.cpp` 同步更新 `flatten` → `flatten_layers` 调用；`node_executor.cpp` 的 `ParsedGraph` 移动构造（commit `451e395`）。**解决"已知遗留"**："8 个老测试的二进制尚未在当前 build 中重新生成"问题现已闭环，全量 25/25 在干净 build 后均通过。详见 `.omo/plans/archive/2026-06-15-expired-plans/fix-test-failures.md`。 |
+| 2026-06-14 | **P0/P1/P2 连续推进 完成** | ~4h | ✅ **25/25 tests/asan, TSan ASLR 遗留** | **P0 质量保障**：① `.gitignore` 添加 `__pycache__/` 条目并清理 `tools/__pycache__/`；② 重建 `build_tsan`（删除 6 天前陈旧目录）→ 编译成功 25 个测试二进制，但运行时 TSan 因 ASLR 内存映射冲突报错（roadmap-status 已知遗留，已确认 18/18 InMemoryBus 并发断言无 data race）；③ `build/asan` 重建 → **25/25 ASan 全部通过，0 内存错误**。**P1 CI 增强**：① 修复 `.gitignore` 阻止 `.github/workflows/ci.yml` 提交（移除 `.github/` 行）；② CI 矩阵从 4 jobs (tests/asan × 2 编译器) 扩展为 **6 jobs (tests/asan/tsan × 2 编译器)**；③ `test_cloud_llm_live` 标记 `LABELS "live"`，默认 ctest 不跑（需真实 API key）；④ 清理 `node.h:107` 和 `node.cpp:70` 中 LLMCallNode 历史注释。**P2 Phase 1 启动准备**：① 5 个候选 ADR 评分（依赖/阻塞/价值/契合），首选 **ADR-0023 ToolResult 标准化**（4.70），次选 ADR-0020（4.65）；② 生成 `docs/phase1-roadmap.md`（4 周 5 Sprint 切分）；③ 创建 OpenSpec change `phase1-toolresult-standardization`（proposal + design + 5 REQ + 6 tasks，共 572 行）。**5 commits** (`5e40c9a` `d894a04` `0765ffa` `add39b2` `685e941`)。详见 `.omo/plans/archive/2026-06-15-expired-plans/p0-p1-p2-phase0-cleanup.md`。 |
 
 ---
 
@@ -274,15 +310,18 @@
 
 ### Phase 1 候选入口（已选定，等待启动）
 
-> **2026-06-14 更新**: 5 个候选 ADR 已评审（详见 `.omo/decisions/phase1-entry.md`），首选 **ADR-0023 ToolResult 标准化**（4.70 分），次选 ADR-0020（4.65 分）。详细路线图见 `docs/phase1-roadmap.md`（4 周 5 Sprint）。
+> **2026-06-14 更新**: 5 个候选 ADR 已评审（详见 `.omo/decisions/phase1-entry.md`），首选 **ADR-0023 ToolResult 标准化**（4.70 分），次选 ADR-0020（4.65 分）。详细路线图见 `docs/phase1-roadmap.md`（4 周 5 Sprint + Sprint 0）。
+>
+> **2026-06-15 修订**: ModelRouter 重新定位为 Domain Plugin (Sprint 0),不再作为 Runtime 组件。ADR-0034 (IModelRouter, 已归档) 不复活。Runtime 仅提供 `ModelCapability` + `available_models()` 数据抽象。
 
 | Phase 1 组件 | ADR | 状态 | 依赖 |
 |--------------|-----|:----:|------|
-| `ToolResult` 完善（P1-P4） ⭐ **首选** | ADR-0023 | [ ] 未开始 | ToolResult MVP ✅ |
-| `CognitiveWorker` + `DomainWorkerPool` ⭐ **次选** | ADR-0020 P1 | [ ] 未开始 | CognitiveWorker 入口 ✅ |
-| DSLEngine bus 集成 + NodeExecutor token push | ADR-0019 P2 | [ ] 未开始 | IInteractionBus ✅ |
-| `DECLARE_TOOL` 宏 (PDK) | ADR-0021 P1 | [ ] 未开始 | 依赖 ADR-0023 |
-| `PluginInfo` + `PluginLoader` | ADR-0022 P1 | [ ] 未开始 | 依赖 ADR-0021 + 0020 |
+| `ModelRouter` 作为 **Domain Plugin** (Sprint 0 示例, **Plugin 层**非 Runtime) | (新, Plugin 层) | [ ] 未开始 (Sprint 0, 2026-06-16) | Track 0.1 ✅ |
+| `ToolResult` 完善（P1-P4） ⭐ **首选** | ADR-0023 | [ ] 未开始 (Sprint 1) | ToolResult MVP ✅ |
+| DSLEngine bus 集成 + NodeExecutor token push | ADR-0019 P2 | [ ] 未开始 (Sprint 1) | IInteractionBus ✅ |
+| `CognitiveWorker` + `DomainWorkerPool` ⭐ **次选** | ADR-0020 P1 | [ ] 未开始 (Sprint 2-3) | CognitiveWorker 入口 ✅ |
+| `DECLARE_TOOL` 宏 (PDK) | ADR-0021 P1 | [ ] 未开始 (Sprint 4) | 依赖 ADR-0023 |
+| `PluginInfo` + `PluginLoader` | ADR-0022 P1 | [ ] 未开始 (Sprint 5) | 依赖 ADR-0021 + 0020 |
 
 ### Phase 1 接口预留（已落实）
 

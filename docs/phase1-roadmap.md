@@ -2,7 +2,7 @@
 
 > **基于**: `.omo/decisions/phase1-entry.md` (Phase 1 入口决策)
 > **关联**: `docs/implementation-roadmap.md` §Phase 1
-> **时间窗口**: 2026-06-16 ~ 2026-07-15 (4 周)
+> **时间窗口**: 2026-06-16 ~ 2026-07-15 (4 周 + Sprint 0 1 天)
 > **目标**: 把 Phase 0 引擎基础 + 契约层扩展为完整多智能体插件运行时
 
 ---
@@ -36,9 +36,14 @@
 
 ## 二、组件清单
 
+> **⚠️ 架构决策 (2026-06-15 修订)**: ModelRouter **重新定位为 Domain Plugin 层** (而非 Runtime 层)。
+> ADR-0034 (IModelRouter, 已归档) 不复活,Runtime 不内置路由,模型选择由 Plugin 智能体通过 `DECLARE_AGENT` + `ModelRouterPolicy` 维护。
+
 | Phase | 组件 | ADR | 状态起点 | 状态终点 | 预计工作量 |
 |-------|------|-----|---------|---------|-----------|
+| **0** | ModelRouter 作为 **Domain Plugin** (Sprint 0 示例) | (新, Plugin 层) | ❌ 无 | ✅ Plugin 可加载 + 路由 | 2.2 天 |
 | **1.0** | ToolResult 扩展 | ADR-0023 | 🟡 P1 | ✅ P1-P4 | 1-2 周 |
+| **1.0+** | DSLEngine bus 集成 (4 子任务) | ADR-0019 P2 | 🟡 P1 | ✅ P2 bus 推送 | 1 周 (与 1.0 并行) |
 | **1.1** | CognitiveWorker | ADR-0020 | ❌ 无 | ✅ 可注入 | 1 周 |
 | **1.2** | DomainWorkerPool | ADR-0020 | ❌ 无 | ✅ N 并发 | 1 周 |
 | **1.3** | PDK 骨架 | ADR-0021 | 🔍 Proposed | ✅ DECLARE_TOOL | 1 周 |
@@ -49,7 +54,9 @@
 ## 三、依赖图
 
 ```
-Phase 1.0 (ToolResult) ←── 独立（最高优先）
+Sprint 0 (ModelRouter Plugin) ←── 独立 (1 天, Plugin 层, 2026-06-16)
+   ↓
+Phase 1.0 (ToolResult) ←── 依赖 Sprint 0 (最高优先)
     │
     ├──→ Phase 1.1 (CognitiveWorker) ←── 依赖 1.0
     │       │
@@ -59,14 +66,37 @@ Phase 1.0 (ToolResult) ←── 独立（最高优先）
     │                       │
     │                       └──→ Phase 1.4 (PluginLoader)
     │
-    └──→ (并行) Bus 集成 (ADR-0019) ←── 独立
+    ├──→ (并行) Bus 集成 (ADR-0019 P2) ←── 依赖 1.0 (ToolResult 完成)
+    │
+    └──→ (隐含) ModelRouterPlugin ←── 作为 Sprint 0 Plugin 示例, 是 Plugin 1.3/1.4 的前置
 ```
 
 ---
 
 ## 四、Sprint 切分
 
-### Sprint 1 (2026-06-16 ~ 2026-06-22) — ToolResult 标准化
+### Sprint 0 (2026-06-16, 1 天) — ModelRouter 作为 Domain Plugin (Sprint 0 示例)
+
+> **⚠️ 架构决策 (2026-06-15 修订)**: ModelRouter **重新定位为 Domain Plugin** 而非 Runtime 组件。
+> ADR-0034 (IModelRouter, 已归档) 不复活。Runtime 仅提供 `ILLMProvider` + `available_models()` 数据抽象,模型选择由 Plugin 智能体通过 `DECLARE_AGENT` 宏 + `ModelRouterPolicy` 实现。
+>
+> **OpenSpec change**: `openspec/changes/2026-06-16-model-router-plugin/` (新建,作为 PDK Domain Plugin 示例)
+> **依赖**: 无
+> **风险**: 低 (5 个子任务, 重新定位在 Plugin 层)
+
+| 任务 | 优先级 | 文件 | 工作量 |
+|------|--------|------|--------|
+| S0.T1 `ModelCapability` enum + `available_models()` | P0 | `src/common/llm/llm_types.h` (修改) | 0.2d |
+| S0.T2 Plugin 层 `ModelRouterPlugin` 头文件 | P0 | `include/agenticdsl/pdk/model_router_plugin.h` (新建) | 0.5d |
+| S0.T3 Plugin 层 `ModelRegistry` 工具 (DECLARE_TOOL) | P0 | `include/agenticdsl/pdk/model_registry_tool.h` (新建) | 0.5d |
+| S0.T4 `DefaultModelRouterPolicy` 决策 (Plugin 智能体示例) | P0 | `examples/phase1_model_router_plugin/main.cpp` (新建) | 0.5d |
+| S0.T5 单元测试 + Plugin 加载验证 | P0 | `tests/test_model_registry_tool.cpp` + `tests/test_phase1_plugin_demo.cpp` (新建) | 0.5d |
+
+**Sprint 验收**: 5/5 new test cases PASS, ctest full 30+/30+, `examples/phase1_model_router_plugin --mock` 可加载并路由
+
+### Sprint 1 (2026-06-17 ~ 2026-06-22, 4 天) — ToolResult 标准化 + Bus 集成
+
+> **依赖**: Sprint 0 完成 (ModelRouter 移交, 2026-06-16)
 
 | 任务 | 优先级 | 文件 | 工作量 |
 |------|--------|------|--------|
@@ -75,8 +105,14 @@ Phase 1.0 (ToolResult) ←── 独立（最高优先）
 | T1.3 NodeExecutor 移除启发式分支 | P0 | `src/modules/executor/node_executor.cpp` | 1d |
 | T1.4 端到端集成测试 | P0 | `tests/test_executor_with_mock_provider.cpp` | 1d |
 | T1.5 IInteractionBus 推送结构化结果 | P1 | `src/common/contract/inmemory_bus.cpp` | 0.5d |
+| T1.6 ADR-0019 P2.1: DSLEngine bus 注入 | P0 | `src/core/engine.h` | 0.5h |
+| T1.7 ADR-0019 P2.2: DSLEngine 3 方法 | P0 | `src/core/engine.cpp` | 2h |
+| T1.8 ADR-0019 P2.3: NodeExecutor bus 注入 | P0 | `src/modules/executor/node_executor.h` | 0.5h |
+| T1.9 ADR-0019 P2.4: NodeExecutor 逐 token 推送 | P0 | `src/modules/executor/node_executor.cpp` | 2h |
+| T1.10 端到端 Bus 集成测试 | P1 | `tests/test_engine_bus_integration.cpp` | 0.5d |
+| T1.11 端到端 demo 骨架 (Sprint 5 扩展基础) | P0 | `examples/phase1_plugin_demo/main.cpp` + `CMakeLists.txt` | 0.5d |
 
-**Sprint 验收**: 30+ 测试通过（含新增），TSan 干净
+**Sprint 验收**: 30+ 测试通过（含新增），TSan 干净，端到端 demo 骨架可 build
 
 ### Sprint 2 (2026-06-23 ~ 2026-06-29) — CognitiveWorker
 
@@ -146,8 +182,8 @@ Phase 1.0 (ToolResult) ←── 独立（最高优先）
 | 风险 | 概率 | 影响 | 缓解 |
 |------|------|------|------|
 | TSan ASLR 内存冲突（已知遗留） | 中 | Sprint 3 验证失败 | 升级 GCC 或在 docker 中跑 |
-| PDK 独立仓库治理 | 低 | Sprint 4 延迟 | 内部 monorepo 先跑通，再拆分 |
-| 多智能体死锁 | 中 | Sprint 3 重做 | CP.22 协议强制 + TSan CI |
+| PDK 独立仓库治理 | 中 | Sprint 4 延迟 | 内部 monorepo 先跑通，再拆分 |
+| 多智能体死锁 | 高 | Sprint 3 重做 | CP.22 协议强制 + TSan CI |
 
 ---
 

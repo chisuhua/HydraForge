@@ -86,7 +86,7 @@ struct Event {
 
 ## 实施计划
 
-参考 `.omo/plans/p0-p1-p2-phase0-cleanup.md` 的 Sprint 1 切分。
+参考 `.omo/plans/archive/2026-06-15-expired-plans/p0-p1-p2-phase0-cleanup.md` 的 Sprint 1 切分。
 
 ## 风险与缓解
 
