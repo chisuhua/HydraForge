@@ -20,8 +20,12 @@ external/taskflow/
 
 # Tool configurations
 .claude/
-.github/
 .mcp.json
 .opencode/
 openspec/
 .opencode.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
