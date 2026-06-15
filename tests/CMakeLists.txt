@@ -32,6 +32,11 @@ function(add_catch_test TEST_NAME)
     # 注册为 CTest 测试
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 
+    # test_cloud_llm_live 需真实 API key，标记为 live 标签，CI 默认不跑
+    if(TEST_NAME STREQUAL "test_cloud_llm_live")
+        set_tests_properties(${TEST_NAME} PROPERTIES LABELS "live")
+    endif()
+
     # test_async_bridge 额外链接 Taskflow 与 async_simple（Slice 00 桥接验证）
     # 这两个库是 INTERFACE 库，使用 PR/PRIVATE 传播即可。
     # 实际 target 名（已验证 CMakeLists 中无 namespace 别名）：
