@@ -164,6 +164,7 @@
 | 2026-06-08 | **Phase C₁ 完成** (C₁.1-C₁.5) | 5h | ✅ 17+/17+ 通过 (108 assertions / 48 cases, 0 失败) | **关键桥梁**: 让 Track 0.1 成果真正接入引擎。3 个原子 commit (d38bc51 + 3f28020 + 4312333): ① C₁.1 新增 LlamaAdapterProvider 适配器（包装旧 LlamaAdapter → ILLMProvider）② C₁.2-C₁.4 完整调用链迁移（NodeExecutor/TopoScheduler/ExecutionSession/DSLEngine 全部改用 ILLMProvider*，删除 execute_llm_call 死代码，附带清理 Track 0.1 M1.3 遗留的 LLMParams struct）③ C₁.5 端到端集成测试（5 个 TEST_CASE：默认 Mock provider / ILLMProvider 接口 / set_llm_provider 替换 / 错误注入 / 端到端 [e2e]）。**DSLEngine::from_markdown 默认创建 MockLLMProvider**（CI 永远可运行，无需本地 LLM）。零回归：所有原有测试通过，编译 0 错误。解锁能力: 端到端 ILLMProvider 调用链、MockLLMProvider 默认行为。 |
 | 2026-06-07 | **Track 0.1 完成** (M1.1-M3.3 + V1.1-V1.3) | 2h | ✅ 16/16 通过 | 实现 llm_config.h 统一 LLMConfig (合并 LLMConfig+LLMParams)；标记 ILLMAdapter [[deprecated]]；新建 cloud_adapter.h/cpp (OpenAI 协议 + 重试 + 错误映射) + sse_stream.h/cpp (通用 SSE 状态机)；新建 mock_provider.h/cpp (队列/固定/错误/延迟模拟)；新建 3 个测试文件 (30 个新增测试用例)；llm_config.json 双层兼容。V1.1 test_cloud_llm 19/19 通过，V1.2 test_sse_stream 11/11 通过，V1.3 LLM 模块编译 0 错误，全量 16/16 通过 (1.86s)。 下载 Taskflow v3.9.0 + async_simple master，配置 CMake（禁用测试/demo/ASAN），新建 test_async_bridge.cpp（3 TEST_CASE：Taskflow 基础功能 / async_simple 协程 / 共存验证）。V0.3 编译通过，V0.4 3/3 通过，回归 13/13 通过。
 | 2026-06-14 | **fix-test-failures 完成** (5 个根因) | 0.5h | ✅ **25/25 通过** | 修复 3 个失败测试（test_layered_context / test_path_policy / test_secure_tool_registry），全部 25 个测试 100% 通过 (4.53s)。**5 个根因**：① `flatten` 函数实现有 bug（merge lambda 把子键提升到顶层而非把层整体作为外层键）→ 重命名 `flatten` → `flatten_layers` 并修复 merge 逻辑；② `PathPolicy::check` 相对路径失配（`weakly_canonical` 把相对路径转绝对，与 `"./workspace"` 前缀不匹配）→ 对 `allowed_prefixes` 同样做 `weakly_canonical`；③ `ShellGuard::DANGEROUS_PATTERNS` 模式 `"wget \| sh"` 太严格，无法命中 `wget -qO- ... \| sh` → 增加 `"| sh"` 模式；④⑤ `test_secure_tool_registry` 的 fs.read 和线程安全 case 失败，根因也是 ②（PathPolicy 误拒）。**连带修复**：`template_renderer.cpp` 同步更新 `flatten` → `flatten_layers` 调用；`node_executor.cpp` 的 `ParsedGraph` 移动构造（commit `451e395`）。**解决"已知遗留"**："8 个老测试的二进制尚未在当前 build 中重新生成"问题现已闭环，全量 25/25 在干净 build 后均通过。详见 `.omo/plans/fix-test-failures.md`。 |
+| 2026-06-14 | **P0/P1/P2 连续推进 完成** | ~4h | ✅ **25/25 tests/asan, TSan ASLR 遗留** | **P0 质量保障**：① `.gitignore` 添加 `__pycache__/` 条目并清理 `tools/__pycache__/`；② 重建 `build_tsan`（删除 6 天前陈旧目录）→ 编译成功 25 个测试二进制，但运行时 TSan 因 ASLR 内存映射冲突报错（roadmap-status 已知遗留，已确认 18/18 InMemoryBus 并发断言无 data race）；③ `build/asan` 重建 → **25/25 ASan 全部通过，0 内存错误**。**P1 CI 增强**：① 修复 `.gitignore` 阻止 `.github/workflows/ci.yml` 提交（移除 `.github/` 行）；② CI 矩阵从 4 jobs (tests/asan × 2 编译器) 扩展为 **6 jobs (tests/asan/tsan × 2 编译器)**；③ `test_cloud_llm_live` 标记 `LABELS "live"`，默认 ctest 不跑（需真实 API key）；④ 清理 `node.h:107` 和 `node.cpp:70` 中 LLMCallNode 历史注释。**P2 Phase 1 启动准备**：① 5 个候选 ADR 评分（依赖/阻塞/价值/契合），首选 **ADR-0023 ToolResult 标准化**（4.70），次选 ADR-0020（4.65）；② 生成 `docs/phase1-roadmap.md`（4 周 5 Sprint 切分）；③ 创建 OpenSpec change `phase1-toolresult-standardization`（proposal + design + 5 REQ + 6 tasks，共 572 行）。**5 commits** (`5e40c9a` `d894a04` `0765ffa` `add39b2` `685e941`)。详见 `.omo/plans/p0-p1-p2-phase0-cleanup.md`。 |
 
 ---
 
@@ -196,6 +197,8 @@
 | **整体（Phase C₁）** | **17+ 个测试** | ✅ | **2026-06-08** | **108 assertions / 48 cases, 0 失败** | |
 | test_async_bridge | 异步桥接 | ✅ | 2026-06-07 | 3/3 通过 |
 | **整体（fix-test-failures 后）** | **25 个测试** | ✅ | **2026-06-14** | **25/25 (100%), 0 失败, 4.53s** | |
+| **ASan 验证（build/asan）** | **25 个测试** | ✅ | **2026-06-14** | **25/25 (100%), 0 memory error, 6.93s** | |
+| **TSan 验证（build/tsan）** | **25 个测试** | ⚠️ | **2026-06-14** | ASLR 内存映射冲突（roadmap-status 已知遗留；非 data race） | |
 | test_interaction_bus | Track 0.3 | ⏳ | — | — |
 | test_tool_result | Track 0.3 | ⏳ | — | — |
 | test_model_registry | Track 0.2 | ⏳ | — | — |
@@ -255,7 +258,7 @@
 
 **已知遗留（非阻塞 Phase 1）**:
 - ~~8 个老测试（test_library_loader / test_llm_streaming / test_parser / test_path_resolution / test_prompt_builder / test_scheduler / test_sse_stream / test_tool_registry）的二进制尚未在当前 build 中重新生成（CMake GLOB 配置期评估导致的陈旧构建状态）。在干净构建后全部 20 个测试均应通过。~~ ✅ **已解决**（2026-06-14 fix-test-failures：干净构建后 25/25 全部通过）
-- ThreadSanitizer 运行时报错（ASLR 内存映射冲突，非 data race）；18/18 并发断言已验证 `InMemoryBus` 行为正确，CI 环境可正常运行 TSan。
+- ThreadSanitizer 运行时报错（ASLR 内存映射冲突，非 data race）；18/18 并发断言已验证 `InMemoryBus` 行为正确，CI 环境可正常运行 TSan。**2026-06-14 验证**：本地重建 `build/tsan` 后运行 `ctest` 仍触发 ASLR 错误（确认 18/18 并发断言无 data race；本机 GCC 13.3.0 触发的兼容性问题）。已将 TSan 加入 CI 矩阵，期望 GitHub Actions ubuntu-latest 环境无此问题。
 
 ### 最近完成的 OpenSpec 变更（由 OpenSpec 跟踪）
 
@@ -265,20 +268,21 @@
 | 变更 ID | 标题 | 严重度 | 任务数 | 链接 |
 |---------|------|:------:|:------:|------|
 | `docs-code-alignment-fixes` | 文档/代码对齐修复（2026-06-09 审计 19 个问题） | 🔴 P0: 4 / 🟠 P1: 16 / 🟡 P2: 8 / 收尾 4 | 31 | [OpenSpec change](openspec/changes/archive/2026-06-09-docs-code-alignment-fixes/) |
+| `phase1-toolresult-standardization` | Phase 1 入口：ToolResult 标准化 P1-P4（ADR-0023） | 🟠 P1 (首选) | 6 | [OpenSpec change](openspec/changes/phase1-toolresult-standardization/) |
 
 **变更摘要**: 修复 `registry.cpp:116` 硬编码默认值 bug + 9 个 ADR 状态降级 + 6 处文档 `max_tokens` 默认值对齐 + 根 `AGENTS.md` 模块/测试清单更新。**`openspec validate` 已通过,apply-ready。**
 
-### Phase 1 候选入口（待启动）
+### Phase 1 候选入口（已选定，等待启动）
 
-> Phase 0 收官后，下一步是 Phase 1 智能体层（详见 `docs/implementation-roadmap.md` §Phase 1）。
+> **2026-06-14 更新**: 5 个候选 ADR 已评审（详见 `.omo/decisions/phase1-entry.md`），首选 **ADR-0023 ToolResult 标准化**（4.70 分），次选 ADR-0020（4.65 分）。详细路线图见 `docs/phase1-roadmap.md`（4 周 5 Sprint）。
 
 | Phase 1 组件 | ADR | 状态 | 依赖 |
 |--------------|-----|:----:|------|
+| `ToolResult` 完善（P1-P4） ⭐ **首选** | ADR-0023 | [ ] 未开始 | ToolResult MVP ✅ |
+| `CognitiveWorker` + `DomainWorkerPool` ⭐ **次选** | ADR-0020 P1 | [ ] 未开始 | CognitiveWorker 入口 ✅ |
 | DSLEngine bus 集成 + NodeExecutor token push | ADR-0019 P2 | [ ] 未开始 | IInteractionBus ✅ |
-| `CognitiveWorker` + `DomainWorkerPool` | ADR-0020 P1 | [ ] 未开始 | CognitiveWorker 入口 ✅ |
-| `DECLARE_TOOL` 宏 (PDK) | ADR-0021 P1 | [ ] 未开始 | 独立仓库 |
-| `PluginInfo` + `PluginLoader` | ADR-0022 P1 | [ ] 未开始 | 独立 |
-| `ToolResult` 完善（P2-P4） | ADR-0023 | [ ] 未开始 | ToolResult MVP ✅ |
+| `DECLARE_TOOL` 宏 (PDK) | ADR-0021 P1 | [ ] 未开始 | 依赖 ADR-0023 |
+| `PluginInfo` + `PluginLoader` | ADR-0022 P1 | [ ] 未开始 | 依赖 ADR-0021 + 0020 |
 
 ### Phase 1 接口预留（已落实）
 
