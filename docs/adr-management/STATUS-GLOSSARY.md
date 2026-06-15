@@ -2,6 +2,7 @@
 
 > 本文档定义 HydraForge 项目所有 ADR 文件、状态表格、关系图中使用的状态标签。
 > 创建于 2026-06-12，作为 project-organization 计划 Stage 1 / Task 2 的产出。
+> 2026-06-16 移至 `docs/adr-management/`，与 `relationships.md` 同处 ADR 管理目录。
 > 所有 ADR 状态字段、README 表格、SPECS-ALIGNMENT、relationships.md 必须使用本词汇表中的标签。
 
 ## 6 个标准标签

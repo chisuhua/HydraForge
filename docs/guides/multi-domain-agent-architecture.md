@@ -219,4 +219,4 @@ ToolCallNode → ToolRegistry → 领域处理器 (DomainWorkerPool)
 | ADR-0021 | Plugin Development Kit (PDK) 设计 |
 | ADR-0022 | 插件加载机制 |
 | ADR-0023 | ToolResult 标准化 |
-| [relationships.md](../adr/relationships.md) | ADR 之间的关系与完整链路 |
+| [relationships.md](../adr-management/relationships.md) | ADR 之间的关系与完整链路 |

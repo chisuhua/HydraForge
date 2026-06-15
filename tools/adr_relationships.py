@@ -1,19 +1,35 @@
 #!/usr/bin/env python3
 # tools/adr_relationships.py
-# 功能描述: 自动生成 docs/adr/relationships.md
-#          - 扫描 docs/adr/adr-NNNN-*.md 文件
+# 功能描述: 自动生成 docs/adr-management/relationships.md
+#          - 扫描 docs/adr/adr-NNNN-*.md + docs/adr/plugin/adr-NNNN-*.md
 #          - 解析状态/日期/depends-on/supersedes 关系
 #          - 输出 5 段 markdown: 状态总览 / Mermaid 依赖图 / 引用次数 / 状态统计 / 阶段映射
-# 设计依据: project-organization Stage 5 / Task 27
+# 设计依据: project-organization Stage 5 / Task 27; 2026-06-16 扩展 plugin 子目录扫描
 # 复用约定: 正则模式与 tools/adr_lint.py 保持一致（ADR_PATTERN / STATUS_PATTERN / 等）
 # 作者: AgenticDSL Stage 5
-# 最后修改日期: 2026-06-13
 
 import argparse
 import re
 import sys
 from collections import defaultdict
 from pathlib import Path
+
+
+# ADR 子目录列表（与 docs/adr/ 根目录同级，存放同一编号空间的子集）
+# 必须与 tools/adr_lint.py 的 ADR_SUBDIRS 保持一致
+ADR_SUBDIRS = ["plugin"]
+
+
+def _candidate_paths(adr_dir: Path) -> list[Path]:
+    """返回 ADR 根目录下所有待扫描的 ADR 文件路径列表（根 + ADR_SUBDIRS 子目录）。"""
+    paths: list[Path] = []
+    if adr_dir.exists():
+        paths.extend(sorted(adr_dir.glob("adr-*.md")))
+        for sub in ADR_SUBDIRS:
+            sub_dir = adr_dir / sub
+            if sub_dir.exists() and sub_dir.is_dir():
+                paths.extend(sorted(sub_dir.glob("adr-*.md")))
+    return paths
 
 
 # ----------------------------------------------------------------------------
@@ -290,15 +306,15 @@ def render_markdown(adrs: list[dict]) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="自动生成 docs/adr/relationships.md — 扫描 ADR 文件并渲染关联性分析"
+        description="自动生成 docs/adr-management/relationships.md — 扫描 ADR 文件并渲染关联性分析"
     )
     parser.add_argument(
         "adr_dir", nargs="?", default="docs/adr",
         help="ADR 目录路径（默认: docs/adr）",
     )
     parser.add_argument(
-        "-o", "--output", default="docs/adr/relationships.md",
-        help="输出文件路径（默认: docs/adr/relationships.md）",
+        "-o", "--output", default="docs/adr-management/relationships.md",
+        help="输出文件路径（默认: docs/adr-management/relationships.md）",
     )
     parser.add_argument(
         "--check", action="store_true",
@@ -316,7 +332,7 @@ def main() -> int:
 
     # 扫描并解析所有 ADR
     adrs: list[dict] = []
-    for path in sorted(adr_dir.glob("adr-*.md")):
+    for path in _candidate_paths(adr_dir):
         parsed = parse_adr(path)
         if parsed:
             adrs.append(parsed)

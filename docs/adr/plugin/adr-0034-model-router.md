@@ -1,14 +1,21 @@
 # ADR-0034: IModelRouter 模型路由接口
-> 📋 **Phase 7 规划: 模型路由** (规划于 2026-05/06, 2026-06-09 整理归档) — 见 `implementation-roadmap.md`
+
+> plugin-candidate: true
+> 📋 **Phase 7 规划: 模型路由** (规划于 2026-05/06, 2026-06-09 整理归档, 2026-06-16 转入 plugin 候选) — 见 `implementation-roadmap.md`
+
 ## 状态
 
-**❌ 未实施** (2026-05-28, 2026-06-09 标注废弃)
+**🔍 Proposed** (plugin-candidate, 2026-06-16)
 
-代码侧无 `IModelRouter`/`ModelRouter`/`DefaultModelRouter` 类。详见 OpenSpec change `tech-debt-and-doc-cleanup`。
+> 历史：原状态为 `❌ Not Implemented`（2026-06-09 标注归档），2026-06-16 因重新定位为「Plugin 化实施候选」迁出 `docs/archive/adr/` 至 `docs/adr/plugin/`，状态由 ❌ Not Implemented 调整为 🔍 Proposed。
+>
+> 调整依据：Plugin SDK（参见 [ADR-0021](../adr-0021-pdk-design.md)）落地后，`IModelRouter` 的具体路由策略（成本路由/质量路由/延迟路由）天然适合由第三方 Plugin 实现，引擎侧仅保留接口契约。本 ADR 当前定位为「Plugin 候选」，具体路由算法由 plugin 实现细节决定。
+
+代码侧无 `IModelRouter`/`ModelRouter`/`DefaultModelRouter` 类。Plugin SDK 尚未发布，待 [ADR-0021](../adr-0021-pdk-design.md) / [ADR-0022](../adr-0022-plugin-loading.md) 实施后由 plugin 实现。
 
 ## 领域
 
-基座 / LLM / 模型路由
+基座 / LLM / 模型路由 / **Plugin 候选**
 
 ## 关联
 

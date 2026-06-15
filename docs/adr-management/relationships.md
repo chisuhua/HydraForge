@@ -3,7 +3,7 @@
 > 本文件由 `tools/adr_relationships.py` 自动生成，**请勿手动编辑**。
 > 任何手动修改会在下次运行时被覆盖。
 > 最后更新: 由 `tools/adr_relationships.py` 生成（运行时刻见 git commit 时间戳）
-> ADR 总数: 16
+> ADR 总数: 19
 
 ---
 
@@ -12,9 +12,11 @@
 | ADR | 议题 | 状态 | 日期 | 替代关系 |
 |-----|------|------|------|---------|
 | adr-0001 | ILLMProvider 流式接口设计 | ✅ Approved | 2026-05-28 |  |
-| adr-0002 | EventBus 有界队列架构 | ✅ Approved | 2026-05-27 |  |
+| adr-0002 | EventBus 有界队列架构 | ✅ Approved | Unknown |  |
+| adr-0002 | ADR-0002 实现范围审计 (Implementation Scope Audit) | Unknown | Unknown |  |
 | adr-0003 | DSLEngine 线程安全与多实例架构 | ✅ Approved | 2026-05-12 |  |
-| adr-0004 | ToolRegistry 安全模型 | ✅ Approved | 2026-05-27 |  |
+| adr-0004 | ADR-0004 实现范围审计 (Implementation Scope Audit) | Unknown | Unknown |  |
+| adr-0004 | ToolRegistry 安全模型 | 🟡 Partial | 2026-06-13 |  |
 | adr-0005 | LLM 后端配置与工厂模式 | ✅ Approved | 2026-05-12 |  |
 | adr-0006 | HarnessEngine 后台线程模型 | ⛔ Superseded | 2026-05-25 |  |
 | adr-0007 | 上下文压缩机制 | 🟡 Partial | Unknown |  |
@@ -27,6 +29,7 @@
 | adr-0023 | ToolResult 标准化 | 🟡 Partial | Unknown |  |
 | adr-0031 | IExecutionPolicy 执行策略与三模式审批 | 🟡 Partial | Unknown |  |
 | adr-0033 | Session Hierarchy 执行会话层级体系 | 🟡 Partial | Unknown |  |
+| adr-0034 | IModelRouter 模型路由接口 | 🔍 Proposed | Unknown |  |
 
 ---
 
@@ -36,7 +39,9 @@
 graph TD
     adr_0001["adr-0001: ILLMProvider 流式接口设计"]
     adr_0002["adr-0002: EventBus 有界队列架构"]
+    adr_0002["adr-0002: ADR-0002 实现范围审计 (Implementation Scope Au"]
     adr_0003["adr-0003: DSLEngine 线程安全与多实例架构"]
+    adr_0004["adr-0004: ADR-0004 实现范围审计 (Implementation Scope Au"]
     adr_0004["adr-0004: ToolRegistry 安全模型"]
     adr_0005["adr-0005: LLM 后端配置与工厂模式"]
     adr_0006["adr-0006: HarnessEngine 后台线程模型"]
@@ -50,6 +55,7 @@ graph TD
     adr_0023["adr-0023: ToolResult 标准化"]
     adr_0031["adr-0031: IExecutionPolicy 执行策略与三模式审批"]
     adr_0033["adr-0033: Session Hierarchy 执行会话层级体系"]
+    adr_0034["adr-0034: IModelRouter 模型路由接口"]
 
     adr_0031 --> adr_0002
     adr_0031 --> adr_0019
@@ -57,7 +63,7 @@ graph TD
     adr_0020 -.->|supersedes| adr_0006
 ```
 
-> 图中包含 16 个节点、2 条依赖边、2 条替代边。
+> 图中包含 19 个节点、2 条依赖边、2 条替代边。
 > 渲染说明：实线 (`-->`) 表示依赖关系；虚线带标签 (`-.->|supersedes|`) 表示替代关系。
 
 ---
@@ -76,10 +82,11 @@ graph TD
 
 | 状态 | 数量 |
 |------|------|
-| ✅ Approved | 8 |
-| 🟡 Partial | 5 |
+| ✅ Approved | 7 |
+| 🟡 Partial | 6 |
 | ⛔ Superseded | 1 |
-| 🔍 Proposed | 2 |
+| 🔍 Proposed | 3 |
+| ❓ Unknown | 2 |
 
 ---
 

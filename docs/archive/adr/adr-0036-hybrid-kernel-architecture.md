@@ -405,10 +405,10 @@ struct InfrastructureServices {
 > - `ToolRegistry`：✅ 已实现（`src/common/tools/registry.h`）
 > - `IEventBus`：❌ 仅设计（`docs/adr/adr-0002-eventbus-bounded-queue.md`）
 > - `SessionManager`：❌ 仅设计（`docs/adr/adr-0033-session-hierarchy.md`）
-> - `ModelRegistry`：❌ 仅设计（`docs/adr/adr-0034-model-router.md`）
+> - `ModelRegistry`：❌ 仅设计（`docs/adr/plugin/adr-0034-model-router.md`）
 > - `ICognitiveOrchestrator`：❌ 仅设计（本文档）
 > - `IExecutionPolicy`：❌ 仅设计（`docs/adr/adr-0031-execution-policy.md`）
-> - `IModelRouter`：❌ 仅设计（`docs/adr/adr-0034-model-router.md`）
+> - `IModelRouter`：❌ 仅设计（`docs/adr/plugin/adr-0034-model-router.md`）
 > - `ParallelExecutor`：❌ 依赖 ADR-0030 实现
 > - 其余接口：❌ 尚未进入设计阶段
 

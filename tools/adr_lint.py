@@ -4,9 +4,11 @@
 #          - 状态字段必须使用 STATUS-GLOSSARY.md 定义的 6 个标准标签
 #          - 跨文件引用（supersedes / 替代 / 依赖）必须指向已存在的 ADR
 #          - 替代关系中，被替代方编号必须严格小于当前 ADR
-# 设计依据: project-organization Stage 5 / Task 26
+#          - 扫描范围: docs/adr/adr-NNNN-*.md + docs/adr/plugin/adr-NNNN-*.md
+#            （plugin/ 子目录存放 plugin 化候选 ADR，与根目录共用同一编号空间）
+# 设计依据: project-organization Stage 5 / Task 26; 2026-06-16 扩展 plugin 子目录扫描
 # 作者: AgenticDSL Stage 5
-# 最后修改日期: 2026-06-12
+# 最后修改日期: 2026-06-16
 
 import argparse
 import re
@@ -17,7 +19,7 @@ from pathlib import Path
 # 常量定义
 # ----------------------------------------------------------------------------
 
-# 6 个标准状态标签（来自 docs/adr/STATUS-GLOSSARY.md）
+# 6 个标准状态标签（来自 docs/adr-management/STATUS-GLOSSARY.md）
 # 在此集中维护，确保与词汇表严格对齐
 VALID_STATUSES = {
     "approved",            # ✅ Approved
@@ -27,6 +29,29 @@ VALID_STATUSES = {
     "proposed",            # 🔍 Proposed
     "reserved",            # 📋 Reserved
 }
+
+# ADR 子目录列表（与 docs/adr/ 根目录同级，存放同一编号空间的子集）
+# 子目录下的 ADR 文件名、编号规则、状态词汇均与根目录一致
+ADR_SUBDIRS = ["plugin"]
+
+
+def _candidate_paths(adr_dir: Path) -> list[Path]:
+    """返回 ADR 根目录下所有待扫描的 ADR 文件路径列表。
+
+    扫描范围：
+      - adr_dir/adr-*.md （根目录 ADR）
+      - adr_dir/<subdir>/adr-*.md （每个 ADR_SUBDIRS 子目录下的 ADR）
+
+    非 ADR 文件（如 README.md）不会被识别为 ADR。
+    """
+    paths: list[Path] = []
+    if adr_dir.exists():
+        paths.extend(sorted(adr_dir.glob("adr-*.md")))
+        for sub in ADR_SUBDIRS:
+            sub_dir = adr_dir / sub
+            if sub_dir.exists() and sub_dir.is_dir():
+                paths.extend(sorted(sub_dir.glob("adr-*.md")))
+    return paths
 
 # 已废弃的中文/英文状态词（在状态行中出现应报错）
 # 注意：这些词在正文叙述中可正常使用，仅当出现在"## 状态"上下文时才算违规
@@ -80,11 +105,14 @@ GENERIC_ADR_REF = re.compile(r"\b[Aa][Dd][Rr]\s*-\s*(\d{4})\b")
 # ----------------------------------------------------------------------------
 
 def find_all_adrs(adr_dir: Path) -> set[str]:
-    """扫描目录下所有 adr-NNNN-*.md 文件，收集其 4 位编号集合。"""
+    """扫描目录下所有 adr-NNNN-*.md 文件，收集其 4 位编号集合。
+
+    扫描范围包括 ADR_SUBDIRS 列出的子目录，确保跨子目录引用校验有效。
+    """
     numbers: set[str] = set()
     if not adr_dir.exists():
         return numbers
-    for path in adr_dir.glob("adr-*.md"):
+    for path in _candidate_paths(adr_dir):
         m = ADR_PATTERN.match(path.name)
         if m:
             numbers.add(m.group(1))
@@ -248,7 +276,7 @@ def main() -> int:
 
     all_errors: list[str] = []
     files_checked = 0
-    for path in sorted(adr_dir.glob("adr-*.md")):
+    for path in _candidate_paths(adr_dir):
         files_checked += 1
         errors = lint_adr_file(path, all_numbers)
         all_errors.extend(errors)

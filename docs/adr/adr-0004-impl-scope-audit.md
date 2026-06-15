@@ -92,7 +92,7 @@ src/common/policy/yolo_mode_policy.h
 
 **已执行动作**：
 1. ✅ `adr-0004-toolregistry-security.md` 头部状态行： `✅ Approved` → `🟡 Partial (同步路径已实施)`，附 6 项已完成/2 项 🟡/1 项 ❌ 的细粒度清单。**主体内容未修改**。
-2. ✅ 与 ADR-0002 决策对齐处理（见 `adr-0002-impl-scope.md` 决策记录）。
+2. ✅ 与 ADR-0002 决策对齐处理（见 `adr-0002-impl-scope-audit.md` 决策记录）。
 3. ✅ **新增代码**（方向 4 实施，~600 行 C++ + 测试）：
    - `include/agenticdsl/policy/path_policy.h`：`IPathPolicy` 抽象 + `PathPolicy` 默认实现 + `ShellGuard` 静态类 + `SecurityError` 类型
    - `src/common/policy/path_policy.cpp`：`PathPolicy::check()` (denied → allowed) + `ShellGuard::is_dangerous()` (大小写不敏感子串)

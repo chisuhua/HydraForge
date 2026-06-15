@@ -29,11 +29,13 @@
 |-----|------|----------|
 | `adr-0030-async-runtime-dual-layer.md` | 异步运行时双层架构 | ❌ Not Implemented (Taskflow + async_simple 依赖未引入) |
 | `adr-0032-cost-collector.md` | 成本收集器 | ❌ Not Implemented (由 `BudgetController::CostTracker` 替代) |
-| `adr-0034-model-router.md` | 模型路由 | ❌ Not Implemented |
 | `adr-0036-hybrid-kernel-architecture.md` | 混合内核架构 | ❌ Not Implemented (愿景性, 依赖多个前置 ADR) |
+
+> 2026-06-16 变更：`adr-0034-model-router.md` 因重新定位为「Plugin 化实施候选」移出本目录至 [`docs/adr/plugin/`](../adr/plugin/README.md)，状态由 ❌ Not Implemented 调整为 🔍 Proposed (plugin-candidate)。归档目录不再保留此 ADR。
 
 ## 维护规则
 
 - 归档 ADR 永不删除
-- 状态变更需在 `docs/adr/STATUS-GLOSSARY.md` 中记录
+- 状态变更需在 `docs/adr-management/STATUS-GLOSSARY.md` 中记录
 - 如需恢复某个 ADR, 通过 `git mv` 移回 `docs/adr/`
+- 若 ADR 被重新定位为 plugin 候选，移至 `docs/adr/plugin/` 并按 `docs/adr/plugin/README.md` 维护规则调整 frontmatter

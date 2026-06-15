@@ -5,7 +5,8 @@
 ```
 docs/
 ├── adr/              # Architecture Decision Records (架构决策, 阶段化分类)
-│   └── (无 — AgenticDSL 演进提案已移至 docs/proposals/)
+│   └── plugin/       # Plugin 化实施候选 ADR (plugin-candidate, 2026-06-16+)
+├── adr-management/   # ADR 元数据: 状态词汇表 + 关联性分析 (自 2026-06-16 移出 adr/)
 ├── specs/            # 规范文档 (当前有效版本)
 ├── guides/           # 用户和开发者指南
 ├── design/           # 设计文档
@@ -28,7 +29,6 @@ docs/
 | `adr-0004-toolregistry-security.md` | ToolRegistry 安全模型 | ✅ Approved |
 | `adr-0005-llm-backend-config-factory.md` | LLM 后端配置与工厂 | ✅ Approved |
 | `adr-0006-harness-engine-thread-model.md` | HarnessEngine 后台线程 | ⛔ Superseded (被 ADR-0020 替代) |
-| `relationships.md` | ADR 联合分析、依赖关系、实施顺序 | 📋 跨 ADR 参考 |<!-- 非 ADR，独立文件 -->
 | `adr-0007-context-compression.md` | 上下文压缩机制 | 🟡 Partial (快照有,无 LLM 压缩) |
 | `adr-0008-structured-context.md` | 结构化 Context | ✅ Approved (2026-06-12 LayeredContext 实现完成) |
 | `adr-0009-dsl-standard-library.md` | DSL 标准库规划 | ✅ Approved |
@@ -39,8 +39,27 @@ docs/
 | `adr-0023-tool-result-standard.md` | ToolResult 标准化 | 🟡 Partial (P1) |
 | `adr-0031-execution-policy.md` | 执行策略 | 🟡 Partial (仅头文件 stub) |
 | `adr-0033-session-hierarchy.md` | 会话层次结构 | 🟡 Partial (仅前向声明) |
+| `adr-0002-impl-scope-audit.md` | ADR-0002 实施范围审计 (OpenSpec change `docs-code-drift-audit-2026-06` 产出) | 📋 审计补充 |
+| `adr-0004-impl-scope-audit.md` | ADR-0004 实施范围审计 (同上) | 📋 审计补充 |
 
-> ADR 编号 0024-0028 为未来 Phase-4 / Phase-6 规划保留；占位文件 0029/0035 已删除（2026-06-12）；13 个已废弃 ADR 已归档到 [docs/archive/adr/](archive/adr/README.md)
+### adr/plugin/ - Plugin 化候选清单
+
+> 自 2026-06-16 起，本目录存放**计划通过 Plugin 实现**的活跃 ADR（与根目录共用同一编号空间与工具链扫描范围）。详见 [adr/plugin/README.md](adr/plugin/README.md)。
+
+| 文件 | 议题 | 状态 |
+|------|------|------|
+| `adr/plugin/adr-0034-model-router.md` | IModelRouter 模型路由接口（plugin-candidate） | 🔍 Proposed |
+
+### adr-management/ - ADR 元数据
+
+> 自 2026-06-16 起，状态词汇表与关联性分析从 `adr/` 移至本目录。
+
+| 文件 | 议题 | 说明 |
+|------|------|------|
+| `STATUS-GLOSSARY.md` | ADR 状态词汇表 | 6 个标准标签定义 + 维护规则 |
+| `relationships.md` | ADR 关联性分析 | 由 `tools/adr_relationships.py` 自动生成 |
+
+> ADR 编号 0024-0028 为未来 Phase-4 / Phase-6 规划保留；占位文件 0029/0035 已删除（2026-06-12）；12 个已废弃 ADR 已归档到 [docs/archive/adr/](archive/adr/README.md)（ADR-0034 已迁出归档至 plugin 候选区）。
 
 ---
 

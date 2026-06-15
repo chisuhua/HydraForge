@@ -72,7 +72,7 @@ include/agenticdsl/contract/inmemory_bus.h
 **已执行动作**：
 1. ✅ `adr-0002-eventbus-bounded-queue.md` 头部状态行： `✅ Approved` → `📦 设计历史 (未实施)`，附 2026-06-13 审计备注与未来重新评估触发条件说明。**主体内容未修改**。
 2. ✅ `adr-0019-iinteraction-bus-mvp.md` §1.1 "MVP 简化" 段落末尾：增加 "重新评估 EventBus 实施的触发条件" 段落，包含 4 个量化触发条件（吞吐瓶颈 / Per-Session 隔离 / 优先级背压 / 多 Agent 协作）与不触发则不实施原则。
-3. ✅ `adr-0004-impl-scope.md` 同问题一并处理（见该文件决策记录）。
+3. ✅ `adr-0004-impl-scope.md` 同问题一并处理（见 `adr-0004-impl-scope-audit.md` 决策记录——原文件 `adr-0004-impl-scope.md` 已于 2026-06-16 重命名以消除与主 ADR `adr-0004-toolregistry-security.md` 的命名歧义）。
 
 **决策依据**：
 - 架构蓝图已通过 `IInteractionBus` 抽象接口与 EventBus **解耦**——`InMemoryBus` 是当前实现，未来 EventBus 实现可作为新的 `IInteractionBus` 实现类平滑替换，不破坏 API 表面。
