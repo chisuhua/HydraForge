@@ -67,7 +67,7 @@ std::unique_ptr<Node> AssignNode::clone() const {
 }
 
 // ————————————————————————
-// DSLNode (v3.10 - replaces LLMCallNode)
+// DSLNode (v3.10)
 // ————————————————————————
 
 DSLNode::DSLNode(NodePath path,

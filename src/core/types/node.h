@@ -104,7 +104,7 @@ struct AssignNode : public Node {
     std::unique_ptr<Node> clone() const override;
 };
 
-// DSL Node (for LLM-generated DSL, v3.10 - replaces LLMCallNode)
+// DSL Node (for LLM-generated DSL, v3.10)
 struct DSLNode : public Node {
     std::string prompt_template;
     std::string llm_tool_name;  // e.g., "llama-7b", "gpt-4"
