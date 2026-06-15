@@ -22,10 +22,14 @@ external/taskflow/
 .claude/
 .mcp.json
 .opencode/
-openspec/
 .opencode.json
 # VS Code Copilot custom instructions (per-developer)
 .github/code-review-graph.instruction.md
+# OpenSpec: changes/ 目录入 git (团队共享 proposals/specs/tasks);
+# 但 archive/ + config.yaml + specs/ 仍是 per-machine ephemeral
+openspec/changes/archive/
+openspec/config.yaml
+openspec/specs/
 
 # Python cache
 __pycache__/

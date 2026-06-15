@@ -96,6 +96,14 @@ add_subdirectory(src/common/contract)
 add_subdirectory(src/common/policy)
 add_subdirectory(src/common/tools)
 
+# Phase 1 公共头文件占位 (W1D2.5 启动前置, 见 .omo/plans/phase1-execution.md §W1D2.5.T1)
+# 每个子目录定义为 INTERFACE library, 命名 agenticdsl_hdr_<module> 避免与 src/ 实现库冲突
+add_subdirectory(include/agenticdsl/cognitive)
+add_subdirectory(include/agenticdsl/contract)
+add_subdirectory(include/agenticdsl/pdk)
+add_subdirectory(include/agenticdsl/plugin)
+add_subdirectory(include/agenticdsl/types)
+
 add_library(agenticdsl_core STATIC
  src/core/engine.cpp
 )
