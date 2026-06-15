@@ -1,0 +1,77 @@
+# HydraForge CI — configure + build + test + lint
+# 功能描述: GitHub Actions 持续集成工作流
+# 触发条件: push / pull_request 到 main 或 phase-c1-migration 分支
+# 矩阵策略: 2 presets (tests, asan) × 2 compilers (gcc, clang++) = 4 个并行 job
+# Stage 5 / Task 25 of project-organization plan
+name: CI
+
+on:
+  push:
+    branches: [main, phase-c1-migration]
+  pull_request:
+    branches: [main, phase-c1-migration]
+
+# 取消同一分支的进行中运行（避免资源浪费）
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & Test (${{ matrix.preset }} / ${{ matrix.compiler.cxx }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        preset:
+          - tests        # Debug + ctest enabled (primary)
+          - asan         # AddressSanitizer
+          - tsan         # ThreadSanitizer
+        compiler:
+          - { cc: gcc,   cxx: g++ }
+          - { cc: clang, cxx: clang++ }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            ninja-build \
+            python3 \
+            libyaml-cpp-dev
+
+      - name: Configure (preset=${{ matrix.preset }}, compiler=${{ matrix.compiler.cxx }})
+        env:
+          CC: ${{ matrix.compiler.cc }}
+          CXX: ${{ matrix.compiler.cxx }}
+        run: |
+          cmake --preset ${{ matrix.preset }} -S . \
+            -G Ninja \
+            -DCMAKE_C_COMPILER=${{ matrix.compiler.cc }} \
+            -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }} -j2
+
+      - name: Test (ctest, output on failure)
+        working-directory: build/${{ matrix.preset }}
+        run: ctest --output-on-failure
+
+      - name: Lint (clang-tidy on core headers, tests+clang only)
+        if: matrix.preset == 'tests' && matrix.compiler.cxx == 'clang++'
+        run: |
+          # 可选步骤：对公共头文件运行 clang-tidy
+          # 注: lint 失败不阻塞 CI（使用 || true），仅作为参考信号
+          echo "Linting core public headers with clang-tidy..."
+          for f in include/agenticdsl/types/layered_context.h \
+                   include/agenticdsl/contract/ischeduler.h \
+                   include/agenticdsl/contract/iparser.h \
+                   include/agenticdsl/contract/iinteraction_bus.h; do
+            if [ -f "$f" ]; then
+              clang-tidy --quiet "$f" -- -Iinclude -Iexternal/nlohmann_json/include 2>&1 | head -5 || true
+            fi
+          done
