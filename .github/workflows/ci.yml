@@ -44,6 +44,18 @@ jobs:
             python3 \
             libyaml-cpp-dev
 
+      - name: Clone async dependencies (async_simple + taskflow)
+        # external/async_simple/ 和 external/taskflow/ 在 .gitignore 中,
+        # 本地开发者手动 clone; CI runner 无此步骤会失败
+        # Sprint 0 W1D3 修复 (chi) — 见 phase1-execution.md §W1D2
+        run: |
+          if [ ! -d "external/async_simple" ]; then
+            git clone --depth 1 https://github.com/alibaba/async_simple.git external/async_simple
+          fi
+          if [ ! -d "external/taskflow" ]; then
+            git clone --depth 1 https://github.com/taskflow/taskflow.git external/taskflow
+          fi
+
       - name: Configure (preset=${{ matrix.preset }}, compiler=${{ matrix.compiler.cxx }})
         env:
           CC: ${{ matrix.compiler.cc }}
