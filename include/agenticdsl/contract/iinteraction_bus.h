@@ -33,9 +33,9 @@ class IInteractionBus {
   virtual ~IInteractionBus() = default;
 
   /**
-   * @brief 发射事件
+   * @brief 发射 ToolResult 事件（Phase 1 Sprint 1a 主路径）
    * @param event_type 事件类型（如 "tool_call_started"）
-   * @param payload    事件载荷（ToolResult）
+   * @param payload    事件载荷（ToolResult 信封）
    *
    * 实现应：
    *  1. 入队到内部队列
@@ -43,6 +43,18 @@ class IInteractionBus {
    */
   virtual void emit(const std::string& event_type,
                     const ToolResult& payload) = 0;
+
+  /**
+   * @brief 发射 std::string 事件（REQ-TR-005 向后兼容入口）
+   * @param event_type 事件类型
+   * @param content    字符串载荷（旧式 API 兼容）
+   *
+   * 实现内部将 std::string 包装为 ToolResult 信封：
+   *   ToolResult::success({}, {{"content", content}})
+   * 保持对外接口仍是 ToolResult, 避免引入 std::variant 类型复杂度。
+   */
+  virtual void emit(const std::string& event_type,
+                    const std::string& content) = 0;
 
   /**
    * @brief 订阅事件

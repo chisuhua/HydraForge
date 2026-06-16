@@ -41,6 +41,20 @@ void InMemoryBus::emit(const std::string& event_type,
 }
 
 // =====================================================================
+// emit (std::string 重载): REQ-TR-005 向后兼容入口
+// 内部包装为 ToolResult 信封后转发到主 emit 路径
+// =====================================================================
+void InMemoryBus::emit(const std::string& event_type,
+                       const std::string& content) {
+  // Phase 1 Sprint 1a (S1a.T3): 将旧式 string 载荷包装为 ToolResult::success 信封
+  // 保留在 meta["content"] 供消费者提取 (REQ-TR-005 Scenario 向后兼容 string 推送)
+  ToolResult payload = ToolResult::success(
+      nlohmann::json::object(),
+      nlohmann::json{{"content", content}});
+  emit(event_type, payload);
+}
+
+// =====================================================================
 // subscribe: 分配 token + 存储 callback
 // =====================================================================
 size_t InMemoryBus::subscribe(const std::string& event_type,

@@ -3,12 +3,14 @@
 #include "common/llm/llm_types.h" // C₁.2: 需要完整定义（生成 GenerationRequest/ILLMProvider）
 #include "common/log/log.h"  // agenticdsl::log facade
 #include "common/utils/template_renderer.h" // 引入 InjaTemplateRenderer (for rendering)
+#include "core/types/tool_result.h" // Phase 1 Sprint 1a (S1a.T2): ToolResult envelope parsing (ADR-0023)
 #include "modules/parser/markdown_parser.h" // Stage 4 Task 20: 仅在 .cpp 内用于默认 shim，不再被 header 引入
 #include <stdexcept>
 #include <inja/inja.hpp> // For RenderError
 #include <algorithm> // For std::find
 #include <thread> // For std::this_thread::sleep_for (if needed for mock)
-#include <chrono> // For std::chrono_literals
+#include <chrono> // For std::chrono_literals + std::chrono::steady_clock
+#include <string>
 
 namespace agenticdsl {
 
@@ -146,21 +148,78 @@ Context NodeExecutor::execute_tool_call(const ToolCallNode* node, const Context&
         throw std::runtime_error("Tool '" + node->tool_name + "' not registered for node: " + node->path);
     }
 
-    nlohmann::json result = tool_registry_.call_tool(node->tool_name, rendered_args);
+    // Phase 1 Sprint 1a (S1a.T2): 用 std::chrono::steady_clock 测量工具耗时
+    // REQ-TR-002: ToolResult.latency_ms 必须自动填充
+    const auto t0 = std::chrono::steady_clock::now();
+    nlohmann::json raw_result = tool_registry_.call_tool(node->tool_name, rendered_args);
+    const auto t1 = std::chrono::steady_clock::now();
+    const auto latency_ms = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count());
 
-    // 处理 output_keys
+    // Phase 1 Sprint 1a (S1a.T2): 替换 `if(result.is_object())` 启发式
+    // REQ-TR-MOD-001: 显式 ToolResult::from_json() 分发
+    // 双模式兼容：检测到 ok boolean 字段视为 ToolResult 信封, 否则视为 P0 旧式裸 JSON 包装为 success。
+    ToolResult tool_result;
+    if (raw_result.is_object() && raw_result.contains("ok") && raw_result["ok"].is_boolean()) {
+        // 信封模式：解析 ErrorCode / latency_ms / trace_id / metadata (REQ-TR-001..004)
+        tool_result = ToolResult::from_json(raw_result);
+    } else {
+        // 旧式模式：raw JSON 即工具输出, 包装为 success 信封保留 P0 行为
+        tool_result = ToolResult::success(raw_result);
+    }
+
+    // 注入自动采集的 latency_ms (覆盖 envelope 中可能已存在的值)
+    tool_result.latency_ms = latency_ms;
+
+    // REQ-TR-003: trace_id 透传 — 调用方可在 arguments 中传 trace_id
+    auto trace_it = rendered_args.find("trace_id");
+    if (trace_it != rendered_args.end()) {
+        tool_result.trace_id = trace_it->second;
+    }
+
+    // REQ-TR-001: error_code 分发 (RETRY/SKIP/ABORT 等)
+    if (!tool_result.ok) {
+        const ErrorCode code = tool_result.error_code.value_or(ErrorCode::Unknown);
+        const std::string err_msg = tool_result.meta.value("error_message", std::string{});
+        switch (code) {
+            case ErrorCode::Retry:
+                // Sprint 1a 占位: 抛出标记性异常, 真正的重试策略由独立 change 实现
+                throw std::runtime_error("[RETRY] Tool '" + node->tool_name + "': " + err_msg);
+            case ErrorCode::Abort:
+                // REQ-TR-001 Scenario: 看到 Abort 时 MUST 抛出异常终止整个 Graph
+                throw std::runtime_error("[ABORT] Tool '" + node->tool_name + "': " + err_msg);
+            case ErrorCode::Skip:
+                // Skip: 跳过此节点不抛异常, output_keys 留默认 (空), 由调用方/调度器处理
+                // Sprint 1a 行为: 不写 output_keys, 由后续 Stage 集成调度跳过
+                return new_context;
+            case ErrorCode::PermissionDenied:
+            case ErrorCode::PathViolation:
+            case ErrorCode::DangerousCommand:
+            case ErrorCode::ToolNotRegistered:
+            case ErrorCode::Audit:
+            case ErrorCode::Timeout:
+            case ErrorCode::ResourceExhausted:
+            case ErrorCode::Unknown:
+            default:
+                // 其他错误码: 抛出通用异常 (保留 P0 行为)
+                throw std::runtime_error("Tool '" + node->tool_name + "' failed: " + err_msg);
+        }
+    }
+
+    // 处理 output_keys (基于 tool_result.data, 替代旧的 is_object() 启发式)
+    const nlohmann::json& data = tool_result.data;
     if (node->output_keys.size() == 1) {
-        new_context[node->output_keys[0]] = result;
-    } else if (result.is_object()) {
+        new_context[node->output_keys[0]] = data;
+    } else if (data.is_object()) {
         for (const auto& key : node->output_keys) {
-            if (result.contains(key)) {
-                new_context[key] = result[key];
+            if (data.contains(key)) {
+                new_context[key] = data[key];
             }
         }
     } else {
-        // 如果 result 不是对象，或者 output_keys 多于 1 个，按第一个 key 赋值
+        // 如果 data 不是对象，或者 output_keys 多于 1 个，按第一个 key 赋值
         if (!node->output_keys.empty()) {
-            new_context[node->output_keys[0]] = result;
+            new_context[node->output_keys[0]] = data;
         }
     }
 

@@ -57,16 +57,21 @@ else { /* fail path with structured error_code */ }
 
 **问题**: ADR-0019 §3.2 推送 `Event { std::string content }`，结构化数据丢失。
 
-**方案**: 扩展 Event payload 支持 `ToolResult`：
+**方案**: Sprint 1a 实施期调整 — 不引入 `std::variant`，改用 **emit 重载**方案：
 ```cpp
-struct Event {
-  std::string topic;
-  std::variant<std::string, ToolResult> payload;  // 兼容旧 string
-  std::chrono::system_clock::time_point timestamp;
+class IInteractionBus {
+  virtual void emit(const std::string& event_type, const ToolResult& payload) = 0;
+  virtual void emit(const std::string& event_type, const std::string& content) = 0;
+  // ...
 };
 ```
 
-**理由**: `std::variant` 提供类型安全，旧代码继续工作。
+`std::string` 重载内部包装为 `ToolResult::success({}, {{"content", content}})` 后转发到主路径。
+
+**理由**:
+1. 现有实现已采用 `ToolResult`-only 接口（ADR-0019），零代码调用 string 载荷。
+2. `std::variant` 迫使订阅者实现 visitor，增加订阅端样板代码。
+3. 字符串内容自然可通过 `meta["content"]` 包装，无需 variant 类型开销。
 
 ## 测试设计
 

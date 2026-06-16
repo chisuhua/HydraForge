@@ -100,3 +100,41 @@ TEST_CASE("InMemoryBus multiple subscribers", "[contract][interaction_bus]") {
   }
   REQUIRE_FALSE(bus.try_pop(t, p));
 }
+
+// === Test 5: std::string 重载 (REQ-TR-005 向后兼容) ===
+// Phase 1 Sprint 1a (S1a.T3): 验证字符串载荷自动包装为 ToolResult 信封
+TEST_CASE("InMemoryBus emits accept std::string legacy payload",
+          "[contract][interaction_bus][phase1]") {
+  InMemoryBus bus;
+  std::atomic<int> count{0};
+  std::string captured_event_type;
+  ToolResult captured_payload;
+  std::atomic<bool> captured{false};
+
+  bus.subscribe("legacy_topic", [&](const ToolResult& payload) {
+    ++count;
+    captured_payload = payload;
+    captured_event_type = "legacy_topic";
+    captured = true;
+  });
+
+  // 通过 std::string 重载发射（旧式 API）
+  bus.emit("legacy_topic", std::string("legacy content payload"));
+
+  // 验证 callback 触发
+  REQUIRE(count.load() == 1);
+  REQUIRE(captured.load());
+  REQUIRE(captured_event_type == "legacy_topic");
+  REQUIRE(captured_payload.ok);
+  // 验证字符串内容保留在 meta["content"] (REQ-TR-005 Scenario 向后兼容 string 推送)
+  REQUIRE(captured_payload.meta.contains("content"));
+  REQUIRE(captured_payload.meta["content"] == "legacy content payload");
+
+  // 验证队列也保留了信封
+  std::string t;
+  ToolResult p;
+  REQUIRE(bus.try_pop(t, p));
+  REQUIRE(t == "legacy_topic");
+  REQUIRE(p.ok);
+  REQUIRE(p.meta["content"] == "legacy content payload");
+}

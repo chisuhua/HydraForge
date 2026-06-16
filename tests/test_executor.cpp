@@ -204,7 +204,107 @@ TEST_CASE("StartNode and EndNode execution", "[executor]") {
     
     Context start_result = executor.execute_node(&start_node, ctx);
     REQUIRE(start_result["value"] == 42);
-    
+
     Context end_result = executor.execute_node(&end_node, ctx);
     REQUIRE(end_result["value"] == 42);
+}
+
+// === Phase 1 Sprint 1a (S1a.T4) 新增集成测试 ===
+
+// REQ-TR-001: Abort error_code 终止整个 Graph
+TEST_CASE("ToolCallNode Abort error_code throws", "[executor][phase1]") {
+    ToolRegistry registry;
+    registry.register_tool("fatal_tool", [](const nlohmann::json&) {
+        return nlohmann::json{
+            {"ok", false},
+            {"data", nlohmann::json::object()},
+            {"meta", {{"error_message", "unrecoverable failure"}}},
+            {"error_code", "Abort"}
+        };
+    });
+
+    NodeExecutor executor(registry, nullptr);
+
+    ToolCallNode node("/main/fatal", "fatal_tool", {}, {"result"}, {});
+    Context ctx;
+
+    REQUIRE_THROWS_AS(executor.execute_node(&node, ctx), std::runtime_error);
+
+    try {
+        executor.execute_node(&node, ctx);
+        FAIL("expected throw");
+    } catch (const std::runtime_error& e) {
+        std::string msg = e.what();
+        REQUIRE(msg.find("[ABORT]") != std::string::npos);
+        REQUIRE(msg.find("fatal_tool") != std::string::npos);
+    }
+}
+
+// REQ-TR-001: Retry error_code 抛出 retry marker
+TEST_CASE("ToolCallNode Retry error_code throws retry marker",
+          "[executor][phase1]") {
+    ToolRegistry registry;
+    registry.register_tool("flaky_tool", [](const nlohmann::json&) {
+        return nlohmann::json{
+            {"ok", false},
+            {"error_code", "Retry"},
+            {"meta", {{"error_message", "network blip"}}}
+        };
+    });
+
+    NodeExecutor executor(registry, nullptr);
+
+    ToolCallNode node("/main/flaky", "flaky_tool", {}, {"result"}, {});
+    Context ctx;
+
+    REQUIRE_THROWS_AS(executor.execute_node(&node, ctx), std::runtime_error);
+
+    try {
+        executor.execute_node(&node, ctx);
+        FAIL("expected throw");
+    } catch (const std::runtime_error& e) {
+        REQUIRE(std::string(e.what()).find("[RETRY]") != std::string::npos);
+    }
+}
+
+// REQ-TR-001: Skip error_code 返回原 context 不抛异常
+TEST_CASE("ToolCallNode Skip error_code returns unchanged context",
+          "[executor][phase1]") {
+    ToolRegistry registry;
+    registry.register_tool("optional_tool", [](const nlohmann::json&) {
+        return nlohmann::json{
+            {"ok", false},
+            {"error_code", "Skip"},
+            {"meta", {{"error_message", "preconditions not met"}}}
+        };
+    });
+
+    NodeExecutor executor(registry, nullptr);
+
+    ToolCallNode node("/main/optional", "optional_tool", {}, {"result"}, {});
+    Context ctx;
+    ctx["preexisting"] = "value";
+
+    Context result = executor.execute_node(&node, ctx);
+    REQUIRE(result.contains("preexisting"));
+    REQUIRE(result["preexisting"] == "value");
+    REQUIRE_FALSE(result.contains("result"));  // output_keys NOT written
+}
+
+// Sprint 1a (S1a.T4): P0 旧式裸 JSON 工具仍工作（向后兼容）
+TEST_CASE("ToolCallNode supports legacy raw JSON tools", "[executor][phase1]") {
+    ToolRegistry registry;
+    registry.register_tool("legacy_tool", [](const nlohmann::json& args) {
+        return nlohmann::json{{"output", args.value("input", "")}};
+    });
+
+    NodeExecutor executor(registry, nullptr);
+
+    ToolCallNode node("/main/legacy", "legacy_tool",
+                       {{"input", "hello"}}, {"result"}, {});
+    Context ctx;
+
+    Context result = executor.execute_node(&node, ctx);
+    REQUIRE(result.contains("result"));
+    REQUIRE(result["result"]["output"] == "hello");
 }

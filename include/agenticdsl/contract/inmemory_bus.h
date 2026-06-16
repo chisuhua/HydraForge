@@ -53,6 +53,13 @@ class InMemoryBus : public IInteractionBus {
             const ToolResult& payload) override;
 
   /**
+   * @brief 实现 IInteractionBus::emit（std::string 重载）
+   * 内部将字符串包装为 ToolResult 信封后转发到主 emit。
+   */
+  void emit(const std::string& event_type,
+            const std::string& content) override;
+
+  /**
    * @brief 实现 IInteractionBus::subscribe
    * 加锁 → 分配 token → 存储 (token, callback) → 返回 token
    */
