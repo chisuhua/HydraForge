@@ -4,9 +4,11 @@
 // 文件头注释
 // 功能描述：LLM 公共类型（LLMError / Result / IGenerationStream / ILLMProvider）
 //          新版流式 LLM 接口（ADR-0001）入口头文件
+//          Phase 1 新增: ModelCapability / ModelInfo / available_models() (Sprint 0)
 // 设计依据：ADR-0001（ILLMProvider 流式接口）、track-01-cloud-llm.md M1.3
-// 作者：AgenticDSL Track 0.1
-// 最后修改日期：2026-06-07
+//          Phase 1 Sprint 0: Plugin Stub 验证 (K1 决策, ADR-0034 plugin-candidate)
+// 作者：AgenticDSL Track 0.1 + Phase 1 Sprint 0
+// 最后修改日期：2026-06-16
 
 #include "llm_config.h"
 
@@ -17,6 +19,7 @@
 #include <stop_token>
 #include <sstream>
 #include <utility>
+#include <cstdint>
 
 namespace agenticdsl {
 
@@ -115,6 +118,43 @@ public:
 
   virtual std::unique_ptr<IGenerationStream>
       generate_stream(const GenerationRequest& req, std::stop_token token) = 0;
+
+  // === Phase 1 Sprint 0 新增: Runtime 数据抽象 (非 Plugin 实现) ===
+  // Phase 1 Plugin Stub 验证: ModelCapability enum + available_models() 函数
+  // Plugin 端通过 available_models() 拿到 Runtime 暴露的模型列表,
+  // 路由决策由 Plugin 内部逻辑完成 (见 Sprint 0 examples/phase1_model_router_plugin/)
+  // 默认实现: 返回空 vector, MockLLMProvider/CloudAdapter 可选择 override
+
+  /// 模型能力标签 (Phase 1 Sprint 0 新增, Runtime 数据模型)
+  enum class ModelCapability {
+    Chat,        // 对话生成
+    Completion,  // 文本补全
+    Embedding,   // 向量嵌入
+    ToolUse,     // 工具调用
+    Vision,      // 视觉输入
+  };
+
+  /// 模型元信息 (Runtime 暴露给 Plugin 的数据)
+  struct ModelInfo {
+    std::string name;                // 模型唯一标识 (e.g. "mock-llm-v1", "gpt-4")
+    std::vector<ModelCapability> capabilities;  // 支持的能力
+    std::int64_t context_window = 0;  // 上下文窗口大小 (tokens)
+    std::string provider;             // 提供方 (e.g. "mock", "openai", "llama.cpp")
+
+    ModelInfo() = default;
+    ModelInfo(std::string n,
+              std::vector<ModelCapability> caps,
+              std::int64_t ctx = 0,
+              std::string prov = "unknown")
+        : name(std::move(n)),
+          capabilities(std::move(caps)),
+          context_window(ctx),
+          provider(std::move(prov)) {}
+  };
+
+  /// 返回当前 provider 注册的所有模型
+  /// 默认空实现, MockLLMProvider/CloudAdapter 应 override
+  virtual std::vector<ModelInfo> available_models() const { return {}; }
 };
 
 inline std::vector<std::string> split(const std::string& s) {

@@ -27,9 +27,18 @@
 | ├─ Track 0.2 (三层调用链) | 100% ██████████ | ✅ 已完成 | 5-7 天 | Track 0.1 + C₁ |
 | ├─ Track 0.3 (最小契约层 X/B/A) | 100% ██████████ | ✅ 已完成 | 2-3 天 | Pre-Phase |
 | └─ P0/P1/P2 Cleanup | 100% ██████████ | ✅ 已完成 | ~4h | 上述全部 |
-| **Phase 1 智能体层** | **0% ░░░░░░░░░░** | **🎯 当前焦点 (2026-06-16 ~ 2026-07-15)** | **4 周 5 Sprint + Sprint 0** | Phase 0 ✅ |
-| ├─ Sprint 0: ModelRouter 作为 Domain Plugin | 0% | ⏸ 未开始 (W1D3, 1 天) | 2.2 天 | Phase 0 |
-| ├─ Sprint 1: ToolResult P2-P4 + Bus 集成 | 0% | ⏸ 未开始 (W1D4-W1D7, 4 天) | 3 天 | Sprint 0 |
+| **Phase 1 智能体层** | **20% ██░░░░░░░░** | **🎯 当前焦点 (2026-06-16 ~ 2026-07-15)** | **4 周 5 Sprint + Sprint 0** | Phase 0 ✅ |
+| ├─ Sprint 0: ModelRouter Plugin Stub (K1) | **100% ██████████** | **✅ 已完成 (2026-06-16, 提前 1 天)** | **0.8 天** | Phase 0 |
+| ├─ Sprint 1a: ToolResult P2-P4 | 0% | ⏸ 未开始 (W1D4-W1D7, 4 天) | 2 天 | Sprint 0 ✅ |
+| ├─ Sprint 1b: Bus 集成 (S1a/S1b 拆分, K2) | 0% | ⏸ 未开始 (依赖 P1.T4, W3 早期) | 1 天 | P1.T4 |
+| ├─ Sprint 2: CognitiveWorker | 0% | ⏸ 未开始 (W2, 1 周) | 2.5 天 | Sprint 1a |
+| ├─ Sprint 3: DomainWorkerPool + Dockerfile.tsan | 0% | ⏸ 未开始 (W3, 1 周) | 3 天 | Sprint 2 |
+| ├─ Sprint 4: PDK 骨架 (hydraforge-pdk, K3) | 0% | ⏸ 未开始 (W4, 1 周) | 3 天 | Sprint 3 |
+| └─ Sprint 5: PluginLoader + 收官 | 0% | ⏸ 未开始 (W5, 2 天) | 1.3 天 | Sprint 4 |
+| **并行车道** | | | | |
+| ├─ P1: Residual engine.h Decoupling | 0% | ⏸ 未开始 (W1D3-W2) | 10 天 | 无 |
+| ├─ P2: 5/6 examples build 修复 | 0% | ⏸ 未开始 (W2-W3) | 5 天 | P1.T1 |
+| └─ P3: 28 ADR 退出 grep 验证 | 0% | ⏸ 未开始 (W1D3) | 2 天 | 无 |
 | ├─ Sprint 2: CognitiveWorker | 0% | ⏸ 未开始 (W2) | 2.5 天 | Sprint 1 |
 | ├─ Sprint 3: DomainWorkerPool | 0% | ⏸ 未开始 (W3) | 3 天 | Sprint 2 |
 | ├─ Sprint 4: PDK 骨架 | 0% | ⏸ 未开始 (W4) | 3 天 | Sprint 3 |

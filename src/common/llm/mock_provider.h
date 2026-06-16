@@ -100,6 +100,11 @@ public:
       generate_stream(const GenerationRequest& req,
                       std::stop_token token) override;
 
+  // === Phase 1 Sprint 0 新增 (K1 Plugin Stub 验证) ===
+  /// MockLLMProvider 默认注册 1 个 mock 模型
+  /// Plugin 端通过 available_models() 拿到此模型做路由决策
+  std::vector<ModelInfo> available_models() const override;
+
   // === 测试断言辅助 ===
 
   /// 获取所有调用历史（按调用顺序）

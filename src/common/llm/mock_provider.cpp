@@ -157,4 +157,16 @@ MockLLMProvider::generate_stream(const GenerationRequest& req,
   return std::make_unique<MockGenerationStream>(std::move(tokens));
 }
 
+// === Phase 1 Sprint 0 新增 (K1 Plugin Stub 验证) ===
+// MockLLMProvider 默认注册 1 个 mock 模型, 供 Plugin Stub 路由决策
+// Sprint 5 PluginLoader 实现后, 真实 plugin 可读取此列表并应用 Policy
+std::vector<ILLMProvider::ModelInfo> MockLLMProvider::available_models() const {
+  return {
+      ModelInfo("mock-llm-v1",
+                {ModelCapability::Chat, ModelCapability::ToolUse},
+                4096,
+                "mock")
+  };
+}
+
 } // namespace agenticdsl

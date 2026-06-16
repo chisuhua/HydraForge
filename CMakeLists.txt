@@ -142,6 +142,10 @@ target_link_libraries(agent_basic
 # --- Sample: slice_01_tool_call (Track 0.2 / B) ---
 add_subdirectory(examples/slice_01_tool_call)
 
+# --- Phase 1 Sprint 0 Plugin Stub examples (K1 决策) ---
+add_subdirectory(examples/phase1_model_router_plugin)
+add_subdirectory(examples/phase1_plugin_demo)
+
 # Create alias for tests
 
 # --- Tests (Optional) ---
