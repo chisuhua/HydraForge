@@ -2,7 +2,15 @@
 
 ## 状态
 
-**🟡 Partial** (2026-05-25, 2026-06-12 状态对齐 — P1 已实施, P2-P4 待)
+**🟡 Partial → 🟢 Approved** (2026-05-25 起草, 2026-06-12 状态对齐, **2026-06-16 P1-P4 全部实施完成**)
+
+> **2026-06-16 实施状态更新**（OpenSpec change `phase1-toolresult-standardization` 落地）：
+> - P1 实施：保留并演进（见 §实施状态表）
+> - P2 实施：ErrorCode enum + 4 个 optional 字段（error_code/latency_ms/trace_id/metadata）
+> - P3 实施：auto latency_ms 注入 + trace_id 透传
+> - P4 实施：IInteractionBus::emit std::string 重载（REQ-TR-005 向后兼容）
+>
+> 详见 §实施状态 + §附录 C 实施调整说明
 
 ---
 
@@ -515,3 +523,163 @@ ToolResult wrap_legacy_tool(
         TOOL_NAME, get_duration() \
     ).to_json()
 ```
+
+---
+
+## 附录 C: Phase 1 实施调整说明 (2026-06-16)
+
+> 本附录记录 Phase 1 Sprint 1a 实施期间与原 ADR 草案的**调整与最终状态**。
+> 完整 changelog 见 OpenSpec change `phase1-toolresult-standardization`（已归档至
+> `openspec/changes/archive/2026-06-16-phase1-toolresult-standardization/`）。
+
+### C.1 ToolResult 结构最终形态 (`src/core/types/tool_result.h`)
+
+```cpp
+// 文件头已扩展: P2-P4 字段 (ADR-0023)
+struct ToolResult {
+  // === P0 X 阶段 MVP (3 字段, 不可变契约) ===
+  bool ok = false;
+  nlohmann::json data = nlohmann::json::object();
+  nlohmann::json meta = nlohmann::json::object();
+
+  // === Phase 1 Sprint 1a 新增 (P2-P4, 4 个 optional) ===
+  // REQ-TR-001: error_code (P2) — 替代 P1 自由 string
+  std::optional<ErrorCode> error_code;
+
+  // REQ-TR-002: latency_ms (P3) — uint64_t milliseconds
+  std::optional<std::uint64_t> latency_ms;
+
+  // REQ-TR-003: trace_id (P3) — 跨会话追踪 ID
+  std::optional<std::string> trace_id;
+
+  // REQ-TR-004: metadata (P3) — 与 meta 共存扩展元数据
+  std::optional<nlohmann::json> metadata;
+
+  // 双 error() 重载 (P1 string + P2 enum)
+  static ToolResult error(std::string code, std::string msg,
+                          nlohmann::json m = nlohmann::json::object());  // P1 兼容
+  static ToolResult error(ErrorCode code, std::string msg,
+                          nlohmann::json m = nlohmann::json::object());  // P2 推荐
+};
+```
+
+### C.2 ErrorCode enum 完整定义 (REQ-TR-001)
+
+```cpp
+enum class ErrorCode {
+  Unknown = 0,
+  // P1 已有 (ADR-0023 §3.1, 4 个)
+  PermissionDenied, PathViolation, DangerousCommand, ToolNotRegistered,
+  // P2 新增 (6 个)
+  Retry, Skip, Abort, Audit, Timeout, ResourceExhausted,
+};
+```
+
+> **调整说明**：原 ADR §2.2 错误码表采用 `ERR_DOMAIN.SUB` 字符串分层命名法
+> (`ERR_TOOL.NOT_FOUND` 等 12 个字符串)。实施时改为 `enum class ErrorCode` 11 个
+> 强类型值，原因：(a) 编译期类型安全；(b) `switch` 分发代替字符串前缀匹配；
+> (c) JSON 序列化仍以字符串形式输出（`error_code_to_string()`）保留 wire 兼容。
+> **PDK 错误码映射表**（`ERR_*` → `ErrorCode::*`）：
+>
+> | 原 ADR 字符串 | 新 ErrorCode 值 |
+> |---------------|-----------------|
+> | `ERR_TOOL.NOT_FOUND` | `ToolNotRegistered` |
+> | `ERR_TOOL.EXECUTION_FAILED` | `DangerousCommand` (默认) |
+> | `ERR_TOOL.TIMEOUT` | `Timeout` |
+> | `ERR_TOOL.CRASHED` | `DangerousCommand` (崩溃) |
+> | `ERR_INPUT.MISSING_FIELD` | `Skip` |
+> | `ERR_INPUT.INVALID_TYPE` | `DangerousCommand` (无效输入) |
+> | `ERR_PERMISSION.DENIED` | `PermissionDenied` |
+> | `ERR_PERMISSION.SCOPE` | `PathViolation` |
+> | `ERR_SYSTEM.INTERNAL` | `Unknown` |
+> | `ERR_SYSTEM.UNKNOWN` | `Unknown` |
+> | `ERR_PLUGIN.LOAD_FAILED` | `ToolNotRegistered` |
+> | `ERR_PLUGIN.VERSION_MISMATCH` | `DangerousCommand` |
+
+### C.3 ToolRegistry::call_tool 调整 (REQ-TR-MOD-001)
+
+> 原 ADR §3.2 计划将 `ToolRegistry::call_tool()` 改为返回 `ToolResult`。
+> **实施调整**：`call_tool()` 仍返回 `nlohmann::json`（保留 P0 默认工具 + 用户自定义 lambda
+> 注册 API），**信封解析下沉到 NodeExecutor 层级**（envelope 检测 + 双模式解析）。
+> 优点：(a) `register_tool(name, lambda)` API 不变（lambda 返回 raw JSON），零侵入；
+> (b) NodeExecutor 集中处理 envelope + error_code 分发；(c) 现有 P0 测试零回归。
+
+### C.4 NodeExecutor execute_tool_call 重构 (REQ-TR-MOD-001)
+
+```cpp
+Context NodeExecutor::execute_tool_call(const ToolCallNode* node, const Context& ctx) {
+  // 1. 渲染 arguments
+  // 2. 校验工具注册 → 否则 throw "Tool 'X' not registered"
+  // 3. steady_clock 测量
+  auto t0 = std::chrono::steady_clock::now();
+  auto raw_result = tool_registry_.call_tool(node->tool_name, rendered_args);
+  auto latency_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::steady_clock::now() - t0).count();
+
+  // 4. 双模式解析: envelope vs 裸 JSON
+  ToolResult tool_result;
+  if (raw_result.is_object() && raw_result.contains("ok")
+      && raw_result["ok"].is_boolean()) {
+    tool_result = ToolResult::from_json(raw_result);  // envelope 模式
+  } else {
+    tool_result = ToolResult::success(raw_result);    // 裸 JSON 包装
+  }
+
+  // 5. 自动注入 latency_ms + trace_id 透传
+  tool_result.latency_ms = static_cast<uint64_t>(latency_ms);
+  if (auto it = rendered_args.find("trace_id"); it != rendered_args.end()) {
+    tool_result.trace_id = it->second;
+  }
+
+  // 6. error_code 分发
+  if (!tool_result.ok) {
+    switch (tool_result.error_code.value_or(ErrorCode::Unknown)) {
+      case ErrorCode::Retry: throw std::runtime_error("[RETRY] ...");
+      case ErrorCode::Abort: throw std::runtime_error("[ABORT] ...");
+      case ErrorCode::Skip:  return ctx;  // 不写 output_keys
+      // 其他 → 通用 throw
+    }
+  }
+
+  // 7. output_keys 分发 (基于 tool_result.data, 替代 is_object() 启发式)
+}
+```
+
+### C.5 IInteractionBus emit 重载 (REQ-TR-005)
+
+> 原 ADR §5.1 计划将 `Event.content` 改为 `nlohmann::json`。
+> **实施调整**：`IInteractionBus::emit(event_type, std::string)` 重载（不引入 std::variant）。
+> 原因：(a) 现有实现已采用 `ToolResult`-only 接口（ADR-0019 实际实施），零代码调用 string 载荷；
+> (b) `std::variant` 迫使订阅者实现 visitor；(c) 字符串内容自然可通过
+> `ToolResult::success({}, {{"content", s}})` 包装，无需 variant 类型开销。
+
+```cpp
+void InMemoryBus::emit(const std::string& event_type, const std::string& content) {
+  ToolResult payload = ToolResult::success(
+      nlohmann::json::object(),
+      nlohmann::json{{"content", content}});
+  emit(event_type, payload);  // 转发主路径
+}
+```
+
+### C.6 验证结果
+
+| 验证项 | 结果 |
+|--------|------|
+| 26/26 全量 ctest | ✅ 0 回归 |
+| 71/71 test_tool_result (新增 7 测试, 47 assertions) | ✅ |
+| 20/20 test_executor (新增 4 集成测试) | ✅ |
+| 28/28 test_interaction_bus (新增 1 std::string 重载测试) | ✅ |
+| ASan (asan build) | ✅ 干净 |
+| LSP 诊断 (8 modified files) | ✅ 0 errors |
+| adr_lint / adr_relationships | ✅ 0 新增错误 (3 pre-existing 无关) |
+| `openspec validate --strict` | ✅ valid |
+| `phase1_plugin_demo --mock` | ✅ 输出 error_code/latency_ms/trace_id/metadata |
+| TSan / CI 6 jobs | ⚠️ 待 CI 验证（本地 7GB RAM 不足） |
+
+### C.7 已知遗留
+
+- ADR-0023 §1.1 信封 JSON 格式 `error: {code, message}` (嵌套) **与实现不一致**：实现采用扁平
+  `error_code` (顶层) + `meta.error_message` (兼容层)。修正需独立 OpenSpec change。
+- TSan 验证需 CI 矩阵（GitHub Actions ubuntu-latest 16GB RAM 足够）。
+- PDK `RETURN_SUCCESS` / `RETURN_ERROR` 宏（ADR §附录 B）尚未实施（独立 change）。
