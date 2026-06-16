@@ -34,6 +34,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive  # yaml-cpp, nlohmann_json, inja 需递归 init
 
       - name: Install system dependencies
         run: |
