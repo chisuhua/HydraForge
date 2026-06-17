@@ -26,7 +26,7 @@
 | adr-0020 | 多智能体线程模型与隔离策略 | 🟡 Partial | 2026-06-08 | 替代 adr-0006 |
 | adr-0021 | Plugin Development Kit (PDK) 设计 | 🔍 Proposed | 2026-05-25 |  |
 | adr-0022 | 插件加载机制 | 🔍 Proposed | 2026-05-25 |  |
-| adr-0023 | ToolResult 标准化 | 🟡 Partial | Unknown |  |
+| adr-0023 | ToolResult 标准化 | ✅ Approved | 2026-06-16 |  |
 | adr-0031 | IExecutionPolicy 执行策略与三模式审批 | 🟡 Partial | Unknown |  |
 | adr-0033 | Session Hierarchy 执行会话层级体系 | 🟡 Partial | Unknown |  |
 | adr-0034 | IModelRouter 模型路由接口 | 🔍 Proposed | Unknown |  |
@@ -82,8 +82,8 @@ graph TD
 
 | 状态 | 数量 |
 |------|------|
-| ✅ Approved | 7 |
-| 🟡 Partial | 6 |
+| ✅ Approved | 8 |
+| 🟡 Partial | 5 |
 | ⛔ Superseded | 1 |
 | 🔍 Proposed | 3 |
 | ❓ Unknown | 2 |

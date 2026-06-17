@@ -36,7 +36,7 @@ docs/
 | `adr-0020-thread-model-isolation.md` | 多智能体线程模型与隔离策略 | 🟡 Partial (SimpleCognitiveOrchestrator 有,WorkerPool 无) |
 | `adr-0021-pdk-design.md` | Plugin Development Kit (PDK) 设计 | 🔍 Proposed |
 | `adr-0022-plugin-loading.md` | 插件加载机制 | 🔍 Proposed |
-| `adr-0023-tool-result-standard.md` | ToolResult 标准化 | 🟡 Partial (P1) |
+| `adr-0023-tool-result-standard.md` | ToolResult 标准化 | ✅ Approved (P1-P4) |
 | `adr-0031-execution-policy.md` | 执行策略 | 🟡 Partial (仅头文件 stub) |
 | `adr-0033-session-hierarchy.md` | 会话层次结构 | 🟡 Partial (仅前向声明) |
 | `adr-0002-impl-scope-audit.md` | ADR-0002 实施范围审计 (OpenSpec change `docs-code-drift-audit-2026-06` 产出) | 📋 审计补充 |

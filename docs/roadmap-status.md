@@ -13,6 +13,11 @@
 > 5 个 stage 整理计划已 ship + 追溯归档(`.omo/plans/archive/2026-06-15-archived/project-organization.md` + 4 个 `openspec/changes/archive/2026-06-15-retrospectives/`)。
 > 后续活跃工作: 2 个 OpenSpec change (`phase1-toolresult-standardization` Sprint 1 + `2026-06-15-residual-engine-h-decoupling` P1 并行)。
 
+> **📋 2026-06-16 Sprint 1a 收官**: ToolResult 标准化 P1-P4 完成 (commits `fb67a9b` / `60b31b5` / `5c9ba18`)。
+> 实施报告: [`docs/SPRINT-1A-COMPLETION-REPORT.md`](SPRINT-1A-COMPLETION-REPORT.md)。
+> OpenSpec change 已归档至 `openspec/changes/archive/2026-06-16-phase1-toolresult-standardization/`。
+> 下一活跃工作: Sprint 1b Bus 集成 (OpenSpec `2026-06-17-phase1-bus-integration`)。
+
 ---
 
 ## 一、总体进度
@@ -29,7 +34,7 @@
 | └─ P0/P1/P2 Cleanup | 100% ██████████ | ✅ 已完成 | ~4h | 上述全部 |
 | **Phase 1 智能体层** | **20% ██░░░░░░░░** | **🎯 当前焦点 (2026-06-16 ~ 2026-07-15)** | **4 周 5 Sprint + Sprint 0** | Phase 0 ✅ |
 | ├─ Sprint 0: ModelRouter Plugin Stub (K1) | **100% ██████████** | **✅ 已完成 (2026-06-16, 提前 1 天)** | **0.8 天** | Phase 0 |
-| ├─ Sprint 1a: ToolResult P2-P4 | 0% | ⏸ 未开始 (W1D4-W1D7, 4 天) | 2 天 | Sprint 0 ✅ |
+| ├─ Sprint 1a: ToolResult P2-P4 | **100% ██████████** | **✅ 已完成 (2026-06-16, 提前 2 天)** | **2 天** | Sprint 0 ✅ |
 | ├─ Sprint 1b: Bus 集成 (S1a/S1b 拆分, K2) | 0% | ⏸ 未开始 (依赖 P1.T4, W3 早期) | 1 天 | P1.T4 |
 | ├─ Sprint 2: CognitiveWorker | 0% | ⏸ 未开始 (W2, 1 周) | 2.5 天 | Sprint 1a |
 | ├─ Sprint 3: DomainWorkerPool + Dockerfile.tsan | 0% | ⏸ 未开始 (W3, 1 周) | 3 天 | Sprint 2 |
@@ -174,17 +179,17 @@
 | M5 | M5.3 | 事件类型定义 | `src/common/contract/event_types.h` | [ ] | — |
 | M5 | M5.4 | InMemoryBus 头文件 | `src/common/contract/inmemory_bus.h` | [ ] | — |
 | M5 | M5.5 | InMemoryBus 实现 | `src/common/contract/inmemory_bus.cpp` | [ ] | M5.4 |
-| M5 | M5.6 | ToolResult 标准化 | `src/core/types/tool_result.h` | [ ] | — |
+| M5 | M5.6 | ToolResult 标准化 (P1-P4) | `src/core/types/tool_result.h` | [x] | Sprint 1a 2026-06-16 |
 | M6 | M6.1 | InMemoryBus 单元测试 | `tests/test_interaction_bus.cpp` | [ ] | M5.5 |
 | M6 | M6.2 | 多线程安全测试 | `tests/test_interaction_bus.cpp` | [ ] | M6.1 |
-| M6 | M6.3 | ToolResult 测试 | `tests/test_tool_result.cpp` | [ ] | M5.6 |
+| M6 | M6.3 | ToolResult 测试 (P1-P4 扩展) | `tests/test_tool_result.cpp` | [x] | Sprint 1a 2026-06-16 (71/71) |
 
 **验收任务**
 
 | 优先级 | 验收编号 | 验收内容 | 验证命令 | 状态 |
 |:------:|:--------:|------|---------|:----:|
-| V | V3.1 | InteractionBus 测试通过 | `ctest -R test_interaction_bus` | [ ] |
-| V | V3.2 | ToolResult 测试通过 | `ctest -R test_tool_result` | [ ] |
+| V | V3.1 | InteractionBus 测试通过 | `ctest -R test_interaction_bus` | [x] (28/28) |
+| V | V3.2 | ToolResult 测试通过 (P1-P4 扩展) | `ctest -R test_tool_result` | [x] (71/71) |
 | V | V3.3 | 并发安全验证 | 并发 emit 1000 次无死锁（测试内验证） | [ ] |
 | V | V3.4 | Contract 模块编译通过 | `make agenticdsl_core` 无 error | [ ] |
 
@@ -242,10 +247,11 @@
 | **整体（Phase C₁）** | **17+ 个测试** | ✅ | **2026-06-08** | **108 assertions / 48 cases, 0 失败** | |
 | test_async_bridge | 异步桥接 | ✅ | 2026-06-07 | 3/3 通过 |
 | **整体（fix-test-failures 后）** | **25 个测试** | ✅ | **2026-06-14** | **25/25 (100%), 0 失败, 4.53s** | |
-| **ASan 验证（build/asan）** | **25 个测试** | ✅ | **2026-06-14** | **25/25 (100%), 0 memory error, 6.93s** | |
-| **TSan 验证（build/tsan）** | **25 个测试** | ⚠️ | **2026-06-14** | ASLR 内存映射冲突（roadmap-status 已知遗留；非 data race） | |
-| test_interaction_bus | Track 0.3 | ⏳ | — | — |
-| test_tool_result | Track 0.3 | ⏳ | — | — |
+| **Sprint 1a 后 (P1-P4 扩展)** | **27 个测试** | ✅ | **2026-06-16** | **27/27 (100%), 0 失败, +12 新测试 / +67 assertions** | [SPRINT-1A-COMPLETION-REPORT](SPRINT-1A-COMPLETION-REPORT.md) |
+| **ASan 验证（build/asan_ninja, Sprint 1a 模块）** | **3 个测试** | ✅ | **2026-06-16** | **3/3 (100%), 0 memory error** | test_tool_result + test_executor + test_interaction_bus |
+| **TSan 验证（build/tsan）** | 25 个测试 | ⚠️ | 2026-06-14 | ASLR 内存映射冲突（roadmap-status 已知遗留；非 data race） | 待 CI 矩阵验证 |
+| test_interaction_bus | Track 0.3 + Sprint 1a | ✅ | 2026-06-16 | 28/28 (含 std::string overload 新测试) | Sprint 1a |
+| test_tool_result | Track 0.3 + Sprint 1a | ✅ | 2026-06-16 | 71/71 (P1-P4 扩展 +7 测试) | Sprint 1a |
 | test_model_registry | Track 0.2 | ⏳ | — | — |
 | test_default_router | Track 0.2 | ⏳ | — | — |
 
