@@ -17,6 +17,8 @@ external/taskflow/
 # Sisyphus orchestration
 .omo/
 .sisyphus/
+# Git worktrees (per-machine ephemeral, see openspec/changes/2026-06-15-residual-engine-h-decoupling/)
+.worktrees/
 
 # Tool configurations
 .claude/
