@@ -66,13 +66,18 @@ class LlamaProviderFactory : public IProviderFactory {
   std::unique_ptr<ILLMProvider> create(const LLMConfig& config) override {
     // LlamaAdapterProvider 接受 LlamaAdapter::Config (与 LLMConfig 字段不同)
     // 需要从 LLMConfig 映射到 LlamaAdapter::Config
+    // LlamaAdapter::Config 实际字段: api_url/api_endpoint/api_key/model/n_ctx/n_threads/temperature/n_predict
+    // (无 model_path / min_p 字段)
     LlamaAdapter::Config llama_config;
-    llama_config.model_path = config.model;       // 模型路径 (LLMConfig.model 当 path 用)
+    llama_config.api_url = config.api_url;
+    llama_config.api_endpoint = config.api_endpoint;
+    llama_config.api_key = config.resolve_api_key();  // 优先 env > file > 字段
+    llama_config.model = config.model;
     llama_config.n_ctx = config.n_ctx;
     llama_config.n_threads = config.n_threads;
     llama_config.temperature = config.temperature;
-    llama_config.min_p = config.min_p;
-    llama_config.n_predict = config.max_tokens;   // max_tokens → n_predict
+    llama_config.n_predict = config.max_tokens;       // max_tokens → n_predict
+    // min_p 不存在于 LlamaAdapter::Config, 跳过 (LLMConfig.min_p 默认 0.05f, 仅供云端使用)
     return std::make_unique<LlamaAdapterProvider>(llama_config);
   }
 };
