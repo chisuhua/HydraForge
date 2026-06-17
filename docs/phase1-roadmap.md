@@ -124,7 +124,11 @@ Phase 1.0 (ToolResult) ←── 依赖 Sprint 0 (最高优先)
 > **OpenSpec change**: `openspec/changes/2026-06-17-phase1-bus-integration/`
 > **详细任务**: 见上述 OpenSpec change (S1b.T1-S1b.T4 全部完成)
 
-> **📋 2026-06-17 P1 状态更新**: Sprint 1b 在实施过程中吸收了 P1 (Residual engine.h Decoupling) 的部分工作, 具体为 3 个 deep `modules/` 移除 (topo_scheduler.h / markdown_parser.h / budget_controller.h 通过 PIMPL-lite)。剩余 4 个跨模块 include (3 common/ + 1 modules/trace/) 由 OpenSpec change [`2026-06-15-residual-engine-h-decoupling`](../openspec/changes/2026-06-15-residual-engine-h-decoupling/) 处理 (P1 active, 估时 3 周)。Sprint 1b 提前 ship 未阻塞 P1 后续工作。
+> **📋 2026-06-17 P1 状态更新**: Sprint 1b 在实施过程中吸收了 P1 (Residual engine.h Decoupling) 的部分工作, 具体为 3 个 deep `modules/` 移除 (topo_scheduler.h / markdown_parser.h / budget_controller.h 通过 PIMPL-lite)。
+>
+> **📋 2026-06-18 P1.T3 完成**: TraceRecord data-only struct 从 `src/modules/trace/trace_exporter.h` 上移到 `include/agenticdsl/types/trace_record.h` (commit `01666fa`, P1.T3 最小集)。`engine.h` 不再依赖 `modules/trace/`, 跨模块 include 计数从 4 → 3。**27/27 测试零回归**。
+>
+> 剩余 3 个跨模块 include (3 common/) 由 OpenSpec change [`2026-06-15-residual-engine-h-decoupling`](../openspec/changes/2026-06-15-residual-engine-h-decoupling/) T1 (LLMProviderFactory 从零构建 5-7 天) + T2 (IToolRegistry 7 虚函数 + SecureToolRegistry 多继承改造 5 天) 处理, 估时 3 周。T1+T2 完成后跨模块 include 计数将达到 1 (仅 `common/llm/llm_types.h`, types 头文件例外), 完全达到 ADR-0019 §1.4 退出标准。
 
 | 任务 | 优先级 | 文件 | 工作量 | 状态 |
 |------|--------|------|--------|:----:|

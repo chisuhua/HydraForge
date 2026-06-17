@@ -23,6 +23,10 @@
 > OpenSpec change: `openspec/changes/2026-06-17-phase1-bus-integration/` (待归档)。
 > 下一活跃工作: Sprint 2 CognitiveWorker (ADR-0020)。
 
+> **📋 2026-06-18 P1.T3 收官**: TraceRecord data-only struct 从 `src/modules/trace/trace_exporter.h` 上移到 `include/agenticdsl/types/trace_record.h` (commit `01666fa`)。`engine.h` 跨模块 include 计数 4 → 3。**27/27 测试零回归**。P1 进度 75% → 87%。
+> OpenSpec change: `2026-06-15-residual-engine-h-decoupling` (P1 active, T3 完成; 剩余 T1+T2)。
+> 下一活跃工作: P1 T1 (LLMProviderFactory 从零构建) 或 T2 (IToolRegistry 7 虚函数)。
+
 ---
 
 ## 一、总体进度
@@ -46,7 +50,7 @@
 | ├─ Sprint 4: PDK 骨架 (hydraforge-pdk, K3) | 0% | ⏸ 未开始 (W4, 1 周) | 3 天 | Sprint 3 |
 | └─ Sprint 5: PluginLoader + 收官 | 0% | ⏸ 未开始 (W5, 2 天) | 1.3 天 | Sprint 4 |
 | **并行车道** | | | | |
-| ├─ P1: Residual engine.h Decoupling | 75% | 🟡 3/4 完成 (Sprint 1b 吸收 3 deep modules/ 移除, 2026-06-17) | 10 天 → 15 天 | 详见 OpenSpec `2026-06-15-residual-engine-h-decoupling` |
+| ├─ P1: Residual engine.h Decoupling | 87% | 🟡 3/4 完成 + T3 TraceRecord 上移 (2026-06-18, commit `01666fa`) | 10 天 → 15 天 | 详见 OpenSpec `2026-06-15-residual-engine-h-decoupling` |
 | ├─ P2: 5/6 examples build 修复 | 0% | ⏸ 未开始 (W2-W3) | 5 天 | P1 ✅ |
 | └─ P3: 28 ADR 退出 grep 验证 | 0% | ⏸ 未开始 (W1D3) | 2 天 | 无 |
 | ├─ Sprint 2: CognitiveWorker | 0% | ⏸ 未开始 (W2) | 2.5 天 | Sprint 1 |
