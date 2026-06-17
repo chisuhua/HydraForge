@@ -10,7 +10,40 @@
 
 namespace agenticdsl {
 
-// PIMPL 实现
+// === 内置 CloudProviderFactory (P1.T1 同步实现, 避免 YAGNI 多文件) ===
+// 前移: Impl 构造时需要这些类型
+class CloudProviderFactory : public IProviderFactory {
+ public:
+  std::unique_ptr<ILLMProvider> create(const LLMConfig& config) override {
+    // CloudLLMAdapter 接受 LLMConfig (v2 关键认知: cloud_adapter.h:44)
+    return std::make_unique<CloudLLMAdapter>(config);
+  }
+};
+
+// === 内置 LlamaProviderFactory (P1.T1 同步实现) ===
+
+class LlamaProviderFactory : public IProviderFactory {
+ public:
+  std::unique_ptr<ILLMProvider> create(const LLMConfig& config) override {
+    // LlamaAdapterProvider 接受 LlamaAdapter::Config (与 LLMConfig 字段不同)
+    // 需要从 LLMConfig 映射到 LlamaAdapter::Config
+    // LlamaAdapter::Config 实际字段: api_url/api_endpoint/api_key/model/n_ctx/n_threads/temperature/n_predict
+    // (无 model_path / min_p 字段)
+    LlamaAdapter::Config llama_config;
+    llama_config.api_url = config.api_url;
+    llama_config.api_endpoint = config.api_endpoint;
+    llama_config.api_key = config.resolve_api_key();  // 优先 env > file > 字段
+    llama_config.model = config.model;
+    llama_config.n_ctx = config.n_ctx;
+    llama_config.n_threads = config.n_threads;
+    llama_config.temperature = config.temperature;
+    llama_config.n_predict = config.max_tokens;       // max_tokens → n_predict
+    // min_p 不存在于 LlamaAdapter::Config, 跳过 (LLMConfig.min_p 默认 0.05f, 仅供云端使用)
+    return std::make_unique<LlamaAdapterProvider>(llama_config);
+  }
+};
+
+// PIMPL 实现 (前向类已定义, 现在可安全使用)
 struct LLMProviderFactory::Impl {
   std::unique_ptr<IProviderFactory> mock_factory;
   std::unique_ptr<IProviderFactory> cloud_factory;
@@ -48,38 +81,5 @@ std::unique_ptr<ILLMProvider> LLMProviderFactory::create(const LLMConfig& config
   // 未识别的 provider — 返回 nullptr (调用方需检查)
   return nullptr;
 }
-
-// === 内置 CloudProviderFactory (P1.T1 同步实现, 避免 YAGNI 多文件) ===
-
-class CloudProviderFactory : public IProviderFactory {
- public:
-  std::unique_ptr<ILLMProvider> create(const LLMConfig& config) override {
-    // CloudLLMAdapter 接受 LLMConfig (v2 关键认知: cloud_adapter.h:44)
-    return std::make_unique<CloudLLMAdapter>(config);
-  }
-};
-
-// === 内置 LlamaProviderFactory (P1.T1 同步实现) ===
-
-class LlamaProviderFactory : public IProviderFactory {
- public:
-  std::unique_ptr<ILLMProvider> create(const LLMConfig& config) override {
-    // LlamaAdapterProvider 接受 LlamaAdapter::Config (与 LLMConfig 字段不同)
-    // 需要从 LLMConfig 映射到 LlamaAdapter::Config
-    // LlamaAdapter::Config 实际字段: api_url/api_endpoint/api_key/model/n_ctx/n_threads/temperature/n_predict
-    // (无 model_path / min_p 字段)
-    LlamaAdapter::Config llama_config;
-    llama_config.api_url = config.api_url;
-    llama_config.api_endpoint = config.api_endpoint;
-    llama_config.api_key = config.resolve_api_key();  // 优先 env > file > 字段
-    llama_config.model = config.model;
-    llama_config.n_ctx = config.n_ctx;
-    llama_config.n_threads = config.n_threads;
-    llama_config.temperature = config.temperature;
-    llama_config.n_predict = config.max_tokens;       // max_tokens → n_predict
-    // min_p 不存在于 LlamaAdapter::Config, 跳过 (LLMConfig.min_p 默认 0.05f, 仅供云端使用)
-    return std::make_unique<LlamaAdapterProvider>(llama_config);
-  }
-};
 
 }  // namespace agenticdsl
