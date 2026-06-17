@@ -91,6 +91,7 @@ HydraForge/
 
 ## NOTES
 - `engine.h` 直接 `#include` 6 个模块头文件 (scheduler/topo_scheduler, parser/markdown_parser, budget/budget_controller, common/llm/llm_types, common/llm/mock_provider, common/tools/registry) — ADR-0019 §1.4 已识别为问题待解, Stage 4 (core-interface-inversion) 处理
+- **2026-06-17 更新**: ADR-0019 §1.4 已解决. Sprint 1b (commit `248d209`) 吸收 3 deep modules/ 移除 (topo_scheduler.h / markdown_parser.h / budget_controller.h 通过 PIMPL-lite). 剩余 4 跨模块 include (3 common/ + 1 modules/trace/) 由 OpenSpec change [`2026-06-15-residual-engine-h-decoupling`](openspec/changes/2026-06-15-residual-engine-h-decoupling/) 处理 (P1 active, 估时 3 周). `engine.h` 当前保留 `common/llm/llm_types.h` (types 头文件例外).
 - `lib/` 目录存放 `.md` DSL 文件，非 C++ 库
 - `src/modules/exports/` 存放导出类型定义
 - `src/common/contract/` ADR-0019 契约层 (IInteractionBus, InMemoryBus) — 与 `include/agenticdsl/contract/` 头文件配套

@@ -378,6 +378,8 @@ Lazy<void> handle_mode_change(
 | 11 | `src/modules/executor/node_executor.cpp` | 修改 | 实现 `execute_tool_call_async()` |
 | 12 | `src/core/engine.h` | 修改 | 添加 `IExecutionPolicy` 成员 |
 
+> **Related (2026-06-17)**: OpenSpec change `2026-06-15-residual-engine-h-decoupling` 完成 ADR-0019 §1.4 跨模块耦合解耦, 移除 `engine.h` 全部跨模块 include (保留 `common/llm/llm_types.h` types 头文件例外). 本 ADR Phase 2 line 379 添加 `IExecutionPolicy` 成员时, 建议采用 PIMPL-lite 模式 (`std::unique_ptr<IExecutionPolicy>`), 镜像 `budget_controller_` / `tool_registry_` 模式 (PIMPL-lite 在 2026-06-15-residual-engine-h-decoupling 完成). 避免重新引入 `engine.h` 跨模块 include.
+
 ### Phase 3：TUI 集成（依赖 ADR-0019）
 
 | # | 文件 | 操作 | 说明 |

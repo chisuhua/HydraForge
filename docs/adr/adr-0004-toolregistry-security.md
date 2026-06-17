@@ -288,6 +288,9 @@ struct SecurityError {
 // SecureToolRegistry
 // ============================================================
 
+// 2026-06-17 OpenSpec change `2026-06-15-residual-engine-h-decoupling` 增量:
+// SecureToolRegistry 多继承实现 IToolRegistry (ADR-0023 §C.3.1 镜像)
+// `class SecureToolRegistry : public IToolRegistry` (PIMPL 装饰, 委托给 base_registry_)
 class SecureToolRegistry {
 public:
     explicit SecureToolRegistry(ToolSecurityConfig config)

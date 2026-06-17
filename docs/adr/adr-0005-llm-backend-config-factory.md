@@ -602,5 +602,38 @@ TEST_CASE("ApiKeyResolver from environment") {
 
 ---
 
-*文档版本: v1.0*
-*最后更新: 2026-05-12*
+## 状态变更日志
+
+### 2026-06-17 — OpenSpec change `2026-06-15-residual-engine-h-decoupling` 状态变更
+
+**状态**: ✅ Approved → ✅ Approved (V1.1, 增量)
+
+**变更原因**: `engine.h` 跨模块耦合解耦 (ADR-0019 §1.4 闭环) 需要在 `include/agenticdsl/contract/` 层提供 `IProviderFactory` 抽象。直接重新定义会与本 ADR §3 `LLMProviderFactory` + `ProviderCreator` 重复。
+
+**决策 (V1.1 增量)**: 采用 **facade + 委托** 模式
+- `IProviderFactory` 在 `include/agenticdsl/contract/iprovider_factory.h` (1 个虚函数 `create(const LLMConfig&)`)
+- `LLMProviderFactory` 在 `src/common/llm/llm_provider_factory.h` (**从零构建, 不是沿用本 ADR §3 — §3 设计草图未实现为编译代码**)
+- `MockProviderFactory` 在 `src/common/llm/mock_provider_factory.h` (包装现有 `MockLLMProvider`)
+- **CloudProviderFactory / LlamaProviderFactory 不在本 change 实现** (避免 YAGNI + `cloud_adapter.h` 拆分决策待后续 OpenSpec change)
+- `IProviderFactory::create(config)` 内部委托 `LLMProviderFactory::create(LlmConfig)` (单一 backend_name 路由, 通过 `config.provider` 字段)
+
+**MockLLMProvider 集成**: 本 ADR §3 未涉及 MockLLMProvider (其定义在 `src/common/llm/mock_provider.h`, 与本 ADR 平行存在)。OpenSpec change `2026-06-15-residual-engine-h-decoupling` 引入 `MockProviderFactory` (包装 MockLLMProvider), 默认注册到 `LLMProviderFactory`, 用于生产 CI 测试。
+
+**LLMConfig 类型统一**: 本 ADR §3 描述的 `LLMConfig` (`default_backend` + `backends` map) 是 ADR 草稿, 实际编译的 `LLMConfig` 是 `src/common/llm/llm_config.h:28` 的**统一 per-call struct** (provider, api_url, model, max_tokens, temperature 等)。`IProviderFactory::create()` 接受该统一 struct, 内部 `LLMProviderFactory` 自行解析 backend 名称 (`config.provider` 字段) 并路由到对应 creator。
+
+**理由 (修订后 — Oracle 审查发现)**:
+- **诚实承认**: 本 ADR §3 设计草图未实现为编译代码, OpenSpec change 从零构建 (5-7 天, 不是 3 天)
+- **范围控制**: 仅 MockProviderFactory (生产 CI 用), Cloud/Llama 留待后续
+- **依赖方向**: contract → types (LLMConfig 前向声明) → 不引入 common/
+
+**计划实现 (P1 active)**: OpenSpec change `2026-06-15-residual-engine-h-decoupling` (P1 active, 估时 5 周, 包含在变更的 `include/agenticdsl/contract/iprovider_factory.h` + `src/common/llm/llm_provider_factory.h` + `src/common/llm/mock_provider_factory.h` 从零构建)
+
+**Related**:
+- ADR-0019 §1.4 (engine.h 跨模块耦合解耦)
+- ADR-0020 §2.2 (Per-Worker ILLMProvider* 注入)
+- ADR-0022 §4.2 (未来 PDK plugin 协调)
+
+---
+
+*文档版本: v1.1*
+*最后更新: 2026-06-17*

@@ -145,6 +145,21 @@ class DSLEngine {
 };
 ```
 
+#### 2.2.1 IProviderFactory 工厂注入 (2026-06-17, OpenSpec change `2026-06-15-residual-engine-h-decoupling`)
+
+**补充关系**: `IProviderFactory` (ADR-0005 V1.1 facade) 与本 ADR §2.2 `ILLMProvider*` 注入模式**互补**:
+- `std::unique_ptr<IProviderFactory> provider_factory_` — Per-Engine 持有**工厂**
+- `ILLMProvider* llm_provider_` — Per-Engine 持有**实例**(来自 `provider_factory_->create(config)`)
+- 工厂内部 `LLMProviderFactory` (ADR-0005 §3) 已是 thread-safe, 多线程并发 `create()` 安全
+- Worker 隔离仍由本 ADR §4.1 mutex+queue 控制, **不与 factory 冲突**
+
+**生命周期**:
+- DSLEngine 构造时: `provider_factory_ = std::make_unique<LLMProviderFactory>()` (含 MockCreator 默认注册)
+- `from_markdown()` 时: `llm_provider_ = provider_factory_->create(LLMConfig{...}).release()`
+- Per-Worker `std::unique_ptr<DSLEngine>` 持有独立 factory + provider 指针
+
+**Related**: ADR-0005 V1.1 (IProviderFactory facade), ADR-0019 §1.4 (engine.h 解耦)
+
 ---
 
 ### 3. 工作线程：智能体执行

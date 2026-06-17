@@ -216,6 +216,8 @@ ADR-0023 §附录 C 完整记录了 4 项关键设计调整：
    - 端到端 bus 集成测试
    - 详见: `openspec/changes/2026-06-17-phase1-bus-integration/`
 
+> **📋 Post-Sprint 1b 状态更新 (2026-06-17)**: Sprint 1b 在实施过程中吸收了 P1 (Residual engine.h Decoupling) 的部分工作 — 3 个 deep `modules/` 移除 (topo_scheduler.h / markdown_parser.h / budget_controller.h 通过 PIMPL-lite). 剩余 4 个跨模块 include (3 common/ + 1 modules/trace/) 由 OpenSpec change [`2026-06-15-residual-engine-h-decoupling`](../openspec/changes/2026-06-15-residual-engine-h-decoupling/) 处理 (P1 active, 估时 3 周). P1.T4 实际 3/4 完成, 由 Sprint 1b + 本 OpenSpec change 共同完成.
+
 2. **Sprint 2: CognitiveWorker** (ADR-0020)
    - 包装 SimpleCognitiveOrchestrator
    - 集成 IInteractionBus

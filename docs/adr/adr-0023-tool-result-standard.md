@@ -604,6 +604,40 @@ enum class ErrorCode {
 > 优点：(a) `register_tool(name, lambda)` API 不变（lambda 返回 raw JSON），零侵入；
 > (b) NodeExecutor 集中处理 envelope + error_code 分发；(c) 现有 P0 测试零回归。
 
+### C.3.1 IToolRegistry 抽象镜像 (2026-06-17, OpenSpec change `2026-06-15-residual-engine-h-decoupling`)
+
+**背景**: ADR-0019 §1.4 跨模块耦合解耦需要在 `include/agenticdsl/contract/` 层提供 `IToolRegistry` 抽象。
+
+**决策**: `IToolRegistry` **严格镜像** §C.3 决策，**不**将 `call_tool` 改为返回 `ToolResult`:
+```cpp
+// include/agenticdsl/contract/itool_registry.h
+namespace agenticdsl {
+class IToolRegistry {
+ public:
+  virtual ~IToolRegistry() = default;
+  virtual nlohmann::json call_tool(
+      const std::string& name,
+      const std::unordered_map<std::string, std::string>& args) = 0;  // ADR-0023 §C.3
+  virtual bool has_tool(const std::string& name) const = 0;
+  // 故意省略 register_tool: 实际为模板成员函数 (registry.h:31-34),
+  // C++ 禁止模板 virtual
+};
+}  // namespace agenticdsl
+```
+
+**实施**:
+- `ToolRegistry : public IToolRegistry` 加 `override` 关键字, **保持** `register_tool<>` 模板成员函数 (API 不变)
+- `SecureToolRegistry : public IToolRegistry` 多继承装饰 (ADR-0004 §SecureToolRegistry)
+- `engine.h` 持有 `std::unique_ptr<IToolRegistry>` (PIMPL-lite, 镜像 `budget_controller_` 模式)
+- 9 个 `call_tool` call site 保持现状 (NodeExecutor.cpp:72,170 / SimpleCognitiveOrchestrator.cpp:139 / SecureToolRegistry.cpp:109,190 / tests/test_tool_registry.cpp 等)
+
+**理由**:
+- 严格遵循 §C.3 "API 不变 (lambda 返回 raw JSON), 零侵入" 决策
+- 避免 re-introduce §C.3 已修复的回归 (强制 ToolResult 返回会破坏 27+ 测试)
+- `SecureToolRegistry` 多继承装饰而非替换, 保留 PathPolicy / ShellGuard 安全检查
+
+**Related**: ADR-0019 §1.4 (engine.h 解耦), ADR-0004 §SecureToolRegistry (多继承装饰)
+
 ### C.4 NodeExecutor execute_tool_call 重构 (REQ-TR-MOD-001)
 
 ```cpp

@@ -88,7 +88,7 @@
 #include "core/types/context.h"
 #include "core/types/budget.h"
 #include "core/types/tool_result.h"
-#include "modules/trace/trace_record.h"
+#include "agenticdsl/types/trace_record.h" // 2026-06-17 OpenSpec change `2026-06-15-residual-engine-h-decoupling` 上移
 #include <chrono>
 #include <string>
 #include <vector>

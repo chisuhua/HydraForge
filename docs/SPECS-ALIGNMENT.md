@@ -124,4 +124,7 @@
 |---------|------|:------:|:----:|
 | `docs-code-alignment-fixes` | [OpenSpec change](openspec/changes/archive/2026-06-09-docs-code-alignment-fixes/) | 🔴 P0 4 / 🟠 P1 16 / 🟡 P2 8 | ✅ 已归档 |
 | `tech-debt-and-doc-cleanup` | [OpenSpec change](openspec/changes/archive/2026-06-10-tech-debt-and-doc-cleanup/) | — | ✅ 已归档 |
+| `phase1-toolresult-standardization` | [OpenSpec change](openspec/changes/archive/2026-06-16-phase1-toolresult-standardization/) | 🟢 Sprint 1a | ✅ 已归档 (2026-06-16) |
+| `phase1-bus-integration` | [OpenSpec change](openspec/changes/archive/2026-06-17-phase1-bus-integration/) | 🟢 Sprint 1b | ✅ 已归档 (2026-06-17, 吸收 3 deep modules/ 移除) |
+| `2026-06-15-residual-engine-h-decoupling` | [OpenSpec change](openspec/changes/2026-06-15-residual-engine-h-decoupling/) | 🔴 P0 10 / 🟠 P1 10 (审查发现) | 🟡 3/4 完成 (Sprint 1b 2026-06-17), R5 重分类为 P1 active, 估时 3 周 |
 | `project-organization` (Stage 1+2) | [Plan](.omo/plans/project-organization.md) | — | 🔄 进行中 (Stage 1 [~] 待 commit, Stage 2 ✅ 4/6 任务) |

@@ -124,6 +124,8 @@ Phase 1.0 (ToolResult) ←── 依赖 Sprint 0 (最高优先)
 > **OpenSpec change**: `openspec/changes/2026-06-17-phase1-bus-integration/`
 > **详细任务**: 见上述 OpenSpec change (S1b.T1-S1b.T4 全部完成)
 
+> **📋 2026-06-17 P1 状态更新**: Sprint 1b 在实施过程中吸收了 P1 (Residual engine.h Decoupling) 的部分工作, 具体为 3 个 deep `modules/` 移除 (topo_scheduler.h / markdown_parser.h / budget_controller.h 通过 PIMPL-lite)。剩余 4 个跨模块 include (3 common/ + 1 modules/trace/) 由 OpenSpec change [`2026-06-15-residual-engine-h-decoupling`](../openspec/changes/2026-06-15-residual-engine-h-decoupling/) 处理 (P1 active, 估时 3 周)。Sprint 1b 提前 ship 未阻塞 P1 后续工作。
+
 | 任务 | 优先级 | 文件 | 工作量 | 状态 |
 |------|--------|------|--------|:----:|
 | S1b.T1 ADR-0019 P2.1: DSLEngine bus 注入 | P0 | `src/core/engine.h` | 0.5h | [x] |

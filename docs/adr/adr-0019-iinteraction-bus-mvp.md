@@ -8,6 +8,29 @@
 
 ## 状态变更日志
 
+### 2026-06-17 — Sprint 1b 完成 + OpenSpec change `2026-06-15-residual-engine-h-decoupling` 启动 (R5 重分类)
+
+**问题 §1.4 (跨模块耦合) 状态变更**：🟡 部分解决 (维持中, 待 OpenSpec change 完成 4 跨模块 include 移除后标记 ✅ 已解决).
+
+**Sprint 1b (commit `248d209`, 2026-06-17) 吸收的工作**：
+- 3 deep `modules/` 移除: `topo_scheduler.h` / `markdown_parser.h` / `budget_controller.h` (PIMPL-lite)
+- 1 contract 头新增: `agenticdsl/contract/iinteraction_bus.h` (本 ADR P2 集成)
+
+**OpenSpec change `2026-06-15-residual-engine-h-decoupling` 计划完成的工作** (P1 active, 待 T5 执行后实际 ship):
+- 1 leaf `modules/trace/trace_exporter.h` 移除: TraceRecord 上移到 `include/agenticdsl/types/trace_record.h`
+- 3 `common/` 移除: `mock_provider.h` / `registry.h` 通过 contract 抽象 (IProviderFactory facade over LLMProviderFactory / IToolRegistry 镜像 ADR-0023 §C.3)
+- 保留 `common/llm/llm_types.h` (types 头文件例外)
+- 2 contract 头新增: `agenticdsl/contract/iprovider_factory.h` / `itool_registry.h`
+
+**当前 (2026-06-17) 状态**:
+```bash
+$ grep -c '#include "modules/\|#include "common/' src/core/engine.h
+4   # Sprint 1b 完成后剩余 4 include: 1 leaf modules/ + 3 common/
+```
+
+**Plan 退出标准 `grep = 0`**: 未达成 (因 llm_types.h 保留作为 types 头文件例外, 实际接受 grep = 1)
+**OpenSpec change 执行完成时**: T5 验证后将本 ADR §1.4 状态更新为 ✅ 已解决, `grep -c = 1` (仅 llm_types.h types 头文件例外)
+
 ### 2026-06-12 — Stage 4 Tasks 16-20：engine.h 跨模块耦合部分解耦
 
 **问题 §1.4 (跨模块耦合) 状态变更**：⛔ 待解决 → 🟡 **部分解决**（3 deep `modules/` 已移除: topo_scheduler.h/markdown_parser.h/budget_controller.h; 剩余 1 leaf `modules/trace/trace_exporter.h` + 3 `common/` (llm_types.h/mock_provider.h/registry.h) 待独立 ADR 解耦）。
@@ -71,7 +94,7 @@ HydraForge 当前架构存在以下问题：
 1. **同步阻塞执行**：`DSLEngine::run()` 是同步阻塞调用，无法实时推送 Token 流
 2. **无用户交互接口**：执行时无用户输入通道，无法实现多轮对话
 3. **无事件总线**：组件间通过直接调用耦合，无法支持分布式/跨进程通信
-4. **紧耦合 (🟡 部分解决 2026-06-12, Stage 4 Tasks 16-20)**：`engine.h` 直接 `#include "modules/scheduler/topo_scheduler.h"`，模块边界模糊 — 已移除 2/3 个 `modules/` 直接 include（`topo_scheduler.h`、`markdown_parser.h`），改用 `agenticdsl/contract/{ischeduler,iparser}.h` 抽象接口；`budget_controller.h` 与 `trace_exporter.h` 仍需 PIMPL 才能完全解耦。详见下方"状态变更日志"。
+4. **紧耦合 (🟡 部分解决 2026-06-17, Sprint 1b 吸收 3/4, OpenSpec change `2026-06-15-residual-engine-h-decoupling` 处理剩余 4 include)**：`engine.h` 跨模块 include 待全部移除（保留 `common/llm/llm_types.h` types 头文件例外, 退出标准 `grep -c = 1`）。Sprint 1b (commit `248d209`) 移除 3 deep `modules/`, OpenSpec change `2026-06-15-residual-engine-h-decoupling` (P1 active, 5 周估时) 处理剩余 1 leaf `modules/trace/` + 3 `common/`。详见下方"状态变更日志"。
 
 ### 目标
 

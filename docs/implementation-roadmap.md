@@ -74,9 +74,9 @@ Phase 5 — 自举与服务化 (远期)
 |------|------|------|
 | **8 个核心模块** (parser/scheduler/executor/context/budget/trace/library/system) | ✅ 已实现 | ~4,532 行 |
 | **Common 组件** (llm/tools/utils) | ✅ 已实现 | 含 HttpAdapter + LlamaAdapter |
-| **ADR-0019~0036 新增组件** (contract/worker/plugin/async/event/cost/sandbox/pdk/cognitive) | ❌ 零代码 | 13 个目录全部不存在 |
+| **ADR-0019~0036 新增组件** (contract/worker/plugin/async/event/cost/sandbox/pdk/cognitive) | 🟢 大部分实现 | ADR-0019 ✅ / ADR-0020 🟡 / ADR-0021/0022 🔍 Proposed / ADR-0023 ✅ / ADR-0031 🟡 / ADR-0033 🟡 |
 | **外部依赖** (Taskflow / async_simple) | ❌ 未引入 | 依赖 llama.cpp 已移除 |
-| **测试** | ✅ 全部通过 | 12/12 全部通过 (2026-06-03 验证) |
+| **测试** | ✅ 全部通过 | 27/27 全部通过 (2026-06-17 验证, 含 Sprint 1a/1b 新增) |
 
 ### 紧急问题 (需立即修复)
 
@@ -84,7 +84,7 @@ Phase 5 — 自举与服务化 (远期)
 |---|------|------|------|
 | 1 | `tests/test_basic.cpp` 合并冲突 | ✅ 已修复 | 选择 HEAD 版本 |
 | 2 | `tests/CMakeLists.txt` llama.cpp 引用 | ✅ 已修复 | 已移除已删除的依赖路径 |
-| 3 | 其他测试二进制构建超时 | ✅ 已解决 | 2026-06-03 验证 12/12 全部构建+运行通过 |
+| 3 | 其他测试二进制构建超时 | ✅ 已解决 | 2026-06-17 验证 27/27 全部构建+运行通过 (Sprint 1a/1b) |
 | 4 | 无 `.clang-format` / `.clang-tidy` | [ ] 待添加 | 建议基础配置（非阻塞） |
 
 ---
@@ -786,13 +786,13 @@ EventBus (Phase 2 ADR-0002 V2)
 | 检查项 | 状态 | 说明 |
 |--------|------|------|
 | LSP 诊断 (src/core/) | ✅ 清洁 | 无错误 |
-| 核心库构建 (agenticdsl_core) | ✅ 100% | `make agenticdsl_core` 通过 (2026-06-03) |
-| test_basic 编译 | ✅ 通过 | 5/5 (2026-06-03) |
-| 全量测试 (ctest) | ✅ 12/12 通过 | `ctest` 全部 100% pass (2026-06-03) |
+| 核心库构建 (agenticdsl_core) | ✅ 100% | `make agenticdsl_core` 通过 (2026-06-17) |
+| test_basic 编译 | ✅ 通过 | 5/5 (2026-06-17) |
+| 全量测试 (ctest) | ✅ 27/27 通过 | `ctest` 全部 100% pass (2026-06-17, 含 Sprint 1a/1b 新增 12+ 测试) |
 | 合并冲突 | ✅ 已修复 | test_basic.cpp |
 | llama.cpp 引用 | ✅ 已移除 | CMakeLists.txt |
 | 代码格式化 | ❌ 无配置 | 无 `.clang-format` / `.clang-tidy` |
-| 文档与代码一致 | ⚠️ 基本一致 | ADR-0019~0036 已记录但未实现 |
+| 文档与代码一致 | 🟡 部分一致 | ADR-0019/0020/0023 已 Approved + 实现, ADR-0021/0022/0031/0033 部分实现, ADR-0019 §1.4 由 OpenSpec change `2026-06-15-residual-engine-h-decoupling` 闭环 |
 
 ---
 
