@@ -28,11 +28,13 @@
 //        get_tool_registry accessor 需要 ToolRegistry 完整类型，多个调用点
 //        （tests/test_simple_orchestrator.cpp, examples/agent_basic/main.cpp 等）
 //        依赖此传递包含。P1.T4 include 缩减留待后续 Task 20 独立 ADR。
-// 保留（4 头文件，需未来 OpenSpec change 处理）：3 个 common/ 头文件 +
-//        1 个 leaf modules/trace/ 头文件（见下方说明）。
-// 验证：本文件当前仍保留 4 个跨模块 include（3 个 common/ + 1 个 modules/trace/），
-//       期望 0（待 future OpenSpec change 完成）。
-//       完整审计报告见 OpenSpec change `docs-code-drift-audit-2026-06`。
+// 保留（3 头文件，需未来 OpenSpec change 处理）：3 个 common/ 头文件。
+// P1.T3 (2026-06-18) 已完成：TraceRecord data-only struct 从 modules/trace/trace_exporter.h
+//        上移到 include/agenticdsl/types/trace_record.h，engine.h 不再依赖 modules/trace/。
+// 验证：本文件当前保留 3 个 common/ 跨模块 include + 1 个 types 头文件 include
+//       （ADR-0019 §1.4 退出标准 = 1 个 modules/common include，本文件当前 3 个 common/。
+//        T1+T2 工作 (LLMProviderFactory + IToolRegistry) 完成后将达到 1）。
+//       完整审计报告见 OpenSpec change `2026-06-15-residual-engine-h-decoupling`。
 
 #include "common/llm/llm_types.h"      // ILLMProvider*, ILLMTool, LLMParams 接口 (保留)
 #include "common/llm/mock_provider.h"  // 默认 LLM provider 实现 (保留)
@@ -40,11 +42,9 @@
 #include "agenticdsl/contract/ischeduler.h" // IScheduler 抽象接口 (Stage 4 / Task 16)
 #include "agenticdsl/contract/iparser.h"    // IParser 抽象接口 (Stage 4 / Task 16)
 #include "agenticdsl/contract/iinteraction_bus.h" // Phase 1 Sprint 1b (S1b.T1): IInteractionBus 注入契约 (ADR-0019 P2)
-// 例外：TraceRecord 当前仅由 engine 暴露给外部 (get_last_traces 返回 std::vector<TraceRecord>)。
-// 该类型是 POD 结构体，定义在 modules/trace/trace_exporter.h。
-// 完整解耦需在后续 OpenSpec change 将 TraceRecord 上移到 include/agenticdsl/types/ 或 contract 层
-// （与 Task 19 的 modules/ + common/ 剩余 include 一起处理，详见 ADR-0019 §1.4）。
-#include "modules/trace/trace_exporter.h" // TraceRecord POD 定义 (OpenSpec docs-code-drift-audit-2026-06 待迁移)
+// P1.T3 (2026-06-18): TraceRecord data-only struct 上移到 types 头文件 (from modules/trace/trace_exporter.h)
+// 这是 ADR-0019 §1.4 解耦的第一步 — engine.h 不再依赖 modules/trace/, 改依赖 include/agenticdsl/types/
+#include "agenticdsl/types/trace_record.h" // TraceRecord data-only struct (P1.T3 迁移自 modules/trace/trace_exporter.h)
 
 #include <memory>
 #include <string>

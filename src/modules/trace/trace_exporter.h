@@ -1,8 +1,16 @@
 // modules/trace/include/trace/trace_exporter.h
+// 功能描述：节点执行追踪导出器。仅保留 TraceExporter 类行为; TraceRecord
+//           data-only struct 已迁移到 include/agenticdsl/types/trace_record.h
+//           (P1.T3 — ADR-0019 §1.4 engine.h 解耦退出标准, openspec change
+//            2026-06-15-residual-engine-h-decoupling)。
+// 设计依据：ADR-0019 §1.4 + ADR-0033 §2 + openspec/changes/2026-06-15-...
+// 作者：AgenticDSL Phase 1 P1.T3
+// 最后修改日期：2026-06-18
 #ifndef AGENTICDSL_MODULES_TRACE_TRACE_EXPORTER_H
 #define AGENTICDSL_MODULES_TRACE_TRACE_EXPORTER_H
 
-#include "core/types/node.h"    // 引入 NodePath
+#include "agenticdsl/types/trace_record.h"
+#include "core/types/node.h"    // 引入 NodePath + NodeType
 #include "core/types/context.h" // 引入 Context
 #include "core/types/budget.h"  // 引入 ExecutionBudget
 #include <nlohmann/json.hpp>
@@ -12,23 +20,6 @@
 #include <chrono>
 
 namespace agenticdsl {
-
-struct TraceRecord {
-    std::string trace_id;
-    NodePath node_path;
-    std::string type; // NodeType as string
-    std::chrono::system_clock::time_point start_time;
-    std::chrono::system_clock::time_point end_time;
-    std::string status; // "success", "failed", "skipped"
-    std::optional<std::string> error_code;
-    nlohmann::json context_delta; // 执行前后上下文的变化 (simplified)
-    std::optional<NodePath> ctx_snapshot_key; // 关联的快照键 (v3.1)
-    nlohmann::json budget_snapshot; // 执行时的预算状态
-    nlohmann::json metadata; // 节点原始 metadata
-    std::optional<std::string> llm_intent; // 从注释解析
-    std::string mode; // "dev" or "prod"
-    // Add other fields as needed per spec
-};
 
 class TraceExporter {
 public:
