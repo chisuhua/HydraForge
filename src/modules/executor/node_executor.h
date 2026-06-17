@@ -8,6 +8,7 @@
 #include "common/utils/template_renderer.h" // 引入 InjaTemplateRenderer
 #include "common/tools/registry.h" // 引入 ToolRegistry
 #include "agenticdsl/contract/iparser.h" // ADR-0019 §1.4: 仅依赖解析器抽象接口
+#include "agenticdsl/contract/iinteraction_bus.h" // Phase 1 Sprint 1b (S1b.T3): IInteractionBus 事件推送契约 (ADR-0019 P2)
 #include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
@@ -24,11 +25,15 @@ using AppendGraphsCallback = std::function<void(std::vector<ParsedGraph>)>;
 class NodeExecutor {
 public:
     // C₁.2 迁移：构造函数从 LlamaAdapter* 改为 ILLMProvider*（向后兼容：仍可传 nullptr）
-    NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider = nullptr);
+    // Phase 1 Sprint 1b (S1b.T3): 新增 IInteractionBus* 可选注入参数（默认 nullptr 保持现有 11 测试零修改）
+    NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider = nullptr,
+                 IInteractionBus* bus = nullptr);
 
     // ADR-0019 §1.4 + Stage 4 Task 20: 依赖反转，注入 IParser 抽象
+    // Phase 1 Sprint 1b (S1b.T3): 新增 IInteractionBus* 可选注入参数（默认 nullptr）
     NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider,
-                 std::unique_ptr<IParser> parser);
+                 std::unique_ptr<IParser> parser,
+                 IInteractionBus* bus = nullptr);
 
     // 执行一个节点，返回新的上下文
     Context execute_node(Node* node, const Context& ctx);
@@ -43,6 +48,10 @@ private:
     AppendGraphsCallback append_graphs_callback_;
     // ADR-0019 §1.4 + Stage 4 Task 20: 通过 IParser 抽象持有具体解析器
     std::unique_ptr<IParser> parser_;
+
+    // Phase 1 Sprint 1b (S1b.T3): 非 owning 指针（生命周期短于 DSLEngine）；
+    // 默认 nullptr 走原有静默路径，保持现有 11+ 测试零回归。
+    IInteractionBus* bus_;
 
     // 权限检查
     void check_permissions(const std::vector<std::string>& perms, const NodePath& node_path);

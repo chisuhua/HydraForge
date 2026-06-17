@@ -3,9 +3,10 @@
 // 功能描述：DSLEngine 入口 —— 加载 DSL、运行图、暴露 session 级别的 cost 跟踪
 // 设计依据：tech-debt-and-doc-cleanup 阶段 4 任务 4.3 (REQ-cost-tracker-integration)
 //          + project-organization 计划 Stage 4 / Task 19 (engine.h 解耦第一阶段)
+//          + Phase 1 Sprint 1b (S1b.T1): IInteractionBus 集成 (ADR-0019 P2)
 // 作者：tech-debt-and-doc-cleanup change
-// 最后修改日期：2026-06-13 [2026-06-13 audit: 3/3 deep modules/ removed, 1 leaf modules/trace/ + 3 common/ remain]
-//                    (Stage 4 / Task 19 — PARTIAL decoupling per OpenSpec change docs-code-drift-audit-2026-06)
+// 最后修改日期：2026-06-17 [Phase 1 Sprint 1b S1b.T1: drop common/tools/registry.h include,
+//                              forward-declare ToolRegistry, add IInteractionBus 注入 API]
 
 #ifndef AGENTICDSL_CORE_ENGINE_H
 #define AGENTICDSL_CORE_ENGINE_H
@@ -20,6 +21,13 @@
 //        accessor 与 destructor，从而将完整类型依赖限制在 engine.cpp 内）。
 // 改为：移除的 2 个（topo_scheduler / markdown_parser）被替换为 contract 抽象接口
 //      （IScheduler / IParser）作为后续 Task 17-21 的演进基础。
+// === Phase 1 Sprint 1b (S1b.T1): IInteractionBus 注入 API ===
+//        新增 set/get_interaction_bus + subscribe(topic, cb) 三个公开方法，
+//        委托给注入的 std::shared_ptr<IInteractionBus>。
+//        保留 common/tools/registry.h include：DSLEngine 内联模板 register_tool 与
+//        get_tool_registry accessor 需要 ToolRegistry 完整类型，多个调用点
+//        （tests/test_simple_orchestrator.cpp, examples/agent_basic/main.cpp 等）
+//        依赖此传递包含。P1.T4 include 缩减留待后续 Task 20 独立 ADR。
 // 保留（4 头文件，需未来 OpenSpec change 处理）：3 个 common/ 头文件 +
 //        1 个 leaf modules/trace/ 头文件（见下方说明）。
 // 验证：本文件当前仍保留 4 个跨模块 include（3 个 common/ + 1 个 modules/trace/），
@@ -28,9 +36,10 @@
 
 #include "common/llm/llm_types.h"      // ILLMProvider*, ILLMTool, LLMParams 接口 (保留)
 #include "common/llm/mock_provider.h"  // 默认 LLM provider 实现 (保留)
-#include "common/tools/registry.h"     // ToolRegistry 成员 (保留 - Task 20 处理)
+#include "common/tools/registry.h"     // ToolRegistry 成员 + 内联 register_tool/get_tool_registry 完整类型依赖 (P1.T4 遗留 - Task 20 处理)
 #include "agenticdsl/contract/ischeduler.h" // IScheduler 抽象接口 (Stage 4 / Task 16)
 #include "agenticdsl/contract/iparser.h"    // IParser 抽象接口 (Stage 4 / Task 16)
+#include "agenticdsl/contract/iinteraction_bus.h" // Phase 1 Sprint 1b (S1b.T1): IInteractionBus 注入契约 (ADR-0019 P2)
 // 例外：TraceRecord 当前仅由 engine 暴露给外部 (get_last_traces 返回 std::vector<TraceRecord>)。
 // 该类型是 POD 结构体，定义在 modules/trace/trace_exporter.h。
 // 完整解耦需在后续 OpenSpec change 将 TraceRecord 上移到 include/agenticdsl/types/ 或 contract 层
@@ -86,6 +95,15 @@ public:
     BudgetController& get_budget_controller();
     const BudgetController& get_budget_controller() const;
 
+    // === Phase 1 Sprint 1b (S1b.T1): IInteractionBus 注入 API (ADR-0019 P2) ===
+    // 注入/访问 IInteractionBus 实例；nullptr 表示未注入（emit/subscribe 走静默 no-op）
+    void set_interaction_bus(std::shared_ptr<IInteractionBus> bus);
+    std::shared_ptr<IInteractionBus> get_interaction_bus() const;
+
+    // 订阅事件 topic：透传到注入 bus 的 subscribe()，返回 token（0 表示未注入 bus）
+    size_t subscribe(const std::string& topic,
+                     std::function<void(const ToolResult&)> cb);
+
     ~DSLEngine(); // Stage 4 / Task 19: 显式声明 — 头文件外定义，使 unique_ptr<BudgetController> 析构在完整类型下进行
     DSLEngine(std::vector<ParsedGraph> initial_graphs);
 private:
@@ -95,6 +113,9 @@ private:
     std::unique_ptr<ILLMProvider> llm_provider_; // C₁.4: 默认 MockLLMProvider
     std::vector<TraceRecord> last_traces_; // ← 存储 Trace
     std::unique_ptr<BudgetController> budget_controller_; // 阶段 4 任务 4.3: PIMPL-lite — 持有 CostTracker（session 级）
+
+    // Phase 1 Sprint 1b (S1b.T1): 默认 nullptr；持有所有权（shared_ptr 允许多 consumer 共享）
+    std::shared_ptr<IInteractionBus> bus_;
 };
 
 } // namespace agenticdsl

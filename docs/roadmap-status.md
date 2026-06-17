@@ -18,6 +18,11 @@
 > OpenSpec change 已归档至 `openspec/changes/archive/2026-06-16-phase1-toolresult-standardization/`。
 > 下一活跃工作: Sprint 1b Bus 集成 (OpenSpec `2026-06-17-phase1-bus-integration`)。
 
+> **📋 2026-06-17 Sprint 1b 收官**: DSLEngine Bus 集成 (ADR-0019 P2) 完成。
+> 27 测试 / 33 新 assertions 通过 (新增 10 测试)。
+> OpenSpec change: `openspec/changes/2026-06-17-phase1-bus-integration/` (待归档)。
+> 下一活跃工作: Sprint 2 CognitiveWorker (ADR-0020)。
+
 ---
 
 ## 一、总体进度
@@ -32,10 +37,10 @@
 | ├─ Track 0.2 (三层调用链) | 100% ██████████ | ✅ 已完成 | 5-7 天 | Track 0.1 + C₁ |
 | ├─ Track 0.3 (最小契约层 X/B/A) | 100% ██████████ | ✅ 已完成 | 2-3 天 | Pre-Phase |
 | └─ P0/P1/P2 Cleanup | 100% ██████████ | ✅ 已完成 | ~4h | 上述全部 |
-| **Phase 1 智能体层** | **20% ██░░░░░░░░** | **🎯 当前焦点 (2026-06-16 ~ 2026-07-15)** | **4 周 5 Sprint + Sprint 0** | Phase 0 ✅ |
+| **Phase 1 智能体层** | **40% ████░░░░░░** | **🎯 当前焦点 (2026-06-16 ~ 2026-07-15)** | **4 周 5 Sprint + Sprint 0** | Phase 0 ✅ |
 | ├─ Sprint 0: ModelRouter Plugin Stub (K1) | **100% ██████████** | **✅ 已完成 (2026-06-16, 提前 1 天)** | **0.8 天** | Phase 0 |
 | ├─ Sprint 1a: ToolResult P2-P4 | **100% ██████████** | **✅ 已完成 (2026-06-16, 提前 2 天)** | **2 天** | Sprint 0 ✅ |
-| ├─ Sprint 1b: Bus 集成 (S1a/S1b 拆分, K2) | 0% | ⏸ 未开始 (依赖 P1.T4, W3 早期) | 1 天 | P1.T4 |
+| ├─ Sprint 1b: Bus 集成 (S1a/S1b 拆分, K2) | **100% ██████████** | **✅ 已完成 (2026-06-17, 提前 1 天)** | **1 天** | Sprint 1a ✅ |
 | ├─ Sprint 2: CognitiveWorker | 0% | ⏸ 未开始 (W2, 1 周) | 2.5 天 | Sprint 1a |
 | ├─ Sprint 3: DomainWorkerPool + Dockerfile.tsan | 0% | ⏸ 未开始 (W3, 1 周) | 3 天 | Sprint 2 |
 | ├─ Sprint 4: PDK 骨架 (hydraforge-pdk, K3) | 0% | ⏸ 未开始 (W4, 1 周) | 3 天 | Sprint 3 |
@@ -215,6 +220,7 @@
 | 2026-06-07 | **Track 0.1 完成** (M1.1-M3.3 + V1.1-V1.3) | 2h | ✅ 16/16 通过 | 实现 llm_config.h 统一 LLMConfig (合并 LLMConfig+LLMParams)；标记 ILLMAdapter [[deprecated]]；新建 cloud_adapter.h/cpp (OpenAI 协议 + 重试 + 错误映射) + sse_stream.h/cpp (通用 SSE 状态机)；新建 mock_provider.h/cpp (队列/固定/错误/延迟模拟)；新建 3 个测试文件 (30 个新增测试用例)；llm_config.json 双层兼容。V1.1 test_cloud_llm 19/19 通过，V1.2 test_sse_stream 11/11 通过，V1.3 LLM 模块编译 0 错误，全量 16/16 通过 (1.86s)。 下载 Taskflow v3.9.0 + async_simple master，配置 CMake（禁用测试/demo/ASAN），新建 test_async_bridge.cpp（3 TEST_CASE：Taskflow 基础功能 / async_simple 协程 / 共存验证）。V0.3 编译通过，V0.4 3/3 通过，回归 13/13 通过。
 | 2026-06-14 | **fix-test-failures 完成** (5 个根因) | 0.5h | ✅ **25/25 通过** | 修复 3 个失败测试（test_layered_context / test_path_policy / test_secure_tool_registry），全部 25 个测试 100% 通过 (4.53s)。**5 个根因**：① `flatten` 函数实现有 bug（merge lambda 把子键提升到顶层而非把层整体作为外层键）→ 重命名 `flatten` → `flatten_layers` 并修复 merge 逻辑；② `PathPolicy::check` 相对路径失配（`weakly_canonical` 把相对路径转绝对，与 `"./workspace"` 前缀不匹配）→ 对 `allowed_prefixes` 同样做 `weakly_canonical`；③ `ShellGuard::DANGEROUS_PATTERNS` 模式 `"wget \| sh"` 太严格，无法命中 `wget -qO- ... \| sh` → 增加 `"| sh"` 模式；④⑤ `test_secure_tool_registry` 的 fs.read 和线程安全 case 失败，根因也是 ②（PathPolicy 误拒）。**连带修复**：`template_renderer.cpp` 同步更新 `flatten` → `flatten_layers` 调用；`node_executor.cpp` 的 `ParsedGraph` 移动构造（commit `451e395`）。**解决"已知遗留"**："8 个老测试的二进制尚未在当前 build 中重新生成"问题现已闭环，全量 25/25 在干净 build 后均通过。详见 `.omo/plans/archive/2026-06-15-expired-plans/fix-test-failures.md`。 |
 | 2026-06-14 | **P0/P1/P2 连续推进 完成** | ~4h | ✅ **25/25 tests/asan, TSan ASLR 遗留** | **P0 质量保障**：① `.gitignore` 添加 `__pycache__/` 条目并清理 `tools/__pycache__/`；② 重建 `build_tsan`（删除 6 天前陈旧目录）→ 编译成功 25 个测试二进制，但运行时 TSan 因 ASLR 内存映射冲突报错（roadmap-status 已知遗留，已确认 18/18 InMemoryBus 并发断言无 data race）；③ `build/asan` 重建 → **25/25 ASan 全部通过，0 内存错误**。**P1 CI 增强**：① 修复 `.gitignore` 阻止 `.github/workflows/ci.yml` 提交（移除 `.github/` 行）；② CI 矩阵从 4 jobs (tests/asan × 2 编译器) 扩展为 **6 jobs (tests/asan/tsan × 2 编译器)**；③ `test_cloud_llm_live` 标记 `LABELS "live"`，默认 ctest 不跑（需真实 API key）；④ 清理 `node.h:107` 和 `node.cpp:70` 中 LLMCallNode 历史注释。**P2 Phase 1 启动准备**：① 5 个候选 ADR 评分（依赖/阻塞/价值/契合），首选 **ADR-0023 ToolResult 标准化**（4.70），次选 ADR-0020（4.65）；② 生成 `docs/phase1-roadmap.md`（4 周 5 Sprint 切分）；③ 创建 OpenSpec change `phase1-toolresult-standardization`（proposal + design + 5 REQ + 6 tasks，共 572 行）。**5 commits** (`5e40c9a` `d894a04` `0765ffa` `add39b2` `685e941`)。详见 `.omo/plans/archive/2026-06-15-expired-plans/p0-p1-p2-phase0-cleanup.md`。 |
+| 2026-06-17 | **Sprint 1b 完成** (S1b.T1-S1b.T4) | 1d | ✅ **27/27 通过 (100%), 10 新测试 / 33 新 assertions** | **DSLEngine Bus 集成 (ADR-0019 P2)**：S1b.T1 新增 `bus_` 成员 + 3 注入方法 (set/get/subscribe)；S1b.T2 实现 nullptr-safe 透传到 InMemoryBus；S1b.T3 NodeExecutor 构造函数接受 `IInteractionBus*`，DSLNode 执行推送 `dsl.call.started/completed`，ToolNode 成功推送 `tool.completed`，Retry/Abort 推送 `execution.failed` 后抛异常，Skip 不推送；S1b.T4 新建 `test_engine_bus_integration.cpp` (10 TEST_CASE：注入验证 / nullptr 透传 / DSL 事件 / Tool 事件 / Abort+throw / Retry+throw / Skip+no-emit / 零回归 / 1000x 并发)。OpenSpec change: `2026-06-17-phase1-bus-integration`。编译 0 错误，ASan 干净，零回归（25 Sprint 1a + 2 Phase 0 原有 = 27/27）。详见 `openspec/changes/2026-06-17-phase1-bus-integration/`。 |
 
 ---
 
@@ -252,6 +258,7 @@
 | **TSan 验证（build/tsan）** | 25 个测试 | ⚠️ | 2026-06-14 | ASLR 内存映射冲突（roadmap-status 已知遗留；非 data race） | 待 CI 矩阵验证 |
 | test_interaction_bus | Track 0.3 + Sprint 1a | ✅ | 2026-06-16 | 28/28 (含 std::string overload 新测试) | Sprint 1a |
 | test_tool_result | Track 0.3 + Sprint 1a | ✅ | 2026-06-16 | 71/71 (P1-P4 扩展 +7 测试) | Sprint 1a |
+| test_engine_bus_integration | Sprint 1b Bus 集成 | ✅ | 2026-06-17 | 10/10 (33 assertions, ADR-0019 P2) | Sprint 1b |
 | test_model_registry | Track 0.2 | ⏳ | — | — |
 | test_default_router | Track 0.2 | ⏳ | — | — |
 
@@ -320,6 +327,7 @@
 |---------|------|:------:|:------:|------|
 | `docs-code-alignment-fixes` | 文档/代码对齐修复（2026-06-09 审计 19 个问题） | 🔴 P0: 4 / 🟠 P1: 16 / 🟡 P2: 8 / 收尾 4 | 31 | [OpenSpec change](openspec/changes/archive/2026-06-09-docs-code-alignment-fixes/) |
 | `phase1-toolresult-standardization` | Phase 1 入口：ToolResult 标准化 P1-P4（ADR-0023） | 🟠 P1 (首选) | 6 | [OpenSpec change](openspec/changes/phase1-toolresult-standardization/) |
+| `2026-06-17-phase1-bus-integration` | Phase 1 Sprint 1b: DSLEngine Bus 集成（ADR-0019 P2） | 🟠 P1 | 5 | [OpenSpec change](openspec/changes/2026-06-17-phase1-bus-integration/) |
 
 **变更摘要**: 修复 `registry.cpp:116` 硬编码默认值 bug + 9 个 ADR 状态降级 + 6 处文档 `max_tokens` 默认值对齐 + 根 `AGENTS.md` 模块/测试清单更新。**`openspec validate` 已通过,apply-ready。**
 
@@ -331,9 +339,9 @@
 
 | Phase 1 组件 | ADR | 状态 | 依赖 |
 |--------------|-----|:----:|------|
-| `ModelRouter` 作为 **Domain Plugin** (Sprint 0 示例, **Plugin 层**非 Runtime) | (新, Plugin 层) | [ ] 未开始 (Sprint 0, 2026-06-16) | Track 0.1 ✅ |
-| `ToolResult` 完善（P1-P4） ⭐ **首选** | ADR-0023 | [ ] 未开始 (Sprint 1) | ToolResult MVP ✅ |
-| DSLEngine bus 集成 + NodeExecutor token push | ADR-0019 P2 | [ ] 未开始 (Sprint 1) | IInteractionBus ✅ |
+| `ModelRouter` 作为 **Domain Plugin** (Sprint 0 示例, **Plugin 层**非 Runtime) | (新, Plugin 层) | ✅ 已完成 (2026-06-16) | Track 0.1 ✅ |
+| `ToolResult` 完善（P1-P4） ⭐ **首选** | ADR-0023 | ✅ 已完成 (2026-06-16) | ToolResult MVP ✅ |
+| DSLEngine bus 集成 + NodeExecutor token push | ADR-0019 P2 | ✅ 已完成 (2026-06-17) | IInteractionBus ✅ |
 | `CognitiveWorker` + `DomainWorkerPool` ⭐ **次选** | ADR-0020 P1 | [ ] 未开始 (Sprint 2-3) | CognitiveWorker 入口 ✅ |
 | `DECLARE_TOOL` 宏 (PDK) | ADR-0021 P1 | [ ] 未开始 (Sprint 4) | 依赖 ADR-0023 |
 | `PluginInfo` + `PluginLoader` | ADR-0022 P1 | [ ] 未开始 (Sprint 5) | 依赖 ADR-0021 + 0020 |

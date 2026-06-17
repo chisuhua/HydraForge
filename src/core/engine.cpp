@@ -12,6 +12,7 @@
 #include <thread>
 #include <stdexcept>
 #include <filesystem>
+#include <utility> // Phase 1 Sprint 1b (S1b.T2): std::move for bus injection
 
 namespace agenticdsl {
 
@@ -128,6 +129,27 @@ DSLEngine::~DSLEngine() = default;
 // Stage 4 / Task 19: 类外 accessor 定义 — 头文件中仅有前向声明，这里返回引用才需要完整类型
 BudgetController& DSLEngine::get_budget_controller() { return *budget_controller_; }
 const BudgetController& DSLEngine::get_budget_controller() const { return *budget_controller_; }
+
+// === Phase 1 Sprint 1b (S1b.T2): IInteractionBus 注入/访问/订阅 实现 ===
+// 设计依据: design.md §决策 1 (shared_ptr 持有所有权) + §决策 4 (nullptr 静默 no-op) +
+//           §决策 5 (subscribe 透传 token，不缓存)
+void DSLEngine::set_interaction_bus(std::shared_ptr<IInteractionBus> bus) {
+    bus_ = std::move(bus);
+}
+
+std::shared_ptr<IInteractionBus> DSLEngine::get_interaction_bus() const {
+    return bus_;
+}
+
+size_t DSLEngine::subscribe(const std::string& topic,
+                            std::function<void(const ToolResult&)> cb) {
+    // bus 未注入时返回 0（无效 token），不抛异常（REQ-BUS-002 Scenario: bus 为 nullptr 时）
+    if (!bus_) {
+        return 0;
+    }
+    // 透传 token 到 InMemoryBus::subscribe，由 bus 统一管理生命周期
+    return bus_->subscribe(topic, std::move(cb));
+}
 
 ExecutionResult DSLEngine::run(const Context& context) {
     // 提取预算（从 /__meta__）

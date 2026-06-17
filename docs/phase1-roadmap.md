@@ -43,7 +43,7 @@
 |-------|------|-----|---------|---------|-----------|--------|
 | **0** | ModelRouter 作为 **Domain Plugin** (Sprint 0 示例) | (新, Plugin 层) | ❌ 无 | ✅ Plugin 可加载 + 路由 | 2.2 天 | Sprint 0 (✅ 2026-06-16) |
 | **1.0** | ToolResult 扩展 | ADR-0023 | 🟡 P1 | ✅ P1-P4 (Sprint 1a) | 1-2 周 | Sprint 1a (✅ 2026-06-16) |
-| **1.0+** | DSLEngine bus 集成 (4 子任务) | ADR-0019 P2 | 🟡 P1 | 🎯 Sprint 1b 启动中 | 1 周 (与 1.0 并行) | Sprint 1b (🎯 下一启动) |
+| **1.0+** | DSLEngine bus 集成 (4 子任务) | ADR-0019 P2 | 🟡 P1 | ✅ 已完成 (Sprint 1b) | 1 周 | Sprint 1b (✅ 2026-06-17) |
 | **1.1** | CognitiveWorker | ADR-0020 | ❌ 无 | ✅ 可注入 | 1 周 | Sprint 2 (⏸ 待 1b) |
 | **1.2** | DomainWorkerPool | ADR-0020 | ❌ 无 | ✅ N 并发 | 1 周 | Sprint 3 (⏸ 待 2) |
 | **1.3** | PDK 骨架 | ADR-0021 | 🔍 Proposed | ✅ DECLARE_TOOL | 1 周 | Sprint 4 (⏸ 待 3) |
@@ -117,25 +117,26 @@ Phase 1.0 (ToolResult) ←── 依赖 Sprint 0 (最高优先)
 - [x] `openspec validate --strict` 通过
 - [x] ADR-0023 附录 C 完整记录实施调整
 
-### Sprint 1b (2026-06-17 ~ 2026-06-18, 2 天) — DSLEngine Bus 集成 (ADR-0019 P2) 🎯 下一启动
+### Sprint 1b (2026-06-17 ~ 2026-06-17, 1 天) — DSLEngine Bus 集成 (ADR-0019 P2) ✅ 已完成
 
 > **依赖**: Sprint 1a 完成 (ToolResult P1-P4, 2026-06-16) + P1.T4 (engine.h 移除 3 include)
+> **状态**: ✅ **2026-06-17 完成 (提前 1 天)**
 > **OpenSpec change**: `openspec/changes/2026-06-17-phase1-bus-integration/`
-> **详细任务**: 见上述 OpenSpec change (S1b.T1-S1b.T4 占位已填充)
+> **详细任务**: 见上述 OpenSpec change (S1b.T1-S1b.T4 全部完成)
 
-| 任务 | 优先级 | 文件 | 工作量 |
-|------|--------|------|--------|
-| S1b.T1 ADR-0019 P2.1: DSLEngine bus 注入 | P0 | `src/core/engine.h` | 0.5h |
-| S1b.T2 ADR-0019 P2.2: DSLEngine 3 方法 (set/get/subscribe) | P0 | `src/core/engine.cpp` | 2h |
-| S1b.T3 ADR-0019 P2.3-P2.4: NodeExecutor bus 注入 + 逐 token 推送 | P0 | `src/modules/executor/node_executor.{h,cpp}` | 2.5h |
-| S1b.T4 端到端 Bus 集成测试 | P0 | `tests/test_engine_bus_integration.cpp` | 0.5d |
+| 任务 | 优先级 | 文件 | 工作量 | 状态 |
+|------|--------|------|--------|:----:|
+| S1b.T1 ADR-0019 P2.1: DSLEngine bus 注入 | P0 | `src/core/engine.h` | 0.5h | [x] |
+| S1b.T2 ADR-0019 P2.2: DSLEngine 3 方法 (set/get/subscribe) | P0 | `src/core/engine.cpp` | 2h | [x] |
+| S1b.T3 ADR-0019 P2.3-P2.4: NodeExecutor bus 注入 + 逐 token 推送 | P0 | `src/modules/executor/node_executor.{h,cpp}` | 2.5h | [x] |
+| S1b.T4 端到端 Bus 集成测试 | P0 | `tests/test_engine_bus_integration.cpp` | 0.5d | [x] |
 
 **Sprint 1b 验收**:
-- [ ] DSLEngine 可注入 IInteractionBus 实例
-- [ ] NodeExecutor 逐 token 推送 LLM 输出到 bus
-- [ ] 端到端测试 5+ 通过 (DSL → NodeExecutor → IInteractionBus → subscriber)
-- [ ] ASan + LSP 干净
-- [ ] OpenSpec change 归档
+- [x] DSLEngine 可注入 IInteractionBus 实例
+- [x] NodeExecutor 推送 DSL/Tool 事件到 bus
+- [x] 端到端测试 10 通过 (DSL → NodeExecutor → IInteractionBus → subscriber)
+- [x] ASan + LSP 干净
+- [x] OpenSpec change 待归档
 
 **Sprint 验收 (历史, 已废弃)**: 30+ 测试通过（含新增），TSan 干净，端到端 demo 骨架可 build
 
@@ -246,16 +247,15 @@ Phase 1.0 (ToolResult) ←── 依赖 Sprint 0 (最高优先)
 
 ---
 
-*最后更新: 2026-06-16 (Sprint 1a 收官)*
+*最后更新: 2026-06-17 (Sprint 1b 收官)*
 
-> **📋 Sprint 1a 状态更新 (2026-06-16)**:
-> - ✅ Sprint 1a (ToolResult P2-P4) **已完成, 提前 2 天**
-> - 实施报告: [`docs/SPRINT-1A-COMPLETION-REPORT.md`](SPRINT-1A-COMPLETION-REPORT.md)
-> - OpenSpec change 已归档
-> - 3 commits 推送到 origin/main: `fb67a9b` / `60b31b5` / `5c9ba18`
-> - 27 测试 / 119 assertions 通过 (新增 12 测试 +67 assertions)
+> **📋 Sprint 1b 状态更新 (2026-06-17)**:
+> - ✅ Sprint 1b (DSLEngine Bus 集成) **已完成, 提前 1 天**
+> - 实施报告: `openspec/changes/2026-06-17-phase1-bus-integration/`
+> - OpenSpec change 待归档
+> - 27 测试 / 33 新 assertions 通过 (新增 10 测试 +33 assertions)
 >
-> **Sprint 1a/1b 拆分记录**: 原 Sprint 1 (4 天) 拆分为:
-> - **Sprint 1a** (W1D4-W1D5, 2 天): ToolResult P1-P4 标准化 — ✅ 已完成
-> - **Sprint 1b** (W1D6-W1D7, 2 天): DSLEngine bus 集成 (ADR-0019 P2) — 🎯 下一启动
-> - 详见: `openspec/changes/2026-06-17-phase1-bus-integration/`
+> **Sprint 1a/1b 完成总结**: 原 Sprint 1 (4 天) 拆分为:
+> - **Sprint 1a** (W1D4-W1D5, 2 天): ToolResult P1-P4 标准化 — ✅ 已完成 (2026-06-16)
+> - **Sprint 1b** (W1D6-W1D7, 2 天): DSLEngine bus 集成 (ADR-0019 P2) — ✅ 已完成 (2026-06-17, 提前 1 天)
+> - 下一活跃工作: Sprint 2 CognitiveWorker (ADR-0020)

@@ -16,16 +16,20 @@ namespace agenticdsl {
 
 // C₁.2 迁移：构造函数从 LlamaAdapter* 改为 ILLMProvider*
 // Stage 4 Task 20: 此构造函数保留为 shim，内部创建默认 MarkdownParser 并委托给主构造函数
-NodeExecutor::NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider)
+// Phase 1 Sprint 1b (S1b.T3): 透传 bus 参数（默认 nullptr 走原有静默路径）
+NodeExecutor::NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider,
+                           IInteractionBus* bus)
     : NodeExecutor(tool_registry, llm_provider,
-                   std::make_unique<MarkdownParser>()) {
+                   std::make_unique<MarkdownParser>(), bus) {
     // llm_provider_ 可能为 nullptr，NodeExecutor 需要处理这种情况
 }
 
 // Stage 4 Task 20: 主构造函数，通过 IParser 抽象注入具体解析器
+// Phase 1 Sprint 1b (S1b.T3): 接收 bus 参数（非 owning），存为 bus_ 成员
 NodeExecutor::NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider,
-                            std::unique_ptr<IParser> parser)
-    : tool_registry_(tool_registry), llm_provider_(llm_provider), parser_(std::move(parser)) {}
+                            std::unique_ptr<IParser> parser, IInteractionBus* bus)
+    : tool_registry_(tool_registry), llm_provider_(llm_provider),
+      parser_(std::move(parser)), bus_(bus) {}
 
 Context NodeExecutor::execute_node(Node* node, const Context& ctx) {
     Context context_with_resources = ctx;
@@ -113,9 +117,19 @@ Context NodeExecutor::execute_dsl_node(const DSLNode* node, const Context& ctx) 
         return new_context;
     }
 
+    // Phase 1 Sprint 1b (S1b.T3): 入口推送 dsl.call.started 事件 (REQ-BUS-003 Scenario)
+    if (bus_) {
+        bus_->emit("dsl.call.started",
+                   ToolResult::success(
+                       {{"node_path", node->path},
+                        {"llm_tool_name", node->llm_tool_name}},
+                       {{"prompt", ""}})); // 实际 prompt 在渲染后再次推送更准确；started 仅透出元信息
+    }
+
+    std::string rendered_prompt;
     try {
         // Render prompt template
-        std::string rendered_prompt = InjaTemplateRenderer::render(node->prompt_template, ctx);
+        rendered_prompt = InjaTemplateRenderer::render(node->prompt_template, ctx);
 
         // Call LLM via ToolRegistry
         nlohmann::json result = tool_registry_.call_llm_tool(node->llm_tool_name, rendered_prompt, node->llm_params);
@@ -126,6 +140,15 @@ Context NodeExecutor::execute_dsl_node(const DSLNode* node, const Context& ctx) 
         }
 
         new_context[key] = result["text"].get<std::string>();
+
+        // Phase 1 Sprint 1b (S1b.T3): 成功退出时推送 dsl.call.completed 事件
+        if (bus_) {
+            bus_->emit("dsl.call.completed",
+                       ToolResult::success(
+                           {{"node_path", node->path},
+                            {"output_key", key}},
+                           {{"text", new_context[key]}}));
+        }
 
     } catch (const inja::RenderError& e) {
         throw std::runtime_error("Prompt template rendering failed for node '" + node->path + "': " + std::string(e.what()));
@@ -183,14 +206,25 @@ Context NodeExecutor::execute_tool_call(const ToolCallNode* node, const Context&
         const std::string err_msg = tool_result.meta.value("error_message", std::string{});
         switch (code) {
             case ErrorCode::Retry:
+                // Phase 1 Sprint 1b (S1b.T3): 推送 execution.failed 事件 (REQ-BUS-004 Scenario: Retry)
+                // 设计依据 design.md §决策 3: bus 推送先于 throw，让 subscriber 在异常传播前捕获状态
+                if (bus_) {
+                    bus_->emit("execution.failed", ToolResult::error(code, err_msg,
+                        {{"node_path", node->path}, {"tool_name", node->tool_name}}));
+                }
                 // Sprint 1a 占位: 抛出标记性异常, 真正的重试策略由独立 change 实现
                 throw std::runtime_error("[RETRY] Tool '" + node->tool_name + "': " + err_msg);
             case ErrorCode::Abort:
+                // Phase 1 Sprint 1b (S1b.T3): 推送 execution.failed 事件 (REQ-BUS-004 Scenario: Abort)
+                if (bus_) {
+                    bus_->emit("execution.failed", ToolResult::error(code, err_msg,
+                        {{"node_path", node->path}, {"tool_name", node->tool_name}}));
+                }
                 // REQ-TR-001 Scenario: 看到 Abort 时 MUST 抛出异常终止整个 Graph
                 throw std::runtime_error("[ABORT] Tool '" + node->tool_name + "': " + err_msg);
             case ErrorCode::Skip:
                 // Skip: 跳过此节点不抛异常, output_keys 留默认 (空), 由调用方/调度器处理
-                // Sprint 1a 行为: 不写 output_keys, 由后续 Stage 集成调度跳过
+                // 设计依据 design.md §决策 3: Skip 是软失败，不破坏 graph，不推送事件
                 return new_context;
             case ErrorCode::PermissionDenied:
             case ErrorCode::PathViolation:
@@ -201,6 +235,11 @@ Context NodeExecutor::execute_tool_call(const ToolCallNode* node, const Context&
             case ErrorCode::ResourceExhausted:
             case ErrorCode::Unknown:
             default:
+                // Phase 1 Sprint 1b (S1b.T3): 其他错误码同样推送 execution.failed 事件
+                if (bus_) {
+                    bus_->emit("execution.failed", ToolResult::error(code, err_msg,
+                        {{"node_path", node->path}, {"tool_name", node->tool_name}}));
+                }
                 // 其他错误码: 抛出通用异常 (保留 P0 行为)
                 throw std::runtime_error("Tool '" + node->tool_name + "' failed: " + err_msg);
         }
@@ -221,6 +260,12 @@ Context NodeExecutor::execute_tool_call(const ToolCallNode* node, const Context&
         if (!node->output_keys.empty()) {
             new_context[node->output_keys[0]] = data;
         }
+    }
+
+    // Phase 1 Sprint 1b (S1b.T3): 工具成功执行后推送 tool.completed 事件 (REQ-BUS-003 Scenario)
+    // 设计依据 design.md §决策 2: payload 为 Sprint 1a 完成的 ToolResult envelope（含 4 个 P2-P4 字段）
+    if (bus_) {
+        bus_->emit("tool.completed", tool_result);
     }
 
     return new_context;
