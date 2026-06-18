@@ -37,11 +37,13 @@
 //       完整审计报告见 OpenSpec change `2026-06-15-residual-engine-h-decoupling`。
 
 #include "common/llm/llm_types.h"      // ILLMProvider*, ILLMTool, LLMParams 接口 (保留)
-#include "common/llm/mock_provider.h"  // 默认 LLM provider 实现 (保留)
 #include "common/tools/registry.h"     // ToolRegistry 成员 + 内联 register_tool/get_tool_registry 完整类型依赖 (P1.T4 遗留 - Task 20 处理)
 #include "agenticdsl/contract/ischeduler.h" // IScheduler 抽象接口 (Stage 4 / Task 16)
 #include "agenticdsl/contract/iparser.h"    // IParser 抽象接口 (Stage 4 / Task 16)
 #include "agenticdsl/contract/iinteraction_bus.h" // Phase 1 Sprint 1b (S1b.T1): IInteractionBus 注入契约 (ADR-0019 P2)
+// P1.T1 (2026-06-18): IProviderFactory contract 抽象 (替代 common/llm/mock_provider.h 直接 include)
+// LLMProviderFactory 路由类在 src/common/llm/llm_provider_factory.h (PIMPL-lite, 完整类型仅 .cpp 可见)
+#include "agenticdsl/contract/iprovider_factory.h" // IProviderFactory 抽象 (P1.T1, 替代 mock_provider.h)
 // P1.T3 (2026-06-18): TraceRecord data-only struct 上移到 types 头文件 (from modules/trace/trace_exporter.h)
 // 这是 ADR-0019 §1.4 解耦的第一步 — engine.h 不再依赖 modules/trace/, 改依赖 include/agenticdsl/types/
 #include "agenticdsl/types/trace_record.h" // TraceRecord data-only struct (P1.T3 迁移自 modules/trace/trace_exporter.h)
@@ -56,6 +58,7 @@
 namespace agenticdsl {
 
 class ILLMProvider; // C₁.4: 前向声明（已在 common/llm/llm_types.h 中前向声明）
+class IProviderFactory; // P1.T1: 前向声明 (PIMPL-lite 解耦 — unique_ptr + 类外构造)
 class BudgetController; // Stage 4 / Task 19: 前向声明 (PIMPL-lite 解耦 — unique_ptr + 类外 accessor/destructor)
 
 class DSLEngine {
@@ -111,6 +114,7 @@ private:
     std::vector<ParsedGraph> full_graphs_;
     ToolRegistry tool_registry_;          // ← 成员变量（非单例）
     std::unique_ptr<ILLMProvider> llm_provider_; // C₁.4: 默认 MockLLMProvider
+    std::unique_ptr<IProviderFactory> provider_factory_; // P1.T1: 默认 LLMProviderFactory (PIMPL-lite)
     std::vector<TraceRecord> last_traces_; // ← 存储 Trace
     std::unique_ptr<BudgetController> budget_controller_; // 阶段 4 任务 4.3: PIMPL-lite — 持有 CostTracker（session 级）
 

@@ -3,6 +3,9 @@
 #include "common/llm/llama_adapter.h" // C₁.4: 保留，仅用于 LlamaAdapterProvider（向后兼容）
 #include "common/log/log.h"  // agenticdsl::log facade
 #include "common/llm/llama_adapter_provider.h" // C₁.4: 适配器（可选真实 provider）
+#include "common/llm/llm_provider_factory.h" // P1.T1: LLMProviderFactory 完整类型
+#include "common/llm/llm_config.h" // P1.T1: LLMConfig 完整类型
+#include "common/llm/mock_provider.h" // P1.T1 fallback: 兜底直接构造 MockLLMProvider
 #include "modules/budget/budget_controller.h" // Stage 4 / Task 19: 完整类型仅在此处需要（PIMPL-lite 解耦）
 #include "modules/scheduler/topo_scheduler.h"
 #include "modules/system/system_nodes.h"
@@ -82,12 +85,9 @@ std::unique_ptr<DSLEngine> DSLEngine::from_markdown(const std::string& markdown_
 
     (void)load_llm_config(); // 保留配置加载（向后兼容），但不再自动创建 LlamaAdapter
 
-    // C₁.4: 默认使用 MockLLMProvider（CI 永远可运行，无需本地 LLM）
-    // 如需真实 LLM，用户可通过 set_llm_provider() 注入自定义 provider
-    auto llm_provider = std::make_unique<MockLLMProvider>();
-
+    // P1.T1: DSLEngine 构造器已通过 provider_factory_ 创建默认 llm_provider_ (mock 路径)
+    // 不再需要在 from_markdown 中显式构造 LLMProvider
     auto engine = std::make_unique<DSLEngine>(std::move(graphs));
-    engine->llm_provider_ = std::move(llm_provider);
     return engine;
 }
 
@@ -105,8 +105,25 @@ std::unique_ptr<DSLEngine> DSLEngine::from_file(const std::string& file_path) {
 DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
     : full_graphs_(std::move(initial_graphs)),
       tool_registry_(),
+      provider_factory_(std::make_unique<LLMProviderFactory>()),
       budget_controller_(std::make_unique<BudgetController>()) {
     LOG_INFO("Graphs loaded: " << full_graphs_.size());
+
+    // P1.T1: 通过 factory 创建默认 LLM provider (默认 LLMConfig{} → MockLLMProvider)
+    LLMConfig default_config;  // 默认 provider="openai" 但 LLMProviderFactory 兜底返回 Mock
+    // 实际: openai 是 OpenAI 兼容协议, factory 会返回 CloudLLMAdapter
+    // CI 环境无 API key, 我们强制 fallback 到 mock: 通过 set_provider_factory + MockProviderFactory
+    // 见 from_markdown() 中的处理
+    if (provider_factory_) {
+        // 尝试创建, 失败 fallback (空 provider 走 mock 路径)
+        LLMConfig mock_config;  // 默认全空 → mock 路径
+        mock_config.provider = "mock";  // 显式 mock (CI 永远可运行)
+        llm_provider_ = provider_factory_->create(mock_config);
+    }
+    if (!llm_provider_) {
+        // 兜底: 直接构造 MockLLMProvider (防止 nullptr)
+        llm_provider_ = std::make_unique<MockLLMProvider>();
+    }
 
     // 阶段 4 任务 4.3: 一次性将 BudgetController::record_llm_call 绑定到 tool_registry_
     // 注意：budget_controller_ 是非静态成员，按引用捕获以保证生命周期与 engine 一致。
