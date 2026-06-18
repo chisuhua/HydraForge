@@ -8,6 +8,7 @@
 #include "common/llm/llm_config.h"
 #include "common/llm/llm_types.h"
 #include "common/llm/mock_provider.h"
+#include "common/llm/mock_provider_factory.h"  // P1.T1.5: MockProviderFactory 完整类型
 
 #include <atomic>
 #include <memory>
