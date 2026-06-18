@@ -9,7 +9,8 @@
 // 最后修改日期：2026-06-18
 #pragma once
 
-#include "common/llm/llm_types.h"      // ILLMTool, LLMParams
+#include "common/llm/llm_tool.h"       // ILLMTool 定义 (T2 hotfix: 实际在 llm_tool.h, 不是 llm_types.h)
+#include "common/llm/llm_types.h"      // LLMParams / Result
 
 #include <functional>
 #include <memory>
