@@ -148,46 +148,89 @@ class IToolRegistry {
 - **避免 C++ 错误**: 省略 register_tool 虚函数 (模板不能 virtual)
 - **PIMPL 装饰**: SecureToolRegistry 多继承实现
 
-### 决策 2.1: SecureToolRegistry API 兼容性改造 (选项 A)
+### 决策 2.1: SecureToolRegistry API 兼容性改造 (选项 A — 委托式多继承, v3 修订)
+
+> **2026-06-18 v3 修订**: Oracle T2 深度审查发现原 v2 design.md `base_registry_` 值成员设计**不可实施**:
+> - `ToolRegistry` 含 `std::unique_ptr<ILLMTool>`, non-copyable, 值成员初始化失败
+> - 违反 ADR-0004 装饰器语义 (SecureToolRegistry 装饰而非拥有 ToolRegistry)
+> - test_secure_tool_registry.cpp 9 个测试全部失败 (注册到外部 `base` 的工具无法传递到内部 `base_registry_`)
+>
+> **改用委托式多继承** (Oracle 推荐): 保持现有 `registry_ref_/registry_shared_/registry_holder_` 成员, 加 `public IToolRegistry` + 9 override 委托到 wrapped ToolRegistry.
 
 **问题** (Oracle 审查发现): 当前 `SecureToolRegistry` (在 `include/agenticdsl/tools/secure_tool_registry.h:44`, **不是** `src/common/tools/`) 不继承任何类, 持有 `ToolRegistry* registry_ref_` (指针, 不是值), 暴露 `call_direct` / `call_passthrough` 返回 `Result{bool allowed, nlohmann::json payload, SecurityError error}` 结构. 与 IToolRegistry 的 `call_tool` / `has_tool` API 不兼容.
 
-**方案 (选项 A — 本 change 采用)**:
+**方案 (选项 A — v3 修订, 委托式多继承)**:
 ```cpp
 // include/agenticdsl/tools/secure_tool_registry.h (修订)
-class SecureToolRegistry : public IToolRegistry {
+class SecureToolRegistry : public IToolRegistry {  // ← v3 加多继承
  public:
-  // 保留原有 call_direct / call_passthrough (ADR-0004 兼容)
+  // 保留原有 ctor 签名 (test_secure_tool_registry.cpp 9 测试零修改)
+  explicit SecureToolRegistry(ToolRegistry& registry);
+  explicit SecureToolRegistry(std::shared_ptr<ToolRegistry> registry);
+
+  // 保留原有 call_direct / call_passthrough (ADR-0004 兼容, Result 返回)
   Result call_direct(const std::string& tool_name,
                      const std::unordered_map<std::string, std::string>& args);
   Result call_passthrough(const std::string& tool_name,
                           const std::unordered_map<std::string, std::string>& args);
 
-  // IToolRegistry 接口实现 (新)
-  bool has_tool(const std::string& name) const override;
-  std::vector<std::string> list_tools() const override;
+  // IToolRegistry 接口实现 (v3 新增, 9 override 委托到 wrapped ToolRegistry)
+  bool has_tool(const std::string& name) const override {
+    return registry_ref_->has_tool(name);  // 委托
+  }
+  std::vector<std::string> list_tools() const override {
+    return registry_ref_->list_tools();
+  }
   nlohmann::json call_tool(
       const std::string& name,
       const std::unordered_map<std::string, std::string>& args) override {
+    // 特殊处理: 走 call_direct 走安全检查, 然后 Result → json 转换
     auto r = call_direct(name, args);
-    return r.allowed ? r.payload : nlohmann::json{};  // 安全检查失败返回空 JSON
+    if (r.allowed) return r.payload;
+    return nlohmann::json{{"success", false},
+                          {"error", serialize_security_error(r.error)}};
   }
-  void register_llm_tool(...) override;  // 委托 base_registry_
-  bool is_llm_tool(const std::string& name) const override;
-  const LLMParams& get_llm_params(const std::string& name) const override;
-  nlohmann::json call_llm_tool(...) override;
-  void set_cost_callback(CostCallback cb) override;
+  void register_tool_function(std::string name, ToolFunc fn) override {
+    registry_ref_->register_tool(std::move(name), std::move(fn));  // 模板转函子
+  }
+  void register_llm_tool(std::string name, std::unique_ptr<ILLMTool> tool,
+                         const LLMParams& default_params = {}) override {
+    registry_ref_->register_llm_tool(std::move(name), std::move(tool), default_params);
+  }
+  bool is_llm_tool(const std::string& name) const override {
+    return registry_ref_->is_llm_tool(name);
+  }
+  const LLMParams& get_llm_params(const std::string& name) const override {
+    return registry_ref_->get_llm_params(name);
+  }
+  nlohmann::json call_llm_tool(const std::string& name,
+                                const std::string& prompt,
+                                const LLMParams& params = {}) override {
+    return registry_ref_->call_llm_tool(name, prompt, params);
+  }
+  void set_cost_callback(CostCallback cb) override {
+    registry_ref_->set_cost_callback(std::move(cb));
+  }
+  // has_cost_callback 故意省略 (YAGNI, 零调用点)
  private:
-  ToolRegistry base_registry_;  // 由值成员改为持有 (选项 A)
+  // v3 关键修正: 保持现有成员 (不引入 base_registry_ 值成员)
+  ToolRegistry* registry_ref_ = nullptr;               // 引用场景
+  std::shared_ptr<ToolRegistry> registry_shared_;      // 共享所有权场景
+  std::shared_ptr<ToolRegistry> registry_holder_;      // 内部统一持有, 确保生命周期
+  mutable std::mutex mutex_;
+  std::unordered_map<std::string, PathPolicy> tool_policies_;
+  PathPolicy default_policy_;
+  std::unordered_map<std::string, bool> disabled_tools_;
 };
 ```
 
-**理由**:
-- **多继承装饰**: PIMPL 风格, 委托给 base_registry_
-- **保留 ADR-0004 兼容**: call_direct / call_passthrough 仍可用
-- **IToolRegistry 集成**: SecureToolRegistry 可注入 DSLEngine::tool_registry_
+**理由** (v3):
+- **保持装饰器语义**: registry_ref_ 保持引用/共享所有权, 不变. 9 个 test_secure_tool_registry.cpp 测试零修改
+- **多继承装饰**: 加 `public IToolRegistry` + 9 override 委托到 wrapped ToolRegistry
+- **保留 ADR-0004 兼容**: call_direct / call_passthrough 仍可用 (返回 Result)
+- **IToolRegistry 集成**: SecureToolRegistry 可作为 `unique_ptr<IToolRegistry>` 注入 DSLEngine::tool_registry_
 
-**Trade-off**: 增加 ~1.5 天工作量 (选项 B: 不实现 IToolRegistry, DSLEngine 仅在 SecureToolRegistry 注入时持具体类型, 但这会引入新分支路径, 增加复杂度).
+**Trade-off (v3 修正)**: 1.0 天工作量 (选项 B 适配器 1.5 天, 选项 A 委托式多继承 1.0 天). v3 选择 A.
 
 ### 决策 2.2: get_tool_registry() 返回 IToolRegistry& (Partial Breaking Change)
 
