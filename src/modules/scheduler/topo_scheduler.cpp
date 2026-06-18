@@ -17,7 +17,8 @@ struct HardEndException : public std::exception {
 };
 
 // C₁.3 迁移：从 LlamaAdapter* 改为 ILLMProvider*
-TopoScheduler::TopoScheduler(Config config, ToolRegistry& tool_registry, ILLMProvider* llm_provider, const std::vector<ParsedGraph>* full_graphs)
+// P1.T4 (2026-06-18): ToolRegistry& → IToolRegistry& (依赖倒置)
+TopoScheduler::TopoScheduler(Config config, IToolRegistry& tool_registry, ILLMProvider* llm_provider, const std::vector<ParsedGraph>* full_graphs)
     : full_graphs_(full_graphs),
       resource_manager_(),
       session_(std::move(config.initial_budget), tool_registry, llm_provider, resource_manager_,

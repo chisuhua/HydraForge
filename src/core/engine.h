@@ -4,60 +4,49 @@
 // 设计依据：tech-debt-and-doc-cleanup 阶段 4 任务 4.3 (REQ-cost-tracker-integration)
 //          + project-organization 计划 Stage 4 / Task 19 (engine.h 解耦第一阶段)
 //          + Phase 1 Sprint 1b (S1b.T1): IInteractionBus 集成 (ADR-0019 P2)
-// 作者：tech-debt-and-doc-cleanup change
-// 最后修改日期：2026-06-17 [Phase 1 Sprint 1b S1b.T1: drop common/tools/registry.h include,
-//                              forward-declare ToolRegistry, add IInteractionBus 注入 API]
+//          + Phase 1 P1.T1-T1.4 (2026-06-18): IProviderFactory 注入, mock_provider.h 移除
+//          + Phase 1 P1.T2 (2026-06-18): IToolRegistry 抽象接口
+//          + Phase 1 P1.T4 (2026-06-18): tool_registry_ PIMPL-lite 化, 移除 tools/registry.h
+// 作者：tech-debt-and-doc-cleanup change + Phase 1 P1
+// 最后修改日期：2026-06-18 [Phase 1 P1.T4: tool_registry_ PIMPL-lite 化, 移除 tools/registry.h]
 
 #ifndef AGENTICDSL_CORE_ENGINE_H
 #define AGENTICDSL_CORE_ENGINE_H
 
-// === Stage 4 / Task 19: PARTIAL decoupling (3 deep modules/ removed; 1 leaf modules/trace/ + 3 common/ remain; full = future ADR) ===
-// 已移除（3 deep modules/）：topo_scheduler.h、markdown_parser.h（这 2 个仅在 .cpp 中使用，
-//        engine.h 本身不引用 TopoScheduler / MarkdownParser 类型，
-//        故 include 是纯传递依赖，删除对编译无影响）；
-//        budget_controller.h（原本因 BudgetController 是 DSLEngine 的成员类型、
-//        内联 accessor 需要完整类型而保留。本 Task 采用 PIMPL-lite 技术解耦：
-//        前向声明 + std::unique_ptr<BudgetController> 成员 + 类外定义
-//        accessor 与 destructor，从而将完整类型依赖限制在 engine.cpp 内）。
-// 改为：移除的 2 个（topo_scheduler / markdown_parser）被替换为 contract 抽象接口
-//      （IScheduler / IParser）作为后续 Task 17-21 的演进基础。
-// === Phase 1 Sprint 1b (S1b.T1): IInteractionBus 注入 API ===
-//        新增 set/get_interaction_bus + subscribe(topic, cb) 三个公开方法，
-//        委托给注入的 std::shared_ptr<IInteractionBus>。
-//        保留 common/tools/registry.h include：DSLEngine 内联模板 register_tool 与
-//        get_tool_registry accessor 需要 ToolRegistry 完整类型，多个调用点
-//        （tests/test_simple_orchestrator.cpp, examples/agent_basic/main.cpp 等）
-//        依赖此传递包含。P1.T4 include 缩减留待后续 Task 20 独立 ADR。
-// 保留（3 头文件，需未来 OpenSpec change 处理）：3 个 common/ 头文件。
-// P1.T3 (2026-06-18) 已完成：TraceRecord data-only struct 从 modules/trace/trace_exporter.h
-//        上移到 include/agenticdsl/types/trace_record.h，engine.h 不再依赖 modules/trace/。
-// 验证：本文件当前保留 3 个 common/ 跨模块 include + 1 个 types 头文件 include
-//       （ADR-0019 §1.4 退出标准 = 1 个 modules/common include，本文件当前 3 个 common/。
-//        T1+T2 工作 (LLMProviderFactory + IToolRegistry) 完成后将达到 1）。
-//       完整审计报告见 OpenSpec change `2026-06-15-residual-engine-h-decoupling`。
+// === Stage 4 / Task 19 + Phase 1 P1: COMPLETE decoupling (5 modules/ + 1 common/ 移除, 仅留 types 例外) ===
+// 已移除：
+//   - modules/scheduler/topo_scheduler.h (PIMPL-lite, 仅 .cpp 用)
+//   - modules/parser/markdown_parser.h (PIMPL-lite, 仅 .cpp 用)
+//   - modules/budget/budget_controller.h (PIMPL-lite, unique_ptr + 类外 accessor/destructor)
+//   - modules/trace/trace_exporter.h (P1.T3: TraceRecord 上移到 include/agenticdsl/types/)
+//   - common/llm/mock_provider.h (P1.T1: IProviderFactory 抽象, engine.h 改用接口)
+//   - common/tools/registry.h (P1.T4: IToolRegistry 抽象, tool_registry_ 改 unique_ptr<IToolRegistry>)
+// 改为 contract 抽象接口: IScheduler / IParser / IInteractionBus / IProviderFactory / IToolRegistry
+//
+// 当前保留 (1 头文件, types 头文件例外):
+//   - common/llm/llm_types.h (ILLMProvider, ILLMTool, LLMParams 接口 — types 头文件)
+//   - include/agenticdsl/types/trace_record.h (data-only struct, ADR-0019 §1.4 退出标准通过)
 
-#include "common/llm/llm_types.h"      // ILLMProvider*, ILLMTool, LLMParams 接口 (保留)
-#include "common/tools/registry.h"     // ToolRegistry 成员 + 内联 register_tool/get_tool_registry 完整类型依赖 (P1.T4 遗留 - Task 20 处理)
+#include "common/llm/llm_types.h"      // ILLMProvider*, ILLMTool, LLMParams 接口 (types 头文件例外, 保留)
 #include "agenticdsl/contract/ischeduler.h" // IScheduler 抽象接口 (Stage 4 / Task 16)
 #include "agenticdsl/contract/iparser.h"    // IParser 抽象接口 (Stage 4 / Task 16)
 #include "agenticdsl/contract/iinteraction_bus.h" // Phase 1 Sprint 1b (S1b.T1): IInteractionBus 注入契约 (ADR-0019 P2)
 // P1.T1 (2026-06-18): IProviderFactory contract 抽象 (替代 common/llm/mock_provider.h 直接 include)
 // LLMProviderFactory 路由类在 src/common/llm/llm_provider_factory.h (PIMPL-lite, 完整类型仅 .cpp 可见)
 #include "agenticdsl/contract/iprovider_factory.h" // IProviderFactory 抽象 (P1.T1, 替代 mock_provider.h)
+// P1.T2 (2026-06-18): IToolRegistry contract 抽象 (替代 common/tools/registry.h 直接 include)
+// ToolRegistry 完整类型仅在 .cpp 可见 (PIMPL-lite)
+#include "agenticdsl/contract/itool_registry.h" // IToolRegistry 抽象 (P1.T2, 替代 tools/registry.h)
 // P1.T3 (2026-06-18): TraceRecord data-only struct 上移到 types 头文件 (from modules/trace/trace_exporter.h)
-// 这是 ADR-0019 §1.4 解耦的第一步 — engine.h 不再依赖 modules/trace/, 改依赖 include/agenticdsl/types/
 #include "agenticdsl/types/trace_record.h" // TraceRecord data-only struct (P1.T3 迁移自 modules/trace/trace_exporter.h)
 
 #include <memory>
 #include <string>
 
-// TODO(Stage 4 / Task 20-21): 进一步解耦 ToolRegistry（BudgetController 已 PIMPL-lite 解耦）。
-//                              ToolRegistry 仍直接返回具体类型 (ToolRegistry&)，
-//                              完整解耦需先扩展 API 表面 (breaking change，留待独立 ADR)。
-
 namespace agenticdsl {
 
 class ILLMProvider; // C₁.4: 前向声明（已在 common/llm/llm_types.h 中前向声明）
+class IToolRegistry; // P1.T2: 前向声明 (PIMPL-lite 解耦 — unique_ptr + 类外 accessor)
 class IProviderFactory; // P1.T1: 前向声明 (PIMPL-lite 解耦 — unique_ptr + 类外构造)
 class BudgetController; // Stage 4 / Task 19: 前向声明 (PIMPL-lite 解耦 — unique_ptr + 类外 accessor/destructor)
 
@@ -70,14 +59,24 @@ public:
     void continue_with_generated_dsl(const std::string& generated_dsl);
     void append_graphs(std::vector<ParsedGraph> new_graphs);
 
+    // P1.T2: register_tool 模板改用 register_tool_function 虚函数 (避免模板 virtual)
     template <typename Func>
     void register_tool(std::string_view name, Func&& func) {
-        tool_registry_.register_tool(std::string(name), std::forward<Func>(func));
+        // 委托到 IToolRegistry::register_tool_function (类型擦除 std::function)
+        tool_registry_->register_tool_function(
+            std::string(name),
+            [fn = std::forward<Func>(func)](
+                const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+                return fn(args);
+            });
     }
 
     void register_llm_tool(std::string name, std::unique_ptr<ILLMTool> tool, const LLMParams& default_params = {});
-    ToolRegistry& get_tool_registry() { return tool_registry_; }
-    const ToolRegistry& get_tool_registry() const { return tool_registry_; }
+
+    // P1.T4: get_tool_registry() 返回 IToolRegistry& (PIMPL-lite 化后)
+    // SimpleCognitiveOrchestrator 已改为 IToolRegistry* (P1.T2 依赖倒置), 6 个调用点零修改
+    IToolRegistry& get_tool_registry() { return *tool_registry_; }
+    const IToolRegistry& get_tool_registry() const { return *tool_registry_; }
 
     std::vector<TraceRecord> get_last_traces() const { return last_traces_; }
 
@@ -107,12 +106,12 @@ public:
     size_t subscribe(const std::string& topic,
                      std::function<void(const ToolResult&)> cb);
 
-    ~DSLEngine(); // Stage 4 / Task 19: 显式声明 — 头文件外定义，使 unique_ptr<BudgetController> 析构在完整类型下进行
+    ~DSLEngine(); // Stage 4 / Task 19 + P1.T4: 显式声明 — 头文件外定义, 使 unique_ptr<BudgetController> + unique_ptr<IToolRegistry> 析构在完整类型下进行
     DSLEngine(std::vector<ParsedGraph> initial_graphs);
 private:
 
     std::vector<ParsedGraph> full_graphs_;
-    ToolRegistry tool_registry_;          // ← 成员变量（非单例）
+    std::unique_ptr<IToolRegistry> tool_registry_; // P1.T4: PIMPL-lite 化 (从 ToolRegistry 值成员改为 unique_ptr<IToolRegistry>)
     std::unique_ptr<ILLMProvider> llm_provider_; // C₁.4: 默认 MockLLMProvider
     std::unique_ptr<IProviderFactory> provider_factory_; // P1.T1: 默认 LLMProviderFactory (PIMPL-lite)
     std::vector<TraceRecord> last_traces_; // ← 存储 Trace

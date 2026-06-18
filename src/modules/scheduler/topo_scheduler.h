@@ -1,4 +1,5 @@
 // modules/scheduler/include/scheduler/topo_scheduler.h
+// P1.T4 (2026-06-18): ToolRegistry& → IToolRegistry& (依赖倒置, ADR-0019 §1.4)
 #ifndef AGENTICDSL_MODULES_SCHEDULER_TOPO_SCHEDULER_H
 #define AGENTICDSL_MODULES_SCHEDULER_TOPO_SCHEDULER_H
 
@@ -6,7 +7,8 @@
 #include "core/types/node.h"    // 引入 NodePath, Node
 #include "core/types/budget.h"  // 引入 ExecutionBudget
 #include "scheduler/execution_session.h" // 引入 ExecutionSession
-#include "common/tools/registry.h" // 引入 ToolRegistry
+// P1.T4: 改为 IToolRegistry 抽象 (不再拖入 common/tools/registry.h)
+#include "agenticdsl/contract/itool_registry.h" // P1.T2: IToolRegistry 抽象接口
 #include "modules/parser/markdown_parser.h" // 引入 ParsedGraph
 #include "modules/scheduler/resource_manager.h" // 引入 ParsedGraph
 #include "agenticdsl/contract/ischeduler.h"  // ADR-0019 §1.4：实现 IScheduler 抽象接口
@@ -31,7 +33,8 @@ public:
     };
 
     // C₁.3 迁移：从 LlamaAdapter* 改为 ILLMProvider*
-    TopoScheduler(Config config, ToolRegistry& tool_registry, ILLMProvider* llm_provider, const std::vector<ParsedGraph>* full_graphs_ = nullptr);
+    // P1.T4 (2026-06-18): ToolRegistry& → IToolRegistry& (依赖倒置, ADR-0019 §1.4)
+    TopoScheduler(Config config, IToolRegistry& tool_registry, ILLMProvider* llm_provider, const std::vector<ParsedGraph>* full_graphs_ = nullptr);
 
     void register_node(std::unique_ptr<Node> node) override;
     void build_dag() override; // 构建依赖图

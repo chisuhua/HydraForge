@@ -9,9 +9,10 @@
 namespace agenticdsl {
 
 // C₁.3 迁移：从 LlamaAdapter* 改为 ILLMProvider*
+// P1.T4 (2026-06-18): ToolRegistry& → IToolRegistry& (依赖倒置)
 ExecutionSession::ExecutionSession(
     std::optional<ExecutionBudget> initial_budget,
-    ToolRegistry& tool_registry,
+    IToolRegistry& tool_registry,
     ILLMProvider* llm_provider,
     ResourceManager& resource_manager, // ← 新增
     const std::vector<ParsedGraph>* full_graphs,

@@ -9,7 +9,8 @@
 #include "modules/budget/budget_controller.h"
 #include "modules/trace/trace_exporter.h"
 #include "modules/executor/node_executor.h"
-#include "common/tools/registry.h"
+// P1.T4: 改为 IToolRegistry 抽象 (不再拖入 common/tools/registry.h)
+#include "agenticdsl/contract/itool_registry.h" // P1.T2: IToolRegistry 抽象接口
 #include "modules/parser/markdown_parser.h" // 引入 MarkdownParser (for GenerateSubgraph)
 #include "modules/library/library_loader.h" // ← 新增：用于构建 available_subgraphs
 #include "resource_manager.h" // ← 新增：用于构建 available_subgraphs
@@ -33,9 +34,10 @@ public:
     using AppendGraphsCallback = std::function<void(std::vector<ParsedGraph>)>;
 
     // C₁.3 迁移：从 LlamaAdapter* 改为 ILLMProvider*
+    // P1.T4 (2026-06-18): ToolRegistry& → IToolRegistry& (依赖倒置)
     ExecutionSession(
         std::optional<ExecutionBudget> initial_budget,
-        ToolRegistry& tool_registry,
+        IToolRegistry& tool_registry,
         ILLMProvider* llm_provider,
         ResourceManager& resource_manager, // ← 新增参数
         const std::vector<ParsedGraph>* full_graphs, // ← 新增：指向完整图集

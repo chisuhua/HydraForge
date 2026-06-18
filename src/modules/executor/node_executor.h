@@ -1,4 +1,5 @@
 // modules/executor/include/executor/node_executor.h
+// P1.T4 (2026-06-18): ToolRegistry& → IToolRegistry& (依赖倒置, ADR-0019 §1.4 解耦)
 #ifndef AGENTICDSL_MODULES_EXECUTOR_NODE_EXECUTOR_H
 #define AGENTICDSL_MODULES_EXECUTOR_NODE_EXECUTOR_H
 
@@ -6,7 +7,8 @@
 #include "core/types/node.h"    // 引入 NodePath, Node, NodeType, StartNode, EndNode, etc.
 #include "core/types/resource.h" // 引入 ResourceType
 #include "common/utils/template_renderer.h" // 引入 InjaTemplateRenderer
-#include "common/tools/registry.h" // 引入 ToolRegistry
+// P1.T4: 改为 IToolRegistry 抽象 (不再拖入 common/tools/registry.h)
+#include "agenticdsl/contract/itool_registry.h" // P1.T2: IToolRegistry 抽象接口
 #include "agenticdsl/contract/iparser.h" // ADR-0019 §1.4: 仅依赖解析器抽象接口
 #include "agenticdsl/contract/iinteraction_bus.h" // Phase 1 Sprint 1b (S1b.T3): IInteractionBus 事件推送契约 (ADR-0019 P2)
 #include <nlohmann/json.hpp>
@@ -26,12 +28,14 @@ class NodeExecutor {
 public:
     // C₁.2 迁移：构造函数从 LlamaAdapter* 改为 ILLMProvider*（向后兼容：仍可传 nullptr）
     // Phase 1 Sprint 1b (S1b.T3): 新增 IInteractionBus* 可选注入参数（默认 nullptr 保持现有 11 测试零修改）
-    NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider = nullptr,
+    // P1.T4 (2026-06-18): ToolRegistry& → IToolRegistry& (依赖倒置)
+    NodeExecutor(IToolRegistry& tool_registry, ILLMProvider* llm_provider = nullptr,
                  IInteractionBus* bus = nullptr);
 
     // ADR-0019 §1.4 + Stage 4 Task 20: 依赖反转，注入 IParser 抽象
     // Phase 1 Sprint 1b (S1b.T3): 新增 IInteractionBus* 可选注入参数（默认 nullptr）
-    NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider,
+    // P1.T4: ToolRegistry& → IToolRegistry&
+    NodeExecutor(IToolRegistry& tool_registry, ILLMProvider* llm_provider,
                  std::unique_ptr<IParser> parser,
                  IInteractionBus* bus = nullptr);
 
@@ -42,7 +46,8 @@ public:
     }
 
 private:
-    ToolRegistry& tool_registry_;
+    // P1.T4: IToolRegistry& (依赖倒置, 通过 has_tool/call_tool/call_llm_tool 多态分派)
+    IToolRegistry& tool_registry_;
     // C₁.2: ILLMProvider 接口注入点（可为 nullptr）
     ILLMProvider* llm_provider_;
     AppendGraphsCallback append_graphs_callback_;

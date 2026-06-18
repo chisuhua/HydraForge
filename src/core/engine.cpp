@@ -6,6 +6,8 @@
 #include "common/llm/llm_provider_factory.h" // P1.T1: LLMProviderFactory 完整类型
 #include "common/llm/llm_config.h" // P1.T1: LLMConfig 完整类型
 #include "common/llm/mock_provider.h" // P1.T1 fallback: 兜底直接构造 MockLLMProvider
+// P1.T4: ToolRegistry 完整类型仅在 .cpp 可见 (PIMPL-lite 解耦, engine.h 改为 IToolRegistry 抽象)
+#include "common/tools/registry.h" // P1.T4: 完整类型用于 make_unique<ToolRegistry>()
 #include "modules/budget/budget_controller.h" // Stage 4 / Task 19: 完整类型仅在此处需要（PIMPL-lite 解耦）
 #include "modules/scheduler/topo_scheduler.h"
 #include "modules/system/system_nodes.h"
@@ -104,7 +106,7 @@ std::unique_ptr<DSLEngine> DSLEngine::from_file(const std::string& file_path) {
 
 DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
     : full_graphs_(std::move(initial_graphs)),
-      tool_registry_(),
+      tool_registry_(std::make_unique<ToolRegistry>()),  // P1.T4: PIMPL-lite 化
       provider_factory_(std::make_unique<LLMProviderFactory>()),
       budget_controller_(std::make_unique<BudgetController>()) {
     LOG_INFO("Graphs loaded: " << full_graphs_.size());
@@ -128,7 +130,8 @@ DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
     // 阶段 4 任务 4.3: 一次性将 BudgetController::record_llm_call 绑定到 tool_registry_
     // 注意：budget_controller_ 是非静态成员，按引用捕获以保证生命周期与 engine 一致。
     // 此回调在每次 LLM tool 成功调用后触发。
-    tool_registry_.set_cost_callback(
+    // P1.T4: tool_registry_ 改 unique_ptr<IToolRegistry>, 通过 -> 调用
+    tool_registry_->set_cost_callback(
         [this](int tokens, const std::string& model) {
             budget_controller_->record_llm_call(tokens, model);
         }
@@ -182,7 +185,7 @@ ExecutionResult DSLEngine::run(const Context& context) {
     TopoScheduler::Config config;
     config.initial_budget = std::move(budget);
     // C₁.4 迁移：传递 ILLMProvider* 而非 LlamaAdapter*
-    TopoScheduler scheduler(std::move(config), tool_registry_, llm_provider_.get(), &full_graphs_);
+    TopoScheduler scheduler(std::move(config), *tool_registry_, llm_provider_.get(), &full_graphs_);
 
     // 注册所有节点（包括系统节点）
     auto sys_nodes = create_system_nodes();
@@ -206,7 +209,8 @@ ExecutionResult DSLEngine::run(const Context& context) {
 }
 
 void DSLEngine::register_llm_tool(std::string name, std::unique_ptr<ILLMTool> tool, const LLMParams& default_params) {
-    tool_registry_.register_llm_tool(std::move(name), std::move(tool), default_params);
+    // P1.T4: tool_registry_ 改 unique_ptr<IToolRegistry>, 通过 -> 调用
+    tool_registry_->register_llm_tool(std::move(name), std::move(tool), default_params);
 }
 
 void DSLEngine::append_graphs(std::vector<ParsedGraph> new_graphs) {

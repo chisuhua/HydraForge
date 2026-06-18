@@ -17,7 +17,8 @@ namespace agenticdsl {
 // C₁.2 迁移：构造函数从 LlamaAdapter* 改为 ILLMProvider*
 // Stage 4 Task 20: 此构造函数保留为 shim，内部创建默认 MarkdownParser 并委托给主构造函数
 // Phase 1 Sprint 1b (S1b.T3): 透传 bus 参数（默认 nullptr 走原有静默路径）
-NodeExecutor::NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider,
+// P1.T4 (2026-06-18): ToolRegistry& → IToolRegistry& (依赖倒置)
+NodeExecutor::NodeExecutor(IToolRegistry& tool_registry, ILLMProvider* llm_provider,
                            IInteractionBus* bus)
     : NodeExecutor(tool_registry, llm_provider,
                    std::make_unique<MarkdownParser>(), bus) {
@@ -26,7 +27,8 @@ NodeExecutor::NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provid
 
 // Stage 4 Task 20: 主构造函数，通过 IParser 抽象注入具体解析器
 // Phase 1 Sprint 1b (S1b.T3): 接收 bus 参数（非 owning），存为 bus_ 成员
-NodeExecutor::NodeExecutor(ToolRegistry& tool_registry, ILLMProvider* llm_provider,
+// P1.T4: ToolRegistry& → IToolRegistry&
+NodeExecutor::NodeExecutor(IToolRegistry& tool_registry, ILLMProvider* llm_provider,
                             std::unique_ptr<IParser> parser, IInteractionBus* bus)
     : tool_registry_(tool_registry), llm_provider_(llm_provider),
       parser_(std::move(parser)), bus_(bus) {}

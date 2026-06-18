@@ -65,7 +65,7 @@ TEST_CASE("IToolRegistry polymorphic dispatch — SecureToolRegistry", "[tool_re
   REQUIRE(result.is_object());
   CHECK(result["success"] == false);
   CHECK(result.contains("error_code"));
-  CHECK(result["error_code"] == 1);  // SecurityError::Code::PermissionDenied = 1
+  CHECK(result["error_code"] == 0);  // SecurityError::Code::PermissionDenied = 0 (第一个枚举值)
 }
 
 // 4. SecureToolRegistry call_direct (Result) 与 call_tool (json) 并存

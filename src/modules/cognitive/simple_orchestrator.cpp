@@ -66,7 +66,7 @@ void flatten_args(const nlohmann::json& in, std::unordered_map<std::string, std:
 } // namespace
 
 SimpleCognitiveOrchestrator::SimpleCognitiveOrchestrator(
-    ToolRegistry* registry,
+    IToolRegistry* registry,  // P1.T2: ToolRegistry* → IToolRegistry* (依赖倒置)
     ILLMProvider* llm)
     : registry_(registry), llm_(llm) {}
 
