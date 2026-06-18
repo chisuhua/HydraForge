@@ -27,6 +27,21 @@
 > OpenSpec change: `2026-06-15-residual-engine-h-decoupling` (P1 active, T3 完成; 剩余 T1+T2)。
 > 下一活跃工作: P1 T1 (LLMProviderFactory 从零构建) 或 T2 (IToolRegistry 7 虚函数)。
 
+> **📋 2026-06-18 P1.T1 收官 (LLMProviderFactory 从零构建)**: 7 commits (`355d52c` `14ba62b` `f9062e6` `f7ef5bf` `9fe4266` `21b79d7` `b4da645`)。
+> - `IProviderFactory` 抽象接口 (1 虚函数) + `LLMProviderFactory` 路由 (mock/openai/anthropic/deepseek/qwen/llama) + `MockProviderFactory` 包装
+> - DSLEngine 注入 `provider_factory_` (PIMPL-lite), `engine.h` 移除 `common/llm/mock_provider.h` (line 40)
+> - **`engine.h` 跨模块 include 计数 3 → 2** (剩余 `common/llm/llm_types.h` types 例外 + `common/tools/registry.h` T2 解决)
+> - **28/28 测试零回归** (baseline 27 + 1 新增 test_provider_factory, 含多线程 1000x create)
+>
+> **📋 2026-06-18 P1 v3 修订 (Oracle T2 深度审查)**: 2 commits (`6b0ca86` `dc3bc96`).
+> - 修正 design.md §決策2.1 line 181 `base_registry_` 值成员设计**不可实施** (non-copyable + 违反装饰器 + 9 个 secure 测试失败)
+> - 改用**委托式多继承** (保持 registry_ref_/registry_shared_, 加 public IToolRegistry + 9 override 委托)
+> - 9 虚函数 (不是 v2 估的 7-8): 移除未使用 has_cost_callback, 加 register_tool_function 桥接
+> - SimpleCognitiveOrchestrator 改为 `IToolRegistry*` (依赖倒置, 6 调用点零修改)
+>
+> OpenSpec change: `2026-06-15-residual-engine-h-decoupling` (P1 active, T1+T3 完成; 剩余 T2+T4+T5).
+> 下一活跃工作: T2 (IToolRegistry 9 虚函数 + SecureToolRegistry 委托多继承, 3.5 天) 或 T4+T5 (3+3 天).
+
 ---
 
 ## 一、总体进度
