@@ -3,9 +3,10 @@
 // 功能描述：SimpleCognitiveOrchestrator 完整实现 — B 轨道（Track 0.2）单轮 ReAct。
 //          流程：构造 prompt → 调用 LLM → 解析 JSON tool_call → 校验/调用工具 → 包装为 ToolResult。
 //          错误通过 ToolResult::error() 统一表达，不抛异常至调用方。
-// 设计依据：ADR-0015（IPER 闭环）+ ADR-0019（IInteractionBus）+ plan §8-9。
-// 作者：AgenticDSL Phase 0 / Track B
-// 最后修改日期：2026-06-08
+//          Phase 1 P1.T2 (2026-06-18): 构造参数类型 ToolRegistry* → IToolRegistry* (依赖倒置, .cpp 无逻辑变化)
+// 设计依据：ADR-0015（IPER 闭环）+ ADR-0019（IInteractionBus）+ plan §8-9 + openspec/.../T2 v3
+// 作者：AgenticDSL Phase 0 / Track B + Phase 1 P1
+// 最后修改日期：2026-06-18 [Phase 1 P1.T2: 构造参数 IToolRegistry*]
 
 #include "agenticdsl/cognitive/simple_orchestrator.h"
 

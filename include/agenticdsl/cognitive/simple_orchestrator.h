@@ -3,9 +3,12 @@
 // 功能描述：SimpleCognitiveOrchestrator — B 轨道（Track 0.2）单轮 ReAct 编排器。
 //          通过 ToolRegistry + ILLMProvider 完成 "LLM 返回 JSON tool_call → 调用工具 → 包装为 ToolResult" 的最小闭环。
 //          MVP 阶段：仅单轮，标 TODO(mvp)；多轮 + 状态机留待后续 Phase 1。
+//          Phase 1 P1.T2 (2026-06-18): 改为接受 IToolRegistry* (依赖倒置)
+//            6 个 get_tool_registry() 调用点零修改, 仍传入 &engine->get_tool_registry()
 // 设计依据：ADR-0015（IPER 闭环）+ ADR-0019（IInteractionBus）+ plan §6。
-// 作者：AgenticDSL Phase 0 / Track B
-// 最后修改日期：2026-06-08
+//          + openspec/changes/2026-06-15-residual-engine-h-decoupling T2 v3
+// 作者：AgenticDSL Phase 0 / Track B + Phase 1 P1
+// 最后修改日期：2026-06-18 [Phase 1 P1.T2: IToolRegistry* 依赖倒置]
 //
 // 关于接口的说明：
 // - Pre-Phase 已定义 agenticdsl::ICognitiveOrchestrator（process 回调为 ExecutionResult），
@@ -13,10 +16,11 @@
 // - 本类使用 ToolResult 作为回调载荷（更轻量，定位为 MVP/B 轨道层），因此以**具体类**形式提供，
 //   不与 Pre-Phase ICognitiveOrchestrator 形成重定义冲突。
 // - 后续可在不破坏 B 阶段契约的前提下，再为 SimpleCognitiveOrchestrator 适配到更高层接口。
+// - P1.T2: 依赖从 ToolRegistry* (具体类) 改为 IToolRegistry* (抽象接口), 编译时不再拖入 common/tools/registry.h
 
 #pragma once
 
-#include "common/tools/registry.h"
+#include "agenticdsl/contract/itool_registry.h"  // P1.T2: IToolRegistry 抽象接口 (替代 common/tools/registry.h)
 #include "common/llm/llm_types.h"
 #include "core/types/tool_result.h"
 
@@ -28,7 +32,7 @@ namespace agenticdsl {
 /**
  * @brief SimpleCognitiveOrchestrator — 单轮 ReAct 编排器
  *
- * 生命周期：构造时注入依赖（ToolRegistry* + ILLMProvider*），两个指针均可为 nullptr（MVP 允许）；
+ * 生命周期：构造时注入依赖（IToolRegistry* + ILLMProvider*），两个指针均可为 nullptr（MVP 允许）；
  * process() 内部会在依赖缺失时通过 ToolResult::error() 报告，而非抛异常。
  *
  * 单轮 ReAct 流程：
@@ -44,11 +48,11 @@ class SimpleCognitiveOrchestrator {
  public:
   /**
    * @brief 构造 SimpleCognitiveOrchestrator
-   * @param registry 工具注册表指针（MVP 允许 nullptr，但 process() 将返回错误）
+   * @param registry 工具注册表指针 (P1.T2: 改为 IToolRegistry*)
    * @param llm      LLM Provider 指针（MVP 允许 nullptr，但 process() 将返回错误）
    */
   explicit SimpleCognitiveOrchestrator(
-      ToolRegistry* registry = nullptr,
+      IToolRegistry* registry = nullptr,  // P1.T2: 依赖倒置 (从 ToolRegistry* 改为 IToolRegistry*)
       ILLMProvider* llm = nullptr);
 
   /**
@@ -63,7 +67,7 @@ class SimpleCognitiveOrchestrator {
                std::function<void(ToolResult)> on_complete);
 
  private:
-  ToolRegistry* registry_;
+  IToolRegistry* registry_;  // P1.T2: 依赖倒置 (从 ToolRegistry* 改为 IToolRegistry*)
   ILLMProvider* llm_;
 
   /**

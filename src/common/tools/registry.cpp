@@ -87,6 +87,11 @@ std::vector<std::string> ToolRegistry::list_tools() const {
     return names;
 }
 
+// P1.T2: register_tool_function 实现 (替代原 register_tool 模板内部直接 tools_[name]=fn 赋值)
+void ToolRegistry::register_tool_function(std::string name, ToolFunc fn) {
+    tools_[std::move(name)] = std::move(fn);
+}
+
 void ToolRegistry::register_llm_tool(std::string name, std::unique_ptr<ILLMTool> tool, const LLMParams& default_params) {
     llm_tools_[std::move(name)] = LLMToolEntry{std::move(tool), default_params};
 }

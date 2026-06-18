@@ -218,4 +218,90 @@ SecureToolRegistry::Result SecureToolRegistry::call_passthrough(
   }
 }
 
+// =====================================================================
+// IToolRegistry 9 override 实现 (P1.T2 新增, 委托式多继承)
+// =====================================================================
+
+// 基础查询 (3)
+
+// 注: has_tool 在 SecureToolRegistry 中需要返回 "未禁用且已注册" 的复合状态
+// 为保持装饰器语义, 仍返回 wrapped ToolRegistry 的 has_tool (调用方需结合 is_disabled 自行判断)
+bool SecureToolRegistry::has_tool(const std::string& name) const {
+  return registry_ref_ && registry_ref_->has_tool(name);
+}
+
+nlohmann::json SecureToolRegistry::call_tool(
+    const std::string& name,
+    const std::unordered_map<std::string, std::string>& args) {
+  // 走 call_direct 走安全检查, 然后 Result.allowed + payload → json 转换
+  Result r = call_direct(name, args);
+  if (r.allowed) {
+    return r.payload;
+  }
+  // 安全检查失败: 返回结构化错误 JSON
+  nlohmann::json err;
+  err["success"] = false;
+  err["error_code"] = static_cast<int>(r.error.code);
+  err["error_message"] = r.error.message;
+  err["tool_name"] = r.error.tool_name;
+  err["details"] = r.error.details;
+  return err;
+}
+
+std::vector<std::string> SecureToolRegistry::list_tools() const {
+  if (registry_ref_) {
+    return registry_ref_->list_tools();
+  }
+  return {};
+}
+
+// 函数工具注册 (1, 模板桥接 — 委托到 wrapped ToolRegistry)
+
+void SecureToolRegistry::register_tool_function(std::string name, ToolFunc fn) {
+  if (registry_ref_) {
+    registry_ref_->register_tool_function(std::move(name), std::move(fn));
+  }
+}
+
+// LLM 工具管理 (4) — 全部委托到 wrapped ToolRegistry (LLM 工具不涉及安全检查)
+
+void SecureToolRegistry::register_llm_tool(
+    std::string name,
+    std::unique_ptr<ILLMTool> tool,
+    const LLMParams& default_params) {
+  if (registry_ref_) {
+    registry_ref_->register_llm_tool(std::move(name), std::move(tool), default_params);
+  }
+}
+
+bool SecureToolRegistry::is_llm_tool(const std::string& name) const {
+  return registry_ref_ && registry_ref_->is_llm_tool(name);
+}
+
+const LLMParams& SecureToolRegistry::get_llm_params(const std::string& name) const {
+  if (!registry_ref_) {
+    static const LLMParams kEmpty{};
+    return kEmpty;
+  }
+  return registry_ref_->get_llm_params(name);
+}
+
+nlohmann::json SecureToolRegistry::call_llm_tool(
+    const std::string& name,
+    const std::string& prompt,
+    const LLMParams& params) {
+  if (registry_ref_) {
+    return registry_ref_->call_llm_tool(name, prompt, params);
+  }
+  return nlohmann::json{{"error", "registry_ref_ is null"}};
+}
+
+// 成本回调 (1) — 委托到 wrapped ToolRegistry
+
+void SecureToolRegistry::set_cost_callback(CostCallback cb) {
+  if (registry_ref_) {
+    registry_ref_->set_cost_callback(std::move(cb));
+  }
+}
+
 } // namespace agenticdsl
