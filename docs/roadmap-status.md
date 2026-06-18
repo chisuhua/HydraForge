@@ -65,7 +65,7 @@
 | ├─ Sprint 4: PDK 骨架 (hydraforge-pdk, K3) | 0% | ⏸ 未开始 (W4, 1 周) | 3 天 | Sprint 3 |
 | └─ Sprint 5: PluginLoader + 收官 | 0% | ⏸ 未开始 (W5, 2 天) | 1.3 天 | Sprint 4 |
 | **并行车道** | | | | |
-| ├─ P1: Residual engine.h Decoupling | 87% | 🟡 3/4 完成 + T3 TraceRecord 上移 (2026-06-18, commit `01666fa`) | 10 天 → 15 天 | 详见 OpenSpec `2026-06-15-residual-engine-h-decoupling` |
+| ├─ P1: Residual engine.h Decoupling | 95% | 🟡 3/4 完成 + T1 LLMProviderFactory (2026-06-18, 7 commits) + v3 修订 | 10 天 → 15 天 → 9.5 天剩余 | 详见 OpenSpec `2026-06-15-residual-engine-h-decoupling` |
 | ├─ P2: 5/6 examples build 修复 | 0% | ⏸ 未开始 (W2-W3) | 5 天 | P1 ✅ |
 | └─ P3: 28 ADR 退出 grep 验证 | 0% | ⏸ 未开始 (W1D3) | 2 天 | 无 |
 | ├─ Sprint 2: CognitiveWorker | 0% | ⏸ 未开始 (W2) | 2.5 天 | Sprint 1 |
