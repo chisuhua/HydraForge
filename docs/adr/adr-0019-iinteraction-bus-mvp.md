@@ -10,7 +10,7 @@
 
 ### 2026-06-17 — Sprint 1b 完成 + OpenSpec change `2026-06-15-residual-engine-h-decoupling` 启动 (R5 重分类)
 
-**问题 §1.4 (跨模块耦合) 状态变更**：🟡 部分解决 (维持中, 待 OpenSpec change 完成 4 跨模块 include 移除后标记 ✅ 已解决).
+**问题 §1.4 (跨模块耦合) 状态变更**：✅ **已解决** (2026-06-18, OpenSpec change `2026-06-15-residual-engine-h-decoupling` 全部 ship). `engine.h` 跨模块 include 计数 = 1 (仅 `common/llm/llm_types.h` types 头文件例外).
 
 **Sprint 1b (commit `248d209`, 2026-06-17) 吸收的工作**：
 - 3 deep `modules/` 移除: `topo_scheduler.h` / `markdown_parser.h` / `budget_controller.h` (PIMPL-lite)
@@ -94,7 +94,7 @@ HydraForge 当前架构存在以下问题：
 1. **同步阻塞执行**：`DSLEngine::run()` 是同步阻塞调用，无法实时推送 Token 流
 2. **无用户交互接口**：执行时无用户输入通道，无法实现多轮对话
 3. **无事件总线**：组件间通过直接调用耦合，无法支持分布式/跨进程通信
-4. **紧耦合 (🟡 部分解决 2026-06-17, Sprint 1b 吸收 3/4, OpenSpec change `2026-06-15-residual-engine-h-decoupling` 处理剩余 4 include)**：`engine.h` 跨模块 include 待全部移除（保留 `common/llm/llm_types.h` types 头文件例外, 退出标准 `grep -c = 1`）。Sprint 1b (commit `248d209`) 移除 3 deep `modules/`, OpenSpec change `2026-06-15-residual-engine-h-decoupling` (P1 active, 5 周估时) 处理剩余 1 leaf `modules/trace/` + 3 `common/`。详见下方"状态变更日志"。
+4. **紧耦合 (✅ 已解决 2026-06-18, OpenSpec change `2026-06-15-residual-engine-h-decoupling` 全部 ship)**：`engine.h` 跨模块 include 计数 = 1 (仅 `common/llm/llm_types.h` types 头文件例外), 完全达成 ADR §1.4 退出标准。Sprint 1b (commit `248d209`) 移除 3 deep `modules/`, OpenSpec change `2026-06-15-residual-engine-h-decoupling` 17 commits (T1+T2+T3+T4) 移除剩余 1 leaf `modules/trace/` + 3 `common/`。详见下方"状态变更日志"。
 
 ### 目标
 

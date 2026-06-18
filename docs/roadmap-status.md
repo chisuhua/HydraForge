@@ -42,6 +42,16 @@
 > OpenSpec change: `2026-06-15-residual-engine-h-decoupling` (P1 active, T1+T3 完成; 剩余 T2+T4+T5).
 > 下一活跃工作: T2 (IToolRegistry 9 虚函数 + SecureToolRegistry 委托多继承, 3.5 天) 或 T4+T5 (3+3 天).
 
+> **📋 2026-06-18 P1 全部 ship (T1+T2+T3+T4+T5)**:
+> - T1 LLMProviderFactory: 7 commits (`355d52c` 等), 跨模块 include 3→2
+> - T2 IToolRegistry 9 虚函数 + SecureToolRegistry 委托多继承: 4 commits, 29/29 测试零回归
+> - T3 TraceRecord 上移: commit `01666fa`, 跨模块 include 4→3
+> - T4 PIMPL-lite tool_registry_: commit `71b8253`, 跨模块 include 2→1 (仅 `common/llm/llm_types.h` types 例外)
+> - **完全达成 ADR-0019 §1.4 退出标准 (≤ 1 common/ include, types 例外允许)**
+> - 同步: ADR-0019 §1.4 状态更新为 ✅ 已解决
+>
+> OpenSpec change: `2026-06-15-residual-engine-h-decoupling` 准备 archive.
+
 ---
 
 ## 一、总体进度
@@ -65,7 +75,7 @@
 | ├─ Sprint 4: PDK 骨架 (hydraforge-pdk, K3) | 0% | ⏸ 未开始 (W4, 1 周) | 3 天 | Sprint 3 |
 | └─ Sprint 5: PluginLoader + 收官 | 0% | ⏸ 未开始 (W5, 2 天) | 1.3 天 | Sprint 4 |
 | **并行车道** | | | | |
-| ├─ P1: Residual engine.h Decoupling | 95% | 🟡 3/4 完成 + T1 LLMProviderFactory (2026-06-18, 7 commits) + v3 修订 | 10 天 → 15 天 → 9.5 天剩余 | 详见 OpenSpec `2026-06-15-residual-engine-h-decoupling` |
+| ├─ P1: Residual engine.h Decoupling | 100% | ✅ **已解决 (2026-06-18, T1+T2+T3+T4+T5 全部 ship)** — 跨模块 include 4→3→2→1, 29/29 测试零回归, ADR-0019 §1.4 完全退出 | 10 天 → 5 周 → ship | 详见 OpenSpec `2026-06-15-residual-engine-h-decoupling` |
 | ├─ P2: 5/6 examples build 修复 | 0% | ⏸ 未开始 (W2-W3) | 5 天 | P1 ✅ |
 | └─ P3: 28 ADR 退出 grep 验证 | 0% | ⏸ 未开始 (W1D3) | 2 天 | 无 |
 | ├─ Sprint 2: CognitiveWorker | 0% | ⏸ 未开始 (W2) | 2.5 天 | Sprint 1 |
