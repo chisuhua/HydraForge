@@ -21,16 +21,14 @@ namespace agenticdsl {
  *
  * 路由表 (基于 config.provider):
  *   - "mock" / "" (空/未识别) → MockProviderFactory → MockLLMProvider
- *   - "openai" / "anthropic" / "deepseek" / "qwen" → CloudProviderFactory → CloudLLMAdapter
+ *   - "openai" / "anthropic" / "deepseek" / "qwen" / "moonshot" / "custom" → CloudProviderFactory → CloudLLMAdapter
  *   - "local" / "llama" → LlamaProviderFactory → LlamaAdapterProvider
  *   - 其他 → 返回 nullptr (配置错误)
  *
  * 设计说明:
- *   - 路由类内部直接持有各 backend factory 实例 (PIMPL-lite)
- *   - 替代 v2 ADR-0005 §3 草图的 "ProviderCreator + 链" 模式, 采用单一调度类
+ *   - 内部持有 3 个 backend factory (mock_factory / cloud_factory / llama_factory)
+ *   - 完整类型成员 (PIMPL 不必要, 因为 backend factory 都是 unique_ptr<IProviderFactory>)
  *   - 线程安全: create() 可并发调用 (内部各 factory 自身保证)
- *
- * 后续可扩展: 通过 set_xxx_factory() 方法替换内部 factory (YAGNI, 暂不实现)
  */
 class LLMProviderFactory : public IProviderFactory {
  public:
@@ -40,10 +38,9 @@ class LLMProviderFactory : public IProviderFactory {
   std::unique_ptr<ILLMProvider> create(const LLMConfig& config) override;
 
  private:
-  // 内部持有的各 backend factory (PIMPL-lite, 完整类型仅 .cpp 可见)
-  // 实际类型在 .cpp 中通过 unique_ptr<IProviderFactory> 持有
-  struct Impl;
-  std::unique_ptr<Impl> impl_;
+  std::unique_ptr<IProviderFactory> mock_factory;
+  std::unique_ptr<IProviderFactory> cloud_factory;
+  std::unique_ptr<IProviderFactory> llama_factory;
 };
 
 }  // namespace agenticdsl
