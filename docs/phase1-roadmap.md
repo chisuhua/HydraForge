@@ -45,7 +45,7 @@
 | **1.0** | ToolResult 扩展 | ADR-0023 | 🟡 P1 | ✅ P1-P4 (Sprint 1a) | 1-2 周 | Sprint 1a (✅ 2026-06-16) |
 | **1.0+** | DSLEngine bus 集成 (4 子任务) | ADR-0019 P2 | 🟡 P1 | ✅ 已完成 (Sprint 1b) | 1 周 | Sprint 1b (✅ 2026-06-17) |
 | **1.1** | CognitiveWorker | ADR-0020 | ❌ 无 | ✅ 可注入 | 1 周 | Sprint 2 (⏸ 待 1b) |
-| **1.2** | DomainWorkerPool | ADR-0020 | ❌ 无 | ✅ N 并发 | 1 周 | Sprint 3 (⏸ 待 2) |
+| **1.2** | DomainWorkerPool | ADR-0020 | ❌ 无 | ✅ N 并发 | 1 周 | Sprint 3 (✅ 2026-06-19) |
 | **1.3** | PDK 骨架 | ADR-0021 | 🔍 Proposed | ✅ DECLARE_TOOL | 1 周 | Sprint 4 (⏸ 待 3) |
 | **1.4** | PluginLoader | ADR-0022 | 🔍 Proposed | ✅ .so 加载 | 1 周 | Sprint 5 (⏸ 待 4) |
 
@@ -155,18 +155,19 @@ Phase 1.0 (ToolResult) ←── 依赖 Sprint 0 (最高优先)
 | T2.3 注入 DSLEngine 验证 | P0 | `tests/test_cognitive_worker.cpp` | 0.5d |
 | T2.4 与 IInteractionBus 集成 | P0 | `src/common/contract/inmemory_bus.cpp` | 0.5d |
 
-**Sprint 验收**: CognitiveWorker 单元测试 8/8 pass
+**Sprint 验收**: CognitiveWorker 单元测试 9/9 pass (含 TD-CW-02 析构函数安全测试) ✅ 已 ship 2026-06-18, OpenSpec change `2026-06-23-cognitive-worker`
 
 ### Sprint 3 (2026-06-30 ~ 2026-07-06) — DomainWorkerPool
 
-| 任务 | 优先级 | 文件 | 工作量 |
-|------|--------|------|--------|
-| T3.1 DomainWorkerPool 头文件 | P0 | `include/agenticdsl/cognitive/domain_worker_pool.h` | 0.5d |
-| T3.2 std::jthread 队列实现 | P0 | `src/modules/cognitive/domain_worker_pool.cpp` | 1d |
-| T3.3 多线程集成测试 | P0 | `tests/test_domain_worker_pool.cpp` | 1d |
-| T3.4 CP.22 协议审查 | P0 | (audit) | 0.5d |
+| 任务 | 优先级 | 文件 | 工作量 | 状态 |
+|------|--------|------|--------|------|
+| T3.1 DomainWorkerPool 头文件 | P0 | `include/agenticdsl/cognitive/domain_worker_pool.h` | 0.5d | ✅ ship (2026-06-19) |
+| T3.2 std::jthread 队列实现 | P0 | `src/modules/cognitive/domain_worker_pool.cpp` | 1d | ✅ ship (2026-06-19) |
+| T3.3 多线程集成测试 (7 case) | P0 | `tests/test_domain_worker_pool.cpp` | 1d | ✅ ship (2026-06-19, 7/7 pass, 94 assertions) |
+| T3.4 CP.22 协议审查 | P0 | `.omo/plans/2026-06-30-cp22-audit.md` | 0.5d | ✅ ship (2026-06-19, 6/6 通过) |
+| T3.5 Dockerfile.tsan | P0 | `Dockerfile.tsan` | 0.3d | ✅ ship (2026-06-19, ubuntu:22.04 + gcc-13 + ASLR=0) |
 
-**Sprint 验收**: 1000x 并发无 data race，TSan 干净
+**Sprint 验收**: ✅ 31/31 ctest pass (30 baseline + 1 new test_domain_worker_pool w/ 94 assertions), 1000x 并发 TSan 干净 (本地验证, Docker CI 待集成), CP.22 协议 6/6 项通过, ADR-0020 §2.2.1 状态从 🟡 Partial → ✅ Resolved. OpenSpec change `2026-06-30-domain-worker-pool` 准备 archive.
 
 ### Sprint 4 (2026-07-07 ~ 2026-07-13) — PDK 骨架
 

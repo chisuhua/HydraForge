@@ -8,6 +8,14 @@
 
 ## 状态变更日志
 
+### 2026-06-18 — Sprint 2 CognitiveWorker 集成
+
+**CognitiveWorker 集成 IInteractionBus** (OpenSpec change `2026-06-23-cognitive-worker`):
+- CognitiveWorker 持有 `shared_ptr<IInteractionBus>` 成员, 构造时强制注入到 `DSLEngine` (F7 ordering)
+- 事件 topic 命名: `cognitive.task.started` / `cognitive.task.completed` (遵循 `<module>.<verb>` 约定)
+- 事件 payload 遵守 `ToolResult` P2-P4 标准化: `error_code` (enum) / `trace_id` (task_id 关联键) / `meta.error_message`
+- 9 个新测试覆盖生命周期 / 任务提交 / 错误传播 / 并发 / 状态机 / 析构安全 (Sprint 2 全量 ship, 30/30 ctest pass)
+
 ### 2026-06-17 — Sprint 1b 完成 + OpenSpec change `2026-06-15-residual-engine-h-decoupling` 启动 (R5 重分类)
 
 **问题 §1.4 (跨模块耦合) 状态变更**：✅ **已解决** (2026-06-18, OpenSpec change `2026-06-15-residual-engine-h-decoupling` 全部 ship). `engine.h` 跨模块 include 计数 = 1 (仅 `common/llm/llm_types.h` types 头文件例外).

@@ -2,7 +2,11 @@
 
 ## 状态
 
-**🟡 Partial (2026-06-08)** — V3.1 版。SimpleCognitiveOrchestrator（MVP 单轮 ReAct）已在 C1 B-stage 实施（commit 9b347db）。CognitiveWorker + DomainWorkerPool 移交 Phase 1 智能体层。
+**✅ Resolved (2026-06-19, Sprint 3 增量 ship)** — V3.3 版。SimpleCognitiveOrchestrator（MVP 单轮 ReAct）+ CognitiveWorker（Sprint 2 已 ship, 9/9 ctest pass）+ **DomainWorkerPool**（Sprint 3 已 ship, 7/7 ctest pass）全部实施。ADR-0020 §2.2 P1 + P2 全部 ✅ Resolved。
+
+> **Sprint 3 增量 (2026-06-19, OpenSpec change `2026-06-30-domain-worker-pool`)**：DomainWorkerPool 类落地（`include/agenticdsl/cognitive/domain_worker_pool.h` + `src/modules/cognitive/domain_worker_pool.cpp`）。N 个 std::jthread worker + 共享 FIFO 任务队列 (多消费者模式) + shared_mutex 保护 handler 注册表 + IInteractionBus 集成 (domain.task.* 事件)。CP.22 协议 6/6 项通过 (`.omo/plans/2026-06-30-cp22-audit.md`)。7 个新测试 + 30 基线 = 31/31 ctest pass, 1000x 并发用例 TSan 干净 (Dockerfile.tsan 待 CI 验证)。
+
+> **Sprint 2 增量 (2026-06-18, OpenSpec change `2026-06-23-cognitive-worker`)**：CognitiveWorker 类落地（`include/agenticdsl/cognitive/cognitive_worker.h` + `src/modules/cognitive/cognitive_worker.cpp`）。构造签名遵循本 ADR §3.1 V3.2 修正（unique_ptr<DSLEngine> + shared_ptr<IInteractionBus>）。析构函数 out-of-line 隐式 stop()+join (TD-CW-02 修复)。错误码 bridge 覆盖 SimpleCognitiveOrchestrator 9 处 legacy string 路径 (TD-CW-03)。9 个新测试 + 29 基线 = 30/30 ctest pass。
 
 > **C1 迁移注记 (2026-06-08, commit 3f28020)**：引擎 LLM 注入接口由 `LlamaAdapter*` 改为 `ILLMProvider*`（抽象流式接口，详见 ADR-0001）。原 `LlamaAdapter` 仍可用但需通过 `LlamaAdapterProvider` 包装。本 ADR 中 §2 的成员变量 `llm_provider_` 已同步更新。
 
@@ -14,6 +18,11 @@ ADR-0006 中定义的"每 Agent 一线程"模型不再适用。本 ADR 将智能
 
 > **V3 变更**：本 ADR Phase 2/4 的协程计划已迁移至 ADR-0030（AsyncRuntime 双层异步架构）。
 > 协程实现统一使用 async_simple 库，不再自研协程基础设施。
+
+> **V3.2 修正 (2026-06-18, OpenSpec change `2026-06-23-cognitive-worker`)**：§3.1 CognitiveWorker 构造签名由 `CognitiveWorker(std::shared_ptr<IInteractionBus> bus)` 修正为 `CognitiveWorker(std::unique_ptr<DSLEngine> engine, std::shared_ptr<IInteractionBus> bus)`。
+> - **修正理由**：与 `DSLEngine::from_markdown` / `from_file` 静态工厂（返回 `std::unique_ptr<DSLEngine>`）配套, 测试可直接注入 mock-configured engine, 无需经 markdown 解析。
+> - **隔离语义不变**：Worker 仍独占 `engine_` 成员, 与主线程不共享（ADR-0003 per-instance 隔离保留）。
+> - **影响范围**：仅 §3.1 代码示例（行 199）, §3.1 文字说明及 §6 锁顺序不变。Sprint 2 实施时 CognitiveWorker 构造签名遵循本修正。
 
 ## 背景
 
@@ -160,6 +169,36 @@ class DSLEngine {
 
 **Related**: ADR-0005 V1.1 (IProviderFactory facade), ADR-0019 §1.4 (engine.h 解耦)
 
+#### 2.2.2 CognitiveWorker 集成 (2026-06-18, OpenSpec change `2026-06-23-cognitive-worker`)
+
+> **Sprint 2 实施状态**: ✅ CognitiveWorker 类已 ship（`include/agenticdsl/cognitive/cognitive_worker.h` + `src/modules/cognitive/cognitive_worker.cpp`）。
+> §2.2.1 (IProviderFactory 工厂注入) 与本节 CognitiveWorker **互补**: 工厂创建 provider, CognitiveWorker 持独立 DSLEngine 实例。
+
+**CognitiveWorker 实施要点**:
+- 构造: `(unique_ptr<DSLEngine>, shared_ptr<IInteractionBus>)` — 遵循本 ADR §3.1 V3.2 修正
+- 构造时强制 `engine_->set_interaction_bus(bus_)` (F7 ordering 契约) — engine 后续 dsl.call.* / tool.* 事件通过 Worker bus 转发
+- 状态机: `enum class State { idle, running, stopped }` (`std::atomic<State>`) — 公开方法前置条件 entry 处 assert
+- 析构: out-of-line 定义, `state_ == running` 时隐式 `stop()` + join thread (TD-CW-02 修复 `std::terminate` 风险)
+- 内部实现: 委托 `SimpleCognitiveOrchestrator` (P1.T2 已 ship, 接受 `IToolRegistry*`)
+- 错误传播: bridge `error_code_from_string()` 覆盖 SimpleCognitiveOrchestrator 9 处 legacy `meta["error_code"]` 字符串 → `ErrorCode` enum (TD-CW-03)
+- 事件: `cognitive.task.started` / `cognitive.task.completed` 通过 `IInteractionBus` 转发
+
+**测试覆盖** (9 case, 33 assertions, 0 回归):
+1. 基本启动/停止
+2. 任务提交 + 同步结果
+3. 优雅停止
+4. 错误传播 (含 ErrorCode enum + trace_id 关联)
+5. 多线程并发 submit_task (10 线程 × 100 次, TSan 验证)
+6. 状态机前置条件
+7. LLM error → ErrorCode enum bridge
+8. F7 set_interaction_bus 顺序契约
+9. 析构函数安全 (TD-CW-02)
+
+**Sprint 3 锁定契约** (CognitiveWorker 不可破坏的对外 API):
+- `submit_task(task_id, prompt)` 签名 + 语义
+- 事件 topic `cognitive.task.started` / `cognitive.task.completed`
+- `ToolResult.trace_id` 携带 task_id 关联
+
 ---
 
 ### 3. 工作线程：智能体执行
@@ -196,7 +235,12 @@ struct CognitiveTask {
 class CognitiveWorker {
 public:
     // 每个 Worker 拥有独立的 engine 和 bus
-    CognitiveWorker(std::shared_ptr<IInteractionBus> bus);
+    // [2026-06-18 修正] 构造签名从 (bus) 改为 (engine, bus) 以适配
+    // DSLEngine::from_markdown / from_file 工厂模式（返回 unique_ptr<DSLEngine>）。
+    // 优点：测试可直接注入 mock-configured engine, 无需经 markdown 解析。
+    // per-agent 隔离语义不变：Worker 独占 engine_, 与主线程不共享。
+    CognitiveWorker(std::unique_ptr<DSLEngine> engine,
+                    std::shared_ptr<IInteractionBus> bus);
 
     ~CognitiveWorker();
 
@@ -265,8 +309,23 @@ void CognitiveWorker::run(std::stop_token st) {
 
 #### 3.2 领域智能体工作线程池
 
+**✅ 已实施 (Sprint 3 ship, 2026-06-19)**：实际位置 `include/agenticdsl/cognitive/domain_worker_pool.h` + `src/modules/cognitive/domain_worker_pool.cpp`（非 §3.2 早期草图的 `src/common/worker/`，Phase 1 重构后统一在 `src/modules/cognitive/`）。与本节设计一致的关键点：
+- `std::jthread` 协作式取消 (C++20, std::stop_token)
+- `std::shared_mutex` 保护 handler 注册表
+- `std::queue<DomainTask>` + `std::mutex` + `std::condition_variable` 共享任务队列 (多消费者模式, **非** dispatcher 线程)
+- `domain.task.started` / `domain.task.completed` / `domain.task.failed` 事件 topic 遵循 `<module>.<verb>` 约定
+- CP.22 协议 6/6 项通过 (`.omo/plans/2026-06-30-cp22-audit.md`)
+
+实施差异 (vs §3.2 早期草图):
+1. **位置**: `include/agenticdsl/cognitive/` (非 `src/common/worker/`) — 与 CognitiveWorker 统一在 cognitive 模块
+2. **双构造重载**: `(num_threads)` 与 `(num_threads, shared_ptr<IInteractionBus>)` — Sprint 3 扩展, F7 顺序契约对齐 CognitiveWorker
+3. **unregister_domain_handler**: 增加, 支持运行时取消注册
+4. **析构函数 out-of-line**: PIMPL-lite 模式, 同 CognitiveWorker TD-CW-02
+5. **状态机**: 显式 `enum class State { idle, running, stopped }`, 同 CognitiveWorker
+6. **OpenSpec change**: `2026-06-30-domain-worker-pool` (Sprint 3 真实实施)
+
 ```cpp
-// src/common/worker/domain_worker_pool.h
+// include/agenticdsl/cognitive/domain_worker_pool.h (Sprint 3 实际位置)
 namespace agenticdsl {
 
 struct DomainTask {
@@ -275,39 +334,6 @@ struct DomainTask {
     nlohmann::json arguments;
     std::string output_key;      // 结果写入的 key
 };
-
-class DomainWorkerPool {
-public:
-    explicit DomainWorkerPool(size_t num_threads = 4);
-
-    void start();
-    void stop();
-
-    void submit_task(DomainTask task);
-
-    void register_domain_handler(
-        const std::string& domain,
-        std::function<nlohmann::json(const DomainTask&)> handler
-    );
-
-private:
-    void worker_loop(std::stop_token st, size_t worker_id);
-
-    size_t num_threads_;
-    std::vector<std::jthread> threads_;
-
-    // 领域处理器注册表 — shared_mutex 保护
-    std::shared_mutex handlers_mutex_;
-    std::unordered_map<std::string,
-        std::function<nlohmann::json(const DomainTask&)>> handlers_;
-
-    std::mutex queue_mutex_;
-    std::condition_variable queue_cv_;
-    std::queue<DomainTask> task_queue_;
-};
-
-} // namespace agenticdsl
-```
 
 ---
 
