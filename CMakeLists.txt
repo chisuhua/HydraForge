@@ -106,6 +106,11 @@ add_subdirectory(include/agenticdsl/pdk)
 add_subdirectory(include/agenticdsl/plugin)
 add_subdirectory(include/agenticdsl/types)
 
+# Phase 1 Sprint 4 PDK 骨架 (K3 决策: monorepo `pdk/` 子目录, ADR-0021 §2.2)
+# hydraforge_pdk INTERFACE 库 (header-only), 静态链接到插件 (P3)
+# Phase 2 拆分至独立 hydraforge-pdk 仓库时移除此行, 改 find_package(hydraforge_pdk REQUIRED)
+add_subdirectory(pdk)
+
 add_library(agenticdsl_core STATIC
  src/core/engine.cpp
 )
