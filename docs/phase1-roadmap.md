@@ -181,6 +181,8 @@ Phase 1.0 (ToolResult) ←── 依赖 Sprint 0 (最高优先)
 
 **Sprint 验收**: ✅ monorepo `pdk/` 编译通过 + 5/5 PDK 单元测试通过, ctest 32/32 PASS (31 baseline + 1 new test_pdk_macros w/ 33 assertions), ADR-0021 状态 🔍 Proposed → 🟡 Partial, OpenSpec change `2026-07-07-pdk-skeleton` 准备 archive. T4b (`hydraforge-pdk` 独立仓库推送) 留 Sprint 4 ship 后异步 (外部阻塞).
 
+**T4b 后续 (Dual-Repo 治理, ADR-0021 §7)**: Sprint 4 ship 后, `hydraforge-pdk` 独立仓库已创建并推送至 `github.com/chisuhua/hydraforge-pdk` (commit `2f9fa2c`, 4/4 standalone tests pass). 新增 `scripts/sync-pdk.sh` 自动化同步脚本 (preflight + 文件拷贝 + README 生成 + commit/push + standalone 构建验证), 实现 Dual-Repo Policy (Option C: vendored + 单独发布, **非 submodule**). 触发时机: 每个 Sprint ship 后 / PDK API 变更 / 紧急 patch. 路径映射: monorepo `agenticdsl/pdk/` ↔ standalone `hydraforge/pdk/` (API 兼容). 外部消费者: `find_package(hydraforge_pdk 0.1 REQUIRED)`.
+
 ### Sprint 5 (2026-07-14 ~ 2026-07-15) — PluginLoader + 收官
 
 | 任务 | 优先级 | 文件 | 工作量 |

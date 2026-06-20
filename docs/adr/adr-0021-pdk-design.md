@@ -351,6 +351,90 @@ Runtime
 
 ---
 
+## 7. 仓库治理 (Dual-Repo Policy, 2026-06-19 修订)
+
+> **本节为 2026-06-19 Sprint 4 实施后追加的治理决策, 与原始 §2.2 PDK 仓库结构互补**。
+
+### 7.1 决策: Option C — Vendored + 单独发布仓库
+
+PDK 采用 **Dual-Repo** 治理策略, 不使用 git submodule:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  HydraForge Monorepo (chisuhua/HydraForge) — 开发主仓库        │
+│  ├─ include/agenticdsl/pdk/    ← PDK 头文件 (vendored)         │
+│  ├─ pdk/                       ← monorepo INTERFACE 库 (T4a)   │
+│  ├─ scripts/sync-pdk.sh        ← Dual-Repo 同步脚本             │
+│  └─ tests/test_pdk_macros.cpp  ← PDK 单元测试 (5/5 pass)      │
+└─────────────────────────────────────────────────────────────────┘
+                            │ scripts/sync-pdk.sh
+                            │ (periodic, e.g. per-Sprint)
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  hydraforge-pdk Standalone (chisuhua/hydraforge-pdk) — 发布仓库 │
+│  ├─ include/hydraforge/pdk/    ← 同步自 monorepo               │
+│  ├─ tests/test_pdk_macros_standalone.cpp  ← 4/4 standalone pass │
+│  └─ external/                  ← bundled deps (nlohmann_json + Catch2) │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 7.2 为什么不用 submodule
+
+| 考量 | submodule | Dual-Repo (当前) |
+|------|-----------|------------------|
+| **内部消费摩擦** | ❌ 每次 `cmake --build` 需 `git submodule update --init` | ✅ 零摩擦, monorepo 内直接 include |
+| **测试可用性** | ❌ submodule 未初始化时测试失败 | ✅ 默认可用 |
+| **独立版本演进** | ✅ submodule 独立 tag | ⚠️ 需手工 sync (脚本化) |
+| **外部消费者** | ✅ find_package / add_subdirectory | ✅ find_package(同样可用) |
+| **CI 复杂度** | ❌ CI 需额外 submodule checkout 步骤 | ✅ 标准 git checkout |
+| **PR 跨仓库** | ❌ submodule PR 与主仓库 PR 分离 | ⚠️ sync script 在主仓库执行 |
+
+**结论**: PDK 与 Runtime 紧密耦合 (DEFINE_AGENT 依赖 DSLEngine + SimpleCognitiveOrchestrator), vendored 是更合适的默认。Dual-Repo 通过 sync script 弥补版本独立的不足, 同时保留零内部摩擦。
+
+### 7.3 同步策略
+
+**触发时机**:
+- 每个 Sprint ship 后 (如 Sprint 5 ship 后执行一次 sync)
+- PDK 头文件 API 变更时 (DECLARE_TOOL / DEFINE_AGENT / SafeExec 签名变化)
+- 紧急 patch 时 (立即执行)
+
+**执行命令**:
+```bash
+# 干跑 (验证变更, 不推送)
+PDK_SYNC_DRY_RUN=1 ./scripts/sync-pdk.sh
+
+# 真实推送
+./scripts/sync-pdk.sh
+```
+
+**版本号管理**:
+- Monorepo `include/agenticdsl/pdk/pdk.h` 定义 `HYDRAFORGE_PDK_VERSION`
+- Sync 脚本读取版本号, 生成 commit message + 可选 git tag
+- 建议 tag 命名: `v0.1.0` / `v0.1.1` / `v0.2.0` (SemVer)
+
+### 7.4 路径映射 (Monorepo ↔ Standalone)
+
+| 概念 | Monorepo 路径 | Standalone 路径 |
+|------|--------------|-----------------|
+| 主头 | `include/agenticdsl/pdk/pdk.h` | `include/hydraforge/pdk/pdk.h` |
+| 子头 | `include/agenticdsl/pdk/{tool,agent,safe_exec}_macros.h` | `include/hydraforge/pdk/{tool,agent,safe_exec}_macros.h` |
+| 主 CMakeLists | `pdk/CMakeLists.txt` (vendored) | 根 `CMakeLists.txt` (standalone) |
+| 测试 | `tests/test_pdk_macros.cpp` (5/5 monorepo tests) | `tests/test_pdk_macros_standalone.cpp` (4/4 standalone tests, 无 Runtime dep) |
+| Runtime 依赖 | `agenticdsl::DSLEngine` / `SimpleCognitiveOrchestrator` (P1 abstract) | 无 (前向声明 + minimal mock) |
+
+**迁移示例** (从 monorepo 切换到 standalone):
+```cmake
+# Monorepo:
+add_subdirectory(pdk)
+target_link_libraries(my_plugin PRIVATE hydraforge_pdk)
+
+# Standalone:
+find_package(hydraforge_pdk 0.1 REQUIRED)
+target_link_libraries(my_plugin PRIVATE hydraforge::pdk)
+```
+
+---
+
 ## 替代方案
 
 ### 方案 A: 将 PDK 放入 Runtime
