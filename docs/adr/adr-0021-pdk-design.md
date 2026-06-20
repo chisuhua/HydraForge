@@ -2,7 +2,9 @@
 
 ## 状态
 
-**🔍 Proposed** (2026-05-25)
+**🟡 Partial (2026-06-19, Sprint 4 增量 ship)** — V0.1 MVP 版。DECLARE_TOOL 宏 + DEFINE_AGENT 模板 (React MVP) + SafeExec 封装 (超时+异常 MVP) 已实施 (5/5 ctest pass, 32/32 baseline 零回归)。monorepo `pdk/` 子目录先 ship (K3 决策, ADR-0021 §2.2 一致),`hydraforge-pdk` 独立仓库推送留 Sprint 4 ship 后异步 (T4b, 外部阻塞: GitHub 组织存在性)。
+
+> **Sprint 4 增量 (2026-06-19, OpenSpec change `2026-07-07-pdk-skeleton`)**：PDK 头文件落地（`include/agenticdsl/pdk/{tool_macros,agent_macros,safe_exec,pdk}.h`）+ monorepo `pdk/` 子目录 + INTERFACE 库 (`hydraforge_pdk`)。5 个新测试 + 31 基线 = 32/32 ctest pass, P3 静态链接验证 (PDK 头文件仅依赖 Runtime 契约接口 `agenticdsl/contract/*.h`)。Phase 2/3 后续: PlanExecute/ForkJoin 完整循环 + FakeStateStore/StubLLM/MockSandbox 测试替身 + PluginLifecycle + 完整 SafeExec (fork/cgroups/seccomp) + `hydraforge-pdk` 独立仓库发布。Sprint 5 后续: PluginLoader 通过 PDK 编译的 `.so` 加载 (T4b 异步, Sprint 5 收官变 ✅ Approved)。
 
 ## 背景
 

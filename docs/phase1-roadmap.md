@@ -171,15 +171,15 @@ Phase 1.0 (ToolResult) ←── 依赖 Sprint 0 (最高优先)
 
 ### Sprint 4 (2026-07-07 ~ 2026-07-13) — PDK 骨架
 
-| 任务 | 优先级 | 文件 | 工作量 |
-|------|--------|------|--------|
-| T4.1 DECLARE_TOOL 宏 | P1 | `include/agenticdsl/pdk/tool_macros.h` | 0.5d |
-| T4.2 DEFINE_AGENT 模板 | P1 | `include/agenticdsl/pdk/agent_macros.h` | 1d |
-| T4.3 SafeExec 封装 | P1 | `include/agenticdsl/pdk/safe_exec.h` | 0.5d |
-| T4.4 独立 PDK 仓库骨架 | P1 | (github.com/.../agenticdsl-pdk) | 0.5d |
-| T4.5 PDK 单元测试 | P1 | `tests/test_pdk_macros.cpp` | 0.5d |
+| 任务 | 优先级 | 文件 | 工作量 | 状态 |
+|------|--------|------|--------|------|
+| T4.1 DECLARE_TOOL 宏 | P1 | `include/agenticdsl/pdk/tool_macros.h` | 0.5d | ✅ ship (2026-06-19) |
+| T4.2 DEFINE_AGENT 模板 | P1 | `include/agenticdsl/pdk/agent_macros.h` | 1d | ✅ ship (2026-06-19) |
+| T4.3 SafeExec 封装 | P1 | `include/agenticdsl/pdk/safe_exec.h` | 0.5d | ✅ ship (2026-06-19) |
+| T4.4 PDK 仓库治理 | P1 | `pdk/CMakeLists.txt` (monorepo 子目录) | 1.5d | 🟡 Partial (T4a monorepo ship 2026-06-19, T4b hydraforge-pdk 外部仓库推送异步) |
+| T4.5 PDK 单元测试 | P1 | `tests/test_pdk_macros.cpp` | 0.5d | ✅ ship (2026-06-19, 5/5 pass, 33 assertions) |
 
-**Sprint 验收**: 独立 PDK 仓库可编译 + 单元测试通过
+**Sprint 验收**: ✅ monorepo `pdk/` 编译通过 + 5/5 PDK 单元测试通过, ctest 32/32 PASS (31 baseline + 1 new test_pdk_macros w/ 33 assertions), ADR-0021 状态 🔍 Proposed → 🟡 Partial, OpenSpec change `2026-07-07-pdk-skeleton` 准备 archive. T4b (`hydraforge-pdk` 独立仓库推送) 留 Sprint 4 ship 后异步 (外部阻塞).
 
 ### Sprint 5 (2026-07-14 ~ 2026-07-15) — PluginLoader + 收官
 

@@ -84,13 +84,13 @@
 | ├─ Track 0.2 (三层调用链) | 100% ██████████ | ✅ 已完成 | 5-7 天 | Track 0.1 + C₁ |
 | ├─ Track 0.3 (最小契约层 X/B/A) | 100% ██████████ | ✅ 已完成 | 2-3 天 | Pre-Phase |
 | └─ P0/P1/P2 Cleanup | 100% ██████████ | ✅ 已完成 | ~4h | 上述全部 |
-| **Phase 1 智能体层** | **60% ██████░░░░** | **🎯 当前焦点 (2026-06-16 ~ 2026-07-15)** — Sprint 0/1a/1b/2/3 完成 | **4 周 5 Sprint + Sprint 0** | Phase 0 ✅ |
+| **Phase 1 智能体层** | **80% ████████░░** | **🎯 当前焦点 (2026-06-16 ~ 2026-07-15)** — Sprint 0/1a/1b/2/3/4 完成 | **4 周 5 Sprint + Sprint 0** | Phase 0 ✅ |
 | ├─ Sprint 0: ModelRouter Plugin Stub (K1) | **100% ██████████** | **✅ 已完成 (2026-06-16, 提前 1 天)** | **0.8 天** | Phase 0 |
 | ├─ Sprint 1a: ToolResult P2-P4 | **100% ██████████** | **✅ 已完成 (2026-06-16, 提前 2 天)** | **2 天** | Sprint 0 ✅ |
 | ├─ Sprint 1b: Bus 集成 (S1a/S1b 拆分, K2) | **100% ██████████** | **✅ 已完成 (2026-06-17, 提前 1 天)** | **1 天** | Sprint 1a ✅ |
 | ├─ Sprint 2: CognitiveWorker | **100% ██████████** | **✅ 已完成 (2026-06-18, 提前)** | **2.5 天** | Sprint 1a ✅ |
 | ├─ Sprint 3: DomainWorkerPool + Dockerfile.tsan | **100% ██████████** | **✅ 已完成 (2026-06-19, OpenSpec change `2026-06-30-domain-worker-pool`)** — DomainWorkerPool + 7 测试 + Dockerfile.tsan 实施, 31/31 ctest pass (30 baseline + 1 new test_domain_worker_pool w/ 94 assertions), ADR-0020 §2.2.1 🟡 Partial → ✅ Resolved, CP.22 协议 6/6 通过 | 3 天 | Sprint 2 ✅ |
-| ├─ Sprint 4: PDK 骨架 (hydraforge-pdk, K3) | 0% | ⏸ 未开始 (W4, 1 周) | 3 天 | Sprint 3 |
+| ├─ Sprint 4: PDK 骨架 (hydraforge-pdk, K3) | **100% ██████████** | **✅ 已完成 (2026-06-19, OpenSpec change `2026-07-07-pdk-skeleton`)** — DECLARE_TOOL + DEFINE_AGENT + SafeExec MVP 实施, monorepo `pdk/` 子目录 INTERFACE 库, 32/32 ctest pass (31 baseline + 1 new test_pdk_macros w/ 33 assertions), ADR-0021 🔍 Proposed → 🟡 Partial. T4b (`hydraforge-pdk` 独立仓库推送) 异步待外部阻塞解除 | 3 天 | Sprint 3 ✅ |
 | └─ Sprint 5: PluginLoader + 收官 | 0% | ⏸ 未开始 (W5, 2 天) | 1.3 天 | Sprint 4 |
 | **并行车道** | | | | |
 | ├─ P1: Residual engine.h Decoupling | 100% | ✅ **已解决 (2026-06-18, T1+T2+T3+T4+T5 全部 ship)** — 跨模块 include 4→3→2→1, 29/29 测试零回归, ADR-0019 §1.4 完全退出 | 10 天 → 5 周 → ship | 详见 OpenSpec `2026-06-15-residual-engine-h-decoupling` |
@@ -98,7 +98,7 @@
 | └─ P3: 28 ADR 退出 grep 验证 | 0% | ⏸ 未开始 (W1D3) | 2 天 | 无 |
 | ├─ Sprint 2: CognitiveWorker | **100% ██████████** | **✅ 已完成 (2026-06-18, 提前)** | 2.5 天 | Sprint 1 |
 | ├─ Sprint 3: DomainWorkerPool | **100% ██████████** | **✅ 已完成 (2026-06-19)** — 详见 OpenSpec `2026-06-30-domain-worker-pool`, 31/31 ctest pass, ADR-0020 §2.2.1 ✅ Resolved | 3 天 | Sprint 2 ✅ |
-| ├─ Sprint 4: PDK 骨架 | 0% | ⏸ 未开始 (W4) | 3 天 | Sprint 3 |
+| ├─ Sprint 4: PDK 骨架 | **100% ██████████** | **✅ 已完成 (2026-06-19)** — 详见 OpenSpec `2026-07-07-pdk-skeleton`, 32/32 ctest pass, ADR-0021 🟡 Partial | 3 天 | Sprint 3 ✅ |
 | └─ Sprint 5: PluginLoader + 收官 | 0% | ⏸ 未开始 (W5) | 1.3 天 | Sprint 4 |
 | Phase 2 异步+EventBus | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 2-3 周 | Phase 1 |
 | Phase 3 执行策略+安全 | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 2-3 周 | Phase 2 |
