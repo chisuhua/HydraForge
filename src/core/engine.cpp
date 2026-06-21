@@ -3,12 +3,12 @@
 #include "common/llm/llama_adapter.h" // C₁.4: 保留，仅用于 LlamaAdapterProvider（向后兼容）
 #include "common/log/log.h"  // agenticdsl::log facade
 #include "common/llm/llama_adapter_provider.h" // C₁.4: 适配器（可选真实 provider）
-#include "common/llm/llm_provider_factory.h" // P1.T1: LLMProviderFactory 完整类型
 #include "common/llm/llm_config.h" // P1.T1: LLMConfig 完整类型
 #include "common/llm/mock_provider.h" // P1.T1 fallback: 兜底直接构造 MockLLMProvider
 // P1.T4: ToolRegistry 完整类型仅在 .cpp 可见 (PIMPL-lite 解耦, engine.h 改为 IToolRegistry 抽象)
 #include "common/tools/registry.h" // P1.T4: 完整类型用于 make_unique<ToolRegistry>()
-#include "modules/budget/budget_controller.h" // Stage 4 / Task 19: 完整类型仅在此处需要（PIMPL-lite 解耦）
+#include "modules/budget/factory.h"
+#include "common/llm/factory.h"
 #include "modules/scheduler/topo_scheduler.h"
 #include "modules/system/system_nodes.h"
 #include <fstream>
@@ -106,9 +106,9 @@ std::unique_ptr<DSLEngine> DSLEngine::from_file(const std::string& file_path) {
 
 DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
     : full_graphs_(std::move(initial_graphs)),
-      tool_registry_(std::make_unique<ToolRegistry>()),  // P1.T4: PIMPL-lite 化
-      provider_factory_(std::make_unique<LLMProviderFactory>()),
-      budget_controller_(std::make_unique<BudgetController>()) {
+      tool_registry_(std::make_unique<ToolRegistry>()),
+      provider_factory_(agenticdsl::llm::create_provider_factory()),
+      budget_controller_(agenticdsl::budget::create_controller()) {
     LOG_INFO("Graphs loaded: " << full_graphs_.size());
 
     // P1.T1: 通过 factory 创建默认 LLM provider (默认 LLMConfig{} → MockLLMProvider)

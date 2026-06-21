@@ -74,6 +74,7 @@ add_library(agenticdsl_common STATIC
     src/common/llm/llm_provider_factory.cpp      # P1.T1: LLMProviderFactory 路由
     src/common/llm/mock_provider.cpp
     src/common/llm/mock_provider_factory.cpp    # P1.T1: MockProviderFactory
+    src/common/llm/factory.cpp                  # Sprint 6 P2-7
     src/common/llm/sse_stream.cpp
     src/common/tools/registry.cpp
     src/common/utils/parser_utils.cpp

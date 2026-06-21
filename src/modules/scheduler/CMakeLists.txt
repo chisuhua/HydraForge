@@ -2,7 +2,7 @@ add_library(agenticdsl_modules_scheduler STATIC
     topo_scheduler.cpp
     execution_session.cpp # v3.1
     resource_manager.cpp # v3.1
-    # ... 其他 scheduler 源文件 ...
+    factory.cpp # Sprint 6 P2-7
 )
 target_include_directories(agenticdsl_modules_scheduler PUBLIC include)
 target_link_libraries(agenticdsl_modules_scheduler PUBLIC 
