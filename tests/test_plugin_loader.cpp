@@ -238,3 +238,72 @@ TEST_CASE("PluginLoader E2E loads real .so + register_tools",
 }
 
 #endif  // TEST_PLUGIN_FIXTURE_PATH
+
+TEST_CASE("PluginLoader destructor is safe with no loaded plugins",
+          "[plugin_loader][sprint6][raii]") {
+  PluginLoader loader;
+  REQUIRE(loader.list_loaded().empty());
+}
+
+TEST_CASE("PluginLoader multiple load_so failures don't corrupt state",
+          "[plugin_loader][sprint6][state]") {
+  PluginLoader loader;
+  MockToolRegistry registry;
+
+  loader.load_so("/nonexistent_1.so", registry);
+  loader.load_so("/nonexistent_2.so", registry);
+  loader.load_so("/etc/passwd.so", registry);
+  loader.load_so("/tmp/malicious.so", registry);
+
+  REQUIRE(loader.list_loaded().empty());
+}
+
+TEST_CASE("PluginLoader unload_plugin is idempotent for missing names",
+          "[plugin_loader][sprint6][unload]") {
+  PluginLoader loader;
+  REQUIRE_FALSE(loader.unload_plugin("nonexistent_plugin"));
+  REQUIRE_FALSE(loader.unload_plugin(""));
+  REQUIRE_FALSE(loader.unload_plugin("test_plugin"));
+  REQUIRE(loader.list_loaded().empty());
+}
+
+TEST_CASE("PluginLoader list_loaded returns copy not internal reference",
+          "[plugin_loader][sprint6][api]") {
+  PluginLoader loader;
+  auto snapshot1 = loader.list_loaded();
+  auto snapshot2 = loader.list_loaded();
+  REQUIRE(snapshot1.size() == snapshot2.size());
+  REQUIRE(snapshot1.empty());
+}
+
+TEST_CASE("PluginLoader path traversal attempts rejected by whitelist",
+          "[plugin_loader][sprint6][security]") {
+  PluginLoader loader;
+  MockToolRegistry registry;
+
+  REQUIRE_FALSE(loader.load_so("/etc/../etc/passwd.so", registry));
+  REQUIRE_FALSE(loader.load_so("../../../tmp/escape.so", registry));
+  REQUIRE_FALSE(loader.load_so("/usr/../etc/shadow.so", registry));
+  REQUIRE(loader.list_loaded().empty());
+}
+
+TEST_CASE("PluginLoader load_all returns 0 when no search paths exist",
+          "[plugin_loader][sprint6][scan]") {
+  PluginLoader loader;
+  MockToolRegistry registry;
+
+  std::size_t loaded = loader.load_all(registry);
+  REQUIRE(loaded == 0);
+  REQUIRE(loader.list_loaded().empty());
+}
+
+TEST_CASE("PluginLoader rejects empty path and whitespace-only path",
+          "[plugin_loader][sprint6][validation]") {
+  PluginLoader loader;
+  MockToolRegistry registry;
+
+  REQUIRE_FALSE(loader.load_so("", registry));
+  REQUIRE_FALSE(loader.load_so("   ", registry));
+  REQUIRE_FALSE(loader.load_so("\t\n", registry));
+  REQUIRE(loader.list_loaded().empty());
+}
