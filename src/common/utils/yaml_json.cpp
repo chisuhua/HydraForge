@@ -43,7 +43,6 @@ nlohmann::json yaml_to_json(const YAML::Node& node) {
             return nullptr;
         case YAML::NodeType::Scalar: {
             const std::string& s = node.Scalar();
-            // [DEBUG-removed] std::cerr << "[YAML Scalar] raw='" << s << "'" << std::endl; // Debug
 
             // Check for boolean literals
             if (s == "true")  return true;
@@ -69,10 +68,10 @@ nlohmann::json yaml_to_json(const YAML::Node& node) {
                     }
                 } catch (const std::out_of_range& e) {
                     // If stoll/stod fails due to range, treat as string
-                    // [DEBUG-removed] std::cerr << "[DEBUG] Numeric parsing failed due to range: " << s << std::endl;
+                    (void)e;
                 } catch (const std::invalid_argument& e) {
                     // This shouldn't happen if is_numeric returned true, but just in case
-                    // [DEBUG-removed] std::cerr << "[DEBUG] Numeric parsing failed due to invalid argument: " << s << std::endl;
+                    (void)e;
                 }
             }
             // Fallback to string
