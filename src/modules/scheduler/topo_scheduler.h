@@ -84,6 +84,15 @@ private:
     void finish_fork_simulation();
     void start_join_simulation(const JoinNode* join_node);
     void finish_join_simulation(Context& main_context);
+
+    std::optional<ExecutionResult> prepare_dag_state();
+    struct NodeLookupResult {
+        NodePath path;
+        Node* node;
+    };
+    std::variant<std::monostate, NodeLookupResult, ExecutionResult>
+    dispatch_next_node(const Context& context);
+    ExecutionResult finalize_execution(const Context& context);
 };
 
 } // namespace agenticdsl

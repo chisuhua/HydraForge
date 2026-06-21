@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <set>
 #include <queue>
+#include <variant>
 
 namespace agenticdsl {
 
@@ -148,100 +149,37 @@ void TopoScheduler::build_dag() {
 ExecutionResult TopoScheduler::execute(const Context& initial_context) {
     Context context = initial_context;
 
-    std::optional<NodePath> entry_point;
-    if (full_graphs_) {
-        for (const auto& graph : *full_graphs_) {
-            // Check /__meta__ for entry_point
-            if (graph.path == "/__meta__" && graph.metadata.contains("entry_point")) {
-                entry_point = graph.metadata["entry_point"].get<std::string>();
-                break;
-            }
-            // Also check /main for entry (v3.x format)
-            if (graph.path == "/main" && graph.metadata.contains("entry")) {
-                // entry is node ID, need to prepend graph path
-                entry_point = graph.path + "/" + graph.metadata["entry"].get<std::string>();
-                break;
-            }
-        }
-    }
-
-    if (entry_point.has_value()) {
-        // 清空 ready_queue_，强制从 entry_point 开始
-        std::queue<NodePath> empty;
-        ready_queue_.swap(empty);
-        if (node_map_.count(entry_point.value()) == 0) {
-            return {false, "Entry point not found: " + entry_point.value(), context, std::nullopt};
-        }
-        ready_queue_.push(entry_point.value());
+    auto early = prepare_dag_state();
+    if (early.has_value()) {
+        return *early;
     }
 
     while (!ready_queue_.empty() || !session_.get_pending_dynamic_deps().empty() || is_executing_fork_branches_) { // Continue while queue has items OR fork branches are running
         NodePath current_path;
         Node* current_node = nullptr;
-        bool found_ready_node = false;
 
         if (is_executing_fork_branches_) {
-             // If we are in the middle of executing fork branches, do that first.
-             // This happens after a ForkNode sets the flag but before a JoinNode is encountered.
-             // Or, if all branches are done, this loop handles the transition.
-             execute_fork_branches(); // This will execute remaining branches if any
-             if (current_fork_branch_index_ == current_fork_branches_.size()) {
-                 // All branches finished, but JoinNode hasn't been encountered yet.
-                 // This means the JoinNode is the next logical step, but it might not be in the ready_queue_ yet.
-                 // The main loop will continue, and when it encounters the JoinNode, it will handle the merge.
-                 // If the JoinNode is not reachable, it's an error.
-                 // For now, assume JoinNode will be encountered.
-                 finish_fork_simulation(); // Clean up fork state, but keep results
-                 // The main loop will then pick up the JoinNode from the queue if it's there.
-                 // If the JoinNode is *after* other nodes that depend on the fork results,
-                 // the scheduler needs to handle this dependency correctly, which it should via `wait_for` or graph structure.
-                 // The simulation assumes JoinNode comes after all branches logically (which is typical).
-                 // If JoinNode is not in the queue, it means the graph structure might be wrong or `wait_for` is needed.
-                 // Let's continue the main loop to see if JoinNode appears.
-                 // If it doesn't, the final "unexecuted nodes" check will catch it.
-                 LOG_DEBUG("Fork branches done, waiting for JoinNode.");
-             }
-             // If branches are still running, the loop will go to the next iteration.
-             // If all branches are done, it will exit this `if` block and check the main queue.
-        }
-
-        // Check ready_queue_ first
-        if (!ready_queue_.empty() && !is_executing_fork_branches_) {
-            current_path = ready_queue_.front();
-            ready_queue_.pop();
-            found_ready_node = true;
-        } else if (!ready_queue_.empty() && is_executing_fork_branches_ && current_fork_branch_index_ == current_fork_branches_.size()) {
-            // No static ready nodes, check if any pending dynamic deps are now satisfied
-            std::unordered_set<NodePath> dummy_executed; // Pass empty set if not tracking newly executed in this loop iteration
-            session_.check_and_requeue_dynamic_deps(dummy_executed); // This will move nodes from pending to ready_queue_ if possible
-            if (!ready_queue_.empty()) {
-                current_path = ready_queue_.front();
-                ready_queue_.pop();
-                found_ready_node = true;
+            execute_fork_branches();
+            if (current_fork_branch_index_ == current_fork_branches_.size()) {
+                finish_fork_simulation();
+                LOG_DEBUG("Fork branches done, waiting for JoinNode.");
             }
         }
 
-        if (!found_ready_node) {
-            // If we couldn't find a ready node, but have pending dynamic deps,
-            // it means we are waiting for a dependency that might never come.
-            // This could be a deadlock or unmet condition.
-            if (!session_.pending_dynamic_deps_.empty()) {
-                 return {false, "Execution stopped: Unmet dynamic dependencies. Pending: " + nlohmann::json(session_.pending_dynamic_deps_).dump(), context, std::nullopt};
-            }
+        auto dispatch_result = dispatch_next_node(context);
+        if (std::holds_alternative<ExecutionResult>(dispatch_result)) {
+            return std::get<ExecutionResult>(dispatch_result);
+        }
+        if (std::holds_alternative<std::monostate>(dispatch_result)) {
             break; // No more nodes to execute
         }
+        auto& found = std::get<NodeLookupResult>(dispatch_result);
+        current_path = found.path;
+        current_node = found.node;
 
-
-        // Skip if already executed (shouldn't happen in strict topo, but good check)
         if (executed_.count(current_path) > 0) {
             continue;
         }
-
-        auto node_it = node_map_.find(current_path);
-        if (node_it == node_map_.end()) {
-            return {false, "Node not found in map: " + current_path, context, std::nullopt};
-        }
-        current_node = node_it->second;
 
         // --- v3.1: Handle Dynamic wait_for (resolved during execution) ---
         bool can_execute = true;
@@ -428,30 +366,7 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
         session_.check_and_requeue_dynamic_deps(newly_executed);
     }
 
-    // Check if execution stopped due to budget
-    if (session_.is_budget_exceeded()) {
-        return {false, "Execution stopped: Budget exceeded", context, std::nullopt};
-    }
-
-    // Final check for unexecuted nodes (exclude system nodes)
-    std::set<NodePath> all_node_paths;
-    for (const auto& n : all_nodes_) {
-        // Skip system nodes from unexecuted check
-        if (n->path.rfind("/__system__/", 0) == 0) continue;
-        all_node_paths.insert(n->path);
-    }
-    // set_difference requires sorted inputs; copy unordered_set to std::set
-    std::set<NodePath> executed_sorted(executed_.begin(), executed_.end());
-    std::set<NodePath> unexecuted;
-    std::set_difference(all_node_paths.begin(), all_node_paths.end(),
-                        executed_sorted.begin(), executed_sorted.end(),
-                        std::inserter(unexecuted, unexecuted.begin()));
-
-    if (!unexecuted.empty()) {
-        return {false, "Execution stopped: Unmet dependencies or cycles. Unexecuted nodes: " + nlohmann::json(unexecuted).dump(), context, std::nullopt};
-    }
-
-    return {true, "Execution completed successfully", context, std::nullopt};
+    return finalize_execution(context);
 }
 
 
@@ -688,6 +603,100 @@ void TopoScheduler::load_graphs(const std::vector<std::unique_ptr<Node>>& nodes)
         register_node(node_ptr->clone()); // Use clone to avoid moving out of the vector if it's const
     }
     // build_dag(); // Only call if this is an initial load, not for dynamic append
+}
+
+std::optional<ExecutionResult> TopoScheduler::prepare_dag_state() {
+    std::optional<NodePath> entry_point;
+    if (full_graphs_) {
+        for (const auto& graph : *full_graphs_) {
+            if (graph.path == "/__meta__" && graph.metadata.contains("entry_point")) {
+                entry_point = graph.metadata["entry_point"].get<std::string>();
+                break;
+            }
+            if (graph.path == "/main" && graph.metadata.contains("entry")) {
+                entry_point = graph.path + "/" + graph.metadata["entry"].get<std::string>();
+                break;
+            }
+        }
+    }
+
+    if (entry_point.has_value()) {
+        std::queue<NodePath> empty;
+        ready_queue_.swap(empty);
+        if (node_map_.count(entry_point.value()) == 0) {
+            return ExecutionResult{false, "Entry point not found: " + entry_point.value(), Context{}, std::nullopt};
+        }
+        ready_queue_.push(entry_point.value());
+    }
+    return std::nullopt;
+}
+
+std::variant<std::monostate, TopoScheduler::NodeLookupResult, ExecutionResult>
+TopoScheduler::dispatch_next_node(const Context& context) {
+    if (is_executing_fork_branches_) {
+        execute_fork_branches();
+        if (current_fork_branch_index_ == current_fork_branches_.size()) {
+            finish_fork_simulation();
+            LOG_DEBUG("Fork branches done, waiting for JoinNode.");
+        }
+    }
+
+    if (!ready_queue_.empty() && !is_executing_fork_branches_) {
+        NodePath current_path = ready_queue_.front();
+        ready_queue_.pop();
+        auto node_it = node_map_.find(current_path);
+        if (node_it == node_map_.end()) {
+            return ExecutionResult{false, "Node not found in map: " + current_path, context, std::nullopt};
+        }
+        return NodeLookupResult{current_path, node_it->second};
+    }
+
+    if (!ready_queue_.empty() && is_executing_fork_branches_ &&
+        current_fork_branch_index_ == current_fork_branches_.size()) {
+        std::unordered_set<NodePath> dummy_executed;
+        session_.check_and_requeue_dynamic_deps(dummy_executed);
+        if (!ready_queue_.empty()) {
+            NodePath current_path = ready_queue_.front();
+            ready_queue_.pop();
+            auto node_it = node_map_.find(current_path);
+            if (node_it == node_map_.end()) {
+                return ExecutionResult{false, "Node not found in map: " + current_path, context, std::nullopt};
+            }
+            return NodeLookupResult{current_path, node_it->second};
+        }
+    }
+
+    if (!session_.pending_dynamic_deps_.empty()) {
+        return ExecutionResult{false,
+            "Execution stopped: Unmet dynamic dependencies. Pending: " +
+            nlohmann::json(session_.pending_dynamic_deps_).dump(),
+            context, std::nullopt};
+    }
+    return std::monostate{};
+}
+
+ExecutionResult TopoScheduler::finalize_execution(const Context& context) {
+    if (session_.is_budget_exceeded()) {
+        return {false, "Execution stopped: Budget exceeded", context, std::nullopt};
+    }
+
+    std::set<NodePath> all_node_paths;
+    for (const auto& n : all_nodes_) {
+        if (n->path.rfind("/__system__/", 0) == 0) continue;
+        all_node_paths.insert(n->path);
+    }
+    std::set<NodePath> executed_sorted(executed_.begin(), executed_.end());
+    std::set<NodePath> unexecuted;
+    std::set_difference(all_node_paths.begin(), all_node_paths.end(),
+                        executed_sorted.begin(), executed_sorted.end(),
+                        std::inserter(unexecuted, unexecuted.begin()));
+
+    if (!unexecuted.empty()) {
+        return {false, "Execution stopped: Unmet dependencies or cycles. Unexecuted nodes: " +
+                       nlohmann::json(unexecuted).dump(), context, std::nullopt};
+    }
+
+    return {true, "Execution completed successfully", context, std::nullopt};
 }
 
 
