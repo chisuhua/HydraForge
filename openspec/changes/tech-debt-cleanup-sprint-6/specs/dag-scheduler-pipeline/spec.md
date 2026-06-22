@@ -1,3 +1,19 @@
+<!-- STATUS NOTE (2026-06-22 Oracle Code Review 决议)
+本 spec 部分验收项 Sprint 6 ship 时未达, 详细偏离项见 `openspec/changes/tech-debt-cleanup-sprint-6/tasks.md` §6.1 与 §6.3。
+
+**Sprint 6 实际偏离 (Oracle ses_112a9f9c5ffesqpYeefOBgMkjH 实测)**:
+- `TopoScheduler::execute()` 222 行 (L149-370), spec 要求 ≤ 60 行 — 🟠 Major 偏离
+- 未引入 `struct DagState`, 3 子函数非纯函数式 (直接改成员) — 🟠 Major 偏离
+- 3 子函数命名 2/3 不符 spec: 实际 `dispatch_next_node` (spec: `dispatch_ready_nodes`) + `finalize_execution` (spec: `handle_node_completion`) — 🟠 Major
+- `handle_node_completion` 失败传播 + 触发下游逻辑 **未提取**, 仍内联 `execute()` — 🟠 Major
+- scheduler 测试 ≥ 7 个要求 → **0 个交付** (`tests/test_scheduler.cpp` 零改动) — 🔴 零交付
+- Hub out_degree < 30 未验证 — 🟡 未验证
+
+**Sprint 6 行为保持**: DAG 序/错误传播/状态转换语义未变, 33/33 ctest pass, `execute_single_branch` 118 行未动。
+
+**Sprint 7 follow-up**: 全部推迟到 OpenSpec change `2026-07-22-sprint-7-tech-debt-followup`。本 change 不 archive。
+-->
+
 ## ADDED Requirements
 
 ### Requirement: scheduler-three-stage-pipeline

@@ -1,3 +1,17 @@
+<!-- STATUS NOTE (2026-06-22 Oracle Code Review 决议)
+本 spec 部分验收项 Sprint 6 ship 时未达, 详细偏离项见 `openspec/changes/tech-debt-cleanup-sprint-6/tasks.md` §6.1 与 §6.3。
+
+**Sprint 6 实际偏离 (Oracle ses_112a9f9c5ffesqpYeefOBgMkjH 实测)**:
+- `NodeFactoryRegistry` 用 `unordered_map<std::string, Factory>` 与 `Factory = function<unique_ptr<Node>(const NodePath&, const json&)>`, spec 要求 `unordered_map<NodeType, Factory>` + `Factory = function<unique_ptr<Node>(const json&)>` + `create(NodeType, ...)` — 🟡 偏离 (arguably 改进避免 enum 映射, 但不符约)
+- NodeType 注册数: spec 写 13, 实际 11 (旧 if-else 本就 11 分支, **spec 撰写时未核对真实枚举**; 新注册 11 factory 与旧 11 分支一一对应, 零类型丢失) — 🟡 spec 错误
+- parser 测试 ≥ 5 个要求 → **0 个交付** (`tests/test_parser.cpp` 零改动, `factory_registry_concurrent_access` TSan 未做) — 🔴 零交付
+- `create_node_from_json` `has_factory` 预检使 registry 内部 `throw runtime_error` 路径成死分支 (parser 端用 `if(node)` 守护, 与 spec §3.3.3 "throw on unknown" 不符, **spec 错误**, 旧码从不 throw) — 🟡 spec 错误
+
+**Sprint 6 行为保持**: 11 NodeType 全部注册, `create_node_from_json` 216 → 9 行, 旧 `nullptr`-on-unknown 语义保留, 33/33 ctest pass。
+
+**Sprint 7 follow-up**: 补 5 个 parser 测试 (含 TSan 并发) + 修 spec §3.3.3 throw 描述 + 修 spec §3.2.3 13 → 11。全部推迟到 OpenSpec change `2026-07-22-sprint-7-tech-debt-followup`。本 change 不 archive。
+-->
+
 ## ADDED Requirements
 
 ### Requirement: node-factory-registry-class

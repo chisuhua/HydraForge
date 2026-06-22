@@ -113,6 +113,12 @@ HydraForge/
 - GitHub Actions CI: `.github/workflows/ci.yml` (Stage 5 / Task 25, 2 presets × 2 compilers matrix)
 
 ## Recent Changes
+- 2026-06-22 (Sprint 6 STATUS NOTE 决议): Oracle 深度审查 (session `ses_112a9f9c5ffesqpYeefOBgMkjH`) 决议 — 4 个代码 commit (`7cc4239` / `6c5557c` / `9fa0364` / `7923b2a`) **保持合入不回退** (33/33 ctest pass, 行为保持), **不 archive OpenSpec change**, 偏离 spec 验收项全部推迟到 Sprint 7 follow-up。Top 修复: 🔴 scheduler fork 重复 (`topo_scheduler.cpp:636-642` 死分支) + 🟠 scheduler factory 死代码 (零调用) + 🟠 execute 222 行 vs spec ≤60 + 🟠 engine.cpp 10 include vs spec ≤3 + 🔴 15 个新测试 (7 scheduler + 5 parser + 3 factory) 0 交付。详细偏离表见 `openspec/changes/tech-debt-cleanup-sprint-6/tasks.md` §6.1, Sprint 7 follow-up 见 §6.3。新增 OpenSpec change `2026-07-22-sprint-7-tech-debt-followup` 跟踪。
+- 2026-06-21 (commit `fb0e118`): Sprint 6 tech-debt-cleanup OpenSpec change artifacts 提交 (proposal/design/tasks/3 specs)
+- 2026-06-20 (commit `7cc4239`): refactor(core): engine.cpp 工厂化, 2/10 跨模块 include 替换 (Sprint 6 P2-7) — **LIMFALL**: 实际计数未降 (10→10), 0 factory 测试, scheduler factory 死代码
+- 2026-06-20 (commit `6c5557c`): refactor(parser): introduce NodeFactoryRegistry, eliminate 216行 if-else in create_node_from_json (Sprint 6 P2-6) — **LIMFALL**: 11 NodeType 一一对应零丢失 ✓, 但 0 parser 测试, `has_factory` 预检使 throw 路径成死分支
+- 2026-06-20 (commit `9fa0364`): refactor(scheduler): split execute() 308行 → orchestration + 3 subfunctions (Sprint 6 P1-4) — **LIMFALL**: 行为保持 ✓, 但 execute 222 行 vs spec ≤60, 2/3 函数命名不符, fork 处理逻辑被复制两处, 0 scheduler 测试
+- 2026-06-20 (commit `7923b2a`): test(plugin): add 7 state-based test cases for PluginLoader (Sprint 6 P1-5) — **LIMFALL**: 7 case 名称/范围与 spec 点名不符, E2E `TEST_PLUGIN_FIXTURE_PATH` 宏未注入, Loaded 状态零覆盖
 - 2026-06-14 (commit `451e395`): 修复 3 个失败测试（test_layered_context / test_path_policy / test_secure_tool_registry），全部 25 个测试 100% 通过。核心修复：`flatten` 重命名为 `flatten_layers` 并修复 merge lambda 逻辑、`PathPolicy` 对 `allowed_prefixes` 同样做 `weakly_canonical`、`ShellGuard` 增加 `"| sh"` 模式
 - 2026-06-09 (commit `ac9e684`): 删除 `src/modules/prompts.yaml`（LLM prompt 模板改由各模块硬编码或 `llm_config.json` 管理）
 

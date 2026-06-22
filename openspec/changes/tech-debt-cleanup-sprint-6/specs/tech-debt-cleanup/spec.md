@@ -1,3 +1,21 @@
+<!-- STATUS NOTE (2026-06-22 Oracle Code Review 决议)
+本 spec 部分验收项 Sprint 6 ship 时未达, 详细偏离项见 `openspec/changes/tech-debt-cleanup-sprint-6/tasks.md` §6.1 与 §6.3。
+
+**Sprint 6 实际偏离 (Oracle ses_112a9f9c5ffesqpYeefOBgMkjH 实测)**:
+- `src/core/engine.cpp` 跨模块/common include 实测 **10 个** (`grep -cE '^\s*#include\s+"(modules/|common/)' src/core/engine.cpp` = 10), spec 要求 ≤ 3 — 🔴 严重偏离 (commit `7cc4239` 自述 "2/10 替换" 但仅 swap 头未减计数)
+- `agenticdsl::scheduler::create()` 漏 `Config`/`initial_budget` 参数 → `engine.cpp:188` 仍直接 `TopoScheduler` 构造 → factory **零调用点 (死代码)** — 🟠 Major
+- budget factory 返回具体类 `unique_ptr<BudgetController>` 而非 `IBudgetController` 抽象, engine.cpp 仍依赖完整型 (传递 include 维持, 脆弱) — 🟡 (RISK-7 已知推迟到 Sprint 7 + design Open Question 1)
+- factory 测试 ≥ 3 个要求 → **0 个交付** — 🔴 零交付
+- plugin 测试 7 case 名称/范围不符 spec (`load_valid_plugin` / `abi_mismatch_strict` / `dlsym_missing_register_fn` / `unload_all_raii_verification` 等全部推迟; `TEST_PLUGIN_FIXTURE_PATH` 宏 CMake 从未注入, E2E 编译排除, **Loaded 状态零覆盖**) — 🟠 Major
+- AGENTS.md 顶部状态日志追加 Sprint 6 → **未追加** (Oracle 实测 0 命中) — 🟡 文档欠
+- ship gate `47/47 ctest` → 实际 `33/33` (差 14 个) — 🔴 ship gate 未达
+- TSan / ASan / hub out_degree / adr_lint / docs_drift_audit / openspec validate 全部 ship gate 未跑 — 🟡 未验证
+
+**Sprint 6 行为保持**: `LLMProviderFactory` 工厂化 (`common/llm/factory.h` 薄头) PIMPL-lite 价值真实; `BudgetController` 工厂化 (头 swap) 减少 engine.cpp 头依赖; CMake wiring 正确 (3 factory.cpp + node_factory.cpp 全部注册); 33/33 ctest pass。
+
+**Sprint 7 follow-up**: 全部 6.3.x 项推到 OpenSpec change `2026-07-22-sprint-7-tech-debt-followup`。本 change 不 archive。
+-->
+
 ## ADDED Requirements
 
 ### Requirement: engine-cpp-factory-pattern

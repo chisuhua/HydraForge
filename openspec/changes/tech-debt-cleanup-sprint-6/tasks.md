@@ -219,3 +219,68 @@
 - [ ] 5.8 `git status` clean, 5-7 个 commit 按 Sprint 分组
 - [ ] 5.9 AGENTS.md 状态日志包含 Sprint 6 完成标记
 - [ ] 5.10 PDK 同步脚本无 error (`./scripts/sync-pdk.sh --dry-run`)
+
+---
+
+## 6. STATUS NOTE (2026-06-22 Oracle Code Review 决议)
+
+> **核心结论**: Sprint 6 4 个代码 commit (`7cc4239` / `6c5557c` / `9fa0364` / `7923b2a`) **已 ship 行为保持, 33/33 ctest pass, git status clean**, **不 archive 本 change, 不回退代码**。但**本 tasks.md 第 2.1-2.7 / 3.1-3.8 / 4.4 / 5.x 大量验收项未达**, 经 Oracle 深度审查 (Oracle session `ses_112a9f9c5ffesqpYeefOBgMkjH`) 决议如下:
+
+### 6.1 已 ship 但偏离 spec 的项 (归档前必须显式标注)
+
+| spec/tasks 项 | spec 目标 | Sprint 6 实际 | 状态 |
+|---|---|---|---|
+| 2.5.2 `execute()` ≤ 60 行 | ≤ 60 | 222 行 (L149-370) | 🟠 Major 偏离 |
+| 2.1 `DagState` 结构体 | 新增 struct | **未引入** (子函数非纯, 直接改成员) | 🟠 Major 偏离 |
+| 2.2-2.4 3 子函数命名 | `prepare_dag_state` / `dispatch_ready_nodes` / `handle_node_completion` | `prepare_dag_state` ✓ / `dispatch_next_node` ✗ / `finalize_execution` ✗ | 🟠 2/3 不符 |
+| 2.4 `handle_node_completion` | 提取失败传播 + 触发下游 | **未提取** (动态 wait_for / jump / fork-join / 动态图重建 全部内联 execute) | 🟠 Major 偏离 |
+| 2.6 scheduler 测试 ≥ 7 个 | ≥ 7 个 | **0 个** (`tests/test_scheduler.cpp` 零改动) | 🔴 零交付 |
+| 3.1 `NodeFactoryRegistry` 键类型 | `unordered_map<NodeType, Factory>` | `unordered_map<string, Factory>` | 🟡 偏离 (改进) |
+| 3.2 NodeType 注册数 | 13 个 | 11 个 (spec 撰写时未核对真实枚举; 旧码本就 11) | 🟡 spec 错误 |
+| 3.4 parser 测试 ≥ 5 个 | ≥ 5 个 | **0 个** (`tests/test_parser.cpp` 零改动) | 🔴 零交付 |
+| 3.5-3.6 scheduler factory | `create(SchedulerConfig)` 注入 budget | `create(IToolRegistry&, ILLMProvider*, vector<...>*)` 漏 `Config`/`budget` | 🟠 **死代码** (`engine.cpp:188` 仍直接 `TopoScheduler` 构造, 零调用) |
+| 3.6.1 engine.cpp include ≤ 3 | ≤ 3 | **10 个** (commit 自述 "10→8" 不准确, 仅 swap 头未减计数) | 🔴 严重偏离 |
+| 3.7 factory 测试 ≥ 3 个 | ≥ 3 个 | **0 个** | 🔴 零交付 |
+| 1.4 plugin 测试 7 case 命名 | `load_valid_plugin` / `abi_mismatch_strict` / `dlsym_missing_register_fn` / `unload_all_raii` | `destructor_safe` / `multiple_failures` / `idempotent_unload` / `list_loaded_copy` / `path_traversal` / `load_all_zero_paths` / `empty_path_validation` | 🟠 名称/范围不符 |
+| 1.4.2-1.4.8 plugin E2E | mock .so + ABI/dlsym/RAII-dlclose 实测 | **全推迟** (commit 自述; `TEST_PLUGIN_FIXTURE_PATH` 宏 CMake 未注入, E2E 编译排除, Loaded 状态零覆盖) | 🟠 E2E 缺失 |
+| 4.4 / 2.7.5 / 3.8.7 AGENTS.md | 顶部状态日志追加 Sprint 6 | **未追加** (Oracle 实测 AGENTS.md 0 命中 Sprint 6) | 🟡 文档欠 |
+| 5.1 47/47 ctest | ≥ 47 | 33/33 (缺 14 个: 7 scheduler + 5 parser + 3 factory - 1 plugin = 14) | 🔴 ship gate 未达 |
+| 5.7 hub out_degree < 30 | 2 函数 < 30 | 未验证 (Oracle 未跑 `code-review-graph`) | 🟡 未验证 |
+
+### 6.2 实际 ship 的正向成果 (公平记录)
+
+- **行为保持 ✅** — `create_node_from_json` 保留 `nullptr`-on-unknown 旧语义; 11 NodeType 一一对应旧 if-else, 零类型丢失; scheduler 入口解析与旧 `execute()` 逐字一致; DAG 序/错误传播/状态转换语义未变; 33/33 ctest pass 佐证
+- **NodeFactoryRegistry 设计稳健 ✅** — `shared_mutex` (shared_lock 查找 / unique_lock 注册) + Meyers 风格 `global()` + O(1) `unordered_map::find` + `create_node_from_json` 216 → 9 行
+- **scheduler 入口解析行为保留 ✅** — `prepare_dag_state` 解析 entry_point + push ready_queue 行为正确
+- **CMake 完整 ✅** — 3 个 factory.cpp + node_factory.cpp 全部正确注册到对应静态库目标
+- **诚实 commit 消息** — 5.5/1.4.8 等 commit 自述推迟项, 未伪装完成
+
+### 6.3 Sprint 7 follow-up 工作 (新增章节, 不属 Sprint 6)
+
+> **本节所有项转入新 OpenSpec change `2026-07-22-sprint-7-tech-debt-followup`**。本 change 不 archive, 保留 6.1 偏离项记录作为审计轨迹。
+
+**🔴 Blocker (Sprint 7 Day 1 必做)**
+- [ ] 6.3.1 修 fork 处理重复: 删除 `src/modules/scheduler/topo_scheduler.cpp:636-642` (`dispatch_next_node` 内 fork 块, 因 `execute()` 161-167 已置 `is_executing_fork_branches_=false` 故为死分支) — 唯一有 bug 风险的代码缺陷
+
+**🟠 Major (Sprint 7 优先)**
+- [ ] 6.3.2 处理 scheduler factory 死代码: 补 `Config` 参数 + 改 `engine.cpp:188` 调用 `agenticdsl::scheduler::create(config, ...)`; 或删除 `src/modules/scheduler/factory.{h,cpp}` + 移除 CMake 注册
+- [ ] 6.3.3 真正提取 `handle_node_completion` + 收 `execute()` 到 ≤ 60 行 (动态 wait_for / jump / fork-join / 动态图重建 各自成子函数)
+- [ ] 6.3.4 补 15 个新测试: 7 scheduler (`tests/test_scheduler.cpp`) + 5 parser (`tests/test_parser.cpp` 含 `factory_registry_concurrent_access` TSan) + 3 factory (`tests/test_engine_factory.cpp`)
+- [ ] 6.3.5 续推 `engine.cpp` 跨模块 include 10 → ≤ 3: 工厂化 `ToolRegistry`/`MockLLMProvider`; 引入 `IBudgetController` 抽象让 budget factory 返回接口 (解 design.md Open Question 1)
+
+**🟡 Minor (Sprint 7 顺手)**
+- [ ] 6.3.6 修 `pending_dynamic_deps_` 访问不一致: `dispatch_next_node()` L669 改用 `session_.get_pending_dynamic_deps()` 访问器
+- [ ] 6.3.7 修 spec 笔误: `node-factory-registry/spec.md:30,40` 与 `tasks.md:3.2.3/3.4.2` 13 → 11
+- [ ] 6.3.8 删 `tests/test_plugin_loader.cpp:206` `#ifdef TEST_PLUGIN_FIXTURE_PATH` 死代码或补 CMake `target_compile_definitions` 注入 + 实施推迟的 mock .so
+- [ ] 6.3.9 改 plugin 测试 7 case 名称/范围匹配 spec (`load_valid_plugin` / `abi_mismatch_strict` / `dlsym_missing_register_fn` / `unload_all_raii` 等)
+- [ ] 6.3.10 更新 `AGENTS.md` § Recent Changes 追加 Sprint 6 STATUS NOTE (本节) + Sprint 7 启动条目
+- [ ] 6.3.11 修 `create_node_from_json` `has_factory` 预检使 registry throw 路径成死分支 (简化逻辑或改 spec §3.3.3)
+- [ ] 6.3.12 验证 `code-review-graph get_hub_nodes --top_n 5` 验证 `execute` out_degree < 30 + `create_node_from_json` < 30
+
+### 6.4 决策记录
+
+- **决策日期**: 2026-06-22
+- **决策者**: Sisyphus (基于 Oracle `ses_112a9f9c5ffesqpYeefOBgMkjH` 审查报告)
+- **决策内容**: 合入 Sprint 6 4 commits + 修正本 tasks.md 标注偏离项 + 不 archive 本 change + 启动 Sprint 7 follow-up
+- **不再做**: ❌ 不回退 4 commits / ❌ 不重做 Sprint 6 / ❌ 不立即 archive / ❌ 不在 Sprint 6 修 6.3.x 任何项 (全部 Sprint 7 范围)
+- **下一步**: 创建 OpenSpec change `2026-07-22-sprint-7-tech-debt-followup` + 更新 AGENTS.md + 提交本 tasks.md 修正
