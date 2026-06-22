@@ -633,13 +633,9 @@ std::optional<ExecutionResult> TopoScheduler::prepare_dag_state() {
 
 std::variant<std::monostate, TopoScheduler::NodeLookupResult, ExecutionResult>
 TopoScheduler::dispatch_next_node(const Context& context) {
-    if (is_executing_fork_branches_) {
-        execute_fork_branches();
-        if (current_fork_branch_index_ == current_fork_branches_.size()) {
-            finish_fork_simulation();
-            LOG_DEBUG("Fork branches done, waiting for JoinNode.");
-        }
-    }
+    // 注意: fork 分支处理已在 execute() L161-167 完成 (主 while 循环每次迭代开始时调用)。
+    // 此函数仅负责派发 ready_queue 中的下一个节点, 不重复处理 fork 状态。
+    // Sprint 7 Day 1: 去除与 execute() 重复的 fork 处理块 (Oracle ses_112a9f9c5ffesqpYeefOBgMkjH 决议)
 
     if (!ready_queue_.empty() && !is_executing_fork_branches_) {
         NodePath current_path = ready_queue_.front();
