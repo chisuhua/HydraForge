@@ -41,17 +41,17 @@
 `MarkdownParser::create_node_from_json` MUST 重构为调用 `NodeFactoryRegistry::global().create()`:
 - 函数体 MUST ≤ 30 行（原 216 行）
 - 仅处理 NodeType → Factory 映射,具体构造逻辑委托各 NodeType factory 函数
-- 13 个现有 NodeType MUST 各自注册 factory（迁移原 if-else 分支）
+- 11 个现有 NodeType MUST 各自注册 factory（迁移原 if-else 分支）
 
 #### Scenario: create_node_from_json 函数行数
 
 - **WHEN** `awk '/^std::unique_ptr<Node> MarkdownParser::create_node_from_json/,/^}$/' src/modules/parser/markdown_parser.cpp | wc -l`
 - **THEN** MUST ≤ 30 行
 
-#### Scenario: 13 个 NodeType 注册
+#### Scenario: 11 个 NodeType 注册
 
 - **WHEN** 静态初始化块 `static bool _ = [] { ... }()` 在 markdown_parser.cpp 末尾执行
-- **THEN** MUST 注册所有 13 个现有 NodeType（grep `NodeFactoryRegistry::global().register_factory` ≥ 13）
+- **THEN** MUST 注册所有 11 个现有 NodeType（grep `NodeFactoryRegistry::global().register_factory` ≥ 11）
 - **AND** 每个 NodeType MUST 对应一个 factory 函数（`make_llm_node` / `make_tool_node` / ...）
 
 #### Scenario: 新增 NodeType 无需修改本函数
@@ -70,9 +70,9 @@
 
 `tests/test_parser.cpp` MUST 新增 ≥ 5 个 Catch2 test case:
 
-- `factory_registry_registers_all_types`: 验证 13 个 NodeType 全注册
+- `factory_registry_registers_all_types`: 验证 11 个 NodeType 全注册
 - `factory_registry_creates_correct_subtype`: 验证 create() 返回正确子类
-- `factory_registry_unknown_type_throws`: 验证未注册 NodeType 抛 `std::runtime_error`
+- `factory_registry_unknown_type_returns_nullptr`: 验证未注册 NodeType 返回 nullptr（旧行为, 修正 spec 描述）
 - `factory_registry_global_singleton`: 验证 `global()` 返回同一实例
 - `factory_registry_concurrent_access`: 多线程并发 register + create 无数据竞争
 

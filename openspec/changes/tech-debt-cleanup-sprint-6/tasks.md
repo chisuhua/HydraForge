@@ -133,26 +133,26 @@
 - [ ] 3.1.6 CMakeLists.txt 注册新源文件 (parser 模块)
 - [ ] 3.1.7 `cmake --build build` 编译通过
 
-### 3.2 13 个 NodeType factory 函数迁移
+### 3.2 11 个 NodeType factory 函数迁移
 
 - [ ] 3.2.1 在 `src/modules/parser/markdown_parser.cpp` 末尾添加静态注册块: `static bool _ = [] { ... }();`
 - [ ] 3.2.2 提取每个 NodeType 的构造逻辑为独立 factory 函数: `make_llm_node` / `make_tool_node` / `make_http_node` / `make_branch_node` / `make_loop_node` / `make_parallel_node` / ...
-- [ ] 3.2.3 验证注册数: `grep -c "register_factory" src/modules/parser/markdown_parser.cpp` ≥ 13
+- [ ] 3.2.3 验证注册数: `grep -c "register_factory" src/modules/parser/markdown_parser.cpp` ≥ 11
 - [ ] 3.2.4 每个 factory 函数保留原构造逻辑, 仅签名变化 `json -> unique_ptr<Node>`
 
 ### 3.3 create_node_from_json 重构
 
 - [ ] 3.3.1 重写 `MarkdownParser::create_node_from_json` 为 `return NodeFactoryRegistry::global().create(node_type, spec);`
 - [ ] 3.3.2 函数体 ≤ 30 行 (含参数检查 + 异常处理)
-- [ ] 3.3.3 保留 throw on unknown type 行为: `if (!registry.has_factory(type)) throw std::runtime_error("Unknown NodeType: " + ...);`
+- [ ] 3.3.3 保留 nullptr-on-unknown type 行为 (旧语义, 修正 spec 描述): `if (!registry.has_factory(type)) return nullptr;`
 - [ ] 3.3.4 `ctest -R test_parser --output-on-failure` 既有测试零回归
 
 ### 3.4 NodeFactoryRegistry 测试 (≥ 5 个 case)
 
 - [ ] 3.4.1 在 `tests/test_parser.cpp` 添加 5 个新 TEST_CASE
-- [ ] 3.4.2 `factory_registry_registers_all_types`: size() == 13
+- [ ] 3.4.2 `factory_registry_registers_all_types`: size() == 11
 - [ ] 3.4.3 `factory_registry_creates_correct_subtype`: typeid 检查返回正确子类
-- [ ] 3.4.4 `factory_registry_unknown_type_throws`: type = 999, 期望 runtime_error
+- [ ] 3.4.4 `factory_registry_unknown_type_returns_nullptr`: type = "NonExistentType", 期望 nullptr
 - [ ] 3.4.5 `factory_registry_global_singleton`: 两次 global() 调用返回同一地址
 - [ ] 3.4.6 `factory_registry_concurrent_access`: 4 线程并发 create + 1 线程 register, TSan 0 race
 - [ ] 3.4.7 `cmake --preset tsan && ctest -R test_parser` 全 pass
