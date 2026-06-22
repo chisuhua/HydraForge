@@ -7,7 +7,7 @@
 #### Scenario: fork 处理仅 1 处
 
 - **WHEN** `grep -n "execute_fork_branches" src/modules/scheduler/topo_scheduler.cpp`
-- **THEN** MUST 仅 1 命中 (位于 `execute()` 内)
+- **THEN** MUST 仅 1 个调用点 (位于 `execute()` 内, 排除函数定义与文档注释)
 - **AND** `dispatch_next_node()` MUST NOT 调用 `execute_fork_branches`
 
 ### Requirement: scheduler-pipeline-tightened

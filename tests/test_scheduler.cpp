@@ -1,7 +1,9 @@
 // tests/test_scheduler.cpp
 // Sprint 7 Day 2: 7 state-based TEST_CASE 覆盖 TopoScheduler::execute 拆分的 3 子函数:
 //   prepare_dag_state / dispatch_next_node / finalize_execution (handle_node_completion 间接)
-//   + I-2 fork regression test 锁定 Day 1 fork dedup (无重复 finish_fork_simulation)
+//   Day 1 I-2 fork regression test 推迟到 Day 5+ scheduler-pipeline-tightened (NodeExecutor::execute_fork
+//   当前未实现, 无法通过 DSL 触发 is_executing_fork_branches_=true; Day 5+ 直接 unit test
+//   私有 fork 处理方法锁定)
 // 作者: Sprint 7 tech-debt-followup Task 2
 // 最后修改日期: 2026-06-22
 
