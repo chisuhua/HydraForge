@@ -69,3 +69,14 @@ foreach(TEST_SRC ${SINGLE_TEST_SOURCES})
     add_catch_test(${TEST_NAME} ${TEST_SRC})
 endforeach()
 
+# ─────────────────────────────────────────────────────────────
+# Sprint 7 Day 3 quick win (Oracle Top 2 - 推迟自 Day 2 spot-check):
+# 静态 grep 锁定 fork 状态契约, 防止 Day 1 fork dedup 回归。
+# 详见: tests/test_fork_static_contracts.sh
+# 关联 Oracle: ses_111741590ffeF6HMxhgYq7YKrr
+# 关联 spec: openspec/changes/sprint-7-tech-debt-followup/specs/sprint-7-tech-debt-followup/spec.md
+# ─────────────────────────────────────────────────────────────
+add_test(NAME test_fork_static_contracts
+         COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_fork_static_contracts.sh
+         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+
