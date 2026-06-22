@@ -85,6 +85,17 @@ private:
     void start_join_simulation(const JoinNode* join_node);
     void finish_join_simulation(Context& main_context);
 
+    // Sprint 7 Day 5: DagState (Oracle A + 4 纠正, 7 字段契约). nodes 是非拥有视图, 不要改 unique_ptr.
+    struct DagState {
+        std::unordered_map<NodePath, Node*> nodes;
+        std::unordered_map<NodePath, std::vector<NodePath>> reverse_edges;
+        std::unordered_map<NodePath, std::vector<NodePath>> wait_for_dependents;
+        std::unordered_map<NodePath, int> in_degree;
+        std::queue<NodePath> ready_queue;
+        std::unordered_set<NodePath> executed;
+        std::vector<ParsedGraph> dynamic_graphs;
+    };
+
     std::optional<ExecutionResult> prepare_dag_state();
     struct NodeLookupResult {
         NodePath path;
