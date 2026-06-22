@@ -260,7 +260,7 @@ std::unique_ptr<Node> NodeFactoryRegistry::create(const std::string& type_name,
   std::shared_lock lock(mutex_);
   auto it = factories_.find(type_name);
   if (it == factories_.end()) {
-    throw std::runtime_error("NodeFactoryRegistry: unknown node type '" + type_name + "'");
+    return nullptr;  // Unknown type (旧 if-else 行为, spec §3.3.3)
   }
   return it->second(path, node_json);
 }
