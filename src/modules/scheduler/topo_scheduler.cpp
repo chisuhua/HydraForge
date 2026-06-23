@@ -607,7 +607,6 @@ void TopoScheduler::load_graphs(const std::vector<std::unique_ptr<Node>>& nodes)
 }
 
 std::optional<ExecutionResult> TopoScheduler::prepare_dag_state(DagState& state) {
-    (void)state; // Sprint 7 Day 6: state 参数预留, Day 7-8 实施真实纯函数化迁移到 state.*
     std::optional<NodePath> entry_point;
     if (full_graphs_) {
         for (const auto& graph : *full_graphs_) {
@@ -629,6 +628,7 @@ std::optional<ExecutionResult> TopoScheduler::prepare_dag_state(DagState& state)
             return ExecutionResult{false, "Entry point not found: " + entry_point.value(), Context{}, std::nullopt};
         }
         ready_queue_.push(entry_point.value());
+        state.ready_queue.push(entry_point.value());
     }
     return std::nullopt;
 }
