@@ -202,7 +202,9 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
             return {true, "Paused at LLM call", context, session_result.paused_at};
         }
 
-        update_successors(found.node, found.path);
+        NodeResult node_result;
+        node_result.success = true;
+        if (auto err = handle_node_completion(state, node_result, found.node, found.path); err) return *err;
         if (check_end_termination(found.node, found.path)) break;
 
         if (!dynamic_graphs_.empty()) {
@@ -637,9 +639,14 @@ bool TopoScheduler::check_end_termination(Node* current_node, const NodePath& cu
 }
 
 std::optional<ExecutionResult> TopoScheduler::handle_node_completion(
-    DagState& state, const NodeResult& result) {
+    DagState& state, const NodeResult& result, Node* current_node, const NodePath& current_path) {
     (void)state;
-    (void)result;
+    if (!result.success) {
+        for (const auto& dependent : wait_for_dependents_[current_path]) {
+            (void)dependent;
+        }
+    }
+    update_successors(current_node, current_path);
     return std::nullopt;
 }
 

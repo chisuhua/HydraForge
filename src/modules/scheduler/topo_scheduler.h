@@ -112,7 +112,8 @@ private:
     std::variant<std::monostate, NodeLookupResult, ExecutionResult>
     dispatch_ready_nodes(DagState& state, const Context& context);
     ExecutionResult finalize_execution(DagState& state, const Context& context);
-    std::optional<ExecutionResult> handle_node_completion(DagState& state, const NodeResult& result);
+    std::optional<ExecutionResult> handle_node_completion(
+        DagState& state, const NodeResult& result, Node* current_node, const NodePath& current_path);
     bool process_jump(const std::string& message, const NodePath& current_path);
     void update_successors(Node* current_node, const NodePath& current_path);
 };
