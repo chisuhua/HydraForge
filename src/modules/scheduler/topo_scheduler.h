@@ -105,6 +105,8 @@ private:
     dispatch_ready_nodes(DagState& state, const Context& context);
     ExecutionResult finalize_execution(DagState& state, const Context& context);
     // handle_node_completion 推迟到 Day 7-8 (Sprint 7 Day 6 决议: 推迟 NodeResult 类型定义)
+    bool process_jump(const std::string& message, const NodePath& current_path);
+    void update_successors(Node* current_node, const NodePath& current_path);
 };
 
 } // namespace agenticdsl

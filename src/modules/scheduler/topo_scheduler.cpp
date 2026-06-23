@@ -238,18 +238,8 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
         auto session_result = session_.execute_node(current_node, context);
 
         if (!session_result.success) {
-             if (session_result.message.find("Jumping to:") != std::string::npos) {
-                // Extract jump target (simplified)
-                size_t pos = session_result.message.find("Jumping to:");
-                if (pos != std::string::npos) {
-                    NodePath target = session_result.message.substr(pos + 12); // "Jumping to: " is 12 chars
-                    LOG_DEBUG("Node " << current_path << " failed assert, jumping to " << target);
-                    // Clear queue and add jump target
-                    std::queue<NodePath> empty_queue;
-                    ready_queue_.swap(empty_queue);
-                    ready_queue_.push(target);
-                    continue; // Continue loop to execute the jump target
-                }
+            if (process_jump(session_result.message, current_path)) {
+                continue;
             }
             return {false, session_result.message, context, session_result.paused_at};
         }
@@ -298,17 +288,7 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
         }
 
         // Update successors via next field
-        for (const auto& next_path : current_node->next) {
-            if (--in_degree_[next_path] == 0) {
-                ready_queue_.push(next_path);
-            }
-        }
-        // Update nodes that wait_for current_path
-        for (const auto& dependent : wait_for_dependents_[current_path]) {
-            if (--in_degree_[dependent] == 0) {
-                ready_queue_.push(dependent);
-            }
-        }
+        update_successors(current_node, current_path);
 
         // Handle END node termination
         if (current_node->type == NodeType::END) {
@@ -697,6 +677,31 @@ ExecutionResult TopoScheduler::finalize_execution(DagState& state, const Context
     }
 
     return {true, "Execution completed successfully", context, std::nullopt};
+}
+
+bool TopoScheduler::process_jump(const std::string& message, const NodePath& current_path) {
+    if (message.find("Jumping to:") == std::string::npos) return false;
+    size_t pos = message.find("Jumping to:");
+    if (pos == std::string::npos) return false;
+    NodePath target = message.substr(pos + 12);
+    LOG_DEBUG("Node " << current_path << " failed assert, jumping to " << target);
+    std::queue<NodePath> empty_queue;
+    ready_queue_.swap(empty_queue);
+    ready_queue_.push(target);
+    return true;
+}
+
+void TopoScheduler::update_successors(Node* current_node, const NodePath& current_path) {
+    for (const auto& next_path : current_node->next) {
+        if (--in_degree_[next_path] == 0) {
+            ready_queue_.push(next_path);
+        }
+    }
+    for (const auto& dependent : wait_for_dependents_[current_path]) {
+        if (--in_degree_[dependent] == 0) {
+            ready_queue_.push(dependent);
+        }
+    }
 }
 
 
