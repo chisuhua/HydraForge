@@ -101,6 +101,7 @@ private:
     std::optional<ExecutionResult> resolve_dynamic_waits(
         Node* current_node, const NodePath& current_path, const Context& context, bool& can_execute);
     void process_fork_join(Node* current_node, Context& context);
+    void rebuild_dynamic_graph(DagState& state);
     struct NodeLookupResult {
         NodePath path;
         Node* node;

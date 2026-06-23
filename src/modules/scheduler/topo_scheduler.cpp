@@ -260,46 +260,7 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
         }
 
         if (!dynamic_graphs_.empty()) {
-             // Load new graphs into the scheduler's data structures
-             //load_graphs(std::vector<ParsedGraph>()); // This is a hack to clear and reload. Better: add nodes incrementally.
-             // A better way: have append_dynamic_graphs call register_node and update in_degree_ directly.
-             // For now, let's just add nodes and rebuild the relevant parts.
-             // Let's assume load_graphs can handle appending new nodes correctly.
-             // We need to call build_dag again to incorporate new nodes and dependencies.
-             // This is expensive. A better approach is incremental DAG update.
-             // For this example, we'll rebuild. In practice, incremental updates are preferred.
-             // Let's clear the current structures and reload everything (including dynamic ones).
-             // This is inefficient but demonstrates the concept.
-             std::vector<std::unique_ptr<Node>> all_nodes_copy; // Create a new list to avoid modifying while iterating
-             for (auto& n : all_nodes_) {
-                 all_nodes_copy.push_back(n->clone()); // Clone existing nodes
-             }
-             // Register dynamic nodes
-             for (const auto& graph : dynamic_graphs_) {
-                 for (const auto& node_ptr : graph.nodes) {
-                     if (node_ptr) {
-                         all_nodes_copy.push_back(node_ptr->clone());
-                     }
-                 }
-             }
-             // Clear old structures
-             node_map_.clear();
-             reverse_edges_.clear();
-             in_degree_.clear();
-             // Rebuild DAG with all nodes (existing + dynamic)
-             all_nodes_ = std::move(all_nodes_copy);
-             build_dag(); // This will recreate ready_queue_ with new nodes if their deps are met
-             dynamic_graphs_.clear(); // Clear the list after processing
-             // Re-check the current node's dependencies after rebuild
-             // If current node's deps are now satisfied, it might be added back to ready_queue_ by build_dag
-             // If not, it will be skipped in this loop iteration.
-             // We need to ensure the main loop continues correctly.
-             // This approach is disruptive. A better scheduler would handle this more gracefully.
-             // Let's just continue the loop. The current node might be re-queued by build_dag if its deps are now ready.
-             // Or, we can restart the main loop logic from the beginning.
-             // For simplicity in this example, let's just continue the loop.
-             // The ready_queue_ might now contain nodes that were previously unready.
-             // This is the most straightforward way to handle the rebuild.
+            rebuild_dynamic_graph(state);
         }
 
         // Check if any pending dynamic deps are now satisfied due to this execution
@@ -677,6 +638,30 @@ void TopoScheduler::process_fork_join(Node* current_node, Context& context) {
     finish_join_simulation(context);
     finish_fork_simulation();
     LOG_DEBUG("Join completed, merged context.");
+}
+
+void TopoScheduler::rebuild_dynamic_graph(DagState& state) {
+    if (dynamic_graphs_.empty()) return;
+    state.dynamic_graphs.assign(
+        std::make_move_iterator(dynamic_graphs_.begin()),
+        std::make_move_iterator(dynamic_graphs_.end())
+    );
+    std::vector<std::unique_ptr<Node>> all_nodes_copy;
+    for (auto& n : all_nodes_) {
+        all_nodes_copy.push_back(n->clone());
+    }
+    for (auto& graph : state.dynamic_graphs) {
+        for (const auto& node_ptr : graph.nodes) {
+            if (node_ptr) {
+                all_nodes_copy.push_back(node_ptr->clone());
+            }
+        }
+    }
+    node_map_.clear();
+    reverse_edges_.clear();
+    in_degree_.clear();
+    all_nodes_ = std::move(all_nodes_copy);
+    build_dag(state);
 }
 
 bool TopoScheduler::process_jump(const std::string& message, const NodePath& current_path) {
