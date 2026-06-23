@@ -191,6 +191,12 @@ struct AssertNode : public Node {
     std::unique_ptr<Node> clone() const override;
 };
 
+struct NodeResult {
+    bool success = true;
+    nlohmann::json output;
+    std::string error_message;
+};
+
 
 } // namespace agenticdsl
 

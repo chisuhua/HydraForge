@@ -1,5 +1,6 @@
 // modules/scheduler/src/topo_scheduler.cpp
 #include "scheduler/topo_scheduler.h"
+#include "core/types/node.h"
 #include "common/llm/llm_types.h" // C₁.3: 需要完整 ILLMProvider 定义
 #include "common/utils/template_renderer.h"
 #include "common/log/log.h"        // agenticdsl::log 日志门面（tech-debt-and-doc-cleanup）
@@ -633,6 +634,13 @@ bool TopoScheduler::check_end_termination(Node* current_node, const NodePath& cu
         return true;
     }
     return false;
+}
+
+std::optional<ExecutionResult> TopoScheduler::handle_node_completion(
+    DagState& state, const NodeResult& result) {
+    (void)state;
+    (void)result;
+    return std::nullopt;
 }
 
 bool TopoScheduler::process_jump(const std::string& message, const NodePath& current_path) {
