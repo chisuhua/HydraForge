@@ -665,10 +665,10 @@ TopoScheduler::dispatch_ready_nodes(DagState& state, const Context& context) {
         }
     }
 
-    if (!session_.pending_dynamic_deps_.empty()) {
+    if (!session_.get_pending_dynamic_deps().empty()) {
         return ExecutionResult{false,
             "Execution stopped: Unmet dynamic dependencies. Pending: " +
-            nlohmann::json(session_.pending_dynamic_deps_).dump(),
+            nlohmann::json(session_.get_pending_dynamic_deps()).dump(),
             context, std::nullopt};
     }
     return std::monostate{};
