@@ -146,6 +146,22 @@ void TopoScheduler::build_dag() {
     }
 }
 
+void TopoScheduler::build_dag(DagState& state) {
+    build_dag();
+    state.nodes = node_map_;
+    state.reverse_edges = reverse_edges_;
+    state.wait_for_dependents = wait_for_dependents_;
+    state.in_degree = in_degree_;
+    state.executed.clear();
+    while (!state.ready_queue.empty()) state.ready_queue.pop();
+    for (const auto& node_ptr : all_nodes_) {
+        NodePath path = node_ptr->path;
+        if (state.in_degree[path] == 0) {
+            state.ready_queue.push(path);
+        }
+    }
+}
+
 ExecutionResult TopoScheduler::execute(const Context& initial_context) {
     Context context = initial_context;
     DagState state; // Sprint 7 Day 6: DagState 共享状态 (Day 7-8 真实纯函数化迁移)
@@ -154,8 +170,9 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
     if (early.has_value()) {
         return *early;
     }
+    build_dag(state);
 
-    while (!ready_queue_.empty() || !session_.get_pending_dynamic_deps().empty() || is_executing_fork_branches_) { // Continue while queue has items OR fork branches are running
+    while (!state.ready_queue.empty() || !session_.get_pending_dynamic_deps().empty()) { // Continue while queue has items OR pending dynamic deps
         NodePath current_path;
         Node* current_node = nullptr;
 
@@ -586,17 +603,16 @@ std::optional<ExecutionResult> TopoScheduler::prepare_dag_state(DagState& state)
         }
     }
 
-    if (entry_point.has_value()) {
-        std::queue<NodePath> empty;
-        ready_queue_.swap(empty);
-        if (node_map_.count(entry_point.value()) == 0) {
-            return ExecutionResult{false, "Entry point not found: " + entry_point.value(), Context{}, std::nullopt};
+        if (entry_point.has_value()) {
+            std::queue<NodePath> empty;
+            ready_queue_.swap(empty);
+            if (node_map_.count(entry_point.value()) == 0) {
+                return ExecutionResult{false, "Entry point not found: " + entry_point.value(), Context{}, std::nullopt};
+            }
+            ready_queue_.push(entry_point.value());
         }
-        ready_queue_.push(entry_point.value());
-        state.ready_queue.push(entry_point.value());
+        return std::nullopt;
     }
-    return std::nullopt;
-}
 
 std::variant<std::monostate, TopoScheduler::NodeLookupResult, ExecutionResult>
 TopoScheduler::dispatch_ready_nodes(DagState& state, const Context& context) {

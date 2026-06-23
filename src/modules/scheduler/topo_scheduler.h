@@ -97,6 +97,7 @@ private:
     };
 
     std::optional<ExecutionResult> prepare_dag_state(DagState& state);
+    void build_dag(DagState& state);
     struct NodeLookupResult {
         NodePath path;
         Node* node;
