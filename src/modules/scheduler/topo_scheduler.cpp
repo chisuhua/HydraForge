@@ -148,8 +148,9 @@ void TopoScheduler::build_dag() {
 
 ExecutionResult TopoScheduler::execute(const Context& initial_context) {
     Context context = initial_context;
+    DagState state; // Sprint 7 Day 6: DagState 共享状态 (Day 7-8 真实纯函数化迁移)
 
-    auto early = prepare_dag_state();
+    auto early = prepare_dag_state(state);
     if (early.has_value()) {
         return *early;
     }
@@ -166,7 +167,7 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
             }
         }
 
-        auto dispatch_result = dispatch_next_node(context);
+        auto dispatch_result = dispatch_ready_nodes(state, context);
         if (std::holds_alternative<ExecutionResult>(dispatch_result)) {
             return std::get<ExecutionResult>(dispatch_result);
         }
@@ -237,18 +238,8 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
         auto session_result = session_.execute_node(current_node, context);
 
         if (!session_result.success) {
-             if (session_result.message.find("Jumping to:") != std::string::npos) {
-                // Extract jump target (simplified)
-                size_t pos = session_result.message.find("Jumping to:");
-                if (pos != std::string::npos) {
-                    NodePath target = session_result.message.substr(pos + 12); // "Jumping to: " is 12 chars
-                    LOG_DEBUG("Node " << current_path << " failed assert, jumping to " << target);
-                    // Clear queue and add jump target
-                    std::queue<NodePath> empty_queue;
-                    ready_queue_.swap(empty_queue);
-                    ready_queue_.push(target);
-                    continue; // Continue loop to execute the jump target
-                }
+            if (process_jump(session_result.message, current_path)) {
+                continue;
             }
             return {false, session_result.message, context, session_result.paused_at};
         }
@@ -297,17 +288,7 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
         }
 
         // Update successors via next field
-        for (const auto& next_path : current_node->next) {
-            if (--in_degree_[next_path] == 0) {
-                ready_queue_.push(next_path);
-            }
-        }
-        // Update nodes that wait_for current_path
-        for (const auto& dependent : wait_for_dependents_[current_path]) {
-            if (--in_degree_[dependent] == 0) {
-                ready_queue_.push(dependent);
-            }
-        }
+        update_successors(current_node, current_path);
 
         // Handle END node termination
         if (current_node->type == NodeType::END) {
@@ -366,7 +347,7 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
         session_.check_and_requeue_dynamic_deps(newly_executed);
     }
 
-    return finalize_execution(context);
+    return finalize_execution(state, context);
 }
 
 
@@ -605,7 +586,7 @@ void TopoScheduler::load_graphs(const std::vector<std::unique_ptr<Node>>& nodes)
     // build_dag(); // Only call if this is an initial load, not for dynamic append
 }
 
-std::optional<ExecutionResult> TopoScheduler::prepare_dag_state() {
+std::optional<ExecutionResult> TopoScheduler::prepare_dag_state(DagState& state) {
     std::optional<NodePath> entry_point;
     if (full_graphs_) {
         for (const auto& graph : *full_graphs_) {
@@ -627,12 +608,14 @@ std::optional<ExecutionResult> TopoScheduler::prepare_dag_state() {
             return ExecutionResult{false, "Entry point not found: " + entry_point.value(), Context{}, std::nullopt};
         }
         ready_queue_.push(entry_point.value());
+        state.ready_queue.push(entry_point.value());
     }
     return std::nullopt;
 }
 
 std::variant<std::monostate, TopoScheduler::NodeLookupResult, ExecutionResult>
-TopoScheduler::dispatch_next_node(const Context& context) {
+TopoScheduler::dispatch_ready_nodes(DagState& state, const Context& context) {
+    (void)state; // Sprint 7 Day 6: state 参数预留, Day 7-8 实施真实纯函数化迁移到 state.*
     // 注意: fork 分支处理已在 execute() L161-167 完成 (主 while 循环每次迭代开始时调用)。
     // 此函数仅负责派发 ready_queue 中的下一个节点, 不重复处理 fork 状态。
     // Sprint 7 Day 1: 去除与 execute() 重复的 fork 处理块 (Oracle ses_112a9f9c5ffesqpYeefOBgMkjH 决议)
@@ -662,16 +645,17 @@ TopoScheduler::dispatch_next_node(const Context& context) {
         }
     }
 
-    if (!session_.pending_dynamic_deps_.empty()) {
+    if (!session_.get_pending_dynamic_deps().empty()) {
         return ExecutionResult{false,
             "Execution stopped: Unmet dynamic dependencies. Pending: " +
-            nlohmann::json(session_.pending_dynamic_deps_).dump(),
+            nlohmann::json(session_.get_pending_dynamic_deps()).dump(),
             context, std::nullopt};
     }
     return std::monostate{};
 }
 
-ExecutionResult TopoScheduler::finalize_execution(const Context& context) {
+ExecutionResult TopoScheduler::finalize_execution(DagState& state, const Context& context) {
+    (void)state; // Sprint 7 Day 6: state 参数预留, Day 7-8 实施真实纯函数化迁移到 state.*
     if (session_.is_budget_exceeded()) {
         return {false, "Execution stopped: Budget exceeded", context, std::nullopt};
     }
@@ -693,6 +677,31 @@ ExecutionResult TopoScheduler::finalize_execution(const Context& context) {
     }
 
     return {true, "Execution completed successfully", context, std::nullopt};
+}
+
+bool TopoScheduler::process_jump(const std::string& message, const NodePath& current_path) {
+    if (message.find("Jumping to:") == std::string::npos) return false;
+    size_t pos = message.find("Jumping to:");
+    if (pos == std::string::npos) return false;
+    NodePath target = message.substr(pos + 12);
+    LOG_DEBUG("Node " << current_path << " failed assert, jumping to " << target);
+    std::queue<NodePath> empty_queue;
+    ready_queue_.swap(empty_queue);
+    ready_queue_.push(target);
+    return true;
+}
+
+void TopoScheduler::update_successors(Node* current_node, const NodePath& current_path) {
+    for (const auto& next_path : current_node->next) {
+        if (--in_degree_[next_path] == 0) {
+            ready_queue_.push(next_path);
+        }
+    }
+    for (const auto& dependent : wait_for_dependents_[current_path]) {
+        if (--in_degree_[dependent] == 0) {
+            ready_queue_.push(dependent);
+        }
+    }
 }
 
 

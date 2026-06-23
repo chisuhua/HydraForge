@@ -85,14 +85,28 @@ private:
     void start_join_simulation(const JoinNode* join_node);
     void finish_join_simulation(Context& main_context);
 
-    std::optional<ExecutionResult> prepare_dag_state();
+    // Sprint 7 Day 5: DagState (Oracle A + 4 纠正, 7 字段契约). nodes 是非拥有视图, 不要改 unique_ptr.
+    struct DagState {
+        std::unordered_map<NodePath, Node*> nodes;
+        std::unordered_map<NodePath, std::vector<NodePath>> reverse_edges;
+        std::unordered_map<NodePath, std::vector<NodePath>> wait_for_dependents;
+        std::unordered_map<NodePath, int> in_degree;
+        std::queue<NodePath> ready_queue;
+        std::unordered_set<NodePath> executed;
+        std::vector<ParsedGraph> dynamic_graphs;
+    };
+
+    std::optional<ExecutionResult> prepare_dag_state(DagState& state);
     struct NodeLookupResult {
         NodePath path;
         Node* node;
     };
     std::variant<std::monostate, NodeLookupResult, ExecutionResult>
-    dispatch_next_node(const Context& context);
-    ExecutionResult finalize_execution(const Context& context);
+    dispatch_ready_nodes(DagState& state, const Context& context);
+    ExecutionResult finalize_execution(DagState& state, const Context& context);
+    // handle_node_completion 推迟到 Day 7-8 (Sprint 7 Day 6 决议: 推迟 NodeResult 类型定义)
+    bool process_jump(const std::string& message, const NodePath& current_path);
+    void update_successors(Node* current_node, const NodePath& current_path);
 };
 
 } // namespace agenticdsl
