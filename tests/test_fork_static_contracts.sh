@@ -4,7 +4,7 @@
 # 静态 grep 锁定 fork 状态契约, 防止 Day 1 fork dedup 回归。
 #
 # 背景: Oracle session ses_111741590ffeF6HMxhgYq7YKrr Day 2 抽查发现
-# - Day 1 fix (commit 84c4c0a) 修复了 execute() L161-167 与 dispatch_next_node() L636-642
+# - Day 1 fix (commit 84c4c0a) 修复了 execute() L161-167 与 dispatch_ready_nodes() L636-642
 #   重复 fork 块, 但无自动化测试锁定契约
 # - I-2 fork regression test 推迟到 Day 5+ scheduler-pipeline-tightened
 #   (NodeExecutor::execute_fork 当前未实现, 无法通过 DSL 触发)
@@ -27,7 +27,7 @@ FAIL=0
 
 # ─────────────────────────────────────────────────────────────
 # 契约 1: fork 处理仅 1 个调用点 (位于 execute() 内, 排除函数定义与文档注释)
-# Day 1 fix (commit 84c4c0a) 后 dispatch_next_node 不再含 fork 处理块
+# Day 1 fix (commit 84c4c0a) 后 dispatch_ready_nodes 不再含 fork 处理块
 # 排除项: 函数定义 `void TopoScheduler::execute_fork_branches()` 等
 # ─────────────────────────────────────────────────────────────
 # grep 仅匹配 *调用* (不在 :: 分辨符后, 不在注释中)
@@ -65,17 +65,17 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────
-# 契约 3: dispatch_next_node 函数体内不再含 execute_fork_branches 调用
+# 契约 3: dispatch_ready_nodes 函数体内不再含 execute_fork_branches 调用
 # (Day 1 fix 核心: fork 处理统一在 execute() L161-167 入口)
-# 检测: awk 提取 dispatch_next_node 函数体, 检查无 execute_fork_branches 调用
+# 检测: awk 提取 dispatch_ready_nodes 函数体, 检查无 execute_fork_branches 调用
 # ─────────────────────────────────────────────────────────────
-DISPATCH_BODY=$(awk '/^std::variant.*TopoScheduler::dispatch_next_node/,/^}$/' "${SCHEDULER_CPP}" || true)
+DISPATCH_BODY=$(awk '/^std::variant.*TopoScheduler::dispatch_ready_nodes/,/^}$/' "${SCHEDULER_CPP}" || true)
 if echo "${DISPATCH_BODY}" | grep -qE "execute_fork_branches\(" ; then
-  echo "FAIL: 契约 3 - dispatch_next_node 函数体内仍含 execute_fork_branches 调用 (Day 1 dedup 回归)" >&2
+  echo "FAIL: 契约 3 - dispatch_ready_nodes 函数体内仍含 execute_fork_branches 调用 (Day 1 dedup 回归)" >&2
   echo "${DISPATCH_BODY}" | grep -nE "execute_fork_branches" >&2 || true
   FAIL=$((FAIL + 1))
 else
-  echo "PASS: 契约 3 - dispatch_next_node 函数体不含 fork 处理调用"
+  echo "PASS: 契约 3 - dispatch_ready_nodes 函数体不含 fork 处理调用"
   PASS=$((PASS + 1))
 fi
 
