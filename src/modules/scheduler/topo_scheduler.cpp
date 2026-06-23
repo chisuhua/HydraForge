@@ -164,107 +164,51 @@ void TopoScheduler::build_dag(DagState& state) {
 
 ExecutionResult TopoScheduler::execute(const Context& initial_context) {
     Context context = initial_context;
-    DagState state; // Sprint 7 Day 6: DagState 共享状态 (Day 7-8 真实纯函数化迁移)
-
-    auto early = prepare_dag_state(state);
-    if (early.has_value()) {
-        return *early;
-    }
+    DagState state;
+    if (auto early = prepare_dag_state(state); early.has_value()) return *early;
     build_dag(state);
 
-    while (!state.ready_queue.empty() || !session_.get_pending_dynamic_deps().empty()) { // Continue while queue has items OR pending dynamic deps
-        NodePath current_path;
-        Node* current_node = nullptr;
-
-        if (is_executing_fork_branches_) {
-            execute_fork_branches();
-            if (current_fork_branch_index_ == current_fork_branches_.size()) {
-                LOG_DEBUG("Fork branches done, waiting for JoinNode.");
-            }
-        }
+    while (!state.ready_queue.empty() || !session_.get_pending_dynamic_deps().empty()) {
+        handle_fork_branches_block();
 
         auto dispatch_result = dispatch_ready_nodes(state, context);
-        if (std::holds_alternative<ExecutionResult>(dispatch_result)) {
-            return std::get<ExecutionResult>(dispatch_result);
-        }
-        if (std::holds_alternative<std::monostate>(dispatch_result)) {
-            break; // No more nodes to execute
-        }
+        if (std::holds_alternative<ExecutionResult>(dispatch_result)) return std::get<ExecutionResult>(dispatch_result);
+        if (std::holds_alternative<std::monostate>(dispatch_result)) break;
         auto& found = std::get<NodeLookupResult>(dispatch_result);
-        current_path = found.path;
-        current_node = found.node;
-
-        if (executed_.count(current_path) > 0) {
-            continue;
-        }
+        if (executed_.count(found.path) > 0) continue;
 
         bool can_execute = true;
-        if (auto rw_err = resolve_dynamic_waits(current_node, current_path, context, can_execute); rw_err.has_value()) {
-            return *rw_err;
-        }
-        if (!can_execute) {
-            continue;
-        }
+        if (auto rw_err = resolve_dynamic_waits(found.node, found.path, context, can_execute); rw_err.has_value()) return *rw_err;
+        if (!can_execute) continue;
 
-        // --- Execute Node via ExecutionSession ---
-        // Check node type here
-        //if (current_node->type == NodeType::FORK || current_node->type == NodeType::GENERATE_SUBGRAPH) {
-        //    session_.context_engine_.save_snapshot(current_path, context); // Accessing private member via friend
-        //}
-
-        auto session_result = session_.execute_node(current_node, context);
-
+        auto session_result = session_.execute_node(found.node, context);
         if (!session_result.success) {
-            if (process_jump(session_result.message, current_path)) {
-                continue;
-            }
+            if (process_jump(session_result.message, found.path)) continue;
             return {false, session_result.message, context, session_result.paused_at};
         }
 
-        // Update context with result from session
         context = std::move(session_result.new_context);
+        executed_.insert(found.path);
 
-        // Mark as executed
-        executed_.insert(current_path);
-
-        if (current_node->type == NodeType::FORK) {
-            const ForkNode* fork_node = dynamic_cast<const ForkNode*>(current_node);
-            if (!fork_node) {
-                throw std::runtime_error("Node type FORK but not ForkNode instance");
-            }
-             // After ForkNode execution (and snapshot), start simulation
-             start_fork_simulation(dynamic_cast<const ForkNode*>(current_node), context); // Pass current context which is the snapshot context at this point due to ExecutionSession logic
-             // The main execution loop will then call execute_fork_branches in the next iteration
-             continue; // Go to next loop iteration to handle branches
+        if (found.node->type == NodeType::FORK) {
+            handle_fork_node(found.node, context);
+            continue;
         }
-
-        if (current_node->type == NodeType::JOIN) {
-            process_fork_join(current_node, context);
+        if (found.node->type == NodeType::JOIN) {
+            process_fork_join(found.node, context);
         }
-
-        // Check for pause (e.g., LLM call)
         if (session_result.paused_at.has_value()) {
             return {true, "Paused at LLM call", context, session_result.paused_at};
         }
 
-        // Update successors via next field
-        update_successors(current_node, current_path);
-
-        // Handle END node termination
-        if (current_node->type == NodeType::END) {
-            std::string mode = current_node->metadata.value("termination_mode", "hard");
-            bool is_system_node = current_path.rfind("/__system__/", 0) == 0;
-            if (mode == "hard" && !is_executing_fork_branches_ && !is_system_node) {
-                break; // Terminate entire flow
-            }
-        }
+        update_successors(found.node, found.path);
+        if (check_end_termination(found.node, found.path)) break;
 
         if (!dynamic_graphs_.empty()) {
             rebuild_dynamic_graph(state);
         }
 
-        // Check if any pending dynamic deps are now satisfied due to this execution
-        std::unordered_set<NodePath> newly_executed = {current_path};
+        std::unordered_set<NodePath> newly_executed = {found.path};
         session_.check_and_requeue_dynamic_deps(newly_executed);
     }
 
@@ -662,6 +606,33 @@ void TopoScheduler::rebuild_dynamic_graph(DagState& state) {
     in_degree_.clear();
     all_nodes_ = std::move(all_nodes_copy);
     build_dag(state);
+}
+
+void TopoScheduler::handle_fork_branches_block() {
+    if (is_executing_fork_branches_) {
+        execute_fork_branches();
+        if (current_fork_branch_index_ == current_fork_branches_.size()) {
+            LOG_DEBUG("Fork branches done, waiting for JoinNode.");
+        }
+    }
+}
+
+void TopoScheduler::handle_fork_node(Node* current_node, const Context& context) {
+    const ForkNode* fork_node = dynamic_cast<const ForkNode*>(current_node);
+    if (!fork_node) {
+        throw std::runtime_error("Node type FORK but not ForkNode instance");
+    }
+    start_fork_simulation(fork_node, context);
+}
+
+bool TopoScheduler::check_end_termination(Node* current_node, const NodePath& current_path) {
+    if (current_node->type != NodeType::END) return false;
+    std::string mode = current_node->metadata.value("termination_mode", "hard");
+    bool is_system_node = current_path.rfind("/__system__/", 0) == 0;
+    if (mode == "hard" && !is_executing_fork_branches_ && !is_system_node) {
+        return true;
+    }
+    return false;
 }
 
 bool TopoScheduler::process_jump(const std::string& message, const NodePath& current_path) {

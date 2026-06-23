@@ -102,6 +102,9 @@ private:
         Node* current_node, const NodePath& current_path, const Context& context, bool& can_execute);
     void process_fork_join(Node* current_node, Context& context);
     void rebuild_dynamic_graph(DagState& state);
+    void handle_fork_branches_block();
+    void handle_fork_node(Node* current_node, const Context& context);
+    bool check_end_termination(Node* current_node, const NodePath& current_path);
     struct NodeLookupResult {
         NodePath path;
         Node* node;
