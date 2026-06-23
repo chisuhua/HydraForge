@@ -96,14 +96,15 @@ private:
         std::vector<ParsedGraph> dynamic_graphs;
     };
 
-    std::optional<ExecutionResult> prepare_dag_state();
+    std::optional<ExecutionResult> prepare_dag_state(DagState& state);
     struct NodeLookupResult {
         NodePath path;
         Node* node;
     };
     std::variant<std::monostate, NodeLookupResult, ExecutionResult>
-    dispatch_next_node(const Context& context);
-    ExecutionResult finalize_execution(const Context& context);
+    dispatch_ready_nodes(DagState& state, const Context& context);
+    ExecutionResult finalize_execution(DagState& state, const Context& context);
+    // handle_node_completion 推迟到 Day 7-8 (Sprint 7 Day 6 决议: 推迟 NodeResult 类型定义)
 };
 
 } // namespace agenticdsl
