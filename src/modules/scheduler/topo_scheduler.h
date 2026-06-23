@@ -98,6 +98,8 @@ private:
 
     std::optional<ExecutionResult> prepare_dag_state(DagState& state);
     void build_dag(DagState& state);
+    std::optional<ExecutionResult> resolve_dynamic_waits(
+        Node* current_node, const NodePath& current_path, const Context& context, bool& can_execute);
     struct NodeLookupResult {
         NodePath path;
         Node* node;

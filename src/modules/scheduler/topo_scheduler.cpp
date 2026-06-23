@@ -198,49 +198,10 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
             continue;
         }
 
-        // --- v3.1: Handle Dynamic wait_for (resolved during execution) ---
         bool can_execute = true;
-        if (current_node->metadata.contains("wait_for") && current_node->metadata["wait_for"].is_string()) {
-            // This is a dynamic wait_for expression
-            std::string dynamic_expr = current_node->metadata["wait_for"].get<std::string>();
-
-            try {
-                std::string rendered_deps_str = InjaTemplateRenderer::render(dynamic_expr, context);
-                // Assume rendered result is a JSON array of node paths
-                auto rendered_deps_json = nlohmann::json::parse(rendered_deps_str);
-                std::vector<NodePath> rendered_deps;
-                if (rendered_deps_json.is_array()) {
-                    for (const auto& item : rendered_deps_json) {
-                        if (item.is_string()) {
-                            rendered_deps.push_back(item.get<std::string>());
-                        }
-                    }
-                } else if (rendered_deps_json.is_string()) {
-                    rendered_deps.push_back(rendered_deps_json.get<std::string>());
-                } else {
-                    // If not array/string after rendering, treat as single path or error
-                    // For this example, assume it's a single path string
-                    rendered_deps.push_back(rendered_deps_str);
-                }
-
-                // Check if all dynamic dependencies are executed
-                for (const auto& dep_path : rendered_deps) {
-                    if (executed_.count(dep_path) == 0) {
-                        can_execute = false;
-                        // Put back on queue or wait? For topo, we might need a different model for dynamic deps.
-                        // For now, just put it back on the ready queue for now, assuming it will become ready later.
-                        // This can lead to busy waiting if dependency is never met.
-                        // A more robust system would track pending dynamic dependencies separately.
-                        ready_queue_.push(current_path);
-                        break; // Stop checking deps for this node
-                    }
-                }
-            } catch (const std::exception& e) {
-                return {false, "Failed to resolve dynamic wait_for for node '" + current_path + "': " + e.what(), context, std::nullopt};
-            }
-
+        if (auto rw_err = resolve_dynamic_waits(current_node, current_path, context, can_execute); rw_err.has_value()) {
+            return *rw_err;
         }
-
         if (!can_execute) {
             continue;
         }
@@ -678,6 +639,40 @@ ExecutionResult TopoScheduler::finalize_execution(DagState& state, const Context
     }
 
     return {true, "Execution completed successfully", context, std::nullopt};
+}
+
+std::optional<ExecutionResult> TopoScheduler::resolve_dynamic_waits(
+    Node* current_node, const NodePath& current_path, const Context& context, bool& can_execute) {
+    if (!current_node->metadata.contains("wait_for") || !current_node->metadata["wait_for"].is_string()) {
+        return std::nullopt;
+    }
+    std::string dynamic_expr = current_node->metadata["wait_for"].get<std::string>();
+    try {
+        std::string rendered_deps_str = InjaTemplateRenderer::render(dynamic_expr, context);
+        auto rendered_deps_json = nlohmann::json::parse(rendered_deps_str);
+        std::vector<NodePath> rendered_deps;
+        if (rendered_deps_json.is_array()) {
+            for (const auto& item : rendered_deps_json) {
+                if (item.is_string()) {
+                    rendered_deps.push_back(item.get<std::string>());
+                }
+            }
+        } else if (rendered_deps_json.is_string()) {
+            rendered_deps.push_back(rendered_deps_json.get<std::string>());
+        } else {
+            rendered_deps.push_back(rendered_deps_str);
+        }
+        for (const auto& dep_path : rendered_deps) {
+            if (executed_.count(dep_path) == 0) {
+                can_execute = false;
+                ready_queue_.push(current_path);
+                break;
+            }
+        }
+    } catch (const std::exception& e) {
+        return ExecutionResult{false, "Failed to resolve dynamic wait_for for node '" + current_path + "': " + e.what(), context, std::nullopt};
+    }
+    return std::nullopt;
 }
 
 bool TopoScheduler::process_jump(const std::string& message, const NodePath& current_path) {
