@@ -239,10 +239,7 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
         }
 
         if (current_node->type == NodeType::JOIN) {
-            start_join_simulation(dynamic_cast<const JoinNode*>(current_node));
-            finish_join_simulation(context);
-            finish_fork_simulation();
-            LOG_DEBUG("Join completed, merged context.");
+            process_fork_join(current_node, context);
         }
 
         // Check for pause (e.g., LLM call)
@@ -673,6 +670,13 @@ std::optional<ExecutionResult> TopoScheduler::resolve_dynamic_waits(
         return ExecutionResult{false, "Failed to resolve dynamic wait_for for node '" + current_path + "': " + e.what(), context, std::nullopt};
     }
     return std::nullopt;
+}
+
+void TopoScheduler::process_fork_join(Node* current_node, Context& context) {
+    start_join_simulation(dynamic_cast<const JoinNode*>(current_node));
+    finish_join_simulation(context);
+    finish_fork_simulation();
+    LOG_DEBUG("Join completed, merged context.");
 }
 
 bool TopoScheduler::process_jump(const std::string& message, const NodePath& current_path) {
