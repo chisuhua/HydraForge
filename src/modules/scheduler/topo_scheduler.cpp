@@ -162,7 +162,6 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
         if (is_executing_fork_branches_) {
             execute_fork_branches();
             if (current_fork_branch_index_ == current_fork_branches_.size()) {
-                finish_fork_simulation();
                 LOG_DEBUG("Fork branches done, waiting for JoinNode.");
             }
         }
@@ -262,24 +261,10 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
         }
 
         if (current_node->type == NodeType::JOIN) {
-             // Check if all corresponding fork branches are done
-             if (is_executing_fork_branches_ && current_fork_branch_index_ == current_fork_branches_.size()) {
-                 // All branches finished, now process the join
-                 start_join_simulation(dynamic_cast<const JoinNode*>(current_node));
-                 finish_join_simulation(context); // Merge results into main context
-                 finish_fork_simulation(); // Clean up fork state (results were used)
-                 LOG_DEBUG("Join completed, merged context.");
-                 // Continue with main execution flow using the merged context
-             } else {
-                 // JoinNode encountered before all branches are done - This is an error or requires complex waiting logic
-                 // In this simplified simulation, we assume JoinNode comes after all branches are logically processed.
-                 // If branches are still running, the main loop should wait until they finish (handled by is_executing_fork_branches_ flag).
-                 // If branches are done but Join is encountered, the logic above handles it.
-                 // If branches are not done, this node should wait. The loop will come back to it.
-                 LOG_DEBUG("JoinNode " << current_path << " encountered, waiting for branches to finish.");
-                 ready_queue_.push(current_path); // Re-queue JoinNode to check again later
-                 continue; // Go to next loop iteration (likely processing next branch or another node)
-             }
+            start_join_simulation(dynamic_cast<const JoinNode*>(current_node));
+            finish_join_simulation(context);
+            finish_fork_simulation();
+            LOG_DEBUG("Join completed, merged context.");
         }
 
         // Check for pause (e.g., LLM call)
