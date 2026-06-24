@@ -77,6 +77,7 @@ add_library(agenticdsl_common STATIC
     src/common/llm/factory.cpp                  # Sprint 6 P2-7
     src/common/llm/sse_stream.cpp
     src/common/tools/registry.cpp
+    src/common/tools/factory.cpp              # P2.C: ToolRegistry factory (decouple engine.cpp)
     src/common/utils/parser_utils.cpp
     src/common/utils/template_renderer.cpp
     src/common/utils/yaml_json.cpp

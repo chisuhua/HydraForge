@@ -6,7 +6,7 @@
 #include "common/llm/llm_config.h" // P1.T1: LLMConfig 完整类型
 #include "common/llm/mock_provider.h" // P1.T1 fallback: 兜底直接构造 MockLLMProvider
 // P1.T4: ToolRegistry 完整类型仅在 .cpp 可见 (PIMPL-lite 解耦, engine.h 改为 IToolRegistry 抽象)
-#include "common/tools/registry.h" // P1.T4: 完整类型用于 make_unique<ToolRegistry>()
+// P2.C (2026-06-24): 通过 factory 构造, 无需 include common/tools/registry.h
 #include "modules/budget/factory.h"
 #include "common/llm/factory.h"
 #include "modules/scheduler/topo_scheduler.h"
@@ -20,6 +20,10 @@
 #include <utility> // Phase 1 Sprint 1b (S1b.T2): std::move for bus injection
 
 namespace agenticdsl {
+// P2.C (2026-06-24): forward-declared factory for ToolRegistry (decouple from registry.h)
+namespace tools {
+std::unique_ptr<IToolRegistry> create_tool_registry();
+} // namespace tools
 
 static LlamaAdapter::Config load_llm_config(const std::string& config_path = "llm_config.json") {
     namespace fs = std::filesystem;
@@ -106,7 +110,7 @@ std::unique_ptr<DSLEngine> DSLEngine::from_file(const std::string& file_path) {
 
 DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
     : full_graphs_(std::move(initial_graphs)),
-      tool_registry_(std::make_unique<ToolRegistry>()),
+      tool_registry_(agenticdsl::tools::create_tool_registry()),
       provider_factory_(agenticdsl::llm::create_provider_factory()),
       budget_controller_(agenticdsl::budget::create_controller()) {
     LOG_INFO("Graphs loaded: " << full_graphs_.size());
