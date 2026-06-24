@@ -165,13 +165,18 @@ docs/
 
 ---
 
-## superpowers/ - 已归档
+## superpowers/ - superpowers plans 目录
 
-> **2026-06-03 更新**：`docs/superpowers/` 目录已删除。原内容（3 个文件：2 个设计稿 + 1 个已执行的实施计划）已归档至 `docs/archive/superpowers/`。
+> **2026-06-24 更新**：`docs/superpowers/plans/2026-06-22-sprint7-scheduler-pipeline-tightened.md`
+> (668 行) 已通过 `git mv` 移至 `docs/archive/superpowers/plans/`。该 plan 是 Sprint 7 启动
+> 时的执行计划,已 ship + 延展至 Sprint 8 + Sprint 9 step 1,本计划已不再 active。
 >
+> 后续 superpowers plans 由各 Sprint 启动时按需创建。
+>
+> **历史归档(2026-06-03)**:`docs/superpowers/` 原 3 个文件已归档至 `docs/archive/superpowers/`:
 > - `specs/2026-05-12-dsl-standard-library-design.md` → 已被 `docs/adr/adr-0009-dsl-standard-library.md` 取代
-> - `specs/2026-05-13-memory-state-interface-design.md` → 已被 `docs/adr/adr-0010-memory-system.md` 取代（关键方案对比已迁移至 ADR 替代方案章节）
-> - `plans/2026-06-02-test-fixes-for-prephase.md` → 7 任务已全部执行，12 个测试 100% 通过
+> - `specs/2026-05-13-memory-state-interface-design.md` → 已被 `docs/adr/adr-0010-memory-system.md` 取代
+> - `plans/2026-06-02-test-fixes-for-prephase.md` → 7 任务已全部执行,12 个测试 100% 通过
 
 ---
 
