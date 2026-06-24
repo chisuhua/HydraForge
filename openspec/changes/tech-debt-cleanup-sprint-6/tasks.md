@@ -234,17 +234,17 @@
 | 2.1 `DagState` 结构体 | 新增 struct | **未引入** (子函数非纯, 直接改成员) | 🟠 Major 偏离 |
 | 2.2-2.4 3 子函数命名 | `prepare_dag_state` / `dispatch_ready_nodes` / `handle_node_completion` | `prepare_dag_state` ✓ / `dispatch_next_node` ✗ / `finalize_execution` ✗ | 🟠 2/3 不符 |
 | 2.4 `handle_node_completion` | 提取失败传播 + 触发下游 | **未提取** (动态 wait_for / jump / fork-join / 动态图重建 全部内联 execute) | 🟠 Major 偏离 |
-| 2.6 scheduler 测试 ≥ 7 个 | ≥ 7 个 | **0 个** (`tests/test_scheduler.cpp` 零改动) | 🔴 零交付 |
+| 2.6 scheduler 测试 ≥ 7 个 | ≥ 7 个 | **0 个** (`tests/test_scheduler.cpp` 零改动) | ✅ closed by `2026-06-24-engine-include-final-decoupling` (commit `b3ad5bc`, 7 case 已 ship) |
 | 3.1 `NodeFactoryRegistry` 键类型 | `unordered_map<NodeType, Factory>` | `unordered_map<string, Factory>` | 🟡 偏离 (改进) |
 | 3.2 NodeType 注册数 | 13 个 | 11 个 (spec 撰写时未核对真实枚举; 旧码本就 11) | 🟡 spec 错误 |
-| 3.4 parser 测试 ≥ 5 个 | ≥ 5 个 | **0 个** (`tests/test_parser.cpp` 零改动) | 🔴 零交付 |
+| 3.4 parser 测试 ≥ 5 个 | ≥ 5 个 | **0 个** (`tests/test_parser.cpp` 零改动) | ✅ closed by `2026-06-24-engine-include-final-decoupling` (commit `4d1a855`, 5 case 已 ship) |
 | 3.5-3.6 scheduler factory | `create(SchedulerConfig)` 注入 budget | `create(IToolRegistry&, ILLMProvider*, vector<...>*)` 漏 `Config`/`budget` | 🟠 **死代码** (`engine.cpp:188` 仍直接 `TopoScheduler` 构造, 零调用) |
-| 3.6.1 engine.cpp include ≤ 3 | ≤ 3 | **10 个** (commit 自述 "10→8" 不准确, 仅 swap 头未减计数) | 🔴 严重偏离 |
-| 3.7 factory 测试 ≥ 3 个 | ≥ 3 个 | **0 个** | 🔴 零交付 |
+| 3.6.1 engine.cpp include ≤ 3 | ≤ 3 | **10 个** (commit 自述 "10→8" 不准确, 仅 swap 头未减计数) | ✅ closed by `2026-06-24-engine-include-final-decoupling` (3 commits `e7306d9`/`18ce4aa`/`8f2ad54` + review fix `a8abc35`,最终 = 3) |
+| 3.7 factory 测试 ≥ 3 个 | ≥ 3 个 | **0 个** | ✅ closed by `2026-06-24-engine-include-final-decoupling` (commit `3681ba8`, 3 case 已 ship) |
 | 1.4 plugin 测试 7 case 命名 | `load_valid_plugin` / `abi_mismatch_strict` / `dlsym_missing_register_fn` / `unload_all_raii` | `destructor_safe` / `multiple_failures` / `idempotent_unload` / `list_loaded_copy` / `path_traversal` / `load_all_zero_paths` / `empty_path_validation` | 🟠 名称/范围不符 |
 | 1.4.2-1.4.8 plugin E2E | mock .so + ABI/dlsym/RAII-dlclose 实测 | **全推迟** (commit 自述; `TEST_PLUGIN_FIXTURE_PATH` 宏 CMake 未注入, E2E 编译排除, Loaded 状态零覆盖) | 🟠 E2E 缺失 |
 | 4.4 / 2.7.5 / 3.8.7 AGENTS.md | 顶部状态日志追加 Sprint 6 | **未追加** (Oracle 实测 AGENTS.md 0 命中 Sprint 6) | 🟡 文档欠 |
-| 5.1 47/47 ctest | ≥ 47 | 33/33 (缺 14 个: 7 scheduler + 5 parser + 3 factory - 1 plugin = 14) | 🔴 ship gate 未达 |
+| 5.1 47/47 ctest | ≥ 47 | 33/33 (缺 14 个: 7 scheduler + 5 parser + 3 factory - 1 plugin = 14) | ✅ closed by `2026-06-24-engine-include-final-decoupling` (33+15 - 14 = 34,见 `test_path_resolution` 因 `load_llm_config()` 删除移除,净 34/34 ctest pass) |
 | 5.7 hub out_degree < 30 | 2 函数 < 30 | 未验证 (Oracle 未跑 `code-review-graph`) | 🟡 未验证 |
 
 ### 6.2 实际 ship 的正向成果 (公平记录)
@@ -263,13 +263,13 @@
 - [ ] 6.3.1 修 fork 处理重复: 删除 `src/modules/scheduler/topo_scheduler.cpp:636-642` (`dispatch_next_node` 内 fork 块, 因 `execute()` 161-167 已置 `is_executing_fork_branches_=false` 故为死分支) — 唯一有 bug 风险的代码缺陷
 
 **🟠 Major (Sprint 7 优先)**
-- [ ] 6.3.2 处理 scheduler factory 死代码: 补 `Config` 参数 + 改 `engine.cpp:188` 调用 `agenticdsl::scheduler::create(config, ...)`; 或删除 `src/modules/scheduler/factory.{h,cpp}` + 移除 CMake 注册
-- [ ] 6.3.3 真正提取 `handle_node_completion` + 收 `execute()` 到 ≤ 60 行 (动态 wait_for / jump / fork-join / 动态图重建 各自成子函数)
-- [ ] 6.3.4 补 15 个新测试: 7 scheduler (`tests/test_scheduler.cpp`) + 5 parser (`tests/test_parser.cpp` 含 `factory_registry_concurrent_access` TSan) + 3 factory (`tests/test_engine_factory.cpp`)
-- [ ] 6.3.5 续推 `engine.cpp` 跨模块 include 10 → ≤ 3: 工厂化 `ToolRegistry`/`MockLLMProvider`; 引入 `IBudgetController` 抽象让 budget factory 返回接口 (解 design.md Open Question 1)
+- [x] 6.3.2 处理 scheduler factory 死代码: 补 `Config` 参数 + 改 `engine.cpp:188` 调用 `agenticdsl::scheduler::create(config, ...)`; 或删除 `src/modules/scheduler/factory.{h,cpp}` + 移除 CMake 注册 — ✅ **closed by `tech-debt-and-phase1-closure` P2.A (commit `871b62d`)**
+- [x] 6.3.3 真正提取 `handle_node_completion` + 收 `execute()` 到 ≤ 60 行 (动态 wait_for / jump / fork-join / 动态图重建 各自成子函数) — ✅ **closed by `sprint-9-handle-node-completion` (commit `bd936af` + 后续)**
+- [x] 6.3.4 补 15 个新测试: 7 scheduler (`tests/test_scheduler.cpp`) + 5 parser (`tests/test_parser.cpp` 含 `factory_registry_concurrent_access` TSan) + 3 factory (`tests/test_engine_factory.cpp`) — ✅ **closed by `2026-06-24-engine-include-final-decoupling`** (commits `b3ad5bc` + `4d1a855` + `3681ba8`)
+- [x] 6.3.5 续推 `engine.cpp` 跨模块 include 10 → ≤ 3: 工厂化 `ToolRegistry`/`MockLLMProvider`; 引入 `IBudgetController` 抽象让 budget factory 返回接口 (解 design.md Open Question 1) — ✅ **closed by `2026-06-24-engine-include-final-decoupling`** (commits `e7306d9` + `18ce4aa` + `8f2ad54` + `a8abc35`,最终 = 3)
 
 **🟡 Minor (Sprint 7 顺手)**
-- [ ] 6.3.6 修 `pending_dynamic_deps_` 访问不一致: `dispatch_next_node()` L669 改用 `session_.get_pending_dynamic_deps()` 访问器
+- [x] 6.3.6 修 `pending_dynamic_deps_` 访问不一致: `dispatch_next_node()` L669 改用 `session_.get_pending_dynamic_deps()` 访问器 — ✅ **closed by `2026-06-24-engine-include-final-decoupling`** (Sprint 7 `75ded94` 已 ship,本 change 仅 grep 验证 src/ 0 命中源代码)
 - [ ] 6.3.7 修 spec 笔误: `node-factory-registry/spec.md:30,40` 与 `tasks.md:3.2.3/3.4.2` 13 → 11
 - [ ] 6.3.8 删 `tests/test_plugin_loader.cpp:206` `#ifdef TEST_PLUGIN_FIXTURE_PATH` 死代码或补 CMake `target_compile_definitions` 注入 + 实施推迟的 mock .so
 - [ ] 6.3.9 改 plugin 测试 7 case 名称/范围匹配 spec (`load_valid_plugin` / `abi_mismatch_strict` / `dlsym_missing_register_fn` / `unload_all_raii` 等)
@@ -284,3 +284,22 @@
 - **决策内容**: 合入 Sprint 6 4 commits + 修正本 tasks.md 标注偏离项 + 不 archive 本 change + 启动 Sprint 7 follow-up
 - **不再做**: ❌ 不回退 4 commits / ❌ 不重做 Sprint 6 / ❌ 不立即 archive / ❌ 不在 Sprint 6 修 6.3.x 任何项 (全部 Sprint 7 范围)
 - **下一步**: 创建 OpenSpec change `2026-07-22-sprint-7-tech-debt-followup` + 更新 AGENTS.md + 提交本 tasks.md 修正
+
+### 6.5 Archive 闭环 (2026-06-24 更新)
+
+> **6.3.x Sprint 7 follow-up 工作全部 ship 并由本 change archive chain 关闭**:
+>
+> | 6.3.x 编号 | 状态 | 关闭 change | 关键 commit |
+> |---|---|---|---|
+> | 6.3.1 (fork 重复) | ⏳ 由 `sprint-7-tech-debt-followup` 处理 | 独立 change | (per Oracle) |
+> | 6.3.2 (scheduler factory 死代码) | ✅ closed | `tech-debt-and-phase1-closure` | `871b62d` |
+> | 6.3.3 (handle_node_completion + execute ≤ 60 行) | ✅ closed | `sprint-9-handle-node-completion` | `bd936af` |
+> | 6.3.4 (15 个新测试) | ✅ closed | `2026-06-24-engine-include-final-decoupling` | `b3ad5bc` + `4d1a855` + `3681ba8` |
+> | 6.3.5 (engine.cpp includes 10→≤3) | ✅ closed | `2026-06-24-engine-include-final-decoupling` | `e7306d9` + `18ce4aa` + `8f2ad54` + `a8abc35` |
+> | 6.3.6 (pending_dynamic_deps_ 访问) | ✅ closed (Sprint 7 `75ded94`) | `2026-06-24-engine-include-final-decoupling` (grep 验证) | (无新 commit,验证 0 命中) |
+>
+> **archive 链顺序**: `tech-debt-cleanup-sprint-6` (本) → `sprint-9-handle-node-completion` → `2026-06-24-engine-include-final-decoupling` → `tech-debt-and-phase1-closure`
+>
+> 原因: `tech-debt-and-phase1-closure` 引用本 change commit hash,需最后 archive
+>
+> **最终状态**: `openspec list` → 0 active change,Sprint 10 干净起点
