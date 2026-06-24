@@ -9,11 +9,11 @@
 
 ## Sprint 5 子任务 (4 commits, T5 = sync-pdk.sh 自动)
 
-- [ ] S5.T1 — feat(plugin): add PluginInfo POD + PluginLoader API (Sprint 5, ADR-0022)
-- [ ] S5.T2 — feat(plugin): implement PluginLoader with dlopen + ABI check (Sprint 5)
-- [ ] S5.T3 — feat(plugin): extend phase1_plugin_demo with --load-plugin (Sprint 5)
-- [ ] S5.T4 — docs(adr+status+openspec): Phase 1 收官 + 5 ADR → ✅ Approved (Sprint 5)
-- [ ] S5.T5 — 自动: ship 后执行 `./scripts/sync-pdk.sh` (Dual-Repo 同步, 不单独 commit)
+- [x] S5.T1 — feat(plugin): add PluginInfo POD + PluginLoader API (Sprint 5, ADR-0022) **(已 ship, 2026-06-24 STATUS NOTE A/B 补勾)**
+- [x] S5.T2 — feat(plugin): implement PluginLoader with dlopen + ABI check (Sprint 5) **(已 ship, 2026-06-24 STATUS NOTE A/B 补勾)**
+- [ ] S5.T3 — feat(plugin): extend phase1_plugin_demo with --load-plugin (Sprint 5) **(由 tech-debt-and-phase1-closure Step 4 完成)**
+- [ ] S5.T4 — docs(adr+status+openspec): Phase 1 收官 + 5 ADR → ✅ Approved (Sprint 5) **(由 tech-debt-and-phase1-closure Step 5 完成)**
+- [ ] S5.T5 — 自动: ship 后执行 `./scripts/sync-pdk.sh` (Dual-Repo 同步, 不单独 commit) **(由 tech-debt-and-phase1-closure Step 6 完成)**
 
 ## S5.T1: PluginInfo POD + PluginLoader API 头文件
 
@@ -48,8 +48,8 @@
   - 无 LSP error
 
 **T1 验收**:
-- [ ] `plugin_info.h` + `plugin_loader.h` + `plugin/CMakeLists.txt` 存在
-- [ ] 头文件独立编译通过
+- [x] `plugin_info.h` + `plugin_loader.h` + `plugin/CMakeLists.txt` 存在 **(已 ship, 2026-06-24 STATUS NOTE A/B 补勾)**
+- [x] 头文件独立编译通过 **(已 ship, 2026-06-24 STATUS NOTE A/B 补勾)**
 
 ## S5.T2: PluginLoader dlopen/dlsym 实现 + 测试
 
@@ -188,6 +188,41 @@ S5.T5 → 自动: ship 后 sync-pdk.sh (不单独 commit)
 - **Block by**: Sprint 0/1a/1b/2/3/4 全部 ship ✅ (v0.1.0 tag 已推送)
 - **Block**: Phase 2 异步+EventBus (W6-W7, 2026-07-16 ~ 2026-07-30)
 - **External**: 无 (Linux only, dlopen 编译时依赖)
+
+<!-- STATUS NOTE (2026-06-24)
+本 tasks.md 中 45 个未勾选项 [ ] 分类对账 (经 Oracle 审查 ses_108c2a3b0ffe012zA30ujXdHOP):
+
+**A. T1 验收补漏 (2 项, 标 [x])**: T1 (PluginInfo POD + PluginLoader API) 已 ship,author 当时仅勾选 sub-task 未勾选验收项,补漏:
+  - L51: `plugin_info.h` + `plugin_loader.h` + `plugin/CMakeLists.txt` 存在 ✅
+  - L52: 头文件独立编译通过 ✅
+
+**B. 主标题补漏 (2 项 of 5, 标 [x])**:
+  - L12: S5.T1 — feat(plugin): add PluginInfo POD + PluginLoader API ✅
+  - L13: S5.T2 — feat(plugin): implement PluginLoader with dlopen + ABI check ✅
+  - (L14 S5.T3 / L15 S5.T4 / L16 S5.T5 暂不勾选,等本 change Step 4/5/6 完成)
+
+**C-F. 本 change tech-debt-and-phase1-closure 解决 (33 项)**:
+  - C. T3.1-T3.4 + T3 验收 (6 项) → Step 4 (P1.A plugin demo 3 modes)
+  - D. T4.1-T4.6 + T4 验收 (10 项) → Step 5 (P1.B 5 ADR Approved + 文档)
+  - E. T5.1-T5.3 + T5 验收 (6 项) → Step 6 (P1.C sync-pdk.sh + standalone)
+  - F. Sprint 5 收官验收 11 项 → Step 7 (P1.D archive) 跟随完成勾选
+  - 本 change 全部 ship 后,本 change 内 Step 7 一次性 flip 全部 [x] 标注于 tasks.md (S5.T1-T5 主标题 + 全部 sub-task + 验收)
+
+**G. Phase 2/3/4 后续范围 (5 项, 显式 defer, 不在 Sprint 5 scope)**:
+  - L208: Phase 2: PluginLifecycle 完整钩子 (on_load/on_unload) + 跨平台 dlopen 抽象
+  - L209: Phase 2: ADR-0026 async_simple integration (Sprint 6+)
+  - L210: Phase 3: PDK SafeExec 完整版 (fork/cgroups/seccomp) + plugin sandboxing
+  - L211: Phase 3: Plugin health check + hot reload
+  - L212: Phase 4: Plugin marketplace + 持久化 (配置文件 + 数据库)
+  - ⏳ Defer 到独立 OpenSpec change `2026-07-xx-phase2-plugin-lifecycle` 等(待 Phase 2 启动时创建)
+  - **明确不在** tech-debt-and-phase1-closure scope,避免 ship-as-is 假阳性
+
+本 change ship gate 验证清单(V10 强化):archive 前 MUST 确认
+  - [ ] 5 个 Phase 2/3/4 项目有显式 defer STATUS NOTE(本节)
+  - [ ] 33 个 C/D/E/F 项目本 change 完成后 [x]
+  - [ ] 7 个 A/B 项目补漏 [x]
+  - [ ] 0 个 phantom flip
+-->
 
 ## Sprint 5 收官验收
 
