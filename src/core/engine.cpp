@@ -1,9 +1,9 @@
 // src/core/engine.cpp
 #include "engine.h"
 #include "common/log/log.h"  // agenticdsl::log facade
-// P2.C (2026-06-24): LLM 适配器/mock/config/factory 头文件均移除
+// P2.C (2026-06-24): LLM/budget 头文件均移除
 // engine.h 已通过 common/llm/llm_types.h 提供 LLMConfig 完整类型
-#include "modules/budget/factory.h"
+// BudgetController 完整类型由 topo_scheduler.h 间接提供 (execution_session.h → budget_controller.h)
 #include "modules/scheduler/topo_scheduler.h"
 #include "modules/system/system_nodes.h"
 #include <fstream>
@@ -15,12 +15,16 @@
 
 namespace agenticdsl {
 // P2.C (2026-06-24): forward-declared factories (decouple engine.cpp from concrete headers)
+class BudgetController;
 namespace tools {
 std::unique_ptr<IToolRegistry> create_tool_registry();
 } // namespace tools
 namespace llm {
 std::unique_ptr<IProviderFactory> create_provider_factory();
 } // namespace llm
+namespace budget {
+std::unique_ptr<BudgetController> create_controller();
+} // namespace budget
 
 std::unique_ptr<DSLEngine> DSLEngine::from_markdown(const std::string& markdown_content) {
     MarkdownParser parser;
