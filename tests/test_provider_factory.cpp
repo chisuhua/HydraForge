@@ -64,14 +64,17 @@ TEST_CASE("LLMProviderFactory empty provider defaults to MockLLMProvider", "[pro
 }
 
 // ============================================================
-// 4. LLMProviderFactory 路由: 未识别 provider → nullptr
+// 4. LLMProviderFactory 路由: 未识别 provider → MockLLMProvider (P2.C 兜底契约)
 // ============================================================
-TEST_CASE("LLMProviderFactory unknown provider returns nullptr", "[provider_factory][p1]") {
+TEST_CASE("LLMProviderFactory unknown provider falls back to MockLLMProvider", "[provider_factory][p1]") {
   LLMProviderFactory factory;
   LLMConfig config;
   config.provider = "unknown_backend_xyz";
   auto provider = factory.create(config);
-  CHECK(provider == nullptr);
+  // P2.C (2026-06-24): 兜底契约保证 caller 永不收到 nullptr (允许 engine.cpp 移除 fallback)
+  REQUIRE(provider != nullptr);
+  auto* mock = dynamic_cast<MockLLMProvider*>(provider.get());
+  CHECK(mock != nullptr);
 }
 
 // ============================================================
@@ -132,8 +135,10 @@ TEST_CASE("LLMProviderFactory concurrent create() thread-safe", "[provider_facto
   CHECK(total.load() == kThreads * kIterations);
   CHECK(mock_count.load() + openai_count.load() + null_count.load() == total.load());
   // mock 路径 + openai 路径 + unknown 路径 = 总数
-  // (具体分布取决于 i%3, 不做严格断言, 只验证不崩溃 + 计数正确)
+  // P2.C (2026-06-24): unknown 路径不再返回 nullptr, 而是 Mock provider
+  // 故 null_count 改为 mock_count 增量, 总和仍等于 total
   CHECK(mock_count.load() > 0);
   CHECK(openai_count.load() > 0);
-  CHECK(null_count.load() > 0);
+  // P2.C: 兜底契约保证永不返回 nullptr
+  CHECK(null_count.load() == 0);
 }

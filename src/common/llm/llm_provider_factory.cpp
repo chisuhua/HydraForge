@@ -61,7 +61,8 @@ std::unique_ptr<ILLMProvider> LLMProviderFactory::create(const LLMConfig& config
     return llama_factory->create(config);
   }
 
-  return nullptr;
+  // 兜底: 未知 provider 一律返回 Mock provider (确保 caller 永不收到 nullptr)
+  return mock_factory->create(config);
 }
 
 }  // namespace agenticdsl
