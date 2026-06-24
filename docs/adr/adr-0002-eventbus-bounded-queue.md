@@ -2,9 +2,9 @@
 
 ## 状态
 
-**📦 设计历史 (未实施)** (2026-06-13) — **V2 版** 设计文档已锁定，但 EventBus / DispatchMode 全系统从未实施；Phase 1 由 IInteractionBus + InMemoryBus（ADR-0019）承担事件通信职责。
+**❌ Not Implemented** (2026-06-13) — **V2 版** 设计文档已锁定，但 EventBus / DispatchMode 全系统从未实施；Phase 1 由 IInteractionBus + InMemoryBus（ADR-0019）承担事件通信职责。
 
-> **2026-06-13 审计备注（OpenSpec change `docs-code-drift-audit-2026-06`）**：状态由 "✅ Approved" 调整为 "📦 设计历史 (未实施)"。
+> **2026-06-13 审计备注（OpenSpec change `docs-code-drift-audit-2026-06`）**：状态由 "✅ Approved" 调整为 "❌ Not Implemented"。
 > - 事实依据：`grep -rn "EventBus\|DispatchMode" src/ include/` → 0 hits；`InMemoryBus` 是简化实现（mutex + queue），无 Taskflow/async_simple 依赖。
 > - 决策：保留本 ADR 作为 HydraForge Phase 1 FTXUI/HarnessEngine 子系统的设计蓝图参考，**不修改主体内容**。
 > - 未来触发条件：若 Phase 2 出现 >10K events/s 吞吐需求或 Per-Session 严格隔离需求，**重新评估** EventBus 实施；否则 InMemoryBus 路径继续（详见 ADR-0019 §1.1 重新评估触发条件段落）。

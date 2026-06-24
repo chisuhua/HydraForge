@@ -1,5 +1,9 @@
 # ADR-0002 实现范围审计 (Implementation Scope Audit)
 
+## 状态
+
+**📋 Reserved (审计补充)** (2026-06-13) — 本文件是 ADR-0002 实施范围审计补充（由 OpenSpec change `docs-code-drift-audit-2026-06` 创建），非正式 ADR，仅作历史审计记录保留。状态变更历史见头部备注段落。
+
 > **✅ DECIDED (2026-06-13)** — 本文件由 OpenSpec change `docs-code-drift-audit-2026-06` 创建 (2026-06-13)。
 > 状态：决策已完成（选项 A + 附加步骤），同步更新了 `adr-0002-eventbus-bounded-queue.md` 头部状态行。
 

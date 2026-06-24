@@ -2,7 +2,7 @@
 
 ## 状态
 
-**✅ Resolved (2026-06-19, Sprint 3 增量 ship)** — V3.3 版。SimpleCognitiveOrchestrator（MVP 单轮 ReAct）+ CognitiveWorker（Sprint 2 已 ship, 9/9 ctest pass）+ **DomainWorkerPool**（Sprint 3 已 ship, 7/7 ctest pass）全部实施。ADR-0020 §2.2 P1 + P2 全部 ✅ Resolved。
+**✅ Approved (2026-06-24, Sprint 5 ship)** — V3.3 版。SimpleCognitiveOrchestrator（MVP 单轮 ReAct）+ CognitiveWorker（Sprint 2 已 ship, 9/9 ctest pass）+ **DomainWorkerPool**（Sprint 3 已 ship, 7/7 ctest pass）全部实施。ADR-0020 §2.2 P1 + P2 全部 ✅ Resolved。
 
 > **Sprint 3 增量 (2026-06-19, OpenSpec change `2026-06-30-domain-worker-pool`)**：DomainWorkerPool 类落地（`include/agenticdsl/cognitive/domain_worker_pool.h` + `src/modules/cognitive/domain_worker_pool.cpp`）。N 个 std::jthread worker + 共享 FIFO 任务队列 (多消费者模式) + shared_mutex 保护 handler 注册表 + IInteractionBus 集成 (domain.task.* 事件)。CP.22 协议 6/6 项通过 (`.omo/plans/2026-06-30-cp22-audit.md`)。7 个新测试 + 30 基线 = 31/31 ctest pass, 1000x 并发用例 TSan 干净 (Dockerfile.tsan 待 CI 验证)。
 

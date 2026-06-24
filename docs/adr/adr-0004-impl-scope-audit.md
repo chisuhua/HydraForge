@@ -1,5 +1,9 @@
 # ADR-0004 实现范围审计 (Implementation Scope Audit)
 
+## 状态
+
+**📋 Reserved (审计补充)** (2026-06-13) — 本文件是 ADR-0004 实施范围审计补充（由 OpenSpec change `docs-code-drift-audit-2026-06` 创建），非正式 ADR，仅作历史审计记录保留。状态变更历史见头部备注段落。
+
 > **✅ DECIDED + 方向 4 部分实施 (2026-06-13)** — 本文件由 OpenSpec change `docs-code-drift-audit-2026-06` 创建 (2026-06-13)。
 > 状态：决策已完成（**方向 4** — 同步安全路径已落地），同步更新了 `adr-0004-toolregistry-security.md` 头部状态行。
 > **后续**：异步 `call_secure` 路径与 OS 级沙箱移交独立 OpenSpec change。
