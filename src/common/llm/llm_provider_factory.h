@@ -23,7 +23,7 @@ namespace agenticdsl {
  *   - "mock" / "" (空/未识别) → MockProviderFactory → MockLLMProvider
  *   - "openai" / "anthropic" / "deepseek" / "qwen" / "moonshot" / "custom" → CloudProviderFactory → CloudLLMAdapter
  *   - "local" / "llama" → LlamaProviderFactory → LlamaAdapterProvider
- *   - 其他 → 返回 nullptr (配置错误)
+ *   - 其他 → 兜底返回 MockLLMProvider (确保 engine 等 caller 永不收到 nullptr)
  *
  * 设计说明:
  *   - 内部持有 3 个 backend factory (mock_factory / cloud_factory / llama_factory)

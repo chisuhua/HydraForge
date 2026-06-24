@@ -37,7 +37,7 @@ class IProviderFactory {
   /**
    * @brief 根据 config 创建 ILLMProvider 实例
    * @param config LLM 配置 (含 provider/api_key/model 等)
-   * @return unique_ptr<ILLMProvider> — 失败时返回 nullptr (配置错误)
+   * @return unique_ptr<ILLMProvider> — 成功时返回 provider; 默认实现 LLMProviderFactory 对未识别/空 provider 兜底返回 MockLLMProvider, 永不返回 nullptr.
    *
    * 默认实现由具体工厂类提供; 调用方负责持有返回的 unique_ptr
    */

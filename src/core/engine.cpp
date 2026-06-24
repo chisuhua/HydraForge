@@ -68,11 +68,9 @@ DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
 
     // P1.T1 + P2.C: 通过 factory 创建默认 LLM provider (mock 路径)
     // LLMProviderFactory::create() 保证未知 provider 兜底返回 Mock provider (永不 nullptr)
-    if (provider_factory_) {
-        LLMConfig mock_config;
-        mock_config.provider = "mock";
-        llm_provider_ = provider_factory_->create(mock_config);
-    }
+    LLMConfig mock_config;
+    mock_config.provider = "mock";
+    llm_provider_ = provider_factory_->create(mock_config);
 
     // 阶段 4 任务 4.3: 一次性将 BudgetController::record_llm_call 绑定到 tool_registry_
     // 注意：budget_controller_ 是非静态成员，按引用捕获以保证生命周期与 engine 一致。
