@@ -8,6 +8,11 @@
 > 任务的新增、删除、拆分必须在 `docs/implementation-roadmap.md` 中先完成，再同步到本文件。
 > `docs/implementation-roadmap.md` 无记录的任务不得出现在本文件中。
 >
+> **📋 2026-06-24 Sprint 5 收官 + 6.3.x 全关闭**: OpenSpec change `tech-debt-and-phase1-closure` ship,
+> Phase 1 智能体层 80% → 100%。5 ADR (0019/0020/0021/0022/0023) → ✅ Approved。
+> `docs/roadmap-status.md` Phase 1 = 100%。6.3.x follow-up 全部 6 项关闭。
+> `tech-debt-cleanup-sprint-6` 干净 archive。Sprint 10 起点零 OpenSpec backlog。
+>
 > **📋 2026-06-15 阶段过渡**: Phase 0 MVP 收官(C₁ → X → B → A + P0/P1/P2 cleanup 全部 ship, 25/25 测试)。
 > 进入 Phase 1 智能体层 (2026-06-16 ~ 2026-07-15, 4 周 5 Sprint)。详细执行计划见 `.omo/plans/phase1-execution.md`。
 > 5 个 stage 整理计划已 ship + 追溯归档(`.omo/plans/archive/2026-06-15-archived/project-organization.md` + 4 个 `openspec/changes/archive/2026-06-15-retrospectives/`)。
@@ -84,14 +89,14 @@
 | ├─ Track 0.2 (三层调用链) | 100% ██████████ | ✅ 已完成 | 5-7 天 | Track 0.1 + C₁ |
 | ├─ Track 0.3 (最小契约层 X/B/A) | 100% ██████████ | ✅ 已完成 | 2-3 天 | Pre-Phase |
 | └─ P0/P1/P2 Cleanup | 100% ██████████ | ✅ 已完成 | ~4h | 上述全部 |
-| **Phase 1 智能体层** | **80% ████████░░** | **🎯 当前焦点 (2026-06-16 ~ 2026-07-15)** — Sprint 0/1a/1b/2/3/4 完成 | **4 周 5 Sprint + Sprint 0** | Phase 0 ✅ |
+| **Phase 1 智能体层** | **100% ██████████** | **✅ 已完成 (2026-06-24, Sprint 5 收官)** — Sprint 0/1a/1b/2/3/4/5 全部 ship | **4 周 5 Sprint + Sprint 0** | Phase 0 ✅ |
 | ├─ Sprint 0: ModelRouter Plugin Stub (K1) | **100% ██████████** | **✅ 已完成 (2026-06-16, 提前 1 天)** | **0.8 天** | Phase 0 |
 | ├─ Sprint 1a: ToolResult P2-P4 | **100% ██████████** | **✅ 已完成 (2026-06-16, 提前 2 天)** | **2 天** | Sprint 0 ✅ |
 | ├─ Sprint 1b: Bus 集成 (S1a/S1b 拆分, K2) | **100% ██████████** | **✅ 已完成 (2026-06-17, 提前 1 天)** | **1 天** | Sprint 1a ✅ |
 | ├─ Sprint 2: CognitiveWorker | **100% ██████████** | **✅ 已完成 (2026-06-18, 提前)** | **2.5 天** | Sprint 1a ✅ |
 | ├─ Sprint 3: DomainWorkerPool + Dockerfile.tsan | **100% ██████████** | **✅ 已完成 (2026-06-19, OpenSpec change `2026-06-30-domain-worker-pool`)** — DomainWorkerPool + 7 测试 + Dockerfile.tsan 实施, 31/31 ctest pass (30 baseline + 1 new test_domain_worker_pool w/ 94 assertions), ADR-0020 §2.2.1 🟡 Partial → ✅ Resolved, CP.22 协议 6/6 通过 | 3 天 | Sprint 2 ✅ |
 | ├─ Sprint 4: PDK 骨架 (hydraforge-pdk, K3) | **100% ██████████** | **✅ 已完成 (2026-06-19, OpenSpec change `2026-07-07-pdk-skeleton`)** — DECLARE_TOOL + DEFINE_AGENT + SafeExec MVP 实施, monorepo `pdk/` 子目录 INTERFACE 库, 32/32 ctest pass (31 baseline + 1 new test_pdk_macros w/ 33 assertions), ADR-0021 🔍 Proposed → 🟡 Partial. T4b (`hydraforge-pdk` 独立仓库推送) 异步待外部阻塞解除 | 3 天 | Sprint 3 ✅ |
-| └─ Sprint 5: PluginLoader + 收官 | 0% | ⏸ 未开始 (W5, 2 天) | 1.3 天 | Sprint 4 |
+| └─ Sprint 5: PluginLoader + 收官 | **100% ██████████** | **✅ 已完成 (2026-06-24, OpenSpec change `tech-debt-and-phase1-closure`)** — PluginInfo POD + PluginLoader dlopen (5 ctest) + phase1_plugin_demo 3 modes + 5 ADR Approved + sync-pdk.sh, 34/34 ctest pass 零回归 | 1.3 天 | Sprint 4 |
 | **并行车道** | | | | |
 | ├─ P1: Residual engine.h Decoupling | 100% | ✅ **已解决 (2026-06-18, T1+T2+T3+T4+T5 全部 ship)** — 跨模块 include 4→3→2→1, 29/29 测试零回归, ADR-0019 §1.4 完全退出 | 10 天 → 5 周 → ship | 详见 OpenSpec `2026-06-15-residual-engine-h-decoupling` |
 | ├─ P2: 5/6 examples build 修复 | 0% | ⏸ 未开始 (W2-W3) | 5 天 | P1 ✅ |

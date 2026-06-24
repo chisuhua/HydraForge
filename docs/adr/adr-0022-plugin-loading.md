@@ -2,7 +2,7 @@
 
 ## 状态
 
-**🟡 Partial (2026-06-21, Sprint 5 in-flight)** — PluginInfo POD + PluginLoader 类已落地 (commit `968937f`),含 Linux dlopen/dlsym 实现 + ABI 版本检查 + 路径白名单 + 5 个 ctest case 通过。OpenSpec change [`2026-07-14-plugin-loader`](../../openspec/changes/2026-07-14-plugin-loader/) 进行中。Phase 2+ 后续: 跨平台 dlopen 抽象 (macOS/Windows) + 完整 PluginLifecycle 钩子 + hot reload + plugin marketplace。
+**✅ Approved (2026-06-24, Sprint 5 ship)** — PluginInfo POD + PluginLoader 类已落地 (commit `968937f`),含 Linux dlopen/dlsym 实现 + ABI 版本检查 + 路径白名单 + 5 个 ctest case 通过。OpenSpec change [`2026-07-14-plugin-loader`](../../openspec/changes/2026-07-14-plugin-loader/) 进行中 (Sprint 5 ship 后 archive)。Phase 2+ 后续: 跨平台 dlopen 抽象 (macOS/Windows) + 完整 PluginLifecycle 钩子 + hot reload + plugin marketplace。Phase 1 智能体层 100% 收官，变更依据: `openspec/changes/tech-debt-and-phase1-closure/`。
 
 > **Sprint 5 增量 (2026-06-21, commit 968937f)**：PluginInfo POD (abi_version + name + 3 version + desc + caps, 848 字节) + PluginLoader (load_all / load_so / list_loaded / unload_plugin) + Linux dlopen 实现 + 5 ctest case (POD layout / ABI validate / lifecycle / whitelist / E2E) 落地。`include/agenticdsl/plugin/plugin_info.h` + `plugin_loader.h` + `src/modules/plugin/plugin_loader.cpp`。fix 跨命名空间 forward declaration (hydraforge vs agenticdsl) + MockToolRegistry 实现 IToolRegistry 9 虚函数。33/33 ctest pass 零回归。
 

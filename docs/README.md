@@ -32,11 +32,11 @@ docs/
 | `adr-0007-context-compression.md` | 上下文压缩机制 | 🟡 Partial (快照有,无 LLM 压缩) |
 | `adr-0008-structured-context.md` | 结构化 Context | ✅ Approved (2026-06-12 LayeredContext 实现完成) |
 | `adr-0009-dsl-standard-library.md` | DSL 标准库规划 | ✅ Approved |
-| `adr-0019-iinteraction-bus-mvp.md` | IInteractionBus 接口与 TUI Chat MVP | ✅ Approved |
-| `adr-0020-thread-model-isolation.md` | 多智能体线程模型与隔离策略 | ✅ Resolved (2026-06-19, Sprint 3 ship) |
-| `adr-0021-pdk-design.md` | Plugin Development Kit (PDK) 设计 | 🟡 Partial (2026-06-19, Sprint 4 ship, V0.1 MVP) |
-| `adr-0022-plugin-loading.md` | 插件加载机制 | 🟡 Partial (2026-06-21, Sprint 5 in-flight) |
-| `adr-0023-tool-result-standard.md` | ToolResult 标准化 | ✅ Approved (P1-P4) |
+| `adr-0019-iinteraction-bus-mvp.md` | IInteractionBus 接口与 TUI Chat MVP | ✅ Approved (2026-06-24, Sprint 5 ship) |
+| `adr-0020-thread-model-isolation.md` | 多智能体线程模型与隔离策略 | ✅ Approved (2026-06-24, Sprint 5 ship) |
+| `adr-0021-pdk-design.md` | Plugin Development Kit (PDK) 设计 | ✅ Approved (2026-06-24, Sprint 5 ship) |
+| `adr-0022-plugin-loading.md` | 插件加载机制 | ✅ Approved (2026-06-24, Sprint 5 ship) |
+| `adr-0023-tool-result-standard.md` | ToolResult 标准化 | ✅ Approved (2026-06-24, Sprint 5 ship) |
 | `adr-0031-execution-policy.md` | 执行策略 | 🟡 Partial (仅头文件 stub) |
 | `adr-0033-session-hierarchy.md` | 会话层次结构 | 🟡 Partial (仅前向声明) |
 | `adr-0002-impl-scope-audit.md` | ADR-0002 实施范围审计 (OpenSpec change `docs-code-drift-audit-2026-06` 产出) | 📋 审计补充 |

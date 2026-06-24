@@ -2,7 +2,7 @@
 
 ## 状态
 
-**✅ Approved (2026-06-08, 通过 phase-c1-migration)** — V2.1 版，IInteractionBus + InMemoryBus MVP 已实施（commits 5f21ea3, f07a4b4）。后续 P2（DSLEngine bus 集成）移交 Phase 1。
+**✅ Approved (2026-06-24, Sprint 5 ship)** — V2.1 版，IInteractionBus + InMemoryBus MVP 已实施（commits 5f21ea3, f07a4b4）。后续 P2（DSLEngine bus 集成）移交 Phase 1。Phase 1 智能体层 100% 收官，变更依据: `openspec/changes/tech-debt-and-phase1-closure/`。
 
 > **2026-06-08 截至 (commit f07a4b4)**：`IInteractionBus` 与 `InMemoryBus` 的公共头文件迁移到 `include/agenticdsl/contract/`，实现文件 (`inmemory_bus.cpp`) 与 `CMakeLists.txt` 保留在 `src/common/contract/`。`events.h` 在 M5.2 简化跳过，Event/Token/Session 类型内联到 `IInteractionBus` 头文件。
 

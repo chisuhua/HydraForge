@@ -2,7 +2,7 @@
 
 ## 状态
 
-**✅ Approved** (2026-06-16) — 2026-05-25 起草, 2026-06-12 状态对齐, 2026-06-16 P1-P4 全部实施完成, 之前状态 🟡 Partial
+**✅ Approved (2026-06-24, Sprint 5 ship)** — 2026-05-25 起草, 2026-06-12 状态对齐, 2026-06-16 P1-P4 全部实施完成, 之前状态 🟡 Partial。Phase 1 智能体层 100% 收官，变更依据: `openspec/changes/tech-debt-and-phase1-closure/`。
 
 > **2026-06-16 实施状态更新**（OpenSpec change `phase1-toolresult-standardization` 落地）：
 > - P1 实施：保留并演进（见 §实施状态表）

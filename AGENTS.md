@@ -113,6 +113,7 @@ HydraForge/
 - GitHub Actions CI: `.github/workflows/ci.yml` (Stage 5 / Task 25, 2 presets × 2 compilers matrix)
 
 ## Recent Changes
+- 2026-06-24 (Sprint 5 收官 + 6.3.x 全关闭): OpenSpec change `tech-debt-and-phase1-closure` ship, Phase 1 智能体层 80% → 100%。5 ADR (0019/0020/0021/0022/0023) → ✅ Approved (2026-06-24, Sprint 5 ship)。Sprint 5 S5.T3 phase1_plugin_demo 3 mode CLI (commit `10dc028`)。Sprint 10 起点零 OpenSpec backlog (剩 plugin-loader archive 待执行)。
 - 2026-06-22 (Sprint 6 STATUS NOTE 决议): Oracle 深度审查 (session `ses_112a9f9c5ffesqpYeefOBgMkjH`) 决议 — 4 个代码 commit (`7cc4239` / `6c5557c` / `9fa0364` / `7923b2a`) **保持合入不回退** (33/33 ctest pass, 行为保持), **不 archive OpenSpec change**, 偏离 spec 验收项全部推迟到 Sprint 7 follow-up。Top 修复: 🔴 scheduler fork 重复 (`topo_scheduler.cpp:636-642` 死分支) + 🟠 scheduler factory 死代码 (零调用) + 🟠 execute 222 行 vs spec ≤60 + 🟠 engine.cpp 10 include vs spec ≤3 + 🔴 15 个新测试 (7 scheduler + 5 parser + 3 factory) 0 交付。详细偏离表见 `openspec/changes/tech-debt-cleanup-sprint-6/tasks.md` §6.1, Sprint 7 follow-up 见 §6.3。新增 OpenSpec change `2026-07-22-sprint-7-tech-debt-followup` 跟踪。
 - 2026-06-21 (commit `fb0e118`): Sprint 6 tech-debt-cleanup OpenSpec change artifacts 提交 (proposal/design/tasks/3 specs)
 - 2026-06-20 (commit `7cc4239`): refactor(core): engine.cpp 工厂化, 2/10 跨模块 include 替换 (Sprint 6 P2-7) — **LIMFALL**: 实际计数未降 (10→10), 0 factory 测试, scheduler factory 死代码
