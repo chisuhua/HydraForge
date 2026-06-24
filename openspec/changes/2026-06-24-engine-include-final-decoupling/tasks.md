@@ -50,15 +50,16 @@
 
 ### 1.4 P2.B ship gate
 
-- [ ] 1.4.1 `ctest --output-on-failure` MUST ~49/49 PASS(34 baseline + 7 scheduler + 5 parser + 3 engine_factory)
-- [ ] 1.4.2 零回归
-- [ ] 1.4.3 **P2.C 启动前置检查**:本 step 全 [x] + ctest 49/49 PASS(per plan §7 TDD 硬约束 Decision 3)
+- [ ] 1.4.1 `ctest --output-on-failure` MUST **34/34 PASS**(34 baseline 中 `test_path_resolution` 因测试的 `load_llm_config()` 被删除而移除;新增 `test_engine_factory` 二进制;净计数保持 34)
+- [ ] 1.4.2 `ctest` 通过后,运行 `./build/tests/test_scheduler --reporter compact` / `./build/tests/test_parser --reporter compact` / `./build/tests/test_engine_factory --reporter compact`,确认 TEST_CASE PASS 总数 ≥ 13 + 17 + 3 = 33
+- [ ] 1.4.3 零回归(34 个既有测试 binary 全部保留,除 `test_path_resolution` 因测试目标函数 `load_llm_config()` 被删除而整体移除)
+- [ ] 1.4.4 **P2.C 启动前置检查**:本 step 全 [x] + ctest 34/34 PASS(per plan §7 TDD 硬约束 Decision 3)
 
 ---
 
 ## 2. P2.F — TSan/ASan 复验 (0 commits, ~1h)
 
-- [ ] 2.1 启动前:`ctest` baseline 49/49 PASS
+- [ ] 2.1 启动前:`ctest` baseline **34/34 PASS**
 - [ ] 2.2 `cmake --preset asan && ctest --output-on-failure` 0 error
 - [ ] 2.3 `cmake --preset tsan && ctest --output-on-failure` 0 race
 - [ ] 2.4 验证:`factory_registry_concurrent_access` under TSan 0 race
@@ -79,16 +80,16 @@
 
 - [ ] 3.2.1 编辑 `src/core/engine.cpp`:用 `IToolRegistry*` 依赖替换 `ToolRegistry` 完整 include(per ADR-0019 §1.4 已 ship 接口)
 - [ ] 3.2.2 `cmake --build build` 编译通过
-- [ ] 3.2.3 `ctest --output-on-failure` MUST ~49/49 PASS
-- [ ] 3.2.4 `grep -c '#include.*\(modules/\|common/\)' src/core/engine.cpp` MUST 输出 baseline-2
+- [ ] 3.2.3 `ctest --output-on-failure` MUST 34/34 PASS
+- [ ] 3.2.4 `grep -c '#include.*\(modules/\|common/\)' src/core/engine.cpp` MUST 输出 **9**
 - [ ] 3.2.5 `git add src/core/engine.cpp` + `git commit -m "refactor(core): factory-inject ToolRegistry, reduce includes baseline→baseline-2 (6.3.5 batch 1)"`
 
 ### 3.3 Commit B: 替换 MockLLMProvider include
 
 - [ ] 3.3.1 编辑 `src/core/engine.cpp`:用 `IProviderFactory*` 依赖替换 `MockLLMProvider` 完整 include
 - [ ] 3.3.2 `cmake --build build` 编译通过
-- [ ] 3.3.3 `ctest --output-on-failure` MUST ~49/49 PASS
-- [ ] 3.3.4 `grep -c '#include.*\(modules/\|common/\)' src/core/engine.cpp` MUST 输出 baseline-5
+- [ ] 3.3.3 `ctest --output-on-failure` MUST 34/34 PASS
+- [ ] 3.3.4 `grep -c '#include.*\(modules/\|common/\)' src/core/engine.cpp` MUST 输出 **4**
 - [ ] 3.3.5 `git add src/core/engine.cpp` + `git commit -m "refactor(core): factory-inject MockLLMProvider, reduce includes baseline-2→baseline-5 (6.3.5 batch 2)"`
 
 ### 3.4 Commit C: 替换 BudgetController include + IBudgetController 抽象(若需)
@@ -97,14 +98,14 @@
 - [ ] 3.4.2 若需: 新建 `include/agenticdsl/contract/ibudget_controller.h` 纯虚接口
 - [ ] 3.4.3 编辑 `src/core/engine.cpp`: 用 `IBudgetController*` 依赖替换 `BudgetController` 完整 include
 - [ ] 3.4.4 `cmake --build build` 编译通过
-- [ ] 3.4.5 `ctest --output-on-failure` MUST ~49/49 PASS
+- [ ] 3.4.5 `ctest --output-on-failure` MUST 34/34 PASS
 - [ ] 3.4.6 `grep -c '#include.*\(modules/\|common/\)' src/core/engine.cpp` MUST ≤ 3
 - [ ] 3.4.7 `git add src/core/engine.cpp include/agenticdsl/contract/ibudget_controller.h` + `git commit -m "refactor(core): introduce IBudgetController + factory-inject, reduce includes baseline-5→≤3 (6.3.5 batch 3)"`
 
 ### 3.5 P2.C ship gate
 
 - [ ] 3.5.1 `grep -c '#include.*\(modules/\|common/\)' src/core/engine.cpp` MUST ≤ 3
-- [ ] 3.5.2 `ctest --output-on-failure` ~49/49 PASS
+- [ ] 3.5.2 `ctest --output-on-failure` 34/34 PASS
 - [ ] 3.5.3 `mcp__code-review-graph__get_hub_nodes --top_n 5` 验证 `topo_scheduler::execute` out_degree < 30
 - [ ] 3.5.4 1.5 day 时间盒未超时
 
@@ -128,7 +129,7 @@
   - **历史基线 (Sprint 7 `75ded94` ship)**: 0 命中,源代码全用 `session_.get_pending_dynamic_deps()` 访问器
   - **唯一 2 处出现在 `src/modules/exports/req1.md`**(markdown 文档代码块,非源代码)
 - [ ] 4.2 若 grep 命中源代码:识别未迁移调用点,改用 `session_.get_pending_dynamic_deps()` 访问器
-- [ ] 4.3 `ctest --output-on-failure` MUST ~49/49 PASS(零回归)
+- [ ] 4.3 `ctest --output-on-failure` MUST 34/34 PASS(零回归)
 - [ ] 4.4 若 4.2 触发: `git add src/...` + `git commit -m "refactor(scheduler): use get_pending_dynamic_deps() accessor (6.3.6 final regression)"`
 
 ---
@@ -171,7 +172,7 @@
 ## 6. ship gate 验证清单 (本 change 全部完成时)
 
 - [ ] 6.1 `git status` MUST 完全干净
-- [ ] 6.2 `cd build && ctest --output-on-failure` MUST ~49/49 PASS
+- [ ] 6.2 `cd build && ctest --output-on-failure` MUST 34/34 PASS
 - [ ] 6.3 `cmake --preset asan && ctest --output-on-failure` MUST 0 error
 - [ ] 6.4 `cmake --preset tsan && ctest --output-on-failure` MUST 0 race (本 change 引入)
 - [ ] 6.5 `grep -c '#include.*\(modules/\|common/\)' src/core/engine.cpp` MUST ≤ 3

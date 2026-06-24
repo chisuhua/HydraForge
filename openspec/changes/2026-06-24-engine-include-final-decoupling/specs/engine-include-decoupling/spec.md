@@ -22,8 +22,8 @@
 - **WHEN** 完成 P2.C Step 3.2 (Commit A)
 - **THEN** `src/core/engine.cpp` MUST 用 `IToolRegistry*` 依赖替换 `ToolRegistry` 完整 include
 - **AND** `cmake --build build` MUST 编译通过
-- **AND** `ctest --output-on-failure` MUST ~49/49 PASS
-- **AND** `grep -c '#include.*\(modules/\|common/\)' src/core/engine.cpp` MUST 输出 baseline-2 (即 8)
+- **AND** `ctest --output-on-failure` MUST **34/34 PASS**
+- **AND** `grep -c '#include.*\(modules/\|common/\)' src/core/engine.cpp` MUST 输出 9
 - **AND** MUST 引用 `ADR-0019 §1.4` 已 ship 的 `IToolRegistry` 接口
 
 #### Scenario: Commit B 替换 MockLLMProvider include
@@ -32,7 +32,7 @@
 - **THEN** `src/core/engine.cpp` MUST 用 `IProviderFactory*` 依赖替换 `MockLLMProvider` 完整 include
 - **AND** `cmake --build build` MUST 编译通过
 - **AND** `ctest --output-on-failure` MUST ~49/49 PASS
-- **AND** `grep -c '#include.*\(modules/\|common/\)' src/core/engine.cpp` MUST 输出 baseline-5 (即 5)
+- **AND** `grep -c '#include.*\(modules/\|common/\)' src/core/engine.cpp` MUST 输出 4
 
 #### Scenario: Commit C 替换 BudgetController include
 
