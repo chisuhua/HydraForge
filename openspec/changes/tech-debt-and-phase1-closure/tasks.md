@@ -159,6 +159,10 @@ Oracle 审查 ses_108c2a3b0ffe012zA30ujXdHOP 已 ship。"`
 
 ### 3.2 ~~P2.D — pending_dynamic_deps_ 访问器 (Step 9, ~15 min, 1 commit)~~ **已 ship (Sprint 7 `75ded94`), 本 change 不做**
 
+> **⏳ Handoff to `2026-06-24-engine-include-final-decoupling` §4 (6.3.6 回归验证)**
+> Sprint 7 Day 8 已 ship (commit `75ded94`)。新 change 接收最终回归验证 grep,确保源代码无 `session_.pending_dynamic_deps_` 直接访问。
+> **承接关系**: `openspec/changes/2026-06-24-engine-include-final-decoupling/tasks.md` §4 — 6.3.6 Final Regression。
+
 > **STATUS NOTE (2026-06-24, Oracle 审查 ses_108c2a3b0ffe012zA30ujXdHOP)**:
 > 6.3.6 `pending_dynamic_deps_` 访问器一致工作已于 **Sprint 7 Day 8 ship** (commit
 > `75ded94 refactor(scheduler): use get_pending_dynamic_deps() accessor (Day 8 step 1)`)。
@@ -176,6 +180,10 @@ Oracle 审查 ses_108c2a3b0ffe012zA30ujXdHOP 已 ship。"`
 > **REGRESSION-ONLY**。
 
 ### 3.3 P2.B — 15 测试 (Step 10, ~1d, 3 commits)
+
+> **⏳ Handoff to `2026-06-24-engine-include-final-decoupling` §1 (P2.B)**
+> 本节 P2.B 15 测试新增工作已显式 handoff 至独立 change `2026-06-24-engine-include-final-decoupling` 跟踪。本 change 不重复实施。新 change tasks.md §1 包含 7 scheduler + 5 parser + 3 engine_factory 共 15 测试,3 commits 实施 + ship gate。
+> **承接关系**: `openspec/changes/2026-06-24-engine-include-final-decoupling/tasks.md` §1 P2.B — 15 测试新增。
 
 - [ ] 3.3.1 启动前基线:`ctest --output-on-failure` MUST 34/34 PASS
 
@@ -225,6 +233,10 @@ Oracle 审查 ses_108c2a3b0ffe012zA30ujXdHOP 已 ship。"`
 
 ### 3.4 P2.F — TSan/ASan 复验 (Step 11, ~1h, 0 commits)
 
+> **⏳ Handoff to `2026-06-24-engine-include-final-decoupling` §2 (P2.F)**
+> 本节 P2.F TSan/ASan 复验工作已显式 handoff 至独立 change `2026-06-24-engine-include-final-decoupling` 跟踪。本 change 不重复实施。新 change tasks.md §2 包含 ASan + TSan 全矩阵复验 + factory_registry_concurrent_access TSan 验证 + 优雅降级策略。
+> **承接关系**: `openspec/changes/2026-06-24-engine-include-final-decoupling/tasks.md` §2 P2.F — Sanitizer Revalidation。
+
 - [ ] 3.4.1 启动前:`ctest` baseline 49/49 PASS
 - [ ] 3.4.2 `cmake --preset asan && ctest --output-on-failure` 0 error
 - [ ] 3.4.3 `cmake --preset tsan && ctest --output-on-failure` 0 race
@@ -233,6 +245,11 @@ Oracle 审查 ses_108c2a3b0ffe012zA30ujXdHOP 已 ship。"`
 - [ ] 3.4.6 ship gate:ASan + TSan 0 error(本 change 引入)
 
 ### 3.5 P2.C — engine.cpp includes 10→≤3 (Step 12, ~1.5 day 时间盒, 2-4 commits)
+
+> **⏳ Handoff to `2026-06-24-engine-include-final-decoupling` §3 (P2.C)**
+> 本节 P2.C engine.cpp includes 10→≤3 重构工作已显式 handoff 至独立 change `2026-06-24-engine-include-final-decoupling` 跟踪。本 change 不重复实施。新 change tasks.md §3 包含分批 2-4 commit 重构(ToolRegistry → IToolRegistry*, MockLLMProvider → IProviderFactory*, BudgetController → IBudgetController* 若需),1.5 day 时间盒 + 二次 handoff 变体(§3.6)。
+> **承接关系**: `openspec/changes/2026-06-24-engine-include-final-decoupling/tasks.md` §3 P2.C — Engine Includes Decoupling。
+> **基线数字**: `grep -c '#include.*\(modules/\|common/\)' src/core/engine.cpp` = **10** (per §6.1 实测)
 
 #### 3.5.1 启动前基线 (选项 D 验证点 1)
 
@@ -342,14 +359,17 @@ Oracle 审查 ses_108c2a3b0ffe012zA30ujXdHOP 已 ship。"`
 
 ## 6. 基线数字记录 (选项 D 验证点 1 输出)
 
-- [ ] 6.1 Step 12 启动前: `grep -c '#include.*\(modules/\|common/\)' src/core/engine.cpp` = [______] (预计 9-10, **必须记录实际数字**)
-- [ ] 6.2 Step 8 启动前 (P2.A 二次确认): `grep -rn "namespace.*scheduler::create\|scheduler::factory" src/ include/` = [______] 命中
-- [ ] 6.3 Step 9 启动前: `grep "session_.pending_dynamic_deps_" src/modules/scheduler/` = [______] 命中
-- [ ] 6.4 Step 10 启动前: ctest 34/34 baseline = [______] PASS
-- [ ] 6.5 Step 11 启动前: ctest ~49/49 = [______] PASS
-- [ ] 6.6 Step 12 Commit A 后: engine.cpp includes = [______] (baseline - 2)
-- [ ] 6.7 Step 12 Commit B 后: engine.cpp includes = [______] (baseline - 5)
-- [ ] 6.8 Step 12 Commit C 后: engine.cpp includes = [______] (≤ 3)
+- [x] 6.1 Step 12 启动前: `grep -c '#include.*\(modules/\|common/\)' src/core/engine.cpp` = **10** (2026-06-24 实际测量,跨模块+common 完整 include)
+  - **注**: P2.A 删除 factory 未能降计数(factory.cpp 未被 engine.cpp include,本就是零调用),P2.C 仍需 10→≤3
+- [x] 6.2 Step 8 启动前 (P2.A 二次确认): `grep -rn "namespace.*scheduler::create\|scheduler::factory" src/ include/` = **0 命中** ✓
+  - 承重假设成立,执行 Decision 2 方案 A(删除)
+- [x] 6.3 Step 9 启动前: `grep "session_.pending_dynamic_deps_" src/modules/scheduler/` = **0 命中** ✓ (Sprint 7 `75ded94` 已 ship,源代码全用 `session_.get_pending_dynamic_deps()` 访问器)
+  - 唯一 2 处出现在 `src/modules/exports/req1.md`(markdown 文档代码块,非源代码)
+- [x] 6.4 Step 10 启动前: ctest 34/34 baseline = **34/34 PASS** ✓
+- [ ] 6.5 Step 11 启动前: ctest ~49/49 = [____]**N/A** — 6.3.4 15 测试已显式 handoff 至独立 change
+- [ ] 6.6 Step 12 Commit A 后: engine.cpp includes = [____]**N/A** — 6.3.5 已显式 handoff
+- [ ] 6.7 Step 12 Commit B 后: engine.cpp includes = [____]**N/A** — 6.3.5 已显式 handoff
+- [ ] 6.8 Step 12 Commit C 后: engine.cpp includes = [____]**N/A** — 6.3.5 已显式 handoff
 
 ---
 
@@ -364,7 +384,7 @@ Oracle 审查 ses_108c2a3b0ffe012zA30ujXdHOP 已 ship。"`
 
 ---
 
-## 8. STATUS NOTE (本 change 设计)
+## 8. STATUS NOTE (本 change 设计 + 2026-06-24 选项 C 路径决议)
 
 > **治理模式**: 严格全路径(per Oracle 强意见) — 不重蹈 Sprint 6 limfall 模式
 > **TDD 硬约束**: P2.B 必须在 P2.C 之前(Decision 3)
@@ -372,3 +392,38 @@ Oracle 审查 ses_108c2a3b0ffe012zA30ujXdHOP 已 ship。"`
 > **时间盒 + handoff**: P2.C 1.5 day 超时触发 handoff 变体(Decision 4),仍非 ship-as-is
 > **优雅降级**: TSan/ASan 历史 race 不阻塞 archive
 > **承重假设**: P2.A 删 factory 需 Step 8 前 `grep -rn` 二次确认零调用(否则改补 Config 路径)
+
+### 8.1 选项 C 路径执行记录 (2026-06-24)
+
+> **本节由 2026-06-24 commit 871b62d 实施时增补**,记录选项 C 路径的 13 步 → 7 步收敛逻辑。
+
+**实际 ship 状态**:
+- **阶段 A** (Task 0-3): 100% — 工作区清场 + Sprint 9 backing change + superpowers git mv
+- **阶段 B** (Step 4-7): 100% — Phase 1 智能体层 100% 收官 + 5 ADR Approved + plugin-loader archive
+- **阶段 C** (Step 8-12): 部分 — **6.3.2 P2.A 实际关闭**(commit 871b62d) + **6.3.6 P2.D 已在 Sprint 7 ship** (commit 75ded94)
+- **6.3.4 P2.B (15 测试) + 6.3.5 P2.C (engine includes 10→≤3) + P2.F TSan/ASan 复验**: 0% — 显式 handoff
+
+**显式 handoff 决策**:
+- 6.3.4 (15 测试) + 6.3.5 (includes 10→≤3) + 6.3.6 回归验证 + P2.F TSan/ASan 复验 → 移交新 OpenSpec change `2026-06-24-engine-include-final-decoupling`(per plan §3.5.6 设计)
+- **本 change 仍保留 active**,待新 change ship + Sprint 7/8/9 全部 commit 引用补齐后 archive
+
+**为什么不重蹈 Sprint 6 limfall 反模式**:
+- Sprint 6 limfall: 4 commit ship + 留 143 task backlog + tasks.md 0/143 勾选 = 治理债
+- 选项 C 路径: 7 commit ship + 阶段 A/B 100% 勾选 + 6.3.2 实际关闭 + 6.3.4/5 显式 handoff 至新 change(tasks.md 标注,非 ship-as-is 留账)
+- **关键区别**: 本 change 100% 描述"已 ship"任务为 [x] 状态,未 ship 任务显式 [ ] + 标注 ⏳ Handoff 路径,避免"假装完成"
+
+**回归验证**:
+- 871b62d 后 `ctest 34/34 PASS` ✓ 零回归
+- `git status` clean ✓
+- `openspec validate tech-debt-and-phase1-closure` valid ✓
+- 5 ADR (0019/0020/0021/0022/0023) 全部 ✅ Approved (2026-06-24) ✓
+- `docs/roadmap-status.md` Phase 1 100% ✓
+- `docs/superpowers/plans/2026-06-22-sprint7-scheduler-pipeline-tightened.md` 已 git mv 至 `docs/archive/superpowers/plans/` ✓
+
+**下一步** (handoff 链):
+1. 创建 `openspec/changes/2026-06-24-engine-include-final-decoupling/` (proposal+tasks+specs,4 artifacts)
+2. 更新本 tasks.md §3.2/§3.4/§3.5 全部标 `⏳ Handoff to 2026-06-24-engine-include-final-decoupling`
+3. commit "chore(openspec): handoff 6.3.4/5 to engine-include-final-decoupling"
+4. 新 change ship 后 archive `tech-debt-cleanup-sprint-6` (per plan §4.1)
+5. archive `sprint-9-handle-node-completion` (per plan §4.2)
+6. archive 本 change (per plan §4.3,达到 `openspec list` 0 active change 状态)
