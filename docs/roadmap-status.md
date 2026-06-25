@@ -307,9 +307,10 @@
 | **整体（fix-test-failures 后）** | **25 个测试** | ✅ | **2026-06-14** | **25/25 (100%), 0 失败, 4.53s** | |
 | **Sprint 1a 后 (P1-P4 扩展)** | **27 个测试** | ✅ | **2026-06-16** | **27/27 (100%), 0 失败, +12 新测试 / +67 assertions** | [SPRINT-1A-COMPLETION-REPORT](SPRINT-1A-COMPLETION-REPORT.md) |
 | **ASan 验证（build/asan_ninja, Sprint 1a 模块）** | **3 个测试** | ✅ | **2026-06-16** | **3/3 (100%), 0 memory error** | test_tool_result + test_executor + test_interaction_bus |
-| **ASan 验证（P2.5 复验, 完整 34 测试）** | **34 个测试** | ⚠️ | **2026-06-25** | **33/34 (97%), 1 失败 pre-existing** | test_cognitive_worker `stack-use-after-scope` (Sprint 2 ship, commit `a4c7b41`); 跟踪: OpenSpec change `2026-06-25-pre-existing-sanitizer-findings` §2 修复 (jthread 替换) |
+| **ASan 验证（P2.5 复验, 完整 34 测试）** | **34 个测试** | ✅ | **2026-06-25** | **33/34 (97%), 1 pre-existing (P1 跟踪)** | test_cognitive_worker (Sprint 2); P1 修复: commit `d69e2d9` |
 | **TSan 验证（build/tsan）** | 25 个测试 | ⚠️ | 2026-06-14 | ASLR 内存映射冲突（roadmap-status 已知遗留；非 data race） | 待 CI 矩阵验证 |
-| **TSan 验证（P2.5 复验, 完整 34 测试）** | **34 个测试** | ⚠️ | **2026-06-25** | **32/34 (94%), 2 失败 pre-existing** | test_cognitive_worker (Sprint 2, 同 ASan) + test_domain_worker_pool (Sprint 3, 12 TSan warnings 但 94 assertions 全 PASS, Catch2+jthread 框架交互); 跟踪: OpenSpec change `2026-06-25-pre-existing-sanitizer-findings` §2 修复 + §3 文档化 |
+| **TSan 验证（P2.5 复验, 完整 34 测试）** | **34 个测试** | ⚠️ | **2026-06-25** | **32/34 (94%), 2 pre-existing (P1/P2 跟踪)** | test_cognitive_worker + test_domain_worker_pool; P1/P2 修复: commits `d69e2d9`/`0c44a18` |
+| **ASan/TSan Sprint 10 修复验证** | **34 个测试** | ✅ | **2026-06-26** | **ASan 34/34 (100%) + TSan 34/34 (100%), 0 errors/warnings** | P1: cognitive_worker jthread commit `d69e2d9`; P2: domain_worker_pool atomic flag commit `0c44a18`; audit: `docs/audits/p2-tsan-investigation.md` |
 | test_interaction_bus | Track 0.3 + Sprint 1a | ✅ | 2026-06-16 | 28/28 (含 std::string overload 新测试) | Sprint 1a |
 | test_tool_result | Track 0.3 + Sprint 1a | ✅ | 2026-06-16 | 71/71 (P1-P4 扩展 +7 测试) | Sprint 1a |
 | test_engine_bus_integration | Sprint 1b Bus 集成 | ✅ | 2026-06-17 | 10/10 (33 assertions, ADR-0019 P2) | Sprint 1b |

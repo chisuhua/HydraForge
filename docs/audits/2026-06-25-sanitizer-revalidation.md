@@ -175,3 +175,40 @@ openspec validate: `Change '2026-06-25-pre-existing-sanitizer-findings' is valid
 | engine-include-decoupling spec 状态 | ✅ openspec v1.4.1 archive 后, spec 通过 openspec CLI per-machine registry 维护 (`openspec list --specs` 已识别) | spec 不是 git-tracked source of truth, 而是 per-machine state (.gitignore `openspec/specs/`) |
 | test_cognitive_worker ASan/TSan pre-existing | 🟠 P1 跟踪修复 (jthread 替换) | `2026-06-25-pre-existing-sanitizer-findings` |
 | test_domain_worker_pool TSan pre-existing | 🟢 P2 跟踪文档化 (注释) | `2026-06-25-pre-existing-sanitizer-findings` |
+
+## 7. Sprint 10 修复后结果
+
+> 实施于 2026-06-26, commit `d69e2d9` (P1) + `0c44a18` (P2).
+
+### 7.1 P1: Fix `test_cognitive_worker` ASan/TSan
+
+| 项 | 值 |
+|---|---|
+| 策略 | `std::thread` → `std::jthread` (RAII auto-join) + capture 按值绑定 `i` |
+| 额外修复 | Test 7 subscription token capture + `unsubscribe()` (preventing Case A lambda from accessing destroyed `captured`) |
+| 文件 | `tests/test_cognitive_worker.cpp`, +20/-10 |
+| Commit | `d69e2d9` |
+| ASan 验证 | 34/34 PASS, 0 错误 |
+| TSan 验证 | 34/34 PASS, 0 警告 |
+
+### 7.2 P2: Fix `test_domain_worker_pool` TSan
+
+| 项 | 值 |
+|---|---|
+| 根因诊断 | P2.1 调查确认: 12 TSan warnings 全部来自 Catch2 framework 单线程设计 — Test 7 worker thread callback 内联 `REQUIRE`/`REQUIRE_FALSE` 宏,调用 `Catch::RunContext::resetAssertionInfo()` 与 main thread 并发 |
+| 根因定位产品代码? | ❌ 否 — 产品代码 (`domain_worker_pool.cpp`: queue mutex, handler mutex, state CAS) 全部 race-free |
+| 策略 | **Strategy A (test-only)**: 替换 inline REQUIRE 为 `std::atomic<bool>` flag, main thread post-check |
+| 文件 | `tests/test_domain_worker_pool.cpp`, +34/-13 |
+| Commit | `0c44a18` |
+| TSan 验证 | 34/34 PASS, **0 警告** |
+| 调查产出 | `docs/audits/p2-tsan-investigation.md` (427 行, 22KB) |
+
+### 7.3 Sprint 10 Ship Gate
+
+| 维度 | P2.5 (2026-06-25) | Sprint 10 (2026-06-26) | Delta |
+|---|---|---|---|
+| ctest (无 sanitizer) | 34/34 PASS | 34/34 PASS | = |
+| ctest ASan | 33/34 PASS (1 pre-existing) | **34/34 PASS** | **+1** |
+| ctest TSan | 32/34 PASS (2 pre-existing) | **34/34 PASS** | **+2** |
+| TSan warnings | 12 | **0** | **−12** |
+| 修复跟踪 status | pre-existing (优雅降级) | ✅ **已修复** | 关闭|
