@@ -382,15 +382,26 @@ TEST_CASE("DomainWorkerPool bus integration",
   std::atomic<int> started_count{0};
   std::atomic<int> completed_count{0};
   std::atomic<int> failed_count{0};
+  // 使用 atomic flag 在 worker thread 中收集断言结果,在 main thread post-check
+  // (避免 Catch2 REQUIRE 宏在 worker thread 调用导致 TSan data race,
+  //  Catch2 framework 设计为单线程,worker thread 内调用 resetAssertionInfo
+  //  会与 main thread 并发访问 framework 内部状态)
+  std::atomic<bool> started_ok{false};
+  std::atomic<bool> started_has_domain{false};
+  std::atomic<bool> started_has_tool_name{false};
+  std::atomic<bool> started_has_output_key{false};
+  std::atomic<bool> started_has_worker_id{false};
+  std::atomic<bool> failed_not_ok{false};
+  std::atomic<bool> failed_has_error_message{false};
   std::mutex events_mutex;
   std::vector<ToolResult> completed_events;
 
   bus->subscribe("domain.task.started", [&](const ToolResult& r) {
-    REQUIRE(r.ok);
-    REQUIRE(r.meta.contains("domain"));
-    REQUIRE(r.meta.contains("tool_name"));
-    REQUIRE(r.meta.contains("output_key"));
-    REQUIRE(r.meta.contains("worker_id"));
+    started_ok.store(r.ok, std::memory_order_relaxed);
+    started_has_domain.store(r.meta.contains("domain"), std::memory_order_relaxed);
+    started_has_tool_name.store(r.meta.contains("tool_name"), std::memory_order_relaxed);
+    started_has_output_key.store(r.meta.contains("output_key"), std::memory_order_relaxed);
+    started_has_worker_id.store(r.meta.contains("worker_id"), std::memory_order_relaxed);
     started_count.fetch_add(1, std::memory_order_relaxed);
   });
   bus->subscribe("domain.task.completed", [&](const ToolResult& r) {
@@ -399,8 +410,8 @@ TEST_CASE("DomainWorkerPool bus integration",
     completed_count.fetch_add(1, std::memory_order_relaxed);
   });
   bus->subscribe("domain.task.failed", [&](const ToolResult& r) {
-    REQUIRE_FALSE(r.ok);
-    REQUIRE(r.meta.contains("error_message"));
+    failed_not_ok.store(!r.ok, std::memory_order_relaxed);
+    failed_has_error_message.store(r.meta.contains("error_message"), std::memory_order_relaxed);
     failed_count.fetch_add(1, std::memory_order_relaxed);
   });
 
@@ -419,9 +430,16 @@ TEST_CASE("DomainWorkerPool bus integration",
 
     wait_until([&] { return completed_count.load() >= 1; });
 
-    REQUIRE(started_count.load() == 1);
-    REQUIRE(completed_count.load() == 1);
-    REQUIRE(failed_count.load() == 0);
+  REQUIRE(started_count.load() == 1);
+  REQUIRE(completed_count.load() == 1);
+  REQUIRE(failed_count.load() == 0);
+  // post-check: worker thread 中收集的 atomic flag 在 main thread 验证
+  // (避免 Catch2 REQUIRE 在 worker thread 调用导致 TSan data race)
+  REQUIRE(started_ok.load());
+  REQUIRE(started_has_domain.load());
+  REQUIRE(started_has_tool_name.load());
+  REQUIRE(started_has_output_key.load());
+  REQUIRE(started_has_worker_id.load());
 
     std::lock_guard<std::mutex> lock(events_mutex);
     const auto& r = completed_events[0];
@@ -440,9 +458,12 @@ TEST_CASE("DomainWorkerPool bus integration",
 
     wait_until([&] { return failed_count.load() >= 1; });
 
-    REQUIRE(started_count.load() == 1);
-    REQUIRE(failed_count.load() == 1);
-    REQUIRE(completed_count.load() == 0);
+  REQUIRE(started_count.load() == 1);
+  REQUIRE(failed_count.load() == 1);
+  REQUIRE(completed_count.load() == 0);
+  // post-check: worker thread 中收集的 atomic flag 在 main thread 验证
+  REQUIRE(failed_not_ok.load());
+  REQUIRE(failed_has_error_message.load());
   }
 
   SECTION("重复注册抛异常") {
