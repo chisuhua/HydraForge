@@ -219,19 +219,23 @@ TEST_CASE("CognitiveWorker concurrent submit 10x100 TSan clean",
   CognitiveWorker worker(std::move(engine), bus);
   worker.start();
 
-  std::vector<std::thread> threads;
+  std::vector<std::jthread> threads;
   for (int i = 0; i < 10; ++i) {
-    threads.emplace_back([&] {
+    // i 必须按值捕获 (避免 outer for 循环结束后 i 越界, 触发 stack-use-after-scope)
+    threads.emplace_back([&worker, i] {
       for (int j = 0; j < 100; ++j) {
         worker.submit_task("t-" + std::to_string(i) + "-" + std::to_string(j),
                           "p");
       }
     });
   }
-  for (auto& t : threads) t.join();
+  // std::jthread RAII auto-joins on destruction — no explicit join needed
 
-  wait_until([&] { return completed_count.load() == 1000; });
+  wait_until([&] { return completed_count.load() == 1000; },
+             std::chrono::seconds(30));
   worker.stop();
+  // 确保 worker 完全停止 (jthread handlers 排空) 后再退出测试作用域
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
   REQUIRE(completed_count.load() == 1000);
 }
@@ -276,9 +280,12 @@ TEST_CASE("CognitiveWorker error_code bridge covers LLM error paths",
     }
     std::atomic<int> done{0};
     ToolResult captured;
-    bus->subscribe("cognitive.task.completed", [&](const ToolResult& p) {
-      captured = p; ++done;
-    });
+    // 保留 token 用于块退出前 unsubscribe, 防止下一 case 的 bus emit 触发
+    // 本 case 已销毁的 lambda 引用 (stack-use-after-scope)
+    size_t sub_a = bus->subscribe("cognitive.task.completed",
+                                  [&](const ToolResult& p) {
+                                    captured = p; ++done;
+                                  });
     CognitiveWorker worker(std::move(engine), bus);
     worker.start();
     worker.submit_task("net-1", "p");
@@ -286,6 +293,7 @@ TEST_CASE("CognitiveWorker error_code bridge covers LLM error paths",
     worker.stop();
     REQUIRE(captured.error_code.has_value());
     REQUIRE(captured.error_code.value() == ErrorCode::Retry);
+    bus->unsubscribe(sub_a);
   }
 
   // Case B: AuthenticationError -> PermissionDenied
@@ -296,9 +304,10 @@ TEST_CASE("CognitiveWorker error_code bridge covers LLM error paths",
     }
     std::atomic<int> done{0};
     ToolResult captured;
-    bus->subscribe("cognitive.task.completed", [&](const ToolResult& p) {
-      captured = p; ++done;
-    });
+    size_t sub_b = bus->subscribe("cognitive.task.completed",
+                                  [&](const ToolResult& p) {
+                                    captured = p; ++done;
+                                  });
     CognitiveWorker worker(std::move(engine), bus);
     worker.start();
     worker.submit_task("auth-1", "p");
@@ -306,6 +315,7 @@ TEST_CASE("CognitiveWorker error_code bridge covers LLM error paths",
     worker.stop();
     REQUIRE(captured.error_code.has_value());
     REQUIRE(captured.error_code.value() == ErrorCode::PermissionDenied);
+    bus->unsubscribe(sub_b);
   }
 }
 
