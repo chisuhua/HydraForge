@@ -171,6 +171,10 @@ docs/
 > (668 行) 已通过 `git mv` 移至 `docs/archive/superpowers/plans/`。该 plan 是 Sprint 7 启动
 > 时的执行计划,已 ship + 延展至 Sprint 8 + Sprint 9 step 1,本计划已不再 active。
 >
+> **2026-06-25 更新**: 目录中保留 2 个 active 跟踪 plan (均 ship + 归档闭环相关):
+> - `2026-06-24-tech-debt-full-closure.md` (1769 行) — 13 步全路径 plan (阶段 A+B 100% + 阶段 C handoff 至 `2026-06-24-engine-include-final-decoupling`),已 ship
+> - `2026-06-24-engine-include-final-decoupling.md` (895 行) — 6.3.x 收官 plan (engine.cpp includes 10→3 + 3 engine_factory tests),已 ship + change 已 archive
+>
 > 后续 superpowers plans 由各 Sprint 启动时按需创建。
 >
 > **历史归档(2026-06-03)**:`docs/superpowers/` 原 3 个文件已归档至 `docs/archive/superpowers/`:
