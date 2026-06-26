@@ -19,34 +19,60 @@ Sprint 13 (Phase 3 入口) 启动本 change 实施 P1-P2 部分 (P3-P4 拆到 C4
 
 ## What Changes (待 Sprint 12 收官后详细制定)
 
-### P1: IExecutionPolicy 完整实现 (Sprint 13 Day 1-3)
+> ⚠️ **2026-06-26 Oracle 决议修正 (master plan §十一.1 resolved)**: 当前 stub `include/agenticdsl/policy/iexecution_policy.h` 实际声明 **8 个纯虚函数** (`requires_approval` / `should_auto_execute` / `should_show_plan` / `should_show_result_summary` / `mode_name` / `should_auto_decide_retry` / `should_show_reflection` / `fleet_max_concurrency`), 与本 proposal 列出的 4 方法集**方法名完全不重叠** (除 `requires_approval` 签名相似). C3 实施时是**重写接口**, 不是扩展 stub. Oracle session `ses_0faa4dabeffeHGFoLdXE7AqwH7`.
 
-1. `class IExecutionPolicy` 4 虚函数:
+### P1: IExecutionPolicy 完整实现 (Sprint 13 Day 1-3) — Oracle 推荐版
+
+1. **重写 `class IExecutionPolicy` 5 虚函数** (替换现有 8 方法 stub):
    - `virtual bool requires_approval(const ToolMetadata&, const ToolCallContext&) const = 0;`
    - `virtual bool should_execute(const ToolMetadata&, const ToolCallContext&) const = 0;`
    - `virtual bool can_skip(const ToolMetadata&, const ToolCallContext&) const = 0;`
-   - `virtual LayerProfile get_layer() const = 0;`
+   - `virtual LayerProfile get_layer(const ToolMetadata&) const = 0;`
+   - `virtual bool request_approval(const ToolMetadata&, const ToolCallContext&, const ToolPreview&, ApprovalCallback) const = 0;` *(Oracle 5th method: sync callback 接口, transport 可插拔)*
 
-2. 3 个默认实现:
-   - `PlanPolicy`: 全部 requires_approval=true, 用户必须显式确认
-   - `AgentPolicy`: 读操作自动, 写操作 requires_approval
-   - `YOLOPolicy`: 全部 should_execute=true, 无审批 (危险模式)
+2. **删除 stub 现有 8 方法中的 7 个** (保留 `requires_approval` 改签名):
+   - 删除 `should_auto_execute` / `should_show_plan` / `should_show_result_summary` / `should_auto_decide_retry` / `should_show_reflection` / `fleet_max_concurrency` (per-mode 常量或 IPER 推测性方法, 移出虚接口)
+   - 保留 `mode_name()` 作为非虚方法或并入 `ModeConfig` 值结构体
 
-3. `ToolMetadata` V1 (基础字段):
+3. **3 个默认实现** (Oracle 推荐默认 Agent 模式):
+   - `PlanPolicy`: `requires_approval`=meta.category!=ReadOnly, `should_execute`=false, `can_skip`=false, `get_layer`=Workflow
+   - `AgentPolicy` (默认): `requires_approval`=meta.approval_policy=="always", `should_execute`=true, `can_skip`=meta.category==ReadOnly
+   - `YoloPolicy`: `requires_approval`=force_approval_always (defense-in-depth floor), `should_execute`=true, `can_skip`=true — **YOLO 切换需用户确认对话框** (防误操作)
+
+4. **同步修订 ADR-0031** (`docs/adr/adr-0031-execution-policy.md`):
+   - §决策 1: 8 方法 → 5 方法 (重写)
+   - §附录"议题5最小集成": 标记 SUPERSEDED (per Oracle 决议)
+
+5. `ToolMetadata` V1 (基础字段):
    - `name`, `description`, `category` (read/write/dangerous)
    - `risk_level` (low/medium/high)
    - `approval_policy` (always/never/conditional)
 
-### P2: 审批机制 (Sprint 13 Day 4-7)
+### P2: 审批机制 (Sprint 13 Day 4-7) — Oracle 推荐 sync callback 路径
 
-1. EventBus event 类型:
-   - `ApprovalRequired`: { tool_metadata, context, response_promise }
-   - `ApprovalGranted` / `ApprovalDenied`: { request_id, decision, user_comment }
+> ⚠️ **路径变更**: 原 proposal 方案 (EventBus + IInteractionBus + request_id 关联 + promise/future) **被 Oracle 推翻**, 改为 sync callback 接口 + 可插拔 transport (callback 内部可选用 IInteractionBus 桥接 TUI, 但 policy 接口不依赖 bus).
 
-2. `ApprovalCoordinator` 中间件:
-   - 订阅 `ApprovalRequired` event
-   - 通过 `IInteractionBus` 推送到 TUI
-   - 等待 `/apply` 命令响应
+1. **sync callback 接口** (Oracle 推荐):
+   ```cpp
+   struct ApprovalRequest {
+     std::string tool_name;
+     ToolMetadata meta;
+     ToolCallContext ctx;
+     ToolPreview preview;
+     std::string request_id;
+   };
+   using ApprovalCallback = std::function<bool(const ApprovalRequest&, int timeout_ms)>;
+   ```
+
+2. **callback 实现由 executor 层注入** (可选用 IInteractionBus):
+   - `TuiApprovalCallback`: 阻塞 stdin 读 `/apply` 命令, 解析 yes/no
+   - `RemoteTuiApprovalCallback`: 内部用 IInteractionBus emit `policy.approval.requested` + 阻塞等待 `policy.approval.responded` (复用 ADR-0004 §request_confirmation 模式, **不造新基础设施**)
+   - `TestAutoApprovalCallback`: 测试立即返回 true/false
+
+3. **不实现 EventBus request_id 关联基础设施**:
+   - 当前 `IInteractionBus` API 只有 emit/subscribe/unsubscribe, 无 request/response 关联原语
+   - 净造基础设施 (request_id + wait_for_event) 不优于 callback 接口
+   - ADR-0030 协程落地后可包成协程 wrapper, callback 边界保留
    - emit `ApprovalGranted` / `ApprovalDenied` event
 
 3. TUI `/apply` 命令桥接:
@@ -90,6 +116,8 @@ Sprint 13 (Phase 3 入口) 启动本 change 实施 P1-P2 部分 (P3-P4 拆到 C4
 ## Estimated Effort (placeholder)
 
 参考 docs/implementation-roadmap.md §Phase 3 估时: **2 周** (Sprint 13 主体)
+
+> **Oracle 校正 (2026-06-26)**: sync callback 路径无需造 EventBus request_id 关联基础设施 (省 2-3 天), 实际估时 **1.5 周** 更现实. 重写 stub 8→5 方法 + 删除 IPER 推测方法不增加成本 (stub 无生产消费者).
 
 **前置依赖**: 无 (独立启动, 可与 Sprint 12 并行)
 **后续依赖**: C4 (P3-P4 ToolCoordinator) + C6 (ADR-0004 V2) + C8 (Phase 4.5 MVP 清理)

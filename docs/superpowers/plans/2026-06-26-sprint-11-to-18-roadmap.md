@@ -284,10 +284,10 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 |------|---|
 | **类型** | 占位 (Phase 4.5 MVP 清理) |
 | **估时** | 1-2 天 |
-| **依赖** | C3 (IExecutionPolicy 完整) |
+| **依赖** | **C3 (P1-P2) + C4 (P3-P4) + C5 (Session) + C6 (ADR-0004 V2) 全部 ship** (与 proposal.md 一致, 2026-06-26 修正) |
 | **关联 ADR** | ADR-0019 / ADR-0020 (替代 SimpleCognitiveOrchestrator) |
 | **目录** | `openspec/changes/2026-06-26-phase-4-5-mvp-cleanup/` |
-| **状态** | ⚪ **placeholder, 收尾 Sprint** |
+| **状态** | ⚪ **placeholder, 收尾 Sprint (依赖最长链 C3→C4→C6)** |
 
 **目标**:
 - 替换 `SimpleCognitiveOrchestrator` 为正式实现 (基于 CognitiveWorker + IExecutionPolicy)
@@ -440,7 +440,7 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 
 | 日期 | Change | 偏离类型 | 偏离描述 | 响应 Change | 状态 |
 |------|--------|---------|---------|-----------|------|
-| 2026-06-26 | 初始 baseline | 📋 文档/ADR 不一致 | 审计发现 4 处:<br>1) ADR-0030 V1 归档理由过时（"依赖未引入"已 ship）<br>2) ADR-0032 标注 ❌ Not Implemented 但 test_cost_collector 已 PASS<br>3) implementation-roadmap.md §Phase 2 描述脱节<br>4) AGENTS.md Recent Changes 未含 Sprint 10 | C0 `2026-06-26-doc-alignment-adr-states` | 🟡 active |
+| 2026-06-26 | 初始 baseline | 📋 文档/ADR 不一致 | 审计发现 4 处:<br>1) ADR-0030 V1 归档理由过时（"依赖未引入"已 ship）<br>2) ADR-0032 标注 ❌ Not Implemented 但 test_cost_collector 已 PASS<br>3) implementation-roadmap.md §Phase 2 描述脱节<br>4) AGENTS.md Recent Changes 未含 Sprint 10 | C0 `2026-06-26-doc-alignment-adr-states` | ✅ **resolved (2026-06-26)** — C0 ship 完成, 4 处全部修复 + change 已 archive (ADR-0030 V2 草案 + ADR-0032 状态修正 + 4 docs 同步 + 7 commits) |
 
 ### 10.2 待填充模板
 
@@ -458,7 +458,10 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 
 | 日期 | 原占位 Change | 调整原因 | 调整内容 | 状态 |
 |------|--------------|---------|---------|------|
-| (暂无) | — | — | — | — |
+| 2026-06-26 | C2 `adr-0030-v2-async-runtime` | C0 写 ADR-0030 V2 (`docs/adr/adr-0030-async-runtime-v2.md`) 明确决策 `std::jthread` (C++20 RAII) 替代 `async_simple` 协程层, 因 Sprint 2/3 CognitiveWorker + DomainWorkerPool 验证 std::jthread 已足够 | 移除假设"Taskflow + async_simple 双层架构仍适用"; C2 实施时按 V2 ADR 直接落地 (Taskflow + std::jthread + IInteractionBus), async_simple 依赖最终移除 (当前已 ship 但未启用). 同步更新 C2/proposal.md §Why 方案 A 表述 (Taskflow + async_simple → Taskflow + std::jthread) | ✅ resolved |
+| 2026-06-26 | C3 `adr-0031-p1p2-execution-policy` | Oracle 咨询 (C0 收官后触发, master plan §十一.3 line 473) 完成 3 决策: (1) 接口大小 4 虚函数 + 1 approval (替换现有 8 方法 stub, 非扩展); (2) 审批机制 sync callback (EventBus async 推迟到 ADR-0030 协程落地); (3) 默认 Agent 模式 + YOLO 切换需确认 | C3 实施时: 重写 stub (8→5 方法, 删除 IPER 推测方法, per-mode 常量移到 ModeConfig 值结构), 用 sync callback 不造 request_id 关联基础设施. 估时 2 周 → 1.5 周. ADR-0031 同步修订 (§决策 1 + §附录议题 5). Oracle 决议 session `ses_0faa4dabeffeHGFoLdXE7AqwH7` | ✅ resolved |
+| 2026-06-26 | C1 `sprint-7-tech-debt-execution` | C1 142 tasks 基于 stale 代码状态 (Sprint 6 + 2026-06-25 engine-include-decoupling 闭环前的快照). 当前代码现状: `dispatch_next_node` 已不存在 (重命名为 `dispatch_ready_nodes`); `execute_fork_branches` 仅 1 callsite (`handle_fork_branches_block:616`), 无重复; `engine.cpp` include 已 = 3 (≤3 目标达成); `execute()` 已拆为 54 行 (≤60 目标达成); `DagState` 已存在; `test_engine_factory.cpp` 3 测试已存在 | C1 团队执行前需**重写 tasks.md** 删除已完成的 fork 重复修复 (Day 1.1) + 部分 §6 (engine.cpp include) + 部分 §4 (execute ≤60 + DagState) + 部分 §7 (factory test 已存在). 估时 3 周 → ~2 周. 重新 active 化前强烈建议依赖 `grep` 现状验证每个 task 的前提条件 | 🟡 in-progress (待 C1 团队重写 tasks.md) |
+| 2026-06-26 | C8 `phase-4-5-mvp-cleanup` | C8/proposal.md 写"前置依赖: C3 + C4 + C5 + C6 全部 ship" 但 master plan §四 C8 行只写"依赖: C3". 依赖声明自相矛盾 | 统一 master plan §四 C8 行为 C3 + C4 + C5 + C6 全部 ship (采纳 proposal.md 更详细的版本, 与"收尾 Sprint"语义一致). C8 调度起点明确为依赖最长链 C3→C4→C6 完成后 | ✅ resolved |
 
 ### 11.2 待填充模板
 
@@ -537,7 +540,7 @@ Review Gate 发现问题
 
 ```
 openspec/changes/
-├── 2026-06-26-doc-alignment-adr-states/          [C0] active
+├── 2026-06-26-doc-alignment-adr-states/          [C0] archived (2026-06-26, ship 5 commits + 2 docs + 1 archive)
 │   ├── .openspec.yaml
 │   ├── proposal.md
 │   ├── tasks.md

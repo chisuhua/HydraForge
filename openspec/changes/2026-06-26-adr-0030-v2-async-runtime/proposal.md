@@ -14,11 +14,14 @@ Phase 2 (异步架构) 是 docs/implementation-roadmap.md 定义的下一个里�
 
 **Sprint 12 启动前必须决策的 3 个 Open Questions** (用 Oracle 咨询):
 
-1. **双层架构是否仍适用?**
-   - 方案 A: Taskflow 处理 DAG 节点并行 (短时计算) + async_simple 处理 LLM Token 流 + 用户审批 suspend (长生命周期协程)
-   - 方案 B: std::jthread + std::stop_token 替代 async_simple (Sprint 2 CognitiveWorker + Sprint 3 DomainWorkerPool 已采用)
-2. **Fleet 模式 16 路 LLM 并行的真实业务场景** — 是否有实际使用需求?
-3. **LLM Token 流式推送是否用协程 yield** — 现有 `IGenerationStream` 已支持 stream, 协程化收益?
+> ⚠️ **2026-06-26 状态修正 (C0 收官 + master plan §十一.1 resolved)**: 以下方案 A 已**过时** — C0 写 ADR-0030 V2 (`docs/adr/adr-0030-async-runtime-v2.md`) 已明确决策 std::jthread (C++20 RAII) 替代 async_simple 协程层, 经 Sprint 2 CognitiveWorker + Sprint 3 DomainWorkerPool 9/9 + 7/7 ctest pass 验证足够. C2 实施时**直接按 V2 ADR 落地**,无需在 3 个 Open Questions 中重决策.
+
+1. ~~**双层架构是否仍适用?**~~
+   - ~~方案 A: Taskflow 处理 DAG 节点并行 (短时计算) + async_simple 处理 LLM Token 流 + 用户审批 suspend (长生命周期协程)~~
+   - ~~方案 B: std::jthread + std::stop_token 替代 async_simple (Sprint 2 CognitiveWorker + Sprint 3 DomainWorkerPool 已采用)~~
+   - **✅ 已决策 (2026-06-26, ADR-0030 V2 §决策 1)**: 采用 **方案 B** (Taskflow + std::jthread Worker Pool + IInteractionBus), async_simple 依赖在 P1 实施时从 CMake 移除 (external/async_simple/ 当前已 ship 但未启用)
+2. **Fleet 模式 16 路 LLM 并行的真实业务场景** — 是否有实际使用需求? (待 Oracle 验证 — 决策影响 C2 估时是否含 Slice 04)
+3. **LLM Token 流式推送是否用协程 yield** — 现有 `IGenerationStream` 已支持 stream, 因决策 1 选方案 B, 协程 yield 不再需要, 改用 IInteractionBus `llm.token` 事件推送 (ADR-0030 V2 §决策 1)
 
 ## What Changes (待 C1 完成后详细制定)
 
