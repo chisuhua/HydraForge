@@ -1,6 +1,7 @@
 # Proposal: ADR-0031 P1-P2 — IExecutionPolicy + Approval Mechanism
 
-> **STATUS: PLACEHOLDER** ⚠️
+> **状态**: 🟡 active (Oracle 咨询已完成 2026-06-26, 占位内容已填充, 实施待 C1 ship 后启动)
+> **Oracle 决议 session**: `ses_0faa4dabeffeHGFoLdXE7AqwH7`
 > **本 change 详细 design/spec/tasks 待 Sprint 12 启动前 (2026-07-30 前后) 填充**
 > **触发条件**: 无依赖 (独立启动)
 > **关联 ADR**: docs/adr/adr-0031-execution-policy.md (🟡 Partial, 仅头文件 stub)
