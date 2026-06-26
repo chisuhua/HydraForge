@@ -55,7 +55,7 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 
 | # | Change 名 | 类型 | 估时 | 依赖 | 状态 |
 |---|-----------|------|------|------|------|
-| **C0** | `2026-06-26-doc-alignment-adr-states` | 实施 | 0.5-1 天 | — | 🟡 准备中 |
+| **C0** | `2026-06-26-doc-alignment-adr-states` | 实施 | 0.5-1 天 | — | ✅ archived (2026-06-26, [archive 链接](../archive/sprint-11-changes/2026-06-26-doc-alignment-adr-states/)) |
 | **C1** | `2026-06-26-sprint-7-tech-debt-execution` | 实施 | 3 周 (Sprint 11) | C0 | 🟡 准备中 |
 | **C2** | `2026-06-26-adr-0030-v2-async-runtime` | 占位 | 1.5-2 周 (Sprint 12) | C1 | ⚪ 占位 |
 | **C3** | `2026-06-26-adr-0031-p1p2-execution-policy` | 占位 | 2 周 (Sprint 13) | — | ⚪ 占位 |
@@ -343,10 +343,11 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 |------|---------|
 | **占位 change 太多导致混淆** | 每个占位 change 在 `proposal.md` 顶部明确标注 `STATUS: PLACEHOLDER` + 触发条件 (前置 change 名称) |
 | **Sprint 11 实际耗时超 3 周** | 优先 ship C0 + C1 Day 1-7 (Blocker + Major), E2E 推到 Sprint 12 前段 |
-| **ADR-0030 V2 决策延误** | Sprint 11 收官前用 Oracle 咨询 3 个关键问题 (双层架构 / std::jthread / Fleet 16 路) |
+| **ADR-0030 V2 决策延误** | ✅ **已解决 (2026-06-26, OpenSpec change `2026-06-26-doc-alignment-adr-states` ship)** — V2 草案已写 (`docs/adr/adr-0030-async-runtime-v2.md`), 3 个 Open Questions 锁定为 Sprint 12 启动前 Oracle 咨询项. 状态: 🔍 Proposed → ✅ Approved 待 Sprint 12 实施完成 |
 | **ADR-0031 拆分 P1-P2 vs P3-P4** | 严格执行: C3 (P1-P2 2 周) → C4 (P3-P4 1.5-2 周) → C6 (依赖 C4), 不混作一个 Sprint |
 | **PDK 示例 plugin (C7) 依赖外部仓库** | monorepo vendored 优先, 独立仓库推送作为 async 任务 (Sprint 4 T4b 模式) |
 | **C8 依赖 C3 完整实施** | 如 C3 延期, C8 推迟到 Sprint 19 |
+| **C0 ADR/文档一致性漂移 (审计 4 处)** | ✅ **已解决 (2026-06-26, OpenSpec change `2026-06-26-doc-alignment-adr-states` ship)** — 4 处文档/ADR 同步完成: ADR-0030 V1 标 SUPERSEDED, ADR-0032 状态修正, implementation-roadmap §Phase 2 ADR-0030 V2 引用, AGENTS.md Recent Changes |
 
 ---
 
