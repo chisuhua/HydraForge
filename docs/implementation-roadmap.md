@@ -38,7 +38,10 @@ Phase 1 — 智能体层
 │
     ▼
 Phase 2 — 异步架构
-│   └── ADR-0030 Taskflow + async_simple + 并行调度
+│   └── ADR-0030 V2 (Taskflow + std::jthread + IInteractionBus) — 见 `docs/adr/adr-0030-async-runtime-v2.md`
+│       **前置**: Slice 00 (Taskflow v4.0 + async_simple v1.4 已 ship, 2026-06-07) + Sprint 2/3 (CognitiveWorker + DomainWorkerPool, 9/9 + 7/7 ctest pass)
+│       **V1 状态**: ❌ Not Implemented + SUPERSEDED by V2 (2026-06-26, OpenSpec change `2026-06-26-doc-alignment-adr-states`)
+│       **V2 状态**: 🔍 Proposed (Sprint 12 实施后转 ✅ Approved)
 │
     ▼
 Phase 3 — 执行策略与安全
@@ -74,8 +77,8 @@ Phase 5 — 自举与服务化 (远期)
 |------|------|------|
 | **8 个核心模块** (parser/scheduler/executor/context/budget/trace/library/system) | ✅ 已实现 | ~4,532 行 |
 | **Common 组件** (llm/tools/utils) | ✅ 已实现 | 含 HttpAdapter + LlamaAdapter |
-| **ADR-0019~0036 新增组件** (contract/worker/plugin/async/event/cost/sandbox/pdk/cognitive) | 🟢 大部分实现 | ADR-0019 ✅ / ADR-0020 🟡 / ADR-0021/0022 🔍 Proposed / ADR-0023 ✅ / ADR-0031 🟡 / ADR-0033 🟡 |
-| **外部依赖** (Taskflow / async_simple) | ❌ 未引入 | 依赖 llama.cpp 已移除 |
+| **ADR-0019~0036 新增组件** (contract/worker/plugin/async/event/cost/sandbox/pdk/cognitive) | 🟢 大部分实现 | ADR-0019 ✅ / ADR-0020 ✅ (Sprint 3 ship) / ADR-0021 🟡 (Sprint 4 ship) / ADR-0022 ✅ (Sprint 5 ship) / ADR-0023 ✅ / ADR-0030 🔍 V2 Proposed / ADR-0031 🟡 / ADR-0032 🟡 Partial (2026-06-26 状态修正, test_cost_collector 已 ship) / ADR-0033 🟡 |
+| **外部依赖** (Taskflow / async_simple) | ✅ 已引入 (Slice 00, 2026-06-07) | Taskflow v4.0 header-only + async_simple v1.4；V2 决策移除 async_simple 协程层依赖 |
 | **测试** | ✅ 全部通过 | 27/27 全部通过 (2026-06-17 验证, 含 Sprint 1a/1b 新增) |
 
 ### 紧急问题 (需立即修复)
@@ -406,47 +409,50 @@ class ICognitiveOrchestrator {
 
 ---
 
-## Phase 2 — 异步架构 (ADR-0030)
+## Phase 2 — 异步架构 (ADR-0030 V2)
 
 > **前提**: Phase 1 智能体层完成
-> **状态**: ✅ 已批准，待实施
+> **状态**: 🔍 V2 Proposed (Sprint 12 启动后实施)
+> **ADR**: ADR-0030 V2 (见 `docs/adr/adr-0030-async-runtime-v2.md`), 替代归档的 V1 (见 `docs/archive/adr/adr-0030-async-runtime-dual-layer.md`)
+> **前置**: Slice 00 (Taskflow + async_simple 已 ship, 2026-06-07) + Sprint 2/3 (CognitiveWorker + DomainWorkerPool 已 ship, 2026-06-18/19)
 
-### ADR-0030 P1 — 引入依赖
-
-| # | 文件 | 操作 | 状态 | 说明 |
-|---|------|------|------|------|
-| 6.1 | `external/taskflow/` | 引入 | [ ] | Taskflow v4.0 (header-only) |
-| 6.2 | `external/async_simple/` | 引入 | [ ] | async_simple v1.4 |
-| 6.3 | `CMakeLists.txt` (根) | 修改 | [ ] | `add_subdirectory(external/taskflow)` + `add_subdirectory(external/async_simple)` |
-
-**约束**: `await_future()` 必须使用 `FutureAwaiter`，**禁止** `while + Yield` 轮询
-
-### ADR-0030 P2 — AsyncRuntime 核心 + 桥接层
+### ADR-0030 V2 P1 — TopoScheduler Taskflow 并行化 (前置依赖已 ship)
 
 | # | 文件 | 操作 | 状态 | 说明 |
 |---|------|------|------|------|
-| 7.1 | `src/common/async/CMakeLists.txt` | 新建 | [ ] | 静态库 `agenticdsl_async` |
-| 7.2 | `src/common/async/async_runtime.h` | 新建 | [ ] | `AsyncRuntime` 声明 |
-| 7.3 | `src/common/async/async_runtime.cpp` | 新建 | [ ] | 实现 (持 Executor) |
-| 7.4 | `src/common/async/bridge.h` | 新建 | [ ] | `await_taskflow()`, `await_future()` |
-| 7.5 | `src/common/async/bridge.cpp` | 新建 | [ ] | 桥接实现 |
+| 6.1 | `external/taskflow/` | 引入 | [x] | Taskflow v4.0 (header-only, Slice 00 S0.1 完成, 2026-06-07) |
+| 6.2 | `external/async_simple/` | 引入 | [x] | async_simple v1.4 (Slice 00 S0.2 完成); **V2 决策不启用**, P1 实施时移除依赖 |
+| 6.3 | `CMakeLists.txt` (根) | 修改 | [x] | `add_subdirectory(external/taskflow)` (S0.3 完成); `async_simple` 移除在 P1 实施时执行 |
 
-### ADR-0030 P3 — TopoScheduler 并行化
+**V2 约束**: 不再需要 `await_future()` 协程桥接 — `tf::Future` 直接 `.get()` 或回调即可。`std::jthread` RAII 已覆盖 Worker 生命周期。
 
-**前提**: ADR-0030 P2, P4
+### ADR-0030 V2 P2 — 舰队模式 16 路并行 (基于 DomainWorkerPool 扩展)
 
 | # | 文件 | 操作 | 状态 | 说明 |
 |---|------|------|------|------|
-| 8.1 | `src/modules/scheduler/topo_scheduler.h` | 修改 | [ ] | `execute_parallel()` / `execute_async()` |
-| 8.2 | `src/modules/scheduler/topo_scheduler.cpp` | 修改 | [ ] | Taskflow 并行路径 + Fork/Join Subflow |
+| 7.1 | `src/common/llm/fleet_orchestrator.h` | 新建 | [ ] | `FleetOrchestrator` (复用 DomainWorkerPool, 16 路可配置) |
+| 7.2 | `src/common/llm/fleet_orchestrator.cpp` | 新建 | [ ] | 分片→submit→聚合→FleetResult |
+| 7.3 | `examples/slice_04_fleet/main.cpp` | 新建 | [ ] | 端到端 16 路 LLM mock 调用 < 500ms |
+| 7.4 | `tests/test_fleet_orchestrator.cpp` | 新建 | [ ] | 并行调用单元测试 + TSan |
 
-### ADR-0030 P4 — Context 线程安全 + 增量 DAG
+### ADR-0030 V2 P3 — Context 线程安全 + 增量 DAG
+
+**前提**: ADR-0030 V2 P2
 
 | # | 文件 | 操作 | 状态 | 说明 |
 |---|------|------|------|------|
-| 9.1 | `src/core/types/context.h` | 修改 | [ ] | 添加 `fork()` / `merge()` |
-| 9.2 | `src/core/types/context.cpp` | 新建 | [ ] | `fork()` 深拷贝 / `merge()` 策略 |
-| 9.3 | `src/modules/scheduler/topo_scheduler.cpp` | 修改 | [ ] | `append_node()` 增量 DAG |
+| 8.1 | `src/modules/scheduler/topo_scheduler.h` | 修改 | [ ] | 增加 `execute_parallel(Context, tf::Executor&)` |
+| 8.2 | `src/modules/scheduler/topo_scheduler.cpp` | 修改 | [ ] | Taskflow `emplace` DAG + Fork/Join Subflow |
+| 8.3 | `src/core/types/context.h` | 修改 | [ ] | 添加 `fork()` / `merge()` |
+| 8.4 | `src/core/types/context.cpp` | 新建 | [ ] | `fork()` 深拷贝 / `merge()` 策略 |
+| 8.5 | `src/modules/scheduler/topo_scheduler.cpp` | 修改 | [ ] | `append_node()` 增量 DAG |
+
+### ADR-0030 V2 P4 — IInteractionBus Phase 2 后端切换
+
+| # | 文件 | 操作 | 状态 | 说明 |
+|---|------|------|------|------|
+| 9.1 | `src/common/contract/inmemory_bus.cpp` | 修改 | [ ] | 后端切换为 EventBus (MPMC 有界队列) |
+| 9.2 | `tests/test_interaction_bus.cpp` | 扩展 | [ ] | 1000x 并发 emit 无丢失 (基线 28/28, 扩展边界) |
 
 ---
 
@@ -528,14 +534,20 @@ Eric 审查指出的问题——`call_tool_with_policy()` 之前在 Roadmap 中�
 | 11.2 | `src/common/tools/registry.h` | 修改 | [ ] | `register_tool(ToolMetadata, func)` 新 API |
 | 11.3 | `src/common/tools/registry.cpp` | 修改 | [ ] | 保留旧 API 兼容 |
 
-### ADR-0032 — CostCollector
+### ADR-0032 — CostCollector (🟡 Partial, 2026-06-26 状态修正)
+
+> **状态 (2026-06-26)**: 🟡 Partial — `tests/test_cost_collector.cpp` 已 ship 并全通过 (2026-06-14, `docs/roadmap-status.md` §五验证表). 核心类已实施; **未集成** `BudgetController`. 收尾工作推迟到 C8 OpenSpec change (`2026-06-26-phase-4-5-mvp-cleanup`).
+> **状态变更**: ❌ Not Implemented → 🟡 Partial (OpenSpec change `2026-06-26-doc-alignment-adr-states` 修正).
+> **ADR**: 原 `docs/archive/adr/adr-0032-cost-collector.md` (归档目录) 状态修正; 后续若需重新启用可 `git mv` 至 `docs/adr/`.
 
 | # | 文件 | 操作 | 状态 | 说明 |
 |---|------|------|------|------|
-| 12.1 | `src/common/cost/CMakeLists.txt` | 新建 | [ ] | 静态库 `agenticdsl_cost` |
-| 12.2 | `src/common/cost/pricing.h` | 新建 | [ ] | `ModelPricing` |
-| 12.3 | `src/common/cost/cost_collector.h` | 新建 | [ ] | `CostCollector` + `SessionCost` |
-| 12.4 | `src/common/cost/cost_collector.cpp` | 新建 | [ ] | 订阅 EventBus 计算成本 |
+| 12.1 | `src/common/cost/CMakeLists.txt` | 新建 | [x] | 静态库 `agenticdsl_cost` (2026-06-14 ship) |
+| 12.2 | `src/common/cost/pricing.h` | 新建 | [x] | `ModelPricing` + `PricingTable` (2026-06-14 ship) |
+| 12.3 | `src/common/cost/cost_collector.h` | 新建 | [x] | `CostCollector` + `SessionCost` (2026-06-14 ship) |
+| 12.4 | `src/common/cost/cost_collector.cpp` | 新建 | [x] | 订阅 EventBus 计算成本 (2026-06-14 ship) |
+| 12.5 | `tests/test_cost_collector.cpp` | 新建 | [x] | 单元测试 (全通过, `docs/roadmap-status.md` §五验证) |
+| 12.6 | `src/core/engine.cpp` | 修改 | [ ] | **C8 收尾**: 创建 CostCollector, 集成预算检查 (`cost_collector_->is_over_budget(...)`) |
 
 ### ADR-0033 — Session 层级体系
 
