@@ -326,12 +326,42 @@
 
 ### Sprint 结束前检查
 
+#### 6.1 基础检查（必备）
+
 - [ ] 所有 Sprint 任务 `[x]` 或 `[~]`
 - [ ] 所有验收任务 `[x]` 或 `[~]`
 - [ ] 阻塞项已记录原因
 - [ ] 验证状态已更新
 - [ ] 实施日志已补充
 - [ ] 已与 `docs/implementation-roadmap.md` 对比一致性
+
+#### 6.2 Review Gates 检查（Roadmap-Driven Development 强制）
+
+> 自 2026-06-26 起，Master Plan 启用 4 种 Review Gates (见 `docs/superpowers/plans/<date>-<roadmap>.md` §9)。每个 Sprint 收官必须执行：
+
+- [ ] **🔄 Sprint Review Gate** — 已 ship change 是否达到预期效果？有无新 bug？假设错误？
+- [ ] **🧭 Drift Detection** — 运行 `python3 tools/check_roadmap_drift.py`，0 个 CRITICAL drift
+- [ ] **🔗 Dependency Refresh** — 占位 change 的依赖是否仍成立（启动前必跑）
+- [ ] **🎯 Strategic Alignment**（每季度 1 次）— 当前 backlog 是否仍服务项目核心目标
+- [ ] **§十 Drift Log 更新** — 本 Sprint 发现的 drift 已追加到 Master plan §十
+- [ ] **§十一 Adjustment Log 更新** — 占位 change 调整已追加（如有）
+- [ ] **§十二 Pivots Log 更新** — 战略转向已追加（如有）
+
+#### 6.3 自动化脚本（推荐）
+
+```bash
+# 一键运行完整 Sprint 收官检查
+./scripts/sprint-closeout.sh
+
+# 或手动逐步:
+cd /workspace/project/HydraForge
+python3 tools/check_roadmap_drift.py   # 必跑
+ctest --output-on-failure              # 测试全绿
+python3 tools/adr_lint.py docs/adr/    # ADR lint
+python3 tools/docs_drift_audit.py     # docs 一致性
+```
+
+详细指南见 `docs/guides/sprint-closeout-checklist.md`。
 
 ---
 
