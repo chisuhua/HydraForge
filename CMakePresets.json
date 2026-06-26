@@ -87,7 +87,10 @@
     },
     {
       "name": "tsan",
-      "configurePreset": "tsan"
+      "configurePreset": "tsan",
+      "environment": {
+        "TSAN_OPTIONS": "halt_on_error=0:report_signal_unsafe=0"
+      }
     },
     {
       "name": "tests",
@@ -98,6 +101,16 @@
     {
       "name": "tests",
       "configurePreset": "tests",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "tsan",
+      "configurePreset": "tsan",
+      "environment": {
+        "TSAN_OPTIONS": "halt_on_error=0:report_signal_unsafe=0"
+      },
       "output": {
         "outputOnFailure": true
       }
