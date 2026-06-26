@@ -105,7 +105,7 @@
 | ├─ Sprint 3: DomainWorkerPool | **100% ██████████** | **✅ 已完成 (2026-06-19)** — 详见 OpenSpec `2026-06-30-domain-worker-pool`, 31/31 ctest pass, ADR-0020 §2.2.1 ✅ Resolved | 3 天 | Sprint 2 ✅ |
 | ├─ Sprint 4: PDK 骨架 | **100% ██████████** | **✅ 已完成 (2026-06-19)** — 详见 OpenSpec `2026-07-07-pdk-skeleton`, 32/32 ctest pass, ADR-0021 🟡 Partial | 3 天 | Sprint 3 ✅ |
 | └─ Sprint 5: PluginLoader + 收官 | 0% | ⏸ 未开始 (W5) | 1.3 天 | Sprint 4 |
-| Phase 2 异步+EventBus | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 2-3 周 | Phase 1 |
+| Phase 2 异步+EventBus | 0% ░░░░░░░░░░ | ⏸ 待启动 (Sprint 12, 依赖 C0 + C1) | 2-3 周 | Phase 1 |
 | Phase 3 执行策略+安全 | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 2-3 周 | Phase 2 |
 | Phase 4 模型路由+内核 | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 2-3 周 | Phase 3 |
 | Phase 4.5 MVP清理 | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 1-2 天 | Phase 4 |
@@ -264,6 +264,7 @@
 
 | 日期 | 任务 | 耗时 | 结果 | 备注 |
 |------|------|:----:|------|------|
+| 2026-06-26 | **C0 doc-alignment-adr-states 收官 (OpenSpec change `2026-06-26-doc-alignment-adr-states`)** | 0.5 天 | ✅ 文档/ADR 对齐完成 | **4 处文档修复 + ADR 状态修正**: ① 新建 ADR-0030 V2 (`docs/adr/adr-0030-async-runtime-v2.md`, 状态 🔍 Proposed, 基于 Slice 00 ship 状态 + Sprint 2/3 std::jthread 验证); ② ADR-0030 V1 (`docs/archive/adr/adr-0030-async-runtime-dual-layer.md`) 标记 SUPERSEDED by V2, 归档理由 ("依赖未引入") 已过时; ③ ADR-0032 (`docs/archive/adr/adr-0032-cost-collector.md`) 状态 ❌ Not Implemented → 🟡 Partial (`tests/test_cost_collector.cpp` 已 ship, 2026-06-14, 集成 BudgetController 推迟 C8); ④ `docs/implementation-roadmap.md` §Phase 2 ADR 引用 V1 → V2 + ADR-0032 状态更新. **Phase 2 状态**: ⏸ 阻塞中 → ⏸ 待启动 (Sprint 12, 依赖 C0 + C1). **5 commits** (ADR-0030 V2 / V1 SUPERSEDED / ADR-0032 status / roadmap 同步 / AGENTS.md 同步). OpenSpec change 准备 archive. 详见 `openspec/changes/2026-06-26-doc-alignment-adr-states/` + `docs/superpowers/plans/2026-06-26-sprint-11-to-18-roadmap.md` §四 C0. |
 | 2026-05-30 ~ 2026-06-02 | Pre-Phase 准备：7 个测试修复 | ~0.5 天 | ✅ 12/12 通过 | 见 `docs/archive/superpowers/plans/2026-06-02-test-fixes-for-prephase.md`；commits `1148845` (llm), `d6e8ce5` (library), `4ae97d9` (parser), `4b45a5b` (scheduler), `0166f1e` (executor) |
 | 2026-06-03 | 文档基线对齐 | 0.5h | ✅ 完成 | 修正 roadmap-status.md / implementation-roadmap.md 中过时的测试断言；迁移 superpowers spec 方案对比至 ADR-0010；归档 3 个过期 superpowers 文档 |
 | 2026-06-07 | **Pre-Phase 完成** (P0.0a–P0.4 + V0.1 + V0.2) | 0.5h | ✅ 全部通过 | 交付 3 个核心接口头文件 (ICognitiveOrchestrator / IExecutionPolicy 8 方法 / Session 三级体系) + 根 CMakeLists.txt 添加 `${CMAKE_SOURCE_DIR}/include` 搜索路径；V0.1 全量编译 + V0.2 三头独立 include 测试均通过；现有 12/12 测试零回归。修复预存 `node.h:125` `[[deprecated]]` 属性位置警告（原被屏蔽，修复后浮现 2 个 `node_executor.{h:45, cpp:90}` 使用弃用类型的 `-Wdeprecated-declarations` 警告——已在 roadmap 阻塞项中记录） |
@@ -410,6 +411,7 @@ python3 tools/docs_drift_audit.py     # docs 一致性
 
 | 变更 ID | 标题 | 严重度 | 任务数 | 链接 |
 |---------|------|:------:|:------:|------|
+| `2026-06-26-doc-alignment-adr-states` | C0 doc-alignment: ADR-0030 V2 写入 + ADR-0032 状态修正 + 4 处文档同步 | 🔴 P0 (Sprint 11 P0 立即) | 51 | [OpenSpec change](openspec/changes/2026-06-26-doc-alignment-adr-states/) |
 | `docs-code-alignment-fixes` | 文档/代码对齐修复（2026-06-09 审计 19 个问题） | 🔴 P0: 4 / 🟠 P1: 16 / 🟡 P2: 8 / 收尾 4 | 31 | [OpenSpec change](openspec/changes/archive/2026-06-09-docs-code-alignment-fixes/) |
 | `phase1-toolresult-standardization` | Phase 1 入口：ToolResult 标准化 P1-P4（ADR-0023） | 🟠 P1 (首选) | 6 | [OpenSpec change](openspec/changes/phase1-toolresult-standardization/) |
 | `2026-06-17-phase1-bus-integration` | Phase 1 Sprint 1b: DSLEngine Bus 集成（ADR-0019 P2） | 🟠 P1 | 5 | [OpenSpec change](openspec/changes/2026-06-17-phase1-bus-integration/) |
