@@ -1,8 +1,14 @@
 # ADR-0030：AsyncRuntime 双层异步架构（Taskflow + async_simple）
 > 📋 **Phase 5 规划: 异步架构** (规划于 2026-05/06, 2026-06-09 整理归档) — 见 `implementation-roadmap.md`
+
+> **⚠️ V1 SUPERSEDED by V2** (2026-06-26, OpenSpec change `2026-06-26-doc-alignment-adr-states`)
+> **V1 替代原因**: Slice 00 已 ship (2026-06-07, S0.1-S0.6), Taskflow v4.0 + async_simple v1.4 依赖实际已引入; Sprint 2/3 CognitiveWorker + DomainWorkerPool 验证 std::jthread (C++20 RAII) 替代 async_simple 协程层更轻量。
+> **详见**: [`docs/adr/adr-0030-async-runtime-v2.md`](../adr/adr-0030-async-runtime-v2.md) (V2: Taskflow + std::jthread + IInteractionBus)
+> **保留原因**: 历史可追溯, V2 不复用 V1 编号。
+
 ## 状态
 
-**❌ 未实施** (2026-05-27, 2026-06-09 标注废弃) — **V1 版**，基于 Oracle 审查与 Taskflow v4.0 调研结论锁定
+**❌ 未实施** (2026-05-27, 2026-06-09 标注废弃) — **V1 版 (SUPERSEDED)**,基于 Oracle 审查与 Taskflow v4.0 调研结论锁定
 
 ## 领域
 

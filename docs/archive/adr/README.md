@@ -27,8 +27,8 @@
 
 | ADR | 议题 | 归档原因 |
 |-----|------|----------|
-| `adr-0030-async-runtime-dual-layer.md` | 异步运行时双层架构 | ❌ Not Implemented (Taskflow + async_simple 依赖未引入) |
-| `adr-0032-cost-collector.md` | 成本收集器 | ❌ Not Implemented (由 `BudgetController::CostTracker` 替代) |
+| `adr-0030-async-runtime-dual-layer.md` | 异步运行时双层架构 | ❌ Not Implemented (V1, **SUPERSEDED by V2** at 2026-06-26 — 见 [`docs/adr/adr-0030-async-runtime-v2.md`](../adr/adr-0030-async-runtime-v2.md)) |
+| `adr-0032-cost-collector.md` | 成本收集器 | 🟡 Partial (2026-06-26 修正, `tests/test_cost_collector.cpp` 全通过, 未集成 `BudgetController` — Phase 3 收尾推迟到 C8) |
 | `adr-0036-hybrid-kernel-architecture.md` | 混合内核架构 | ❌ Not Implemented (愿景性, 依赖多个前置 ADR) |
 
 > 2026-06-16 变更：`adr-0034-model-router.md` 因重新定位为「Plugin 化实施候选」移出本目录至 [`docs/adr/plugin/`](../adr/plugin/README.md)，状态由 ❌ Not Implemented 调整为 🔍 Proposed (plugin-candidate)。归档目录不再保留此 ADR。
