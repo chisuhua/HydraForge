@@ -1,10 +1,15 @@
 # ADR-0032: CostCollector 成本收集与预算控制
 > 📋 **Phase 5 规划: 安全与策略** (规划于 2026-05/06, 2026-06-09 整理归档) — 见 `implementation-roadmap.md`
+
+> **2026-06-26 状态修正 (OpenSpec change `2026-06-26-doc-alignment-adr-states`)**：原始状态 ❌ Not Implemented 已过时。`tests/test_cost_collector.cpp` 全量通过 (2026-06-14, roadmap-status §五验证表) — `CostCollector`/`SessionCost`/`ModelPricing`/`PricingTable` 核心类已实施并通过单元测试。
+> **状态更新**: ❌ Not Implemented → 🟡 **Partial** (核心类已 ship, 未集成到 BudgetController)
+> **Phase 3 收尾工作**: 集成 `BudgetController::CostTracker` 推迟到 OpenSpec change `2026-06-26-phase-4-5-mvp-cleanup` (C8, 远期)。详见 `docs/superpowers/plans/2026-06-26-sprint-11-to-18-roadmap.md` §四 C8。
+
 ## 状态
 
-**❌ 未实施** (2026-05-27, 2026-06-09 标注废弃)
+**🟡 Partial** (2026-05-27 起草, 2026-06-09 标注废弃, **2026-06-26 状态修正**)
 
-代码侧无 `CostCollector` 类,`BudgetController` 也无 cost 字段。详见 OpenSpec change `tech-debt-and-doc-cleanup`。
+代码侧 `CostCollector` 核心类已实施 (`tests/test_cost_collector.cpp` 全通过, 2026-06-14),但**未集成到 `BudgetController`** (`BudgetController` 仍无 cost 字段)。Phase 3 收尾工作推迟到 C8 OpenSpec change。详见 OpenSpec change `2026-06-26-doc-alignment-adr-states` 与 `docs/roadmap-status.md` §五验证表 (`test_cost_collector` 行)。
 
 ## 领域
 
