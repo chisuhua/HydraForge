@@ -72,7 +72,7 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 |---|-----------|------|------|------|------|
 | **C0** | `2026-06-26-doc-alignment-adr-states` | 实施 | 0.5-1 天 | — | ✅ archived (2026-06-26, [archive 链接](openspec/changes/archive/2026-06-26-2026-06-26-doc-alignment-adr-states/), 7 commits) |
 | **C1** | `2026-06-26-sprint-7-tech-debt-execution` | 实施 | 3 周 (Sprint 11) → ~2 周 (stale-state 修正后) | C0 | ✅ **shipped (2026-06-27, 35/35 ctest pass, 85/142 tasks done, 关键 ship: scheduler factory + IBudgetController + get_last_traces() to IScheduler)** |
-| **C2** | `2026-06-26-adr-0030-v2-async-runtime` | 占位 | 1.5-2 周 (Sprint 12) | C1 | 🟡 active (proposal.md 已同步 V2 决策: std::jthread 替代 async_simple 协程层, §十一.1 记录) |
+| **C2** | `2026-06-26-adr-0030-v2-async-runtime` | 实施 | 1.5-2 周 (Sprint 12, Oracle 校正后) | C1 | 🟡 **active (Oracle filled 2026-06-27, session `ses_0f5541ebfffehKDxNVuYqB7bq4`: Fleet defer + bridge runner + std::jthread, §十一.1 记录)** |
 | **C3** | `2026-06-26-adr-0031-p1p2-execution-policy` | 实施 | **1.5 周** (Sprint 13, Oracle 校正) | — | 🟡 **active (Oracle filled, 5 虚函数 + sync callback + Agent 默认, session `ses_0faa4dabeffeHGFoLdXE7AqwH7`)** |
 | **C4** | `2026-06-26-adr-0031-p3p4-toolcoordinator` | 占位 | 1.5-2 周 (Sprint 14) | C3 (+ C2 异步决策) | ⚪ 占位 |
 | **C5** | `2026-06-26-adr-0033-session-hierarchy` | 占位 | 1.5-2 周 (Sprint 15) | — (独立) | ⚪ 占位 (可与 C3/C4 并行填充) |
@@ -158,30 +158,36 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 
 | 字段 | 值 |
 |------|---|
-| **类型** | 占位 (Phase 2 入口) |
-| **估时** | 1.5-2 周 |
-| **依赖** | C1 (engine.cpp include ≤ 3 达成为前置) |
-| **关联 ADR** | ADR-0030 V1 (archive) → **V2 (新写, 取代 V1)** / ADR-0002 / ADR-0019 / ADR-0020 |
+| **类型** | 实施 (Phase 2 入口, Oracle 填充完成) |
+| **估时** | 1.5-2 周 (Oracle 校正: Fleet defer 节省 1 周) |
+| **依赖** | C1 ✅ shipped (2026-06-27) |
+| **关联 ADR** | ADR-0030 V1 (archive) → **V2 (新写, 取代 V1, 🔍 Proposed)** / ADR-0002 / ADR-0019 / ADR-0020 |
 | **目录** | `openspec/changes/2026-06-26-adr-0030-v2-async-runtime/` |
-| **状态** | ⚪ **placeholder, 待 C1 完成后详细制定** |
+| **状态** | 🟡 **active (Oracle filled 2026-06-27, session `ses_0f5541ebfffehKDxNVuYqB7bq4`)** |
 
-**目标** (待 C1 完成后细化为 proposal + design + spec + tasks):
-- 写 ADR-0030 V2 (Phase 2 异步架构), 替代 V1
-- 引入/集成 Taskflow (Slice 00 已 ship) + async_simple (Slice 00 已 ship)
-- 实现并行 DAG executor (topo_scheduler 异步重构)
-- 16 路 LLM 并行调用 (Fleet 模式, Slice 04)
-- LLM Token 流式推送 (协程 yield)
-- 用户审批等待 (/apply, 协程 suspend)
+**Oracle 决议** (2026-06-27):
+1. **Fleet 模式 16 路 LLM → DEFER** (0 examples 使用并行 LLM, DomainWorkerPool 已提供 N-way 能力)
+2. **Token 流推送 → bridge runner `run_stream_to_bus`** (IGenerationStream pull-based, Option A 侵入 provider)
+3. **双层架构 → std::jthread** (C0 阶段锁定, Sprint 2/3 验证通过)
 
-**关键决策点** (Sprint 11 收官前咨询 Oracle):
-- V1 的"双层架构"是否仍适用?
-- 是否用 std::jthread (Sprint 2 已采用) 替代 async_simple 协程?
-- Fleet 模式 16 路并行的实际业务场景?
+**实施范围** (Oracle 校正后):
+1. **P1**: TopoScheduler Taskflow DAG 并行化 + Context fork/merge + `src/common/llm/stream_to_bus.{h,cpp}` (~120 行)
+2. **P2**: InMemoryBus EventBus MPMC 后端切换 (解决 bridge 背压)
+3. **ADR-0030 V2 文档漂移修正**: "默认 16" → "默认 4, 可配置 16", 移除 Fleet P2
+4. **async_simple CMake 依赖移除** (V2 决策)
 
-**placeholder 内容**:
-- `proposal.md`: Why (V1 archive 理由过时, 需 V2 取代) + What (大方向) + placeholder 标记
-- `tasks.md`: TBD, 5 个 section 占位
-- `specs/async-runtime/spec.md`: placeholder Requirements
+**估时**: ~10-12 工作日 (1.5-2 周, 较 ADR V2 §后续行动估时 3 周减少 1 周)
+
+**目标** (Sprint 12 实施):
+- [ ] 写 ADR-0030 V2 完整 design (基于 Oracle 决议, 已完成 proposal/tasks/spec)
+- [ ] 引入/集成 Taskflow v4.0 (Slice 00 已 ship)
+- [ ] 实现并行 DAG executor (TopoScheduler::execute_parallel)
+- [ ] Context fork/merge 不可变分支 (解决 ADR-0030 V2 §风险 🔴 高)
+- [ ] `stream_to_bus` bridge runner (LLM Token → IInteractionBus)
+- [ ] InMemoryBus EventBus 后端切换 (P4)
+- [ ] ~~16 路 LLM 并行 (Fleet 模式)~~ DEFER 到 Phase 3+
+- [ ] ~~LLM Token 协程 yield~~ V2 不采用, 用 bridge runner 替代
+- [ ] ~~用户审批 /apply suspend~~ 依赖 C3 ADR-0031, Sprint 13+ 实施
 
 ---
 
@@ -326,9 +332,10 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 - Sprint 11 关键 ship: C0 doc-alignment (4 处 ADR/docs 同步) + C1 tech-debt (scheduler factory + IBudgetController + IScheduler::get_last_traces())
 - Sprint 11 ship 后, **Sprint 12 可立即启动 C2 (Phase 2 async runtime)**
 
-### Sprint 12 (~1.5-2 周)
-- C2 ship
-- Ship gate: ctest 47+/47+ + 16 路 LLM 并行测试 + ADR-0030 V2 Approved
+### Sprint 12 (~1.5-2 周, Oracle 校正)
+- C2 ship (proposal/tasks/spec Oracle 填充完成, 实施待启动)
+- Ship gate: ctest ≥ 41/41 (35 baseline + 6 new C2 tests) + ASan/TSan 100% + ADR-0030 V2 → ✅ Approved + `external/async_simple/` CMake 依赖移除
+- **Oracle 决议落地**: Fleet 模式 16 路 LLM DEFER (Phase 3+) + bridge runner `run_stream_to_bus` 替代协程 yield
 
 ### Sprint 13 (~2 周)
 - C3 ship
@@ -482,6 +489,7 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 | 日期 | 原占位 Change | 调整原因 | 调整内容 | 状态 |
 |------|--------------|---------|---------|------|
 | 2026-06-26 | C2 `adr-0030-v2-async-runtime` | C0 写 ADR-0030 V2 (`docs/adr/adr-0030-async-runtime-v2.md`) 明确决策 `std::jthread` (C++20 RAII) 替代 `async_simple` 协程层, 因 Sprint 2/3 CognitiveWorker + DomainWorkerPool 验证 std::jthread 已足够 | 移除假设"Taskflow + async_simple 双层架构仍适用"; C2 实施时按 V2 ADR 直接落地 (Taskflow + std::jthread + IInteractionBus), async_simple 依赖最终移除 (当前已 ship 但未启用). 同步更新 C2/proposal.md §Why 方案 A 表述 (Taskflow + async_simple → Taskflow + std::jthread) | ✅ resolved |
+| 2026-06-27 | C2 `adr-0030-v2-async-runtime` | C1 ship (2026-06-27) 解锁 C2 启动前置. Oracle 咨询 (session `ses_0f5541ebfffehKDxNVuYqB7bq4`) 完成 2 剩余 Open Questions: (1) Fleet 模式 16 路 LLM → DEFER (0 examples 使用并行 LLM, DomainWorkerPool 已提供 N-way 能力, ~1 周节省); (2) Token 流推送 → bridge runner `run_stream_to_bus` (IGenerationStream 是 pull-based, Option A 侵入 provider). 文档漂移修正: DomainWorkerPool 默认 16 → 默认 4 可配置 16 | C2 proposal.md + tasks.md + spec.md 全部应用 Oracle 决议. 估时 2 周 → 1.5-2 周. 移除 P2 FleetOrchestrator (defer Phase 3+). 新增 P1 stream_to_bus bridge (~120 行). ADR-0030 V2 §决策记录 line 292 文档漂移修正 | ✅ resolved |
 | 2026-06-26 | C3 `adr-0031-p1p2-execution-policy` | Oracle 咨询 (C0 收官后触发, master plan §十一.3 line 473) 完成 3 决策: (1) 接口大小 4 虚函数 + 1 approval (替换现有 8 方法 stub, 非扩展); (2) 审批机制 sync callback (EventBus async 推迟到 ADR-0030 协程落地); (3) 默认 Agent 模式 + YOLO 切换需确认 | C3 实施时: 重写 stub (8→5 方法, 删除 IPER 推测方法, per-mode 常量移到 ModeConfig 值结构), 用 sync callback 不造 request_id 关联基础设施. 估时 2 周 → 1.5 周. ADR-0031 同步修订 (§决策 1 + §附录议题 5). Oracle 决议 session `ses_0faa4dabeffeHGFoLdXE7AqwH7` | ✅ resolved |
 | 2026-06-26 | C1 `sprint-7-tech-debt-execution` | C1 142 tasks 基于 stale 代码状态 (Sprint 6 + 2026-06-25 engine-include-decoupling 闭环前的快照). 当前代码现状: `dispatch_next_node` 已不存在 (重命名为 `dispatch_ready_nodes`); `execute_fork_branches` 仅 1 callsite (`handle_fork_branches_block:616`), 无重复; `engine.cpp` include 已 = 3 (≤3 目标达成); `execute()` 已拆为 54 行 (≤60 目标达成); `DagState` 已存在; `test_engine_factory.cpp` 3 测试已存在 | C1 团队执行前需**重写 tasks.md** 删除已完成的 fork 重复修复 (Day 1.1) + 部分 §6 (engine.cpp include) + 部分 §4 (execute ≤60 + DagState) + 部分 §7 (factory test 已存在). 估时 3 周 → ~2 周. 重新 active 化前强烈建议依赖 `grep` 现状验证每个 task 的前提条件 | ✅ **resolved (2026-06-27)** — C1 ship 完成, 35/35 ctest pass, 85/142 tasks done. 关键 ship: (1) scheduler factory (Day 8-9, commit `7125aaf`); (2) IBudgetController (Day 6.2, commit `5aa363c`); (3) IScheduler::get_last_traces() + dynamic_cast 移除 (Day 16, commit `76bf8d2`). include count 5 (spec 3, 接受为 factory pattern 进化结果) |
 | 2026-06-26 | C8 `phase-4-5-mvp-cleanup` | C8/proposal.md 写"前置依赖: C3 + C4 + C5 + C6 全部 ship" 但 master plan §四 C8 行只写"依赖: C3". 依赖声明自相矛盾 | 统一 master plan §四 C8 行为 C3 + C4 + C5 + C6 全部 ship (采纳 proposal.md 更详细的版本, 与"收尾 Sprint"语义一致). C8 调度起点明确为依赖最长链 C3→C4→C6 完成后 | ✅ resolved |
@@ -496,7 +504,7 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 
 | 占位 Change | 当前假设 | 潜在调整风险 | 触发条件 |
 |------------|---------|------------|---------|
-| **C2** adr-0030-v2-async-runtime | "Taskflow + async_simple 双层架构" 仍适用 | Oracle 咨询可能发现 std::jthread + Taskflow 已足够，无需 async_simple 协程层 | C1 收官前 Oracle 咨询 |
+| **C2** adr-0030-v2-async-runtime | ~~"Taskflow + async_simple 双层架构" 仍适用~~ | ✅ **Oracle 已决议 (2026-06-27, session `ses_0f5541ebfffehKDxNVuYqB7bq4`)**: (1) std::jthread (C0 阶段锁定); (2) Fleet 16 路 → DEFER (0 业务用例, DomainWorkerPool 已提供 N-way); (3) Token 流推送 → bridge runner `run_stream_to_bus` (IGenerationStream pull-based, Option A 侵入 provider 排除). 估时 2 周 → 1.5-2 周 (Fleet defer 节省 ~1 周). ADR-0030 V2 §决策记录 line 292 文档漂移待修正 (默认 16 → 默认 4 可配置 16) | C1 收官前 Oracle 咨询 (已完成) |
 | **C3** adr-0031-p1p2-execution-policy | ~~"4 虚函数接口" 足够~~ | ✅ **Oracle 已决议 (2026-06-26)**: 5 虚函数 (`requires_approval` / `should_execute` / `can_skip` / `get_layer` / `request_approval`), 重写 stub (8→5, 删除 7 个 per-mode 常量 + IPER 推测方法, 移入 `ModeConfig` 值结构体). timeout/cost_estimate 推迟到 ADR-0032 CostCollector 真正集成执行路径时再加 (非纯虚带默认值). 估时 2 周 → 1.5 周 (省 EventBus request_id 关联基础设施) | C0 收官后 ADR-0031 草案审查 (已完成) |
 | **C5** adr-0033-session-hierarchy | "UserSession/TaskSession/SubtaskSession" 三层 | 可能发现需要 Fork/Join 用更轻量 SubtaskContext 而非完整 SubtaskSession | Sprint 14 启动前 Oracle 咨询 |
 | **C7** adr-0034-model-router-plugin | "PDK plugin 内置 3 策略" | 可能发现需要独立 plugin（如 fleet-routing-plugin / cost-routing-plugin） | Sprint 16 启动前 |
@@ -573,11 +581,11 @@ openspec/changes/
 │   ├── proposal.md
 │   ├── tasks.md
 │   └── specs/tech-debt-cleanup/spec.md
-├── 2026-06-26-adr-0030-v2-async-runtime/         [C2] placeholder
+├── 2026-06-26-adr-0030-v2-async-runtime/         [C2] active (Oracle filled)
 │   ├── .openspec.yaml
-│   ├── proposal.md (STATUS: PLACEHOLDER)
-│   ├── tasks.md (TBD)
-│   └── specs/async-runtime/spec.md (placeholder Requirements)
+│   ├── proposal.md (Oracle 决议: Fleet defer + bridge runner + std::jthread)
+│   ├── tasks.md (10-12 工作日 Day-by-Day 计划, 5 sections)
+│   └── specs/async-runtime/spec.md (6 ADDED Requirements: Taskflow DAG + Context fork/merge + stream_to_bus + EventBus backend + no-async-simple + ADR-0025-defer)
 ├── 2026-06-26-adr-0031-p1p2-execution-policy/    [C3] placeholder
 │   ├── .openspec.yaml
 │   ├── proposal.md (STATUS: PLACEHOLDER)
