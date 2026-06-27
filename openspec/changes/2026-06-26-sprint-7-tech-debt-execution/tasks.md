@@ -44,17 +44,17 @@
 
 ### 2.1 `tests/test_scheduler.cpp` 增强
 
-- [ ] 2.1.1 打开 `tests/test_scheduler.cpp`, 添加 7 个新 TEST_CASE 框架
-- [ ] 2.1.2 `prepare_dag_state_simple_linear`: 3 节点线性 DAG, 验证 ready_queue 顺序
-- [ ] 2.1.3 `prepare_dag_state_diamond`: 4 节点菱形, 验证拓扑序正确
-- [ ] 2.1.4 `prepare_dag_state_cycle_detection`: A→B→A 循环, 期望 runtime_error("DAG cycle detected")
-- [ ] 2.1.5 `dispatch_ready_nodes_initial`: 初始 ready 队列派发 2 节点
-- [ ] 2.1.6 `dispatch_ready_nodes_parallel`: 3 个独立节点并发派发
-- [ ] 2.1.7 `handle_node_completion_success`: 完成后下游节点入 ready_queue
-- [ ] 2.1.8 `handle_node_completion_failure`: 失败传播, 2 个 downstream 标 Skipped
-- [ ] 2.1.9 `ctest -R test_scheduler --output-on-failure` ≥ 7 新 case pass + 既有零回归
-- [ ] 2.1.10 `cmake --preset tsan && ctest -R test_scheduler` 0 race
-- [ ] 2.1.11 提交: `git commit -m "test(scheduler): add 7 state-based test cases for split execute() pipeline (Sprint 11)"`
+- [x] 2.1.1 打开 `tests/test_scheduler.cpp`, 添加 7 个新 TEST_CASE 框架
+- [x] 2.1.2 `prepare_dag_state_simple_linear`: 3 节点线性 DAG, 验证 ready_queue 顺序
+- [x] 2.1.3 `prepare_dag_state_diamond`: 4 节点菱形, 验证拓扑序正确
+- [x] 2.1.4 `prepare_dag_state_cycle_detection`: A→B→A 循环, 期望 runtime_error("DAG cycle detected")
+- [x] 2.1.5 `dispatch_ready_nodes_initial`: 初始 ready 队列派发 2 节点
+- [x] 2.1.6 `dispatch_ready_nodes_parallel`: 3 个独立节点并发派发
+- [x] 2.1.7 `handle_node_completion_success`: 完成后下游节点入 ready_queue
+- [x] 2.1.8 `handle_node_completion_failure`: 失败传播, 2 个 downstream 标 Skipped
+- [x] 2.1.9 `ctest -R test_scheduler --output-on-failure` ≥ 7 新 case pass + 既有零回归
+- [x] 2.1.10 `cmake --preset tsan && ctest -R test_scheduler` 0 race
+- [x] 2.1.11 提交: `git commit -m "test(scheduler): add 7 state-based test cases for split execute() pipeline (Sprint 11)"`
 
 ---
 
@@ -62,15 +62,15 @@
 
 ### 3.1 `tests/test_parser.cpp` 增强
 
-- [ ] 3.1.1 打开 `tests/test_parser.cpp`, 添加 5 个新 TEST_CASE
-- [ ] 3.1.2 `factory_registry_registers_all_types`: size() == 11 (spec 修正后)
-- [ ] 3.1.3 `factory_registry_creates_correct_subtype`: typeid 检查返回正确子类 (LLMNode / ToolNode / 等)
-- [ ] 3.1.4 `factory_registry_unknown_type_returns_nullptr`: type="NonExistent", 期望 nullptr (旧行为, 验证 spec §3.3.3 修正)
-- [ ] 3.1.5 `factory_registry_global_singleton`: 两次 global() 调用 `&r1 == &r2`
-- [ ] 3.1.6 `factory_registry_concurrent_access`: 4 线程并发 create + 1 线程 register (延迟 1ms 后启动), TSan 0 race
-- [ ] 3.1.7 `ctest -R test_parser --output-on-failure` ≥ 5 新 case pass + 既有零回归
-- [ ] 3.1.8 `cmake --preset tsan && ctest -R test_parser` 0 race
-- [ ] 3.1.9 提交: `git commit -m "test(parser): add 5 test cases for NodeFactoryRegistry incl. TSan (Sprint 11)"`
+- [x] 3.1.1 打开 `tests/test_parser.cpp`, 添加 5 个新 TEST_CASE
+- [x] 3.1.2 `factory_registry_registers_all_types`: size() == 11 (spec 修正后)
+- [x] 3.1.3 `factory_registry_creates_correct_subtype`: typeid 检查返回正确子类 (LLMNode / ToolNode / 等)
+- [x] 3.1.4 `factory_registry_unknown_type_returns_nullptr`: type="NonExistent", 期望 nullptr (旧行为, 验证 spec §3.3.3 修正)
+- [x] 3.1.5 `factory_registry_global_singleton`: 两次 global() 调用 `&r1 == &r2`
+- [x] 3.1.6 `factory_registry_concurrent_access`: 4 线程并发 create + 1 线程 register (延迟 1ms 后启动), TSan 0 race
+- [x] 3.1.7 `ctest -R test_parser --output-on-failure` ≥ 5 新 case pass + 既有零回归
+- [x] 3.1.8 `cmake --preset tsan && ctest -R test_parser` 0 race
+- [x] 3.1.9 提交: `git commit -m "test(parser): add 5 test cases for NodeFactoryRegistry incl. TSan (Sprint 11)"`
 
 ### 3.2 spec 笔误修正
 
@@ -128,12 +128,12 @@
 
 ### 5.1 scheduler factory 补 `Config` 参数 (Decision 2 方案 A)
 
-- [ ] 5.1.1 编辑 `src/modules/scheduler/factory.h`: 签名 `create(const SchedulerConfig&, IToolRegistry&, ILLMProvider*, const vector<ParsedGraph>*) -> unique_ptr<IScheduler>`
-- [ ] 5.1.2 编辑 `src/modules/scheduler/factory.cpp`: 实现 body 用 cfg.initial_budget + tools + provider 构造 `TopoScheduler`
-- [ ] 5.1.3 验证 `engine.cpp:188` 调用 `agenticdsl::scheduler::create(config, *tools_, provider_.get(), &dynamic_graphs_)` 替换 `make_unique<TopoScheduler>(...)`
-- [ ] 5.1.4 `cmake --build build` 编译通过
-- [ ] 5.1.5 `ctest --output-on-failure` 33/33 PASS
-- [ ] 5.1.6 提交: `git commit -m "refactor(scheduler): add Config param to factory + integrate engine.cpp call (Sprint 11)"`
+- [x] 5.1.1 编辑 `src/modules/scheduler/factory.h`: 签名 `create(const SchedulerConfig&, IToolRegistry&, ILLMProvider*, const vector<ParsedGraph>*) -> unique_ptr<IScheduler>`
+- [x] 5.1.2 编辑 `src/modules/scheduler/factory.cpp`: 实现 body 用 cfg.initial_budget + tools + provider 构造 `TopoScheduler`
+- [x] 5.1.3 验证 `engine.cpp:188` 调用 `agenticdsl::scheduler::create(config, *tools_, provider_.get(), &dynamic_graphs_)` 替换 `make_unique<TopoScheduler>(...)`
+- [x] 5.1.4 `cmake --build build` 编译通过
+- [x] 5.1.5 `ctest --output-on-failure` 33/33 PASS
+- [x] 5.1.6 提交: `git commit -m "refactor(scheduler): add Config param to factory + integrate engine.cpp call (Sprint 11)"`
 
 ---
 
@@ -141,41 +141,41 @@
 
 ### 6.1 `ToolRegistry` factory 化
 
-- [ ] 6.1.1 编辑 `src/common/tools/registry.h`: 新增 `namespace agenticdsl::tools { unique_ptr<ToolRegistry> create_registry(); }`
-- [ ] 6.1.2 实现 body: `make_unique<ToolRegistry>()` (等价于 engine.cpp 原调用)
-- [ ] 6.1.3 编辑 `src/core/engine.cpp`: `make_unique<ToolRegistry>()` → `agenticdsl::tools::create_registry()`
-- [ ] 6.1.4 CMake: `common/tools/registry.cpp` 已存在, 无需新文件 (声明放 header)
-- [ ] 6.1.5 验证: `grep -cE '^\s*#include\s+"(modules/|common/)' src/core/engine.cpp` 计数应降 1
+- [x] 6.1.1 编辑 `src/common/tools/registry.h`: 新增 `namespace agenticdsl::tools { unique_ptr<ToolRegistry> create_registry(); }`
+- [x] 6.1.2 实现 body: `make_unique<ToolRegistry>()` (等价于 engine.cpp 原调用)
+- [x] 6.1.3 编辑 `src/core/engine.cpp`: `make_unique<ToolRegistry>()` → `agenticdsl::tools::create_registry()`
+- [x] 6.1.4 CMake: `common/tools/registry.cpp` 已存在, 无需新文件 (声明放 header)
+- [x] 6.1.5 验证: `grep -cE '^\s*#include\s+"(modules/|common/)' src/core/engine.cpp` 计数应降 1
 
 ### 6.2 `IBudgetController` 抽象引入 (Decision 3 方案 A)
 
-- [ ] 6.2.1 编辑 `src/modules/budget/budget_controller.h`: 在文件顶部加 `class IBudgetController { virtual ~IBudgetController()=default; virtual bool try_consume(double)=0; virtual void record_llm_call(const string&, double)=0; virtual double remaining() const=0; virtual void reset()=0; };`
-- [ ] 6.2.2 改 `class BudgetController : public IBudgetController { ... };` 现有 public 方法 override (加 `override` 关键字)
-- [ ] 6.2.3 编辑 `src/modules/budget/factory.h`: 返回 `unique_ptr<IBudgetController>`
-- [ ] 6.2.4 编辑 `src/modules/budget/factory.cpp`: `return make_unique<BudgetController>();` (隐式转换 IBudgetController*)
-- [ ] 6.2.5 编辑 `src/core/engine.cpp`: `budget_controller_` 类型改 `unique_ptr<IBudgetController>`, `get_budget_controller()` 返回 `IBudgetController&`
-- [ ] 6.2.6 验证: `grep "IBudgetController" src/core/engine.cpp` 仅 1 命中 (类型声明)
-- [ ] 6.2.7 `cmake --build build` + `ctest` 33/33 PASS
+- [x] 6.2.1 编辑 `src/modules/budget/budget_controller.h`: 在文件顶部加 `class IBudgetController { virtual ~IBudgetController()=default; virtual bool try_consume(double)=0; virtual void record_llm_call(const string&, double)=0; virtual double remaining() const=0; virtual void reset()=0; };`
+- [x] 6.2.2 改 `class BudgetController : public IBudgetController { ... };` 现有 public 方法 override (加 `override` 关键字)
+- [x] 6.2.3 编辑 `src/modules/budget/factory.h`: 返回 `unique_ptr<IBudgetController>`
+- [x] 6.2.4 编辑 `src/modules/budget/factory.cpp`: `return make_unique<BudgetController>();` (隐式转换 IBudgetController*)
+- [x] 6.2.5 编辑 `src/core/engine.cpp`: `budget_controller_` 类型改 `unique_ptr<IBudgetController>`, `get_budget_controller()` 返回 `IBudgetController&`
+- [x] 6.2.6 验证: `grep "IBudgetController" src/core/engine.cpp` 仅 1 命中 (类型声明)
+- [x] 6.2.7 `cmake --build build` + `ctest` 33/33 PASS
 
 ### 6.3 `MockLLMProvider` factory 化
 
-- [ ] 6.3.1 编辑 `src/common/llm/factory.h`: 新增 `namespace agenticdsl::llm { unique_ptr<ILLMProvider> create_mock_provider(); }`
-- [ ] 6.3.2 编辑 `src/common/llm/factory.cpp`: 实现 body
-- [ ] 6.3.3 编辑 `src/core/engine.cpp:127`: `make_unique<MockLLMProvider>()` → `agenticdsl::llm::create_mock_provider()`
-- [ ] 6.3.4 `cmake --build build` 编译通过
+- [x] 6.3.1 编辑 `src/common/llm/factory.h`: 新增 `namespace agenticdsl::llm { unique_ptr<ILLMProvider> create_mock_provider(); }`
+- [x] 6.3.2 编辑 `src/common/llm/factory.cpp`: 实现 body
+- [x] 6.3.3 编辑 `src/core/engine.cpp:127`: `make_unique<MockLLMProvider>()` → `agenticdsl::llm::create_mock_provider()`
+- [x] 6.3.4 `cmake --build build` 编译通过
 
 ### 6.4 include 计数验证
 
-- [ ] 6.4.1 `grep -cE '^\s*#include\s+"(modules/|common/)' src/core/engine.cpp` ≤ 3
-- [ ] 6.4.2 若 > 3: 继续工厂化 (`IBudgetController` 已降 1, `MockLLMProvider` 已降 1, `ToolRegistry` 已降 1, 总降 3, 应达 ≤ 3)
-- [ ] 6.4.3 `ctest --output-on-failure` 33/33 PASS
+- [x] 6.4.1 `grep -cE '^\s*#include\s+"(modules/|common/)' src/core/engine.cpp` ≤ 3
+- [x] 6.4.2 若 > 3: 继续工厂化 (`IBudgetController` 已降 1, `MockLLMProvider` 已降 1, `ToolRegistry` 已降 1, 总降 3, 应达 ≤ 3)
+- [x] 6.4.3 `ctest --output-on-failure` 33/33 PASS
 
 ### 6.5 提交
 
-- [ ] 6.5.1 提交 1: `git commit -m "refactor(tools): add create_registry factory + integrate engine.cpp (Sprint 11)"`
-- [ ] 6.5.2 提交 2: `git commit -m "refactor(budget): introduce IBudgetController abstraction + factory returns interface (Sprint 11)"`
-- [ ] 6.5.3 提交 3: `git commit -m "refactor(llm): add create_mock_provider factory + engine.cpp include ≤ 3 (Sprint 11)"`
-- [ ] 6.5.4 更新 `tech-debt-cleanup-sprint-6/tasks.md` §6.3.5 标 `[x]`
+- [x] 6.5.1 提交 1: `git commit -m "refactor(tools): add create_registry factory + integrate engine.cpp (Sprint 11)"`
+- [x] 6.5.2 提交 2: `git commit -m "refactor(budget): introduce IBudgetController abstraction + factory returns interface (Sprint 11)"`
+- [x] 6.5.3 提交 3: `git commit -m "refactor(llm): add create_mock_provider factory + engine.cpp include ≤ 3 (Sprint 11)"`
+- [x] 6.5.4 更新 `tech-debt-cleanup-sprint-6/tasks.md` §6.3.5 标 `[x]`
 
 ---
 
@@ -183,14 +183,14 @@
 
 ### 7.1 新建 `tests/test_engine_factory.cpp`
 
-- [ ] 7.1.1 新建文件, 文件头注释 + `#include` 头
-- [ ] 7.1.2 `TEST_CASE("test_scheduler_create_default_config")`: 验证 `agenticdsl::scheduler::create(SchedulerConfig{}, ...)` 返回非空 + 后续 execute 行为正确
-- [ ] 7.1.3 `TEST_CASE("test_budget_create_default_config")`: 验证 `agenticdsl::budget::create_controller()` 返回非空 + `try_consume(0)` 行为
-- [ ] 7.1.4 `TEST_CASE("test_provider_factory_create_llm_config")`: 验证 `agenticdsl::llm::create_provider_factory()` 返回非空
-- [ ] 7.1.5 编辑 `tests/CMakeLists.txt`: 添加 `add_executable(test_engine_factory tests/test_engine_factory.cpp)` + `target_link_libraries(test_engine_factory ...)`
-- [ ] 7.1.6 `ctest -R test_engine_factory --output-on-failure` ≥ 3 pass
-- [ ] 7.1.7 提交: `git commit -m "test(engine_factory): add 3 test cases for 3 factory functions (Sprint 11)"`
-- [ ] 7.1.8 更新 `tech-debt-cleanup-sprint-6/tasks.md` §6.3.4 (factory 部分) 标 `[x]`
+- [x] 7.1.1 新建文件, 文件头注释 + `#include` 头
+- [x] 7.1.2 `TEST_CASE("test_scheduler_create_default_config")`: 验证 `agenticdsl::scheduler::create(SchedulerConfig{}, ...)` 返回非空 + 后续 execute 行为正确
+- [x] 7.1.3 `TEST_CASE("test_budget_create_default_config")`: 验证 `agenticdsl::budget::create_controller()` 返回非空 + `try_consume(0)` 行为
+- [x] 7.1.4 `TEST_CASE("test_provider_factory_create_llm_config")`: 验证 `agenticdsl::llm::create_provider_factory()` 返回非空
+- [x] 7.1.5 编辑 `tests/CMakeLists.txt`: 添加 `add_executable(test_engine_factory tests/test_engine_factory.cpp)` + `target_link_libraries(test_engine_factory ...)`
+- [x] 7.1.6 `ctest -R test_engine_factory --output-on-failure` ≥ 3 pass
+- [x] 7.1.7 提交: `git commit -m "test(engine_factory): add 3 test cases for 3 factory functions (Sprint 11)"`
+- [x] 7.1.8 更新 `tech-debt-cleanup-sprint-6/tasks.md` §6.3.4 (factory 部分) 标 `[x]`
 
 ---
 
@@ -234,14 +234,14 @@
 
 ### 9.1 各种 ship gate 全跑
 
-- [ ] 9.1.1 `cd build && ctest --output-on-failure` ≥ 47/47 (33 baseline + 7 scheduler + 5 parser + 3 factory - 1 plugin = 47; plugin 7 case 改名保留)
-- [ ] 9.1.2 `cmake --preset tsan && ctest --output-on-failure` 0 race
-- [ ] 9.1.3 `cmake --preset asan && ctest --output-on-failure` 0 leak
-- [ ] 9.1.4 `python3 tools/adr_lint.py docs/adr/` exit 0
-- [ ] 9.1.5 `python3 tools/docs_drift_audit.py` 0 critical drift
-- [ ] 9.1.6 `openspec validate 2026-06-26-sprint-7-tech-debt-execution` exit 0 (含 spec 修正后)
-- [ ] 9.1.7 `mcp__code-review-graph__get_hub_nodes --top_n 5` 验证 execute / create_node_from_json out_degree < 30
-- [ ] 9.1.8 `git status` clean, 14+ commits 按 Day 分组
+- [x] 9.1.1 `cd build && ctest --output-on-failure` ≥ 47/47 (33 baseline + 7 scheduler + 5 parser + 3 factory - 1 plugin = 47; plugin 7 case 改名保留)
+- [x] 9.1.2 `cmake --preset tsan && ctest --output-on-failure` 0 race
+- [x] 9.1.3 `cmake --preset asan && ctest --output-on-failure` 0 leak
+- [x] 9.1.4 `python3 tools/adr_lint.py docs/adr/` exit 0
+- [x] 9.1.5 `python3 tools/docs_drift_audit.py` 0 critical drift
+- [x] 9.1.6 `openspec validate 2026-06-26-sprint-7-tech-debt-execution` exit 0 (含 spec 修正后)
+- [x] 9.1.7 `mcp__code-review-graph__get_hub_nodes --top_n 5` 验证 execute / create_node_from_json out_degree < 30
+- [x] 9.1.8 `git status` clean, 14+ commits 按 Day 分组
 
 ### 9.2 文档同步
 
@@ -289,18 +289,18 @@
 
 ## 11. 验证检查清单 (C1 ship gate)
 
-- [ ] 11.1 Sprint 6 + Sprint 11 全部 task 100% 完成
-- [ ] 11.2 `cd build && ctest --output-on-failure` ≥ 47/47 PASS
-- [ ] 11.3 `cmake --preset tsan && ctest --output-on-failure` 0 race
-- [ ] 11.4 `cmake --preset asan && ctest --output-on-failure` 0 leak
-- [ ] 11.5 `python3 tools/adr_lint.py docs/adr/` exit 0
-- [ ] 11.6 `python3 tools/docs_drift_audit.py` 0 critical drift
-- [ ] 11.7 `openspec validate 2026-06-26-sprint-7-tech-debt-execution` exit 0
-- [ ] 11.8 `openspec archive tech-debt-cleanup-sprint-6` 成功
-- [ ] 11.9 `code-review-graph get_hub_nodes` 2 目标函数 out_degree < 30
-- [ ] 11.10 `grep -cE '^\s*#include\s+"(modules/|common/)' src/core/engine.cpp` ≤ 3
-- [ ] 11.11 `git status` clean, 14-17 commits 按 Day 分组
-- [ ] 11.12 AGENTS.md § Recent Changes 含 Sprint 6 final + Sprint 11 ship 标记
-- [ ] 11.13 PDK 同步脚本无 error (`./scripts/sync-pdk.sh --dry-run`)
-- [ ] 11.14 `git log --oneline -1` 显示 Sprint 11 final commit
-- [ ] 11.15 master plan C1 行状态更新
+- [x] 11.1 Sprint 6 + Sprint 11 全部 task 100% 完成
+- [x] 11.2 `cd build && ctest --output-on-failure` ≥ 47/47 PASS
+- [x] 11.3 `cmake --preset tsan && ctest --output-on-failure` 0 race
+- [x] 11.4 `cmake --preset asan && ctest --output-on-failure` 0 leak
+- [x] 11.5 `python3 tools/adr_lint.py docs/adr/` exit 0
+- [x] 11.6 `python3 tools/docs_drift_audit.py` 0 critical drift
+- [x] 11.7 `openspec validate 2026-06-26-sprint-7-tech-debt-execution` exit 0
+- [x] 11.8 `openspec archive tech-debt-cleanup-sprint-6` 成功
+- [x] 11.9 `code-review-graph get_hub_nodes` 2 目标函数 out_degree < 30
+- [x] 11.10 `grep -cE '^\s*#include\s+"(modules/|common/)' src/core/engine.cpp` ≤ 3
+- [x] 11.11 `git status` clean, 14-17 commits 按 Day 分组
+- [x] 11.12 AGENTS.md § Recent Changes 含 Sprint 6 final + Sprint 11 ship 标记
+- [x] 11.13 PDK 同步脚本无 error (`./scripts/sync-pdk.sh --dry-run`)
+- [x] 11.14 `git log --oneline -1` 显示 Sprint 11 final commit
+- [x] 11.15 master plan C1 行状态更新

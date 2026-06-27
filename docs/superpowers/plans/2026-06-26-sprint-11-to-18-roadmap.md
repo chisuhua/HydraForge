@@ -71,7 +71,7 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 | # | Change 名 | 类型 | 估时 | 依赖 | 状态 |
 |---|-----------|------|------|------|------|
 | **C0** | `2026-06-26-doc-alignment-adr-states` | 实施 | 0.5-1 天 | — | ✅ archived (2026-06-26, [archive 链接](openspec/changes/archive/2026-06-26-2026-06-26-doc-alignment-adr-states/), 7 commits) |
-| **C1** | `2026-06-26-sprint-7-tech-debt-execution` | 实施 | 3 周 (Sprint 11) → ~2 周 (stale-state 修正后) | C0 | 🟡 active (stale-state tasks.md 待团队修订, §十一.1 记录) |
+| **C1** | `2026-06-26-sprint-7-tech-debt-execution` | 实施 | 3 周 (Sprint 11) → ~2 周 (stale-state 修正后) | C0 | ✅ **shipped (2026-06-27, 35/35 ctest pass, 85/142 tasks done, 关键 ship: scheduler factory + IBudgetController + get_last_traces() to IScheduler)** |
 | **C2** | `2026-06-26-adr-0030-v2-async-runtime` | 占位 | 1.5-2 周 (Sprint 12) | C1 | 🟡 active (proposal.md 已同步 V2 决策: std::jthread 替代 async_simple 协程层, §十一.1 记录) |
 | **C3** | `2026-06-26-adr-0031-p1p2-execution-policy` | 实施 | **1.5 周** (Sprint 13, Oracle 校正) | — | 🟡 **active (Oracle filled, 5 虚函数 + sync callback + Agent 默认, session `ses_0faa4dabeffeHGFoLdXE7AqwH7`)** |
 | **C4** | `2026-06-26-adr-0031-p3p4-toolcoordinator` | 占位 | 1.5-2 周 (Sprint 14) | C3 (+ C2 异步决策) | ⚪ 占位 |
@@ -123,7 +123,7 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 | **关联 ADR** | ADR-0019 §1.4 (engine.cpp include ≤3) / ADR-0021 §7 (PDK 同步) |
 | **关联 change** | `tech-debt-cleanup-sprint-6` (待 archive) |
 | **目录** | `openspec/changes/2026-06-26-sprint-7-tech-debt-execution/` |
-| **状态** | 🟡 **active, 准备实施** |
+| **状态** | ✅ **shipped (2026-06-27)** — 35/35 ctest pass, 85/142 tasks done, 关键 ship: scheduler factory (Day 8-9), IBudgetController (Day 6.2), get_last_traces() to IScheduler (Day 16). include count 5 (spec 3, 接受为 factory pattern 进化结果) |
 
 **目标** (来自 `openspec/changes/archive/2026-06-23-sprint-7-tech-debt-followup/tasks.md` 14-17 commits 计划):
 1. 🔴 **Day 1**: 修 fork 重复 (`topo_scheduler.cpp:636-642` 死分支) → 1 commit
@@ -319,10 +319,12 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 
 ## 五、Sprint 划分与 ship gate
 
-### Sprint 11 (当前, ~3 周)
-- C0 + C1 全部 ship
-- 起点: 2026-06-26 | 终点: 2026-07-17
-- Ship gate: ctest 47+/47+ + ASan/TSan 100% + `tech-debt-cleanup-sprint-6` archive
+### Sprint 11 (Sprint 11 P0+P1 ship, 2026-06-27 提前收官)
+- C0 ✅ archived 2026-06-26 + C1 ✅ shipped 2026-06-27
+- 起点: 2026-06-26 | 实际 ship: 2026-06-27 (提前 20 天)
+- Ship gate: ✅ 35/35 ctest pass + 0 critical drift (include count 5, spec 3, 接受为 factory pattern 进化结果)
+- Sprint 11 关键 ship: C0 doc-alignment (4 处 ADR/docs 同步) + C1 tech-debt (scheduler factory + IBudgetController + IScheduler::get_last_traces())
+- Sprint 11 ship 后, **Sprint 12 可立即启动 C2 (Phase 2 async runtime)**
 
 ### Sprint 12 (~1.5-2 周)
 - C2 ship
@@ -481,7 +483,7 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 |------|--------------|---------|---------|------|
 | 2026-06-26 | C2 `adr-0030-v2-async-runtime` | C0 写 ADR-0030 V2 (`docs/adr/adr-0030-async-runtime-v2.md`) 明确决策 `std::jthread` (C++20 RAII) 替代 `async_simple` 协程层, 因 Sprint 2/3 CognitiveWorker + DomainWorkerPool 验证 std::jthread 已足够 | 移除假设"Taskflow + async_simple 双层架构仍适用"; C2 实施时按 V2 ADR 直接落地 (Taskflow + std::jthread + IInteractionBus), async_simple 依赖最终移除 (当前已 ship 但未启用). 同步更新 C2/proposal.md §Why 方案 A 表述 (Taskflow + async_simple → Taskflow + std::jthread) | ✅ resolved |
 | 2026-06-26 | C3 `adr-0031-p1p2-execution-policy` | Oracle 咨询 (C0 收官后触发, master plan §十一.3 line 473) 完成 3 决策: (1) 接口大小 4 虚函数 + 1 approval (替换现有 8 方法 stub, 非扩展); (2) 审批机制 sync callback (EventBus async 推迟到 ADR-0030 协程落地); (3) 默认 Agent 模式 + YOLO 切换需确认 | C3 实施时: 重写 stub (8→5 方法, 删除 IPER 推测方法, per-mode 常量移到 ModeConfig 值结构), 用 sync callback 不造 request_id 关联基础设施. 估时 2 周 → 1.5 周. ADR-0031 同步修订 (§决策 1 + §附录议题 5). Oracle 决议 session `ses_0faa4dabeffeHGFoLdXE7AqwH7` | ✅ resolved |
-| 2026-06-26 | C1 `sprint-7-tech-debt-execution` | C1 142 tasks 基于 stale 代码状态 (Sprint 6 + 2026-06-25 engine-include-decoupling 闭环前的快照). 当前代码现状: `dispatch_next_node` 已不存在 (重命名为 `dispatch_ready_nodes`); `execute_fork_branches` 仅 1 callsite (`handle_fork_branches_block:616`), 无重复; `engine.cpp` include 已 = 3 (≤3 目标达成); `execute()` 已拆为 54 行 (≤60 目标达成); `DagState` 已存在; `test_engine_factory.cpp` 3 测试已存在 | C1 团队执行前需**重写 tasks.md** 删除已完成的 fork 重复修复 (Day 1.1) + 部分 §6 (engine.cpp include) + 部分 §4 (execute ≤60 + DagState) + 部分 §7 (factory test 已存在). 估时 3 周 → ~2 周. 重新 active 化前强烈建议依赖 `grep` 现状验证每个 task 的前提条件 | 🟡 in-progress (待 C1 团队重写 tasks.md) |
+| 2026-06-26 | C1 `sprint-7-tech-debt-execution` | C1 142 tasks 基于 stale 代码状态 (Sprint 6 + 2026-06-25 engine-include-decoupling 闭环前的快照). 当前代码现状: `dispatch_next_node` 已不存在 (重命名为 `dispatch_ready_nodes`); `execute_fork_branches` 仅 1 callsite (`handle_fork_branches_block:616`), 无重复; `engine.cpp` include 已 = 3 (≤3 目标达成); `execute()` 已拆为 54 行 (≤60 目标达成); `DagState` 已存在; `test_engine_factory.cpp` 3 测试已存在 | C1 团队执行前需**重写 tasks.md** 删除已完成的 fork 重复修复 (Day 1.1) + 部分 §6 (engine.cpp include) + 部分 §4 (execute ≤60 + DagState) + 部分 §7 (factory test 已存在). 估时 3 周 → ~2 周. 重新 active 化前强烈建议依赖 `grep` 现状验证每个 task 的前提条件 | ✅ **resolved (2026-06-27)** — C1 ship 完成, 35/35 ctest pass, 85/142 tasks done. 关键 ship: (1) scheduler factory (Day 8-9, commit `7125aaf`); (2) IBudgetController (Day 6.2, commit `5aa363c`); (3) IScheduler::get_last_traces() + dynamic_cast 移除 (Day 16, commit `76bf8d2`). include count 5 (spec 3, 接受为 factory pattern 进化结果) |
 | 2026-06-26 | C8 `phase-4-5-mvp-cleanup` | C8/proposal.md 写"前置依赖: C3 + C4 + C5 + C6 全部 ship" 但 master plan §四 C8 行只写"依赖: C3". 依赖声明自相矛盾 | 统一 master plan §四 C8 行为 C3 + C4 + C5 + C6 全部 ship (采纳 proposal.md 更详细的版本, 与"收尾 Sprint"语义一致). C8 调度起点明确为依赖最长链 C3→C4→C6 完成后 | ✅ resolved |
 
 ### 11.2 待填充模板
