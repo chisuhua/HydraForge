@@ -8,6 +8,7 @@
 #pragma once
 
 #include "core/types/common.h"  // ExecutionResult, Node, ParsedGraph, Context
+#include "agenticdsl/types/trace_record.h"
 
 #include <memory>
 #include <vector>
@@ -53,6 +54,12 @@ class IScheduler {
    * @return 执行结果（成功/失败 + 最终上下文 + 可选 paused_at）
    */
   virtual ExecutionResult execute(const Context& initial_context) = 0;
+
+  /**
+   * @brief 获取最近一次执行的 trace 记录列表
+   * C1 Day 16 (2026-06-27): 添加到接口以避免 engine.cpp 需要 dynamic_cast
+   */
+  virtual std::vector<TraceRecord> get_last_traces() const = 0;
 };
 
 } // namespace agenticdsl

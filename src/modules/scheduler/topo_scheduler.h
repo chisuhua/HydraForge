@@ -43,7 +43,7 @@ public:
     // Method for DSLEngine to call to add new graphs dynamically
     void append_dynamic_graphs(std::vector<ParsedGraph> new_graphs) override;
 
-    std::vector<TraceRecord> get_last_traces() const {
+    std::vector<TraceRecord> get_last_traces() const override {
         return session_.get_trace_exporter().get_traces();
     }
 
