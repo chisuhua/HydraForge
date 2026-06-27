@@ -6,6 +6,7 @@
 #include "agenticdsl/contract/ischeduler.h"
 #include "agenticdsl/contract/itool_registry.h"
 #include "modules/parser/markdown_parser.h" // 引入 ParsedGraph
+#include <taskflow/taskflow.hpp> // C2 Day 1-2: factory.cpp 创建 unique_ptr<TopoScheduler>, 销毁时需 tf::Taskflow 完整类型
 
 namespace agenticdsl {
 namespace scheduler {

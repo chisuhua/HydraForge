@@ -19,6 +19,8 @@
 #include <queue>
 #include <optional>
 
+namespace tf { class Executor; class Taskflow; class Task; }
+
 namespace agenticdsl {
 
 // C₁.3: 前向声明 ILLMProvider（避免循环 include）
@@ -42,6 +44,11 @@ public:
 
     // Method for DSLEngine to call to add new graphs dynamically
     void append_dynamic_graphs(std::vector<ParsedGraph> new_graphs) override;
+
+    // C2 Day 1-2 (ADR-0030 V2): 并行 DAG 执行 — Taskflow tf::Executor 集成
+    // 行为: 复用已构建的 DAG, 用 tf::Executor 并行派发无依赖节点
+    // 兼容: 当前 execute() 仍串行执行, execute_parallel() 为可选优化
+    ExecutionResult execute_parallel(const Context& initial_context);
 
     std::vector<TraceRecord> get_last_traces() const override {
         return session_.get_trace_exporter().get_traces();
@@ -76,6 +83,9 @@ private:
     std::vector<NodePath> join_wait_for_; // Dependencies for the JoinNode (if needed for complex scenarios, but basic impl uses all fork branches)
     std::optional<NodePath> current_join_node_path_; // Path of the JoinNode currently being processed
     // --- END v3.1 ---
+
+    std::unique_ptr<tf::Executor> parallel_executor_;
+    std::unique_ptr<tf::Taskflow> parallel_taskflow_;
 
     // --- v3.1: Helper methods for Fork/Join ---
     void start_fork_simulation(const ForkNode* fork_node, const Context& fork_context_snapshot);

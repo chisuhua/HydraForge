@@ -44,8 +44,9 @@ set(TF_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(TF_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/taskflow)
 
-# async_simple（通过 external/CMakeLists.txt 配置，禁用测试）
-add_subdirectory(external)
+# async_simple 已 deprecated (C2 Day 1-2 移除, ADR-0030 V2 决策: std::jthread 替代)
+# external/ 不再加载 (async_simple 目录保留 git 历史)
+# 原代码: add_subdirectory(external)
 
 # INTERFACE library for common includes and dependencies
 add_library(agenticdsl_includes INTERFACE)
@@ -76,6 +77,7 @@ add_library(agenticdsl_common STATIC
     src/common/llm/mock_provider_factory.cpp    # P1.T1: MockProviderFactory
     src/common/llm/factory.cpp                  # Sprint 6 P2-7
     src/common/llm/sse_stream.cpp
+    src/common/llm/stream_to_bus.cpp            # C2 Day 1-2: IGenerationStream → IInteractionBus bridge
     src/common/tools/registry.cpp
     src/common/tools/factory.cpp              # P2.C: ToolRegistry factory (decouple engine.cpp)
     src/common/utils/parser_utils.cpp

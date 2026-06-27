@@ -23,7 +23,6 @@ function(add_catch_test TEST_NAME)
         ${PROJECT_SOURCE_DIR}/external/inja/include
         ${PROJECT_SOURCE_DIR}/external/yaml-cpp/include
         ${PROJECT_SOURCE_DIR}/external/taskflow
-        ${PROJECT_SOURCE_DIR}/external/async_simple
     )
 
     target_link_libraries(${TEST_NAME} PRIVATE agenticdsl agenticdsl_modules_parser yaml-cpp::yaml-cpp)
@@ -39,13 +38,9 @@ function(add_catch_test TEST_NAME)
         set_tests_properties(${TEST_NAME} PROPERTIES LABELS "live")
     endif()
 
-    # test_async_bridge 额外链接 Taskflow 与 async_simple（Slice 00 桥接验证）
-    # 这两个库是 INTERFACE 库，使用 PR/PRIVATE 传播即可。
-    # 实际 target 名（已验证 CMakeLists 中无 namespace 别名）：
-    #   - Taskflow           （来自 external/taskflow/CMakeLists.txt: project(Taskflow ...)）
-    #   - async_simple_header_only （来自 external/async_simple/CMakeLists.txt: add_library(async_simple_header_only INTERFACE)）
+    # test_async_bridge 仅链接 Taskflow (C2 Day 1-2 移除 async_simple, ADR-0030 V2 决策)
     if(TEST_NAME STREQUAL "test_async_bridge")
-        target_link_libraries(${TEST_NAME} PRIVATE Taskflow async_simple_header_only)
+        target_link_libraries(${TEST_NAME} PRIVATE Taskflow)
     endif()
 endfunction()
 

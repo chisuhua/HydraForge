@@ -4,6 +4,7 @@
 #include "common/llm/llm_types.h" // C₁.3: 需要完整 ILLMProvider 定义
 #include "common/utils/template_renderer.h"
 #include "common/log/log.h"        // agenticdsl::log 日志门面（tech-debt-and-doc-cleanup）
+#include <taskflow/taskflow.hpp>  // C2 Day 1-2: tf::Executor + tf::Taskflow (完整定义, 避开 TBB 在头文件中与 std::queue 冲突)
 #include <stdexcept>
 #include <algorithm>
 #include <set>
@@ -215,6 +216,57 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
         session_.check_and_requeue_dynamic_deps(newly_executed);
     }
 
+    return finalize_execution(state, context);
+}
+
+ExecutionResult TopoScheduler::execute_parallel(const Context& initial_context) {
+    // C2 Day 1-2 (ADR-0030 V2): 并行 DAG 执行
+    // 当前实现: 复用已构建 DAG, 用 tf::Executor 并行派发无依赖节点
+    // 完整实现: 将 DagState 转换为 tf::Taskflow, 节点依赖关系映射为 Taskflow precedences
+    Context context = initial_context;
+    DagState state;
+    if (auto early = prepare_dag_state(state); early.has_value()) return *early;
+    build_dag(state);
+
+    if (!parallel_executor_) {
+        parallel_executor_ = std::make_unique<tf::Executor>(
+            std::max(1u, std::thread::hardware_concurrency()));
+    }
+    if (!parallel_taskflow_) {
+        parallel_taskflow_ = std::make_unique<tf::Taskflow>();
+    }
+
+    parallel_taskflow_->clear();
+    std::unordered_map<NodePath, tf::Task> tf_tasks;
+    for (const auto& [path, _] : state.nodes) {
+        tf_tasks[path] = parallel_taskflow_->emplace([this, path, &context, &state]() {
+            Node* current_node = state.nodes[path];
+            auto session_result = session_.execute_node(current_node, context);
+            if (!session_result.success) {
+                if (process_jump(session_result.message, path)) return;
+                return;
+            }
+            context = std::move(session_result.new_context);
+            NodeResult node_result;
+            node_result.success = true;
+            handle_node_completion(state, node_result, current_node, path);
+        });
+    }
+    for (const auto& [path, deps] : state.wait_for_dependents) {
+        for (const auto& dep : deps) {
+            if (tf_tasks.count(dep) && tf_tasks.count(path)) {
+                tf_tasks[path].succeed(tf_tasks[dep]);
+            }
+        }
+    }
+    if (!state.ready_queue.empty()) {
+        auto initial = parallel_taskflow_->emplace([]() {});
+        for (const auto& [path, _] : state.nodes) {
+            tf_tasks[path].succeed(initial);
+        }
+    }
+
+    parallel_executor_->run(*parallel_taskflow_).wait();
     return finalize_execution(state, context);
 }
 
