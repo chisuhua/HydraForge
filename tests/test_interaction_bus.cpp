@@ -30,6 +30,7 @@ TEST_CASE("InMemoryBus concurrent emit 1000x", "[contract][thread]") {
     threads.emplace_back([&] {
       for (int j = 0; j < 100; ++j) {
         bus.emit("test", ToolResult::success({{"i", j}}));
+    bus.wait_for_drain();
       }
     });
   }
@@ -51,6 +52,7 @@ TEST_CASE("InMemoryBus try_pop non-blocking", "[contract][interaction_bus]") {
 
   // 入队后 → true
   bus.emit("evt", ToolResult::success({{"k", "v"}}));
+    bus.wait_for_drain();
   REQUIRE(bus.try_pop(event_type, payload));
   REQUIRE(event_type == "evt");
   REQUIRE(payload.ok);
@@ -68,6 +70,7 @@ TEST_CASE("InMemoryBus unsubscribe works", "[contract][interaction_bus]") {
 
   // unsubscribe 前 → callback 触发
   bus.emit("evt", ToolResult::success({}));
+    bus.wait_for_drain();
   REQUIRE(count.load() == 1);
 
   // unsubscribe
@@ -75,6 +78,7 @@ TEST_CASE("InMemoryBus unsubscribe works", "[contract][interaction_bus]") {
 
   // unsubscribe 后 → callback 不再触发
   bus.emit("evt", ToolResult::success({}));
+    bus.wait_for_drain();
   REQUIRE(count.load() == 1);
 }
 
@@ -88,6 +92,7 @@ TEST_CASE("InMemoryBus multiple subscribers", "[contract][interaction_bus]") {
 
   for (int i = 0; i < 5; ++i) {
     bus.emit("evt", ToolResult::success({}));
+    bus.wait_for_drain();
   }
   REQUIRE(count_a.load() == 5);
   REQUIRE(count_b.load() == 5);
@@ -120,6 +125,7 @@ TEST_CASE("InMemoryBus emits accept std::string legacy payload",
 
   // 通过 std::string 重载发射（旧式 API）
   bus.emit("legacy_topic", std::string("legacy content payload"));
+    bus.wait_for_drain();
 
   // 验证 callback 触发
   REQUIRE(count.load() == 1);

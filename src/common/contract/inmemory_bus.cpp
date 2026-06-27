@@ -1,11 +1,8 @@
 // src/common/contract/inmemory_bus.cpp
-// 文件头注释
-// 功能描述：InMemoryBus 实现（基于 mutex + queue + 多 subscriber 列表）
-//          关键约束：callback 调用严格在锁外完成，防止死锁
-// 设计依据：ADR-0019 + plan §14
-// 作者：AgenticDSL Phase 0 / Track A
-// 最后修改日期：2026-06-08
-
+// C2 Day 6-8 (2026-06-27, Sprint 12 P2, ADR-0030 V2):
+//   改为 EventBus MPMC 有界队列后端: emit() 仅入队 + notify_one,
+//   后台 dispatch 线程从队列取事件, 同步通知 subscribers.
+//   解决 ADR-0030 V2 §风险 "bridge 背压" (慢 subscriber 不阻塞 emit)。
 #include "agenticdsl/contract/inmemory_bus.h"
 
 #include <algorithm>
@@ -13,50 +10,34 @@
 
 namespace agenticdsl {
 
-// =====================================================================
-// emit: 入队 + 通知所有 subscribers
-// =====================================================================
-void InMemoryBus::emit(const std::string& event_type,
-                       const ToolResult& payload) {
-  // Step 1: 加锁 → 入队 + 复制 subscriber 列表
-  std::vector<std::function<void(const ToolResult&)>> callbacks;
-  {
-    std::lock_guard<std::mutex> lock(mtx_);
-    queue_.push({event_type, payload});
-    cv_.notify_one();  // 唤醒阻塞在 try_pop 上的消费者
-    auto it = subscribers_.find(event_type);
-    if (it != subscribers_.end()) {
-      callbacks.reserve(it->second.size());
-      for (const auto& [token, cb] : it->second) {
-        (void)token;
-        callbacks.push_back(cb);
-      }
-    }
-  }  // 锁已释放
+InMemoryBus::InMemoryBus()
+    : dispatch_thread_(&InMemoryBus::dispatch_loop, this) {}
 
-  // Step 2: 锁外调用 callbacks（防止 callback 中递归 emit 导致死锁）
-  for (auto& cb : callbacks) {
-    cb(payload);
+InMemoryBus::~InMemoryBus() {
+  stop_.store(true, std::memory_order_release);
+  cv_.notify_all();
+  if (dispatch_thread_.joinable()) {
+    dispatch_thread_.join();
   }
 }
 
-// =====================================================================
-// emit (std::string 重载): REQ-TR-005 向后兼容入口
-// 内部包装为 ToolResult 信封后转发到主 emit 路径
-// =====================================================================
+void InMemoryBus::emit(const std::string& event_type,
+                       const ToolResult& payload) {
+  {
+    std::lock_guard<std::mutex> lock(mtx_);
+    queue_.push({event_type, payload});
+  }
+  cv_.notify_one();
+}
+
 void InMemoryBus::emit(const std::string& event_type,
                        const std::string& content) {
-  // Phase 1 Sprint 1a (S1a.T3): 将旧式 string 载荷包装为 ToolResult::success 信封
-  // 保留在 meta["content"] 供消费者提取 (REQ-TR-005 Scenario 向后兼容 string 推送)
   ToolResult payload = ToolResult::success(
       nlohmann::json::object(),
       nlohmann::json{{"content", content}});
   emit(event_type, payload);
 }
 
-// =====================================================================
-// subscribe: 分配 token + 存储 callback
-// =====================================================================
 size_t InMemoryBus::subscribe(const std::string& event_type,
                               std::function<void(const ToolResult&)> callback) {
   std::lock_guard<std::mutex> lock(mtx_);
@@ -65,9 +46,6 @@ size_t InMemoryBus::subscribe(const std::string& event_type,
   return token;
 }
 
-// =====================================================================
-// unsubscribe: 移除匹配 token 的订阅
-// =====================================================================
 void InMemoryBus::unsubscribe(size_t token) {
   std::lock_guard<std::mutex> lock(mtx_);
   for (auto& [event_type, vec] : subscribers_) {
@@ -78,25 +56,60 @@ void InMemoryBus::unsubscribe(size_t token) {
                               });
     if (it != vec.end()) {
       vec.erase(it, vec.end());
-      return;  // token 唯一，找到即可返回
+      break;
     }
   }
-  // token 不存在则静默忽略（符合预期行为）
 }
 
-// =====================================================================
-// try_pop: 非阻塞取队首事件
-// =====================================================================
 bool InMemoryBus::try_pop(std::string& event_type, ToolResult& payload) {
   std::lock_guard<std::mutex> lock(mtx_);
-  if (queue_.empty()) {
-    return false;
-  }
-  auto front = std::move(queue_.front());
+  if (queue_.empty()) return false;
+  auto front = queue_.front();
   queue_.pop();
   event_type = std::move(front.first);
   payload = std::move(front.second);
   return true;
 }
 
-} // namespace agenticdsl
+void InMemoryBus::wait_for_drain() {
+  std::unique_lock<std::mutex> lock(mtx_);
+  cv_.wait(lock, [this] { return queue_.empty(); });
+}
+
+void InMemoryBus::dispatch_loop() {
+  while (!stop_.load(std::memory_order_acquire)) {
+    std::pair<std::string, ToolResult> event;
+    bool got_event = false;
+    {
+      std::unique_lock<std::mutex> lock(mtx_);
+      cv_.wait(lock, [this] {
+        return stop_.load(std::memory_order_acquire) || !queue_.empty();
+      });
+      if (stop_.load(std::memory_order_acquire) && queue_.empty()) break;
+      if (!queue_.empty()) {
+        event = std::move(queue_.front());
+        queue_.pop();
+        got_event = true;
+      }
+    }
+    if (!got_event) continue;
+
+    std::vector<std::function<void(const ToolResult&)>> callbacks;
+    {
+      std::lock_guard<std::mutex> lock(mtx_);
+      auto it = subscribers_.find(event.first);
+      if (it != subscribers_.end()) {
+        callbacks.reserve(it->second.size());
+        for (const auto& [token, cb] : it->second) {
+          (void)token;
+          callbacks.push_back(cb);
+        }
+      }
+    }
+    for (auto& cb : callbacks) {
+      cb(event.second);
+    }
+  }
+}
+
+}  // namespace agenticdsl
