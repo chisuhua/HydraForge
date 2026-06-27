@@ -12,7 +12,7 @@
 
 | 维度 | 状态 | 证据 |
 |------|------|------|
-| OpenSpec active change 数 | **0** (Sprint 10 收官) | `openspec list` = "No active changes found" |
+| OpenSpec active change 数 | **1** (C1 `sprint-7-tech-debt-execution` active, 2026-06-26 创建) | `openspec list` = 1 active (C0 已 archive) |
 | Test count | **34/34 PASS** | baseline 25 + Sprint 1a/1b/2/3/4/5/6/10 累计 9 新增 |
 | ASan | **34/34 (100%)** | Sprint 10 验证 (commit `0c44a18`/`d69e2d9`) |
 | TSan | **34/34 (100%)** | Sprint 10 验证 (0 errors/warnings) |
@@ -28,26 +28,41 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 ## 二、Change 依赖关系图
 
 ```
-            [Sprint 11]                                    [Sprint 12]
-[C0 doc-align] ──┐                                          ┌── [C3 adr-0030 V2]
-                 ├── [C2 sprint-7-exec] ───────────────────┘
-[C0 doc-align] ──┘   (3 周)                                  (依赖 C2)
-
-[C4 adr-0031 P1-P2] ────────── [C5 adr-0031 P3-P4] ────── [C9 phase-4.5 cleanup]
-        (2 周)                       (1.5-2 周)                (1-2 天)
-                                        │
-                                        └── [C7 adr-0004 V2]
-                                            (1 周, 依赖 C5)
-
-[C6 adr-0033 session] ──── (1.5-2 周, 独立)
-[C8 adr-0034 model-router-plugin] ──── (1-2 周, 独立, PDK ready)
+            [Sprint 11]              [Sprint 12]              [Sprint 13]
+[C0 doc-align] ──┐
+                 ├── [C1 sprint-7-tech-debt] ── [C2 adr-0030 V2 async-runtime]
+[C0 doc-align] ──┘   (✅ archived 2026-06-26)   (2 周, Sprint 12)   (1.5-2 周, Sprint 12)
+                       (3 周 → ~2 周 stale-state 修正)
+                                                  │
+                                                  └── (C2 决策影响 C4 异步路径)
+                                                       │
+[C3 adr-0031 P1-P2] ────────── [C4 adr-0031 P3-P4] ──┐
+   (1.5 周, Sprint 13)            (1.5-2 周, Sprint 14)│
+   Oracle filled 2026-06-26                          │
+                                                    ▼
+[C5 adr-0033 session-hierarchy] ─────────────── [C6 adr-0004 V2] ──── [C8 phase-4-5 cleanup]
+   (1.5-2 周, Sprint 15, 独立)                    (1 周, Sprint 16)        (1-2 天, Sprint 18)
+                                                  依赖 C3+C4                依赖 C3+C4+C5+C6
+                                                                          
+[C7 adr-0034 model-router-plugin] (1-2 周, Sprint 17, 独立, PDK ready)
 ```
 
-**并行车道**:
-- 主线: C0 → C2 → C3
-- 并行 1: C4 → C5 → (C7, C9)
-- 并行 2: C6
-- 并行 3: C8
+**并行车道** (2026-06-26 §十一.1 调整后):
+- **主线**: C0 (✅ archived) → C1 → C2 (C2 受 C1 engine.cpp decoupling 阻塞)
+- **并行 1**: C3 → C4 → C6 (审批 + ToolCoordinator 链, C3 已 Oracle filled)
+- **并行 2**: C5 (session-hierarchy, 独立, 可与 C3/C4 并行填充)
+- **并行 3**: C7 (model-router-plugin, 独立, PDK 已 ship, 可提前到 Sprint 13-14)
+- **收尾**: C8 (依赖 C3+C4+C5+C6 全链, Sprint 18)
+
+**关键依赖事实** (审计修正):
+- C1 依赖 C0 (✅ 已 archive) — 主线入口解锁
+- C2 依赖 C1 (engine.cpp include ≤ 3 达成) — Sprint 12 启动
+- C3 独立 (Oracle 决议: 不依赖 C2 async 决策)
+- C4 依赖 C3 (P3-P4 实施) + 间接依赖 C2 (异步路径决策)
+- C5 独立 (软建议 C3 后启动, 不硬依赖)
+- C6 依赖 C3 + C4 (审批机制 + ToolCoordinator)
+- C7 独立 (PDK + PluginLoader 已 ship, 基础设施完备)
+- C8 依赖 C3 + C4 + C5 + C6 (Phase 4.5 收尾, 全链 ship 后)
 
 ---
 
@@ -55,15 +70,15 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 
 | # | Change 名 | 类型 | 估时 | 依赖 | 状态 |
 |---|-----------|------|------|------|------|
-| **C0** | `2026-06-26-doc-alignment-adr-states` | 实施 | 0.5-1 天 | — | ✅ archived (2026-06-26, [archive 链接](../archive/sprint-11-changes/2026-06-26-doc-alignment-adr-states/)) |
-| **C1** | `2026-06-26-sprint-7-tech-debt-execution` | 实施 | 3 周 (Sprint 11) | C0 | 🟡 准备中 |
-| **C2** | `2026-06-26-adr-0030-v2-async-runtime` | 占位 | 1.5-2 周 (Sprint 12) | C1 | ⚪ 占位 |
-| **C3** | `2026-06-26-adr-0031-p1p2-execution-policy` | 占位 | 2 周 (Sprint 13) | — | ⚪ 占位 |
-| **C4** | `2026-06-26-adr-0031-p3p4-toolcoordinator` | 占位 | 1.5-2 周 (Sprint 14) | C3 | ⚪ 占位 |
-| **C5** | `2026-06-26-adr-0033-session-hierarchy` | 占位 | 1.5-2 周 (Sprint 15) | — | ⚪ 占位 |
-| **C6** | `2026-06-26-adr-0004-v2-metadata-approval` | 占位 | 1 周 (Sprint 16) | C4 | ⚪ 占位 |
-| **C7** | `2026-06-26-adr-0034-model-router-plugin` | 占位 | 1-2 周 (Sprint 17) | — | ⚪ 占位 |
-| **C8** | `2026-06-26-phase-4-5-mvp-cleanup` | 占位 | 1-2 天 (Sprint 18) | C3 | ⚪ 占位 |
+| **C0** | `2026-06-26-doc-alignment-adr-states` | 实施 | 0.5-1 天 | — | ✅ archived (2026-06-26, [archive 链接](openspec/changes/archive/2026-06-26-2026-06-26-doc-alignment-adr-states/), 7 commits) |
+| **C1** | `2026-06-26-sprint-7-tech-debt-execution` | 实施 | 3 周 (Sprint 11) → ~2 周 (stale-state 修正后) | C0 | 🟡 active (stale-state tasks.md 待团队修订, §十一.1 记录) |
+| **C2** | `2026-06-26-adr-0030-v2-async-runtime` | 占位 | 1.5-2 周 (Sprint 12) | C1 | 🟡 active (proposal.md 已同步 V2 决策: std::jthread 替代 async_simple 协程层, §十一.1 记录) |
+| **C3** | `2026-06-26-adr-0031-p1p2-execution-policy` | 实施 | **1.5 周** (Sprint 13, Oracle 校正) | — | 🟡 **active (Oracle filled, 5 虚函数 + sync callback + Agent 默认, session `ses_0faa4dabeffeHGFoLdXE7AqwH7`)** |
+| **C4** | `2026-06-26-adr-0031-p3p4-toolcoordinator` | 占位 | 1.5-2 周 (Sprint 14) | C3 (+ C2 异步决策) | ⚪ 占位 |
+| **C5** | `2026-06-26-adr-0033-session-hierarchy` | 占位 | 1.5-2 周 (Sprint 15) | — (独立) | ⚪ 占位 (可与 C3/C4 并行填充) |
+| **C6** | `2026-06-26-adr-0004-v2-metadata-approval` | 占位 | 1 周 (Sprint 16) | **C3 + C4** | ⚪ 占位 |
+| **C7** | `2026-06-26-adr-0034-model-router-plugin` | 占位 | 1-2 周 (Sprint 17) | — (PDK + PluginLoader 已 ship) | ⚪ 占位 (可提前到 Sprint 13-14) |
+| **C8** | `2026-06-26-phase-4-5-mvp-cleanup` | 占位 | 1-2 天 (Sprint 18) | **C3 + C4 + C5 + C6** (2026-06-26 §十一.1 统一, 与 proposal.md 一致) | ⚪ 占位 (收尾) |
 
 **注**: C0 + C1 是 Sprint 11 的**主成分**。其他 C2-C8 是后续 Sprint 的占位 change，详细 proposal/design/spec/tasks 在前置依赖完成后填充。
 
@@ -76,11 +91,11 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 | 字段 | 值 |
 |------|---|
 | **类型** | 实施 (immediate) |
-| **估时** | 0.5-1 天 (1 PR, ~5 commits) |
+| **估时** | 0.5-1 天 |
 | **依赖** | 无 |
 | **关联 ADR** | ADR-0030 (V1 archive) / ADR-0032 (V1 archive) / ADR-0019 §1.4 |
-| **目录** | `openspec/changes/2026-06-26-doc-alignment-adr-states/` |
-| **状态** | 🟡 **active, 准备实施** |
+| **目录** | ~~`openspec/changes/2026-06-26-doc-alignment-adr-states/`~~ → `openspec/changes/archive/2026-06-26-2026-06-26-doc-alignment-adr-states/` (已 archive) |
+| **状态** | ✅ **archived (2026-06-26, 7 commits)** |
 
 **目标**:
 1. 写 ADR-0030 V2 (Phase 2 异步架构), 替代 archive 的 V1 (V1 标注"依赖未引入"已过时)
@@ -182,15 +197,19 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 | **状态** | ⚪ **placeholder, 待 Sprint 12 启动前详细制定** |
 
 **目标** (P1-P2 部分):
-- **P1**: `IExecutionPolicy` 抽象 (4 虚函数: requires_approval / should_execute / can_skip / get_layer)
-- **P1**: 3 个默认实现 (PlanPolicy / AgentPolicy / YOLOPolicy)
+- **P1**: `IExecutionPolicy` 抽象 (**5 虚函数**: requires_approval / should_execute / can_skip / get_layer / request_approval)
+- **P1**: 3 个默认实现 (**AgentPolicy 默认**, PlanPolicy 需审批, YoloPolicy 保留 force_approval_always floor)
 - **P1**: `ToolMetadata` V1 (category / risk_level / approval_policy)
-- **P2**: 审批机制 (EventBus ApprovalRequired event → 等待用户响应 → LLMCallStarted)
-- **P2**: `/apply` 命令桥接 (TUI ↔ IInteractionBus)
+- **P2**: 审批机制 (**sync callback 接口, 3 实现: stdin / event_bus / test_auto**, 非 EventBus async — Oracle 决议)
+- **P2**: `/apply` 命令桥接 (TUI ↔ IInteractionBus, 通过 `make_event_bus_callback(bus)` 复用 ADR-0004 §request_confirmation 模式)
+- **P2**: `ModeSwitchDialog` YOLO 切换需用户确认对话框 (defense-in-depth, 防误操作)
+- **P2**: `ModeConfig` 值结构体 (per-mode 常量移出虚接口)
+
+**Oracle 决议** (session `ses_0faa4dabeffeHGFoLdXE7AqwH7`): 5 虚函数 + sync callback + Agent 默认 + YOLO 切换确认. 详情见 C3 proposal.md §"P1: IExecutionPolicy 完整实现 — Oracle 推荐版" + spec.md "execution-policy-interface-5-method"
+
+**估时**: **1.5 周** (Oracle 校正, 原 2 周; sync callback 路径省 2-3 天基础设施开发)
 
 **P3-P4 部分** (ToolCoordinator + Layer Profile) 拆到 C4 (Sprint 14)
-
-**placeholder 内容**: ADR-0031 §P1-P2 范围确认, P3-P4 推到 C4
 
 ---
 
@@ -421,7 +440,7 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 
 | Sprint | 预计收官日期 | 🔄 Sprint Review | 🧭 Drift Gate | 🔗 Dependency Refresh | 🎯 Strategic Alignment |
 |--------|------------|----------------|----------------|---------------------|---------------------|
-| **Sprint 11** | 2026-07-17 | ✅ C0+C1 ship | — | — | — |
+| **Sprint 11** | 2026-07-17 | ✅ C1 ship (C0 已 2026-06-26 提前 archive) | — | — | — |
 | **Sprint 12** | 2026-07-31 | ✅ C2 ship | — | C3 启动 | — |
 | **Sprint 13** | 2026-08-14 | ✅ C3 ship | ✅ 3 changes 累计 | C4 启动 | — |
 | **Sprint 14** | 2026-08-28 | ✅ C4 ship | — | C5 + C6 启动 | — |
@@ -441,6 +460,8 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 | 日期 | Change | 偏离类型 | 偏离描述 | 响应 Change | 状态 |
 |------|--------|---------|---------|-----------|------|
 | 2026-06-26 | 初始 baseline | 📋 文档/ADR 不一致 | 审计发现 4 处:<br>1) ADR-0030 V1 归档理由过时（"依赖未引入"已 ship）<br>2) ADR-0032 标注 ❌ Not Implemented 但 test_cost_collector 已 PASS<br>3) implementation-roadmap.md §Phase 2 描述脱节<br>4) AGENTS.md Recent Changes 未含 Sprint 10 | C0 `2026-06-26-doc-alignment-adr-states` | ✅ **resolved (2026-06-26)** — C0 ship 完成, 4 处全部修复 + change 已 archive (ADR-0030 V2 草案 + ADR-0032 状态修正 + 4 docs 同步 + 7 commits) |
+| 2026-06-26 | C3 `adr-0031-p1p2-execution-policy` | 🔁 实施策略变更 | Oracle 决议推翻 ADR-0031 §决策 2 (EventBus 审批机制 + request_id 关联), 改用 **sync callback 接口 + 可插拔 transport** (callback 内部可选用 IInteractionBus 桥接 TUI). 理由: IInteractionBus 当前 API 无 request/response 关联原语, 净造基础设施不优于 callback. ADR-0031 需同步修订 §决策 1 (8→5 虚函数) + §附录"议题5最小集成" 标记 SUPERSEDED | §十一.1 C3 行 + master plan §三 C3 状态 + §四 C3 P2 描述 | ✅ **resolved (2026-06-26)** — Oracle session `ses_0faa4dabeffeHGFoLdXE7AqwH7` 完成, C3 proposal.md + spec.md + tasks.md 全部应用 5 虚函数 + sync callback 决策, 估时 2 周 → 1.5 周 |
+| 2026-06-26 | master plan 自身 | 📋 文档维护 drift | 12 处不一致 (§二 依赖图 8 处编号错位, §四 C0 状态未更新, §三 C3 仍标占位, 等) | 本次 atomic commit (fix-sprint-11-master-plan-drift) | ✅ **resolved (2026-06-27)** — 1 commit 修复全部 12 处 (3 P0 / 4 P1 / 5 P2) |
 
 ### 10.2 待填充模板
 
@@ -474,7 +495,7 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 | 占位 Change | 当前假设 | 潜在调整风险 | 触发条件 |
 |------------|---------|------------|---------|
 | **C2** adr-0030-v2-async-runtime | "Taskflow + async_simple 双层架构" 仍适用 | Oracle 咨询可能发现 std::jthread + Taskflow 已足够，无需 async_simple 协程层 | C1 收官前 Oracle 咨询 |
-| **C3** adr-0031-p1p2-execution-policy | "4 虚函数接口" 足够 | 实施时可能需要扩展到 6 虚函数（含 timeout/cost_estimate） | C0 收官后 ADR-0031 草案审查 |
+| **C3** adr-0031-p1p2-execution-policy | ~~"4 虚函数接口" 足够~~ | ✅ **Oracle 已决议 (2026-06-26)**: 5 虚函数 (`requires_approval` / `should_execute` / `can_skip` / `get_layer` / `request_approval`), 重写 stub (8→5, 删除 7 个 per-mode 常量 + IPER 推测方法, 移入 `ModeConfig` 值结构体). timeout/cost_estimate 推迟到 ADR-0032 CostCollector 真正集成执行路径时再加 (非纯虚带默认值). 估时 2 周 → 1.5 周 (省 EventBus request_id 关联基础设施) | C0 收官后 ADR-0031 草案审查 (已完成) |
 | **C5** adr-0033-session-hierarchy | "UserSession/TaskSession/SubtaskSession" 三层 | 可能发现需要 Fork/Join 用更轻量 SubtaskContext 而非完整 SubtaskSession | Sprint 14 启动前 Oracle 咨询 |
 | **C7** adr-0034-model-router-plugin | "PDK plugin 内置 3 策略" | 可能发现需要独立 plugin（如 fleet-routing-plugin / cost-routing-plugin） | Sprint 16 启动前 |
 
@@ -540,11 +561,11 @@ Review Gate 发现问题
 
 ```
 openspec/changes/
-├── 2026-06-26-doc-alignment-adr-states/          [C0] archived (2026-06-26, ship 5 commits + 2 docs + 1 archive)
-│   ├── .openspec.yaml
-│   ├── proposal.md
-│   ├── tasks.md
-│   └── specs/doc-alignment/spec.md
+├── (C0 目录已移至 archive, 2026-06-26)        [C0] archived (ship 7 commits + 2 docs + 1 archive)
+│   └── → openspec/changes/archive/2026-06-26-2026-06-26-doc-alignment-adr-states/
+│       ├── proposal.md (含 §1 Why / §2 What / §3 Capabilities / §4 Impact / §5 Non-goals)
+│       ├── tasks.md (51/51 全部完成 ✅)
+│       └── specs/doc-alignment/spec.md (7 ADDED Requirements 已合并)
 ├── 2026-06-26-sprint-7-tech-debt-execution/      [C1] active
 │   ├── .openspec.yaml
 │   ├── proposal.md
