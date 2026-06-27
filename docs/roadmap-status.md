@@ -105,7 +105,7 @@
 | ├─ Sprint 3: DomainWorkerPool | **100% ██████████** | **✅ 已完成 (2026-06-19)** — 详见 OpenSpec `2026-06-30-domain-worker-pool`, 31/31 ctest pass, ADR-0020 §2.2.1 ✅ Resolved | 3 天 | Sprint 2 ✅ |
 | ├─ Sprint 4: PDK 骨架 | **100% ██████████** | **✅ 已完成 (2026-06-19)** — 详见 OpenSpec `2026-07-07-pdk-skeleton`, 32/32 ctest pass, ADR-0021 🟡 Partial | 3 天 | Sprint 3 ✅ |
 | └─ Sprint 5: PluginLoader + 收官 | 0% | ⏸ 未开始 (W5) | 1.3 天 | Sprint 4 |
-| Phase 2 异步+EventBus | 0% ░░░░░░░░░░ | ⏸ 待启动 (Sprint 12, 依赖 C0 + C1) | 2-3 周 | Phase 1 |
+| Phase 2 异步+EventBus | 100% ██████████ | ✅ **shipped (2026-07-31, C2 ship, ADR-0030 V2 → ✅ Approved)** | 2-3 周 | Phase 1 |
 | Phase 3 执行策略+安全 | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 2-3 周 | Phase 2 |
 | Phase 4 模型路由+内核 | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 2-3 周 | Phase 3 |
 | Phase 4.5 MVP清理 | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 1-2 天 | Phase 4 |
