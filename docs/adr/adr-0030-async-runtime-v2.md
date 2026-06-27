@@ -143,7 +143,7 @@ V1 提出的"双层异步架构"（Taskflow 计算层 + async_simple 控制层�
 
 | # | 文件 | 操作 | 状态 | 验证 |
 |---|------|------|:----:|------|
-| 2.4 | `src/common/llm/fleet_orchestrator.h` | 新建 | [ ] | `FleetOrchestrator` 复用 DomainWorkerPool |
+| 2.4 | ~~`src/common/llm/fleet_orchestrator.h` (DEFER 到 Phase 3+)~~ | - | Oracle Q1: 0 examples 需并行 LLM, DomainWorkerPool(16) 已足够 |
 | 2.5 | `src/common/llm/fleet_orchestrator.cpp` | 新建 | [ ] | 分片→submit→聚合→FleetResult |
 | 2.6 | `examples/slice_04_fleet/main.cpp` | 新建 | [ ] | 端到端 16 路 LLM mock 调用 < 500ms |
 | 2.7 | `tests/test_fleet_orchestrator.cpp` | 新建 | [ ] | 并行调用单元测试 + TSan |
@@ -223,7 +223,7 @@ C1 OpenSpec change `2026-06-26-sprint-7-tech-debt-execution` (3 周) 完成 engi
 │                                                          │
 └─────────────────────────────────────────────────────────┘
 
-总线程数 ≈ N (cognitive) + M (domain, 默认 16) + K (taskflow)
+总线程数 ≈ N (cognitive) + M (domain, 默认 4, 可配置 16) + K (taskflow)
 N + M + K = ~2 + 16 + 8 = 26 (8核机器, M 可配置)
 ```
 
@@ -289,7 +289,7 @@ N + M + K = ~2 + 16 + 8 = 26 (8核机器, M 可配置)
 |---|------|---------|
 | 1 | 并发模型选择 | **Taskflow (DAG/计算) + std::jthread Worker Pool (控制) + IInteractionBus (事件)** |
 | 2 | 协程库引入？ | **否 — 用 IInteractionBus 替代（ADR-0019）** |
-| 3 | IO 线程池大小 | DomainWorkerPool 默认 16，可配置 |
+| 3 | IO 线程池大小 | DomainWorkerPool 默认 4，可配置 |
 | 4 | Future 是否支持 .then() | 不需要——IInteractionBus 事件订阅替代 |
 | 5 | async_simple 依赖处置 | **移除**（V1 引入但未启用；V2 不用协程） |
 | 6 | 与 DSLEngine 的关系 | Worker 持有 `unique_ptr<DSLEngine>` (Sprint 2 模式) |
