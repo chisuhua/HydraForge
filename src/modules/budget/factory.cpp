@@ -5,7 +5,7 @@
 
 namespace agenticdsl::budget {
 
-std::unique_ptr<BudgetController> create_controller() {
+std::unique_ptr<IBudgetController> create_controller() {
   return std::make_unique<BudgetController>();
 }
 

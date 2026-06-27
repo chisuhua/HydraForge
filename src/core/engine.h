@@ -48,7 +48,7 @@ namespace agenticdsl {
 class ILLMProvider; // C₁.4: 前向声明（已在 common/llm/llm_types.h 中前向声明）
 class IToolRegistry; // P1.T2: 前向声明 (PIMPL-lite 解耦 — unique_ptr + 类外 accessor)
 class IProviderFactory; // P1.T1: 前向声明 (PIMPL-lite 解耦 — unique_ptr + 类外构造)
-class BudgetController; // Stage 4 / Task 19: 前向声明 (PIMPL-lite 解耦 — unique_ptr + 类外 accessor/destructor)
+class IBudgetController; // C1 Day 6.2 (2026-06-27): 抽象接口取代具体类 (ADR-0019 §1.4 延伸)
 
 class DSLEngine {
 public:
@@ -94,8 +94,8 @@ public:
 
     // 访问 session BudgetController（用于更细粒度查询或测试）
     // Stage 4 / Task 19: 类外定义 — 头文件中仅有前向声明，完整类型仅在 engine.cpp 可见
-    BudgetController& get_budget_controller();
-    const BudgetController& get_budget_controller() const;
+    IBudgetController& get_budget_controller();
+    const IBudgetController& get_budget_controller() const;
 
     // === Phase 1 Sprint 1b (S1b.T1): IInteractionBus 注入 API (ADR-0019 P2) ===
     // 注入/访问 IInteractionBus 实例；nullptr 表示未注入（emit/subscribe 走静默 no-op）
@@ -106,7 +106,7 @@ public:
     size_t subscribe(const std::string& topic,
                      std::function<void(const ToolResult&)> cb);
 
-    ~DSLEngine(); // Stage 4 / Task 19 + P1.T4: 显式声明 — 头文件外定义, 使 unique_ptr<BudgetController> + unique_ptr<IToolRegistry> 析构在完整类型下进行
+    ~DSLEngine(); // Stage 4 / Task 19 + P1.T4: 显式声明 — 头文件外定义, 使 unique_ptr<IBudgetController> + unique_ptr<IToolRegistry> 析构在完整类型下进行
     DSLEngine(std::vector<ParsedGraph> initial_graphs);
 private:
 
@@ -115,7 +115,7 @@ private:
     std::unique_ptr<ILLMProvider> llm_provider_; // C₁.4: 默认 MockLLMProvider
     std::unique_ptr<IProviderFactory> provider_factory_; // P1.T1: 默认 LLMProviderFactory (PIMPL-lite)
     std::vector<TraceRecord> last_traces_; // ← 存储 Trace
-    std::unique_ptr<BudgetController> budget_controller_; // 阶段 4 任务 4.3: PIMPL-lite — 持有 CostTracker（session 级）
+    std::unique_ptr<IBudgetController> budget_controller_; // C1 Day 6.2: IBudgetController 抽象接口 (持有 CostTracker)
 
     // Phase 1 Sprint 1b (S1b.T1): 默认 nullptr；持有所有权（shared_ptr 允许多 consumer 共享）
     std::shared_ptr<IInteractionBus> bus_;

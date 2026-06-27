@@ -16,7 +16,7 @@
 
 namespace agenticdsl {
 // P2.C (2026-06-24): forward-declared factories (decouple engine.cpp from concrete headers)
-class BudgetController;
+class IBudgetController;
 namespace tools {
 std::unique_ptr<IToolRegistry> create_tool_registry();
 } // namespace tools
@@ -24,7 +24,7 @@ namespace llm {
 std::unique_ptr<IProviderFactory> create_provider_factory();
 } // namespace llm
 namespace budget {
-std::unique_ptr<BudgetController> create_controller();
+std::unique_ptr<IBudgetController> create_controller();
 } // namespace budget
 
 std::unique_ptr<DSLEngine> DSLEngine::from_markdown(const std::string& markdown_content) {
@@ -93,8 +93,8 @@ double DSLEngine::get_session_cost() const {
 DSLEngine::~DSLEngine() = default;
 
 // Stage 4 / Task 19: 类外 accessor 定义 — 头文件中仅有前向声明，这里返回引用才需要完整类型
-BudgetController& DSLEngine::get_budget_controller() { return *budget_controller_; }
-const BudgetController& DSLEngine::get_budget_controller() const { return *budget_controller_; }
+IBudgetController& DSLEngine::get_budget_controller() { return *budget_controller_; }
+const IBudgetController& DSLEngine::get_budget_controller() const { return *budget_controller_; }
 
 // === Phase 1 Sprint 1b (S1b.T2): IInteractionBus 注入/访问/订阅 实现 ===
 // 设计依据: design.md §决策 1 (shared_ptr 持有所有权) + §决策 4 (nullptr 静默 no-op) +
