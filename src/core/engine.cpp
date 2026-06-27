@@ -5,6 +5,7 @@
 // engine.h 已通过 common/llm/llm_types.h 提供 LLMConfig 完整类型
 // BudgetController 完整类型由 topo_scheduler.h 间接提供 (execution_session.h → budget_controller.h)
 #include "modules/scheduler/topo_scheduler.h"
+#include "modules/scheduler/factory.h"  // C1 Day 8-9: scheduler factory
 #include "modules/system/system_nodes.h"
 #include <fstream>
 #include <sstream>
@@ -126,11 +127,11 @@ ExecutionResult DSLEngine::run(const Context& context) {
         }
     }
 
-    // 创建调度器
-    TopoScheduler::Config config;
-    config.initial_budget = std::move(budget);
-    // C₁.4 迁移：传递 ILLMProvider* 而非 LlamaAdapter*
-    TopoScheduler scheduler(std::move(config), *tool_registry_, llm_provider_.get(), &full_graphs_);
+    agenticdsl::scheduler::SchedulerConfig scheduler_cfg;
+    scheduler_cfg.initial_budget = std::move(budget);
+    auto scheduler_unique = agenticdsl::scheduler::create(
+        std::move(scheduler_cfg), *tool_registry_, llm_provider_.get(), &full_graphs_);
+    TopoScheduler& scheduler = dynamic_cast<TopoScheduler&>(*scheduler_unique);
 
     // 注册所有节点（包括系统节点）
     auto sys_nodes = create_system_nodes();
