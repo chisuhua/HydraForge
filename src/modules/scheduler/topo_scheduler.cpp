@@ -240,13 +240,14 @@ ExecutionResult TopoScheduler::execute_parallel(const Context& initial_context) 
     std::unordered_map<NodePath, tf::Task> tf_tasks;
     for (const auto& [path, _] : state.nodes) {
         tf_tasks[path] = parallel_taskflow_->emplace([this, path, &context, &state]() {
+            Context node_context = agenticdsl::fork(context);
             Node* current_node = state.nodes[path];
-            auto session_result = session_.execute_node(current_node, context);
+            auto session_result = session_.execute_node(current_node, node_context);
             if (!session_result.success) {
                 if (process_jump(session_result.message, path)) return;
                 return;
             }
-            context = std::move(session_result.new_context);
+            context = agenticdsl::merge(session_result.new_context, context);
             NodeResult node_result;
             node_result.success = true;
             handle_node_completion(state, node_result, current_node, path);

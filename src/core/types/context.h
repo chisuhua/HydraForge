@@ -15,8 +15,13 @@
 //   - 22 个现有 Catch2 测试断言依赖 flat JSON
 //   这些是 Stage 4 (breaking API change) 的范围, 不是 Stage 3 的非破坏性迁移。
 //
-// 作者：AgenticDSL Stage 3
-// 最后修改日期：2026-06-12
+// C2 Day 2-3 (2026-06-27, Sprint 12 P1, ADR-0030 V2 §决策 2):
+//   添加 fork()/merge() 自由函数 — Context 深拷贝 + 子覆盖父 merge
+//   解决 ADR-0030 V2 §风险表 "共享可变 Context 🔴 高风险"
+//   不可变分支: DAG 节点派发前 fork(), 节点完成时 merge()
+//
+// 作者：AgenticDSL Stage 3 / C2 Day 2-3
+// 最后修改日期：2026-06-27
 #ifndef AGENTICDSL_CORE_TYPES_CONTEXT_H
 #define AGENTICDSL_CORE_TYPES_CONTEXT_H
 
@@ -28,6 +33,16 @@ namespace agenticdsl {
 using Value = nlohmann::json;
 using Context = nlohmann::json;
 
-} // namespace agenticdsl::types
+inline Context fork(const Context& parent) {
+    return parent;
+}
 
-#endif // AGENTICDSL_TYPES_CONTEXT_H
+inline Context merge(const Context& child, const Context& parent) {
+    Context result = parent;
+    result.merge_patch(child);
+    return result;
+}
+
+} // namespace agenticdsl
+
+#endif // AGENTICDSL_CORE_TYPES_CONTEXT_H
