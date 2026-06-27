@@ -2,24 +2,41 @@
 
 > **来源**: `openspec/changes/archive/2026-06-23-sprint-7-tech-debt-followup/tasks.md` 11 sections 计划 (历史设计依据)
 > **范围来源**: `tech-debt-cleanup-sprint-6/tasks.md` §6.3 (Oracle 审查 session `ses_112a9f9c5ffesqpYeefOBgMkjH` 决议)
-> **总工时**: ~3 周 (Sprint 11)
+> **总工时**: ~3 周 (Sprint 11) → **~2 周** (2026-06-27 stale-state 修正: engine.cpp include/execute/DagState/factory test 已 ship, 见 master plan §十一.1)
 > **关联 change**: `tech-debt-cleanup-sprint-6` (本 change 完成后 archive)
 > **关联 ADR**: ADR-0019 §1.4 (engine.cpp include ≤3), ADR-0021 §7 (PDK 同步)
 > **创建日期**: 2026-06-26 (active 化执行)
-> **前置依赖**: C0 (`2026-06-26-doc-alignment-adr-states`)
+> **前置依赖**: C0 (`2026-06-26-doc-alignment-adr-states`) ✅ archived 2026-06-26
+
+> **⚠️ 2026-06-27 stale-state 修正 (master plan §十一.1 C1 行记录)**: 本 tasks.md 部分任务基于 2026-06-25 `engine-include-decoupling` 闭环前的 stale 代码状态. 当前实际状态 (2026-06-27 验证):
+> - ✅ `engine.cpp` 跨模块 include 已 = 3 (≤3 目标达成, 6.4 任务已闭环)
+> - ✅ `execute()` 已 54 行 (≤60 目标达成, 4.3 任务已闭环)
+> - ✅ `DagState` 结构体已存在 (topo_scheduler.h:89, 4.1 任务已存在)
+> - ✅ `test_engine_factory.cpp` 3 测试已存在 (commit `3681ba8`, 7.1 任务已存在)
+> - ✅ `dispatch_next_node` 已不存在 (重命名为 `dispatch_ready_nodes`, Day 1.1 fork 重复修复已闭环, `execute_fork_branches` 仅 1 callsite at topo_scheduler.cpp:616)
+> - ❌ `scheduler/factory.{h,cpp}` 不存在 (需 Day 8-9 实现)
+> - ❌ `IBudgetController` 接口未引入 (需 Day 6.2 实现)
+> - ❌ `create_registry()` / `create_mock_provider()` factory 函数未实现 (需 Day 6 实现)
+> - 估时校正: 3 周 → **~2 周** (基线超前 ~1 周)
 
 ---
 
 ## 1. Day 1 - 🔴 Blocker fork 重复修复
 
+> **✅ 2026-06-27 stale-state 闭环**: Day 1 工作已被 2026-06-25 `engine-include-decoupling` change 闭环. 当前代码状态:
+> - `dispatch_next_node` 函数**不存在**, 已重命名为 `dispatch_ready_nodes` (topo_scheduler.cpp:484)
+> - `execute_fork_branches` 仅 1 真正 callsite (`handle_fork_branches_block:616`), 1 定义 (L240), 1 注释 (L396), **无重复**
+> - `execute()` 已 54 行 (≤60 目标), `DagState` 已引入
+> - Day 1.1 任务 (删除 fork 死分支) **前提条件已不成立** — 死分支已在 2026-06-25 重构中消除
+
 ### 1.1 删除 `dispatch_next_node` 内 fork 处理死分支
 
-- [ ] 1.1.1 编辑 `src/modules/scheduler/topo_scheduler.cpp:634-676`, 删除 L636-642 的 `if (is_executing_fork_branches_) { execute_fork_branches(); ... }` 块
-- [ ] 1.1.2 在 `dispatch_next_node()` 函数顶部加注释: "fork 分支已在 execute() L161-167 处理, 此函数仅负责单节点派发"
-- [ ] 1.1.3 验证: `grep -n "execute_fork_branches" src/modules/scheduler/topo_scheduler.cpp` 仅 1 命中 (execute() 内)
-- [ ] 1.1.4 `cmake --build build` + `ctest --output-on-failure` 33/33 PASS 零回归
-- [ ] 1.1.5 提交: `git commit -m "fix(scheduler): remove duplicated fork handling in dispatch_next_node (Sprint 11 Blocker)"`
-- [ ] 1.1.6 更新 `tech-debt-cleanup-sprint-6/tasks.md` §6.3.1 标 `[x]`
+- [x] 1.1.1 ~~编辑 `src/modules/scheduler/topo_scheduler.cpp:634-676`, 删除 L636-642 的 `if (is_executing_fork_branches_) { execute_fork_branches(); ... }` 块~~ — **已由 2026-06-25 `engine-include-decoupling` 重构闭环**, 当前代码无该模式
+- [x] 1.1.2 ~~在 `dispatch_next_node()` 函数顶部加注释~~ — `dispatch_next_node` 已不存在, fork 分支在 `execute()` L173 `handle_fork_branches_block()` 调用
+- [x] 1.1.3 验证: `grep -n "execute_fork_branches" src/modules/scheduler/topo_scheduler.cpp` 仅 1 命中 (execute() 内) — **当前 3 命中 (1 定义 L240, 1 注释 L396, 1 callsite L616), 实际 callsite 仅 1 处, 满足条件**
+- [x] 1.1.4 `cmake --build build` + `ctest --output-on-failure` 33/33 PASS 零回归 — 2026-06-25 闭环时已验证
+- [x] 1.1.5 提交: `fix(scheduler): remove duplicated fork handling in dispatch_next_node (Sprint 11 Blocker)` — 包含在 `2026-06-24-engine-include-final-decoupling` commits 中
+- [ ] 1.1.6 更新 `tech-debt-cleanup-sprint-6/tasks.md` §6.3.1 标 `[x]` — **仍待更新** (Day 16 归档前完成)
 
 ---
 
