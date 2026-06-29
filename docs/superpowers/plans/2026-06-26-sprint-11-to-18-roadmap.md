@@ -74,7 +74,7 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 | **C1** | `2026-06-26-sprint-7-tech-debt-execution` | 实施 | 3 周 (Sprint 11) → ~2 周 (stale-state 修正后) | C0 | ✅ **shipped (2026-06-27)** + ✅ **archived (2026-07-31, commit 9e52d9a, 35/35 ctest pass, 85/142 tasks done, 关键 ship: scheduler factory + IBudgetController + get_last_traces() to IScheduler)** |
 | **C2** | `2026-06-26-adr-0030-v2-async-runtime` | 实施 | 1.5-2 周 (Sprint 12, Oracle 校正后) | C1 | ✅ **shipped (2026-07-31)** + ✅ **archived (2026-07-31, commit 8fddbcc, ADR-0030 V2 → ✅ Approved, 关键 ship: stream_to_bus bridge + Context fork/merge + InMemoryBus EventBus MPMC + async_simple CMake 移除, Oracle session `ses_0f5541ebfffehKDxNVuYqB7bq4`)** |
 | **C3** | `2026-06-26-adr-0031-p1p2-execution-policy` | 实施 | **1.5 周** (Sprint 13, Oracle 校正) | — | ✅ **shipped (2026-07-31, 39/39 ctest pass, 6 phase commits 230120e/acc7f55/76f52f9)** + ✅ **待 archive (openspec list → 5 active, 3/50→50/50 tasks done)** |
-| **C4** | `2026-06-26-adr-0031-p3p4-toolcoordinator` | 占位 | 1.5-2 周 (Sprint 14) | C3 (+ C2 异步决策) | ⚪ 占位 |
+| **C4** | `2026-06-26-adr-0031-p3p4-toolcoordinator` | 实施 | **7d (1.5 周, Sprint 14, Oracle 校正)** | C3 (+ C2 异步决策) | ✅ **shipped (2026-07-31, 41/41 ctest pass, 3 phase commits 2d70c87/a48e563, Oracle session `ses_0ed4408faffeLv8VfrC0s5PzW7`)** + ✅ **待 archive** |
 | **C5** | `2026-06-26-adr-0033-session-hierarchy` | 占位 | 1.5-2 周 (Sprint 15) | — (独立) | ⚪ 占位 (可与 C3/C4 并行填充) |
 | **C6** | `2026-06-26-adr-0004-v2-metadata-approval` | 占位 | 1 周 (Sprint 16) | **C3 + C4** | ⚪ 占位 |
 | **C7** | `2026-06-26-adr-0034-model-router-plugin` | 占位 | 1-2 周 (Sprint 17) | — (PDK + PluginLoader 已 ship) | ⚪ 占位 (可提前到 Sprint 13-14) |
@@ -350,9 +350,11 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 - **Oracle 决议落地**: 5 虚函数接口 (替换 8-method stub) + sync callback (非 EventBus request_id) + Agent 默认 + YOLO 切换需确认 (ModeSwitchDialog)
 - C0+C1+C2+C3 完整 ship, **Sprint 14 (C4 `adr-0031-p3p4-toolcoordinator`) 可立即启动**
 
-### Sprint 14 (~1.5-2 周)
-- C4 ship
-- Ship gate: ctest 47+/47+ + ToolCoordinator 单元测试 + Layer Profile 集成
+### Sprint 14 (~1.5 周, Oracle 校正) ✅ **shipped 2026-07-31**
+- ✅ C4 shipped (3 phase commits: 2d70c87/a48e563)
+- Ship gate: ctest 41/41 PASS + ADR-0031 P3-P4 → ✅ Approved + ToolCoordinator Option C + LayerProfile ADR-0004 §8 + ToolMetadata V2 + Audit log `tool.audit.*`
+- **Oracle 决议落地**: ToolCoordinator standalone middleware (非 IToolRegistry 装饰器) + 复用 LayerProfile enum + 4 项 defer 至 C6 (cost_estimate BudgetController / timeout_ms std::async / min_layer / get_layer)
+- C0+C1+C2+C3+C4 完整 ship, **Sprint 15 (C5 `adr-0033-session-hierarchy` 可并行启动 / C7 `adr-0034-model-router-plugin` PDK ready)**
 
 ### Sprint 15 (~1.5-2 周)
 - C5 ship
