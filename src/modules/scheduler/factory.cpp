@@ -20,6 +20,7 @@ std::unique_ptr<IScheduler> create(
     TopoScheduler::Config ts_config;
     ts_config.initial_budget = std::move(config.initial_budget);
     ts_config.approval_handler = config.approval_handler;
+    ts_config.tool_coordinator = config.tool_coordinator;
     return std::make_unique<TopoScheduler>(
         std::move(ts_config),
         tools,

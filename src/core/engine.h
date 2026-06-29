@@ -54,6 +54,7 @@ class ILLMProvider; // C₁.4: 前向声明（已在 common/llm/llm_types.h 中�
 class IToolRegistry; // P1.T2: 前向声明 (PIMPL-lite 解耦 — unique_ptr + 类外 accessor)
 class IProviderFactory; // P1.T1: 前向声明 (PIMPL-lite 解耦 — unique_ptr + 类外构造)
 class IBudgetController; // C1 Day 6.2 (2026-06-27): 抽象接口取代具体类 (ADR-0019 §1.4 延伸)
+class ToolCoordinator; // C4 Sprint 14 (ADR-0031 P3-P4): 前向声明 (PIMPL-lite 保持)
 
 class DSLEngine {
 public:
@@ -114,6 +115,9 @@ public:
     // ADR-0031 (2026-07-31): 设置执行策略模式 (Plan/Agent/Yolo)
     void set_execution_policy(PolicyMode mode);
 
+    // C4 Sprint 14 (ADR-0031 P3-P4, Oracle §决策 5): 获取 ToolCoordinator
+    ToolCoordinator* get_tool_coordinator() { return tool_coordinator_.get(); }
+
     ~DSLEngine(); // Stage 4 / Task 19 + P1.T4: 显式声明 — 头文件外定义, 使 unique_ptr<IBudgetController> + unique_ptr<IToolRegistry> 析构在完整类型下进行
     DSLEngine(std::vector<ParsedGraph> initial_graphs);
 private:
@@ -131,6 +135,9 @@ private:
     // ADR-0031 (2026-07-31): 执行策略 + 审批处理器 (shared_ptr 被 ApprovalHandler 共享)
     std::shared_ptr<IExecutionPolicy> policy_;
     std::unique_ptr<ApprovalHandler> approval_handler_;
+
+    // C4 Sprint 14 (ADR-0031 P3-P4, Oracle §决策 5): ToolCoordinator
+    std::unique_ptr<ToolCoordinator> tool_coordinator_;
 };
 
 } // namespace agenticdsl

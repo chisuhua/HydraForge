@@ -26,6 +26,7 @@ namespace agenticdsl {
 class DSLEngine; // Forward declaration
 class ILLMProvider; // C₁.3: 前向声明 ILLMProvider
 class ApprovalHandler; // ADR-0031 (2026-07-31): 前向声明
+class ToolCoordinator; // C4 Sprint 14 (ADR-0031 P3-P4): 前向声明
 
 //
 // ExecutionSession 封装了单次执行的所有状态和逻辑
@@ -74,6 +75,11 @@ public:
     // ADR-0031 (2026-07-31): 注入审批处理器（透传到 NodeExecutor）
     void set_approval_handler(ApprovalHandler* handler) {
         node_executor_.set_approval_handler(handler);
+    }
+
+    // C4 Sprint 14 (ADR-0031 P3-P4): 注入 ToolCoordinator（透传到 NodeExecutor）
+    void set_tool_coordinator(ToolCoordinator* coordinator) {
+        node_executor_.set_tool_coordinator(coordinator);
     }
 
 private:

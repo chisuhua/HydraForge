@@ -15,6 +15,8 @@
 #include <stdexcept>
 #include <utility> // Phase 1 Sprint 1b (S1b.T2): std::move for bus injection
 
+#include "common/tools/tool_coordinator.h" // C4 Sprint 14 (ADR-0031 P3-P4): ToolCoordinator 构造
+
 namespace agenticdsl {
 // P2.C (2026-06-24): forward-declared factories (decouple engine.cpp from concrete headers)
 class IBudgetController;
@@ -81,6 +83,14 @@ DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
         make_test_auto_callback(true),
         300000);
 
+    // C4 Sprint 14 (ADR-0031 P3-P4, Oracle §决策 5): 构造 ToolCoordinator
+    tool_coordinator_ = std::make_unique<ToolCoordinator>(
+        *tool_registry_,
+        policy_,
+        make_test_auto_callback(true),
+        bus_,
+        300000);
+
     // 阶段 4 任务 4.3: 一次性将 BudgetController::record_llm_call 绑定到 tool_registry_
     // 注意：budget_controller_ 是非静态成员，按引用捕获以保证生命周期与 engine 一致。
     // 此回调在每次 LLM tool 成功调用后触发。
@@ -138,6 +148,7 @@ ExecutionResult DSLEngine::run(const Context& context) {
     agenticdsl::scheduler::SchedulerConfig scheduler_cfg;
     scheduler_cfg.initial_budget = std::move(budget);
     scheduler_cfg.approval_handler = approval_handler_.get(); // ADR-0031 (2026-07-31): 传递审批处理器
+    scheduler_cfg.tool_coordinator = tool_coordinator_.get(); // C4 Sprint 14 (ADR-0031 P3-P4): 传递 ToolCoordinator
     auto scheduler_unique = agenticdsl::scheduler::create(
         std::move(scheduler_cfg), *tool_registry_, llm_provider_.get(), &full_graphs_);
     IScheduler& scheduler = *scheduler_unique;

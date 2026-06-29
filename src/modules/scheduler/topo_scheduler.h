@@ -27,12 +27,14 @@ namespace agenticdsl {
 class ILLMProvider;
 
 class ApprovalHandler; // ADR-0031 (2026-07-31): 前向声明
+class ToolCoordinator; // C4 Sprint 14 (ADR-0031 P3-P4): 前向声明
 
 class TopoScheduler : public IScheduler {
 public:
     struct Config {
         std::optional<ExecutionBudget> initial_budget;
         ApprovalHandler* approval_handler{nullptr}; // ADR-0031 (2026-07-31): 审批处理器
+        ToolCoordinator* tool_coordinator{nullptr}; // C4 Sprint 14 (ADR-0031 P3-P4): ToolCoordinator
         // Add other config options if needed
         Config() = default;
     };

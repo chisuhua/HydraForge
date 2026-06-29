@@ -31,6 +31,10 @@ TopoScheduler::TopoScheduler(Config config, IToolRegistry& tool_registry, ILLMPr
     if (config.approval_handler) {
         session_.set_approval_handler(config.approval_handler);
     }
+    // C4 Sprint 14 (ADR-0031 P3-P4): 传递 ToolCoordinator 到执行会话
+    if (config.tool_coordinator) {
+        session_.set_tool_coordinator(config.tool_coordinator);
+    }
 }
 
 void TopoScheduler::register_node(std::unique_ptr<Node> node) {
