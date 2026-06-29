@@ -56,9 +56,10 @@ Context NodeExecutor::execute_node(Node* node, const Context& ctx) {
         case NodeType::RESOURCE:
             return execute_resource(dynamic_cast<const ResourceNode*>(node), context_with_resources);
         case NodeType::FORK:
-            return execute_fork(dynamic_cast<const ForkNode*>(node), context_with_resources);
         case NodeType::JOIN:
-            return execute_join(dynamic_cast<const JoinNode*>(node), context_with_resources);
+            // ForkNode/JoinNode 由 TopoScheduler::process_fork_join 处理,
+            // 不应到达 NodeExecutor。这是调度器路由 bug。
+            throw std::logic_error("ForkNode/JoinNode reached NodeExecutor - scheduler routing bug");
         case NodeType::GENERATE_SUBGRAPH:
             return execute_generate_subgraph(dynamic_cast<const GenerateSubgraphNode*>(node), context_with_resources);
         case NodeType::ASSERT:
@@ -362,32 +363,6 @@ Context NodeExecutor::execute_assert(const AssertNode* node, const Context& ctx)
     }
     // Condition passed, context remains unchanged
     return ctx;
-}
-
-Context NodeExecutor::execute_fork(const ForkNode* node, const Context& ctx) {
-    // ForkNode 的执行逻辑需要由 TopoScheduler 处理，因为它涉及并发和上下文管理。
-    // NodeExecutor 本身不能启动新的线程或任务。
-    // 因此，这里抛出异常，提示需要在调度器层面实现。
-    throw std::runtime_error("ForkNode execution requires concurrent scheduler support, not implemented in NodeExecutor.");
-    // In a concurrent scheduler:
-    // 1. Create context copies for each branch.
-    // 2. Schedule each branch path to run concurrently.
-    // 3. Wait for all branches to complete (JoinNode would handle waiting).
-    // 4. Trigger snapshot here according to v3.1 spec.
-    return ctx; // Placeholder
-}
-
-Context NodeExecutor::execute_join(const JoinNode* node, const Context& ctx) {
-    // JoinNode 的执行逻辑也需要由 TopoScheduler 处理，因为它需要等待其他分支完成。
-    // NodeExecutor 本身无法等待。
-    // 因此，这里抛出异常，提示需要在调度器层面实现。
-    throw std::runtime_error("JoinNode execution requires concurrent scheduler support, not implemented in NodeExecutor.");
-    // In a concurrent scheduler:
-    // 1. Wait for all nodes in 'wait_for' to finish.
-    // 2. Retrieve their final contexts.
-    // 3. Merge them into the current context using 'merge_strategy'.
-    // 4. Return the merged context.
-    return ctx; // Placeholder
 }
 
 Context NodeExecutor::execute_generate_subgraph(const GenerateSubgraphNode* node, const Context& ctx) {
