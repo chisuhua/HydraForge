@@ -27,7 +27,10 @@ TopoScheduler::TopoScheduler(Config config, IToolRegistry& tool_registry, ILLMPr
       session_(std::move(config.initial_budget), tool_registry, llm_provider, resource_manager_,
                full_graphs_,
                [this](std::vector<ParsedGraph> graphs) { this->append_dynamic_graphs(std::move(graphs)); }) { // Pass callback to ExecutionSession
-    // Initial budget is now handled by ExecutionSession
+    // ADR-0031 (2026-07-31): 传递审批处理器到执行会话
+    if (config.approval_handler) {
+        session_.set_approval_handler(config.approval_handler);
+    }
 }
 
 void TopoScheduler::register_node(std::unique_ptr<Node> node) {
@@ -238,16 +241,18 @@ ExecutionResult TopoScheduler::execute_parallel(const Context& initial_context) 
 
     parallel_taskflow_->clear();
     std::unordered_map<NodePath, tf::Task> tf_tasks;
+    std::vector<NodePath> locally_executed;
+    locally_executed.reserve(state.nodes.size());
     for (const auto& [path, _] : state.nodes) {
-        tf_tasks[path] = parallel_taskflow_->emplace([this, path, &context, &state]() {
-            Context node_context = agenticdsl::fork(context);
+        tf_tasks[path] = parallel_taskflow_->emplace([this, path, &state, &locally_executed]() {
+            Context node_context;
             Node* current_node = state.nodes[path];
             auto session_result = session_.execute_node(current_node, node_context);
             if (!session_result.success) {
                 if (process_jump(session_result.message, path)) return;
                 return;
             }
-            context = agenticdsl::merge(session_result.new_context, context);
+            locally_executed.push_back(path);
             NodeResult node_result;
             node_result.success = true;
             handle_node_completion(state, node_result, current_node, path);
@@ -268,6 +273,9 @@ ExecutionResult TopoScheduler::execute_parallel(const Context& initial_context) 
     }
 
     parallel_executor_->run(*parallel_taskflow_).wait();
+    for (const auto& path : locally_executed) {
+        executed_.insert(path);
+    }
     return finalize_execution(state, context);
 }
 

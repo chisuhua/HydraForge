@@ -53,6 +53,7 @@ TEST_CASE("run_stream_to_bus emits llm.token per chunk in order",
     EventCollector collector(bus);
 
     auto result = run_stream_to_bus(*stream, bus, std::stop_token{}, "req-1");
+    bus.wait_for_drain();
     REQUIRE(result.text == "Hello world!");
     REQUIRE(result.completion_tokens == 4);
     REQUIRE(result.finish_reason == "stop");
@@ -75,6 +76,7 @@ TEST_CASE("run_stream_to_bus emits llm.token.done on completion",
     InMemoryBus bus;
     EventCollector collector(bus);
     auto result = run_stream_to_bus(*stream, bus, std::stop_token{}, "req-2");
+    bus.wait_for_drain();
     REQUIRE(result.finish_reason == "stop");
     REQUIRE(result.completion_tokens == 3);
 
@@ -96,6 +98,7 @@ TEST_CASE("run_stream_to_bus respects stop_token cancellation",
     std::stop_source stop_source;
     stop_source.request_stop();
     auto result = run_stream_to_bus(*stream, bus, stop_source.get_token(), "req-3");
+    bus.wait_for_drain();
     REQUIRE(result.finish_reason == "cancelled");
 
     REQUIRE(collector.done().size() == 1);
@@ -110,6 +113,7 @@ TEST_CASE("run_stream_to_bus aggregates final GenerationResult",
     InMemoryBus bus;
     EventCollector collector(bus);
     auto result = run_stream_to_bus(*stream, bus, std::stop_token{}, "req-4");
+    bus.wait_for_drain();
     REQUIRE(result.text == "p1p2p3p4");
     REQUIRE(result.completion_tokens == 4);
     REQUIRE(result.finish_reason == "stop");
@@ -131,6 +135,7 @@ TEST_CASE("run_stream_to_bus preserves token order across event types",
     });
 
     run_stream_to_bus(*stream, bus, std::stop_token{}, "req-5");
+    bus.wait_for_drain();
     REQUIRE(event_order.size() == 4);
     REQUIRE(event_order[0] == "token:alpha");
     REQUIRE(event_order[1] == "token:beta");

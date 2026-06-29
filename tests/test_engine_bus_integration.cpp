@@ -121,6 +121,7 @@ next: ["/main/end"]
 
     // 直接通过 bus 发射，应触发透传的 callback
     bus->emit("topic.y", ToolResult::success({{"k", "v"}}));
+    bus->wait_for_drain();
     REQUIRE(calls.load() == 1);
 
     // unsubscribe 也通过 bus 路径（透传一致性验证）
@@ -129,6 +130,7 @@ next: ["/main/end"]
     engine->set_interaction_bus(bus);
     bus->unsubscribe(token);
     bus->emit("topic.y", ToolResult::success({}));
+    bus->wait_for_drain();
     REQUIRE(calls.load() == 1); // 已 unsubscribe，不再触发
 }
 
@@ -161,6 +163,7 @@ TEST_CASE("NodeExecutor DSLNode emits started/completed to bus",
     Context ctx;
     ctx["name"] = "Bus";
     Context result = executor.execute_node(&node, ctx);
+    bus->wait_for_drain();
 
     // 验证产物
     REQUIRE(result.contains("out"));
@@ -208,6 +211,7 @@ TEST_CASE("NodeExecutor ToolNode emits tool.completed with envelope fields",
 
     Context ctx;
     Context result = executor.execute_node(&node, ctx);
+    bus->wait_for_drain();
 
     // 验证事件 + envelope 字段（Sprint 1a P2-P4 透传）
     REQUIRE(tool_completed_count.load() == 1);
@@ -254,6 +258,7 @@ TEST_CASE("NodeExecutor ToolNode Abort emits execution.failed and throws",
     REQUIRE_THROWS_WITH(
         executor.execute_node(&node, ctx),
         Catch::Matchers::ContainsSubstring("[ABORT]"));
+    bus->wait_for_drain();
 
     // 事件必须在异常传播之前触发（REQ-BUS-004 Scenario: Abort）
     REQUIRE(failed_count.load() == 1);
@@ -286,6 +291,7 @@ TEST_CASE("NodeExecutor ToolNode Retry emits execution.failed and throws",
     REQUIRE_THROWS_WITH(
         executor.execute_node(&node, ctx),
         Catch::Matchers::ContainsSubstring("[RETRY]"));
+    bus->wait_for_drain();
 
     REQUIRE(failed_count.load() == 1);
 }
@@ -363,6 +369,7 @@ next: ["/main/end"]
         });
     }
     for (auto& t : threads) t.join();
+    bus->wait_for_drain();
 
     REQUIRE(count.load() == 1000);
 }

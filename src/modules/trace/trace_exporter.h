@@ -18,6 +18,7 @@
 #include <string>
 #include <optional>
 #include <chrono>
+#include <mutex>
 
 namespace agenticdsl {
 
@@ -44,6 +45,7 @@ public:
     void clear_traces();
 
 private:
+    mutable std::mutex traces_mutex_;
     std::vector<TraceRecord> traces_;
     std::string current_trace_id_ = "t-default"; // Should be generated uniquely per execution
 

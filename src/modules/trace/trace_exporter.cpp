@@ -23,6 +23,7 @@ void TraceExporter::on_node_start(
     // record.metadata and record.llm_intent are not set here, only in on_node_end
     // record.ctx_snapshot_key is set in on_node_end
 
+    std::lock_guard<std::mutex> lock(traces_mutex_);
     traces_.push_back(std::move(record));
 }
 
@@ -35,6 +36,7 @@ void TraceExporter::on_node_end(
     const std::optional<NodePath>& snapshot_key,
     const std::optional<ExecutionBudget>& budget) {
 
+    std::lock_guard<std::mutex> lock(traces_mutex_);
     // Find the corresponding start record
     auto it = std::find_if(traces_.rbegin(), traces_.rend(),
                            [&path](const TraceRecord& r) { return r.node_path == path && r.status == "running"; });
@@ -55,10 +57,12 @@ void TraceExporter::on_node_end(
 }
 
 std::vector<TraceRecord> TraceExporter::get_traces() const {
+    std::lock_guard<std::mutex> lock(traces_mutex_);
     return traces_;
 }
 
 void TraceExporter::clear_traces() {
+    std::lock_guard<std::mutex> lock(traces_mutex_);
     traces_.clear();
 }
 

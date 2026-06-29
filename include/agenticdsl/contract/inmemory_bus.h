@@ -80,10 +80,13 @@ class InMemoryBus : public IInteractionBus {
   > subscribers_;
 
   size_t next_token_ = 0;
+  size_t in_flight_callbacks_ = 0;
 
   // C2 Day 6-8: 后台 dispatch 线程 (EventBus MPMC 后端)
-  std::thread dispatch_thread_;
+  // 声明顺序: stop_ 必须在 dispatch_thread_ 之前 (C++ 成员按声明顺序初始化,
+  //          否则 dispatch_loop 启动时读取 stop_ 是数据竞争)
   std::atomic<bool> stop_{false};
+  std::thread dispatch_thread_;
 };
 
 } // namespace agenticdsl

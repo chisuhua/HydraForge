@@ -1,0 +1,1 @@
+     task(category="deep", prompt="Implement OpenSpec change 2026-06-26-doc-alignment-adr-states. Follow tasks.md Day 1-10. Write ADR-0030 V2, fix ADR-0032 status, sync 4 docs, run adr_lint + docs_drift_audit, archive.")

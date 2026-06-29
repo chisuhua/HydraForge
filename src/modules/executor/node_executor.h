@@ -11,6 +11,7 @@
 #include "agenticdsl/contract/itool_registry.h" // P1.T2: IToolRegistry 抽象接口
 #include "agenticdsl/contract/iparser.h" // ADR-0019 §1.4: 仅依赖解析器抽象接口
 #include "agenticdsl/contract/iinteraction_bus.h" // Phase 1 Sprint 1b (S1b.T3): IInteractionBus 事件推送契约 (ADR-0019 P2)
+#include "common/policy/approval_handler.h" // ADR-0031 (2026-07-31): 审批处理器
 #include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
@@ -45,6 +46,9 @@ public:
         append_graphs_callback_ = std::move(cb);
     }
 
+    // ADR-0031 (2026-07-31): 注入审批处理器（nullptr 跳过审批）
+    void set_approval_handler(ApprovalHandler* handler) { approval_handler_ = handler; }
+
 private:
     // P1.T4: IToolRegistry& (依赖倒置, 通过 has_tool/call_tool/call_llm_tool 多态分派)
     IToolRegistry& tool_registry_;
@@ -57,6 +61,10 @@ private:
     // Phase 1 Sprint 1b (S1b.T3): 非 owning 指针（生命周期短于 DSLEngine）；
     // 默认 nullptr 走原有静默路径，保持现有 11+ 测试零回归。
     IInteractionBus* bus_;
+
+    // ADR-0031 (2026-07-31): 可选审批处理器（nullptr 表示跳过审批）
+    ApprovalHandler* approval_handler_{nullptr};
+    size_t tool_call_count_{0}; // 本 session 工具调用计数
 
     // 权限检查
     void check_permissions(const std::vector<std::string>& perms, const NodePath& node_path);

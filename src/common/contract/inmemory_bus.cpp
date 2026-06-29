@@ -14,8 +14,11 @@ InMemoryBus::InMemoryBus()
     : dispatch_thread_(&InMemoryBus::dispatch_loop, this) {}
 
 InMemoryBus::~InMemoryBus() {
-  stop_.store(true, std::memory_order_release);
-  cv_.notify_all();
+  {
+    std::lock_guard<std::mutex> lock(mtx_);
+    stop_.store(true, std::memory_order_release);
+    cv_.notify_all();
+  }
   if (dispatch_thread_.joinable()) {
     dispatch_thread_.join();
   }
@@ -27,7 +30,7 @@ void InMemoryBus::emit(const std::string& event_type,
     std::lock_guard<std::mutex> lock(mtx_);
     queue_.push({event_type, payload});
   }
-  cv_.notify_one();
+  cv_.notify_all();
 }
 
 void InMemoryBus::emit(const std::string& event_type,
@@ -73,11 +76,13 @@ bool InMemoryBus::try_pop(std::string& event_type, ToolResult& payload) {
 
 void InMemoryBus::wait_for_drain() {
   std::unique_lock<std::mutex> lock(mtx_);
-  cv_.wait(lock, [this] { return queue_.empty(); });
+  cv_.wait(lock, [this] {
+    return queue_.empty() && in_flight_callbacks_ == 0;
+  });
 }
 
 void InMemoryBus::dispatch_loop() {
-  while (!stop_.load(std::memory_order_acquire)) {
+  while (true) {
     std::pair<std::string, ToolResult> event;
     bool got_event = false;
     {
@@ -85,10 +90,12 @@ void InMemoryBus::dispatch_loop() {
       cv_.wait(lock, [this] {
         return stop_.load(std::memory_order_acquire) || !queue_.empty();
       });
-      if (stop_.load(std::memory_order_acquire) && queue_.empty()) break;
+      // 析构时 stop_=true 且 queue 空才退出, 否则排空剩余事件
+      if (stop_.load(std::memory_order_acquire) && queue_.empty() && in_flight_callbacks_ == 0) break;
       if (!queue_.empty()) {
         event = std::move(queue_.front());
         queue_.pop();
+        in_flight_callbacks_++;
         got_event = true;
       }
     }
@@ -108,6 +115,12 @@ void InMemoryBus::dispatch_loop() {
     }
     for (auto& cb : callbacks) {
       cb(event.second);
+    }
+
+    {
+      std::lock_guard<std::mutex> lock(mtx_);
+      in_flight_callbacks_--;
+      cv_.notify_all();
     }
   }
 }

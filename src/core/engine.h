@@ -40,6 +40,11 @@
 // P1.T3 (2026-06-18): TraceRecord data-only struct 上移到 types 头文件 (from modules/trace/trace_exporter.h)
 #include "agenticdsl/types/trace_record.h" // TraceRecord data-only struct (P1.T3 迁移自 modules/trace/trace_exporter.h)
 
+// ADR-0031 (2026-07-31): Policy + ApprovalHandler 集成
+#include "common/policy/policy_factory.h"
+#include "common/policy/approval_handler.h"
+#include "common/policy/approval_callbacks.h"
+
 #include <memory>
 #include <string>
 
@@ -106,6 +111,9 @@ public:
     size_t subscribe(const std::string& topic,
                      std::function<void(const ToolResult&)> cb);
 
+    // ADR-0031 (2026-07-31): 设置执行策略模式 (Plan/Agent/Yolo)
+    void set_execution_policy(PolicyMode mode);
+
     ~DSLEngine(); // Stage 4 / Task 19 + P1.T4: 显式声明 — 头文件外定义, 使 unique_ptr<IBudgetController> + unique_ptr<IToolRegistry> 析构在完整类型下进行
     DSLEngine(std::vector<ParsedGraph> initial_graphs);
 private:
@@ -119,6 +127,10 @@ private:
 
     // Phase 1 Sprint 1b (S1b.T1): 默认 nullptr；持有所有权（shared_ptr 允许多 consumer 共享）
     std::shared_ptr<IInteractionBus> bus_;
+
+    // ADR-0031 (2026-07-31): 执行策略 + 审批处理器 (shared_ptr 被 ApprovalHandler 共享)
+    std::shared_ptr<IExecutionPolicy> policy_;
+    std::unique_ptr<ApprovalHandler> approval_handler_;
 };
 
 } // namespace agenticdsl

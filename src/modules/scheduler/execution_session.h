@@ -25,6 +25,7 @@ namespace agenticdsl {
 
 class DSLEngine; // Forward declaration
 class ILLMProvider; // C₁.3: 前向声明 ILLMProvider
+class ApprovalHandler; // ADR-0031 (2026-07-31): 前向声明
 
 //
 // ExecutionSession 封装了单次执行的所有状态和逻辑
@@ -69,6 +70,11 @@ public:
     const ContextEngine& get_context_engine() const;
     const std::unordered_map<NodePath, std::vector<NodePath>>& get_pending_dynamic_deps() const { return pending_dynamic_deps_; }
     const std::unordered_map<NodePath, nlohmann::json>& get_dynamic_wait_for_expressions() const { return dynamic_wait_for_expressions_; }
+
+    // ADR-0031 (2026-07-31): 注入审批处理器（透传到 NodeExecutor）
+    void set_approval_handler(ApprovalHandler* handler) {
+        node_executor_.set_approval_handler(handler);
+    }
 
 private:
     ResourceManager& resource_manager_; // ← 成员引用

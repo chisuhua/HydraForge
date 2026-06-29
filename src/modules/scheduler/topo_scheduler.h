@@ -26,10 +26,13 @@ namespace agenticdsl {
 // C₁.3: 前向声明 ILLMProvider（避免循环 include）
 class ILLMProvider;
 
+class ApprovalHandler; // ADR-0031 (2026-07-31): 前向声明
+
 class TopoScheduler : public IScheduler {
 public:
     struct Config {
         std::optional<ExecutionBudget> initial_budget;
+        ApprovalHandler* approval_handler{nullptr}; // ADR-0031 (2026-07-31): 审批处理器
         // Add other config options if needed
         Config() = default;
     };

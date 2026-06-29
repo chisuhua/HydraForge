@@ -298,6 +298,7 @@ TEST_CASE("DomainWorkerPool shutdown waits for in-flight tasks",
 
   // 立即 stop (in-flight task 必须完成, 无丢失)
   pool.stop();
+  bus->wait_for_drain();
 
   REQUIRE(completed_count.load() == 100);
   REQUIRE(pool.state() == DomainWorkerPool::State::stopped);
@@ -347,6 +348,7 @@ TEST_CASE("DomainWorkerPool graceful vs forced shutdown",
 
       // 不调 stop(), 让 pool 析构 (强制关闭)
     }
+    bus->wait_for_drain();
 
     // 析构后所有 in-flight task 仍应完成
     REQUIRE(completed_count.load() == 5);

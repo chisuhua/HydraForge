@@ -74,6 +74,13 @@ DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
     mock_config.provider = "mock";
     llm_provider_ = provider_factory_->create(mock_config);
 
+    // ADR-0031 (2026-07-31): 默认 Agent 模式执行策略
+    policy_ = PolicyFactory::create(PolicyMode::Agent);
+    approval_handler_ = std::make_unique<ApprovalHandler>(
+        policy_,
+        make_test_auto_callback(true),
+        300000);
+
     // 阶段 4 任务 4.3: 一次性将 BudgetController::record_llm_call 绑定到 tool_registry_
     // 注意：budget_controller_ 是非静态成员，按引用捕获以保证生命周期与 engine 一致。
     // 此回调在每次 LLM tool 成功调用后触发。
@@ -130,6 +137,7 @@ ExecutionResult DSLEngine::run(const Context& context) {
 
     agenticdsl::scheduler::SchedulerConfig scheduler_cfg;
     scheduler_cfg.initial_budget = std::move(budget);
+    scheduler_cfg.approval_handler = approval_handler_.get(); // ADR-0031 (2026-07-31): 传递审批处理器
     auto scheduler_unique = agenticdsl::scheduler::create(
         std::move(scheduler_cfg), *tool_registry_, llm_provider_.get(), &full_graphs_);
     IScheduler& scheduler = *scheduler_unique;
@@ -175,6 +183,15 @@ void DSLEngine::continue_with_generated_dsl(const std::string& generated_dsl) {
     // 校验：每个新图必须是合法子图（可选：验证 signature / permissions）
     // 此处暂略，后续可集成 NodeValidator
     append_graphs(std::move(new_graphs)); // 复用逻辑
+}
+
+// ADR-0031 (2026-07-31): 设置执行策略模式
+void DSLEngine::set_execution_policy(PolicyMode mode) {
+    policy_ = PolicyFactory::create(mode);
+    approval_handler_ = std::make_unique<ApprovalHandler>(
+        policy_,
+        make_test_auto_callback(true),
+        300000);
 }
 
 } // namespace agenticdsl

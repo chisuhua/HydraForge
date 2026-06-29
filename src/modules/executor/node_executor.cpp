@@ -173,6 +173,28 @@ Context NodeExecutor::execute_tool_call(const ToolCallNode* node, const Context&
         throw std::runtime_error("Tool '" + node->tool_name + "' not registered for node: " + node->path);
     }
 
+    // ADR-0031 (2026-07-31): 审批检查 — 在工具执行前调用 ApprovalHandler
+    if (approval_handler_) {
+        ToolMetadata meta;
+        meta.name = node->tool_name;
+        meta.category = ToolCategory::Execute; // 默认安全分类
+
+        ToolCallContext tool_ctx;
+        tool_ctx.call_count_this_session = tool_call_count_++;
+        tool_ctx.target_path = node->path;
+
+        ToolPreview preview;
+        preview.command_line = node->tool_name;
+        for (const auto& [k, v] : rendered_args) {
+            preview.command_line += " " + k + "=" + v;
+        }
+        preview.risk_summary = "Tool: " + node->tool_name + " at " + node->path;
+
+        if (!approval_handler_->process_request(meta, tool_ctx, preview)) {
+            throw std::runtime_error("Tool '" + node->tool_name + "' denied by execution policy at node: " + node->path);
+        }
+    }
+
     // Phase 1 Sprint 1a (S1a.T2): 用 std::chrono::steady_clock 测量工具耗时
     // REQ-TR-002: ToolResult.latency_ms 必须自动填充
     const auto t0 = std::chrono::steady_clock::now();

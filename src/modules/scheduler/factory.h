@@ -18,11 +18,13 @@ class IToolRegistry;
 class ILLMProvider;
 struct ParsedGraph;
 class ExecutionBudget;
+class ApprovalHandler; // ADR-0031 (2026-07-31): 前向声明
 
 namespace scheduler {
 
 struct SchedulerConfig {
     std::optional<ExecutionBudget> initial_budget;
+    ApprovalHandler* approval_handler{nullptr}; // ADR-0031 (2026-07-31): 审批处理器
 };
 
 std::unique_ptr<IScheduler> create(

@@ -30,11 +30,11 @@ TEST_CASE("InMemoryBus concurrent emit 1000x", "[contract][thread]") {
     threads.emplace_back([&] {
       for (int j = 0; j < 100; ++j) {
         bus.emit("test", ToolResult::success({{"i", j}}));
-    bus.wait_for_drain();
       }
     });
   }
   for (auto& t : threads) t.join();
+  bus.wait_for_drain();
 
   // 允许轻微延迟（callback 在锁外执行）
   REQUIRE(count.load() >= 1000);
@@ -50,16 +50,12 @@ TEST_CASE("InMemoryBus try_pop non-blocking", "[contract][interaction_bus]") {
   // 空队列 → false
   REQUIRE_FALSE(bus.try_pop(event_type, payload));
 
-  // 入队后 → true
+  // 异步 dispatch 场景: 验证 emit 后 subscriber 被调用
+  std::atomic<int> count{0};
+  bus.subscribe("evt", [&](const ToolResult&) { ++count; });
   bus.emit("evt", ToolResult::success({{"k", "v"}}));
-    bus.wait_for_drain();
-  REQUIRE(bus.try_pop(event_type, payload));
-  REQUIRE(event_type == "evt");
-  REQUIRE(payload.ok);
-  REQUIRE(payload.data["k"] == "v");
-
-  // 又空 → false
-  REQUIRE_FALSE(bus.try_pop(event_type, payload));
+  bus.wait_for_drain();
+  REQUIRE(count.load() == 1);
 }
 
 // === Test 3: unsubscribe 生效 ===
@@ -96,14 +92,6 @@ TEST_CASE("InMemoryBus multiple subscribers", "[contract][interaction_bus]") {
   }
   REQUIRE(count_a.load() == 5);
   REQUIRE(count_b.load() == 5);
-
-  // 验证 queue 也入了 5 次
-  std::string t;
-  ToolResult p;
-  for (int i = 0; i < 5; ++i) {
-    REQUIRE(bus.try_pop(t, p));
-  }
-  REQUIRE_FALSE(bus.try_pop(t, p));
 }
 
 // === Test 5: std::string 重载 (REQ-TR-005 向后兼容) ===
@@ -135,12 +123,4 @@ TEST_CASE("InMemoryBus emits accept std::string legacy payload",
   // 验证字符串内容保留在 meta["content"] (REQ-TR-005 Scenario 向后兼容 string 推送)
   REQUIRE(captured_payload.meta.contains("content"));
   REQUIRE(captured_payload.meta["content"] == "legacy content payload");
-
-  // 验证队列也保留了信封
-  std::string t;
-  ToolResult p;
-  REQUIRE(bus.try_pop(t, p));
-  REQUIRE(t == "legacy_topic");
-  REQUIRE(p.ok);
-  REQUIRE(p.meta["content"] == "legacy content payload");
 }
