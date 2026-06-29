@@ -1,46 +1,65 @@
 // src/common/policy/yolo_mode_policy.h
-// 功能描述：YOLO模式执行策略。几乎全自动——仅 force_approval_always
-//标记的工具（如 delete_file）才需要审批；自动执行；不展示计划
-//与结果摘要；自动重试；不展示反思；舰队模式最大并发度为32。
-// 设计依据：ADR-0031 §2 / ADR-0027 (YOLO模式定义)
-// 作者：AgenticDSL Phase3 / Track A
-// 最后修改日期：2026-06-10
+// 功能描述：YOLO 模式执行策略 (C3 5-method 重写版)
+// 设计依据：ADR-0031 §决策 1 (Oracle 5-method 接口) + §决策 6 (YOLO 切换需确认)
+// 作者：AgenticDSL Phase3 / Sprint 13 C3 ship
+// 最后修改日期：2026-07-31
 #pragma once
 
 #include "agenticdsl/policy/iexecution_policy.h"
+#include "agenticdsl/policy/mode_config.h"
 
 namespace agenticdsl {
 
 /**
- * @brief YOLO模式策略：全自动的高吞吐模式
+ * @brief YOLO 模式策略 — 高吞吐全自动模式
  *
- *适用场景：CI/CD流水线、批量任务处理、用户对工具集完全信任
- *关键行为：
- * - 仅 force_approval_always=true 的工具需要审批（安全底线）
- * - 自动执行（零确认）
- * - 不展示计划与结果摘要（最大吞吐）
- * - IPERReflect 后自动重试
- * - 不展示反思内容（内部记录）
- * -舰队并发度上限为32（激进）
+ * C3 5-method 重写 (Oracle session ses_0ee867023ffeaSqWQXET5ESbAo):
+ * - requires_approval: 仅 force_approval_always 工具 (defense-in-depth floor)
+ * - should_execute=true (零确认)
+ * - can_skip=true (所有工具可跳过审批)
+ * - get_layer=Workflow
+ * - request_approval: 仅 force_approval_always 时调用 callback (其他直接 true)
  *
- *警告：YOLO模式是安全敏感度最低的模式，应当仅在用户明确知情的
- *情况下启用（参见 ADR-0031 §6模式切换安全转换）。
+ * ⚠️ 安全警告: YOLO 模式安全敏感度最低. 切换需要 ModeSwitchDialog 用户确认
+ * (ADR-0031 §决策 6, ModeSwitchDialog::confirm_yolo_switch()).
+ *
+ * ModeConfig: YoloModeConfig{fleet_max_concurrency=32, auto_decide_retry=true}
  */
 class YoloModePolicy : public IExecutionPolicy {
  public:
- bool requires_approval(const ToolMetadata& meta,
- const ToolCallContext& ctx) const override;
+  // ===== 4 per-call 决策 =====
 
- bool should_auto_execute() const override { return true; }
- bool should_show_plan() const override { return false; }
- bool should_show_result_summary() const override { return false; }
+  /// @brief 仅 force_approval_always 工具需要审批 (defense-in-depth floor)
+  bool requires_approval(const ToolMetadata& meta,
+                         const ToolCallContext& /*ctx*/) const override;
 
- std::string mode_name() const override { return "yolo"; }
+  /// @brief YOLO 模式自动执行
+  bool should_execute(const ToolMetadata& /*meta*/,
+                      const ToolCallContext& /*ctx*/) const override {
+    return true;
+  }
 
- bool should_auto_decide_retry() const override { return true; }
- bool should_show_reflection() const override { return false; }
+  /// @brief YOLO 模式可跳过所有审批 (除 force_approval_always)
+  bool can_skip(const ToolMetadata& meta,
+                const ToolCallContext& /*ctx*/) const override;
 
- size_t fleet_max_concurrency() const override { return 32; }
+  /// @brief YOLO 模式全 Workflow 层 (高吞吐)
+  LayerProfile get_layer(const ToolMetadata& /*meta*/) const override {
+    return LayerProfile::Workflow;
+  }
+
+  // ===== 1 approval 同步回调 =====
+
+  /// @brief 仅 force_approval_always 时调用 callback
+  bool request_approval(const ToolMetadata& meta,
+                        const ToolCallContext& ctx,
+                        const ToolPreview& preview,
+                        ApprovalCallback callback) const override;
+
+  // ===== 静态配置访问 =====
+
+  /// @brief 暴露 ModeConfig (YOLO 高并发)
+  static constexpr ModeConfig config() { return YoloModeConfig; }
 };
 
-} // namespace agenticdsl
+}  // namespace agenticdsl

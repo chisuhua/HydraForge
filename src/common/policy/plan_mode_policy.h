@@ -1,44 +1,66 @@
 // src/common/policy/plan_mode_policy.h
-// 功能描述：Plan模式执行策略。所有写入类工具调用均需要用户审批；执行前
-//必须展示完整计划；执行后展示结果摘要；不自动重试；展示反思内容；
-//舰队模式最大并发度为8。
-// 设计依据：ADR-0031 §2 / ADR-0027 (Plan模式定义)
-// 作者：AgenticDSL Phase3 / Track A
-// 最后修改日期：2026-06-10
+// 功能描述：Plan 模式执行策略 (C3 5-method 重写版)
+// 设计依据：ADR-0031 §决策 1 (Oracle 推荐, 5-method 接口) + ModeConfig
+// 作者：AgenticDSL Phase3 / Sprint 13 C3 ship
+// 最后修改日期：2026-07-31
 #pragma once
 
+#include <string>
+
 #include "agenticdsl/policy/iexecution_policy.h"
+#include "agenticdsl/policy/mode_config.h"
 
 namespace agenticdsl {
 
 /**
- * @brief Plan模式策略：保守的人工审批模式
+ * @brief Plan 模式策略 — 保守的人工审批模式
  *
- *适用场景：用户首次接触一项任务，需要看清 Agent 将要做什么并人工放行每一步
- *关键行为：
- * - 所有非 ReadOnly工具调用都需要人工审批
- * - 不自动执行（每一步等待用户确认）
- * - 执行前必须展示完整计划
- * - 执行后展示结果摘要
- * - IPERReflect 后不自动重试，询问用户
- * -展示反思内容供用户审查
- * -舰队并发度上限为8（保守）
+ * C3 5-method 重写 (Oracle 决议 ses_0ee867023ffeaSqWQXET5ESbAo):
+ * - 所有非 ReadOnly 工具需审批
+ * - Plan 模式 should_execute=false (等用户确认每步)
+ * - can_skip=false (ReadOnly 也需要审批以显示计划)
+ * - get_layer=Workflow (无 fleet 模式)
+ * - request_approval: meta.approval.force_approval_always || meta.category != ReadOnly → 强制审批
+ *
+ * ModeConfig (per-mode 常量): PlanModeConfig{show_plan=true, ...} (从虚接口移出)
  */
 class PlanModePolicy : public IExecutionPolicy {
  public:
- bool requires_approval(const ToolMetadata& meta,
- const ToolCallContext& ctx) const override;
+  // ===== 4 per-call 决策 =====
 
- bool should_auto_execute() const override { return false; }
- bool should_show_plan() const override { return true; }
- bool should_show_result_summary() const override { return true; }
+  /// @brief 非 ReadOnly 需审批 (Plan 模式保守)
+  bool requires_approval(const ToolMetadata& meta,
+                         const ToolCallContext& /*ctx*/) const override;
 
- std::string mode_name() const override { return "plan"; }
+  /// @brief Plan 模式不自动执行 (等用户确认)
+  bool should_execute(const ToolMetadata& /*meta*/,
+                      const ToolCallContext& /*ctx*/) const override {
+    return false;
+  }
 
- bool should_auto_decide_retry() const override { return false; }
- bool should_show_reflection() const override { return true; }
+  /// @brief Plan 模式不可跳过 (即使 ReadOnly 也需确认)
+  bool can_skip(const ToolMetadata& /*meta*/,
+                const ToolCallContext& /*ctx*/) const override {
+    return false;
+  }
 
- size_t fleet_max_concurrency() const override { return 8; }
+  /// @brief Plan 模式全 Workflow 层
+  LayerProfile get_layer(const ToolMetadata& /*meta*/) const override {
+    return LayerProfile::Workflow;
+  }
+
+  // ===== 1 approval 同步回调 =====
+
+  /// @brief Plan 模式始终请求审批 (调用 callback)
+  bool request_approval(const ToolMetadata& meta,
+                        const ToolCallContext& ctx,
+                        const ToolPreview& preview,
+                        ApprovalCallback callback) const override;
+
+  // ===== 静态配置访问 =====
+
+  /// @brief 暴露 ModeConfig (从虚接口移出的常量)
+  static constexpr ModeConfig config() { return PlanModeConfig; }
 };
 
-} // namespace agenticdsl
+}  // namespace agenticdsl

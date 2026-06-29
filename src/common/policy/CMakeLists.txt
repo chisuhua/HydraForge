@@ -10,6 +10,10 @@ add_library(agenticdsl_policy STATIC
  agent_mode_policy.cpp
  yolo_mode_policy.cpp
  path_policy.cpp
+ policy_factory.cpp
+ approval_callbacks.cpp
+ approval_handler.cpp
+ mode_switch_dialog.cpp
 )
 
 target_include_directories(agenticdsl_policy PUBLIC

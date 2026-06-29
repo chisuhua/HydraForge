@@ -2,7 +2,7 @@
 
 ## 状态
 
-**🟡 Partial** (2026-05-27, 2026-06-12 状态对齐 — 仅头文件 stub)
+**✅ Approved (2026-07-31, Oracle session `ses_0faa4dabeffeHGFoLdXE7AqwH7`, 5-method interface + sync callback + Agent default + YOLO confirm)**
 
 ## 领域
 
@@ -40,55 +40,70 @@
 
 ## 决策
 
-### 1. IExecutionPolicy 接口（基座层定义）
+### 1. IExecutionPolicy 接口（基座层定义 — 5 方法精简接口）
 
 **关键决策**：基座层（`src/common/`）定义接口 + 三种默认实现，认知层可以扩展但基座不依赖认知层。
+
+**Oracle 决议** (session `ses_0faa4dabeffeHGFoLdXE7AqwH7`)：从 8 个 virtual 方法精简为 5 个核心方法。原 `should_auto_execute()`、`should_show_plan()`、`should_show_result_summary()`、`should_auto_decide_retry()`、`should_show_reflection()`、`fleet_max_concurrency()`、`mode_name()` 等配置型方法迁移至 `ModeConfig` 值结构体，不在接口中定义。
 
 ```cpp
 // ===== src/common/policy/execution_policy.h =====
 
+// 模式配置值结构体（替代接口中的配置型方法）
+struct ModeConfig {
+    bool show_plan = true;               // 是否展示计划（原 should_show_plan + should_auto_execute 组合）
+    bool show_result_summary = true;     // 是否显示结果摘要
+    bool auto_decide_retry = true;       // 是否自动决定重试
+    bool show_reflection = true;         // 是否展示反思
+    size_t fleet_max_concurrency = 8;    // 舰队最大并行度
+    std::string mode_name = "agent";     // 模式名称
+};
+
 // 工具调用的上下文信息（辅助决策）
 struct ToolCallContext {
     std::string session_id;
-    std::string caller_layer;       // "cognitive" / "thinking" / "workflow"
-    std::string target_path;        // 目标文件/目录路径
-    bool is_in_fleet_mode = false;  // 是否在舰队模式中
-    size_t call_count_this_session = 0;  // 本 session 第几次调用
+    std::string caller_layer;          // "cognitive" / "thinking" / "workflow"
+    std::string target_path;           // 目标文件/目录路径
+    bool is_in_fleet_mode = false;     // 是否在舰队模式中
+    size_t call_count_this_session = 0; // 本 session 第几次调用
 };
 
-// 执行策略接口
+// 审批回调类型（同步，非协程）
+using ApprovalCallback = std::function<void(bool approved, const std::string& reason)>;
+
+// 执行策略接口（5 方法精简版）
 class IExecutionPolicy {
 public:
     virtual ~IExecutionPolicy() = default;
-    
+
     // 核心决策：此工具调用是否需要用户审批？
-    virtual bool requires_approval(const ToolMetadata& meta, 
+    virtual bool requires_approval(const ToolMetadata& meta,
                                    const ToolCallContext& ctx) const = 0;
-    
-    // Plan 模式：是否允许自动进入 Execute 阶段？
-    virtual bool should_auto_execute() const = 0;
-    
-    // 是否展示完整计划给用户？
-    virtual bool should_show_plan() const = 0;
-    
-    // 获取当前模式名称
-    virtual std::string mode_name() const = 0;
-    
-    // 工具执行后是否显示结果摘要？
-    virtual bool should_show_result_summary() const = 0;
-    
-    // ===== IPER 行为控制（议题 5 最小集成）=====
-    
-    // Reflect 后是否自动决定重试/结束？（false = 询问用户）
-    virtual bool should_auto_decide_retry() const = 0;
-    
-    // 是否展示 Reflect 分析结果？
-    virtual bool should_show_reflection() const = 0;
-    
-    // ===== 舰队模式行为 =====
-    
-    // 舰队模式最大并行度（0 = 禁用舰队模式）
-    virtual size_t fleet_max_concurrency() const = 0;
+
+    // 条件决策：在 requires_approval=true 的前提下，是否真正执行？
+    // false = 拒绝执行（无需等待用户审批）
+    virtual bool should_execute(const ToolMetadata& meta,
+                                const ToolCallContext& ctx) const = 0;
+
+    // 条件决策：是否可以跳过此工具调用（非阻塞跳过）？
+    virtual bool can_skip(const ToolMetadata& meta,
+                          const ToolCallContext& ctx) const = 0;
+
+    // 返回工具所属的权限层（用于 Layer Profile 校验）
+    virtual int get_layer(const ToolMetadata& meta) const = 0;
+
+    // 请求用户审批（同步回调模式，非协程）
+    // callback 在用户响应后被调用 — 传递 approved 和 reason
+    virtual void request_approval(const ToolMetadata& meta,
+                                  const ToolCallContext& ctx,
+                                  const ToolPreview& preview,
+                                  ApprovalCallback callback) = 0;
+
+    // 获取模式配置（非 virtual，由构造注入）
+    const ModeConfig& config() const { return config_; }
+
+protected:
+    ModeConfig config_;  // 子类构造时设置
 };
 ```
 
@@ -100,147 +115,204 @@ public:
 // -------------------- Plan 模式 --------------------
 class PlanModePolicy : public IExecutionPolicy {
 public:
-    bool requires_approval(const ToolMetadata& meta, 
+    PlanModePolicy() {
+        config_.show_plan = true;
+        config_.show_result_summary = true;
+        config_.auto_decide_retry = false;
+        config_.show_reflection = true;
+        config_.fleet_max_concurrency = 8;
+        config_.mode_name = "plan";
+    }
+
+    bool requires_approval(const ToolMetadata& meta,
                            const ToolCallContext& ctx) const override {
         // Plan 模式：所有写入操作都需要审批
         return meta.category != ToolCategory::ReadOnly;
     }
-    
-    bool should_auto_execute() const override { return false; }
-    bool should_show_plan() const override { return true; }
-    std::string mode_name() const override { return "plan"; }
-    bool should_show_result_summary() const override { return true; }
-    
-    // IPER 行为：Plan 模式不自动重试，展示反思，保守并行度
-    bool should_auto_decide_retry() const override { return false; }
-    bool should_show_reflection() const override { return true; }
-    size_t fleet_max_concurrency() const override { return 8; }
+
+    bool should_execute(const ToolMetadata& meta,
+                        const ToolCallContext& ctx) const override {
+        return true;  // Plan 模式通常批准后执行
+    }
+
+    bool can_skip(const ToolMetadata& meta,
+                  const ToolCallContext& ctx) const override {
+        return false;  // Plan 模式不跳过工具调用
+    }
+
+    int get_layer(const ToolMetadata& meta) const override {
+        return meta.approval.default_layer;
+    }
+
+    void request_approval(const ToolMetadata& meta,
+                          const ToolCallContext& ctx,
+                          const ToolPreview& preview,
+                          ApprovalCallback callback) override {
+        // 同步回调：UI 层调用此方法，callback 在用户响应后被调用
+        callback(true, "");  // 默认自动批准（实际由 UI 层拦截）
+    }
 };
 
 // -------------------- Agent 模式 --------------------
 class AgentModePolicy : public IExecutionPolicy {
 public:
-    bool requires_approval(const ToolMetadata& meta, 
+    AgentModePolicy() {
+        config_.show_plan = false;
+        config_.show_result_summary = true;
+        config_.auto_decide_retry = true;
+        config_.show_reflection = false;
+        config_.fleet_max_concurrency = 16;
+        config_.mode_name = "agent";
+    }
+
+    bool requires_approval(const ToolMetadata& meta,
                            const ToolCallContext& ctx) const override {
         // Agent 模式：遵循工具自身的审批策略
         return meta.approval.requires_approval_in_agent;
     }
-    
-    bool should_auto_execute() const override { return true; }
-    bool should_show_plan() const override { return false; }
-    std::string mode_name() const override { return "agent"; }
-    bool should_show_result_summary() const override { return true; }
-    
-    // IPER 行为：Agent 模式自动重试，不展示反思，中等并行度
-    bool should_auto_decide_retry() const override { return true; }
-    bool should_show_reflection() const override { return false; }
-    size_t fleet_max_concurrency() const override { return 16; }
+
+    bool should_execute(const ToolMetadata& meta,
+                        const ToolCallContext& ctx) const override {
+        return true;
+    }
+
+    bool can_skip(const ToolMetadata& meta,
+                  const ToolCallContext& ctx) const override {
+        return false;
+    }
+
+    int get_layer(const ToolMetadata& meta) const override {
+        return meta.approval.default_layer;
+    }
+
+    void request_approval(const ToolMetadata& meta,
+                          const ToolCallContext& ctx,
+                          const ToolPreview& preview,
+                          ApprovalCallback callback) override {
+        callback(true, "");
+    }
 };
 
 // -------------------- YOLO 模式 --------------------
 class YoloModePolicy : public IExecutionPolicy {
 public:
-    bool requires_approval(const ToolMetadata& meta, 
+    YoloModePolicy() {
+        config_.show_plan = false;
+        config_.show_result_summary = false;
+        config_.auto_decide_retry = true;
+        config_.show_reflection = false;
+        config_.fleet_max_concurrency = 32;
+        config_.mode_name = "yolo";
+    }
+
+    bool requires_approval(const ToolMetadata& meta,
                            const ToolCallContext& ctx) const override {
         // YOLO 模式：只有 force_approval_always 的工具需要审批
         // 安全底线：delete_file, exec_shell(dangerous) 仍需确认
         return meta.approval.force_approval_always;
     }
-    
-    bool should_auto_execute() const override { return true; }
-    bool should_show_plan() const override { return false; }
-    std::string mode_name() const override { return "yolo"; }
-    bool should_show_result_summary() const override { return false; }
-    
-    // IPER 行为：YOLO 模式自动重试，不展示反思，高并行度
-    bool should_auto_decide_retry() const override { return true; }
-    bool should_show_reflection() const override { return false; }
-    size_t fleet_max_concurrency() const override { return 32; }
+
+    bool should_execute(const ToolMetadata& meta,
+                        const ToolCallContext& ctx) const override {
+        return true;
+    }
+
+    bool can_skip(const ToolMetadata& meta,
+                  const ToolCallContext& ctx) const override {
+        return false;
+    }
+
+    int get_layer(const ToolMetadata& meta) const override {
+        return meta.approval.default_layer;
+    }
+
+    void request_approval(const ToolMetadata& meta,
+                          const ToolCallContext& ctx,
+                          const ToolPreview& preview,
+                          ApprovalCallback callback) override {
+        callback(true, "");
+    }
 };
 ```
 
-### 3. 审批流程（与 async_simple + EventBus 集成）
+### 3. 审批流程（同步回调模式，非协程）
+
+**Oracle 决议** (session `ses_0faa4dabeffeHGFoLdXE7AqwH7`)：审批采用同步回调模式而非协程。`request_approval()` 接受 `ApprovalCallback`，UI 层持有该 callback 并在用户响应时调用。不引入 `async_simple` 协程依赖。
 
 ```cpp
 // ===== src/common/policy/tool_executor.h =====
 
-using Lazy = async_simple::coro::Lazy;
-
-Lazy<ToolResult> execute_tool_with_policy(
+ToolResult execute_tool_with_policy(
     ToolRegistry& registry,
     ToolCall& call,
     IExecutionPolicy* policy,
-    IEventBus& bus,
-    AsyncRuntime& runtime) 
+    IInteractionBus& bus)
 {
     // Step 1: 获取工具元数据
     auto* meta = registry.get_metadata(call.tool_name);
     if (!meta) {
-        co_return ToolResult::error("ERR_TOOL.NOT_FOUND", 
-                                     "Tool not registered: " + call.tool_name);
+        return ToolResult::error("ERR_TOOL.NOT_FOUND",
+                                  "Tool not registered: " + call.tool_name);
     }
-    
+
     // Step 2: Layer Profile 检查
     ToolCallContext ctx{
         .session_id = call.session_id,
         .caller_layer = call.caller_layer,
     };
-    
+
     if (!check_layer_permission(*meta, ctx)) {
-        co_return ToolResult::error("ERR_TOOL.PERMISSION_DENIED",
+        return ToolResult::error("ERR_TOOL.PERMISSION_DENIED",
             "Layer " + ctx.caller_layer + " cannot call " + call.tool_name);
     }
-    
-    // Step 3: 审批检查
+
+    // Step 3: 是否应跳过错略（非阻塞）
+    if (policy->can_skip(*meta, ctx)) {
+        return ToolResult::skipped(call.tool_name);
+    }
+
+    // Step 4: 是否应执行？（false = 拒绝执行，不审批）
+    if (!policy->should_execute(*meta, ctx)) {
+        return ToolResult::rejected(call.tool_name, "Policy refused execution");
+    }
+
+    // Step 5: 审批检查（同步回调模式）
     if (policy->requires_approval(*meta, ctx)) {
-        // 3a. 生成预览
-        auto preview = co_await generate_preview(call, *meta);
-        
-        // 3b. 发送审批请求事件
-        bus.emit(EventTypes::Tool::ApprovalReq, call.session_id, {
-            {"tool_name", call.tool_name},
-            {"preview", preview.to_json()},
-            {"category", to_string(meta->category)},
-            {"request_id", call.request_id}
-        });
-        
-        // 3c. 协程挂起，等待用户响应（不占线程）
-        auto response = co_await wait_for_event(
-            bus,
-            EventTypes::Tool::ApprovalResp,
-            [&](const Event& e) {
-                return e.payload["request_id"] == call.request_id;
-            },
-            std::chrono::minutes(5)  // 超时
-        );
-        
-        // 3d. 处理响应
-        if (!response.has_value()) {
-            co_return ToolResult::error("ERR_TOOL.APPROVAL_TIMEOUT",
-                                         "User approval timed out");
-        }
-        if (!response->payload["approved"].get<bool>()) {
-            co_return ToolResult::rejected(
-                response->payload.value("reason", "User rejected"));
+        auto preview = generate_preview(call, *meta);
+        bool approved = false;
+        std::string reason;
+        std::mutex mtx;
+        std::condition_variable cv;
+
+        policy->request_approval(*meta, ctx, preview,
+            [&](bool ap, const std::string& r) {
+                std::lock_guard lk(mtx);
+                approved = ap;
+                reason = r;
+                cv.notify_one();
+            });
+
+        // 等待用户响应（同步等待，实际由 UI 层驱动）
+        std::unique_lock lk(mtx);
+        cv.wait(lk, [&] { return true; });  // callback 已调用
+
+        if (!approved) {
+            return ToolResult::rejected(call.tool_name, reason);
         }
     }
-    
-    // Step 4: 执行工具（在 Taskflow IO 线程池中）
-    auto result = co_await runtime.await_future(
-        runtime.io_executor().async([&]() {
-            return registry.execute(call.tool_name, call.params);
-        })
-    );
-    
-    // Step 5: 发布执行完成事件
+
+    // Step 6: 执行工具
+    auto result = registry.execute(call.tool_name, call.params);
+
+    // Step 7: 发布执行完成事件
     bus.emit(EventTypes::Tool::CallFinished, call.session_id, {
         {"tool_name", call.tool_name},
         {"success", result.ok},
         {"duration_ms", result.meta.duration_ms},
         {"category", to_string(meta->category)}
     });
-    
-    co_return result;
+
+    return result;
 }
 ```
 
@@ -249,15 +321,14 @@ Lazy<ToolResult> execute_tool_with_policy(
 ```cpp
 // ===== src/common/policy/preview_generator.h =====
 
-Lazy<ToolPreview> generate_preview(
-    const ToolCall& call, const ToolMetadata& meta) 
+ToolPreview generate_preview(
+    const ToolCall& call, const ToolMetadata& meta)
 {
     ToolPreview preview;
     preview.tool_name = call.tool_name;
-    
+
     switch (meta.category) {
         case ToolCategory::WriteFile: {
-            // 生成 unified diff
             auto current = read_file(call.params["path"]);
             auto proposed = apply_changes(current, call.params["changes"]);
             preview.diff = generate_unified_diff(current, proposed);
@@ -265,7 +336,6 @@ Lazy<ToolPreview> generate_preview(
             break;
         }
         case ToolCategory::Execute: {
-            // 显示即将执行的命令
             preview.command = call.params["command"];
             preview.display_type = "shell_command";
             preview.warning = classify_command_risk(preview.command);
@@ -275,8 +345,8 @@ Lazy<ToolPreview> generate_preview(
             preview.display_type = "json";
             preview.raw_params = call.params.dump(2);
     }
-    
-    co_return preview;
+
+    return preview;
 }
 ```
 
@@ -319,34 +389,40 @@ ToolResult ToolRegistry::call_tool(
 - 权限检查 < 10μs（枚举比较）
 - 不会出现长时间持锁阻塞其他线程
 
+### 6. YOLO 切换确认（防御深度）
+
+> **Oracle 决议** (session `ses_0faa4dabeffeHGFoLdXE7AqwH7`)：YOLO 模式是高安全敏感度模式。任何涉及 YOLO 的模式切换必须经用户确认对话框，防止误操作。
+
+**决策**：Agent→YOLO / YOLO→Agent / Plan→YOLO / YOLO→Plan 模式切换必须经 `ModeSwitchDialog::confirm_yolo_switch()` 用户确认对话框。Plan↔Agent 切换可静默。
+
+**理由**：防止误操作——用户在 Plan 模式时误触 `/mode yolo` 会立即获得全部 `force_approval_always` 豁免。
+
+**实施位置**：`src/common/policy/mode_switch_dialog.{h,cpp}`（C3 tasks §6.4）。
+
 ### 6. 模式切换时的安全转换
+
+**Oracle 决议 — 新增 YOLO 切换确认**：模式切换是高安全敏感度操作。Agent→YOLO / YOLO→Agent / Plan→YOLO / YOLO→Plan 模式切换必须经 `ModeSwitchDialog::confirm_yolo_switch()` 用户确认对话框。Plan↔Agent 切换可静默。实施在 `src/common/policy/mode_switch_dialog.{h,cpp}`。
 
 ```cpp
 // 模式切换事件处理
-Lazy<void> handle_mode_change(
+void handle_mode_change(
     const std::string& session_id,
     const std::string& new_mode,
-    IEventBus& bus) 
+    const std::string& current_mode)
 {
-    // 验证切换合法性
-    if (new_mode == "yolo") {
-        // YOLO 切换需要额外确认（安全警告）
-        bus.emit(EventTypes::Tool::ApprovalReq, session_id, {
-            {"tool_name", "__mode_switch__"},
-            {"preview", {
-                {"display_type", "warning"},
-                {"message", "切换到 YOLO 模式将跳过所有非危险操作的审批确认。"
-                            "delete_file 和 exec_shell 仍需确认。是否继续？"}
-            }},
-            {"request_id", generate_id()}
-        });
-        
-        auto resp = co_await wait_for_approval(session_id);
-        if (!resp || !resp->approved) co_return;
+    // 判断是否需要 YOLO 确认
+    if (new_mode == "yolo" || current_mode == "yolo") {
+        // 任何涉及 YOLO 的切换都需要用户确认（防御深度）
+        ModeSwitchDialog dialog;
+        if (!dialog.confirm_yolo_switch(current_mode, new_mode)) {
+            return;  // 用户取消切换
+        }
     }
-    
+    // Plan↔Agent 切换可静默（无需确认）
+
     // 发布模式切换事件
     bus.emit(EventTypes::Session::ModeChanged, session_id, {
+        {"from_mode", current_mode},
         {"to_mode", new_mode}
     });
 }
@@ -379,6 +455,8 @@ Lazy<void> handle_mode_change(
 | 12 | `src/core/engine.h` | 修改 | 添加 `IExecutionPolicy` 成员 |
 
 > **Related (2026-06-17)**: OpenSpec change `2026-06-15-residual-engine-h-decoupling` 完成 ADR-0019 §1.4 跨模块耦合解耦, 移除 `engine.h` 全部跨模块 include (保留 `common/llm/llm_types.h` types 头文件例外). 本 ADR Phase 2 line 379 添加 `IExecutionPolicy` 成员时, 建议采用 PIMPL-lite 模式 (`std::unique_ptr<IExecutionPolicy>`), 镜像 `budget_controller_` / `tool_registry_` 模式 (PIMPL-lite 在 2026-06-15-residual-engine-h-decoupling 完成). 避免重新引入 `engine.h` 跨模块 include.
+>
+> **Oracle 更新 (2026-07-31)**: IExecutionPolicy 当前为 5 方法接口, 新增 `ModeSwitchDialog` 组件 (`src/common/policy/mode_switch_dialog.{h,cpp}`) 处理 YOLO 切换确认。
 
 ### Phase 3：TUI 集成（依赖 ADR-0019）
 
@@ -396,11 +474,11 @@ Lazy<void> handle_mode_change(
 | Agent 模式 | 遵循工具自身 ApprovalPolicy |
 | YOLO 模式 | 仅 force_approval_always 工具触发审批 |
 | Layer 违规 | L3 调用 WriteFile 工具返回 PermissionDenied |
-| 审批超时 | 5 分钟无响应返回 ApprovalTimeout |
+| 审批超时 | 同步 callback 模式，由 UI 层管理超时 |
 | 性能 | 权限检查 < 10μs |
-| IPER 自动重试 | Plan 模式询问用户；Agent/YOLO 自动决定 |
-| Reflect 展示 | Plan 模式展示反思；Agent/YOLO 静默 |
-| 舰队并行度 | Plan=8 / Agent=16 / YOLO=32 |
+| should_execute 拒绝 | 策略返回 false 时工具不被执行且不触发审批 |
+| can_skip 跳过 | 策略返回 true 时工具被跳过（非阻塞） |
+| YOLO 切换确认 | YOLO 相关模式切换均触发 confirm_yolo_switch 对话框 |
 
 ---
 
@@ -408,12 +486,12 @@ Lazy<void> handle_mode_change(
 
 | 风险 | 严重度 | 缓解 |
 |------|--------|------|
-| API 破坏性变更 | 高 | 保留旧 API 作为 deprecated 包装 |
-| 同步/协程双路径维护 | 中 | Phase 1 使用 `sync_await()` 桥接，Phase 2 全面协程化 |
-| 审批流程阻塞执行 | 中 | 协程挂起释放线程，不阻塞其他任务 |
-| 模式切换滥用 | 低 | YOLO 切换需要额外确认 |
-| IPER 依赖未实现 | 中 | 议题 5 最小集成：仅添加 3 个 Policy 方法，不引入 IPER 循环 |
-| 舰队模式并行度失控 | 低 | `fleet_max_concurrency()` 上限 32，实际受 Taskflow 线程池限制 |
+| API 破坏性变更 | 高 | 5 方法极致精简，ModeConfig 分离配置型方法 |
+| 同步 callback 阻塞 UI | 中 | callback 被 UI 层持有，UI 事件循环调度；实际不阻塞线程 |
+| 审批流程阻塞执行 | 中 | callback 模式释放调用线程，UI 层异步驱动 |
+| 模式切换滥用 | 低 | YOLO 切换需要 `ModeSwitchDialog::confirm_yolo_switch()` 确认 |
+| ModeConfig 漂移 | 中 | ModeConfig 在接口中提供 const 访问，构造后不可变 |
+| YOLO 防御深度不足 | 低 | YOLO→非YOLO 切换同样需要确认，防误切回 |
 
 ---
 
@@ -427,12 +505,16 @@ Lazy<void> handle_mode_change(
 
 ---
 
-*文档版本: v1.1*
-*最后更新: 2026-05-28*
+*文档版本: v2.0*
+*最后更新: 2026-07-31*
+
+*Oracle 决议 (session `ses_0faa4dabeffeHGFoLdXE7AqwH7`): 5-method interface + sync callback + Agent default + YOLO confirm*
 
 ---
 
 ## 附录：议题 5 最小集成说明
+
+**⚠️ SUPERSEDED (2026-07-31, Oracle session `ses_0faa4dabeffeHGFoLdXE7AqwH7`)**：此附录中的 3 个方法（`should_auto_decide_retry()`、`should_show_reflection()`、`fleet_max_concurrency()`）已随 8→5 方法精简迁移至 `ModeConfig` 值结构体，不再在 `IExecutionPolicy` 接口中定义。
 
 ### 背景
 议题 5 提出了完整的 IPER-Policy 集成方案（8 个新方法 + 协程实现）。经评估，当前代码库：
