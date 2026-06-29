@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <string>
+#include <vector>
 
 namespace agenticdsl {
 
@@ -63,12 +64,20 @@ enum class LayerProfile {
  * 的核心输入。
  */
 struct ToolMetadata {
- std::string name; // 例如 "code::edit_file"
- std::string description; //工具用途描述
- std::string domain; //工具所属域，例如 "code"
- ToolCategory category; // 安全分类
- LayerProfile min_layer; //最低调用层级
- ApprovalPolicy approval; // 三模式审批策略
+  std::string name; // 例如 "code::edit_file"
+  std::string description; //工具用途描述
+  std::string domain; //工具所属域，例如 "code"
+  ToolCategory category; // 安全分类
+  LayerProfile min_layer; //最低调用层级
+  ApprovalPolicy approval; // 三模式审批策略
+
+  // ===== V2 extensions (C4 Sprint 14, Oracle 2026-06-29) =====
+  // allowed_layers: 显式 allowlist (默认空 = 全允许, 走 category 矩阵)
+  std::vector<LayerProfile> allowed_layers;
+  // cost_estimate: USD 成本预估 (0.0 = 未知, 不触发预算; C4 defer 至 C6 接 IBudgetController)
+  double cost_estimate = 0.0;
+  // timeout_ms: 执行超时 (ms, 默认 30s; C4 defer 至 C6 std::async 强制)
+  int timeout_ms = 30000;
 };
 
 /**

@@ -2,7 +2,7 @@
 
 ## 状态
 
-**✅ Approved (2026-07-31, Oracle session `ses_0faa4dabeffeHGFoLdXE7AqwH7`, 5-method interface + sync callback + Agent default + YOLO confirm)**
+**🟡 Partial** (2026-05-27, 2026-06-12 状态对齐 — C3 P1-P2 ✅ Approved 2026-07-31, C4 P3-P4 🟡 active Oracle filled 2026-06-29, session `ses_0ed4408faffeLv8VfrC0s5PzW7`)
 
 ## 领域
 
@@ -316,6 +316,29 @@ ToolResult execute_tool_with_policy(
 }
 ```
 
+### 4. Layer Profile 集成 (Oracle session ses_0ed4408faffeLv8VfrC0s5PzW7, 2026-06-29)
+
+**关键决策**: 复用既有 `LayerProfile` enum (`src/common/policy/execution_policy.h:52`, `Workflow=0/Thinking=1/Cognitive=2`), **不新建** `Layer` enum (与 C3 `IExecutionPolicy::get_layer()` 返回类型一致).
+
+#### 权限矩阵 (复刻 ADR-0004 §8, caller_layer × ToolCategory)
+
+| Caller Layer | ReadOnly | WriteFile | Execute | Network | StateModify |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Workflow** (L2) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Thinking** (L3) | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Cognitive** (L4) | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+#### 强制点
+
+- **execution time** (ToolCoordinator 内, 返回 `ToolResult::error(ErrorCode::PermissionDenied, ...)`)
+- **非 registration time** (registration 时无 caller 上下文; 拒绝注册会令工具全局不可用, 过于刚性)
+
+#### `meta.min_layer` 与 `IExecutionPolicy::get_layer(meta)`
+
+- C4 中 ToolCoordinator **不调用** `get_layer(meta)`
+- `meta.min_layer` 与 `get_layer(meta)` 在 C4 视为 **advisory metadata / 未使用**
+- 强制语义留 C6 ADR-0004 V2 重新定义 (当前 §8/§9 间存在命名歧义: Workflow=0 最宽松却数值最低, "min" 误导)
+
 ### 4. 预览生成（diff / 命令预览）
 
 ```cpp
@@ -427,6 +450,74 @@ void handle_mode_change(
     });
 }
 ```
+
+### 5. ToolCoordinator 中间件 (Oracle session ses_0ed4408faffeLv8VfrC0s5PzW7, 2026-06-29)
+
+**关键决策**: 采用 Option C (standalone middleware, injected) — ToolCoordinator 是 standalone class (非 IToolRegistry 装饰器, 否决 Option B 因 9-method 中 7 个无意义 forwarder), 通过 `set_tool_coordinator(ToolCoordinator*)` 注入 NodeExecutor.
+
+#### Absorbs ApprovalHandler (C3 职责组合)
+
+ToolCoordinator 内部委托 `ApprovalHandler::process_request()` (组合, 非继承), 并新增 layer check + audit log emit. 既有 `set_approval_handler()` 标记 `[[deprecated("use set_tool_coordinator")]]` 但保留 (零回归过渡).
+
+#### NodeExecutor 优先级链
+
+```
+tool_coordinator_ (if set)  >  approval_handler_ (if set, deprecated)  >  direct call_tool()
+```
+
+二者皆设则 `tool_coordinator_` 优先, `approval_handler_` 忽略并 log warning.
+
+#### 内部流程 (ToolCoordinator::execute)
+
+1. `check_layer_permission(meta, ctx)` → denied 返回 `ToolResult::error(ErrorCode::PermissionDenied)`
+2. `ApprovalHandler::process_request(meta, ctx, preview)` → denied 返回 `ToolResult::error(ErrorCode::PolicyDenied)`
+3. emit `tool.audit.invoked` (含 layer/category/request_id)
+4. `registry_.call_tool()` (C4 MVP 不实施 timeout 强制)
+5. emit `tool.audit.completed` (含 duration_ms + ok/error_code)
+6. return ToolResult
+
+### 7. Audit Log EventBus (Oracle session ses_0ed4408faffeLv8VfrC0s5PzW7, 2026-06-29)
+
+#### Topic 命名
+
+层级化点分: `tool.audit.<phase>`, phase ∈ {`invoked`, `completed`, `denied`, `timed_out`}.
+
+#### Payload 结构
+
+用 `IInteractionBus::emit(event_type, ToolResult)` 重载, 数据塞 `ToolResult::meta` JSON:
+
+```cpp
+// invoked
+ToolResult::success({}, {
+  {"event", "tool.audit.invoked"},
+  {"request_id", req_id},
+  {"tool_name", meta.name},
+  {"category", to_string(meta.category)},
+  {"caller_layer", ctx.caller_layer},
+  {"session_id", ctx.session_id},
+  {"timestamp_iso8601", now_iso8601()},
+  {"args_keys", /* vector<string> of arg keys, 不存值 */}
+});
+```
+
+#### 安全不变量
+
+**`args` 仅记录 key 名, 不记录 value** (防 secret/password 泄露到 audit log, defense-in-depth).
+
+#### Subscriber 策略
+
+- **C4 不新增 subscriber**: emit-only 即可
+- 现有 `TraceExporter` (trace 模块) 消费留 C6
+- `bus_ == nullptr` 时 graceful skip emit (不抛)
+
+### 8. C4 Defer 至 C6 (Oracle session ses_0ed4408faffeLv8VfrC0s5PzW7, 2026-06-29)
+
+C4 明确 defer 至 C6 (ADR-0004 V2):
+
+1. **`cost_estimate` ↔ `IBudgetController` 实际预算强制** — C4 仅 emit `tool.audit.cost` 事件, 不调用 `IBudgetController::check_and_reserve()`. 理由: IBudgetController 当前面向 token/时间预算, USD 成本是新维度.
+2. **`timeout_ms` std::async 强制** — C4 仅作元数据透传到 `ToolPreview::estimated_duration`. 理由: 引入异步路径会与 ADR-0030 V2 协程规划耦合.
+3. **`meta.min_layer` 强制语义** — C4 advisory only. 理由: 当前 ADR-0004 §8/§9 命名歧义, C6 重新定义.
+4. **`IExecutionPolicy::get_layer(meta)` 在 ToolCoordinator 中的使用** — C4 不调用, 保留为 C6 router 钩子.
 
 ---
 

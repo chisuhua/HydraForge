@@ -12,8 +12,9 @@ add_library(agenticdsl_policy STATIC
  path_policy.cpp
  policy_factory.cpp
  approval_callbacks.cpp
- approval_handler.cpp
- mode_switch_dialog.cpp
+approval_handler.cpp
+  mode_switch_dialog.cpp
+  layer_profile.cpp
 )
 
 target_include_directories(agenticdsl_policy PUBLIC

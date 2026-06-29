@@ -23,6 +23,9 @@ namespace agenticdsl {
 // C₁.2: 前向声明 ILLMProvider（避免 llm_tool.h 的 LLMParams struct 与 llm_types.h 的 alias 冲突）
 class ILLMProvider;
 
+// C4 Sprint 14 (ADR-0031 P3-P4, Oracle ses_0ed4408faffeLv8VfrC0s5PzW7): 前向声明 ToolCoordinator
+class ToolCoordinator;
+
 using AppendGraphsCallback = std::function<void(std::vector<ParsedGraph>)>;
 
 class NodeExecutor {
@@ -47,7 +50,15 @@ public:
     }
 
     // ADR-0031 (2026-07-31): 注入审批处理器（nullptr 跳过审批）
+    // C4 Sprint 14 (Oracle ses_0ed4408faffeLv8VfrC0s5PzW7): 已废弃 — C4 起改用 set_tool_coordinator
+    [[deprecated("use set_tool_coordinator(ToolCoordinator*)")]]
     void set_approval_handler(ApprovalHandler* handler) { approval_handler_ = handler; }
+
+    // C4 Sprint 14 (Oracle ses_0ed4408faffeLv8VfrC0s5PzW7): 设置 ToolCoordinator
+    // 优先级: tool_coordinator_ > approval_handler_ > direct call_tool()
+    void set_tool_coordinator(ToolCoordinator* coordinator) {
+      tool_coordinator_ = coordinator;
+    }
 
 private:
     // P1.T4: IToolRegistry& (依赖倒置, 通过 has_tool/call_tool/call_llm_tool 多态分派)
@@ -65,6 +76,9 @@ private:
     // ADR-0031 (2026-07-31): 可选审批处理器（nullptr 表示跳过审批）
     ApprovalHandler* approval_handler_{nullptr};
     size_t tool_call_count_{0}; // 本 session 工具调用计数
+
+    // C4 Sprint 14 (Oracle ses_0ed4408faffeLv8VfrC0s5PzW7): ToolCoordinator 优先于 approval_handler_
+    ToolCoordinator* tool_coordinator_{nullptr};
 
     // 权限检查
     void check_permissions(const std::vector<std::string>& perms, const NodePath& node_path);

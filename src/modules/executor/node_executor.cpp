@@ -12,6 +12,9 @@
 #include <chrono> // For std::chrono_literals + std::chrono::steady_clock
 #include <string>
 
+// C4 Sprint 14 (ADR-0031 P3-P4, Oracle ses_0ed4408faffeLv8VfrC0s5PzW7): ToolCoordinator
+#include "common/tools/tool_coordinator.h"
+
 namespace agenticdsl {
 
 // C₁.2 迁移：构造函数从 LlamaAdapter* 改为 ILLMProvider*
@@ -173,50 +176,54 @@ Context NodeExecutor::execute_tool_call(const ToolCallNode* node, const Context&
         throw std::runtime_error("Tool '" + node->tool_name + "' not registered for node: " + node->path);
     }
 
-    // ADR-0031 (2026-07-31): 审批检查 — 在工具执行前调用 ApprovalHandler
-    if (approval_handler_) {
-        ToolMetadata meta;
-        meta.name = node->tool_name;
-        meta.category = ToolCategory::Execute; // 默认安全分类
+    // C4 Sprint 14 (ADR-0031 P3-P4, Oracle ses_0ed4408faffeLv8VfrC0s5PzW7):
+    // 工具调用分发优先级: tool_coordinator_ > approval_handler_ > direct call_tool()
+    ToolMetadata meta;
+    meta.name = node->tool_name;
+    meta.category = ToolCategory::Execute;
 
-        ToolCallContext tool_ctx;
-        tool_ctx.call_count_this_session = tool_call_count_++;
-        tool_ctx.target_path = node->path;
+    ToolCallContext tool_ctx;
+    tool_ctx.call_count_this_session = tool_call_count_++;
+    tool_ctx.target_path = node->path;
 
-        ToolPreview preview;
-        preview.command_line = node->tool_name;
-        for (const auto& [k, v] : rendered_args) {
-            preview.command_line += " " + k + "=" + v;
-        }
-        preview.risk_summary = "Tool: " + node->tool_name + " at " + node->path;
-
-        if (!approval_handler_->process_request(meta, tool_ctx, preview)) {
-            throw std::runtime_error("Tool '" + node->tool_name + "' denied by execution policy at node: " + node->path);
-        }
-    }
-
-    // Phase 1 Sprint 1a (S1a.T2): 用 std::chrono::steady_clock 测量工具耗时
-    // REQ-TR-002: ToolResult.latency_ms 必须自动填充
-    const auto t0 = std::chrono::steady_clock::now();
-    nlohmann::json raw_result = tool_registry_.call_tool(node->tool_name, rendered_args);
-    const auto t1 = std::chrono::steady_clock::now();
-    const auto latency_ms = static_cast<std::uint64_t>(
-        std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count());
-
-    // Phase 1 Sprint 1a (S1a.T2): 替换 `if(result.is_object())` 启发式
-    // REQ-TR-MOD-001: 显式 ToolResult::from_json() 分发
-    // 双模式兼容：检测到 ok boolean 字段视为 ToolResult 信封, 否则视为 P0 旧式裸 JSON 包装为 success。
     ToolResult tool_result;
-    if (raw_result.is_object() && raw_result.contains("ok") && raw_result["ok"].is_boolean()) {
-        // 信封模式：解析 ErrorCode / latency_ms / trace_id / metadata (REQ-TR-001..004)
+    const auto t0 = std::chrono::steady_clock::now();
+
+    if (tool_coordinator_) {
+      if (approval_handler_) {
+        LOG_WARN("both tool_coordinator_ and approval_handler_ are set, preferring tool_coordinator_");
+      }
+      tool_result = tool_coordinator_->execute(meta, tool_ctx, rendered_args);
+    } else if (approval_handler_) {
+      ToolPreview preview;
+      preview.command_line = node->tool_name;
+      for (const auto& [k, v] : rendered_args) {
+        preview.command_line += " " + k + "=" + v;
+      }
+      preview.risk_summary = "Tool: " + node->tool_name + " at " + node->path;
+
+      if (!approval_handler_->process_request(meta, tool_ctx, preview)) {
+        throw std::runtime_error("Tool '" + node->tool_name + "' denied by execution policy at node: " + node->path);
+      }
+
+      nlohmann::json raw_result = tool_registry_.call_tool(node->tool_name, rendered_args);
+      if (raw_result.is_object() && raw_result.contains("ok") && raw_result["ok"].is_boolean()) {
         tool_result = ToolResult::from_json(raw_result);
-    } else {
-        // 旧式模式：raw JSON 即工具输出, 包装为 success 信封保留 P0 行为
+      } else {
         tool_result = ToolResult::success(raw_result);
+      }
+    } else {
+      nlohmann::json raw_result = tool_registry_.call_tool(node->tool_name, rendered_args);
+      if (raw_result.is_object() && raw_result.contains("ok") && raw_result["ok"].is_boolean()) {
+        tool_result = ToolResult::from_json(raw_result);
+      } else {
+        tool_result = ToolResult::success(raw_result);
+      }
     }
 
-    // 注入自动采集的 latency_ms (覆盖 envelope 中可能已存在的值)
-    tool_result.latency_ms = latency_ms;
+    const auto t1 = std::chrono::steady_clock::now();
+    tool_result.latency_ms = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count());
 
     // REQ-TR-003: trace_id 透传 — 调用方可在 arguments 中传 trace_id
     auto trace_it = rendered_args.find("trace_id");
