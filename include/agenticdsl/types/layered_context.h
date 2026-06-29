@@ -107,7 +107,6 @@ inline nlohmann::json& navigate(nlohmann::json& slot,
                                 const std::string& layer,
                                 const std::string& segments_csv,
                                 bool write_attempt) {
-  // segments_csv 为空 -> 返回 slot 自身
   if (segments_csv.empty()) {
     if (write_attempt && layer == "system") {
       throw std::runtime_error(
@@ -115,47 +114,6 @@ inline nlohmann::json& navigate(nlohmann::json& slot,
     }
     return slot;
   }
-  // 先做一次 "纯读取" 探测: 路径完全存在则按读取处理
-  // (即使 write_attempt=true, 也不立即抛, 因为赋值给已存在的 system 字段
-  //  仍是有意义的——它会替换值, 不会创建新结构。system 写保护仅在
-  //  "需要新增路径" 时严格生效)
-  if (layer == "system") {
-    const nlohmann::json* probe = &slot;
-    std::string remaining = segments_csv;
-    bool fully_exists = true;
-    while (!remaining.empty()) {
-      auto dot = remaining.find('.');
-      std::string seg = (dot == std::string::npos)
-          ? remaining
-          : remaining.substr(0, dot);
-      if (!probe->is_object() || !probe->contains(seg)) {
-        fully_exists = false;
-        break;
-      }
-      probe = &(*probe)[seg];
-      if (dot == std::string::npos) break;
-      remaining = remaining.substr(dot + 1);
-    }
-    if (fully_exists) {
-      // 路径完全存在 -> 允许返回引用, 走非 const navigate 主循环
-      nlohmann::json* cur = &slot;
-      remaining = segments_csv;
-      while (!remaining.empty()) {
-        auto dot = remaining.find('.');
-        std::string seg = (dot == std::string::npos)
-            ? remaining
-            : remaining.substr(0, dot);
-        cur = &(*cur)[seg];
-        if (dot == std::string::npos) break;
-        remaining = remaining.substr(dot + 1);
-      }
-      return *cur;
-    }
-    // 路径不存在 -> 需创建, 视为写入 -> 抛异常
-    throw std::runtime_error(
-        "LayeredContext: cannot write to read-only layer 'system'");
-  }
-  // 非 system layer: 标准自动创建
   nlohmann::json* cur = &slot;
   std::string remaining = segments_csv;
   while (!remaining.empty()) {
@@ -163,10 +121,17 @@ inline nlohmann::json& navigate(nlohmann::json& slot,
     std::string seg = (dot == std::string::npos)
         ? remaining
         : remaining.substr(0, dot);
-    if (!cur->is_object()) {
-      *cur = nlohmann::json::object();
+    if (cur->is_object() && cur->contains(seg)) {
+      cur = &(*cur)[seg];
+    } else if (layer == "system") {
+      throw std::runtime_error(
+          "LayeredContext: cannot write to read-only layer 'system'");
+    } else {
+      if (!cur->is_object()) {
+        *cur = nlohmann::json::object();
+      }
+      cur = &(*cur)[seg];
     }
-    cur = &(*cur)[seg];
     if (dot == std::string::npos) break;
     remaining = remaining.substr(dot + 1);
   }
@@ -197,19 +162,17 @@ inline const nlohmann::json& navigate_const(const nlohmann::json& slot,
   return *cur;
 }
 
-// 拆分 path -> (layer, segments_csv)
-inline bool split_path(const std::string& path,
+inline void split_path(const std::string& path,
                        std::string& layer_out,
                        std::string& rest_out) {
   auto dot = path.find('.');
   if (dot == std::string::npos) {
     layer_out = path;
     rest_out.clear();
-    return true;
+    return;
   }
   layer_out = path.substr(0, dot);
   rest_out = path.substr(dot + 1);
-  return true;
 }
 
 }  // namespace layered_context_detail
