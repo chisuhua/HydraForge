@@ -110,21 +110,31 @@ std::unique_ptr<Node> make_assign(const NodePath& path, const nlohmann::json& j)
   return node;
 }
 
-std::unique_ptr<Node> make_dsl_call(const NodePath& path, const nlohmann::json& j) {
-  auto ctx = parse_context(j);
-  std::string prompt = j.at("prompt_template").get<std::string>();
-  std::string llm_tool_name = j.at("llm_tool_name").get<std::string>();
-  auto output_keys = parse_output_keys_local(j, path);
-  LLMParams llm_params;
+namespace {
+
+LLMParams parse_llm_params(const nlohmann::json& j) {
+  LLMParams params;
   if (j.contains("llm_params") && j["llm_params"].is_object()) {
     const auto& p = j["llm_params"];
-    if (p.contains("temperature")) llm_params.temperature = p["temperature"].get<float>();
-    if (p.contains("max_tokens")) llm_params.max_tokens = p["max_tokens"].get<int>();
-    if (p.contains("top_p")) llm_params.top_p = p["top_p"].get<float>();
-    if (p.contains("n_ctx")) llm_params.n_ctx = p["n_ctx"].get<int>();
-    if (p.contains("n_threads")) llm_params.n_threads = p["n_threads"].get<int>();
-    if (p.contains("model")) llm_params.model = p["model"].get<std::string>();
+    if (p.contains("temperature")) params.temperature = p["temperature"].get<float>();
+    if (p.contains("max_tokens")) params.max_tokens = p["max_tokens"].get<int>();
+    if (p.contains("top_p")) params.top_p = p["top_p"].get<float>();
+    if (p.contains("n_ctx")) params.n_ctx = p["n_ctx"].get<int>();
+    if (p.contains("n_threads")) params.n_threads = p["n_threads"].get<int>();
+    if (p.contains("model")) params.model = p["model"].get<std::string>();
   }
+  return params;
+}
+
+std::unique_ptr<Node> make_dsl_or_llm_call(const NodePath& path, const nlohmann::json& j,
+                                            const std::string& default_llm_tool_name) {
+  auto ctx = parse_context(j);
+  std::string prompt = j.at("prompt_template").get<std::string>();
+  std::string llm_tool_name = j.contains("llm_tool_name")
+      ? j.at("llm_tool_name").get<std::string>()
+      : default_llm_tool_name;
+  auto llm_params = parse_llm_params(j);
+  auto output_keys = parse_output_keys_local(j, path);
   auto node = std::make_unique<DSLNode>(path, std::move(prompt), std::move(llm_tool_name),
                                         std::move(llm_params), std::move(output_keys),
                                         std::move(ctx.next_paths));
@@ -132,15 +142,14 @@ std::unique_ptr<Node> make_dsl_call(const NodePath& path, const nlohmann::json& 
   return node;
 }
 
+} // namespace
+
+std::unique_ptr<Node> make_dsl_call(const NodePath& path, const nlohmann::json& j) {
+  return make_dsl_or_llm_call(path, j, /*default_llm_tool_name=*/"");
+}
+
 std::unique_ptr<Node> make_llm_call(const NodePath& path, const nlohmann::json& j) {
-  auto ctx = parse_context(j);
-  std::string prompt = j.at("prompt_template").get<std::string>();
-  auto output_keys = parse_output_keys_local(j, path);
-  auto node = std::make_unique<DSLNode>(path, std::move(prompt), std::string("llama-default"),
-                                        LLMParams{}, std::move(output_keys),
-                                        std::move(ctx.next_paths));
-  apply_context(*node, ctx);
-  return node;
+  return make_dsl_or_llm_call(path, j, /*default_llm_tool_name=*/"llama-default");
 }
 
 std::unique_ptr<Node> make_tool_call(const NodePath& path, const nlohmann::json& j) {
