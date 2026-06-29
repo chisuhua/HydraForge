@@ -13,33 +13,24 @@
 
 #include "agenticdsl/plugin/plugin_loader.h"
 #include "agenticdsl/contract/itool_registry.h"
+#include "common/log/log.h"
 
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <dlfcn.h>
 #include <filesystem>
-#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
 
 namespace hydraforge {
 
-// === 日志辅助函数 (Sprint 5 MVP: 直接 std::cerr) ===
 namespace {
 
-void log_error(const std::string& msg) {
-  std::cerr << "[PluginLoader ERROR] " << msg << std::endl;
-}
-
-void log_warn(const std::string& msg) {
-  std::cerr << "[PluginLoader WARN] " << msg << std::endl;
-}
-
-void log_info(const std::string& msg) {
-  std::cerr << "[PluginLoader INFO] " << msg << std::endl;
-}
+void log_error(const std::string& msg) { LOG_ERROR("[PluginLoader] " << msg); }
+void log_warn(const std::string& msg) { LOG_WARN("[PluginLoader] " << msg); }
+void log_info(const std::string& msg) { LOG_INFO("[PluginLoader] " << msg); }
 
 } // namespace
 
@@ -289,8 +280,22 @@ bool PluginLoader::unload_plugin(const std::string& name) {
 
 #else  // !__linux__
 
-// 非 Linux 平台: PluginLoader 不可用, 编译时显式失败
-#error "PluginLoader is Linux-only (requires dlopen). " \
-       "For cross-platform support, see ADR-0022 Phase 2 (跨平台 dlopen 抽象)."
+// 非 Linux 平台: PluginLoader 为 stub 实现, 所有方法返回失败或空结果
+// 跨平台 dlopen 抽象见 ADR-0022 Phase 2
+namespace hydraforge {
+
+PluginLoader::PluginLoader() = default;
+PluginLoader::~PluginLoader() = default;
+std::vector<std::string> PluginLoader::get_search_paths() const { return {}; }
+bool PluginLoader::check_compatibility(const PluginInfo& /*info*/) const { return false; }
+bool PluginLoader::apply_path_whitelist(const std::string& /*path*/) const { return false; }
+bool PluginLoader::load_so(const std::string& /*path*/,
+                          ::agenticdsl::IToolRegistry& /*registry*/,
+                          bool /*strict_version*/) { return false; }
+std::size_t PluginLoader::load_all(::agenticdsl::IToolRegistry& /*registry*/) { return 0; }
+std::vector<PluginInfo> PluginLoader::list_loaded() const { return {}; }
+bool PluginLoader::unload_plugin(const std::string& /*name*/) { return false; }
+
+} // namespace hydraforge
 
 #endif  // __linux__
