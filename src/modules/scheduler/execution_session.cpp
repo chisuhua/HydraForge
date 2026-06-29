@@ -145,15 +145,6 @@ ExecutionSession::ExecutionResult ExecutionSession::execute_node(Node* node, con
 
         result.new_context = std::move(execution_result.new_context);
         result.snapshot_key = execution_result.snapshot_key;
-/*
-        if (node->type == NodeType::GENERATE_SUBGRAPH) {
-            // Use the callback-aware execution method
-            result.new_context = execute_generate_subgraph_with_callback(dynamic_cast<const GenerateSubgraphNode*>(node), context_with_resources);
-        } else {
-            result.new_context = node_executor_.execute_node(node, context_with_resources);
-        }
-        // Note: Snapshot key is set above if needed_snapshot was true.
-        // */
 
         // --- v3.1: Check for LLM Call Pause ---
         if (node->type == NodeType::DSL_CALL) {
