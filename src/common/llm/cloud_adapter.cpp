@@ -19,6 +19,15 @@
 
 namespace agenticdsl {
 
+// 指数退避 + ±25% 抖动 — 计算下一次重试延迟（毫秒）
+static int compute_backoff(int attempt, int base_ms, int max_ms, std::mt19937& rng) {
+  int delay_ms = std::min(max_ms, base_ms << attempt);
+  int jitter = static_cast<int>(delay_ms * 0.25);
+  std::uniform_int_distribution<int> dist(-jitter, jitter);
+  delay_ms += dist(rng);
+  return std::max(0, delay_ms);
+}
+
 // =====================================================================
 // 内部辅助：CloudGenerationStream
 // =====================================================================
@@ -260,11 +269,7 @@ CloudLLMAdapter::HttpResponse CloudLLMAdapter::do_post(
 
       // 重试
       if (attempt < max_retries) {
-        int delay_ms = std::min(max_delay_ms, base_delay_ms << attempt);
-        // ±25% 抖动
-        int jitter = static_cast<int>(delay_ms * 0.25);
-        std::uniform_int_distribution<int> dist(-jitter, jitter);
-        delay_ms += dist(rng);
+        int delay_ms = compute_backoff(attempt, base_delay_ms, max_delay_ms, rng);
         std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
         continue;
       }
@@ -282,10 +287,7 @@ CloudLLMAdapter::HttpResponse CloudLLMAdapter::do_post(
 
     // 5xx / 网络错误 → 重试
     if (response->status >= 500 && attempt < max_retries) {
-      int delay_ms = std::min(max_delay_ms, base_delay_ms << attempt);
-      int jitter = static_cast<int>(delay_ms * 0.25);
-      std::uniform_int_distribution<int> dist(-jitter, jitter);
-      delay_ms += dist(rng);
+      int delay_ms = compute_backoff(attempt, base_delay_ms, max_delay_ms, rng);
       std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
       continue;
     }

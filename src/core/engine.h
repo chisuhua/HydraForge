@@ -115,8 +115,11 @@ public:
     // ADR-0031 (2026-07-31): 设置执行策略模式 (Plan/Agent/Yolo)
     void set_execution_policy(PolicyMode mode);
 
-    // C4 Sprint 14 (ADR-0031 P3-P4, Oracle §决策 5): 获取 ToolCoordinator
-    ToolCoordinator* get_tool_coordinator() { return tool_coordinator_.get(); }
+// C4 Sprint 14 (ADR-0031 P3-P4, Oracle §决策 5): 获取 ToolCoordinator (opt-in, 可能返回 nullptr)
+ToolCoordinator* get_tool_coordinator() { return tool_coordinator_.get(); }
+
+// C4 Sprint 14 (ADR-0031 P3-P4, Oracle §决策 5): 显式激活 ToolCoordinator (opt-in, 向后兼容)
+void set_tool_coordinator(std::unique_ptr<ToolCoordinator> coordinator);
 
     ~DSLEngine(); // Stage 4 / Task 19 + P1.T4: 显式声明 — 头文件外定义, 使 unique_ptr<IBudgetController> + unique_ptr<IToolRegistry> 析构在完整类型下进行
     DSLEngine(std::vector<ParsedGraph> initial_graphs);

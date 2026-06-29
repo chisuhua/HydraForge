@@ -138,21 +138,13 @@ void TopoScheduler::build_dag() {
         // Dynamic wait_for (expressions resolved at runtime) is handled in execute_node loop
     }
 
-    LOG_DEBUG("Ready queue size: " << ready_queue_.size());
-    while (!ready_queue_.empty()) {
-        LOG_DEBUG("  - " << ready_queue_.front());
-        ready_queue_.pop();
-    }
-
     for (const auto& node_ptr : all_nodes_) {
         NodePath path = node_ptr->path;
-        // Skip system nodes from initial ready queue if desired
-        // if (path.rfind("/__system__/", 0) == 0) continue;
-
         if (in_degree_[path] == 0) {
             ready_queue_.push(path);
         }
     }
+    LOG_DEBUG("Initial ready queue size: " << ready_queue_.size());
 }
 
 void TopoScheduler::build_dag(DagState& state) {
@@ -163,12 +155,7 @@ void TopoScheduler::build_dag(DagState& state) {
     state.in_degree = in_degree_;
     state.executed.clear();
     while (!state.ready_queue.empty()) state.ready_queue.pop();
-    for (const auto& node_ptr : all_nodes_) {
-        NodePath path = node_ptr->path;
-        if (state.in_degree[path] == 0) {
-            state.ready_queue.push(path);
-        }
-    }
+    state.ready_queue = ready_queue_;
 }
 
 ExecutionResult TopoScheduler::execute(const Context& initial_context) {

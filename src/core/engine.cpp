@@ -76,20 +76,15 @@ DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
     mock_config.provider = "mock";
     llm_provider_ = provider_factory_->create(mock_config);
 
-    // ADR-0031 (2026-07-31): 默认 Agent 模式执行策略
-    policy_ = PolicyFactory::create(PolicyMode::Agent);
-    approval_handler_ = std::make_unique<ApprovalHandler>(
-        policy_,
-        make_test_auto_callback(true),
-        300000);
+// ADR-0031 (2026-07-31): 默认 Agent 模式执行策略
+  policy_ = PolicyFactory::create(PolicyMode::Agent);
+  approval_handler_ = std::make_unique<ApprovalHandler>(
+    policy_,
+    make_test_auto_callback(true),
+    300000);
 
-    // C4 Sprint 14 (ADR-0031 P3-P4, Oracle §决策 5): 构造 ToolCoordinator
-    tool_coordinator_ = std::make_unique<ToolCoordinator>(
-        *tool_registry_,
-        policy_,
-        make_test_auto_callback(true),
-        bus_,
-        300000);
+  // C4 Sprint 14 (ADR-0031 P3-P4): ToolCoordinator 默认不创建 (opt-in 兼容)
+  tool_coordinator_ = nullptr;
 
     // 阶段 4 任务 4.3: 一次性将 BudgetController::record_llm_call 绑定到 tool_registry_
     // 注意：budget_controller_ 是非静态成员，按引用捕获以保证生命周期与 engine 一致。
@@ -198,11 +193,16 @@ void DSLEngine::continue_with_generated_dsl(const std::string& generated_dsl) {
 
 // ADR-0031 (2026-07-31): 设置执行策略模式
 void DSLEngine::set_execution_policy(PolicyMode mode) {
-    policy_ = PolicyFactory::create(mode);
-    approval_handler_ = std::make_unique<ApprovalHandler>(
-        policy_,
-        make_test_auto_callback(true),
-        300000);
+  policy_ = PolicyFactory::create(mode);
+  approval_handler_ = std::make_unique<ApprovalHandler>(
+    policy_,
+    make_test_auto_callback(true),
+    300000);
+}
+
+// C4 Sprint 14 (ADR-0031 P3-P4, Oracle §决策 5): 显式激活 ToolCoordinator (opt-in)
+void DSLEngine::set_tool_coordinator(std::unique_ptr<ToolCoordinator> coordinator) {
+  tool_coordinator_ = std::move(coordinator);
 }
 
 } // namespace agenticdsl

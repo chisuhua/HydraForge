@@ -92,8 +92,6 @@ private:
     Context execute_tool_call(const ToolCallNode* node, const Context& ctx);
     Context execute_resource(const ResourceNode* node, const Context& ctx);
     Context execute_generate_subgraph(const GenerateSubgraphNode* node, const Context& ctx);
-    Context execute_join(const JoinNode* node, const Context& ctx) ;
-    Context execute_fork(const ForkNode* node, const Context& ctx) ;
     Context execute_assert(const AssertNode* node, const Context& ctx) ;
 };
 
