@@ -73,7 +73,7 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 | **C0** | `2026-06-26-doc-alignment-adr-states` | 实施 | 0.5-1 天 | — | ✅ archived (2026-06-26, [archive 链接](openspec/changes/archive/2026-06-26-2026-06-26-doc-alignment-adr-states/), 7 commits) |
 | **C1** | `2026-06-26-sprint-7-tech-debt-execution` | 实施 | 3 周 (Sprint 11) → ~2 周 (stale-state 修正后) | C0 | ✅ **shipped (2026-06-27)** + ✅ **archived (2026-07-31, commit 9e52d9a, 35/35 ctest pass, 85/142 tasks done, 关键 ship: scheduler factory + IBudgetController + get_last_traces() to IScheduler)** |
 | **C2** | `2026-06-26-adr-0030-v2-async-runtime` | 实施 | 1.5-2 周 (Sprint 12, Oracle 校正后) | C1 | ✅ **shipped (2026-07-31)** + ✅ **archived (2026-07-31, commit 8fddbcc, ADR-0030 V2 → ✅ Approved, 关键 ship: stream_to_bus bridge + Context fork/merge + InMemoryBus EventBus MPMC + async_simple CMake 移除, Oracle session `ses_0f5541ebfffehKDxNVuYqB7bq4`)** |
-| **C3** | `2026-06-26-adr-0031-p1p2-execution-policy` | 实施 | **1.5 周** (Sprint 13, Oracle 校正) | — | 🟡 **active (Oracle filled, 5 虚函数 + sync callback + Agent 默认, session `ses_0faa4dabeffeHGFoLdXE7AqwH7`)** |
+| **C3** | `2026-06-26-adr-0031-p1p2-execution-policy` | 实施 | **1.5 周** (Sprint 13, Oracle 校正) | — | ✅ **shipped (2026-07-31, 39/39 ctest pass, 6 phase commits 230120e/acc7f55/76f52f9)** + ✅ **待 archive (openspec list → 5 active, 3/50→50/50 tasks done)** |
 | **C4** | `2026-06-26-adr-0031-p3p4-toolcoordinator` | 占位 | 1.5-2 周 (Sprint 14) | C3 (+ C2 异步决策) | ⚪ 占位 |
 | **C5** | `2026-06-26-adr-0033-session-hierarchy` | 占位 | 1.5-2 周 (Sprint 15) | — (独立) | ⚪ 占位 (可与 C3/C4 并行填充) |
 | **C6** | `2026-06-26-adr-0004-v2-metadata-approval` | 占位 | 1 周 (Sprint 16) | **C3 + C4** | ⚪ 占位 |
@@ -344,9 +344,11 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 - **Oracle 决议落地**: Fleet 模式 16 路 LLM DEFER (Phase 3+) + bridge runner `run_stream_to_bus` 替代协程 yield
 - C0+C1+C2 完整 ship + archived, **Sprint 13 (C3 `adr-0031-p1p2-execution-policy`) 可立即启动**
 
-### Sprint 13 (~2 周)
-- C3 ship
-- Ship gate: ctest 47+/47+ + 3 Policy 单元测试 + 审批 E2E
+### Sprint 13 (~1.5 周, Oracle 校正) ✅ **shipped 2026-07-31**
+- ✅ C3 shipped (6 phase commits: 230120e/acc7f55/76f52f9)
+- Ship gate: ctest 39/39 PASS + ADR-0031 P1+P2 → ✅ Approved + `set_execution_policy(PolicyMode)` API + ApprovalHandler sync callback + ModeSwitchDialog YOLO 确认
+- **Oracle 决议落地**: 5 虚函数接口 (替换 8-method stub) + sync callback (非 EventBus request_id) + Agent 默认 + YOLO 切换需确认 (ModeSwitchDialog)
+- C0+C1+C2+C3 完整 ship, **Sprint 14 (C4 `adr-0031-p3p4-toolcoordinator`) 可立即启动**
 
 ### Sprint 14 (~1.5-2 周)
 - C4 ship
