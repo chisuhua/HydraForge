@@ -1,21 +1,22 @@
 // tests/test_execution_policy.cpp
-// 功能描述：IExecutionPolicy三模式策略单元测试。覆盖 PlanModePolicy /
-// AgentModePolicy / YoloModePolicy 的核心决策、阶段流程控制、IPER
-//行为控制与舰队并发度。
-// 设计依据：ADR-0031 §2 / ADR-0004 §6-9
-// 作者：AgenticDSL Phase3 / Track A
-// 最后修改日期：2026-06-10
+// 功能描述：IExecutionPolicy 5-method 接口三模式策略单元测试 (C3 ship)
+// 设计依据：ADR-0031 §决策 1 (Oracle 5-method 接口, 2026-06-26)
+// 作者：AgenticDSL Phase3 / Sprint 13 C3 ship
+// 最后修改日期：2026-07-31
 #include "catch_amalgamated.hpp"
 #include "agenticdsl/policy/iexecution_policy.h"
 #include "common/policy/plan_mode_policy.h"
 #include "common/policy/agent_mode_policy.h"
 #include "common/policy/yolo_mode_policy.h"
+#include "common/policy/policy_factory.h"
+#include "common/policy/approval_handler.h"
+#include "common/policy/approval_callbacks.h"
+#include "common/policy/mode_switch_dialog.h"
 
 using namespace agenticdsl;
 
 namespace {
 
-//构造测试用 ToolMetadata辅助函数
 ToolMetadata make_tool_meta(ToolCategory category,
  ApprovalPolicy approval = ApprovalPolicy{},
  const std::string& name = "test::tool",
@@ -30,7 +31,6 @@ ToolMetadata make_tool_meta(ToolCategory category,
  return meta;
 }
 
-//构造测试用 ToolCallContext辅助函数
 ToolCallContext make_ctx(const std::string& session_id = "sess-1",
  const std::string& caller_layer = "workflow") {
  ToolCallContext ctx;
@@ -38,210 +38,226 @@ ToolCallContext make_ctx(const std::string& session_id = "sess-1",
  ctx.caller_layer = caller_layer;
  ctx.target_path = "/tmp/test";
  ctx.is_in_fleet_mode = false;
- ctx.call_count_this_session =0;
+ ctx.call_count_this_session = 0;
  return ctx;
+}
+
+ToolPreview make_preview(const std::string& cmd = "echo test") {
+ ToolPreview preview;
+ preview.command_line = cmd;
+ preview.diff_text = "";
+ preview.affected_paths = {"/tmp/test"};
+ preview.estimated_duration = std::chrono::seconds(0);
+ preview.risk_summary = "test";
+ return preview;
 }
 
 } // namespace
 
-// ============ PlanModePolicy ============
+// ============ §5.1.1 PlanModePolicy 审批判断 ============
 
-TEST_CASE("PlanModePolicy skips approval for ReadOnly tools", "[policy][plan]") {
+TEST_CASE("plan_policy_requires_approval_for_writes", "[policy][plan]") {
  PlanModePolicy policy;
 
- ToolMetadata meta = make_tool_meta(ToolCategory::ReadOnly);
+ ToolMetadata read_meta = make_tool_meta(ToolCategory::ReadOnly);
+ ToolMetadata write_meta = make_tool_meta(ToolCategory::WriteFile);
+ ToolMetadata exec_meta = make_tool_meta(ToolCategory::Execute);
+
  ToolCallContext ctx = make_ctx();
 
- REQUIRE(policy.requires_approval(meta, ctx) == false);
+ SECTION("ReadOnly returns false") {
+  REQUIRE(policy.requires_approval(read_meta, ctx) == false);
+ }
+
+ SECTION("WriteFile returns true") {
+  REQUIRE(policy.requires_approval(write_meta, ctx) == true);
+ }
+
+ SECTION("Execute returns true") {
+  REQUIRE(policy.requires_approval(exec_meta, ctx) == true);
+ }
+
+ SECTION("force_approval_always overrides ReadOnly") {
+  ApprovalPolicy approval;
+  approval.force_approval_always = true;
+  ToolMetadata forced = make_tool_meta(ToolCategory::ReadOnly, approval);
+  REQUIRE(policy.requires_approval(forced, ctx) == true);
+ }
 }
 
-TEST_CASE("PlanModePolicy requires approval for WriteFile tools", "[policy][plan]") {
- PlanModePolicy policy;
+// ============ §5.1.2 AgentModePolicy 默认审批 ============
 
+TEST_CASE("agent_policy_default", "[policy][agent]") {
+ AgentModePolicy policy;
+ ToolCallContext ctx = make_ctx();
+
+ SECTION("ReadOnly no force_approval returns false") {
+  ApprovalPolicy approval;
+  approval.requires_approval_in_agent = false;
+  ToolMetadata meta = make_tool_meta(ToolCategory::ReadOnly, approval);
+  REQUIRE(policy.requires_approval(meta, ctx) == false);
+ }
+
+ SECTION("WriteFile with requires_approval_in_agent returns true") {
+  ApprovalPolicy approval;
+  approval.requires_approval_in_plan = false;
+  approval.requires_approval_in_agent = true;
+  approval.requires_approval_in_yolo = false;
+  ToolMetadata meta = make_tool_meta(ToolCategory::WriteFile, approval);
+  REQUIRE(policy.requires_approval(meta, ctx) == true);
+ }
+
+ SECTION("force_approval_always returns true regardless") {
+  ApprovalPolicy approval;
+  approval.requires_approval_in_agent = false;
+  approval.force_approval_always = true;
+  ToolMetadata meta = make_tool_meta(ToolCategory::ReadOnly, approval);
+  REQUIRE(policy.requires_approval(meta, ctx) == true);
+ }
+}
+
+// ============ §5.1.3 YoloModePolicy 最低审批 ============
+
+TEST_CASE("yolo_policy_minimal_approval", "[policy][yolo]") {
+ YoloModePolicy policy;
+ ToolCallContext ctx = make_ctx();
+
+ SECTION("force_approval_always returns true") {
+  ApprovalPolicy approval;
+  approval.force_approval_always = true;
+  ToolMetadata meta = make_tool_meta(ToolCategory::WriteFile, approval);
+  REQUIRE(policy.requires_approval(meta, ctx) == true);
+ }
+
+ SECTION("WriteFile no force_approval returns false") {
+  ToolMetadata meta = make_tool_meta(ToolCategory::WriteFile);
+  REQUIRE(policy.requires_approval(meta, ctx) == false);
+ }
+
+ SECTION("Execute no force_approval returns false") {
+  ToolMetadata meta = make_tool_meta(ToolCategory::Execute);
+  REQUIRE(policy.requires_approval(meta, ctx) == false);
+ }
+}
+
+// ============ §5.1.4 should_execute 策略区分 ============
+
+TEST_CASE("should_execute_distinguishes_plan", "[policy][exec]") {
  ToolMetadata meta = make_tool_meta(ToolCategory::WriteFile);
  ToolCallContext ctx = make_ctx();
 
- REQUIRE(policy.requires_approval(meta, ctx) == true);
-}
-
-TEST_CASE("PlanModePolicy requires approval for Execute tools", "[policy][plan]") {
- PlanModePolicy policy;
-
- ToolMetadata meta = make_tool_meta(ToolCategory::Execute);
- REQUIRE(policy.requires_approval(meta, make_ctx()) == true);
-}
-
-TEST_CASE("PlanModePolicy requires approval for Network tools", "[policy][plan]") {
- PlanModePolicy policy;
-
- ToolMetadata meta = make_tool_meta(ToolCategory::Network);
- REQUIRE(policy.requires_approval(meta, make_ctx()) == true);
-}
-
-TEST_CASE("PlanModePolicy requires approval for StateModify tools", "[policy][plan]") {
- PlanModePolicy policy;
-
- ToolMetadata meta = make_tool_meta(ToolCategory::StateModify);
- REQUIRE(policy.requires_approval(meta, make_ctx()) == true);
-}
-
-TEST_CASE("PlanModePolicy stage flow control", "[policy][plan]") {
- PlanModePolicy policy;
-
- REQUIRE(policy.should_auto_execute() == false);
- REQUIRE(policy.should_show_plan() == true);
- REQUIRE(policy.should_show_result_summary() == true);
- REQUIRE(policy.mode_name() == "plan");
-}
-
-TEST_CASE("PlanModePolicy IPER and fleet settings", "[policy][plan]") {
- PlanModePolicy policy;
-
- REQUIRE(policy.should_auto_decide_retry() == false);
- REQUIRE(policy.should_show_reflection() == true);
- REQUIRE(policy.fleet_max_concurrency() ==8);
-}
-
-// ============ AgentModePolicy ============
-
-TEST_CASE("AgentModePolicy respects approval.requires_approval_in_agent=true",
- "[policy][agent]") {
- AgentModePolicy policy;
-
- ApprovalPolicy approval;
- approval.requires_approval_in_plan = false;
- approval.requires_approval_in_agent = true;
- approval.requires_approval_in_yolo = false;
- approval.force_approval_always = false;
-
- ToolMetadata meta = make_tool_meta(ToolCategory::WriteFile, approval);
- REQUIRE(policy.requires_approval(meta, make_ctx()) == true);
-}
-
-TEST_CASE("AgentModePolicy skips approval when requires_approval_in_agent=false",
- "[policy][agent]") {
- AgentModePolicy policy;
-
- ApprovalPolicy approval;
- approval.requires_approval_in_plan = false;
- approval.requires_approval_in_agent = false;
- approval.requires_approval_in_yolo = false;
- approval.force_approval_always = false;
-
- ToolMetadata meta = make_tool_meta(ToolCategory::WriteFile, approval);
- REQUIRE(policy.requires_approval(meta, make_ctx()) == false);
-}
-
-TEST_CASE("AgentModePolicy ignores force_approval_always for normal checks",
- "[policy][agent]") {
- AgentModePolicy policy;
-
- // force_approval_always=true 但 requires_approval_in_agent=false
- // Agent模式仅读 in_agent字段，不额外触发审批
- ApprovalPolicy approval;
- approval.requires_approval_in_agent = false;
- approval.force_approval_always = true;
-
- ToolMetadata meta = make_tool_meta(ToolCategory::Execute, approval);
- REQUIRE(policy.requires_approval(meta, make_ctx()) == false);
-}
-
-TEST_CASE("AgentModePolicy stage flow control", "[policy][agent]") {
- AgentModePolicy policy;
-
- REQUIRE(policy.should_auto_execute() == true);
- REQUIRE(policy.should_show_plan() == false);
- REQUIRE(policy.should_show_result_summary() == true);
- REQUIRE(policy.mode_name() == "agent");
-}
-
-TEST_CASE("AgentModePolicy IPER and fleet settings", "[policy][agent]") {
- AgentModePolicy policy;
-
- REQUIRE(policy.should_auto_decide_retry() == true);
- REQUIRE(policy.should_show_reflection() == false);
- REQUIRE(policy.fleet_max_concurrency() ==16);
-}
-
-// ============ YoloModePolicy ============
-
-TEST_CASE("YoloModePolicy skips approval when force_approval_always=false",
- "[policy][yolo]") {
- YoloModePolicy policy;
-
- // 默认 ApprovalPolicy：force_approval_always=false
- ToolMetadata meta = make_tool_meta(ToolCategory::WriteFile);
- REQUIRE(policy.requires_approval(meta, make_ctx()) == false);
-}
-
-TEST_CASE("YoloModePolicy requires approval when force_approval_always=true",
- "[policy][yolo]") {
- YoloModePolicy policy;
-
- ApprovalPolicy approval;
- approval.force_approval_always = true;
-
- ToolMetadata meta = make_tool_meta(ToolCategory::WriteFile, approval,
- "code::delete_file", "code");
- REQUIRE(policy.requires_approval(meta, make_ctx()) == true);
-}
-
-TEST_CASE("YoloModePolicy ignores in_yolo field for normal tools",
- "[policy][yolo]") {
- YoloModePolicy policy;
-
- // 即使 requires_approval_in_yolo=true，只要 force_approval_always=false
- // YOLO模式仅依赖 force_approval_always 安全底线
- ApprovalPolicy approval;
- approval.requires_approval_in_yolo = true;
- approval.force_approval_always = false;
-
- ToolMetadata meta = make_tool_meta(ToolCategory::Execute, approval);
- REQUIRE(policy.requires_approval(meta, make_ctx()) == false);
-}
-
-TEST_CASE("YoloModePolicy stage flow control", "[policy][yolo]") {
- YoloModePolicy policy;
-
- REQUIRE(policy.should_auto_execute() == true);
- REQUIRE(policy.should_show_plan() == false);
- REQUIRE(policy.should_show_result_summary() == false);
- REQUIRE(policy.mode_name() == "yolo");
-}
-
-TEST_CASE("YoloModePolicy IPER and fleet settings", "[policy][yolo]") {
- YoloModePolicy policy;
-
- REQUIRE(policy.should_auto_decide_retry() == true);
- REQUIRE(policy.should_show_reflection() == false);
- REQUIRE(policy.fleet_max_concurrency() ==32);
-}
-
-// ============ 基类契约 ============
-
-TEST_CASE("All policies are valid IExecutionPolicy instances",
- "[policy][contract]") {
  PlanModePolicy plan;
  AgentModePolicy agent;
  YoloModePolicy yolo;
 
- // 通过基类指针验证多态契约
- const IExecutionPolicy* policies[3] = {&plan, &agent, &yolo};
- const std::string expected_modes[3] = {"plan", "agent", "yolo"};
- const size_t expected_concurrency[3] = {8,16,32};
+ REQUIRE(plan.should_execute(meta, ctx) == false);
+ REQUIRE(agent.should_execute(meta, ctx) == true);
+ REQUIRE(yolo.should_execute(meta, ctx) == true);
+}
 
- for (int i =0; i <3; ++i) {
- REQUIRE(policies[i]->mode_name() == expected_modes[i]);
- REQUIRE(policies[i]->fleet_max_concurrency() == expected_concurrency[i]);
+// ============ §5.1.5 get_layer 全返回 Workflow ============
+
+TEST_CASE("get_layer_dispatch", "[policy][layer]") {
+ ToolMetadata meta = make_tool_meta(ToolCategory::WriteFile);
+
+ PlanModePolicy plan;
+ AgentModePolicy agent;
+ YoloModePolicy yolo;
+
+ REQUIRE(plan.get_layer(meta) == LayerProfile::Workflow);
+ REQUIRE(agent.get_layer(meta) == LayerProfile::Workflow);
+ REQUIRE(yolo.get_layer(meta) == LayerProfile::Workflow);
+}
+
+// ============ §5.1.6 PolicyFactory 默认 ============
+
+TEST_CASE("policy_factory_default_is_agent", "[policy][factory]") {
+ auto policy = PolicyFactory::create();
+ REQUIRE(dynamic_cast<AgentModePolicy*>(policy.get()) != nullptr);
+
+ auto default_policy = PolicyFactory::create_default();
+ REQUIRE(dynamic_cast<AgentModePolicy*>(default_policy.get()) != nullptr);
+}
+
+// ============ §7.1.1 ApprovalHandler 回调 ============
+
+TEST_CASE("approval_handler_auto_callback", "[policy][approval]") {
+ ToolMetadata meta = make_tool_meta(ToolCategory::WriteFile);
+ ToolCallContext ctx = make_ctx();
+ ToolPreview preview = make_preview();
+
+ SECTION("auto_approve returns true") {
+  auto policy = std::make_shared<AgentModePolicy>();
+  auto callback = make_test_auto_callback(true);
+  ApprovalHandler handler(policy, callback);
+
+  REQUIRE(handler.process_request(meta, ctx, preview) == true);
+ }
+
+ SECTION("auto_deny returns false") {
+  auto policy = std::make_shared<AgentModePolicy>();
+  auto callback = make_test_auto_callback(false);
+  ApprovalHandler handler(policy, callback);
+
+  REQUIRE(handler.process_request(meta, ctx, preview) == false);
  }
 }
 
-TEST_CASE("Default ApprovalPolicy values are conservative",
- "[policy][types]") {
- // 默认策略：plan/agent 均审批，yolo 不审批，安全底线关闭
- ApprovalPolicy default_policy;
- REQUIRE(default_policy.requires_approval_in_plan == true);
- REQUIRE(default_policy.requires_approval_in_agent == true);
- REQUIRE(default_policy.requires_approval_in_yolo == false);
- REQUIRE(default_policy.force_approval_always == false);
+// ============ §7.1.3 ApprovalHandler request_id ============
+
+TEST_CASE("approval_handler_propagates_request_id", "[policy][approval]") {
+ auto policy = std::make_shared<AgentModePolicy>();
+ std::string captured_id;
+ auto capturing_callback = [&captured_id](const ApprovalRequest& req, int) -> bool {
+  captured_id = req.request_id;
+  return true;
+ };
+ ApprovalHandler handler(policy, capturing_callback);
+
+ ToolMetadata meta = make_tool_meta(ToolCategory::WriteFile);
+ ToolCallContext ctx = make_ctx();
+ ToolPreview preview = make_preview();
+
+ handler.process_request(meta, ctx, preview);
+
+ REQUIRE(captured_id.empty() == false);
+}
+
+// ============ §7.2.1 YOLO 切换确认 ============
+
+TEST_CASE("yolo_switch_requires_confirmation", "[policy][switch]") {
+ auto mock_false = [](const std::string&) -> bool { return false; };
+ auto mock_true = [](const std::string&) -> bool { return true; };
+
+ SECTION("mock_false returns false") {
+  REQUIRE(confirm_yolo_switch("agent", mock_false) == false);
+ }
+
+ SECTION("mock_true returns true") {
+  REQUIRE(confirm_yolo_switch("plan", mock_true) == true);
+ }
+}
+
+// ============ §7.2.2 模式切换确认规则 ============
+
+TEST_CASE("plan_to_agent_silent", "[policy][switch]") {
+ SECTION("plan to agent needs no confirmation") {
+  REQUIRE(requires_yolo_confirmation("plan", "agent") == false);
+ }
+
+ SECTION("plan to yolo needs confirmation") {
+  REQUIRE(requires_yolo_confirmation("plan", "yolo") == true);
+ }
+
+ SECTION("agent to yolo needs confirmation") {
+  REQUIRE(requires_yolo_confirmation("agent", "yolo") == true);
+ }
+
+ SECTION("yolo to plan needs confirmation") {
+  REQUIRE(requires_yolo_confirmation("yolo", "plan") == true);
+ }
+
+ SECTION("agent to plan needs no confirmation") {
+  REQUIRE(requires_yolo_confirmation("agent", "plan") == false);
+ }
 }
