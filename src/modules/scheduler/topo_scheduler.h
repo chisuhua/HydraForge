@@ -121,7 +121,7 @@ private:
     };
 
     std::optional<ExecutionResult> prepare_dag_state(DagState& state);
-    void build_dag(DagState& state);
+    // Sprint 18 reduce-topo-scheduler-complexity D-1: build_dag(DagState&) 重载已删除, 显式迁移到 execute_parallel()
     std::optional<ExecutionResult> resolve_dynamic_waits(
         Node* current_node, const NodePath& current_path, const Context& context, bool& can_execute);
     void process_fork_join(Node* current_node, Context& context);

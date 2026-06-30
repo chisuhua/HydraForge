@@ -148,22 +148,20 @@ void TopoScheduler::build_dag() {
     LOG_DEBUG("Initial ready queue size: " << ready_queue_.size());
 }
 
-void TopoScheduler::build_dag(DagState& state) {
-    build_dag();
-    state.nodes = node_map_;
-    state.reverse_edges = reverse_edges_;
-    state.wait_for_dependents = wait_for_dependents_;
-    state.in_degree = in_degree_;
-    state.executed.clear();
-    while (!state.ready_queue.empty()) state.ready_queue.pop();
-    state.ready_queue = ready_queue_;
-}
-
 ExecutionResult TopoScheduler::execute(const Context& initial_context) {
     Context context = initial_context;
     DagState state;
     if (auto early = prepare_dag_state(state); early.has_value()) return *early;
-    build_dag(state);
+    build_dag();
+    // Sprint 18 D-1: 显式迁移 7 字段到 DagState (替代原 build_dag(DagState&) 重载)
+    state.nodes = node_map_;
+    state.reverse_edges = reverse_edges_;
+    state.wait_for_dependents = wait_for_dependents_;
+    state.in_degree = in_degree_;
+    state.dynamic_graphs.clear();
+    state.executed.clear();
+    while (!state.ready_queue.empty()) state.ready_queue.pop();
+    state.ready_queue = ready_queue_;
 
     while (!state.ready_queue.empty() || !session_.get_pending_dynamic_deps().empty()) {
         handle_fork_branches_block();
@@ -221,7 +219,16 @@ ExecutionResult TopoScheduler::execute_parallel(const Context& initial_context) 
     Context context = initial_context;
     DagState state;
     if (auto early = prepare_dag_state(state); early.has_value()) return *early;
-    build_dag(state);
+    build_dag();
+    // Sprint 18 D-1: 显式迁移到 DagState (替代原 build_dag(DagState&) 重载)
+    state.nodes = node_map_;
+    state.reverse_edges = reverse_edges_;
+    state.wait_for_dependents = wait_for_dependents_;
+    state.in_degree = in_degree_;
+    state.dynamic_graphs.clear();
+    state.executed.clear();
+    while (!state.ready_queue.empty()) state.ready_queue.pop();
+    state.ready_queue = ready_queue_;
 
     if (!parallel_executor_) {
         parallel_executor_ = std::make_unique<tf::Executor>(
@@ -624,7 +631,15 @@ void TopoScheduler::rebuild_dynamic_graph(DagState& state) {
     reverse_edges_.clear();
     in_degree_.clear();
     all_nodes_ = std::move(all_nodes_copy);
-    build_dag(state);
+    build_dag();
+    // Sprint 18 D-1: rebuild_dynamic_graph 内部显式重迁 state
+    state.nodes = node_map_;
+    state.reverse_edges = reverse_edges_;
+    state.wait_for_dependents = wait_for_dependents_;
+    state.in_degree = in_degree_;
+    state.executed.clear();
+    while (!state.ready_queue.empty()) state.ready_queue.pop();
+    state.ready_queue = ready_queue_;
 }
 
 void TopoScheduler::handle_fork_branches_block() {
