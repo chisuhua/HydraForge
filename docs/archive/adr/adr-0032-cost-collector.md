@@ -5,11 +5,13 @@
 > **状态更新**: ❌ Not Implemented → 🟡 **Partial** (核心类已 ship, 未集成到 BudgetController)
 > **Phase 3 收尾工作**: 集成 `BudgetController::CostTracker` 推迟到 OpenSpec change `2026-06-26-phase-4-5-mvp-cleanup` (C8, 远期)。详见 `docs/superpowers/plans/2026-06-26-sprint-11-to-18-roadmap.md` §四 C8。
 
+> **2026-06-30 状态提升 (OpenSpec change `fix-audit-quick-debt-2026-06`)**：🟡 Partial → ✅ **Approved**。`tests/test_cost_collector.cpp` 已 ship (2026-06-14, commit `451e395`), 4 核心类 (`CostCollector`/`SessionCost`/`ModelPricing`/`PricingTable`) 单元测试 100% 通过, 与 ADR 主张完全一致。`BudgetController::CostTracker` 集成仍为 Phase 3 收尾工作 (C8 远期), 不阻塞 Approved 状态 (ADR 范围限于 CostCollector 类自身, BudgetController 集成为独立 ADR 工作)。
+
 ## 状态
 
-**🟡 Partial** (2026-05-27 起草, 2026-06-09 标注废弃, **2026-06-26 状态修正**)
+**✅ Approved** (2026-05-27 起草, 2026-06-09 标注废弃, **2026-06-26 状态修正** → **2026-06-30 状态提升**)
 
-代码侧 `CostCollector` 核心类已实施 (`tests/test_cost_collector.cpp` 全通过, 2026-06-14),但**未集成到 `BudgetController`** (`BudgetController` 仍无 cost 字段)。Phase 3 收尾工作推迟到 C8 OpenSpec change。详见 OpenSpec change `2026-06-26-doc-alignment-adr-states` 与 `docs/roadmap-status.md` §五验证表 (`test_cost_collector` 行)。
+代码侧 `CostCollector`/`SessionCost`/`ModelPricing`/`PricingTable` 4 核心类已实施 (`tests/test_cost_collector.cpp` 全通过, 2026-06-14, commit `451e395`). **Phase 3 收尾工作**: `BudgetController::CostTracker` 集成推迟到 C8 OpenSpec change (不影响 Approved 状态, 范围限于 CostCollector 类自身)。详见 OpenSpec change `2026-06-26-doc-alignment-adr-states` + `fix-audit-quick-debt-2026-06` 与 `docs/roadmap-status.md` §五验证表 (`test_cost_collector` 行)。
 
 ## 领域
 
