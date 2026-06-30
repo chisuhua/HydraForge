@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(AgenticDSL LANGUAGES CXX)
 
 option(AGENTICDSL_BUILD_TESTS "Build unit tests" OFF)
+option(AGENTICDSL_BUILD_EXAMPLES "Build example programs (agent_basic / agent_simple / agent_loop / slice_01 / phase1_*)" OFF)
 
 # A 阶段：ThreadSanitizer 选项（验证 InMemoryBus 多线程安全）
 option(AGENTICDSL_ENABLE_TSAN "Enable ThreadSanitizer (InMemoryBus verification)" OFF)
@@ -141,22 +142,32 @@ target_link_libraries(agenticdsl_core
 # Alias target for tests
 add_library(agenticdsl ALIAS agenticdsl_core)
 
-# --- Sample: agent_basic ---
-add_executable(agent_basic
-    examples/agent_basic/main.cpp
-)
+# --- Examples (opt-in via AGENTICDSL_BUILD_EXAMPLES) ---
+# Sprint 19: agent_simple + agent_loop 从审计债修复后纳入 opt-in 套件
+if(AGENTICDSL_BUILD_EXAMPLES)
+    # --- Sample: agent_basic ---
+    add_executable(agent_basic
+        examples/agent_basic/main.cpp
+    )
 
-target_link_libraries(agent_basic
-    agenticdsl_includes
-    agenticdsl_core
-)
+    target_link_libraries(agent_basic
+        agenticdsl_includes
+        agenticdsl_core
+    )
 
-# --- Sample: slice_01_tool_call (Track 0.2 / B) ---
-add_subdirectory(examples/slice_01_tool_call)
+    # --- Sample: agent_simple (MockLLMProvider 模式) ---
+    add_subdirectory(examples/agent_simple)
 
-# --- Phase 1 Sprint 0 Plugin Stub examples (K1 决策) ---
-add_subdirectory(examples/phase1_model_router_plugin)
-add_subdirectory(examples/phase1_plugin_demo)
+    # --- Sample: agent_loop (MockLLMProvider 多轮循环) ---
+    add_subdirectory(examples/agent_loop)
+
+    # --- Sample: slice_01_tool_call (Track 0.2 / B) ---
+    add_subdirectory(examples/slice_01_tool_call)
+
+    # --- Phase 1 Sprint 0 Plugin Stub examples (K1 决策) ---
+    add_subdirectory(examples/phase1_model_router_plugin)
+    add_subdirectory(examples/phase1_plugin_demo)
+endif()
 
 # Create alias for tests
 
