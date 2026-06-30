@@ -152,7 +152,7 @@ inline const nlohmann::json& navigate_const(const nlohmann::json& slot,
         : remaining.substr(0, dot);
     // const 路径: 不存在则返回 null
     if (!cur->is_object() || !cur->contains(seg)) {
-      static const nlohmann::json null_j;
+      static thread_local const nlohmann::json null_j;
       return null_j;
     }
     cur = &(*cur)[seg];
@@ -186,7 +186,7 @@ inline nlohmann::json& LayeredContext::at(const std::string& path) {
   nlohmann::json* slot = layered_context_detail::resolve_slot(*this, layer);
   if (slot == nullptr) {
     // 无效 layer: 返回一个 null 引用 (语法上合法, 写入会触发 nlohmann type_error)
-    static nlohmann::json null_j;
+    static thread_local nlohmann::json null_j;
     return null_j;
   }
   // 非 const at() 调用方可能写入 (虽然无法 100% 检测意图, navigate 内部
@@ -202,7 +202,7 @@ inline const nlohmann::json& LayeredContext::at(const std::string& path) const {
   layered_context_detail::split_path(path, layer, rest);
   const nlohmann::json* slot = layered_context_detail::resolve_slot(*this, layer);
   if (slot == nullptr) {
-    static const nlohmann::json null_j;
+    static thread_local const nlohmann::json null_j;
     return null_j;
   }
   return layered_context_detail::navigate_const(*slot, rest);

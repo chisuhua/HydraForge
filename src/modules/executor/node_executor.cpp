@@ -164,138 +164,23 @@ Context NodeExecutor::execute_dsl_node(const DSLNode* node, const Context& ctx) 
 }
 
 Context NodeExecutor::execute_tool_call(const ToolCallNode* node, const Context& ctx) {
-    Context new_context = ctx;
-
     // 渲染参数
     std::unordered_map<std::string, std::string> rendered_args;
     for (const auto& [key, tmpl] : node->arguments) {
         rendered_args[key] = InjaTemplateRenderer::render(tmpl, ctx);
     }
 
-    // 调用工具
     if (!tool_registry_.has_tool(node->tool_name)) {
         throw std::runtime_error("Tool '" + node->tool_name + "' not registered for node: " + node->path);
     }
 
-    // C4 Sprint 14 (ADR-0031 P3-P4, Oracle ses_0ed4408faffeLv8VfrC0s5PzW7):
-    // 工具调用分发优先级: tool_coordinator_ > approval_handler_ > direct call_tool()
-    ToolMetadata meta;
-    meta.name = node->tool_name;
-    meta.category = ToolCategory::Execute;
-
-    ToolCallContext tool_ctx;
-    tool_ctx.call_count_this_session = tool_call_count_++;
-    tool_ctx.target_path = node->path;
-
-    ToolResult tool_result;
-    const auto t0 = std::chrono::steady_clock::now();
-
-    if (tool_coordinator_) {
-      if (approval_handler_) {
-        LOG_WARN("both tool_coordinator_ and approval_handler_ are set, preferring tool_coordinator_");
-      }
-      tool_result = tool_coordinator_->execute(meta, tool_ctx, rendered_args);
-    } else if (approval_handler_) {
-      ToolPreview preview;
-      preview.command_line = node->tool_name;
-      for (const auto& [k, v] : rendered_args) {
-        preview.command_line += " " + k + "=" + v;
-      }
-      preview.risk_summary = "Tool: " + node->tool_name + " at " + node->path;
-
-      if (!approval_handler_->process_request(meta, tool_ctx, preview)) {
-        throw std::runtime_error("Tool '" + node->tool_name + "' denied by execution policy at node: " + node->path);
-      }
-
-      nlohmann::json raw_result = tool_registry_.call_tool(node->tool_name, rendered_args);
-      if (raw_result.is_object() && raw_result.contains("ok") && raw_result["ok"].is_boolean()) {
-        tool_result = ToolResult::from_json(raw_result);
-      } else {
-        tool_result = ToolResult::success(raw_result);
-      }
-    } else {
-      nlohmann::json raw_result = tool_registry_.call_tool(node->tool_name, rendered_args);
-      if (raw_result.is_object() && raw_result.contains("ok") && raw_result["ok"].is_boolean()) {
-        tool_result = ToolResult::from_json(raw_result);
-      } else {
-        tool_result = ToolResult::success(raw_result);
-      }
+auto [tool_result, new_context] = dispatch_to_tool(node->tool_name, node->path, rendered_args);
+    new_context = ctx;
+    if (!tool_result.ok && !handle_tool_errors(node, tool_result)) {
+        return new_context;  // Skip: 不处理 output_keys, 不 bus emit
     }
+    process_output_keys(new_context, node->output_keys, tool_result.data);
 
-    const auto t1 = std::chrono::steady_clock::now();
-    tool_result.latency_ms = static_cast<std::uint64_t>(
-        std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count());
-
-    // REQ-TR-003: trace_id 透传 — 调用方可在 arguments 中传 trace_id
-    auto trace_it = rendered_args.find("trace_id");
-    if (trace_it != rendered_args.end()) {
-        tool_result.trace_id = trace_it->second;
-    }
-
-    // REQ-TR-001: error_code 分发 (RETRY/SKIP/ABORT 等)
-    if (!tool_result.ok) {
-        const ErrorCode code = tool_result.error_code.value_or(ErrorCode::Unknown);
-        const std::string err_msg = tool_result.meta.value("error_message", std::string{});
-        switch (code) {
-            case ErrorCode::Retry:
-                // Phase 1 Sprint 1b (S1b.T3): 推送 execution.failed 事件 (REQ-BUS-004 Scenario: Retry)
-                // 设计依据 design.md §决策 3: bus 推送先于 throw，让 subscriber 在异常传播前捕获状态
-                if (bus_) {
-                    bus_->emit("execution.failed", ToolResult::error(code, err_msg,
-                        {{"node_path", node->path}, {"tool_name", node->tool_name}}));
-                }
-                // Sprint 1a 占位: 抛出标记性异常, 真正的重试策略由独立 change 实现
-                throw std::runtime_error("[RETRY] Tool '" + node->tool_name + "': " + err_msg);
-            case ErrorCode::Abort:
-                // Phase 1 Sprint 1b (S1b.T3): 推送 execution.failed 事件 (REQ-BUS-004 Scenario: Abort)
-                if (bus_) {
-                    bus_->emit("execution.failed", ToolResult::error(code, err_msg,
-                        {{"node_path", node->path}, {"tool_name", node->tool_name}}));
-                }
-                // REQ-TR-001 Scenario: 看到 Abort 时 MUST 抛出异常终止整个 Graph
-                throw std::runtime_error("[ABORT] Tool '" + node->tool_name + "': " + err_msg);
-            case ErrorCode::Skip:
-                // Skip: 跳过此节点不抛异常, output_keys 留默认 (空), 由调用方/调度器处理
-                // 设计依据 design.md §决策 3: Skip 是软失败，不破坏 graph，不推送事件
-                return new_context;
-            case ErrorCode::PermissionDenied:
-            case ErrorCode::PathViolation:
-            case ErrorCode::DangerousCommand:
-            case ErrorCode::ToolNotRegistered:
-            case ErrorCode::Audit:
-            case ErrorCode::Timeout:
-            case ErrorCode::ResourceExhausted:
-            case ErrorCode::Unknown:
-            default:
-                // Phase 1 Sprint 1b (S1b.T3): 其他错误码同样推送 execution.failed 事件
-                if (bus_) {
-                    bus_->emit("execution.failed", ToolResult::error(code, err_msg,
-                        {{"node_path", node->path}, {"tool_name", node->tool_name}}));
-                }
-                // 其他错误码: 抛出通用异常 (保留 P0 行为)
-                throw std::runtime_error("Tool '" + node->tool_name + "' failed: " + err_msg);
-        }
-    }
-
-    // 处理 output_keys (基于 tool_result.data, 替代旧的 is_object() 启发式)
-    const nlohmann::json& data = tool_result.data;
-    if (node->output_keys.size() == 1) {
-        new_context[node->output_keys[0]] = data;
-    } else if (data.is_object()) {
-        for (const auto& key : node->output_keys) {
-            if (data.contains(key)) {
-                new_context[key] = data[key];
-            }
-        }
-    } else {
-        // 如果 data 不是对象，或者 output_keys 多于 1 个，按第一个 key 赋值
-        if (!node->output_keys.empty()) {
-            new_context[node->output_keys[0]] = data;
-        }
-    }
-
-    // Phase 1 Sprint 1b (S1b.T3): 工具成功执行后推送 tool.completed 事件 (REQ-BUS-003 Scenario)
-    // 设计依据 design.md §决策 2: payload 为 Sprint 1a 完成的 ToolResult envelope（含 4 个 P2-P4 字段）
     if (bus_) {
         bus_->emit("tool.completed", tool_result);
     }
@@ -446,6 +331,101 @@ Context NodeExecutor::execute_generate_subgraph(const GenerateSubgraphNode* node
         throw std::runtime_error("GenerateSubgraphNode execution failed: " + std::string(e.what()));
     }
     return new_context;
+}
+
+// Sprint 17 C.2: execute_tool_call helper methods
+
+std::pair<ToolResult, Context> NodeExecutor::dispatch_to_tool(
+    const std::string& tool_name, const std::string& node_path,
+    const std::unordered_map<std::string, std::string>& args) {
+  ToolMetadata meta;
+  meta.name = tool_name;
+  meta.category = ToolCategory::Execute;
+
+  ToolCallContext tool_ctx;
+  tool_ctx.call_count_this_session = tool_call_count_++;
+  tool_ctx.target_path = node_path;
+
+  ToolResult tool_result;
+  const auto t0 = std::chrono::steady_clock::now();
+
+  if (tool_coordinator_) {
+    if (approval_handler_) {
+      LOG_WARN("both tool_coordinator_ and approval_handler_ are set, preferring tool_coordinator_");
+    }
+    tool_result = tool_coordinator_->execute(meta, tool_ctx, args);
+  } else if (approval_handler_) {
+    ToolPreview preview;
+    preview.command_line = tool_name;
+    for (const auto& [k, v] : args) {
+      preview.command_line += " " + k + "=" + v;
+    }
+    preview.risk_summary = "Tool: " + tool_name + " at " + node_path;
+
+    if (!approval_handler_->process_request(meta, tool_ctx, preview)) {
+      throw std::runtime_error("Tool '" + tool_name + "' denied by execution policy at node: " + node_path);
+    }
+
+    nlohmann::json raw_result = tool_registry_.call_tool(tool_name, args);
+    tool_result = (raw_result.is_object() && raw_result.contains("ok") && raw_result["ok"].is_boolean())
+        ? ToolResult::from_json(raw_result) : ToolResult::success(raw_result);
+  } else {
+    nlohmann::json raw_result = tool_registry_.call_tool(tool_name, args);
+    tool_result = (raw_result.is_object() && raw_result.contains("ok") && raw_result["ok"].is_boolean())
+        ? ToolResult::from_json(raw_result) : ToolResult::success(raw_result);
+  }
+
+  const auto t1 = std::chrono::steady_clock::now();
+  tool_result.latency_ms = static_cast<std::uint64_t>(
+      std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count());
+
+  auto trace_it = args.find("trace_id");
+  if (trace_it != args.end()) {
+    tool_result.trace_id = trace_it->second;
+  }
+
+  return {std::move(tool_result), Context{}};
+}
+
+bool NodeExecutor::handle_tool_errors(const ToolCallNode* node, const ToolResult& result) {
+  const ErrorCode code = result.error_code.value_or(ErrorCode::Unknown);
+  const std::string err_msg = result.meta.value("error_message", std::string{});
+
+  auto emit_failed = [&]() {
+    if (bus_) {
+      bus_->emit("execution.failed", ToolResult::error(code, err_msg,
+          {{"node_path", node->path}, {"tool_name", node->tool_name}}));
+    }
+  };
+
+  switch (code) {
+    case ErrorCode::Retry:
+      emit_failed();
+      throw std::runtime_error("[RETRY] Tool '" + node->tool_name + "': " + err_msg);
+    case ErrorCode::Abort:
+      emit_failed();
+      throw std::runtime_error("[ABORT] Tool '" + node->tool_name + "': " + err_msg);
+    case ErrorCode::Skip:
+      return false;  // 无需额外处理
+    default:
+      emit_failed();
+      throw std::runtime_error("Tool '" + node->tool_name + "' failed: " + err_msg);
+  }
+}
+
+void NodeExecutor::process_output_keys(Context& new_context,
+                                        const std::vector<std::string>& output_keys,
+                                        const nlohmann::json& data) {
+  if (output_keys.empty()) return;
+  if (output_keys.size() == 1) {
+    new_context[output_keys[0]] = data;
+  } else if (data.is_object()) {
+    for (const auto& key : output_keys) {
+      if (data.contains(key)) new_context[key] = data[key];
+    }
+  } else {
+    new_context[output_keys[0]] = data;
+  }
 }
 
 } // namespace agenticdsl

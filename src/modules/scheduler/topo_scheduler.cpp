@@ -1,6 +1,7 @@
 // modules/scheduler/src/topo_scheduler.cpp
 #include "scheduler/topo_scheduler.h"
 #include "core/types/node.h"
+#include "modules/scheduler/resource_manager.h" // Sprint 17 C.4: 完整类型 (PIMPL-lite 从头文件移出)
 #include "common/llm/llm_types.h" // C₁.3: 需要完整 ILLMProvider 定义
 #include "common/utils/template_renderer.h"
 #include "common/log/log.h"        // agenticdsl::log 日志门面（tech-debt-and-doc-cleanup）
@@ -23,8 +24,8 @@ struct HardEndException : public std::exception {
 // P1.T4 (2026-06-18): ToolRegistry& → IToolRegistry& (依赖倒置)
 TopoScheduler::TopoScheduler(Config config, IToolRegistry& tool_registry, ILLMProvider* llm_provider, const std::vector<ParsedGraph>* full_graphs)
     : full_graphs_(full_graphs),
-      resource_manager_(),
-      session_(std::move(config.initial_budget), tool_registry, llm_provider, resource_manager_,
+      resource_manager_(std::make_unique<ResourceManager>()),
+      session_(std::move(config.initial_budget), tool_registry, llm_provider, *resource_manager_,
                full_graphs_,
                [this](std::vector<ParsedGraph> graphs) { this->append_dynamic_graphs(std::move(graphs)); }) { // Pass callback to ExecutionSession
     // ADR-0031 (2026-07-31): 传递审批处理器到执行会话
@@ -54,7 +55,7 @@ void TopoScheduler::register_resources() {
                 .scope = res_node->scope,
                 .metadata = res_node->metadata
             };
-            resource_manager_.register_resource(res);
+            resource_manager_->register_resource(res);
         }
     }
 }
@@ -325,73 +326,13 @@ void TopoScheduler::execute_fork_branches() {
     LOG_DEBUG("All fork branches completed. Ready for join.");
 }
 Context TopoScheduler::execute_single_branch(const NodePath& branch_path, const Context& initial_context) {
-    // This is a simplified way to execute a subgraph path.
-    // A more robust way would be to have a separate scheduler instance or a recursive execution mechanism
-    // that only operates within the scope of the given branch_path.
-    // For now, let's assume the branch_path is the root of a subgraph
-    // and we find its starting node (e.g., the first node in the graph with that path prefix that is a start node or the first node if no explicit start).
-
-    // A simple heuristic: Find the first node in the current node_map_ that starts with the branch_path.
-    // This assumes the branch_path corresponds to a subgraph defined in the parsed DSL.
-    // In a more complex system, the branch_path might point to a specific starting node ID within that subgraph.
-    // For simplicity here, we assume the first node matching the path prefix is the entry point.
-    NodePath start_node_path;
-    for (const auto& [path, node] : node_map_) {
-        if (path.rfind(branch_path + "/", 0) == 0 || path == branch_path) { // Check if path starts with branch_path
-             // For a true subgraph like `/lib/reasoning/logic_branch`, the first node might be `/lib/reasoning/logic_branch/step1`
-             // We assume the first such node found is the start of the branch execution.
-             // A more robust system would have a dedicated 'start' node or an explicit entry point definition.
-             start_node_path = path;
-             break;
-        }
-    }
-
-    if (start_node_path.empty()) {
-        throw std::runtime_error("No starting node found for branch path: " + branch_path);
-    }
-
+    NodePath start_node_path = find_branch_start_node(branch_path);
     LOG_DEBUG("Found start node for branch " << branch_path << ": " << start_node_path);
 
-    // --- Execute the subgraph starting from start_node_path ---
-    // This requires temporarily modifying the scheduler's state (queue, executed set) to run only this subgraph.
-    // This is complex. A simpler approach is to assume the subgraph is a self-contained piece that can be executed
-    // using the main scheduler's logic, but with a different starting point and potentially stopping conditions.
+    auto [branch_ready_queue, branch_executed, branch_in_degree, branch_reverse_edges] =
+        init_branch_state(branch_path);
 
-    // For this simulation, let's create a temporary execution loop *within* this function.
-    // This loop will only process nodes related to the branch_path.
-    // We need a way to identify when the branch execution ends (e.g., hits an END node with termination_mode soft/hard for this subgraph context).
-
-    // A placeholder: This requires significant logic to execute a subgraph in isolation.
-    // It involves finding the entry point, managing its own ready queue based on its internal dependencies,
-    // and stopping when it reaches an END node or a node that points back to the parent graph (which is JoinNode in this case).
-    // This is essentially implementing subgraph execution within the main scheduler.
-
-    // A more practical approach for simulation might be:
-    // 1. Have a method that finds the entry node for the branch_path.
-    // 2. Execute nodes reachable from that entry node until an END node is hit, collecting the final context.
-    // 3. Be careful not to execute nodes outside the branch_path scope (or handle them as external dependencies if they exist and are already executed).
-
-    // For now, let's assume a method exists or the logic is embedded here.
-    // This is a complex part. Let's assume `execute_subgraph_from_path` exists.
-    // return execute_subgraph_from_path(start_node_path, initial_context);
-
-    // Placeholder implementation - This is NOT correct and needs a proper subgraph execution mechanism.
-    // It's just to show where the logic would go.
     Context current_ctx = initial_context;
-    std::queue<NodePath> branch_ready_queue;
-    std::unordered_set<NodePath> branch_executed;
-    std::unordered_map<NodePath, int> branch_in_degree = in_degree_; // Copy global in_degree
-    std::unordered_map<NodePath, std::vector<NodePath>> branch_reverse_edges = reverse_edges_; // Copy global edges
-
-    // Find initial ready nodes *within* the branch scope
-    for (const auto& [path, node] : node_map_) {
-        if (path.rfind(branch_path + "/", 0) == 0 || path == branch_path) { // Node belongs to branch
-             if (branch_in_degree[path] == 0) {
-                 branch_ready_queue.push(path);
-             }
-        }
-    }
-
     while (!branch_ready_queue.empty()) {
         NodePath current_path = branch_ready_queue.front();
         branch_ready_queue.pop();
@@ -404,45 +345,68 @@ Context TopoScheduler::execute_single_branch(const NodePath& branch_path, const 
         }
         Node* node = node_it->second;
 
-        // Execute the node using the session
         auto session_result = session_.execute_node(node, current_ctx);
         if (!session_result.success) {
-            // Handle errors within the branch execution
             throw std::runtime_error("Branch execution failed at " + current_path + ": " + session_result.message);
         }
         current_ctx = std::move(session_result.new_context);
         branch_executed.insert(current_path);
 
-        // Check for END node to potentially stop this branch
-        if (node->type == NodeType::END) {
-             std::string mode = node->metadata.value("termination_mode", "hard");
-             if (mode == "soft") {
-                 // For soft end in a branch context, it might mean returning the context up to join
-                 // For hard end, it might terminate the whole branch execution loop here.
-                 // Let's assume soft means this branch is done.
-                 break; // Exit branch execution loop
-             } else {
-                throw HardEndException(); // Propagate hard end to main loop
-             }
-             // Hard end might terminate the whole DAG if not handled carefully in subgraph context.
-             // For simulation, we might just break the branch loop on any END.
-             break;
+        if (process_branch_end_node(node, current_path, branch_path, current_ctx)) {
+            break;
         }
 
-        // Update successors' in-degrees and add to branch queue if ready
         for (const auto& next_path : node->next) {
-            // Only update if the successor is also part of the same branch
-            if (node_map_.count(next_path) > 0) {
-                 if (--branch_in_degree[next_path] == 0) {
-                     branch_ready_queue.push(next_path);
-                 }
+            if (node_map_.count(next_path) > 0 && --branch_in_degree[next_path] == 0) {
+                branch_ready_queue.push(next_path);
             }
         }
     }
 
-    return current_ctx; // Return the final context of the branch execution
+    return current_ctx;
 }
 
+NodePath TopoScheduler::find_branch_start_node(const NodePath& branch_path) const {
+  for (const auto& [path, node] : node_map_) {
+    if (path.rfind(branch_path + "/", 0) == 0 || path == branch_path) {
+      return path;
+    }
+  }
+  throw std::runtime_error("No starting node found for branch path: " + branch_path);
+}
+
+auto TopoScheduler::init_branch_state(const NodePath& branch_path)
+    -> std::tuple<std::queue<NodePath>, std::unordered_set<NodePath>,
+                  std::unordered_map<NodePath, int>,
+                  std::unordered_map<NodePath, std::vector<NodePath>>> {
+  std::queue<NodePath> branch_ready_queue;
+  std::unordered_set<NodePath> branch_executed;
+  std::unordered_map<NodePath, int> branch_in_degree = in_degree_;
+  std::unordered_map<NodePath, std::vector<NodePath>> branch_reverse_edges = reverse_edges_;
+
+  for (const auto& [path, node] : node_map_) {
+    if ((path.rfind(branch_path + "/", 0) == 0 || path == branch_path) &&
+        branch_in_degree[path] == 0) {
+      branch_ready_queue.push(path);
+    }
+  }
+
+  return std::make_tuple(std::move(branch_ready_queue),
+                          std::move(branch_executed),
+                          std::move(branch_in_degree),
+                          std::move(branch_reverse_edges));
+}
+
+bool TopoScheduler::process_branch_end_node(Node* node, const NodePath& /*current_path*/,
+                                             const NodePath& /*branch_path*/,
+                                             const Context& /*current_ctx*/) {
+  if (node->type != NodeType::END) return false;
+  std::string mode = node->metadata.value("termination_mode", "hard");
+  if (mode != "soft") {
+    throw HardEndException();
+  }
+  return true;
+}
 
 void TopoScheduler::finish_fork_simulation() {
     // Fork simulation is considered finished when all branches are executed (handled in execute_fork_branches).
