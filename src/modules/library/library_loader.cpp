@@ -1,11 +1,16 @@
 // modules/library/src/library_loader.cpp
 #include "library_loader.h"
-//#include "core/types/system_nodes.h" // For create_system_nodes if needed, or define built-ins differently
+#include "modules/parser/markdown_parser.h"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 
 namespace agenticdsl {
+
+StandardLibraryLoader::StandardLibraryLoader()
+    : parser_(std::make_unique<MarkdownParser>()) {}
+
+StandardLibraryLoader::~StandardLibraryLoader() = default;
 
 StandardLibraryLoader& StandardLibraryLoader::instance() {
     static StandardLibraryLoader loader;
@@ -61,7 +66,7 @@ void StandardLibraryLoader::load_from_directory(const std::string& lib_dir) {
             std::stringstream buffer;
             buffer << file.rdbuf();
             try {
-                auto graphs = parser_.parse_from_string(buffer.str());
+                auto graphs = parser_->parse_from_string(buffer.str());
                 for (const auto& g : graphs) {
                     if (g.is_standard_library) {
                         LibraryEntry entry;
