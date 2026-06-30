@@ -1,8 +1,6 @@
 #ifndef AGENTICDSL_TYPES_RESOURCE_H
 #define AGENTICDSL_TYPES_RESOURCE_H
 
-#include "context.h" // 引入 Context/Value
-#include "node.h" // 引入 Context/Value
 #include <string>
 #include <nlohmann/json.hpp>
 
