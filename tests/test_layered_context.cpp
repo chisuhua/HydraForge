@@ -7,6 +7,9 @@
 #include "agenticdsl/types/context_flatten.h" // Stage 3 / Task 13
 
 #include <string>
+#include <thread>
+#include <vector>
+#include <atomic>
 
 using agenticdsl::LayeredContext;
 
@@ -202,4 +205,54 @@ TEST_CASE("LayeredContext flatten empty context", "[layered_context][stage3]") {
   CHECK(flat.is_object());
   CHECK(flat.empty());
   CHECK_FALSE(flat.is_null());
+}
+
+// Sprint 17 C.1: TSan 回归保护 — 并发 at() 调用不应有数据竞争
+TEST_CASE("LayeredContext::at concurrent reads from 10 threads are safe", "[context][threads]") {
+  LayeredContext ctx;
+  ctx.at("working.value") = 42;
+  ctx.at("meta.info") = "test";
+
+  std::atomic<int> errors{0};
+  std::vector<std::thread> threads;
+  for (int t = 0; t < 10; ++t) {
+    threads.emplace_back([&ctx, &errors]() {
+      try {
+        for (int i = 0; i < 100; ++i) {
+          auto val = ctx.at("working.value");
+          if (val != 42) errors.fetch_add(1);
+        }
+      } catch (...) {
+        errors.fetch_add(1);
+      }
+    });
+  }
+  for (auto& t : threads) t.join();
+
+  CHECK(errors.load() == 0);
+  CHECK(ctx.at("working.value") == 42);
+}
+
+TEST_CASE("LayeredContext::at const concurrent reads are safe", "[context][threads]") {
+  LayeredContext ctx;
+  ctx.at("working.data.x") = "shared";
+  const auto& const_ctx = ctx;
+
+  std::atomic<int> errors{0};
+  std::vector<std::thread> threads;
+  for (int t = 0; t < 10; ++t) {
+    threads.emplace_back([&const_ctx, &errors]() {
+      try {
+        for (int i = 0; i < 200; ++i) {
+          auto val = const_ctx.at("working.data.x");
+          if (val != "shared") errors.fetch_add(1);
+        }
+      } catch (...) {
+        errors.fetch_add(1);
+      }
+    });
+  }
+  for (auto& t : threads) t.join();
+
+  CHECK(errors.load() == 0);
 }
