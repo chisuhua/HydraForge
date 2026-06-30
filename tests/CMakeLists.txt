@@ -28,6 +28,8 @@ function(add_catch_test TEST_NAME)
     target_link_libraries(${TEST_NAME} PRIVATE agenticdsl agenticdsl_modules_parser yaml-cpp::yaml-cpp)
     # Plugin 模块 (Sprint 5): dlopen/dlsym 实现的 PluginLoader
     target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_modules_plugin)
+    # Sprint 16 (B.5): test_system_nodes 需要 EndNode 定义 (来自 agenticdsl_modules_system)
+    target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_modules_system)
     target_compile_definitions(${TEST_NAME} PRIVATE CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1)
 
     # 注册为 CTest 测试
