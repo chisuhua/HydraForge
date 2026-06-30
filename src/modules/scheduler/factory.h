@@ -18,14 +18,16 @@ class IToolRegistry;
 class ILLMProvider;
 struct ParsedGraph;
 class ExecutionBudget;
-class ApprovalHandler; // ADR-0031 (2026-07-31): 前向声明
+// Sprint 19 (OpenSpec pimpl-node-executor-h): 改为 IApprovalHandler 抽象 (替代 ApprovalHandler)
+class IApprovalHandler; // Sprint 19: 前向声明
 class ToolCoordinator; // C4 Sprint 14 (ADR-0031 P3-P4): 前向声明
 
 namespace scheduler {
 
 struct SchedulerConfig {
     std::optional<ExecutionBudget> initial_budget;
-    ApprovalHandler* approval_handler{nullptr}; // ADR-0031 (2026-07-31): 审批处理器
+    // Sprint 19: 改用 IApprovalHandler 抽象 (依赖倒置, ADR-0019 §1.4)
+    IApprovalHandler* approval_handler{nullptr}; // ADR-0031 (2026-07-31): 审批处理器
     ToolCoordinator* tool_coordinator{nullptr}; // C4 Sprint 14 (ADR-0031 P3-P4): ToolCoordinator
 };
 

@@ -6,6 +6,10 @@
 #include "common/utils/template_renderer.h"
 #include "common/log/log.h"        // agenticdsl::log 日志门面（tech-debt-and-doc-cleanup）
 #include <taskflow/taskflow.hpp>  // C2 Day 1-2: tf::Executor + tf::Taskflow (完整定义, 避开 TBB 在头文件中与 std::queue 冲突)
+// Sprint 19 D-8: PIMPL-lite — 头文件不再拖入以下完整类型
+#include "modules/context/context_engine.h" // ContextEngine::merge + get_snapshot (topo_scheduler.cpp 调用点)
+#include "common/policy/approval_handler.h" // ApprovalHandler : public IApprovalHandler (set_approval_handler 参数转换需要完整定义)
+#include "modules/trace/trace_exporter.h" // get_last_traces() 内联函数 (topo_scheduler.h:62) 调用 TraceExporter::get_traces
 #include <stdexcept>
 #include <algorithm>
 #include <set>

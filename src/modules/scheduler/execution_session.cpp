@@ -1,5 +1,13 @@
 // modules/scheduler/src/execution_session.cpp
 #include "scheduler/execution_session.h"
+// Sprint 19 D-8: PIMPL-lite — 完整类型移至 .cpp (header 仅前向声明)
+#include "modules/context/context_engine.h"
+#include "modules/budget/budget_controller.h"
+#include "modules/trace/trace_exporter.h"
+#include "modules/executor/node_executor.h"
+#include "modules/parser/markdown_parser.h"
+#include "modules/library/library_loader.h"
+#include "resource_manager.h"
 #include "common/llm/llm_types.h" // C₁.3: 需要完整 ILLMProvider 定义
 #include "common/utils/template_renderer.h" // 引入 InjaTemplateRenderer (for Trace context delta)
 //#include "agenticdsl/llm/prompt_builder.h" // 引入 PromptBuilder
@@ -10,6 +18,7 @@ namespace agenticdsl {
 
 // C₁.3 迁移：从 LlamaAdapter* 改为 ILLMProvider*
 // P1.T4 (2026-06-18): ToolRegistry& → IToolRegistry& (依赖倒置)
+// Sprint 19 D-8: PIMPL-lite — 4 个值成员改用 make_unique 构造
 ExecutionSession::ExecutionSession(
     std::optional<ExecutionBudget> initial_budget,
     IToolRegistry& tool_registry,
@@ -17,24 +26,46 @@ ExecutionSession::ExecutionSession(
     ResourceManager& resource_manager, // ← 新增
     const std::vector<ParsedGraph>* full_graphs,
     AppendGraphsCallback append_graphs_callback)
-    : budget_controller_(std::move(initial_budget)),
-      node_executor_(tool_registry, llm_provider),
-      resource_manager_(resource_manager), // ← 初始化
+    : resource_manager_(resource_manager), // ← 初始化 (引用)
+      context_engine_(std::make_unique<ContextEngine>()),
+      budget_controller_(std::make_unique<BudgetController>(std::move(initial_budget))),
+      trace_exporter_(std::make_unique<TraceExporter>()),
+      node_executor_(std::make_unique<NodeExecutor>(tool_registry, llm_provider)),
       full_graphs_(full_graphs),
       append_graphs_callback_(std::move(append_graphs_callback)) { // Store callback
 
-    node_executor_.set_append_graphs_callback(append_graphs_callback_);
+    node_executor_->set_append_graphs_callback(append_graphs_callback_);
     if (initial_budget.has_value()) {
         size_t max_snapshots = (initial_budget->max_snapshots >= 0)
             ? static_cast<size_t>(initial_budget->max_snapshots) : 10;
-        context_engine_.set_snapshot_limits(max_snapshots, initial_budget->snapshot_max_size_kb);
+        context_engine_->set_snapshot_limits(max_snapshots, initial_budget->snapshot_max_size_kb);
     } else {
-        context_engine_.set_snapshot_limits(10, 512); // dev default
+        context_engine_->set_snapshot_limits(10, 512); // dev default
     }
 }
+
+// Sprint 19 D-8: PIMPL-lite — 析构 out-of-line (unique_ptr 不完整类型要求)
+// 完整类型 (ContextEngine/BudgetController/TraceExporter/NodeExecutor) 在此翻译单元可见,
+// 编译器可在 unique_ptr<X>::~unique_ptr() 完整实例化, 无 "incomplete type" 错误。
+ExecutionSession::~ExecutionSession() = default;
+
+// Sprint 19 D-8: PIMPL-lite — set_approval_handler / set_tool_coordinator 透传逻辑
+// 移到 .cpp (header 中 node_executor_ 是 unique_ptr<不完整类型>, 不可在 header 解引用)。
+void ExecutionSession::set_approval_handler(IApprovalHandler* handler) {
+    if (node_executor_) {
+        node_executor_->set_approval_handler(handler);
+    }
+}
+
+void ExecutionSession::set_tool_coordinator(ToolCoordinator* coordinator) {
+    if (node_executor_) {
+        node_executor_->set_tool_coordinator(coordinator);
+    }
+}
+
 nlohmann::json ExecutionSession::build_available_subgraphs_context() const {
     nlohmann::json libs = nlohmann::json::array();
-    
+
     // 1. 静态标准库（/lib/**）
     auto& loader = StandardLibraryLoader::instance();
     for (const auto& entry : loader.get_available_libraries()) {
@@ -51,7 +82,7 @@ nlohmann::json ExecutionSession::build_available_subgraphs_context() const {
             libs.push_back(std::move(lib));
         }
     }
-    
+
     // 2. 动态生成子图（/dynamic/**）
     if (full_graphs_) {
         for (const auto& graph : *full_graphs_) {
@@ -67,7 +98,7 @@ nlohmann::json ExecutionSession::build_available_subgraphs_context() const {
             }
         }
     }
-    
+
     return libs;
 }
 
@@ -94,26 +125,26 @@ ExecutionSession::ExecutionResult ExecutionSession::execute_node(Node* node, con
     // v3.1: Check for snapshot trigger BEFORE execution
     bool snapshot_needed = needs_snapshot(node);
     if (snapshot_needed) {
-        context_engine_.save_snapshot(node->path, context_with_resources); // Snapshot *before* execution
+        context_engine_->save_snapshot(node->path, context_with_resources); // Snapshot *before* execution
         result.snapshot_key = node->path;
     }
 
     // 1. 检查预算
     if (node->type == NodeType::DSL_CALL) {
-        if (!budget_controller_.try_consume_llm_call()) {
+        if (!budget_controller_->try_consume_llm_call()) {
             result.success = false;
             result.message = "Budget exceeded: LLM call limit reached";
             return result;
         }
     }
     if (node->type == NodeType::GENERATE_SUBGRAPH) {
-        if (!budget_controller_.try_consume_subgraph_depth()) { // Assume BudgetController has this method
+        if (!budget_controller_->try_consume_subgraph_depth()) { // Assume BudgetController has this method
             result.success = false;
             result.message = "Budget exceeded: Subgraph depth limit reached";
             return result;
         }
     }
-    if (!budget_controller_.try_consume_node()) {
+    if (!budget_controller_->try_consume_node()) {
         result.success = false;
         result.message = "Budget exceeded: Node limit reached";
         return result;
@@ -121,12 +152,12 @@ ExecutionSession::ExecutionResult ExecutionSession::execute_node(Node* node, con
 
     // 2. 记录 Trace 开始
     nlohmann::json initial_ctx_json = context_with_resources;
-    trace_exporter_.on_node_start(node->path, node->type, initial_ctx_json, budget_controller_.get_budget());
+    trace_exporter_->on_node_start(node->path, node->type, initial_ctx_json, budget_controller_->get_budget());
 
     // 3. 执行节点
     try {
         // 统一执行路径
-        auto execution_result = context_engine_.execute_with_snapshot(
+        auto execution_result = context_engine_->execute_with_snapshot(
             [this, node](const Context& ctx) {
                 // 对于 GENERATE_SUBGRAPH，注入 available_subgraphs
                 if (node->type == NodeType::GENERATE_SUBGRAPH) {
@@ -134,9 +165,9 @@ ExecutionSession::ExecutionResult ExecutionSession::execute_node(Node* node, con
                     std::string rendered_prompt = this->inject_subgraphs_into_prompt(gsn->prompt_template, ctx);
                     Context new_ctx = ctx;
                     new_ctx["__rendered_prompt__"] = rendered_prompt; // 临时存储
-                    return node_executor_.execute_node(node, new_ctx);
+                    return node_executor_->execute_node(node, new_ctx);
                 }
-                return node_executor_.execute_node(node, ctx);
+                return node_executor_->execute_node(node, ctx);
             },
             context_with_resources,
             snapshot_needed,
@@ -164,14 +195,14 @@ ExecutionSession::ExecutionResult ExecutionSession::execute_node(Node* node, con
 
     // 4. 记录 Trace 结束
     nlohmann::json final_ctx_json = result.new_context;
-    trace_exporter_.on_node_end(
+    trace_exporter_->on_node_end(
         node->path,
         result.success ? "success" : "failed",
         result.success ? std::nullopt : std::make_optional(result.message),
         initial_ctx_json,
         final_ctx_json,
         result.snapshot_key,
-        budget_controller_.get_budget()
+        budget_controller_->get_budget()
     );
 
     return result;
@@ -201,24 +232,24 @@ void ExecutionSession::check_and_requeue_dynamic_deps(const std::unordered_set<N
 }
 
 bool ExecutionSession::is_budget_exceeded() const {
-    return budget_controller_.exceeded();
+    return budget_controller_->exceeded();
 }
 
 const TraceExporter& ExecutionSession::get_trace_exporter() const {
-    return trace_exporter_;
+    return *trace_exporter_;
 }
 
 const BudgetController& ExecutionSession::get_budget_controller() const {
-    return budget_controller_;
+    return *budget_controller_;
 }
 
 const ContextEngine& ExecutionSession::get_context_engine() const {
-    return context_engine_;
+    return *context_engine_;
 }
 
 bool ExecutionSession::needs_snapshot(Node* node) const {
     // v3.1: Automatic snapshot triggers
-    if (node->metadata.contains("snapshot_before_execution") && 
+    if (node->metadata.contains("snapshot_before_execution") &&
         node->metadata["snapshot_before_execution"].get<bool>()) {
         return true;
     }

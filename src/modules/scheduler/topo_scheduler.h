@@ -10,6 +10,9 @@
 // P1.T4: 改为 IToolRegistry 抽象 (不再拖入 common/tools/registry.h)
 #include "agenticdsl/contract/itool_registry.h" // P1.T2: IToolRegistry 抽象接口
 #include "modules/parser/markdown_parser.h" // 引入 ParsedGraph (std::vector<ParsedGraph> 需要完整类型)
+// Sprint 19 D-8: PIMPL-lite — execution_session.h 不再拖入 trace_exporter.h, 但 get_last_traces() 内联
+// 函数调用 TraceExporter::get_traces, 需在头文件可见完整类型
+#include "modules/trace/trace_exporter.h"
 // ResourceManager 前向声明 (Sprint 17 C.4: PIMPL-lite 解耦)
 #include "agenticdsl/contract/ischeduler.h"  // ADR-0019 §1.4：实现 IScheduler 抽象接口
 #include <vector>
@@ -26,7 +29,8 @@ namespace agenticdsl {
 // C₁.3: 前向声明 ILLMProvider（避免循环 include）
 class ILLMProvider;
 
-class ApprovalHandler; // ADR-0031 (2026-07-31): 前向声明
+// Sprint 19 (OpenSpec pimpl-node-executor-h): 改为 IApprovalHandler 抽象 (替代 ApprovalHandler)
+class IApprovalHandler; // Sprint 19: 前向声明
 class ToolCoordinator; // C4 Sprint 14 (ADR-0031 P3-P4): 前向声明
 class ResourceManager; // Sprint 17 C.4: PIMPL-lite 解耦 (替代 include modules/scheduler/resource_manager.h)
 
@@ -34,7 +38,8 @@ class TopoScheduler : public IScheduler {
 public:
     struct Config {
         std::optional<ExecutionBudget> initial_budget;
-        ApprovalHandler* approval_handler{nullptr}; // ADR-0031 (2026-07-31): 审批处理器
+        // Sprint 19: 改用 IApprovalHandler 抽象 (依赖倒置, ADR-0019 §1.4)
+        IApprovalHandler* approval_handler{nullptr}; // ADR-0031 (2026-07-31): 审批处理器
         ToolCoordinator* tool_coordinator{nullptr}; // C4 Sprint 14 (ADR-0031 P3-P4): ToolCoordinator
         // Add other config options if needed
         Config() = default;

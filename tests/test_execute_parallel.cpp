@@ -3,6 +3,7 @@
 #include "catch_amalgamated.hpp"
 
 #include "modules/scheduler/topo_scheduler.h"
+#include "modules/scheduler/resource_manager.h" // Sprint 19 D-8: PIMPL-lite — TopoScheduler 持有 unique_ptr<ResourceManager>, test 销毁时需完整类型
 #include "common/tools/registry.h"
 #include "common/llm/mock_provider.h"
 #include "agenticdsl/contract/itool_registry.h"
