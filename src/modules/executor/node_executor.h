@@ -1,5 +1,7 @@
 // modules/executor/include/executor/node_executor.h
 // P1.T4 (2026-06-18): ToolRegistry& → IToolRegistry& (依赖倒置, ADR-0019 §1.4 解耦)
+// Sprint 19 (OpenSpec change pimpl-node-executor-h):
+//   ApprovalHandler* → IApprovalHandler* (依赖抽象, ADR-0019 §1.4 + ADR-0031 §决策 5)
 #ifndef AGENTICDSL_MODULES_EXECUTOR_NODE_EXECUTOR_H
 #define AGENTICDSL_MODULES_EXECUTOR_NODE_EXECUTOR_H
 
@@ -11,7 +13,8 @@
 #include "agenticdsl/contract/itool_registry.h" // P1.T2: IToolRegistry 抽象接口
 #include "agenticdsl/contract/iparser.h" // ADR-0019 §1.4: 仅依赖解析器抽象接口
 #include "agenticdsl/contract/iinteraction_bus.h" // Phase 1 Sprint 1b (S1b.T3): IInteractionBus 事件推送契约 (ADR-0019 P2)
-#include "common/policy/approval_handler.h" // ADR-0031 (2026-07-31): 审批处理器
+// Sprint 19: 改为 IApprovalHandler 抽象 (不再拖入 common/policy/approval_handler.h)
+#include "agenticdsl/policy/iapproval_handler.h" // Sprint 19: 审批处理器抽象 (ADR-0019 §1.4 解耦)
 #include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
@@ -51,8 +54,9 @@ public:
 
     // ADR-0031 (2026-07-31): 注入审批处理器（nullptr 跳过审批）
     // C4 Sprint 14 (Oracle ses_0ed4408faffeLv8VfrC0s5PzW7): 已废弃 — C4 起改用 set_tool_coordinator
+    // Sprint 19: 参数类型 ApprovalHandler* → IApprovalHandler* (依赖抽象, ADR-0019 §1.4)
     [[deprecated("use set_tool_coordinator(ToolCoordinator*)")]]
-    void set_approval_handler(ApprovalHandler* handler) { approval_handler_ = handler; }
+    void set_approval_handler(IApprovalHandler* handler) { approval_handler_ = handler; }
 
     // C4 Sprint 14 (Oracle ses_0ed4408faffeLv8VfrC0s5PzW7): 设置 ToolCoordinator
     // 优先级: tool_coordinator_ > approval_handler_ > direct call_tool()
@@ -74,7 +78,8 @@ private:
     IInteractionBus* bus_;
 
     // ADR-0031 (2026-07-31): 可选审批处理器（nullptr 表示跳过审批）
-    ApprovalHandler* approval_handler_{nullptr};
+    // Sprint 19: ApprovalHandler* → IApprovalHandler* (依赖抽象, ADR-0019 §1.4)
+    IApprovalHandler* approval_handler_{nullptr};
     size_t tool_call_count_{0}; // 本 session 工具调用计数
 
     // C4 Sprint 14 (Oracle ses_0ed4408faffeLv8VfrC0s5PzW7): ToolCoordinator 优先于 approval_handler_
