@@ -62,41 +62,35 @@ void TopoScheduler::register_resources() {
 
 void TopoScheduler::build_dag() {
     register_resources();
+    // Sprint 18 D-2: 拆分 88 行 build_dag → 3 行编排 + 2 helpers
+    parse_node_wait_for_deps();
+    seed_initial_ready_queue();
+}
 
-    // 1. 初始化入度和反向边映射
+void TopoScheduler::parse_node_wait_for_deps() {
     for (const auto& node_ptr : all_nodes_) {
         NodePath current_path = node_ptr->path;
-        // Skip system nodes from main dependency calculation if desired
-        // if (current_path.rfind("/__system__/", 0) == 0) continue;
-
         in_degree_[current_path] = 0;
         reverse_edges_[current_path] = {};
         wait_for_dependents_[current_path] = {};
     }
 
-    // 2. 构建依赖关系
     for (const auto& node_ptr : all_nodes_) {
         NodePath current_path = node_ptr->path;
         Node* node = node_ptr.get();
 
-        // Handle 'next' dependencies
         for (const auto& next_path : node->next) {
             if (node_map_.count(next_path) == 0) {
                 throw std::runtime_error("Next node not found: " + next_path);
             }
-            // Add reverse edge: next depends on current
             reverse_edges_[next_path].push_back(current_path);
-            // Increment in-degree of next
             in_degree_[next_path]++;
         }
 
-        // Handle 'wait_for' dependencies (static dependencies defined at parse time)
-        // This covers all_of, any_of, static arrays/strings
-        if (node->metadata.contains("wait_for") && !node->metadata["wait_for"].is_string()) { // Only process if NOT a dynamic string
+        if (node->metadata.contains("wait_for") && !node->metadata["wait_for"].is_string()) {
             const auto& wf = node->metadata["wait_for"];
             std::vector<NodePath> deps;
 
-            // Parse wait_for structure
             if (wf.is_object()) {
                 if (wf.contains("all_of")) {
                     const auto& all = wf["all_of"];
@@ -107,10 +101,6 @@ void TopoScheduler::build_dag() {
                     }
                 }
                 if (wf.contains("any_of")) {
-                // Note: 'any_of' requires more complex scheduling logic (e.g., event-based)
-                // For simplicity in a basic topo scheduler, we treat 'any_of' as 'all_of'
-                // or handle it differently in execute_node. Here, we treat as all_of.
-                // A full implementation would require a different scheduling model.
                     const auto& any = wf["any_of"];
                     if (any.is_array()) {
                         for (const auto& item : any) deps.push_back(item.get<std::string>());
@@ -128,17 +118,15 @@ void TopoScheduler::build_dag() {
                 if (node_map_.count(dep_path) == 0) {
                     throw std::runtime_error("wait_for dependency not found: " + dep_path);
                 }
-                // Add reverse edge: current depends on dep
                 reverse_edges_[current_path].push_back(dep_path);
-                // Track: dep is waited for by current
                 wait_for_dependents_[dep_path].push_back(current_path);
-                // Increment in-degree of current
                 in_degree_[current_path]++;
             }
         }
-        // Dynamic wait_for (expressions resolved at runtime) is handled in execute_node loop
     }
+}
 
+void TopoScheduler::seed_initial_ready_queue() {
     for (const auto& node_ptr : all_nodes_) {
         NodePath path = node_ptr->path;
         if (in_degree_[path] == 0) {

@@ -75,6 +75,9 @@ private:
     //
 
     void register_resources();
+    // Sprint 18 D-2: build_dag() 拆分 - wait_for 依赖解析 + ready_queue 填充
+    void parse_node_wait_for_deps();
+    void seed_initial_ready_queue();
 
     std::vector<ParsedGraph> dynamic_graphs_; // Store newly generated graphs
     //
