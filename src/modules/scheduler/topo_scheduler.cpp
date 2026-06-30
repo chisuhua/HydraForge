@@ -453,16 +453,17 @@ void TopoScheduler::finish_join_simulation(Context& main_context) {
 }
 
 void TopoScheduler::load_graphs(const std::vector<std::unique_ptr<Node>>& nodes) {
-    // This method should register nodes and prepare for DAG building.
-    // It's likely called during initial setup.
-    // For dynamic loading, we use append_dynamic_graphs and rebuild DAG.
-    // This method might need to be refactored or called differently for dynamic graphs.
-    // For the current example, it's implicitly handled by the execute loop when dynamic_graphs_ is not empty.
-    // If needed, add logic here to append nodes incrementally.
+    // Sprint 18 D-3: 拆分单节点 clone+register 到 parse_single_node_spec helper
+    // 备注: 此方法目前不在运行时调用路径上 (动态加载走 append_dynamic_graphs),
+    // 但保留作为初始 setup 接口供未来使用
     for (const auto& node_ptr : nodes) {
-        register_node(node_ptr->clone()); // Use clone to avoid moving out of the vector if it's const
+        register_node(parse_single_node_spec(*node_ptr, ""));
     }
-    // build_dag(); // Only call if this is an initial load, not for dynamic append
+}
+
+std::unique_ptr<Node> TopoScheduler::parse_single_node_spec(const Node& node_spec, const std::string& graph_id) {
+    (void)graph_id; // 预留: graph_id 可用于将来按图分组追踪
+    return node_spec.clone();
 }
 
 std::optional<ExecutionResult> TopoScheduler::prepare_dag_state(DagState& state) {

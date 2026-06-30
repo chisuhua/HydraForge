@@ -82,6 +82,10 @@ private:
     std::vector<ParsedGraph> dynamic_graphs_; // Store newly generated graphs
     //
     void load_graphs(const std::vector<std::unique_ptr<Node>>& nodes); // Helper for registration/building
+    // Sprint 18 D-3: load_graphs 单节点处理 helper (注: 当前 load_graphs 仅 clone+register,
+    // 无 JSON 解析; 实际 JSON → Node 解析由 MarkdownParser::create_node_from_json 处理。
+    // 本 helper 适配当前数据结构签名, 未来若引入 JSON spec 可平滑迁移)
+    std::unique_ptr<Node> parse_single_node_spec(const Node& node_spec, const std::string& graph_id);
     //
     std::optional<NodePath> current_fork_node_path_; // Path of the ForkNode currently being processed
     std::vector<NodePath> current_fork_branches_; // List of branches from the ForkNode
