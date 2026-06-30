@@ -25,12 +25,12 @@ TEST_CASE("ToolResult success factory", "[types][tool_result]") {
 }
 
 TEST_CASE("ToolResult error factory", "[types][tool_result]") {
-  auto r = ToolResult::error("ERR_LLM.NETWORK", "timeout");
+  auto r = ToolResult::error(ErrorCode::Retry, "timeout");
 
   REQUIRE(r.ok == false);
   // error_code 与 error_message 必须注入到 meta
   REQUIRE(r.meta.contains("error_code"));
-  REQUIRE(r.meta["error_code"] == "ERR_LLM.NETWORK");
+  REQUIRE(r.meta["error_code"] == "Retry");
   REQUIRE(r.meta.contains("error_message"));
   REQUIRE(r.meta["error_message"] == "timeout");
   // data 应保持为空对象（错误结果不应携带工具输出）
@@ -52,11 +52,11 @@ TEST_CASE("ToolResult JSON roundtrip", "[types][tool_result]") {
   REQUIRE(roundtrip1.meta == success_r.meta);
 
   // 2) error 往返
-  ToolResult error_r = ToolResult::error("ERR_PARSE", "bad json");
+  ToolResult error_r = ToolResult::error(ErrorCode::Unknown, "bad json");
   auto j2 = error_r.to_json();
   auto roundtrip2 = ToolResult::from_json(j2);
   REQUIRE(roundtrip2.ok == error_r.ok);
-  REQUIRE(roundtrip2.meta["error_code"] == "ERR_PARSE");
+  REQUIRE(roundtrip2.meta["error_code"] == "Unknown");
   REQUIRE(roundtrip2.meta["error_message"] == "bad json");
 }
 

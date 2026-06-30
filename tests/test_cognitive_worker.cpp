@@ -195,8 +195,7 @@ TEST_CASE("CognitiveWorker propagates error with ErrorCode enum",
   REQUIRE(captured.error_code.value() == ErrorCode::Retry);  // NETWORK -> Retry
   REQUIRE(captured.trace_id.has_value());
   REQUIRE(captured.trace_id.value() == "err-task-1");
-  // legacy string 保留 (向后兼容)
-  REQUIRE(captured.meta["error_code"] == "ERR_LLM.NETWORK");
+  REQUIRE(captured.meta["error_code"] == "Retry");
   REQUIRE(captured.meta["error_message"] == "connection refused");
 }
 

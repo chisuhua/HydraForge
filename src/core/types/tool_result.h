@@ -80,18 +80,6 @@ struct ToolResult {
   static ToolResult success(nlohmann::json d, nlohmann::json m = nlohmann::json::object());
 
   /**
-   * @brief 构造失败结果 (P1 字符串 error_code, 向后兼容)
-   * @param code 错误码字符串 (e.g. "ERR_LLM.NETWORK")
-   * @param msg 错误消息
-   * @param m 可选额外元数据（移动语义）
-   * @return ok=false 的 ToolResult, meta 中注入 error_code/error_message
-   * @deprecated 优先使用 overload error(ErrorCode, std::string)
-   */
-  static ToolResult error(std::string code,
-                          std::string msg,
-                          nlohmann::json m = nlohmann::json::object());
-
-  /**
    * @brief 构造失败结果 (P2 ErrorCode enum, Sprint 1a 推荐)
    * @param code 错误码枚举
    * @param msg 错误消息

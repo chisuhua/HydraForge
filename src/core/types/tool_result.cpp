@@ -60,21 +60,6 @@ ToolResult ToolResult::success(nlohmann::json d, nlohmann::json m) {
   return r;
 }
 
-ToolResult ToolResult::error(std::string code,
-                             std::string msg,
-                             nlohmann::json m) {
-  ToolResult r;
-  r.ok = false;
-  // P1 字符串 error_code 注入 meta (向后兼容)
-  if (!m.is_object()) {
-    m = nlohmann::json::object();
-  }
-  m["error_code"] = std::move(code);
-  m["error_message"] = std::move(msg);
-  r.meta = std::move(m);
-  return r;
-}
-
 ToolResult ToolResult::error(ErrorCode code,
                              std::string msg,
                              nlohmann::json m) {

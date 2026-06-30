@@ -23,19 +23,22 @@ namespace agenticdsl {
 
 namespace {
 
-// LLMError::Code -> 简短字符串（用于 ToolResult error_code 后缀）
-const char* llm_error_code_name(LLMError::Code code) {
+ErrorCode llm_error_to_error_code(LLMError::Code code) {
   switch (code) {
-    case LLMError::Code::NetworkError:        return "NETWORK";
-    case LLMError::Code::RateLimited:         return "RATE_LIMITED";
-    case LLMError::Code::AuthenticationError: return "AUTH";
-    case LLMError::Code::Cancelled:           return "CANCELLED";
-    case LLMError::Code::InvalidRequest:      return "INVALID_REQUEST";
-    case LLMError::Code::ServerError:         return "SERVER";
-    case LLMError::Code::ContextOverflow:     return "CONTEXT_OVERFLOW";
-    case LLMError::Code::Unknown:             break;
+    case LLMError::Code::NetworkError:
+    case LLMError::Code::RateLimited:
+    case LLMError::Code::ServerError:
+      return ErrorCode::Retry;
+    case LLMError::Code::AuthenticationError:
+      return ErrorCode::PermissionDenied;
+    case LLMError::Code::ContextOverflow:
+      return ErrorCode::ResourceExhausted;
+    case LLMError::Code::Cancelled:
+    case LLMError::Code::InvalidRequest:
+    case LLMError::Code::Unknown:
+      return ErrorCode::Unknown;
   }
-  return "UNKNOWN";
+  return ErrorCode::Unknown;
 }
 
 // 将 nlohmann::json args（仅 string/number/bool/null/对象/数组）压平成
@@ -77,7 +80,7 @@ void SimpleCognitiveOrchestrator::process(
   if (!registry_ || !llm_) {
     if (on_complete) {
       on_complete(ToolResult::error(
-          "ERR_ORCHESTRATOR.NOT_INITIALIZED",
+          ErrorCode::Unknown,
           "Missing dependencies (registry or llm)"));
     }
     return;
@@ -90,12 +93,12 @@ void SimpleCognitiveOrchestrator::process(
   } catch (const std::exception& e) {
     if (on_complete) {
       on_complete(ToolResult::error(
-          "ERR_ORCHESTRATOR.UNEXPECTED", e.what()));
+          ErrorCode::Unknown, e.what()));
     }
   } catch (...) {
     if (on_complete) {
       on_complete(ToolResult::error(
-          "ERR_ORCHESTRATOR.UNEXPECTED",
+          ErrorCode::Unknown,
           "non-std exception thrown"));
     }
   }
@@ -115,7 +118,7 @@ ToolResult SimpleCognitiveOrchestrator::react_once(const std::string& user_promp
   auto result = llm_->generate(req, {});
   if (!result.has_value()) {
     return ToolResult::error(
-        std::string("ERR_LLM.") + llm_error_code_name(result.error().code),
+        llm_error_to_error_code(result.error().code),
         result.error().message);
   }
 
@@ -124,7 +127,7 @@ ToolResult SimpleCognitiveOrchestrator::react_once(const std::string& user_promp
   try {
     tool_call = nlohmann::json::parse(result.value().text);
   } catch (const std::exception& e) {
-    return ToolResult::error("ERR_ORCHESTRATOR.PARSE_FAILED", e.what());
+    return ToolResult::error(ErrorCode::Unknown, e.what());
   }
 
   // 4) 验证 tool 字段
@@ -132,14 +135,14 @@ ToolResult SimpleCognitiveOrchestrator::react_once(const std::string& user_promp
       !tool_call.contains("tool") ||
       !tool_call["tool"].is_string()) {
     return ToolResult::error(
-        "ERR_ORCHESTRATOR.INVALID_FORMAT", "Missing 'tool' field");
+        ErrorCode::Unknown, "Missing 'tool' field");
   }
   std::string tool_name = tool_call["tool"].get<std::string>();
 
   // 5) 检查工具存在
   if (!registry_->has_tool(tool_name)) {
     return ToolResult::error(
-        "ERR_TOOL.NOT_FOUND", "Tool not registered: " + tool_name);
+        ErrorCode::ToolNotRegistered, "Tool not registered: " + tool_name);
   }
 
   // 6) 调用工具（将 json args 扁平化）
@@ -155,7 +158,7 @@ ToolResult SimpleCognitiveOrchestrator::react_once(const std::string& user_promp
     tool_result = registry_->call_tool(tool_name, flat_args);
   } catch (const std::exception& e) {
     return ToolResult::error(
-        "ERR_TOOL.EXECUTION_FAILED",
+        ErrorCode::Unknown,
         std::string("Tool execution failed: ") + e.what());
   }
 

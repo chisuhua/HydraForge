@@ -86,7 +86,7 @@ TEST_CASE("SimpleCognitiveOrchestrator LLM error injection",
   });
   REQUIRE(done);
   REQUIRE_FALSE(captured.ok);
-  REQUIRE(captured.meta["error_code"] == "ERR_LLM.NETWORK");
+  REQUIRE(captured.meta["error_code"] == "Retry");
   REQUIRE(captured.meta["error_message"] == "connection refused");
 }
 
@@ -109,7 +109,7 @@ TEST_CASE("SimpleCognitiveOrchestrator tool not found",
   });
   REQUIRE(done);
   REQUIRE_FALSE(captured.ok);
-  REQUIRE(captured.meta["error_code"] == "ERR_TOOL.NOT_FOUND");
+  REQUIRE(captured.meta["error_code"] == "ToolNotRegistered");
 }
 
 // === Test 4: JSON 解析失败 ===
@@ -133,7 +133,7 @@ TEST_CASE("SimpleCognitiveOrchestrator JSON parse failure",
   });
   REQUIRE(done);
   REQUIRE_FALSE(captured.ok);
-  REQUIRE(captured.meta["error_code"] == "ERR_ORCHESTRATOR.PARSE_FAILED");
+  REQUIRE(captured.meta["error_code"] == "Unknown");
 }
 
 // === Test 5: 端到端（重复 Test 1 但验证完整 JSON 序列化）===
