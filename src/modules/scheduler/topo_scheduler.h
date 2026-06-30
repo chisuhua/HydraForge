@@ -9,8 +9,8 @@
 #include "scheduler/execution_session.h" // 引入 ExecutionSession
 // P1.T4: 改为 IToolRegistry 抽象 (不再拖入 common/tools/registry.h)
 #include "agenticdsl/contract/itool_registry.h" // P1.T2: IToolRegistry 抽象接口
-#include "modules/parser/markdown_parser.h" // 引入 ParsedGraph
-#include "modules/scheduler/resource_manager.h" // 引入 ParsedGraph
+#include "modules/parser/markdown_parser.h" // 引入 ParsedGraph (std::vector<ParsedGraph> 需要完整类型)
+// ResourceManager 前向声明 (Sprint 17 C.4: PIMPL-lite 解耦)
 #include "agenticdsl/contract/ischeduler.h"  // ADR-0019 §1.4：实现 IScheduler 抽象接口
 #include <vector>
 #include <memory> // For unique_ptr<Node>
@@ -28,6 +28,7 @@ class ILLMProvider;
 
 class ApprovalHandler; // ADR-0031 (2026-07-31): 前向声明
 class ToolCoordinator; // C4 Sprint 14 (ADR-0031 P3-P4): 前向声明
+class ResourceManager; // Sprint 17 C.4: PIMPL-lite 解耦 (替代 include modules/scheduler/resource_manager.h)
 
 class TopoScheduler : public IScheduler {
 public:
@@ -61,7 +62,7 @@ public:
 
 private:
     const std::vector<ParsedGraph>* full_graphs_ = nullptr; // ← 新增
-    ResourceManager resource_manager_; // ← 成员变量，非全局单例
+    std::unique_ptr<ResourceManager> resource_manager_; // Sprint 17 C.4: PIMPL-lite 化
     ExecutionSession session_;
     std::vector<std::unique_ptr<Node>> all_nodes_;
     std::unordered_map<NodePath, Node*> node_map_;

@@ -1,6 +1,7 @@
 // modules/scheduler/src/topo_scheduler.cpp
 #include "scheduler/topo_scheduler.h"
 #include "core/types/node.h"
+#include "modules/scheduler/resource_manager.h" // Sprint 17 C.4: 完整类型 (PIMPL-lite 从头文件移出)
 #include "common/llm/llm_types.h" // C₁.3: 需要完整 ILLMProvider 定义
 #include "common/utils/template_renderer.h"
 #include "common/log/log.h"        // agenticdsl::log 日志门面（tech-debt-and-doc-cleanup）
@@ -23,8 +24,8 @@ struct HardEndException : public std::exception {
 // P1.T4 (2026-06-18): ToolRegistry& → IToolRegistry& (依赖倒置)
 TopoScheduler::TopoScheduler(Config config, IToolRegistry& tool_registry, ILLMProvider* llm_provider, const std::vector<ParsedGraph>* full_graphs)
     : full_graphs_(full_graphs),
-      resource_manager_(),
-      session_(std::move(config.initial_budget), tool_registry, llm_provider, resource_manager_,
+      resource_manager_(std::make_unique<ResourceManager>()),
+      session_(std::move(config.initial_budget), tool_registry, llm_provider, *resource_manager_,
                full_graphs_,
                [this](std::vector<ParsedGraph> graphs) { this->append_dynamic_graphs(std::move(graphs)); }) { // Pass callback to ExecutionSession
     // ADR-0031 (2026-07-31): 传递审批处理器到执行会话
@@ -54,7 +55,7 @@ void TopoScheduler::register_resources() {
                 .scope = res_node->scope,
                 .metadata = res_node->metadata
             };
-            resource_manager_.register_resource(res);
+            resource_manager_->register_resource(res);
         }
     }
 }
