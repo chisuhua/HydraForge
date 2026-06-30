@@ -459,6 +459,10 @@ void handle_mode_change(
 
 ToolCoordinator 内部委托 `ApprovalHandler::process_request()` (组合, 非继承), 并新增 layer check + audit log emit. 既有 `set_approval_handler()` 标记 `[[deprecated("use set_tool_coordinator")]]` 但保留 (零回归过渡).
 
+#### ApprovalHandler 抽象层 (Sprint 19, OpenSpec `pimpl-node-executor-h`)
+
+为遵循 ADR-0019 §1.4 "依赖抽象" 原则, `NodeExecutor` 不再 include 具体类 `common/policy/approval_handler.h`, 而是通过新建抽象接口 `agenticdsl::policy::IApprovalHandler` (1 虚函数 `process_request(meta, ctx, preview)`) 持有审批处理器. `ApprovalHandler` 改为 `public IApprovalHandler`, `process_request` 添加 `override`. `NodeExecutor::set_approval_handler(IApprovalHandler*)` 签名从 `ApprovalHandler*` 升级, 级联消费者 (`ExecutionSession` / `TopoScheduler::Config` / `scheduler::SchedulerConfig`) 同步迁移到 `IApprovalHandler*`. 公开方法签名升级为 BREAKING 变更, 但行为完全保持. 关键差异与 P1.T4 (`ToolRegistry → IToolRegistry`) 一致.
+
 #### NodeExecutor 优先级链
 
 ```
