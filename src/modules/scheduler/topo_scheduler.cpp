@@ -202,8 +202,7 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
 
 ExecutionResult TopoScheduler::execute_parallel(const Context& initial_context) {
     // C2 Day 1-2 (ADR-0030 V2): 并行 DAG 执行
-    // 当前实现: 复用已构建 DAG, 用 tf::Executor 并行派发无依赖节点
-    // 完整实现: 将 DagState 转换为 tf::Taskflow, 节点依赖关系映射为 Taskflow precedences
+    // Sprint 18 D-4: 精简为 setup + 调用 execute_dag_loop 编排 (≤30 行)
     Context context = initial_context;
     DagState state;
     if (auto early = prepare_dag_state(state); early.has_value()) return *early;
@@ -226,6 +225,11 @@ ExecutionResult TopoScheduler::execute_parallel(const Context& initial_context) 
         parallel_taskflow_ = std::make_unique<tf::Taskflow>();
     }
 
+    return execute_dag_loop(state, context);
+}
+
+ExecutionResult TopoScheduler::execute_dag_loop(DagState& state, const Context& context) {
+    // Sprint 18 D-4: 拆自 execute_parallel — tf::Taskflow 构建 + run + 收集结果
     parallel_taskflow_->clear();
     std::unordered_map<NodePath, tf::Task> tf_tasks;
     std::vector<NodePath> locally_executed;

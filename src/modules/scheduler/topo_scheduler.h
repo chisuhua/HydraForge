@@ -128,6 +128,8 @@ private:
     };
 
     std::optional<ExecutionResult> prepare_dag_state(DagState& state);
+    // Sprint 18 D-4: execute_parallel 拆分 - tf::Executor 派发核心循环 (拆自 execute_parallel)
+    ExecutionResult execute_dag_loop(DagState& state, const Context& context);
     // Sprint 18 reduce-topo-scheduler-complexity D-1: build_dag(DagState&) 重载已删除, 显式迁移到 execute_parallel()
     std::optional<ExecutionResult> resolve_dynamic_waits(
         Node* current_node, const NodePath& current_path, const Context& context, bool& can_execute);
