@@ -88,31 +88,8 @@ void TopoScheduler::parse_node_wait_for_deps() {
         }
 
         if (node->metadata.contains("wait_for") && !node->metadata["wait_for"].is_string()) {
-            const auto& wf = node->metadata["wait_for"];
             std::vector<NodePath> deps;
-
-            if (wf.is_object()) {
-                if (wf.contains("all_of")) {
-                    const auto& all = wf["all_of"];
-                    if (all.is_array()) {
-                        for (const auto& item : all) deps.push_back(item.get<std::string>());
-                    } else if (all.is_string()) {
-                        deps.push_back(all.get<std::string>());
-                    }
-                }
-                if (wf.contains("any_of")) {
-                    const auto& any = wf["any_of"];
-                    if (any.is_array()) {
-                        for (const auto& item : any) deps.push_back(item.get<std::string>());
-                    } else if (any.is_string()) {
-                        deps.push_back(any.get<std::string>());
-                    }
-                }
-            } else if (wf.is_array()) {
-                for (const auto& item : wf) deps.push_back(item.get<std::string>());
-            } else if (wf.is_string()) {
-                deps.push_back(wf.get<std::string>());
-            }
+            collect_wait_for_deps(node->metadata["wait_for"], deps);
 
             for (const auto& dep_path : deps) {
                 if (node_map_.count(dep_path) == 0) {
@@ -126,6 +103,33 @@ void TopoScheduler::parse_node_wait_for_deps() {
     }
 }
 
+void TopoScheduler::collect_wait_for_deps(const nlohmann::json& wf, std::vector<NodePath>& deps) const {
+    if (wf.is_object()) {
+        if (wf.contains("all_of")) {
+            const auto& all = wf["all_of"];
+            if (all.is_array()) {
+                for (const auto& item : all) deps.push_back(item.get<std::string>());
+            } else if (all.is_string()) {
+                deps.push_back(all.get<std::string>());
+            }
+        }
+        if (wf.contains("any_of")) {
+            // Note: 'any_of' requires more complex scheduling logic; for basic topo,
+            // treated as all_of. Full impl needs different scheduling model.
+            const auto& any = wf["any_of"];
+            if (any.is_array()) {
+                for (const auto& item : any) deps.push_back(item.get<std::string>());
+            } else if (any.is_string()) {
+                deps.push_back(any.get<std::string>());
+            }
+        }
+    } else if (wf.is_array()) {
+        for (const auto& item : wf) deps.push_back(item.get<std::string>());
+    } else if (wf.is_string()) {
+        deps.push_back(wf.get<std::string>());
+    }
+}
+
 void TopoScheduler::seed_initial_ready_queue() {
     for (const auto& node_ptr : all_nodes_) {
         NodePath path = node_ptr->path;
@@ -136,12 +140,8 @@ void TopoScheduler::seed_initial_ready_queue() {
     LOG_DEBUG("Initial ready queue size: " << ready_queue_.size());
 }
 
-ExecutionResult TopoScheduler::execute(const Context& initial_context) {
-    Context context = initial_context;
-    DagState state;
-    if (auto early = prepare_dag_state(state); early.has_value()) return *early;
-    build_dag();
-    // Sprint 18 D-1: 显式迁移 7 字段到 DagState (替代原 build_dag(DagState&) 重载)
+void TopoScheduler::copy_dag_state_to(DagState& state) const {
+    // Sprint 18 D-5: DRY 化 7 字段状态迁移 (execute + execute_parallel + rebuild_dynamic_graph 共用)
     state.nodes = node_map_;
     state.reverse_edges = reverse_edges_;
     state.wait_for_dependents = wait_for_dependents_;
@@ -150,7 +150,20 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
     state.executed.clear();
     while (!state.ready_queue.empty()) state.ready_queue.pop();
     state.ready_queue = ready_queue_;
+}
 
+ExecutionResult TopoScheduler::execute(const Context& initial_context) {
+    // Sprint 18 D-5/D-5.1: setup + 主循环委托给 run_main_loop
+    Context context = initial_context;
+    DagState state;
+    if (auto early = prepare_dag_state(state); early.has_value()) return *early;
+    build_dag();
+    copy_dag_state_to(state);
+    return run_main_loop(state, context);
+}
+
+ExecutionResult TopoScheduler::run_main_loop(DagState& state, Context& context) {
+    // Sprint 18 D-5.1: 串行主调度循环 (execute() 内部主循环)
     while (!state.ready_queue.empty() || !session_.get_pending_dynamic_deps().empty()) {
         handle_fork_branches_block();
 
@@ -196,26 +209,17 @@ ExecutionResult TopoScheduler::execute(const Context& initial_context) {
         std::unordered_set<NodePath> newly_executed = {found.path};
         session_.check_and_requeue_dynamic_deps(newly_executed);
     }
-
     return finalize_execution(state, context);
 }
 
 ExecutionResult TopoScheduler::execute_parallel(const Context& initial_context) {
     // C2 Day 1-2 (ADR-0030 V2): 并行 DAG 执行
-    // Sprint 18 D-4: 精简为 setup + 调用 execute_dag_loop 编排 (≤30 行)
+    // Sprint 18 D-4/D-5: 精简为 setup + 调用 execute_dag_loop 编排 (≤30 行)
     Context context = initial_context;
     DagState state;
     if (auto early = prepare_dag_state(state); early.has_value()) return *early;
     build_dag();
-    // Sprint 18 D-1: 显式迁移到 DagState (替代原 build_dag(DagState&) 重载)
-    state.nodes = node_map_;
-    state.reverse_edges = reverse_edges_;
-    state.wait_for_dependents = wait_for_dependents_;
-    state.in_degree = in_degree_;
-    state.dynamic_graphs.clear();
-    state.executed.clear();
-    while (!state.ready_queue.empty()) state.ready_queue.pop();
-    state.ready_queue = ready_queue_;
+    copy_dag_state_to(state);
 
     if (!parallel_executor_) {
         parallel_executor_ = std::make_unique<tf::Executor>(
@@ -625,14 +629,8 @@ void TopoScheduler::rebuild_dynamic_graph(DagState& state) {
     in_degree_.clear();
     all_nodes_ = std::move(all_nodes_copy);
     build_dag();
-    // Sprint 18 D-1: rebuild_dynamic_graph 内部显式重迁 state
-    state.nodes = node_map_;
-    state.reverse_edges = reverse_edges_;
-    state.wait_for_dependents = wait_for_dependents_;
-    state.in_degree = in_degree_;
-    state.executed.clear();
-    while (!state.ready_queue.empty()) state.ready_queue.pop();
-    state.ready_queue = ready_queue_;
+    // Sprint 18 D-5: 复用 copy_dag_state_to helper (替代原 7 行内联迁移)
+    copy_dag_state_to(state);
 }
 
 void TopoScheduler::handle_fork_branches_block() {

@@ -78,6 +78,8 @@ private:
     // Sprint 18 D-2: build_dag() 拆分 - wait_for 依赖解析 + ready_queue 填充
     void parse_node_wait_for_deps();
     void seed_initial_ready_queue();
+    // Sprint 18 D-2.1: parse_node_wait_for_deps 内联 wait_for JSON 解析再拆分 (满足 ≤50 行)
+    void collect_wait_for_deps(const nlohmann::json& wf, std::vector<NodePath>& deps) const;
 
     std::vector<ParsedGraph> dynamic_graphs_; // Store newly generated graphs
     //
@@ -130,6 +132,10 @@ private:
     std::optional<ExecutionResult> prepare_dag_state(DagState& state);
     // Sprint 18 D-4: execute_parallel 拆分 - tf::Executor 派发核心循环 (拆自 execute_parallel)
     ExecutionResult execute_dag_loop(DagState& state, const Context& context);
+    // Sprint 18 D-5: DRY 化 execute() / execute_parallel() 重复的 7 行 state 迁移块
+    void copy_dag_state_to(DagState& state) const;
+    // Sprint 18 D-5.1: execute() 主 while 循环提取
+    ExecutionResult run_main_loop(DagState& state, Context& context);
     // Sprint 18 reduce-topo-scheduler-complexity D-1: build_dag(DagState&) 重载已删除, 显式迁移到 execute_parallel()
     std::optional<ExecutionResult> resolve_dynamic_waits(
         Node* current_node, const NodePath& current_path, const Context& context, bool& can_execute);
