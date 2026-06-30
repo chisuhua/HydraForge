@@ -93,6 +93,15 @@ private:
     Context execute_resource(const ResourceNode* node, const Context& ctx);
     Context execute_generate_subgraph(const GenerateSubgraphNode* node, const Context& ctx);
     Context execute_assert(const AssertNode* node, const Context& ctx) ;
+
+    // Sprint 17 C.2: execute_tool_call helper methods
+    bool handle_tool_errors(const ToolCallNode* node, const ToolResult& result);
+    void process_output_keys(Context& new_context,
+                              const std::vector<std::string>& output_keys,
+                              const nlohmann::json& data);
+    std::pair<ToolResult, Context> dispatch_to_tool(
+        const std::string& tool_name, const std::string& node_path,
+        const std::unordered_map<std::string, std::string>& args);
 };
 
 } // namespace agenticdsl
