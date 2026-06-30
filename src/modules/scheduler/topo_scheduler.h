@@ -99,6 +99,14 @@ private:
     void finish_fork_simulation();
     void start_join_simulation(const JoinNode* join_node);
     void finish_join_simulation(Context& main_context);
+    // Sprint 17 C.3: execute_single_branch helper methods
+    NodePath find_branch_start_node(const NodePath& branch_path) const;
+    auto init_branch_state(const NodePath& branch_path)
+        -> std::tuple<std::queue<NodePath>, std::unordered_set<NodePath>,
+                      std::unordered_map<NodePath, int>,
+                      std::unordered_map<NodePath, std::vector<NodePath>>>;
+    bool process_branch_end_node(Node* node, const NodePath& current_path,
+                                  const NodePath& branch_path, const Context& current_ctx);
 
     // Sprint 7 Day 5: DagState (Oracle A + 4 纠正, 7 字段契约). nodes 是非拥有视图, 不要改 unique_ptr.
     struct DagState {
