@@ -1,14 +1,16 @@
 // src/common/policy/approval_handler.h
 // 功能描述：ApprovalHandler — 整合 IExecutionPolicy + ApprovalCallback
 // 设计依据：ADR-0031 §决策 5 (Oracle session ses_0ee867023ffeaSqWQXET5ESbAo)
-// 作者：AgenticDSL Phase3 / Sprint 13 C3 ship
+// Sprint 19 (OpenSpec change pimpl-node-executor-h):
+//   继承 IApprovalHandler 抽象接口 — NodeExecutor 通过抽象持有, 解耦 executor 与具体类
+// 作者：AgenticDSL Phase3 / Sprint 13 C3 ship + Sprint 19
 // 最后修改日期：2026-07-31
 #pragma once
 
 #include <memory>
 #include <string>
 
-#include "agenticdsl/policy/iexecution_policy.h"
+#include "agenticdsl/policy/iapproval_handler.h"
 
 namespace agenticdsl {
 
@@ -22,8 +24,10 @@ namespace agenticdsl {
  * 4. callback 超时视为拒绝 (defense-in-depth)
  *
  * 集成方式: 由 NodeExecutor 在 tool 调用前调用 process_request()
+ *
+ * Sprint 19: 继承 IApprovalHandler — NodeExecutor 仅持有抽象指针
  */
-class ApprovalHandler {
+class ApprovalHandler : public IApprovalHandler {
  public:
   /**
    * @brief 构造函数
@@ -37,7 +41,7 @@ class ApprovalHandler {
       int default_timeout_ms = 300000);
 
   /**
-   * @brief 处理一次工具调用的审批请求
+   * @brief 处理一次工具调用的审批请求 (Sprint 19: override IApprovalHandler)
    *
    * 流程:
    * 1. policy.requires_approval(meta, ctx) -> 是否需要审批
@@ -52,7 +56,7 @@ class ApprovalHandler {
    */
   bool process_request(const ToolMetadata& meta,
                        const ToolCallContext& ctx,
-                       const ToolPreview& preview);
+                       const ToolPreview& preview) override;
 
  private:
   std::shared_ptr<IExecutionPolicy> policy_;
