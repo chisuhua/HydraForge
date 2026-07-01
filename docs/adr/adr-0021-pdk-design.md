@@ -2,7 +2,7 @@
 
 ## 状态
 
-**✅ Approved (2026-06-24, Sprint 5 ship)** — V0.1 MVP 版。DECLARE_TOOL 宏 + DEFINE_AGENT 模板 (React MVP) + SafeExec 封装 (超时+异常 MVP) 已实施 (5/5 ctest pass, 32/32 baseline 零回归)。monorepo `pdk/` 子目录先 ship (K3 决策, ADR-0021 §2.2 一致),`hydraforge-pdk` 独立仓库推送留 Sprint 5 ship 后异步 (T4b, 外部阻塞: GitHub 组织存在性)。Phase 1 智能体层 100% 收官，变更依据: `openspec/changes/tech-debt-and-phase1-closure/`。
+**✅ Approved (2026-06-24, Sprint 5 ship) + Sprint 20 PlanExecute/ForkJoin 增量 ship (2026-08-01)** — V0.2。DECLARE_TOOL 宏 + DEFINE_AGENT 模板 (React + PlanExecute + ForkJoin, Sprint 20 完整 3 状态机) + SafeExec 封装 (超时+异常 MVP) 已实施 (15/15 ctest pass [5 React + 5 PlanExecute + 5 ForkJoin], 51/51 baseline 零回归)。Sprint 20 移除 agent_macros.h:51-53 static_assert 限制, 引入 LoopDispatcher 模板 + 3 specialization (React/PlanExecute/ForkJoin), 新增 `agent_loops/{loop_result,react_loop,plan_execute_loop,fork_join_loop}.h` 4 个头文件 + `tests/test_pdk_{plan_execute,fork_join}.cpp` 10 个新测试。monorepo `pdk/` 子目录先 ship (K3 决策, ADR-0021 §2.2 一致),`hydraforge-pdk` 独立仓库推送留 Sprint 5 ship 后异步 (T4b, 外部阻塞: GitHub 组织存在性)。Phase 1 智能体层 100% 收官，变更依据: `openspec/changes/tech-debt-and-phase1-closure/` + `openspec/changes/pdk-plan-execute-fork-join/` (Sprint 20)。
 
 > **Sprint 4 增量 (2026-06-19, OpenSpec change `2026-07-07-pdk-skeleton`)**：PDK 头文件落地（`include/agenticdsl/pdk/{tool_macros,agent_macros,safe_exec,pdk}.h`）+ monorepo `pdk/` 子目录 + INTERFACE 库 (`hydraforge_pdk`)。5 个新测试 + 31 基线 = 32/32 ctest pass, P3 静态链接验证 (PDK 头文件仅依赖 Runtime 契约接口 `agenticdsl/contract/*.h`)。Phase 2/3 后续: PlanExecute/ForkJoin 完整循环 + FakeStateStore/StubLLM/MockSandbox 测试替身 + PluginLifecycle + 完整 SafeExec (fork/cgroups/seccomp) + `hydraforge-pdk` 独立仓库发布。Sprint 5 后续: PluginLoader 通过 PDK 编译的 `.so` 加载 (T4b 异步, Sprint 5 收官变 ✅ Approved)。
 

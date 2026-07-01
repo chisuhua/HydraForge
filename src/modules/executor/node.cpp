@@ -12,8 +12,11 @@ namespace agenticdsl {
 StartNode::StartNode(NodePath path, std::vector<NodePath> next_paths)
     : Node(std::move(path), NodeType::START, std::move(next_paths)) {}
 
-Context StartNode::execute(Context& context) {
-    return context; // 无操作
+// Sprint 20 (2026-07-01) / OpenSpec migrate-context-to-layered:
+// 接受 LayeredContext 签名 (5-层结构化, ADR-0008)。
+// 旧签名 execute(Context&) 通过 Node 基类默认实现桥接 (3.4)。
+LayeredContext StartNode::execute(LayeredContext& ctx) {
+    return ctx; // 无操作
 }
 
 std::unique_ptr<Node> StartNode::clone() const {
@@ -31,8 +34,8 @@ std::unique_ptr<Node> StartNode::clone() const {
 EndNode::EndNode(NodePath path)
     : Node(std::move(path), NodeType::END) {}
 
-Context EndNode::execute(Context& context) {
-    return context; // 无操作
+LayeredContext EndNode::execute(LayeredContext& ctx) {
+    return ctx; // 无操作
 }
 
 std::unique_ptr<Node> EndNode::clone() const {
@@ -54,8 +57,8 @@ AssignNode::AssignNode(NodePath path,
     : Node(std::move(path), NodeType::ASSIGN, std::move(next_paths)),
       assign(std::move(assigns)) {}
 
-Context AssignNode::execute(Context& context) {
-    return context; // 实际逻辑在 NodeExecutor
+LayeredContext AssignNode::execute(LayeredContext& ctx) {
+    return ctx; // 实际逻辑在 NodeExecutor
 }
 
 std::unique_ptr<Node> AssignNode::clone() const {
@@ -82,8 +85,8 @@ DSLNode::DSLNode(NodePath path,
       llm_params(std::move(params)),
       output_keys(std::move(output_keys)) {}
 
-Context DSLNode::execute(Context& context) {
-    return context; // 实际逻辑在 NodeExecutor
+LayeredContext DSLNode::execute(LayeredContext& ctx) {
+    return ctx; // 实际逻辑在 NodeExecutor
 }
 
 std::unique_ptr<Node> DSLNode::clone() const {
@@ -107,8 +110,8 @@ ToolCallNode::ToolCallNode(NodePath path,
       arguments(std::move(arguments)),
       output_keys(std::move(output_keys)) {}
 
-Context ToolCallNode::execute(Context& context) {
-    return context; // 实际逻辑在 NodeExecutor
+LayeredContext ToolCallNode::execute(LayeredContext& ctx) {
+    return ctx; // 实际逻辑在 NodeExecutor
 }
 
 std::unique_ptr<Node> ToolCallNode::clone() const {
@@ -133,8 +136,8 @@ ResourceNode::ResourceNode(NodePath path,
       uri(std::move(uri)),
       scope(std::move(scope)) {}
 
-Context ResourceNode::execute(Context& context) {
-    return context; // 资源注册由 TopoScheduler::build_dag() 完成
+LayeredContext ResourceNode::execute(LayeredContext& ctx) {
+    return ctx; // 资源注册由 TopoScheduler::build_dag() 完成
 }
 
 std::unique_ptr<Node> ResourceNode::clone() const {
@@ -150,8 +153,8 @@ ForkNode::ForkNode(NodePath path, std::vector<NodePath> branch_paths, std::vecto
     : Node(std::move(path), NodeType::FORK, std::move(next_paths)),
       branches(std::move(branch_paths)) {}
 
-Context ForkNode::execute(Context& context) {
-    return context; // 实际逻辑在 TopoScheduler
+LayeredContext ForkNode::execute(LayeredContext& ctx) {
+    return ctx; // 实际逻辑在 TopoScheduler
 }
 
 std::unique_ptr<Node> ForkNode::clone() const {
@@ -171,8 +174,8 @@ JoinNode::JoinNode(NodePath path, std::vector<NodePath> deps, std::string strate
       wait_for(std::move(deps)),
       merge_strategy(std::move(strategy)) {}
 
-Context JoinNode::execute(Context& context) {
-    return context; // 实际逻辑 in TopoScheduler
+LayeredContext JoinNode::execute(LayeredContext& ctx) {
+    return ctx; // 实际逻辑 in TopoScheduler
 }
 
 std::unique_ptr<Node> JoinNode::clone() const {
@@ -192,8 +195,8 @@ GenerateSubgraphNode::GenerateSubgraphNode(NodePath path, std::string prompt, st
       prompt_template(std::move(prompt)),
       output_keys(std::move(output_keys)) {}
 
-Context GenerateSubgraphNode::execute(Context& context) {
-    return context; // 实际逻辑 in NodeExecutor
+LayeredContext GenerateSubgraphNode::execute(LayeredContext& ctx) {
+    return ctx; // 实际逻辑 in NodeExecutor
 }
 
 std::unique_ptr<Node> GenerateSubgraphNode::clone() const {
@@ -215,8 +218,8 @@ AssertNode::AssertNode(NodePath path, std::string condition, std::optional<NodeP
       condition(std::move(condition)),
       on_failure(std::move(on_fail)) {}
 
-Context AssertNode::execute(Context& context) {
-    return context; // 实际逻辑 in NodeExecutor
+LayeredContext AssertNode::execute(LayeredContext& ctx) {
+    return ctx; // 实际逻辑 in NodeExecutor
 }
 
 std::unique_ptr<Node> AssertNode::clone() const {

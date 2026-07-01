@@ -43,7 +43,7 @@ nodes:
 )";
 
     auto engine = DSLEngine::from_markdown(markdown);
-    
+
     // Register the calculate tool on this engine
     engine->register_tool("calculate", [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
         double a = std::stod(args.at("a"));
@@ -52,8 +52,9 @@ nodes:
         double result = (op == "+") ? a + b : a - b;
         return nlohmann::json{{"result", result}};
     });
-    
-    Context ctx;
+
+    // Sprint 20 (2026-07-01): LayeredContext fixture migration
+    LayeredContext ctx;
     auto result = engine->run(ctx);
 
     REQUIRE(result.success == true);
@@ -85,9 +86,10 @@ nodes:
 )";
 
     auto engine = DSLEngine::from_markdown(markdown);
-    Context ctx;
-    ctx["user"]["name"] = "Alice";
-    ctx["items"] = nlohmann::json::array({"apple", "banana"});
+    // Sprint 20: LayeredContext fixture migration
+    LayeredContext ctx;
+    ctx.working["user"]["name"] = "Alice";
+    ctx.working["items"] = nlohmann::json::array({"apple", "banana"});
 
     auto result = engine->run(ctx);
     REQUIRE(result.success == true);
@@ -129,7 +131,8 @@ nodes:
 )";
 
     auto engine = DSLEngine::from_markdown(markdown);
-    Context ctx;
+    // Sprint 20: LayeredContext fixture migration
+    LayeredContext ctx;
     auto result = engine->run(ctx);
 
     REQUIRE(result.success == true);

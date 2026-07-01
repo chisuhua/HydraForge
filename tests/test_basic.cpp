@@ -81,7 +81,9 @@ nodes:
     )";
 
     auto engine = agenticdsl::DSLEngine::from_markdown(simple_dsl);
-    agenticdsl::Context initial_ctx;
+    // Sprint 20 (2026-07-01) / OpenSpec migrate-context-to-layered:
+    // 测试 fixture 迁移 — 旧 Context 改 LayeredContext (5-层结构化, ADR-0008)
+    agenticdsl::LayeredContext initial_ctx; // L3 working 默认空
     auto result = engine->run(initial_ctx);
 
     // Check if execution was successful and 'message' was set
@@ -115,8 +117,9 @@ nodes:
     )";
 
     auto engine = agenticdsl::DSLEngine::from_markdown(dsl_with_tool);
-    agenticdsl::Context initial_ctx;
-    initial_ctx["search_query"] = "test query";
+    // Sprint 20: 测试 fixture 迁移 (LayeredContext)
+    agenticdsl::LayeredContext initial_ctx;
+    initial_ctx.working["search_query"] = "test query";
     auto result = engine->run(initial_ctx);
 
     // Check if execution was successful and 'search_results' was set (to mock value)

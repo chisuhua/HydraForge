@@ -119,6 +119,7 @@ add_subdirectory(pdk)
 
 add_library(agenticdsl_core STATIC
  src/core/engine.cpp
+ src/core/types/session.cpp
 )
 
 target_link_libraries(agenticdsl_core

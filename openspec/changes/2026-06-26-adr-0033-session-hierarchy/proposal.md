@@ -1,111 +1,133 @@
 # Proposal: ADR-0033 — Session Hierarchy (三层会话模型)
 
-> **STATUS: PLACEHOLDER** ⚠️
-> **本 change 详细 design/spec/tasks 待 Sprint 14 启动前填充**
-> **触发条件**: 无硬依赖 (与 C3 关联更自然, 建议在 C3 完成后启动)
-> **关联 ADR**: docs/adr/adr-0033-session-hierarchy.md (🟡 Partial, 仅前向声明)
+> **STATUS: ACTIVE** 🟢 — 设计完成，待实施
+> **Oracle 审查**: ses_0e28703caffeBUB7tgDqsClZiw (2026-07-01)
+> **Metis 审查**: ses_0e26217edffeHrMpGUPLuhTecP (2026-07-01)
+> **预估工时**: 4.5 人天
+> **关联 ADR**: docs/adr/adr-0033-session-hierarchy.md (🟡 Partial → 实施后 ✅ Approved)
 > **追溯范围**: `docs/superpowers/plans/2026-06-26-sprint-11-to-18-roadmap.md` §四 C5
+> **前置依赖**: 无
 
 ## Why
 
-ADR-0033 Session Hierarchy 当前状态 🟡 Partial, 仅 `include/agenticdsl/types/session_fwd.h` 前向声明存在. docs/adr/adr-0033-session-hierarchy.md §决策 1 定义三层会话模型: UserSession / TaskSession / SubtaskSession.
+ADR-0033 Session Hierarchy 当前状态 🟡 Partial，仅 `include/agenticdsl/types/session_fwd.h` 前向声明存在。
+当前代码库无会话层级支持，导致以下问题：
 
-Sprint 15 启动本 change 实施:
-- UserSession: 用户级 (跨多次任务)
-- TaskSession: 单次任务 (DSLEngine::run 一次)
-- SubtaskSession: fork/join 分支 (IPER 子任务)
+1. **无 multi-turn 状态**：多次 `DSLEngine::run()` 调用彼此独立，无法追溯历史
+2. **分支状态丢失**：fork/join 的 `execute_single_branch()` 返回临时 `Context`，无法追溯分支历史
+3. **IPER retry 无会话**：失败重试无法判断"同一任务已失败 n 次"
+4. **执行策略无上下文**：`IExecutionPolicy` 挂在 DSLEngine 级别，无法 per-task 切换
 
-不解决此问题: (a) multi-turn 对话无法持久化; (b) fork/join 分支状态无法追溯; (c) IPER retry 复用会话不可行; (d) DSLEngine 当前 stateless `run(Context)` 无会话支持.
+## 设计修订（基于 Oracle + Metis 审查）
 
-## What Changes (待 Sprint 14 收官后详细制定)
+与原 ADR-0033 相比，本 change 采纳以下修订：
 
-### 1. 三层会话模型实施 (Sprint 15 Day 1-5)
+| 修订项 | 原设计 | 采纳方案 | 原因 |
+|--------|--------|---------|------|
+| R1 | ExecutionSession → DagExecutionContext 重命名 | **保留 ExecutionSession** | Sprint 19 PIMPL-lite 刚交付，零功能收益 |
+| R2 | BudgetController 新增 cost_limit API | **不新增** | 现有 CostTracker + record_llm_call() 已满足 |
+| R3 | TaskSession 持 unique_ptr<IExecutionPolicy> | **持 shared_ptr** | DSLEngine 已用 shared_ptr，避免所有权分裂 |
+| R4 | TopoScheduler 返回 BranchExecutionResult | **DSLEngine 层包装** | TopoScheduler 不耦合会话模型 |
+| R5 | 容器用 vector | **改用 deque** | vector 扩容导致引用/指针失效（Metis F1/F2） |
+| R6 | failure_count 未定义触发条件 | **可重试错误才递增** | 非可重试错误不触发 session 分裂 |
+| R7 | 无 LayeredContext 重载 | **提供桥接重载** | 与 Sprint 20 API 风格一致 |
+| R8 | 新 run 只接受 Context | **Context + LayeredContext 双重载** | 渐进迁移 |
 
-1. `class UserSession`:
-   - `messages: vector<ToolResult>` (追加写, ADR-0023 集成)
-   - `task_sessions: vector<TaskSession>` (历史)
-   - `current_task_session: optional<TaskSession>`
-   - `user_id: string`
-   - `created_at: timestamp`
+## What Changes
 
-2. `class TaskSession`:
-   - `user_session: weak_ptr<UserSession>` (反向引用)
-   - `task_id: string`
-   - `subtask_sessions: vector<SubtaskSession>`
-   - `execution_context: DagExecutionContext`
-   - `started_at` / `completed_at`
+### 1. 三层会话类型 (`src/core/types/session.h` + `.cpp`)
 
-3. `class SubtaskSession`:
-   - `task_session: weak_ptr<TaskSession>`
-   - `subtask_id: string`
-   - `branch_id: int` (fork 分支标识)
-   - `isolated_context: Context` (隔离的 JSON)
+- `UserSession`：顶层，对应一次对话周期
+  - `messages: vector<ToolResult>`（追加写，ADR-0023）
+  - `task_sessions: deque<TaskSession>`（**deque** 保地址稳定）
+  - `current_task_session: TaskSession*`（指向 deque 元素）
+  - `user_id: string`, `created_at: timestamp`
 
-### 2. DSLEngine 重构 (Sprint 15 Day 6-9)
+- `TaskSession`：单次 `DSLEngine::run()` 执行
+  - `user_session: UserSession&`（反向引用）
+  - `subtask_sessions: deque<SubtaskSession>`（**deque** 保地址稳定）
+  - `current_policy: shared_ptr<IExecutionPolicy>`（持有策略）
+  - `failure_count: u32`
+  - `status: active | completed | failed`
+  - `context: Context`（当前执行上下文）
 
-1. `DSLEngine::run(session_id, ...)` 重载:
-   - 替代当前 stateless `run(Context)`
-   - 注入 UserSession, 创建新 TaskSession
-2. `ExecutionSession` 重组:
-   - DagExecutionContext + TaskSession 合并
-3. Fork/Join 分支隔离:
-   - TopoScheduler 自动创建 SubtaskSession
-4. IPER retry 复用:
-   - 失败重试在同一 TaskSession 内
+- `SubtaskSession`：fork/join 最小执行单元
+  - `initial_context / final_context: Context`（快照）
+  - `execution_trace: vector<TraceRecord>`
+  - `status: pending | running | completed | failed`
 
-## Capabilities (待详细制定)
+### 2. DSLEngine 重载 (`engine.h` + `.cpp`)
 
-### ADDED Requirements (placeholder)
+新增两个重载：
+```cpp
+ExecutionResult run(UserSession& user_sess, const std::string& message,
+                    const Context& initial_ctx = Context{});
 
-- `session-hierarchy-three-layers`: UserSession/TaskSession/SubtaskSession MUST 完整实现
-- `session-hierarchy-dslengine-overload`: DSLEngine MUST 提供 `run(session_id, ...)` 重载
-- `session-hierarchy-fork-isolation`: Fork/Join 分支 MUST 自动创建/销毁 SubtaskSession
-- `session-hierarchy-iper-retry`: IPER retry MUST 复用同一 TaskSession
-- `session-hierarchy-messages-append`: UserSession.messages MUST 追加写保护 (ADR-0023 集成)
+ExecutionResult run(UserSession& user_sess, const std::string& message,
+                    const LayeredContext& initial_lctx);  // 桥接到 Context 版本
+```
 
-## Impact (待 Sprint 14 收官后评估)
+`message` 写入 `ctx["user_input"]`。复用 TaskSession 时 `initial_ctx` 替换现有 context。
+现有 `run(Context)` 和 `run(LayeredContext)` 不受影响。
 
-**预期修改文件**:
-- `include/agenticdsl/types/session.h` (新建, 替代 session_fwd.h)
-- `src/core/types/session.cpp` (新建)
-- `src/core/types/user_session.{h,cpp}` (新建)
-- `src/core/types/task_session.{h,cpp}` (新建)
-- `src/core/types/subtask_session.{h,cpp}` (新建)
-- `src/core/engine.{h,cpp}` (DSLEngine::run 重载)
-- `src/modules/scheduler/topo_scheduler.cpp` (Fork/Join SubtaskSession 创建)
-- `src/modules/cognitive/cognitive_worker.cpp` (IPER retry 复用)
-- `tests/test_session_hierarchy.cpp` (新建)
-- `tests/test_user_session.cpp` (新建)
-- `tests/test_task_session.cpp` (新建)
-- `tests/test_subtask_session.cpp` (新建)
+### 3. TopoScheduler 不动（Design D5）
 
-**API 兼容性**:
-- **breaking change**: DSLEngine::run(Context) 弃用, 新增 run(session_id, ...) 优先
-- 向后兼容: 旧 run(Context) 内部自动创建临时 UserSession, 保持现有测试通过
-- 后续 Sprint 16+ 移除旧 run(Context)
+`execute_single_branch()` 签名完全不变。SubtaskSession 创建/归档全在 `DSLEngine::run_impl()` 中。TopoScheduler 不增加 Session 相关 include。
 
-## Non-goals (placeholder)
+### 4. 失败重试策略
 
-- **不重写** CognitiveWorker (Sprint 2 已 ship)
-- **不实质化** ADR-0007 (上下文压缩) — 与本 change 并行, 不耦合
-- **不修改** IPER 循环控制 (Phase 5 范围)
+- 可重试错误（Network/Timeout/Retryable）递增 `failure_count`
+- <3 次失败：`KeepSession`，复用当前 TaskSession
+- ≥3 次失败：`NewSession`，自动创建新 TaskSession
+- 非可重试错误（PermissionDenied/InvalidInput）不递增 failure_count
 
-## Estimated Effort (placeholder)
+## Capabilities
 
-**总计**: 1.5-2 周 (Sprint 15 主体)
+### ADDED Requirements
 
-**前置依赖**: 无硬依赖 (建议在 C3 完成后启动, session 持有 policy 更自然)
-**后续依赖**: 无
+| ID | 描述 |
+|----|------|
+| `session-three-layers` | UserSession/TaskSession/SubtaskSession 完整实现 |
+| `session-dslengine-overload` | DSLEngine::run(UserSession&, ...) 重载 |
+| `session-fork-isolation` | Fork/Join 分支自动创建/归档 SubtaskSession |
+| `session-iper-retry` | IPER retry 复用 TaskSession，3 次失败自动分裂 |
+| `session-messages-append` | UserSession.messages 追加写保护 (ADR-0023) |
 
-## 详细制定 TODO (待 Sprint 14 启动前执行)
+## Impact
 
-- [ ] 1. 评估: Session 持久化 (文件/内存) — 默认内存, 持久化推迟到 Phase 5
-- [ ] 2. 决策: breaking change vs 向后兼容 (建议: 向后兼容, 旧 run(Context) 内部自动建 UserSession)
-- [ ] 3. 写本 change proposal.md (What Changes 详细化)
-- [ ] 4. 写 design.md (5 个 Decision: Session 生命周期 / DSLEngine 重载策略 / Fork 隔离 / IPER retry 复用 / messages 写保护)
-- [ ] 5. 写 tasks.md (10-15 sections, 30-50 tasks)
-- [ ] 6. 写 specs/session-hierarchy/spec.md (5-8 ADDED Requirements)
-- [ ] 7. 移除所有 "PLACEHOLDER" 标记, 更新 STATUS 行
-- [ ] 8. `openspec validate 2026-06-26-adr-0033-session-hierarchy` exit 0
-- [ ] 9. 更新 master plan C5 状态: ⚪ placeholder → 🟡 active
-- [ ] 10. 启动 Sprint 15 实施
+### 修改文件清单
+
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `src/core/types/session.h` | 新建 | 三层会话类型定义 |
+| `src/core/types/session.cpp` | 新建 | 方法实现 |
+| `src/core/engine.h` | 修改 | 新增 2 个 run() 重载 (Context + LayeredContext) |
+| `src/core/engine.cpp` | 修改 | 实现 run_impl、SubtaskSession 包装、to_tool_result helper |
+| `CMakeLists.txt` (根) | 修改 | 添加 session.cpp 到 agenticdsl_core |
+| `tests/test_session.cpp` | 新建 | 5 个 TEST_CASE（单元） |
+| `tests/test_dslengine_session.cpp` | 新建 | 2 个 TEST_CASE（集成） |
+
+### API 兼容性
+
+- **非 breaking**：现有 `run(Context)` 和 `run(LayeredContext)` 保持可用
+- `run(UserSession&, ...)` 是新入口，optional
+- 不标记 deprecated
+
+## Non-goals
+
+- **不重命名** ExecutionSession
+- **不修改** BudgetController 接口
+- **不处理** 持久化（Phase 5 范围）
+- **不处理** 上下文压缩（ADR-0007，独立）
+- **不修改** TopoScheduler 签名
+- **不修改** CognitiveWorker 内部循环
+
+## Estimated Effort
+
+| Phase | 内容 | 人天 |
+|-------|------|:----:|
+| Phase 1 | Session 类型定义 (.h + .cpp + CMake) | 1.5 |
+| Phase 2 | DSLEngine 会话集成 (含 LayeredContext 桥接) | 1.5 |
+| Phase 3 | TopoScheduler 适配（签名不改，仅验证） | 0.5 |
+| Phase 4 | 测试 + ASan/TSan + ADR 状态更新 | 1.0 |
+| **总计** | | **4.5 人天** |

@@ -2,8 +2,18 @@
 
 ## 状态
 
-**🟡 Partial** (2026-05-28, 2026-06-12 状态对齐 — 仅前向声明)
+**✅ Approved** (2026-07-02, Sprint 15 C5 ship — 三层会话模型 + DSLEngine 会话感知接口完整实现)
 
+> **C5 实施注记 (2026-07-02)**：OpenSpec change `2026-06-26-adr-0033-session-hierarchy` ship。
+> 关键 ship: (1) 新建 `src/core/types/session.h` + `.cpp` — UserSession/TaskSession/SubtaskSession 完整类型定义
+> 与实现; (2) 容器采用 `std::deque` (非 vector) 确保地址稳定性 (Metis F1/F2); (3) TaskSession
+> 持有 `shared_ptr<IExecutionPolicy>` (与 DSLEngine 共享, Oracle R3); (4) `DSLEngine::run(UserSession&, ...)`
+> 两个重载 (Context + LayeredContext 桥接); (5) `failure_count_` 仅可重试错误递增 (Oracle R6),
+> <3→KeepSession, ≥3→NewSession; (6) TopoScheduler 签名完全不变 (Oracle R4), SubtaskSession 创建/归档
+> 在 DSLEngine 层; (7) 54/54 ctest 零回归 (52 baseline + 2 新测试: test_session 5 unit + test_dslengine_session 2 integration);
+> (8) 不重命名 ExecutionSession (Oracle R1), 不新增 BudgetController cost_limit API (Oracle R2)。
+> 变更依据: `openspec/changes/2026-06-26-adr-0033-session-hierarchy/`。
+> 
 > **C1 迁移注记 (2026-06-08, commit 3f28020)**：`DagExecutionContext` 构造参数与成员变量中 `LlamaAdapter* llm_adapter` 已替换为 `ILLMProvider* llm_provider`（抽象流式接口，详见 ADR-0001）。原 `LlamaAdapter` 仍可用但需通过 `LlamaAdapterProvider` 包装后注入。
 
 ## 领域

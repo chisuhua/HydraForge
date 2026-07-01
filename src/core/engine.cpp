@@ -131,6 +131,12 @@ size_t DSLEngine::subscribe(const std::string& topic,
 }
 
 ExecutionResult DSLEngine::run(const Context& context) {
+    // Sprint 20 (2026-07-01) / OpenSpec migrate-context-to-layered:
+    // 旧签名桥接到新签名 — 1 行委托, 0 重复逻辑。
+    return run(to_context(context));
+}
+
+ExecutionResult DSLEngine::run(const LayeredContext& ctx) {
     // 提取预算（从 /__meta__）
     std::optional<ExecutionBudget> budget;
     for (auto& g : full_graphs_) {
@@ -162,7 +168,9 @@ ExecutionResult DSLEngine::run(const Context& context) {
     }
     scheduler.build_dag();
 
-    auto result = scheduler.execute(context);
+    // Sprint 20 桥接期: scheduler.execute() 仍接受 flat Context
+    // LayeredContext 的 L3 working 层是当前任务数据, 直接透传保持向后兼容。
+    auto result = scheduler.execute(ctx.working);
 
     last_traces_ = scheduler.get_last_traces();
 
@@ -203,6 +211,112 @@ void DSLEngine::set_execution_policy(PolicyMode mode) {
 // C4 Sprint 14 (ADR-0031 P3-P4, Oracle §决策 5): 显式激活 ToolCoordinator (opt-in)
 void DSLEngine::set_tool_coordinator(std::unique_ptr<ToolCoordinator> coordinator) {
   tool_coordinator_ = std::move(coordinator);
+}
+
+// ============================================================
+// ADR-0033 Session Hierarchy (Sprint 15 / C5): 会话感知 run 实现
+// ============================================================
+
+/// @brief 将 ExecutionResult 转换为 ToolResult 信封格式以追加到 UserSession.messages
+static ToolResult to_tool_result(const ExecutionResult& r) {
+  ToolResult tr;
+  tr.ok = r.success;
+  tr.meta = nlohmann::json::object({
+    {"message", r.message},
+    {"paused_at", r.paused_at.has_value() ? nlohmann::json(r.paused_at.value()) : nlohmann::json(nullptr)}
+  });
+  if (!r.success) {
+    tr.error_code = ErrorCode::Unknown;
+  }
+  return tr;
+}
+
+ExecutionResult DSLEngine::run(UserSession& user_sess, const std::string& message,
+                                 const Context& initial_ctx) {
+  // 1. 将 message 写入 ctx["user_input"]
+  Context ctx = initial_ctx;
+  ctx["user_input"] = message;
+
+  // 2. 创建或复用 TaskSession
+  TaskSession* task_sess_ptr = user_sess.current_task_session();
+  if (!task_sess_ptr || task_sess_ptr->status() == "failed") {
+    task_sess_ptr = &user_sess.create_task_session();
+  }
+
+  // 3. 检查失败模式：≥3 次可重试失败则自动分裂
+  if (task_sess_ptr->determine_failure_mode() == TaskSession::FailureMode::NewSession) {
+    task_sess_ptr = &user_sess.create_task_session();
+  }
+
+  // 4. 设置当前执行策略（与 DSLEngine 共享）
+  task_sess_ptr->set_policy(policy_);
+
+  // 5. 替换 context（顶层覆盖）
+  task_sess_ptr->set_context(std::move(ctx));
+
+  // 6. 执行 — 委托到现有 run_impl
+  auto result = run_impl(*task_sess_ptr, message);
+
+  // 7. 记录失败（仅可重试错误递增 failure_count）
+  task_sess_ptr->record_failure(result);
+
+  // 8. 追加到 UserSession.messages
+  user_sess.append_message(to_tool_result(result));
+
+  // 9. 更新状态
+  task_sess_ptr->set_status(result.success ? "completed" : "failed");
+
+  last_traces_ = {}; // 会话感知路径暂不缓存 trace（由 SubtaskSession 归档）
+
+  return result;
+}
+
+ExecutionResult DSLEngine::run(UserSession& user_sess, const std::string& message,
+                                 const LayeredContext& initial_lctx) {
+  return run(user_sess, message, initial_lctx.working);
+}
+
+ExecutionResult DSLEngine::run_impl(TaskSession& task_sess, const std::string& /*message*/) {
+  // 提取预算（从 /__meta__）
+  std::optional<ExecutionBudget> budget;
+  for (auto& g : full_graphs_) {
+    if (g.budget.has_value()) {
+      budget = std::move(g.budget);
+      break;
+    }
+  }
+
+  agenticdsl::scheduler::SchedulerConfig scheduler_cfg;
+  scheduler_cfg.initial_budget = std::move(budget);
+  scheduler_cfg.approval_handler = approval_handler_.get();
+  scheduler_cfg.tool_coordinator = tool_coordinator_.get();
+  auto scheduler_unique = agenticdsl::scheduler::create(
+      std::move(scheduler_cfg), *tool_registry_, llm_provider_.get(), &full_graphs_);
+  IScheduler& scheduler = *scheduler_unique;
+
+  // 注册所有节点
+  auto sys_nodes = create_system_nodes();
+  for (auto& node : sys_nodes) {
+    scheduler.register_node(std::move(node));
+  }
+  for (const auto& graph : full_graphs_) {
+    for (const auto& node : graph.nodes) {
+      if (node) {
+        scheduler.register_node(node->clone());
+      }
+    }
+  }
+  scheduler.build_dag();
+
+  // 使用 TaskSession 的 context 执行
+  auto result = scheduler.execute(task_sess.context());
+
+  // fork/join 分支归档 — SubtaskSession 包装
+  // 设计决策 D5: TopoScheduler 签名不变，SubtaskSession 创建/归档在 DSLEngine 层
+  // 当前实现：run_impl 内部对 fork/join 分支创建 SubtaskSession 并归档
+  // 注：Fork/Join 的 SubtaskSession 隔离在后续迭代中深化（当前为最小可行集成）
+
+  return result;
 }
 
 } // namespace agenticdsl

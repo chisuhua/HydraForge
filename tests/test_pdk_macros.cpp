@@ -110,13 +110,14 @@ TEST_CASE("PDK DEFINE_AGENT instantiates React loop template",
     SUCCEED("test_agentAgent constructed successfully");
   }
 
-  SECTION("Agent run() returns ToolResult (MVP: may fail due to mock LLM)") {
+  SECTION("Agent run() returns LoopResult (MVP: may fail due to mock LLM)") {
     test_agentAgent agent(std::move(engine), bus);
-    agenticdsl::ToolResult result = agent.run("test prompt");
-    // MVP: 单轮 ReAct, 不期望 ok=true (mock LLM 无响应)
-    // 仅验证返回 ToolResult 类型 + 字段可访问
-    REQUIRE(result.data.is_object());
-    REQUIRE(result.meta.is_object());
+    // Sprint 20: 返回类型从 ToolResult 统一为 LoopResult
+    ::hydraforge::pdk::LoopResult result = agent.run("test prompt");
+    // MVP: 单轮 ReAct, 不期望 success=true (mock LLM 无响应)
+    // 仅验证返回 LoopResult 类型 + 字段可访问
+    REQUIRE(result.final_context.working["data"].is_object());
+    REQUIRE(result.final_context.working["meta"].is_object());
   }
 }
 

@@ -38,7 +38,7 @@ docs/
 | `adr-0022-plugin-loading.md` | 插件加载机制 | ✅ Approved (2026-06-24, Sprint 5 ship) |
 | `adr-0023-tool-result-standard.md` | ToolResult 标准化 | ✅ Approved (2026-06-24, Sprint 5 ship) |
 | `adr-0031-execution-policy.md` | 执行策略 | 🟡 Partial (仅头文件 stub) |
-| `adr-0033-session-hierarchy.md` | 会话层次结构 | 🟡 Partial (仅前向声明) |
+| `adr-0033-session-hierarchy.md` | 会话层次结构 | ✅ Approved (Sprint 15 C5, 2026-07-02) |
 | `adr-0002-impl-scope-audit.md` | ADR-0002 实施范围审计 (OpenSpec change `docs-code-drift-audit-2026-06` 产出) | 📋 审计补充 |
 | `adr-0004-impl-scope-audit.md` | ADR-0004 实施范围审计 (同上) | 📋 审计补充 |
 

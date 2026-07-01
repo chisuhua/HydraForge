@@ -25,7 +25,8 @@ nodes:
 ```
 )";
     auto engine = agenticdsl::DSLEngine::from_markdown(initial);
-    agenticdsl::Context ctx;
+    // Sprint 20: LayeredContext fixture migration
+    agenticdsl::LayeredContext ctx;
     auto result = engine->run(ctx);
     REQUIRE(result.paused_at.has_value());
 
@@ -43,7 +44,7 @@ next: ["/main/end"]
     engine->continue_with_generated_dsl(generated);
 
     // Re-run with mock LLM output
-    ctx["dsl"] = generated;
+    ctx.working["dsl"] = generated;
     auto result2 = engine->run(ctx);
     REQUIRE(result2.success);
     REQUIRE(result2.final_context["dynamic_val"] == "from_generated");

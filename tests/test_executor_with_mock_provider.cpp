@@ -155,9 +155,10 @@ TEST_CASE("End-to-end: DSLEngine → TopoScheduler → ExecutionSession → Node
     mock->set_fixed_response(kMockDslResponse);
 
     // 准备上下文（generate_subgraph 需要 task 变量）
-    Context ctx;
-    ctx["task"] = "test task";
-    ctx["__rendered_prompt__"] = std::string("rendered prompt");
+    // Sprint 20: LayeredContext fixture migration
+    LayeredContext ctx;
+    ctx.working["task"] = "test task";
+    ctx.working["__rendered_prompt__"] = std::string("rendered prompt");
 
     // 运行引擎
     auto result = engine->run(ctx);

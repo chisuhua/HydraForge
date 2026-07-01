@@ -4,6 +4,8 @@
 #include "resource.h" // 引入 ResourceType
 #include "common/llm/llm_tool.h" // 引入 LLMParams
 #include "budget.h" // 引入 ExecutionBudget
+#include "agenticdsl/types/layered_context.h" // Sprint 20 / LayeredContext execute 签名
+#include "agenticdsl/types/context_flatten.h" // Sprint 20 / to_context / from_context
 #include <string>
 #include <vector>
 #include <memory>
@@ -57,9 +59,23 @@ struct Node {
           permissions(std::move(perms)) {}
 
     virtual ~Node() = default;
-    [[nodiscard]] virtual Context execute(Context& context) = 0;
+    // Sprint 20 (2026-07-01) / OpenSpec migrate-context-to-layered:
+    // 新签名 — 接受 LayeredContext (5-层结构化, ADR-0008)。
+    [[nodiscard]] virtual LayeredContext execute(LayeredContext& ctx) = 0;
+
+    // 旧签名 — Sprint 20 期间保留, 通过基类默认实现委托到新签名。
+    [[nodiscard]] [[deprecated("use LayeredContext overload (Sprint 20 / ADR-0008)")]]
+    virtual Context execute(Context& context);
+
     virtual std::unique_ptr<Node> clone() const = 0; // Required for scheduler
 };
+
+// 旧 execute(Context&) 的基类默认实现 — 委托到新签名。
+inline Context Node::execute(Context& context) {
+    LayeredContext lc = to_context(context);
+    LayeredContext result = execute(lc);
+    return result.working;
+}
 
 struct ParsedGraph {
     std::vector<std::unique_ptr<Node>> nodes;
@@ -70,7 +86,7 @@ struct ParsedGraph {
     std::vector<std::string> permissions; // 子图权限
     bool is_standard_library = false; // 路径以 /lib/ 开头
     std::optional<nlohmann::json> output_schema; // v3.1: 解析 signature.outputs 为 JSON Schema
-    
+
     ParsedGraph() = default;
     ParsedGraph(ParsedGraph&&) = default;                // 允许移动
     ParsedGraph& operator=(ParsedGraph&&) = default;     // 允许移动赋值
@@ -82,14 +98,14 @@ struct ParsedGraph {
 // Start Node
 struct StartNode : public Node {
     StartNode(NodePath path, std::vector<NodePath> next_paths = {});
-    [[nodiscard]] Context execute(Context& context) override;
+    [[nodiscard]] LayeredContext execute(LayeredContext& ctx) override;
     std::unique_ptr<Node> clone() const override;
 };
 
 // End Node
 struct EndNode : public Node {
     EndNode(NodePath path);
-    [[nodiscard]] Context execute(Context& context) override;
+    [[nodiscard]] LayeredContext execute(LayeredContext& ctx) override;
     std::unique_ptr<Node> clone() const override;
 };
 
@@ -100,7 +116,7 @@ struct AssignNode : public Node {
     AssignNode(NodePath path,
                std::unordered_map<std::string, std::string> assigns,
                std::vector<NodePath> next_paths = {});
-    [[nodiscard]] Context execute(Context& context) override;
+    [[nodiscard]] LayeredContext execute(LayeredContext& ctx) override;
     std::unique_ptr<Node> clone() const override;
 };
 
@@ -117,7 +133,7 @@ struct DSLNode : public Node {
             LLMParams llm_params = {},
             std::vector<std::string> output_keys = {},
             std::vector<NodePath> next_paths = {});
-    [[nodiscard]] Context execute(Context& context) override;
+    [[nodiscard]] LayeredContext execute(LayeredContext& ctx) override;
     std::unique_ptr<Node> clone() const override;
 };
 
@@ -132,7 +148,7 @@ struct ToolCallNode : public Node {
                  std::unordered_map<std::string, std::string> arguments,
                  std::vector<std::string> output_keys,
                  std::vector<NodePath> next_paths = {});
-    [[nodiscard]] Context execute(Context& context) override;
+    [[nodiscard]] LayeredContext execute(LayeredContext& ctx) override;
     std::unique_ptr<Node> clone() const override;
 };
 
@@ -147,7 +163,7 @@ struct ResourceNode : public Node {
                  std::string uri,
                  std::string scope = "global",
                  nlohmann::json metadata = nlohmann::json::object());
-    [[nodiscard]] Context execute(Context& context) override;
+    [[nodiscard]] LayeredContext execute(LayeredContext& ctx) override;
     std::unique_ptr<Node> clone() const override;
 };
 
@@ -156,7 +172,7 @@ struct ForkNode : public Node {
     std::vector<NodePath> branches; // List of subgraph paths to execute in parallel
 
     ForkNode(NodePath path, std::vector<NodePath> branch_paths, std::vector<NodePath> next_paths = {});
-    [[nodiscard]] Context execute(Context& context) override; // Implementation in executor
+    [[nodiscard]] LayeredContext execute(LayeredContext& ctx) override; // Implementation in executor
     std::unique_ptr<Node> clone() const override;
 };
 
@@ -166,7 +182,7 @@ struct JoinNode : public Node {
     std::string merge_strategy; // e.g., "error_on_conflict", "last_write_wins", etc.
 
     JoinNode(NodePath path, std::vector<NodePath> deps, std::string strategy, std::vector<NodePath> next_paths = {});
-    [[nodiscard]] Context execute(Context& context) override; // Implementation in executor
+    [[nodiscard]] LayeredContext execute(LayeredContext& ctx) override; // Implementation in executor
     std::unique_ptr<Node> clone() const override;
 };
 
@@ -178,7 +194,7 @@ struct GenerateSubgraphNode : public Node {
     std::optional<NodePath> on_signature_violation; // v3.1
 
     GenerateSubgraphNode(NodePath path, std::string prompt, std::vector<std::string> output_keys, std::vector<NodePath> next_paths = {});
-    [[nodiscard]] Context execute(Context& context) override; // Implementation in executor
+    [[nodiscard]] LayeredContext execute(LayeredContext& ctx) override; // Implementation in executor
     std::unique_ptr<Node> clone() const override;
 };
 
@@ -187,7 +203,7 @@ struct AssertNode : public Node {
     std::optional<NodePath> on_failure; // Jump path on failure
 
     AssertNode(NodePath path, std::string condition, std::optional<NodePath> on_fail, std::vector<NodePath> next_paths = {});
-    [[nodiscard]] Context execute(Context& context) override;
+    [[nodiscard]] LayeredContext execute(LayeredContext& ctx) override;
     std::unique_ptr<Node> clone() const override;
 };
 

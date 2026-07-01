@@ -5,8 +5,9 @@
 //          旧代码继续用 `Context = nlohmann::json`,
   //          新代码可选用 `LayeredContext`,经 flatten_layers() 桥接到 inja。
 // 设计依据：ADR-0008 (5-层结构化上下文) + project-organization Stage 3 Task 13
-// 作者：AgenticDSL Stage 3
-// 最后修改日期：2026-06-12
+//          + Sprint 20 / OpenSpec change migrate-context-to-layered (to_context / from_context 桥接)
+// 作者：AgenticDSL Stage 3 / Sprint 20
+// 最后修改日期：2026-07-01
 #pragma once
 
 #include <nlohmann/json.hpp>
@@ -54,6 +55,34 @@ inline nlohmann::json flatten_layers(const LayeredContext& ctx) {
   merge("meta", ctx.meta);
 
   return out;
+}
+
+// ============================================================
+// Sprint 20 / migrate-context-to-layered: 双向桥接适配层
+// ============================================================
+// 设计依据: design.md §Decision 1
+//   to_context: flat JSON → LayeredContext (默认放进 L3 working 层)
+//   from_context: LayeredContext → flat JSON (复用 flatten_layers)
+
+/**
+ * @brief 从 flat JSON 构造 LayeredContext (Sprint 20)
+ *
+ * 默认将整个 flat JSON 放入 L3 working 层 (当前任务数据, RW)。
+ * L1 system / L2 recent / L4 archive / L5 meta 均为空。
+ */
+inline LayeredContext to_context(const nlohmann::json& flat) {
+  LayeredContext ctx;
+  ctx.working = flat;
+  return ctx;
+}
+
+/**
+ * @brief LayeredContext → flat JSON (Sprint 20)
+ *
+ * 复用 flatten_layers() — 现有 inja 模板渲染入口。
+ */
+inline nlohmann::json from_context(const LayeredContext& ctx) {
+  return flatten_layers(ctx);
 }
 
 } // namespace agenticdsl

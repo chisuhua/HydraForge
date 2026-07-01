@@ -39,6 +39,12 @@
 #include "agenticdsl/contract/itool_registry.h" // IToolRegistry 抽象 (P1.T2, 替代 tools/registry.h)
 // P1.T3 (2026-06-18): TraceRecord data-only struct 上移到 types 头文件 (from modules/trace/trace_exporter.h)
 #include "agenticdsl/types/trace_record.h" // TraceRecord data-only struct (P1.T3 迁移自 modules/trace/trace_exporter.h)
+// Sprint 20 / migrate-context-to-layered: LayeredContext (5-层结构化, ADR-0008) + 桥接辅助
+#include "agenticdsl/types/layered_context.h"
+#include "agenticdsl/types/context_flatten.h"
+
+// ADR-0033 Session Hierarchy: 三层会话模型 (Sprint 15 / C5)
+#include "core/types/session.h"
 
 // ADR-0031 (2026-07-31): Policy + ApprovalHandler 集成
 #include "common/policy/policy_factory.h"
@@ -61,7 +67,21 @@ public:
     static std::unique_ptr<DSLEngine> from_markdown(const std::string& markdown_content);
     static std::unique_ptr<DSLEngine> from_file(const std::string& file_path);
 
+    // Sprint 20 (2026-07-01) / OpenSpec migrate-context-to-layered:
+    // 推荐签名 — 接受 LayeredContext (5-层结构化, ADR-0008)。
+    ExecutionResult run(const LayeredContext& ctx);
+
+[[deprecated("use LayeredContext overload (Sprint 20 / ADR-0008)")]]
     ExecutionResult run(const Context& context = Context{});
+
+    // ADR-0033 Session Hierarchy (Sprint 15 / C5): 会话感知接口
+    // Context 版本（主入口）— message 写入 ctx["user_input"]
+    ExecutionResult run(UserSession& user_sess, const std::string& message,
+                        const Context& initial_ctx = Context{});
+    // LayeredContext 桥接版本 — 委托到 Context 版本
+    ExecutionResult run(UserSession& user_sess, const std::string& message,
+                        const LayeredContext& initial_lctx);
+
     void continue_with_generated_dsl(const std::string& generated_dsl);
     void append_graphs(std::vector<ParsedGraph> new_graphs);
 
@@ -124,6 +144,8 @@ void set_tool_coordinator(std::unique_ptr<ToolCoordinator> coordinator);
     ~DSLEngine(); // Stage 4 / Task 19 + P1.T4: 显式声明 — 头文件外定义, 使 unique_ptr<IBudgetController> + unique_ptr<IToolRegistry> 析构在完整类型下进行
     DSLEngine(std::vector<ParsedGraph> initial_graphs);
 private:
+    // ADR-0033 Session Hierarchy (Sprint 15 / C5): 内部执行委托
+    ExecutionResult run_impl(TaskSession& task_sess, const std::string& message);
 
     std::vector<ParsedGraph> full_graphs_;
     std::unique_ptr<IToolRegistry> tool_registry_; // P1.T4: PIMPL-lite 化 (从 ToolRegistry 值成员改为 unique_ptr<IToolRegistry>)
