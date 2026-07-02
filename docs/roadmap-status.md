@@ -106,7 +106,7 @@
 | ├─ Sprint 4: PDK 骨架 | **100% ██████████** | **✅ 已完成 (2026-06-19)** — 详见 OpenSpec `2026-07-07-pdk-skeleton`, 32/32 ctest pass, ADR-0021 🟡 Partial | 3 天 | Sprint 3 ✅ |
 | └─ Sprint 5: PluginLoader + 收官 | 0% | ⏸ 未开始 (W5) | 1.3 天 | Sprint 4 |
 | Phase 2 异步+EventBus | 100% ██████████ | ✅ **shipped (2026-07-31, C2 ship, ADR-0030 V2 → ✅ Approved)** | 2-3 周 | Phase 1 |
-| Phase 3 执行策略+安全 | 100% ██████████ | ✅ **shipped (2026-07-31, C3 ship, ADR-0031 P1+P2 → ✅ Approved)** | 2-3 周 | Phase 2 |
+| Phase 3 执行策略+安全 | 100% ██████████ | ✅ **shipped (C3 ADR-0031 P1-P2 2026-07-31, C4 ADR-0031 P3-P4 2026-07-31, C5 ADR-0033 Session 2026-07-02, C6 ADR-0004 V2 2026-07-02) — 4 change 全部 ship + archive, 57/57 ctest pass, 3 个新 ADR Approved (ADR-0031 / ADR-0033 / ADR-0004 V2)** | 3-4 周 | Phase 2 |
 | Phase 4 模型路由+内核 | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 2-3 周 | Phase 3 |
 | Phase 4.5 MVP清理 | 0% ░░░░░░░░░░ | ⏸ 阻塞中 | 1-2 天 | Phase 4 |
 | Phase 5 自举服务化 | 0% ░░░░░░░░░░ | ⏸ 远期 | — | Phase 4.5 |
