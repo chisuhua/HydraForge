@@ -88,6 +88,7 @@ add_library(agenticdsl_common STATIC
 )
 target_link_libraries(agenticdsl_common PUBLIC
     agenticdsl_includes
+    agenticdsl_policy
 )
 
 add_subdirectory(src/modules/parser)

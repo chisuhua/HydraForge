@@ -180,8 +180,7 @@ TEST_CASE("NodeExecutor ToolNode emits tool.completed with envelope fields",
     ToolRegistry registry;
 
     // 注册成功工具，返回 ToolResult envelope (含 Sprint 1a P2-P4 字段)
-    registry.register_tool("ok_tool",
-        [](const std::unordered_map<std::string, std::string>& /*args*/) -> nlohmann::json {
+    registry.register_tool("ok_tool", agenticdsl::ToolMetadata{"ok_tool", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>& /*args*/) -> nlohmann::json {
             ToolResult r = ToolResult::success({{"answer", 42}});
             r.error_code = ErrorCode::Unknown; // 显式赋值为 success 状态保留
             r.latency_ms = 7;
@@ -229,8 +228,7 @@ TEST_CASE("NodeExecutor ToolNode Abort emits execution.failed and throws",
           "[executor][bus][phase1]") {
     ToolRegistry registry;
 
-    registry.register_tool("abort_tool",
-        [](const std::unordered_map<std::string, std::string>&) -> nlohmann::json {
+    registry.register_tool("abort_tool", agenticdsl::ToolMetadata{"abort_tool", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>&) -> nlohmann::json {
             return ToolResult::error(ErrorCode::Abort, "fatal abort").to_json();
         });
 
@@ -273,8 +271,7 @@ TEST_CASE("NodeExecutor ToolNode Retry emits execution.failed and throws",
           "[executor][bus][phase1]") {
     ToolRegistry registry;
 
-    registry.register_tool("retry_tool",
-        [](const std::unordered_map<std::string, std::string>&) -> nlohmann::json {
+    registry.register_tool("retry_tool", agenticdsl::ToolMetadata{"retry_tool", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>&) -> nlohmann::json {
             return ToolResult::error(ErrorCode::Retry, "transient").to_json();
         });
 
@@ -301,8 +298,7 @@ TEST_CASE("NodeExecutor ToolNode Skip does not emit and does not throw",
           "[executor][bus][phase1]") {
     ToolRegistry registry;
 
-    registry.register_tool("skip_tool",
-        [](const std::unordered_map<std::string, std::string>&) -> nlohmann::json {
+    registry.register_tool("skip_tool", agenticdsl::ToolMetadata{"skip_tool", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>&) -> nlohmann::json {
             return ToolResult::error(ErrorCode::Skip, "soft skip").to_json();
         });
 

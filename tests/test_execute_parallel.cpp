@@ -22,7 +22,7 @@ TEST_CASE("execute_parallel runs all registered nodes",
           "[scheduler][c2-day4]") {
     ToolRegistry tools;
     std::atomic<int> counter{0};
-    tools.register_tool_function("noop", [&](const auto&) -> nlohmann::json {
+    tools.register_tool_function("noop", agenticdsl::ToolMetadata{"noop", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [&](const auto&) -> nlohmann::json {
         counter.fetch_add(1);
         return {{"ok", true}};
     });
@@ -50,7 +50,7 @@ TEST_CASE("execute_parallel dispatches independent nodes concurrently",
     std::atomic<int> max_concurrent{0};
 
     auto register_work = [&](const std::string& name) {
-        tools.register_tool_function(name, [&](const auto&) -> nlohmann::json {
+        tools.register_tool_function(name, agenticdsl::ToolMetadata{name, "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [&](const auto&) -> nlohmann::json {
             int current = in_flight.fetch_add(1) + 1;
             int prev_max = max_concurrent.load();
             while (current > prev_max &&

@@ -11,9 +11,11 @@
 add_library(hydraforge_pdk INTERFACE)
 
 # 头文件路径: pdk/include/ (含 hydraforge/pdk/... 路径别名 + agenticdsl/pdk/ 实际头)
+# 此外需要包括 src/ 以便可以找到 common/policy/execution_policy.h 等内部头
 target_include_directories(hydraforge_pdk INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
   $<INSTALL_INTERFACE:include>
 )
 

@@ -44,15 +44,6 @@ nodes:
 
     auto engine = DSLEngine::from_markdown(markdown);
 
-    // Register the calculate tool on this engine
-    engine->register_tool("calculate", [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
-        double a = std::stod(args.at("a"));
-        double b = std::stod(args.at("b"));
-        std::string op = args.at("op");
-        double result = (op == "+") ? a + b : a - b;
-        return nlohmann::json{{"result", result}};
-    });
-
     // Sprint 20 (2026-07-01): LayeredContext fixture migration
     LayeredContext ctx;
     auto result = engine->run(ctx);

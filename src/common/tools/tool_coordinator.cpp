@@ -13,6 +13,7 @@
 #include <stdexcept>
 
 #include "common/policy/layer_profile.h"
+#include "nlohmann/json.hpp"  // Include for JSON serialization
 
 namespace agenticdsl {
 
@@ -55,6 +56,23 @@ nlohmann::json audit_meta(const std::string& event,
 }
 
 }  // namespace
+
+// Helper to convert ToolMetadata to JSON string for ToolPreview.metadata_json
+std::string ToolCoordinator::metadata_to_json(const ToolMetadata& meta) {
+  nlohmann::json j;
+  j["name"] = meta.name;
+  j["category"] = static_cast<int>(meta.category);
+  j["min_layer"] = static_cast<int>(meta.min_layer);
+  nlohmann::json layers = nlohmann::json::array();
+  for (auto& l : meta.allowed_layers) layers.push_back(static_cast<int>(l));
+  j["allowed_layers"] = layers;
+  j["cost_estimate"] = meta.cost_estimate;
+  j["timeout_ms"] = meta.timeout_ms;
+  j["approval"]["requires_approval_in_plan"] = meta.approval.requires_approval_in_plan;
+  j["approval"]["requires_approval_in_agent"] = meta.approval.requires_approval_in_agent;
+  j["approval"]["requires_approval_in_yolo"] = meta.approval.requires_approval_in_yolo;
+  return j.dump();
+}
 
 ToolCoordinator::ToolCoordinator(IToolRegistry& registry,
                                  std::shared_ptr<IExecutionPolicy> policy,
@@ -102,6 +120,7 @@ ToolResult ToolCoordinator::execute(
   ToolPreview preview;
   preview.command_line = meta.name + "(" + std::to_string(args.size()) + " args)";
   preview.risk_summary = "Tool category: " + cat_str;
+  preview.metadata_json = metadata_to_json(meta);  // C6: Attach metadata JSON for TUI approval display
 
   if (!approval_handler_->process_request(meta, ctx, preview)) {
     if (bus_) {

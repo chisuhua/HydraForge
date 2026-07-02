@@ -68,9 +68,7 @@ TEST_CASE("test_engine_create_with_dependencies", "[engine][factory][di]") {
     REQUIRE(engine->get_interaction_bus() == bus);
 
     // 依赖注入 3：通过 get_tool_registry() 注册工具（IToolRegistry 抽象接口）
-    engine->get_tool_registry().register_tool_function(
-        "echo",
-        [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+    engine->get_tool_registry().register_tool_function("echo", agenticdsl::ToolMetadata{"echo", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
             auto it = args.find("value");
             return nlohmann::json{{"value", it != args.end() ? it->second : "empty"}};
         });

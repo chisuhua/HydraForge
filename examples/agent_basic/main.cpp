@@ -15,7 +15,10 @@ int main(int argc, char* argv[]) {
         auto engine = agenticdsl::DSLEngine::from_file(argv[1]);
 
         // 2. 注册自定义工具
-        engine->register_tool("custom_db_query", [](const std::unordered_map<std::string, std::string>& args) {
+        engine->register_tool("custom_db_query",
+            agenticdsl::ToolMetadata{"custom_db_query", "Query the database", "example",
+                agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow},
+            [](const std::unordered_map<std::string, std::string>& args) {
             std::string table = args.at("table");
             std::string filter = args.count("filter") ? args.at("filter") : "none";
             return nlohmann::json{

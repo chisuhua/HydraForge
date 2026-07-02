@@ -55,6 +55,8 @@ int main(int argc, char** argv) {
   // 2) 注册 echo 工具（覆盖默认 web_search/get_weather/calculate）
   engine->register_tool(
       "echo",
+      agenticdsl::ToolMetadata{"echo", "Echo input message back", "example",
+          agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow},
       [](const std::unordered_map<std::string, std::string>& args)
           -> nlohmann::json {
         auto it = args.find("message");

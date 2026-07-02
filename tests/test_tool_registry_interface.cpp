@@ -36,9 +36,7 @@ TEST_CASE("IToolRegistry register_tool_function — std::function bridge", "[too
   IToolRegistry& iface = concrete;
 
   // 通过 IToolRegistry 接口注册工具 (类型擦除)
-  iface.register_tool_function(
-      "test_tool",
-      [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+  iface.register_tool_function("test_tool", agenticdsl::ToolMetadata{"test_tool", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
         return nlohmann::json{{"result", "ok"}, {"echo", args}};
       });
 

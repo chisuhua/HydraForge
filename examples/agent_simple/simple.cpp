@@ -76,6 +76,8 @@ int main() {
         // 2) 注册 calculate 工具
         engine->register_tool(
             "calculate",
+            agenticdsl::ToolMetadata{"calculate", "Calculate arithmetic expression", "example",
+                agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow},
             [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
                 auto a_it = args.find("a");
                 auto b_it = args.find("b");

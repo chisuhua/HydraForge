@@ -61,6 +61,9 @@ class ToolCoordinator {
   std::shared_ptr<IExecutionPolicy> policy_;
   std::unique_ptr<ApprovalHandler> approval_handler_;
   std::shared_ptr<IInteractionBus> bus_;
+
+  // C6: ToolMetadata → JSON string for ToolPreview.metadata_json
+  static std::string metadata_to_json(const ToolMetadata& meta);
 };
 
 }  // namespace agenticdsl

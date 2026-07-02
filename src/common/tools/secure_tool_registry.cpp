@@ -257,9 +257,9 @@ std::vector<std::string> SecureToolRegistry::list_tools() const {
 
 // 函数工具注册 (1, 模板桥接 — 委托到 wrapped ToolRegistry)
 
-void SecureToolRegistry::register_tool_function(std::string name, ToolFunc fn) {
+void SecureToolRegistry::register_tool_function(std::string name, ToolMetadata meta, ToolFunc fn) {
   if (registry_ref_) {
-    registry_ref_->register_tool_function(std::move(name), std::move(fn));
+    registry_ref_->register_tool_function(std::move(name), std::move(meta), std::move(fn));
   }
 }
 

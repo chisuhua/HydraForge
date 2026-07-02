@@ -43,7 +43,7 @@ nodes:
 TEST_CASE("SimpleCognitiveOrchestrator mock success chain",
           "[cognitive][stage0]") {
   auto engine = DSLEngine::from_markdown(kEmptyDsl);
-  engine->register_tool("echo", [](const std::unordered_map<std::string, std::string>& args) {
+  engine->register_tool("echo", agenticdsl::ToolMetadata{"echo", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>& args) {
     return nlohmann::json{{"echoed", args.at("message")}};
   });
   auto* mock = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
@@ -69,7 +69,7 @@ TEST_CASE("SimpleCognitiveOrchestrator mock success chain",
 TEST_CASE("SimpleCognitiveOrchestrator LLM error injection",
           "[cognitive][stage0]") {
   auto engine = DSLEngine::from_markdown(kEmptyDsl);
-  engine->register_tool("echo", [](const std::unordered_map<std::string, std::string>&) {
+  engine->register_tool("echo", agenticdsl::ToolMetadata{"echo", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>&) {
     return nlohmann::json::object();
   });
   auto* mock = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
@@ -116,7 +116,7 @@ TEST_CASE("SimpleCognitiveOrchestrator tool not found",
 TEST_CASE("SimpleCognitiveOrchestrator JSON parse failure",
           "[cognitive][stage0]") {
   auto engine = DSLEngine::from_markdown(kEmptyDsl);
-  engine->register_tool("echo", [](const std::unordered_map<std::string, std::string>&) {
+  engine->register_tool("echo", agenticdsl::ToolMetadata{"echo", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>&) {
     return nlohmann::json::object();
   });
   auto* mock = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
@@ -140,7 +140,7 @@ TEST_CASE("SimpleCognitiveOrchestrator JSON parse failure",
 TEST_CASE("SimpleCognitiveOrchestrator end-to-end JSON output",
           "[cognitive][stage0][e2e]") {
   auto engine = DSLEngine::from_markdown(kEmptyDsl);
-  engine->register_tool("echo", [](const std::unordered_map<std::string, std::string>& args) {
+  engine->register_tool("echo", agenticdsl::ToolMetadata{"echo", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>& args) {
     return nlohmann::json{{"echoed", args.at("message")}, {"len", 5}};
   });
   auto* mock = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());

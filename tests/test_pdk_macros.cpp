@@ -27,6 +27,7 @@
 #include <thread>
 
 using namespace hydraforge::pdk;
+using agenticdsl::ToolCategory;
 
 namespace {
 
@@ -58,22 +59,37 @@ std::unique_ptr<agenticdsl::DSLEngine> make_minimal_engine() {
 // =====================================================================
 // DECLARE_TOOL 必须在 file scope 声明 (inline 变量不可在 block scope)
 // 用法: DECLARE_TOOL(name, desc, body...) — body 含 return 语句, 无尾部 {}
-DECLARE_TOOL(test_echo, "回显工具",
+DECLARE_TOOL(test_echo, "回显工具", ReadOnly, "agent",
   return __pdk_args;
 )
 
-DECLARE_TOOL(test_throw, "抛异常工具",
+DECLARE_TOOL(test_throw, "抛异常工具", ReadOnly, "agent",
   throw std::runtime_error("disk full");
 )
 
 TEST_CASE("PDK DECLARE_TOOL expands to ToolSpec + handler",
           "[pdk][sprint4][declare_tool]") {
-  SECTION("ToolSpec metadata is correct") {
+SECTION("ToolSpec metadata is correct") {
     REQUIRE(tool_spec_test_echo.name == "test_echo");
     REQUIRE(tool_spec_test_echo.description == "回显工具");
     REQUIRE(tool_spec_test_echo.params.empty());
     REQUIRE_FALSE(tool_spec_test_echo.permissions.network);
-  }
+    // C6: check metadata fields
+    REQUIRE(tool_spec_test_echo.metadata.name == "test_echo");
+    REQUIRE(tool_spec_test_echo.metadata.description == "回显工具");
+    REQUIRE(tool_spec_test_echo.metadata.domain == "plugin");
+    REQUIRE(tool_spec_test_echo.metadata.category == ::agenticdsl::ToolCategory::ReadOnly);
+    REQUIRE(tool_spec_test_echo.metadata.min_layer == ::agenticdsl::LayerProfile::Workflow);
+    // V2 extensions: defaults
+    REQUIRE(tool_spec_test_echo.metadata.allowed_layers.empty());
+    REQUIRE(tool_spec_test_echo.metadata.cost_estimate == 0.0);
+    REQUIRE(tool_spec_test_echo.metadata.timeout_ms == 30000);
+    // Approval policy: "agent" → true, true, false, false
+    REQUIRE(tool_spec_test_echo.metadata.approval.requires_approval_in_plan == true);
+    REQUIRE(tool_spec_test_echo.metadata.approval.requires_approval_in_agent == true);
+    REQUIRE(tool_spec_test_echo.metadata.approval.requires_approval_in_yolo == false);
+    REQUIRE(tool_spec_test_echo.metadata.approval.force_approval_always == false);
+}
 
   SECTION("Handler returns input args") {
     nlohmann::json input = {{"message", "hello"}};

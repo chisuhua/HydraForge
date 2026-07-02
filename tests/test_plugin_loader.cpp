@@ -13,6 +13,8 @@
 
 #include "catch_amalgamated.hpp"
 
+#include "common/policy/execution_policy.h"
+
 #include "agenticdsl/contract/itool_registry.h"
 #include "agenticdsl/plugin/plugin_loader.h"
 #include "agenticdsl/plugin/plugin_info.h"
@@ -39,7 +41,7 @@ class MockToolRegistry : public ::agenticdsl::IToolRegistry {
   // 测试追踪: 记录注册的工具名
   std::vector<std::string> registered_tools;
 
-  void register_tool_function(std::string name, ToolFunc fn) override {
+  void register_tool_function(std::string name, agenticdsl::ToolMetadata, ToolFunc fn) override {
     registered_tools.push_back(name);
     (void)fn;
   }

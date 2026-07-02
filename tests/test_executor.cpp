@@ -147,7 +147,7 @@ TEST_CASE("ToolCallNode execution", "[executor]") {
     ToolRegistry registry;
     
     // Register a mock tool
-    registry.register_tool("echo", [](const nlohmann::json& args) {
+    registry.register_tool("echo", agenticdsl::ToolMetadata{"echo", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const nlohmann::json& args) {
         return nlohmann::json::object({
             {"echoed", args.value("message", "")}
         });
@@ -214,7 +214,7 @@ TEST_CASE("StartNode and EndNode execution", "[executor]") {
 // REQ-TR-001: Abort error_code 终止整个 Graph
 TEST_CASE("ToolCallNode Abort error_code throws", "[executor][phase1]") {
     ToolRegistry registry;
-    registry.register_tool("fatal_tool", [](const nlohmann::json&) {
+    registry.register_tool("fatal_tool", agenticdsl::ToolMetadata{"fatal_tool", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const nlohmann::json&) {
         return nlohmann::json{
             {"ok", false},
             {"data", nlohmann::json::object()},
@@ -244,7 +244,7 @@ TEST_CASE("ToolCallNode Abort error_code throws", "[executor][phase1]") {
 TEST_CASE("ToolCallNode Retry error_code throws retry marker",
           "[executor][phase1]") {
     ToolRegistry registry;
-    registry.register_tool("flaky_tool", [](const nlohmann::json&) {
+    registry.register_tool("flaky_tool", agenticdsl::ToolMetadata{"flaky_tool", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const nlohmann::json&) {
         return nlohmann::json{
             {"ok", false},
             {"error_code", "Retry"},
@@ -271,7 +271,7 @@ TEST_CASE("ToolCallNode Retry error_code throws retry marker",
 TEST_CASE("ToolCallNode Skip error_code returns unchanged context",
           "[executor][phase1]") {
     ToolRegistry registry;
-    registry.register_tool("optional_tool", [](const nlohmann::json&) {
+    registry.register_tool("optional_tool", agenticdsl::ToolMetadata{"optional_tool", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const nlohmann::json&) {
         return nlohmann::json{
             {"ok", false},
             {"error_code", "Skip"},
@@ -294,7 +294,7 @@ TEST_CASE("ToolCallNode Skip error_code returns unchanged context",
 // Sprint 1a (S1a.T4): P0 旧式裸 JSON 工具仍工作（向后兼容）
 TEST_CASE("ToolCallNode supports legacy raw JSON tools", "[executor][phase1]") {
     ToolRegistry registry;
-    registry.register_tool("legacy_tool", [](const nlohmann::json& args) {
+    registry.register_tool("legacy_tool", agenticdsl::ToolMetadata{"legacy_tool", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const nlohmann::json& args) {
         return nlohmann::json{{"output", args.value("input", "")}};
     });
 

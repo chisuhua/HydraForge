@@ -33,6 +33,8 @@ struct ToolPreview {
   std::chrono::seconds estimated_duration{0};
   /// 风险摘要 (人工填写, 如 "删除 5 个文件")
   std::string risk_summary;
+  /// ToolMetadata JSON (C6: 用于 TUI 审批展示)
+  std::string metadata_json;
 };
 
 /**

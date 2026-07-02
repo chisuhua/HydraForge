@@ -11,6 +11,7 @@
 
 #include "common/llm/llm_tool.h"       // ILLMTool 定义 (T2 hotfix: 实际在 llm_tool.h, 不是 llm_types.h)
 #include "common/llm/llm_types.h"      // LLMParams / Result
+#include "common/policy/execution_policy.h"  // ToolMetadata definition (P1.T2)
 
 #include <functional>
 #include <memory>
@@ -85,7 +86,7 @@ class IToolRegistry {
    * 替代 ToolRegistry::register_tool<Func> 模板成员函数 (C++ 禁止模板虚函数).
    * ToolRegistry::register_tool<Func> 内部委托到 register_tool_function(name, fn).
    */
-  virtual void register_tool_function(std::string name, ToolFunc fn) = 0;
+  virtual void register_tool_function(std::string name, ToolMetadata meta, ToolFunc fn) = 0;
 
   // === LLM 工具管理 (4) ===
 

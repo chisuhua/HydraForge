@@ -28,7 +28,7 @@ namespace {
 
 // 注册一个测试用 fs.read 工具
 void register_fs_read(ToolRegistry& reg) {
-  reg.register_tool("fs.read", [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+  reg.register_tool("fs.read", agenticdsl::ToolMetadata{"fs.read", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
     auto it = args.find("path");
     std::string path = (it != args.end()) ? it->second : "";
     return nlohmann::json{{"path_read", path}, {"content", "mock_content"}};
@@ -37,7 +37,7 @@ void register_fs_read(ToolRegistry& reg) {
 
 // 注册一个测试用 shell.exec 工具
 void register_shell_exec(ToolRegistry& reg) {
-  reg.register_tool("shell.exec", [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+  reg.register_tool("shell.exec", agenticdsl::ToolMetadata{"shell.exec", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
     auto it = args.find("command");
     std::string cmd = (it != args.end()) ? it->second : "";
     return nlohmann::json{{"executed", cmd}};

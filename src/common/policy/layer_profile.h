@@ -49,4 +49,13 @@ std::string to_string(LayerProfile layer);
  */
 std::string to_string(ToolCategory category);
 
+/**
+ * @brief 注册时验证 allowed_layers 与 ToolCategory 的兼容性 (C6 Sprint 16)
+ *
+ * 遍历 meta.allowed_layers, 对每个 layer 检查该 layer 是否允许 meta.category 类型的工具。
+ * 若 allowed_layers 为空 (默认全允许), 跳过检查。
+ * @throws std::invalid_argument 若 allowed_layers 包含不兼容的 layer
+ */
+void check_registration_permission(const ToolMetadata& meta);
+
 }  // namespace agenticdsl

@@ -69,4 +69,42 @@ std::string to_string(ToolCategory category) {
   return "Unknown";
 }
 
+/**
+ * @brief 注册时验证 allowed_layers 与 ToolCategory 的兼容性 (C6 Sprint 16)
+ *
+ * 遍历 meta.allowed_layers, 对每个 layer 检查该 layer 是否允许 meta.category 类型的工具。
+ * 若 allowed_layers 为空 (默认全允许), 跳过检查。
+ * @throws std::invalid_argument 若 allowed_layers 包含不兼容的 layer
+ */
+void check_registration_permission(const ToolMetadata& meta) {
+  if (meta.allowed_layers.empty()) return; // 空 = 全允许, 跳过
+
+  for (const auto& layer : meta.allowed_layers) {
+    // Check: does this layer allow this category?
+    // Matrix from ADR-0004 §8:
+    //   Cognitive  → {ReadOnly}
+    //   Thinking   → {ReadOnly, WriteFile}
+    //   Workflow   → {ReadOnly, WriteFile, Execute, Network, StateModify}
+    bool allowed = false;
+    switch (layer) {
+      case LayerProfile::Cognitive:
+        allowed = (meta.category == ToolCategory::ReadOnly);
+        break;
+      case LayerProfile::Thinking:
+        allowed = (meta.category == ToolCategory::ReadOnly || 
+                   meta.category == ToolCategory::WriteFile);
+        break;
+      case LayerProfile::Workflow:
+        allowed = true; // all categories allowed
+        break;
+    }
+    if (!allowed) {
+      throw std::invalid_argument(
+        "ToolMetadata registration: layer " + to_string(layer) +
+        " does not permit category " + std::to_string(static_cast<int>(meta.category)) +
+        " for tool '" + meta.name + "'");
+    }
+  }
+}
+
 }  // namespace agenticdsl

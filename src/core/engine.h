@@ -85,12 +85,14 @@ public:
     void continue_with_generated_dsl(const std::string& generated_dsl);
     void append_graphs(std::vector<ParsedGraph> new_graphs);
 
-    // P1.T2: register_tool 模板改用 register_tool_function 虚函数 (避免模板 virtual)
+    // P1.T2 + C6: register_tool 模板改用 register_tool_function 虚函数 (避免模板 virtual)
+    // C6: 增加 ToolMetadata 参数 — 所有调用点需补 ToolMetadata (BREAKING)
     template <typename Func>
-    void register_tool(std::string_view name, Func&& func) {
+    void register_tool(std::string_view name, ToolMetadata meta, Func&& func) {
         // 委托到 IToolRegistry::register_tool_function (类型擦除 std::function)
         tool_registry_->register_tool_function(
             std::string(name),
+            std::move(meta),
             [fn = std::forward<Func>(func)](
                 const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
                 return fn(args);

@@ -109,8 +109,7 @@ TEST_CASE("CognitiveWorker submit task and receive completed event",
   auto bus = std::make_shared<InMemoryBus>();
   auto engine = make_engine_with_mock(R"({"tool":"echo","args":{"message":"hi"}})");
   // 注册 echo 工具, 模拟成功路径
-  engine->register_tool("echo",
-      [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+  engine->register_tool("echo", agenticdsl::ToolMetadata{"echo", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
         return nlohmann::json{{"echoed", args.at("message")}};
       });
 
@@ -206,8 +205,7 @@ TEST_CASE("CognitiveWorker concurrent submit 10x100 TSan clean",
           "[cognitive_worker][sprint2][concurrency]") {
   auto bus = std::make_shared<InMemoryBus>();
   auto engine = make_engine_with_mock(R"({"tool":"echo","args":{"message":"x"}})");
-  engine->register_tool("echo",
-      [](const std::unordered_map<std::string, std::string>&) -> nlohmann::json {
+  engine->register_tool("echo", agenticdsl::ToolMetadata{"echo", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>&) -> nlohmann::json {
         return nlohmann::json{{"ok", true}};
       });
 

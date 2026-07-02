@@ -501,7 +501,7 @@ nodes:
 )";
 
     auto engine = agenticdsl::DSLEngine::from_markdown(markdown);
-    engine->register_tool("always_fail", [](const nlohmann::json&)
+    engine->register_tool("always_fail", agenticdsl::ToolMetadata{"always_fail", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const nlohmann::json&)
                                           -> nlohmann::json {
         return nlohmann::json{
             {"ok", false},
@@ -510,8 +510,7 @@ nodes:
             {"error_code", "Abort"}
         };
     });
-    engine->register_tool("downstream_marker",
-                          [&downstream_counter](const nlohmann::json&)
+    engine->register_tool("downstream_marker", agenticdsl::ToolMetadata{"downstream_marker", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [&downstream_counter](const nlohmann::json&)
                               -> nlohmann::json {
         downstream_counter++;
         return {{"invocation", downstream_counter}};

@@ -2,7 +2,7 @@
 
 ## 状态
 
-**🟡 Partial (同步路径已实施)** (2026-06-13) — **V2 版** 设计文档已锁定；当前实现：
+**✅ Approved (V2)** (2026-07-02, Sprint 16 C6 ship) — V2 完整实施：ToolMetadata 字段全激活、注册时 validation、DECLARE_TOOL 宏升级、ToolPreview.metadata_json 桥接。当前实现：
 
 - ✅ `IExecutionPolicy` 族系 (`plan_mode_policy` / `agent_mode_policy` / `yolo_mode_policy`) — ADR-0031
 - ✅ `ToolCategory` / `ApprovalPolicy` / `ToolMetadata` / `ToolCallContext` / `LayerProfile` 值类型 — `src/common/policy/execution_policy.h`
