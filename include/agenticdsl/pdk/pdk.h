@@ -12,6 +12,7 @@
 #pragma once
 
 #include <agenticdsl/pdk/tool_macros.h>
+#include <agenticdsl/pdk/model_router.h>
 #include <agenticdsl/pdk/agent_macros.h>
 #include <agenticdsl/pdk/safe_exec.h>
 
