@@ -97,7 +97,7 @@ TEST_CASE("CostModelRouter throws NoViableModel when no model matches required t
 
   RoutingContext ctx;
   ctx.task_type = "completion";
-  ctx.required_tags = {"vision"}; // 没有任何模型有 vision tag
+  ctx.required_tags = {"audio"}; // 没有任何模型有 audio tag (gpt-4/gpt-3.5/claude-3 都没有)
 
   REQUIRE_THROWS_AS(router.route(ctx, candidates), ModelRoutingError);
   try {

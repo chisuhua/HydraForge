@@ -18,6 +18,7 @@ function(add_catch_test TEST_NAME)
     # 包含目录
     target_include_directories(${TEST_NAME} PRIVATE
         ${CATCH_INCLUDE_DIR}
+        ${PROJECT_SOURCE_DIR}
         ${PROJECT_SOURCE_DIR}/include
         ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
         ${PROJECT_SOURCE_DIR}/external/inja/include
