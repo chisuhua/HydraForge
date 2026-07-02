@@ -103,9 +103,14 @@ public:
   // === Phase 1 Sprint 0 新增 (K1 Plugin Stub 验证) ===
   /// MockLLMProvider 默认注册 1 个 mock 模型
   /// Plugin 端通过 available_models() 拿到此模型做路由决策
-  std::vector<ModelInfo> available_models() const override;
+std::vector<ModelInfo> available_models() const override;
 
-  // === 测试断言辅助 ===
+   // === C7 Phase 1 MVP: 测试 hook ===
+   /// 设置 available_models() 返回值 (覆盖默认 mock-llm-v1)
+   /// 测试用: 注入 vector<ModelInfo> 模拟不同 provider 模型列表
+   void set_available_models(std::vector<ModelInfo> models);
+
+   // === 测试断言辅助 ===
 
   /// 获取所有调用历史（按调用顺序）
   const std::vector<GenerationRequest>& call_history() const { return history_; }
@@ -129,7 +134,10 @@ private:
   std::vector<GenerationRequest> history_;
 
   std::optional<LLMError> simulated_error_;
-  std::chrono::milliseconds delay_{0};
+std::chrono::milliseconds delay_{0};
+
+  // C7 Phase 1 MVP: 测试用模型列表 (非空时覆盖默认返回)
+  std::vector<ModelInfo> test_models_;
 };
 
 } // namespace agenticdsl

@@ -83,15 +83,20 @@ void MockLLMProvider::set_simulate_delay(std::chrono::milliseconds delay) {
 }
 
 void MockLLMProvider::reset() {
-  // std::queue 无 clear 方法（C++20 之前），逐个弹出
-  while (!response_queue_.empty()) {
-    response_queue_.pop();
-  }
-  fixed_response_.reset();
-  stream_tokens_.clear();
-  history_.clear();
-  simulated_error_.reset();
-  delay_ = std::chrono::milliseconds{0};
+   // std::queue 无 clear 方法（C++20 之前），逐个弹出
+   while (!response_queue_.empty()) {
+     response_queue_.pop();
+   }
+   fixed_response_.reset();
+   stream_tokens_.clear();
+   history_.clear();
+   simulated_error_.reset();
+   delay_ = std::chrono::milliseconds{0};
+   test_models_.clear();
+}
+
+void MockLLMProvider::set_available_models(std::vector<ModelInfo> models) {
+   test_models_ = std::move(models);
 }
 
 GenerationResult MockLLMProvider::next_response() {
@@ -161,12 +166,16 @@ MockLLMProvider::generate_stream(const GenerationRequest& req,
 // MockLLMProvider 默认注册 1 个 mock 模型, 供 Plugin Stub 路由决策
 // Sprint 5 PluginLoader 实现后, 真实 plugin 可读取此列表并应用 Policy
 std::vector<ILLMProvider::ModelInfo> MockLLMProvider::available_models() const {
+  if (!test_models_.empty()) {
+    return test_models_;
+  }
+  // 默认返回 mock-llm-v1 (保持向后兼容)
   return {
       ModelInfo("mock-llm-v1",
                 {ModelCapability::Chat, ModelCapability::ToolUse},
                 4096,
                 "mock")
   };
-}
+ }
 
 } // namespace agenticdsl
