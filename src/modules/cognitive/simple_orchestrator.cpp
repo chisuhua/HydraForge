@@ -106,7 +106,7 @@ void SimpleCognitiveOrchestrator::process(
 
 ToolResult SimpleCognitiveOrchestrator::react_once(const std::string& user_prompt) {
   // 1) 构造 prompt（MVP 硬编码）
-  // TODO(mvp): 多轮 + 真实 prompt 模板留待 Phase 1
+  // @internal: 多轮循环由 CognitiveWorker 在上层管理；prompt 模板已迁移至 llm_config.json
   const std::string tool_list = "echo"; // MVP：仅 echo 工具
   const std::string prompt =
       "You have access to tools: [" + tool_list + "]\n"

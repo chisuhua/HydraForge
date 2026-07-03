@@ -1,14 +1,15 @@
 // include/agenticdsl/cognitive/simple_orchestrator.h
-// 文件头注释
-// 功能描述：SimpleCognitiveOrchestrator — B 轨道（Track 0.2）单轮 ReAct 编排器。
+// 功能描述：SimpleCognitiveOrchestrator — 单轮 ReAct 编排器。
+//          @internal Phase 0 单轮 ReAct 编排器 — Phase 1+ 由 CognitiveWorker + ReactLoop 封装,
+//          作为 per-agent 执行引擎的内部实现组件。非公开 API, 供 CognitiveWorker 和 PDK
+//          ReactLoop 内部委托使用。
 //          通过 ToolRegistry + ILLMProvider 完成 "LLM 返回 JSON tool_call → 调用工具 → 包装为 ToolResult" 的最小闭环。
-//          MVP 阶段：仅单轮，标 TODO(mvp)；多轮 + 状态机留待后续 Phase 1。
 //          Phase 1 P1.T2 (2026-06-18): 改为接受 IToolRegistry* (依赖倒置)
 //            6 个 get_tool_registry() 调用点零修改, 仍传入 &engine->get_tool_registry()
 // 设计依据：ADR-0015（IPER 闭环）+ ADR-0019（IInteractionBus）+ plan §6。
 //          + openspec/changes/2026-06-15-residual-engine-h-decoupling T2 v3
 // 作者：AgenticDSL Phase 0 / Track B + Phase 1 P1
-// 最后修改日期：2026-06-18 [Phase 1 P1.T2: IToolRegistry* 依赖倒置]
+// 最后修改日期：2026-07-03 [Phase 4.5: @internal 标记, TODO(mvp) 清理]
 //
 // 关于接口的说明：
 // - Pre-Phase 已定义 agenticdsl::ICognitiveOrchestrator（process 回调为 ExecutionResult），
