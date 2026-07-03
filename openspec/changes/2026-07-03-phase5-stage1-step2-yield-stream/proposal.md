@@ -105,7 +105,7 @@ Phase 5 自举服务化需要支持 token-by-token 流式生成 (BOOT-001 阶段
 
 ## 关联 change
 
-- **前置**: C10 ✅ (module_state 持久化基础) + C11 ✅ (SessionVars)
+- **前置**: C9 `2026-07-03-2026-07-03-phase4-5-impl-scope-audit` (audit ✅, archived 2026-07-03) + C10 ✅ (module_state 持久化基础) + C11 ✅ (SessionVars)
 - **后续**: Stage 2 远期 (Static analysis + Graph IR, C14)
 
 ## 验证标准

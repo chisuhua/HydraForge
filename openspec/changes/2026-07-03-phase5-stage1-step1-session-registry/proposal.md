@@ -105,7 +105,7 @@ Phase 5 自举需要支持多用户/多会话隔离。当前 ADR-0033 (C5 ship) 
 
 ## 关联 change
 
-- **前置**: C10 ✅ (ModuleState 基础设施)
+- **前置**: C9 `2026-07-03-2026-07-03-phase4-5-impl-scope-audit` (audit ✅, archived 2026-07-03) + C10 ✅ (ModuleState 基础设施)
 - **后续**: C12 (YIELD 可选地引用 SessionID, 但不强依赖)
 
 ## 验证标准

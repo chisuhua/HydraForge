@@ -85,7 +85,7 @@ Phase 5 自举服务化需要让 Agent 通过 DSL 控制推理参数 (BOOT-001 �
 
 ## 关联 change
 
-- **前置**: C9 `2026-07-03-phase4-5-impl-scope-audit` (audit, 0 DRIFT ✅)
+- **前置**: C9 `2026-07-03-2026-07-03-phase4-5-impl-scope-audit` (audit, 0 DRIFT ✅, archived 2026-07-03) — 提供 11 个 ADR 真实基线
 - **后续**: C11 (依赖 C10 提供的 module_states_ 基础设施)
 - **后续**: C12 (依赖 C10, YIELD 需要 module_state 持久化)
 
