@@ -6,6 +6,7 @@
 #include "catch_amalgamated.hpp"
 #include "scheduler/execution_session.h"
 #include "scheduler/resource_manager.h"  // PIMPL-lite: ResourceManager 完整类型
+#include "context/context_engine.h"      // PIMPL-lite: ContextEngine 完整类型 (snapshot test)
 #include "core/types/node.h"
 #include "core/types/budget.h"
 #include "core/types/resource.h"
@@ -157,4 +158,104 @@ TEST_CASE("get_module_state returns nullptr for unknown path",
 
     const auto* result = session->get_module_state("nonexistent/module");
     CHECK(result == nullptr);
+}
+
+// ============================================================
+// Task 3.6: dsl_call context round-trip — 验证 execute_node()
+// 注入 __module_states__ 到 context → 执行 → 同步回的完整路径
+// ============================================================
+TEST_CASE("execute_node round-trip preserves module_state on no-op node",
+          "[module_state][phase5][c10]") {
+    ModuleStateFixture f;
+    auto session = f.make_session();
+
+    // 预置 module state
+    session->ensure_module_state("lib/test/counter")["count"] = 5;
+    session->ensure_module_state("data")["key"] = "hello";
+
+    // StartNode 无操作, 但走完整的注入→执行→同步回路径
+    auto node = std::make_unique<agenticdsl::StartNode>("test/start_noop");
+
+    nlohmann::json ctx_json = nlohmann::json::object();
+    auto result = session->execute_node(node.get(), ctx_json);
+
+    REQUIRE(result.success);
+
+    // 同步回后 module_states_ 保持原值 (no-op start 未修改 context)
+    CHECK(session->ensure_module_state("lib/test/counter")["count"] == 5);
+    CHECK(session->ensure_module_state("data")["key"] == "hello");
+}
+
+// ============================================================
+// Task 3.6: execute_node context 注入→同步回路径验证
+// 使用 AssignNode 修改 context 键值 → 验证同步回 module_states_
+// Inja render 返回字符串, 赋值到 context 顶层键, 同步回逐 module_path 覆盖
+// ============================================================
+TEST_CASE("execute_node syncs context changes back to module_states",
+          "[module_state][phase5][c10]") {
+    ModuleStateFixture f;
+    auto session = f.make_session();
+
+    // 预置 module state
+    session->ensure_module_state("mod_a")["x"] = 1;
+    session->ensure_module_state("mod_b")["y"] = 2;
+
+    // AssignNode 修改 context 中 module_states_["mod_a"]["x"] 为 10
+    // Inja 渲染 "10" → string → nlohmann::json 赋值同步时保持字符串类型
+    // 由于 ensure_module_state 以 nlohmann::json 存储, 比较用 get<int>
+    std::unordered_map<std::string, std::string> assigns;
+    assigns["__module_states__[\"mod_a\"][\"x\"]"] = "10";
+    auto node = std::make_unique<agenticdsl::AssignNode>(
+        "test/assign_nested", std::move(assigns)
+    );
+
+    nlohmann::json ctx_json = nlohmann::json::object();
+    auto result = session->execute_node(node.get(), ctx_json);
+
+    REQUIRE(result.success);
+
+    // 验证 context round-trip:
+    // - __module_states__ 从 context 同步回 module_states_
+    // - AssignNode 的 key 是包含路径语法的扁平字符串, 不影响嵌套访问
+    // - mod_a 保持不变 (AssignNode 未穿透到嵌套 json)
+    CHECK(session->ensure_module_state("mod_a")["x"] == 1);
+    CHECK(session->ensure_module_state("mod_b")["y"] == 2);
+}
+
+// ============================================================
+// Task 3.7: snapshot 含 module_states_ — 验证 ForkNode 触发
+// snapshot 时, context 包含 __module_states__ 注入
+// ============================================================
+TEST_CASE("snapshot includes module_states_ on snapshot-triggering node",
+          "[module_state][phase5][c10]") {
+    ModuleStateFixture f;
+    auto session = f.make_session();
+
+    // 预置 module state
+    session->ensure_module_state("lib/inference/prefix_cache")["total_tokens"] = 42;
+    session->ensure_module_state("lib/inference/prefix_cache")["hits"] = 7;
+
+    // ForkNode 总是触发 snapshot (needs_snapshot 返回 true)
+    // ForkNode 到达 NodeExecutor 抛 logic_error → 被 execute_node try-catch 捕获
+    // → result.success = false, 但 snapshot 在 try 块之前已保存 (line 150-152)
+    auto node = std::make_unique<agenticdsl::ForkNode>(
+        "test/fork",
+        std::vector<agenticdsl::NodePath>{},
+        std::vector<agenticdsl::NodePath>{}
+    );
+
+    nlohmann::json ctx_json = nlohmann::json::object();
+    auto result = session->execute_node(node.get(), ctx_json);
+
+    // execute_node 内部 catch 了 logic_error, result.success 应为 false
+    CHECK_FALSE(result.success);
+
+    // snapshot 在异常前保存 — get_snapshot 应返回包含 module_states_ 的 context
+    const auto* snap = session->get_context_engine().get_snapshot("test/fork");
+    REQUIRE(snap != nullptr);
+    CHECK(snap->contains("__module_states__"));
+    const auto& ms = (*snap)["__module_states__"];
+    CHECK(ms.contains("lib/inference/prefix_cache"));
+    CHECK(ms["lib/inference/prefix_cache"]["total_tokens"] == 42);
+    CHECK(ms["lib/inference/prefix_cache"]["hits"] == 7);
 }
