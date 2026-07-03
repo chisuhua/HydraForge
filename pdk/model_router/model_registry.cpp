@@ -1,3 +1,4 @@
+#include "agenticdsl/plugin/plugin_info.h"
 // pdk/model_router/model_registry.cpp
 // 功能描述：ModelRegistry — 模型注册表查询工具 (C7 Phase 2)。
 //          注册 model_router/registry 工具, 支持按 tag 过滤可用模型列表。
@@ -89,3 +90,12 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
     }
   );
 }
+
+// Plugin 元数据 (PluginLoader 在 dlopen 后零代码执行读取)
+extern "C" const hydraforge::PluginInfo pdk_plugin_info = {
+  hydraforge::CURRENT_ABI_VERSION,
+  "hydraforge_model_registry",
+  1, 0, 0,
+  "ModelRegistry - query available models by tag",
+  "model_routing,registry"
+};

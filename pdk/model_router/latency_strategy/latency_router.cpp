@@ -1,3 +1,4 @@
+#include "agenticdsl/plugin/plugin_info.h"
 // pdk/model_router/latency_strategy/latency_router.cpp
 // 功能描述：LatencyModelRouter Plugin 入口 (C7 Phase 2)。
 //          export extern "C" pdk_register_tools(IToolRegistry&),
@@ -122,3 +123,12 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
     }
   );
 }
+
+// Plugin 元数据 (PluginLoader 在 dlopen 后零代码执行读取)
+extern "C" const hydraforge::PluginInfo pdk_plugin_info = {
+  hydraforge::CURRENT_ABI_VERSION,
+  "hydraforge_model_router_latency",
+  1, 0, 0,
+  "LatencyModelRouter - lowest avg_latency_ms routing",
+  "model_routing,latency"
+};

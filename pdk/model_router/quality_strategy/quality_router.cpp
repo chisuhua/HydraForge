@@ -1,3 +1,4 @@
+#include "agenticdsl/plugin/plugin_info.h"
 // pdk/model_router/quality_strategy/quality_router.cpp
 // 功能描述：QualityModelRouter Plugin 入口 (C7 Phase 2)。
 //          export extern "C" pdk_register_tools(IToolRegistry&),
@@ -119,3 +120,12 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
     }
   );
 }
+
+// Plugin 元数据 (PluginLoader 在 dlopen 后零代码执行读取)
+extern "C" const hydraforge::PluginInfo pdk_plugin_info = {
+  hydraforge::CURRENT_ABI_VERSION,
+  "hydraforge_model_router_quality",
+  1, 0, 0,
+  "QualityModelRouter - tag match + context size routing",
+  "model_routing,quality"
+};
