@@ -12,16 +12,16 @@
 
 | 维度 | 状态 | 证据 |
 |------|------|------|
-| OpenSpec active change 数 | **2** (C7 `adr-0034-model-router-plugin` 🟡 Phase 1 MVP + C8 `phase-4-5-mvp-cleanup`, 占位) | `ls openspec/changes/` = 2 active (C7 Phase 1 ship 后, Phase 2 实施后 archive; C8 占位) |
-| Test count | **60/60 PASS** | baseline 25 + Sprint 1a/1b/2/3/4/5/6/10/15/16/17/19/20 累计 35 新增 (含 C7 Phase 1: 3 new tests = interface + provider + cost plugin) |
+| OpenSpec active change 数 | **1** (C8 `phase-4-5-mvp-cleanup`, 占位) | `ls openspec/changes/` = 1 active (C7 Phase 1+2 ship 后 archive; C8 待 C5+C6 后启动) |
+| Test count | **61/61 PASS** | baseline 25 + Sprint 1a/1b/2/3/4/5/6/10/15/16/17/19/20 累计 36 新增 (含 C7: 4 new test files = interface + provider + policy + registry, 11 new TEST_CASE) |
 | ASan | **60/60 (100%)** | Sprint 10 验证 + Sprint 17 Phase 1 后复验 (T15 跳过 - 走默认 build) |
 | TSan | **60/60 (100%)** | Sprint 10 验证 + Sprint 17 Phase 1 后复验 (T16 跳过 - 走默认 build) |
 | Phase 0 MVP | ✅ 100% | 2026-06-14 ship |
 | Phase 1 智能体层 | ✅ 100% | 2026-06-24 Sprint 5 ship (5 ADR Approved) |
 | Phase 2 异步运行时 | ✅ 100% | 2026-07-31 C2 ship + archive (ADR-0030 V2 → ✅ Approved) |
 | Phase 3 执行策略+安全 | ✅ 100% | 2026-07-02 C5+C6 ship + archive (ADR-0033 + ADR-0004 V2 → ✅ Approved) |
-| Phase 4 模型路由 | 🟡 50% | 2026-07-02 C7 Phase 1 MVP (interface + cost plugin) shipped, Phase 2 (quality + latency strategies + model-registry-tool + examples upgrade) 待启动 |
-| Phase 4.5 MVP清理 | 0% (待启动) | C8 占位, 待 C7 Phase 2 完成后启动 |
+| Phase 4 模型路由 | ✅ 100% | 2026-07-02 C7 fully shipped (Phase 1 + Phase 2: 3 strategy .so + ModelRegistry + examples + 11 new tests, ADR-0034 → ✅ Approved) |
+| Phase 4.5 MVP清理 | 0% (待启动) | C8 占位, 待启动 |
 
 **5 个已 Approved 的 Phase 1 ADR** (2026-06-24 ship):
 ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022 (Plugin Loading) / ADR-0023 (ToolResult)
@@ -80,7 +80,7 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 | **C4** | `2026-06-26-adr-0031-p3p4-toolcoordinator` | 实施 | **7d (1.5 周, Sprint 14, Oracle 校正)** | C3 (+ C2 异步决策) | ✅ **shipped (2026-07-31, 41/41 ctest pass, 3 phase commits 2d70c87/a48e563, Oracle session `ses_0ed4408faffeLv8VfrC0s5PzW7`)** + ✅ **archived (2026-06-29, `openspec/changes/archive/2026-06-29-2026-06-26-adr-0031-p3p4-toolcoordinator/`, commit `4f6d184`)** |
 | **C5** | `2026-06-26-adr-0033-session-hierarchy` | 实施 | 1.5-2 周 (Sprint 15) | — (独立) | ✅ **shipped (2026-07-02, 54/54 ctest pass, 7 新测试, ADR-0033 → ✅ Approved)** + ✅ **archived (2026-07-02, `openspec/changes/archive/2026-07-02-2026-06-26-adr-0033-session-hierarchy/`, merge commit `813cebc`)** |
 | **C6** | `2026-06-26-adr-0004-v2-metadata-approval` | 实施 | 1 周 (Sprint 16) | **C3 + C4** | ✅ **shipped (2026-07-02, 57/57 ctest pass, 21 新测试, ADR-0004 → ✅ Approved (V2))** + ✅ **archived (2026-07-02, `openspec/changes/archive/2026-07-02-2026-06-26-adr-0004-v2-metadata-approval/`, merge commit `3f460c5`)** |
-| **C7** | `2026-06-26-adr-0034-model-router-plugin` | 实施 | 1-2 周 (Sprint 17) | — (PDK + PluginLoader 已 ship) | 🟡 **Phase 1 MVP shipped (2026-07-02, 60/60 ctest pass, IModelRouter interface + CostModelRouter .so + 7 commits)** — Phase 2 实施后 archive |
+| **C7** | `2026-06-26-adr-0034-model-router-plugin` | 实施 | 1-2 周 (Sprint 17) | — (PDK + PluginLoader 已 ship) | ✅ **fully shipped (2026-07-02, 61/61 ctest pass, Phase 1 + Phase 2 complete: 3 strategy .so + ModelRegistry + examples + 11 new tests, ADR-0034 → ✅ Approved)** |
 | **C8** | `2026-06-26-phase-4-5-mvp-cleanup` | 占位 | 1-2 天 (Sprint 18) | **C3 + C4 + C5 + C6** (2026-06-26 §十一.1 统一, 与 proposal.md 一致) | ⚪ 占位 (收尾, 待 C7 完成后启动) |
 
 **注**: C0 + C1 是 Sprint 11 的**主成分**。其他 C2-C8 是后续 Sprint 的占位 change，详细 proposal/design/spec/tasks 在前置依赖完成后填充。

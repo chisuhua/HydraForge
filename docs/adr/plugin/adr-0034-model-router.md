@@ -5,7 +5,9 @@
 
 ## 状态
 
-**🔍 Proposed** (plugin-candidate, 2026-06-16)
+**✅ Approved** (C7 fully shipped, 2026-07-02)
+
+> 历史：2026-06-16 由 `docs/archive/adr/` 迁出，状态由 ❌ Not Implemented 调整为 🔍 Proposed；2026-07-02 C7 Phase 1 MVP (IModelRouter 接口 + CostModelRouter .so) + Phase 2 (QualityModelRouter + LatencyModelRouter + ModelRegistry) 全部 ship，状态升为 ✅ Approved。
 
 > 历史：原状态为 `❌ Not Implemented`（2026-06-09 标注归档），2026-06-16 因重新定位为「Plugin 化实施候选」迁出 `docs/archive/adr/` 至 `docs/adr/plugin/`，状态由 ❌ Not Implemented 调整为 🔍 Proposed。
 >

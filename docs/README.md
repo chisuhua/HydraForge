@@ -48,7 +48,7 @@ docs/
 
 | 文件 | 议题 | 状态 |
 |------|------|------|
-| `adr/plugin/adr-0034-model-router.md` | IModelRouter 模型路由接口（plugin-candidate） | 🔍 Proposed |
+| `adr/plugin/adr-0034-model-router.md` | IModelRouter 模型路由接口（plugin-candidate, C7 完整 ship） | ✅ Approved (2026-07-02) |
 
 ### adr-management/ - ADR 元数据
 
