@@ -19,6 +19,7 @@
 #include <functional> // For std::function (callback)
 #include <unordered_map>
 #include <unordered_set>
+#include <map> // C10 Phase 5 Stage 1 Step 0: module_states_ per-module json persistence
 
 namespace agenticdsl {
 
@@ -82,6 +83,11 @@ public:
     const std::unordered_map<NodePath, std::vector<NodePath>>& get_pending_dynamic_deps() const { return pending_dynamic_deps_; }
     const std::unordered_map<NodePath, nlohmann::json>& get_dynamic_wait_for_expressions() const { return dynamic_wait_for_expressions_; }
 
+    // C10 Phase 5 Stage 1 Step 0: per-module lazy-init json persistence
+    // dsl_call 调用间共享模块状态 (如 prefix_cache 累计 token 统计)
+    nlohmann::json& ensure_module_state(const std::string& module_path);
+    const nlohmann::json* get_module_state(const std::string& module_path) const;
+
     // ADR-0031 (2026-07-31): 注入审批处理器（透传到 NodeExecutor）
     // Sprint 19: 参数类型 ApprovalHandler* → IApprovalHandler* (依赖抽象, ADR-0019 §1.4)
     // Sprint 19 D-8: 透传逻辑移到 .cpp (node_executor_ 是 unique_ptr 不完整类型)
@@ -100,6 +106,7 @@ private:
     std::unique_ptr<NodeExecutor> node_executor_;
     const std::vector<ParsedGraph>* full_graphs_; // ← 指向完整图集
     std::vector<NodePath> call_stack_; // 用于 soft end
+    std::map<std::string, nlohmann::json> module_states_; // C10 Phase 5 Step 0: per-module lazy state
     std::unordered_map<NodePath, std::vector<NodePath>> pending_dynamic_deps_; // NodePath -> [list of unresolved deps]
     std::unordered_map<NodePath, nlohmann::json> dynamic_wait_for_expressions_; // NodePath -> original wait_for expression
     AppendGraphsCallback append_graphs_callback_; // Callback for dynamic graphs

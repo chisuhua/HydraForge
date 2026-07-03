@@ -49,6 +49,20 @@ ExecutionSession::ExecutionSession(
 // 编译器可在 unique_ptr<X>::~unique_ptr() 完整实例化, 无 "incomplete type" 错误。
 ExecutionSession::~ExecutionSession() = default;
 
+// C10 Phase 5 Stage 1 Step 0: per-module lazy-init json state
+nlohmann::json& ExecutionSession::ensure_module_state(const std::string& module_path) {
+    auto it = module_states_.find(module_path);
+    if (it == module_states_.end()) {
+        it = module_states_.emplace(module_path, nlohmann::json::object()).first;
+    }
+    return it->second;
+}
+
+const nlohmann::json* ExecutionSession::get_module_state(const std::string& module_path) const {
+    auto it = module_states_.find(module_path);
+    return (it != module_states_.end()) ? &it->second : nullptr;
+}
+
 // Sprint 19 D-8: PIMPL-lite — set_approval_handler / set_tool_coordinator 透传逻辑
 // 移到 .cpp (header 中 node_executor_ 是 unique_ptr<不完整类型>, 不可在 header 解引用)。
 void ExecutionSession::set_approval_handler(IApprovalHandler* handler) {
@@ -122,6 +136,14 @@ ExecutionSession::ExecutionResult ExecutionSession::execute_node(Node* node, con
         context_with_resources["resources"] = std::move(resources_ctx);
     }
 
+    // C10 Phase 5 Stage 1 Step 0: inject module_states_ for dsl_call access
+    // 将 per-module 持久化状态序列化为 context 键, dsl_call 内部可引用/修改后由下方同步回
+    nlohmann::json module_states_json = nlohmann::json::object();
+    for (const auto& [path, state] : module_states_) {
+        module_states_json[path] = state;
+    }
+    context_with_resources["__module_states__"] = std::move(module_states_json);
+
     // v3.1: Check for snapshot trigger BEFORE execution
     bool snapshot_needed = needs_snapshot(node);
     if (snapshot_needed) {
@@ -176,6 +198,14 @@ ExecutionSession::ExecutionResult ExecutionSession::execute_node(Node* node, con
 
         result.new_context = std::move(execution_result.new_context);
         result.snapshot_key = execution_result.snapshot_key;
+
+        // C10: sync module_states_ changes back from context after dsl_call
+        if (result.new_context.contains("__module_states__") && result.new_context["__module_states__"].is_object()) {
+            for (auto it = result.new_context["__module_states__"].begin();
+                 it != result.new_context["__module_states__"].end(); ++it) {
+                module_states_[it.key()] = it.value();
+            }
+        }
 
         // --- v3.1: Check for LLM Call Pause ---
         if (node->type == NodeType::DSL_CALL) {
