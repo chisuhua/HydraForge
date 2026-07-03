@@ -8,6 +8,7 @@
 #   ./scripts/sprint-closeout.sh              # 完整 sprint-closeout
 #   ./scripts/sprint-closeout.sh --drift-only # 仅 Drift Detection (快速检查)
 #   ./scripts/sprint-closeout.sh --no-ctest   # 跳过 ctest (CI 失败调试时)
+#   ./scripts/sprint-closeout.sh --lsp-full   # LSP 完整模式 (含 clangd --check, ~30s/文件)
 
 set -e
 
@@ -29,6 +30,7 @@ RUN_LINT=true
 RUN_DOCS_AUDIT=true
 RUN_OPENSPEC_VALIDATE=true
 DRIFT_ONLY=false
+RUN_LSP_FULL=false
 
 # 解析参数
 while [[ $# -gt 0 ]]; do
@@ -45,6 +47,10 @@ while [[ $# -gt 0 ]]; do
       RUN_ASAN_TSAN=true
       shift
       ;;
+    --lsp-full)
+      RUN_LSP_FULL=true
+      shift
+      ;;
     --help|-h)
       echo "用法: $0 [选项]"
       echo ""
@@ -52,6 +58,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --drift-only       仅运行 Drift Detection"
       echo "  --no-ctest         跳过 ctest"
       echo "  --with-asan-tsan   同时运行 ASan/TSan (耗时较长)"
+      echo "  --lsp-full         LSP 完整模式 (clangd --check, ~30s/文件)"
       echo "  --help, -h         显示帮助"
       exit 0
       ;;
@@ -234,10 +241,16 @@ fi
 # 设计依据: docs/audits/2026-07-03-pdk-model-router-lsp-false-positive.md
 # ====================================================================
 if [ -f scripts/check-lsp-discipline.sh ]; then
-  print_header "Step 6/7: 🔍 LSP discipline (clangd 配置 + 解析验证)"
+  LSP_MODE="--quick"
+  LSP_LABEL="quick (5s)"
+  if [ "$RUN_LSP_FULL" = true ]; then
+    LSP_MODE=""
+    LSP_LABEL="full (~30s/文件)"
+  fi
+  print_header "Step 6/7: 🔍 LSP discipline ($LSP_LABEL)"
 
-  print_step "scripts/check-lsp-discipline.sh --quick..."
-  if ./scripts/check-lsp-discipline.sh --quick 2>&1 | tail -25; then
+  print_step "scripts/check-lsp-discipline.sh $LSP_MODE..."
+  if ./scripts/check-lsp-discipline.sh $LSP_MODE 2>&1 | tail -25; then
     print_ok "LSP discipline 通过"
   else
     LSP_EXIT=$?

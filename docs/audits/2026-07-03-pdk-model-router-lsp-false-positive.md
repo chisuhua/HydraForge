@@ -135,10 +135,13 @@ C10/C11/C12 proposal 原引用单日期 `2026-07-03-phase4-5-impl-scope-audit` �
 
 ## 未来工作建议
 
-1. **pre-commit hook 集成** (可选): `git commit` 前跑 `--quick` 模式, 阻止带 LSP false positive 的 commit
-2. **CI 集成**: GitHub Actions 增加 LSP discipline 步骤
-3. **定期审计**: 每个 Sprint closeout 后跑完整模式 (含 clangd --check), 记录 trend
-4. **LSP 客户端维护**: 考虑 opencode 升级, 解决 LSP cache 持久化问题
+1. **pre-commit hook 集成** (Sprint 19 shipped): `git commit` 前跑 `--quick` 模式, 检测 exit code 3 (真实错误) 阻塞 commit, exit code 1/2 仅 warning。集成在 `.git/hooks/pre-commit` 中 (与 code-review-graph 共存), 非阻塞但会拦截真实错误。
+2. **CI 集成** (Sprint 19 shipped): GitHub Actions 新增 "LSP discipline" step, 在 tests/gcc 矩阵条目中运行 `--compile-commands` 指向 CI build dir。非阻塞 (`|| true`), 仅作为参考信号。
+3. **定期审计**: `scripts/sprint-closeout.sh` 支持 `--lsp-full` 标志运行完整 clangd --check 模式 (~30s/文件)。每个 Sprint closeout 可定期执行完整审计。
+4. **opencode LSP 客户端升级**: 当前 LSP false positive 根因之一是 opencode 的 LSP 客户端缓存机制 — 它在启动时索引一次文件, 后续 compile_commands.json 更新或新增文件后**不会自动重新索引**。建议:
+   - 升级 opencode 到支持 LSP server 热重启 / 文件 watcher 的版本
+   - 或在 opencode 配置中添加 `lsp.restartOnConfigChange: true` (如有)
+   - 临时缓解: 遇到 LSP stale cache 时手动重启 opencode 窗口或运行 `lsp_diagnostics` 强制重新索引
 
 ## 审计总结
 

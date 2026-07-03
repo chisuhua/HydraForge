@@ -90,6 +90,23 @@ jobs:
             fi
           done
 
+      - name: LSP discipline (clangd --check, tests+gcc only)
+        # 验证: clangd 能正确解析 pdk 文件 (vs LSP false positive)
+        # Sprint 19 新增: docs/audits/2026-07-03-pdk-model-router-lsp-false-positive.md
+        # 注: 非阻塞 — 仅作为参考信号 (false positive 不阻塞 CI)
+        if: matrix.preset == 'tests' && matrix.compiler.cc == 'gcc'
+        run: |
+          echo "Installing clangd..."
+          sudo apt-get install -y clangd-18 2>&1 | tail -3 || sudo apt-get install -y clangd 2>&1 | tail -3 || true
+          echo "Running LSP discipline check..."
+          CI_BUILD_DIR="build/${{ matrix.preset }}"
+          if [ -f "$CI_BUILD_DIR/compile_commands.json" ]; then
+            ./scripts/check-lsp-discipline.sh --quick \
+              --compile-commands "$CI_BUILD_DIR/compile_commands.json" || true
+          else
+            echo "WARNING: $CI_BUILD_DIR/compile_commands.json not found, skipping LSP check"
+          fi
+
   docker-tsan:
     name: TSan validation (Dockerfile.tsan, ASLR-free)
     # Sprint 3 收官交付: 容器化 TSan 验证 (plan §3.3 H1 — 解决 ASLR 已知遗留)

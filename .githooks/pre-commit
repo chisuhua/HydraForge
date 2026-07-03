@@ -1,0 +1,38 @@
+#!/bin/sh
+# Pre-commit hook: code-review-graph + LSP discipline check
+# 功能描述: git commit 前自动验证 LSP 工具链 + 维护知识图谱
+# 设计依据: docs/audits/2026-07-03-pdk-model-router-lsp-false-positive.md
+# 安装方式:
+#   方式 A: git config core.hooksPath .githooks  (推荐, 自动生效)
+#   方式 B: cp .githooks/pre-commit .git/hooks/pre-commit
+#   方式 C: echo "source .githooks/pre-commit" >> .git/hooks/pre-commit
+# 说明:
+#   - LSP exit code 3 (真实错误) → 阻塞 commit
+#   - LSP exit code 0/1/2 → 仅 warning, 不阻塞
+#   - code-review-graph → 知识图谱维护, 非阻塞
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+# 1) code-review-graph: knowledge graph maintenance (non-blocking)
+if command -v code-review-graph >/dev/null 2>&1; then
+    code-review-graph update || true
+    code-review-graph detect-changes --brief || true
+fi
+
+# 2) LSP discipline: pre-commit check (block real errors only)
+if [ -f "$REPO_ROOT/scripts/check-lsp-discipline.sh" ]; then
+    "$REPO_ROOT/scripts/check-lsp-discipline.sh" --quick 2>&1 | tail -10
+    EXIT_CODE=$?
+    if [ "$EXIT_CODE" -eq 3 ]; then
+        echo ""
+        echo "  ERROR: LSP discipline check found REAL compilation errors."
+        echo "         These MUST be fixed before committing."
+        echo "         Run: ./scripts/check-lsp-discipline.sh"
+        exit 1
+    elif [ "$EXIT_CODE" -ge 1 ]; then
+        echo ""
+        echo "  WARNING: LSP discipline check issue (exit code $EXIT_CODE)."
+        echo "           Commit allowed, but recommended to investigate."
+        echo "           Run: ./scripts/check-lsp-discipline.sh"
+    fi
+fi

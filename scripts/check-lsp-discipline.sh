@@ -40,6 +40,7 @@ NC='\033[0m'
 # 默认配置
 QUICK_MODE=false
 CUSTOM_FILES=""
+COMPILE_COMMANDS=""
 EXIT_CODE=0
 
 # 参数解析
@@ -47,9 +48,34 @@ while [[ $# -gt 0 ]]; do
   case $1 in
     --quick) QUICK_MODE=true; shift ;;
     --files) CUSTOM_FILES="$2"; shift 2 ;;
+    --compile-commands) COMPILE_COMMANDS="$2"; shift 2 ;;
     *) echo "Unknown arg: $1"; exit 1 ;;
   esac
 done
+
+# 如果指定了 --compile-commands, 创建临时软链接并在脚本退出时恢复
+TMP_SYMLINK=""
+if [ -n "$COMPILE_COMMANDS" ]; then
+  if [ -L compile_commands.json ]; then
+    TMP_SYMLINK=$(readlink compile_commands.json)
+  elif [ -f compile_commands.json ]; then
+    TMP_SYMLINK="__file"
+  fi
+  ln -sf "$COMPILE_COMMANDS" compile_commands.json
+fi
+
+# 清理函数: 恢复 compile_commands.json
+cleanup() {
+  if [ -n "$COMPILE_COMMANDS" ]; then
+    rm -f compile_commands.json
+    if [ "$TMP_SYMLINK" = "__file" ]; then
+      :  # 原始是文件, 不恢复 (CI 场景)
+    elif [ -n "$TMP_SYMLINK" ]; then
+      ln -sf "$TMP_SYMLINK" compile_commands.json
+    fi
+  fi
+}
+trap cleanup EXIT
 
 print_header() {
   echo ""
