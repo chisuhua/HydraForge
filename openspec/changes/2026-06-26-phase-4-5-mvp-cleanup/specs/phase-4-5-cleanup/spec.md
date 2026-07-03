@@ -5,7 +5,7 @@
 > **关联 design**: `openspec/changes/2026-06-26-phase-4-5-mvp-cleanup/design.md`
 > **最后更新**: 2026-07-03
 
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: phase-4-5-orchestrator-internalized
 
@@ -88,10 +88,10 @@
 
 ---
 
-## REMOVED Requirements
+## 备注
 
-以下 requirement 从原始 placeholder 中移除，替换为上述 MODIFIED:
+原始 placeholder 的 3 个 ADDED requirements 在 C8 实施后被以下方式处理（保留为历史记录，便于 audit）:
 
-- ~~`phase-4-5-simple-orchestrator-replaced`~~ → 替换为 `phase-4-5-orchestrator-internalized` (Decision 0)
-- ~~`phase-4-5-mock-llm-provider-ci-only`~~ → MockLLMProvider 不做修改 (Decision 1)
-- ~~`phase-4-5-layer0-spec-updated`~~ → layer0.md 未引用 SimpleCognitiveOrchestrator, 无需更新 (Decision 4)
+- `phase-4-5-simple-orchestrator-replaced` → 替换为 `phase-4-5-orchestrator-internalized`（design.md Decision 0：演进为 @internal stable component）
+- `phase-4-5-mock-llm-provider-ci-only` → MockLLMProvider 不做修改（design.md Decision 1：CI 核心依赖，零价值降级）
+- `phase-4-5-layer0-spec-updated` → layer0.md 未引用 SimpleCognitiveOrchestrator，无需更新（design.md Decision 4）

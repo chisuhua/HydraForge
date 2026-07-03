@@ -70,18 +70,20 @@ C8 的清理策略应调整为 **@internal 标记 + 清理遗留注释**，而�
 
 ## Capabilities
 
-### MODIFIED Requirements
+### ADDED Requirements
 
 - `phase-4-5-orchestrator-internalized`: `SimpleCognitiveOrchestrator` MUST 标记为 `@internal` stable component（非替换）
 - `phase-4-5-todo-mvp-removed`: 所有 `TODO(mvp)` MUST 移除 (4 个位置)
 - `phase-4-5-examples-audited`: `examples/` 目录 MUST 经过梳理（8 个 entry 全部保留，添加 README.md）
 - `phase-4-5-roadmap-100-percent`: `docs/roadmap-status.md` Phase 4 + 4.5 MUST 100%
 
-### REMOVED Requirements (vs 原始 placeholder)
+### 占位 stub 处理（vs 原始 placeholder）
 
-- ~~`phase-4-5-simple-orchestrator-replaced`~~ → 改为 `phase-4-5-orchestrator-internalized`
-- ~~`phase-4-5-mock-llm-provider-ci-only`~~ → MockLLMProvider 不做修改, 删除此 requirement
-- ~~`phase-4-5-layer0-spec-updated`~~ → layer0.md 未引用 SimpleCognitiveOrchestrator, 不需要更新
+由于 `phase-4-5-cleanup` 是全新 capability，按 OpenSpec 规则新建 spec **仅允许 ADDED**，因此将原 placeholder 中的 3 个 stub 处理如下:
+
+- `phase-4-5-simple-orchestrator-replaced` → 替换为 `phase-4-5-orchestrator-internalized`（design.md Decision 0：演进为 @internal stable component）
+- `phase-4-5-mock-llm-provider-ci-only` → MockLLMProvider 不做修改, 删去此 requirement
+- `phase-4-5-layer0-spec-updated` → layer0.md 未引用 SimpleCognitiveOrchestrator, 不需要更新
 
 ## Impact
 
