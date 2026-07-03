@@ -3,6 +3,8 @@
 > **目的**: 追踪 Sprint 19-25 期间所有 OpenSpec change 的执行/归档状态,覆盖 Phase 5 自举服务化三阶段。
 > **创建日期**: 2026-07-03
 > **触发条件**: Strategic Alignment Gate §9.4 (`2026-06-26-sprint-11-to-18-roadmap.md`) — Sprint 18 (Phase 4.5) 100% 收官
+> **Oracle 阶段 1 决议**: 2026-07-03 (见 §十六) — C10/C11/C12 实施依据锁定
+> **C9 audit ship**: 2026-07-03 (`openspec/changes/archive/2026-07-03-phase4-5-impl-scope-audit/`)
 > **维护**: 每个 change 进入 archive 时更新本文件相应行
 > **关联文件**: `openspec/changes/<change-name>/` (active) / `openspec/changes/archive/` (历史)
 > **关联 docs**: `docs/roadmap-status.md` (总进度看板) / `docs/proposals/implementation/self-bootstrapping-path.md` (BOOT-001 阶段 0-3) / `docs/proposals/implementation-roadmap/01-roadmap.md` (IP-001 Step 0-6) / `2026-06-26-sprint-11-to-18-roadmap.md` (上游 9-change 路线图, 已 archive)
@@ -667,3 +669,91 @@ Review Gate 发现问题
 **最后更新**: 2026-07-03 (初始创建, Strategic Alignment Gate §9.4 触发)
 **下次更新**: C9 ship 后, C10 启动时填写 proposal/design/spec/tasks
 **责任人**: Sisyphus (master plan 创建) → 用户 (后续维护)
+
+---
+
+## 十六、Oracle 阶段 1 决议 (2026-07-03, C9 ship 后)
+
+> **来源**: Oracle 咨询 session `ses_0d8b0ad2effejYh6AdhRsHIxub` (2026-07-03, 3m 12s)
+> **输入**: C9 audit 结论 + Phase 5 master plan + IP-001/IP-002 + 现有 ExecutionSession/LayeredContext/ADR-0033 实际代码
+> **输出**: Q1-Q4 4 项决议 (见下表), C10/C11/C12 实施依据
+> **与历史决议关系**: 与 master plan §十一.1 C2/C3/C5 Oracle 决议同模式 (5-虚函数 + sync callback + 三层 Session 模式已应用)
+
+### 16.1 Q1: Lazy ModuleState vs LayeredContext
+
+- **决议**: **选项 A (纯新增)** — ModuleState 作为 `ExecutionSession` 的 `std::map<string, json>` 独立成员, 与 LayeredContext 完全正交
+- **影响 ADR**: **不修改** ADR-0008 (LayeredContext 5-层设计保持)
+- **实施要点**:
+  - `execution_session.h` 加 `std::map<std::string, nlohmann::json> module_states_` (PIMPL-lite 内部持有, 与 Sprint 19 模式一致)
+  - `ensure_module_state(path)` lazy init: 首次访问时自动创建空 json 对象
+  - 后续 LayeredContext↔ModuleState 桥接作为 C11/C12 便利工具追加, **不阻塞** C10 ship
+- **风险**: 后续需要桥接时需自行追加转换函数 (低风险, ~100 行)
+
+### 16.2 Q2: SessionRegistry vs Session Hierarchy
+
+- **决议**: **选项 A (SessionRegistry 是 Session 之外的注册表)** — `DSLEngine` 持有 `SessionRegistry`, 与 `tool_registry_` 模式一致
+- **与 ADR-0033 不重复**: ADR-0033 的 `UserSession::task_sessions_` 是"一个容器内多 TaskSession", SessionRegistry 是"多容器 (UserSession) 的注册表", 分层正交
+- **影响 ADR**: **不修改** ADR-0033
+- **SessionVars 位置**: 放在 `ExecutionSession` (per-run 隔离), 而非 UserSession
+- **实施要点**:
+  - 新建 `session_registry.h/cpp` — 3 核心方法: `create()` / `destroy()` / `get()`
+  - `DSLEngine` 加 `session_registry_` PIMPL-lite 成员
+  - `ExecutionSession` 加 `session_id_` + `session_vars_: json`
+  - 注册 4 个 `session.*` 工具 (create/destroy/set_var/get_var)
+- **风险**: UserSession 析构时需清理所有 TaskSession + module_states, 否则 dsl_call 持久化数据泄漏 → **C11 ship gate 必加**断言测试
+
+### 16.3 Q3: YIELD/STREAM 节点设计
+
+- **决议**: **选项 A (单 YieldNode + mode 枚举)** — 与 master plan §十一.1 历史 Oracle 决议一致
+- **节点定义**:
+  ```cpp
+  enum class YieldMode : uint8_t { NEXT, CONTINUE, STOP };
+  struct YieldNode : public Node {
+    std::string yield_value;   // 模板表达式
+    YieldMode mode = YieldMode::NEXT;
+    NodePath stop_path;        // STOP 时跳转目标
+  };
+  ```
+- **与 IGenerationStream 集成**: **Pull-based 适配最自然** — YIELD 节点内部 `IGenerationStream::pull_next()` 获取 token, **不**用 IInteractionBus 作为推送通道 (后者用于 tool.audit 事件, 不适合 token 高频流)
+- **影响 ADR**: **不修改** ADR-0030 V2
+- **ExecutionSession 扩展**: 加 `std::optional<YieldState> pending_yield_` (含 module_path / resume_context)
+- **风险**: CONTINUE 长时间循环 + BudgetController 执行耗时累积 → YIELD 执行器每 pull N tokens 检查 `is_budget_exceeded()`
+
+### 16.4 Q4: 7 个推理标准库子图优先级
+
+- **Phase 5 阶段 1 必须 ship (硬依赖, 满足"Agent 通过 DSL 控制推理参数"目标)**:
+  - `prefix_cache.md` — prefix cache 参数控制
+  - `kv_cache.md` — KV cache 策略配置
+  - `decoding.md` — decoding 参数 (temperature/top_p/top_k/repeat_penalty)
+  - 这 3 个都依赖 C10 的 json scope nesting, 恰好与 C10 ship gate 对齐
+- **可延后到阶段 2-3**:
+  - `batching.md` — queue 管理, 依赖 C12 YIELD (stream 中做 batch 调度才有意义)
+- **PDK agent_loops 不可替代**: react / plan_execute / fork_join 是 Agent 编排模式 (如何执行推理), 推理标准库子图是推理参数控制面 (调什么参数), 二者正交
+- **合并建议**: `memory.md` (BOOT-001 原提案) 与 `prefix_cache.md` 功能重叠 → 建议合并为 `memory_control.md` (不新增也不废弃, 仅合并)
+
+### 16.5 综合实施建议 (C10 → C11 → C12)
+
+| 优先序 | Change | 估时 | 关键依赖 |
+|--------|--------|------|---------|
+| 1 | **C10** Lazy ModuleState | **1-1.5 天** (略降, 因独立于 LayeredContext) | C9 ✅ |
+| 2 | **C11** SessionRegistry + 2a 子图 (engine/model/session 已 ship) | 2-3 天 (不变) | C10 ✅ |
+| 3 | **C12** YIELD/STREAM + 2b 子图 (prefix_cache/kv_cache/decoding) | **2.5-3 天** (略增, IGenerationStream bridge 适配) | C10 + C11 ✅ |
+| (延后) | 2c `batching.md` | 阶段 2 远期 | C12 ✅ |
+
+**总工期**: 原 5-8 天 → Oracle 建议 **6-8 天** (C12 bridge 适配 +0.5 天, C10 简化 -0.5 天, 净 +0)
+
+### 16.6 关键风险 + mitigation
+
+| 风险 | 来源 | Mitigation | 关联 Change |
+|------|------|-----------|------------|
+| UserSession 析构清理遗漏 → memory leak | C11 | C11 ship gate 加断言测试 "destroy session → module_states fully released" | C11 |
+| YIELD CONTINUE 与 Budget 冲突 | C12 | YIELD 执行器每 pull N tokens 检查 `is_budget_exceeded()` | C12 |
+| LayeredContext ↔ ModuleState 桥接缺失 | C10 后续 | C11/C12 加便利桥接函数 (不阻塞 C10) | C10+ |
+| 7 子图 2b 估算偏差 | C10 | 跟随 C10 ship gate, 2b 子图由 C10 决定 ship 节奏 | C10+C12 |
+
+### 16.7 Oracle session 引用
+
+- **session ID**: `ses_0d8b0ad2effejYh6AdhRsHIxub`
+- **持续时间**: 3m 12s
+- **输入文档**: 10 个 (master plan, IP-001/002, BOOT-001, LayeredContext, ExecutionSession, Session.h/cpp, Node.h, NodeExecutor.h/cpp, TopoScheduler.h/cpp)
+- **决议风格**: 与 master plan §十一.1 中 C2/C3/C5 历史 Oracle 决议保持一致 (5 虚函数 / sync callback / 3 层 Session)
