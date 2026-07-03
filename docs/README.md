@@ -41,6 +41,17 @@ docs/
 | `adr-0033-session-hierarchy.md` | 会话层次结构 | ✅ Approved (Sprint 15 C5, 2026-07-02) |
 | `adr-0002-impl-scope-audit.md` | ADR-0002 实施范围审计 (OpenSpec change `docs-code-drift-audit-2026-06` 产出) | 📋 审计补充 |
 | `adr-0004-impl-scope-audit.md` | ADR-0004 实施范围审计 (同上) | 📋 审计补充 |
+| `adr-0001-illm-provider-streaming-interface-impl-scope.md` | ADR-0001 实施范围审计 (C9) | 📋 审计补充 |
+| `adr-0003-dslengine-thread-safety-impl-scope.md` | ADR-0003 实施范围审计 (C9) | 📋 审计补充 |
+| `adr-0004-toolregistry-security-impl-scope.md` | ADR-0004 实施范围审计 (C9) | 📋 审计补充 |
+| `adr-0005-llm-backend-config-factory-impl-scope.md` | ADR-0005 实施范围审计 (C9) | 📋 审计补充 |
+| `adr-0007-context-compression-impl-scope.md` | ADR-0007 实施范围审计 (C9) | 📋 审计补充 |
+| `adr-0008-structured-context-impl-scope.md` | ADR-0008 实施范围审计 (C9) | 📋 审计补充 |
+| `adr-0019-iinteraction-bus-mvp-impl-scope.md` | ADR-0019 实施范围审计 (C9) | 📋 审计补充 |
+| `adr-0020-thread-model-isolation-impl-scope.md` | ADR-0020 实施范围审计 (C9) | 📋 审计补充 |
+| `adr-0022-plugin-loading-impl-scope.md` | ADR-0022 实施范围审计 (C9) | 📋 审计补充 |
+| `adr-0023-tool-result-standard-impl-scope.md` | ADR-0023 实施范围审计 (C9) | 📋 审计补充 |
+| `adr-0033-session-hierarchy-impl-scope.md` | ADR-0033 实施范围审计 (C9) | 📋 审计补充 |
 
 ### adr/plugin/ - Plugin 化候选清单
 

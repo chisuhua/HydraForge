@@ -31,7 +31,7 @@
 | adr-0031 | IExecutionPolicy 执行策略与三模式审批 | 🟡 Partial | Unknown |  |
 | adr-0033 | Session Hierarchy 执行会话层级体系 | ✅ Approved | Unknown |  |
 | adr-0034 | IModelRouter 模型路由接口 | ✅ Approved | Unknown |  |
-| adr-0036 | ADR-0036：三层服务协议与调用契约 | Unknown | Unknown |  |
+| adr-0036 | ADR-0036：三层服务协议与调用契约 | 🔍 Proposed | Unknown |  |
 | adr-0037 | 跨 Worker 事件因果序与逻辑时间戳 | 🔍 Proposed | 2026-06-26 |  |
 
 ---
@@ -92,9 +92,8 @@ graph TD
 | 🟡 Partial | 2 |
 | ❌ Not Implemented | 1 |
 | ⛔ Superseded | 1 |
-| 🔍 Proposed | 2 |
+| 🔍 Proposed | 3 |
 | 📋 Reserved | 2 |
-| ❓ Unknown | 1 |
 
 ---
 

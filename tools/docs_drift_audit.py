@@ -624,10 +624,14 @@ def scan_scenario4(root: Path) -> List[Dict[str, Any]]:
             # 全部实现存在 → ACCURATE（不报）
             continue
 
-        # 存在未实现类 → DRIFT
+        # 存在未实现类 → 若 impl-scope 文档已存在则不报 DRIFT（已文档化解决）
         impl_scope_path = adr_path.with_name(
             adr_path.stem + "-impl-scope.md"
         )
+        if impl_scope_path.exists():
+            # impl-scope 文档已创建，drift 已文档化，不再报告
+            continue
+
         findings.append(make_finding(
             scenario=4,
             severity=SEVERITY_DRIFT,
