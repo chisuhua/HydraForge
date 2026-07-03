@@ -3,7 +3,7 @@
 > 本文件由 `tools/adr_relationships.py` 自动生成，**请勿手动编辑**。
 > 任何手动修改会在下次运行时被覆盖。
 > 最后更新: 由 `tools/adr_relationships.py` 生成（运行时刻见 git commit 时间戳）
-> ADR 总数: 19
+> ADR 总数: 22
 
 ---
 
@@ -12,24 +12,27 @@
 | ADR | 议题 | 状态 | 日期 | 替代关系 |
 |-----|------|------|------|---------|
 | adr-0001 | ILLMProvider 流式接口设计 | ✅ Approved | 2026-05-28 |  |
-| adr-0002 | EventBus 有界队列架构 | ✅ Approved | Unknown |  |
-| adr-0002 | ADR-0002 实现范围审计 (Implementation Scope Audit) | Unknown | Unknown |  |
+| adr-0002 | EventBus 有界队列架构 | ❌ Not Implemented | 2026-06-13 |  |
+| adr-0002 | ADR-0002 实现范围审计 (Implementation Scope Audit) | 📋 Reserved | 2026-06-13 |  |
 | adr-0003 | DSLEngine 线程安全与多实例架构 | ✅ Approved | 2026-05-12 |  |
-| adr-0004 | ADR-0004 实现范围审计 (Implementation Scope Audit) | Unknown | Unknown |  |
-| adr-0004 | ToolRegistry 安全模型 | 🟡 Partial | 2026-06-13 |  |
+| adr-0004 | ADR-0004 实现范围审计 (Implementation Scope Audit) | 📋 Reserved | 2026-06-13 |  |
+| adr-0004 | ToolRegistry 安全模型 | ✅ Approved | Unknown |  |
 | adr-0005 | LLM 后端配置与工厂模式 | ✅ Approved | 2026-05-12 |  |
 | adr-0006 | HarnessEngine 后台线程模型 | ⛔ Superseded | 2026-05-25 |  |
 | adr-0007 | 上下文压缩机制 | 🟡 Partial | Unknown |  |
 | adr-0008 | 结构化 Context | ✅ Approved | Unknown |  |
 | adr-0009 | DSL 标准库规划 | ✅ Approved | 2026-05-12 |  |
 | adr-0019 | IInteractionBus 接口与 TUI Chat MVP 架构 | ✅ Approved | Unknown | 替代 adr-0006 |
-| adr-0020 | 多智能体线程模型与隔离策略 | 🟡 Partial | 2026-06-08 | 替代 adr-0006 |
-| adr-0021 | Plugin Development Kit (PDK) 设计 | 🔍 Proposed | 2026-05-25 |  |
-| adr-0022 | 插件加载机制 | 🔍 Proposed | 2026-05-25 |  |
-| adr-0023 | ToolResult 标准化 | ✅ Approved | 2026-06-16 |  |
+| adr-0020 | 多智能体线程模型与隔离策略 | ✅ Approved | Unknown | 替代 adr-0006 |
+| adr-0021 | Plugin Development Kit (PDK) 设计 | ✅ Approved | 2026-08-01 |  |
+| adr-0022 | 插件加载机制 | ✅ Approved | Unknown |  |
+| adr-0023 | ToolResult 标准化 | ✅ Approved | Unknown |  |
+| adr-0030 | ADR-0030 V2: Phase 2 异步运行时（Taskflow DAG + std::jthread Worker Pool） | 🔍 Proposed | Unknown |  |
 | adr-0031 | IExecutionPolicy 执行策略与三模式审批 | 🟡 Partial | Unknown |  |
-| adr-0033 | Session Hierarchy 执行会话层级体系 | 🟡 Partial | Unknown |  |
-| adr-0034 | IModelRouter 模型路由接口 | 🔍 Proposed | Unknown |  |
+| adr-0033 | Session Hierarchy 执行会话层级体系 | ✅ Approved | Unknown |  |
+| adr-0034 | IModelRouter 模型路由接口 | ✅ Approved | Unknown |  |
+| adr-0036 | ADR-0036：三层服务协议与调用契约 | Unknown | Unknown |  |
+| adr-0037 | 跨 Worker 事件因果序与逻辑时间戳 | 🔍 Proposed | 2026-06-26 |  |
 
 ---
 
@@ -53,9 +56,12 @@ graph TD
     adr_0021["adr-0021: Plugin Development Kit (PDK) 设计"]
     adr_0022["adr-0022: 插件加载机制"]
     adr_0023["adr-0023: ToolResult 标准化"]
+    adr_0030["adr-0030: ADR-0030 V2: Phase 2 异步运行时（Taskflow DAG "]
     adr_0031["adr-0031: IExecutionPolicy 执行策略与三模式审批"]
     adr_0033["adr-0033: Session Hierarchy 执行会话层级体系"]
     adr_0034["adr-0034: IModelRouter 模型路由接口"]
+    adr_0036["adr-0036: ADR-0036：三层服务协议与调用契约"]
+    adr_0037["adr-0037: 跨 Worker 事件因果序与逻辑时间戳"]
 
     adr_0031 --> adr_0002
     adr_0031 --> adr_0019
@@ -63,7 +69,7 @@ graph TD
     adr_0020 -.->|supersedes| adr_0006
 ```
 
-> 图中包含 19 个节点、2 条依赖边、2 条替代边。
+> 图中包含 22 个节点、2 条依赖边、2 条替代边。
 > 渲染说明：实线 (`-->`) 表示依赖关系；虚线带标签 (`-.->|supersedes|`) 表示替代关系。
 
 ---
@@ -82,11 +88,13 @@ graph TD
 
 | 状态 | 数量 |
 |------|------|
-| ✅ Approved | 8 |
-| 🟡 Partial | 5 |
+| ✅ Approved | 13 |
+| 🟡 Partial | 2 |
+| ❌ Not Implemented | 1 |
 | ⛔ Superseded | 1 |
-| 🔍 Proposed | 3 |
-| ❓ Unknown | 2 |
+| 🔍 Proposed | 2 |
+| 📋 Reserved | 2 |
+| ❓ Unknown | 1 |
 
 ---
 

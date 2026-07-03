@@ -1,9 +1,12 @@
 # ADR-0036：三层服务协议与调用契约
 
-**状态**：proposed  
-**日期**：2026-05-28  
-**领域**：基座 / 系统架构  
-**关联**：ADR-0019（IInteractionBus）、ADR-0020（线程模型）、ADR-0030（AsyncRuntime）、ADR-0031（IExecutionPolicy）、ADR-0033（Session 层级）、ADR-0034（ModelRouter）  
+## 状态
+
+**🔍 Proposed** (2026-05-28, 当前未实施 — 描述 hybrid kernel + 三层服务架构, 与 ADR-0036-hybrid-kernel-architecture 旧 archive 同源, 等待 Phase 5 自举阶段决定采纳策略)
+
+**日期**：2026-05-28
+**领域**：基座 / 系统架构
+**关联**：ADR-0019（IInteractionBus）、ADR-0020（线程模型）、ADR-0030（AsyncRuntime）、ADR-0031（IExecutionPolicy）、ADR-0033（Session 层级）、ADR-0034（ModelRouter）
 **取代**：`docs/guides/multi-domain-agent-architecture.md` 中的"服务调用模式"部分（该文档保留为入门概览）
 
 ---

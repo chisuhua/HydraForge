@@ -98,9 +98,7 @@
 | ├─ Sprint 4: PDK 骨架 (hydraforge-pdk, K3) | **100% ██████████** | **✅ 已完成 (2026-06-19, OpenSpec change `2026-07-07-pdk-skeleton`)** — DECLARE_TOOL + DEFINE_AGENT + SafeExec MVP 实施, monorepo `pdk/` 子目录 INTERFACE 库, 32/32 ctest pass (31 baseline + 1 new test_pdk_macros w/ 33 assertions), ADR-0021 🔍 Proposed → 🟡 Partial. T4b (`hydraforge-pdk` 独立仓库推送) 异步待外部阻塞解除 | 3 天 | Sprint 3 ✅ |
 | └─ Sprint 5: PluginLoader + 收官 | **100% ██████████** | **✅ 已完成 (2026-06-24, OpenSpec change `tech-debt-and-phase1-closure`)** — PluginInfo POD + PluginLoader dlopen (5 ctest) + phase1_plugin_demo 3 modes + 5 ADR Approved + sync-pdk.sh, 34/34 ctest pass 零回归 | 1.3 天 | Sprint 4 |
 | **并行车道** | | | | |
-| ├─ P1: Residual engine.h Decoupling | 100% | ✅ **已解决 (2026-06-18, T1+T2+T3+T4+T5 全部 ship)** — 跨模块 include 4→3→2→1, 29/29 测试零回归, ADR-0019 §1.4 完全退出 | 10 天 → 5 周 → ship | 详见 OpenSpec `2026-06-15-residual-engine-h-decoupling` |
-| ├─ P2: 5/6 examples build 修复 | 0% | ⏸ 未开始 (W2-W3) | 5 天 | P1 ✅ |
-| └─ P3: 28 ADR 退出 grep 验证 | 0% | ⏸ 未开始 (W1D3) | 2 天 | 无 |
+| └─ P1: Residual engine.h Decoupling | 100% | ✅ **已解决 (2026-06-18, T1+T2+T3+T4+T5 全部 ship)** — 跨模块 include 4→3→2→1, 29/29 测试零回归, ADR-0019 §1.4 完全退出 | 10 天 → 5 周 → ship | 详见 OpenSpec `2026-06-15-residual-engine-h-decoupling` |
 | ├─ Sprint 2: CognitiveWorker | **100% ██████████** | **✅ 已完成 (2026-06-18, 提前)** | 2.5 天 | Sprint 1 |
 | ├─ Sprint 3: DomainWorkerPool | **100% ██████████** | **✅ 已完成 (2026-06-19)** — 详见 OpenSpec `2026-06-30-domain-worker-pool`, 31/31 ctest pass, ADR-0020 §2.2.1 ✅ Resolved | 3 天 | Sprint 2 ✅ |
 | ├─ Sprint 4: PDK 骨架 | **100% ██████████** | **✅ 已完成 (2026-06-19)** — 详见 OpenSpec `2026-07-07-pdk-skeleton`, 32/32 ctest pass, ADR-0021 🟡 Partial | 3 天 | Sprint 3 ✅ |
