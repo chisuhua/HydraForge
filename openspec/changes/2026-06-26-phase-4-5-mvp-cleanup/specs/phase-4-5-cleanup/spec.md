@@ -1,60 +1,97 @@
 # phase-4-5-cleanup Specification
 
 > **Purpose**: 追踪 Phase 4.5 MVP 清理 (Sprint 18 收尾)
-> **STATUS: PLACEHOLDER** ⚠️ — 详细 Requirements 待 C6 完成后填充
+> **STATUS: ACTIVE** 🟡
+> **关联 design**: `openspec/changes/2026-06-26-phase-4-5-mvp-cleanup/design.md`
+> **最后更新**: 2026-07-03
 
-## ADDED Requirements
+## MODIFIED Requirements
 
-### Requirement: phase-4-5-simple-orchestrator-replaced (PLACEHOLDER)
+### Requirement: phase-4-5-orchestrator-internalized
 
-`SimpleCognitiveOrchestrator` MUST 被正式实现替换 (基于 CognitiveWorker + IExecutionPolicy)
+`SimpleCognitiveOrchestrator` MUST 标记为 `@internal` stable implementation detail。
+头文件注释 MUST 反映当前架构（由 CognitiveWorker + ReactLoop 封装）。
 
-#### Scenario: TBD (待设计)
+#### Scenario: 文件头注释更新
 
-- **WHEN** TBD
-- **THEN** TBD
+- **WHEN** 读取 `include/agenticdsl/cognitive/simple_orchestrator.h` 行 1-11
+- **THEN** 注释包含 `@internal` 和 "Phase 0 单轮 ReAct 编排器 — Phase 1+ 由 CognitiveWorker + ReactLoop 封装"
+- **AND** 不包含 `TODO(mvp)` 字符串
 
-### Requirement: phase-4-5-mock-llm-provider-ci-only (PLACEHOLDER)
+#### Scenario: 实现文件 TODO(mvp) 清理
 
-`MockLLMProvider` MUST 降级为 CI-only fixture (公共 API 移除)
+- **WHEN** 读取 `src/modules/cognitive/simple_orchestrator.cpp` 行 109
+- **THEN** 注释包含 "多轮循环由 CognitiveWorker 在上层管理"
+- **AND** 不包含 `TODO(mvp)` 字符串
 
-#### Scenario: TBD (待设计)
+---
 
-- **WHEN** TBD
-- **THEN** TBD
+### Requirement: phase-4-5-todo-mvp-removed
 
-### Requirement: phase-4-5-examples-cleanup (PLACEHOLDER)
+所有 `src/` 和 `include/` 中的 `TODO(mvp)` MUST 被移除。
 
-`examples/` 目录 MUST 职责梳理 (移除 deprecated 注释, 评估合并)
+#### Scenario: grep 验证
 
-#### Scenario: TBD (待设计)
+- **WHEN** 运行 `grep -r "TODO(mvp)" src/ include/`
+- **THEN** 返回空结果 (0 matches)
 
-- **WHEN** TBD
-- **THEN** TBD
+---
 
-### Requirement: phase-4-5-todo-mvp-removed (PLACEHOLDER)
+### Requirement: phase-4-5-examples-audited
 
-所有 `TODO(mvp)` 标记 MUST 移除 (Phase 0 §Phase 通用完成标准)
+`examples/` 目录 MUST 经过梳理，包含 `examples/README.md` 说明所有 entry 的用途。
 
-#### Scenario: TBD (待设计)
+#### Scenario: README.md 存在
 
-- **WHEN** TBD
-- **THEN** TBD
+- **WHEN** 检查 `examples/README.md`
+- **THEN** 文件存在
+- **AND** 包含 8 个 entry 的表格 (6 C++ examples + 2 reference docs)
 
-### Requirement: phase-4-5-layer0-spec-updated (PLACEHOLDER)
+#### Scenario: 无删除
 
-`docs/specs/layer0.md` MUST 更新 (Engine 不依赖 SimpleCognitiveOrchestrator)
+- **WHEN** 对比 `git diff --stat examples/`
+- **THEN** 仅新增 `README.md`
+- **AND** 无文件删除
 
-#### Scenario: TBD (待设计)
+---
 
-- **WHEN** TBD
-- **THEN** TBD
+### Requirement: phase-4-5-roadmap-100-percent
 
-### Requirement: phase-4-5-roadmap-100-percent (PLACEHOLDER)
+`docs/roadmap-status.md` Phase 4 和 Phase 4.5 MUST 标记为 100% 完成。
 
-`docs/roadmap-status.md` Phase 0-4.5 MUST 全部 100%
+#### Scenario: Phase 4 标记
 
-#### Scenario: TBD (待设计)
+- **WHEN** 读取 `docs/roadmap-status.md` §一 Phase 4 行
+- **THEN** 包含 `100% ██████████`
+- **AND** 包含 `✅ 已完成`
+- **AND** 包含 "2026-07-02" (C7 ship 日期)
 
-- **WHEN** TBD
-- **THEN** TBD
+#### Scenario: Phase 4.5 标记
+
+- **WHEN** 读取 `docs/roadmap-status.md` §一 Phase 4.5 行
+- **THEN** 包含 `100% ██████████`
+- **AND** 包含 `✅ 已完成`
+- **AND** 包含 "2026-07-03" (C8 ship 日期)
+
+---
+
+### Requirement: phase-4-5-agents-md-updated
+
+`AGENTS.md` § Recent Changes MUST 包含 Phase 4.5 ship 记录。
+
+#### Scenario: Recent Changes 追加
+
+- **WHEN** 读取 `AGENTS.md` § Recent Changes 第一条
+- **THEN** 包含 "2026-07-03 (Sprint 18 / C8 ship - phase-4-5-mvp-cleanup)"
+- **AND** 包含 "52/52 ctest 零回归"
+- **AND** 包含 "SimpleCognitiveOrchestrator @internal 标记 + TODO(mvp) 清理 + examples/ 梳理"
+
+---
+
+## REMOVED Requirements
+
+以下 requirement 从原始 placeholder 中移除，替换为上述 MODIFIED:
+
+- ~~`phase-4-5-simple-orchestrator-replaced`~~ → 替换为 `phase-4-5-orchestrator-internalized` (Decision 0)
+- ~~`phase-4-5-mock-llm-provider-ci-only`~~ → MockLLMProvider 不做修改 (Decision 1)
+- ~~`phase-4-5-layer0-spec-updated`~~ → layer0.md 未引用 SimpleCognitiveOrchestrator, 无需更新 (Decision 4)
