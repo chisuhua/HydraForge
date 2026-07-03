@@ -534,7 +534,7 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 
 | 日期 | 原方向 | 新方向 | 影响 Changes | 决策依据 |
 |------|--------|--------|------------|---------|
-| (暂无) | — | — | — | — |
+| 2026-07-03 | Phase 4.5 完成后立即启动 Phase 5 自举服务化 | **Phase 4.5 → Phase 5 过渡加 1 个 audit 中间阶段 (C9)**, 关闭 11 项 ADR drift 后再启动 Phase 5 | 新增 C9 `2026-07-03-phase4-5-impl-scope-audit`<br>即将创建新 master plan `2026-07-XX-phase5-self-bootstrapping.md`<br>Oracle 咨询 Phase 5 阶段 1 切分 | 1) Strategic Alignment Gate §9.4 触发 (Sprint 18 收官)<br>2) `tools/docs_drift_audit.py` 报告 **11 DRIFT items** — Phase 5 启动前需明确基线<br>3) 最关键的 ADR-0005 (4 个云端 Creator) 完全缺失, 但 Sprint 7 `LLMProviderFactory` 已用函数式注册替代, 需 audit 确认<br>4) ADR-0008 (5 层 Context) 实际只 ship 1 层, 需修订 scope<br>5) 决策路径选 B (tech-debt retro 先) 而非 A (直接启动), 避免 Phase 5 中途被 drift 中断 |
 
 ### 12.2 待填充模板
 
