@@ -5,6 +5,10 @@
 > **关联 ADR**: [adr-0001-illm-provider-streaming-interface.md](adr-0001-illm-provider-streaming-interface.md)
 > **状态**: ✅ Approved (audit 后保持)
 
+## 状态
+
+✅ Approved (audit 后保持 — 所有 11 个 ADR 核心契约类均已 Shipped 或 Evolved, 无需调整主 ADR 状态)
+
 ## Drift 摘要
 
 `docs_drift_audit.py` 报告: ADR 声称 ✅ Approved, 但 1/7 个描述的类未在 src/include 中找到。
