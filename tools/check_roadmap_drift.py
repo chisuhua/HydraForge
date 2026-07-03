@@ -228,30 +228,20 @@ def detect_change_status_mismatch(active_changes, master_plan_text):
 
 
 def detect_adr_contradictions():
-    """检测 ADR 状态与文档不一致 (类似 ADR-0030 / ADR-0032 问题)"""
+    """检测 ADR 状态与文档不一致 (类似 ADR-0030 / ADR-0032 问题)
+
+    Note: ADR-0030 V1 (dual-layer) 和 ADR-0032 (cost-collector) 的状态矛盾
+    在 Sprint 11 已 ship 修复:
+      - ADR-0030: V2 (`adr-0030-async-runtime-v2.md`) 取代 V1 (C0 ship via
+        OpenSpec change `2026-06-26-doc-alignment-adr-states`, 2026-06-26);
+        V1 archive 内的状态标注也随之更新
+      - ADR-0032: ❌ Not Implemented → 🟡 Partial (C0) → ✅ Approved
+        (fix-audit-quick-debt-2026-06 ship, 2026-06-30,
+        commit `a05ccaf`)
+    历史 hardcoded 已知问题列表已废弃，2026-07-03 P3 清理周期移除。
+    任何新的 ADR 矛盾应通过 adr_lint.py 检测，本次检测不再硬编码任何 issue。
+    """
     drifts = []
-    # 已知 ADR 状态矛盾 (2026-06-26 baseline)
-    known_issues = [
-        {
-            "adr": "adr-0030-async-runtime-dual-layer",
-            "issue": "V1 标注 ❌ Not Implemented 归档原因 = 依赖未引入, 但 Slice 00 已 ship 引入 Taskflow/async_simple",
-            "fix": "写 ADR-0030 V2 取代 V1 (C0)",
-        },
-        {
-            "adr": "adr-0032-cost-collector",
-            "issue": "标注 ❌ Not Implemented 归档原因 = 由 CostTracker 替代, 但 test_cost_collector 已 PASS",
-            "fix": "修状态为 🟡 Partial (C0)",
-        },
-    ]
-    for issue in known_issues:
-        drifts.append({
-            "type": "ADR_CONTRADICTION",
-            "severity": SEVERITY_CRITICAL,
-            "message": (
-                f"ADR `{issue['adr']}` 状态矛盾: {issue['issue']}. "
-                f"建议: {issue['fix']}"
-            ),
-        })
     return drifts
 
 
