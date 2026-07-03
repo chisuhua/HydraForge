@@ -131,3 +131,164 @@ TEST_CASE("ModelRouterPolicy route decision includes trace_id (Plugin Stub metad
                               [](ModelCapability c) { return c == ModelCapability::Chat; });
   REQUIRE(has_chat);
 }
+
+// ============================================================================
+// C7 Phase 2: Quality + Latency 策略单元测试 (PDK Plugin IModelRouter 接口)
+// ============================================================================
+
+#include "agenticdsl/pdk/model_router.h"
+#include "pdk/model_router/quality_strategy/quality_router.h"
+#include "pdk/model_router/latency_strategy/latency_router.h"
+
+namespace {
+
+agenticdsl::pdk::ModelCapability make_pdk_cap(
+    const std::string& id, int n_ctx, int max_tokens,
+    double cost, int latency, std::vector<std::string> tags) {
+  agenticdsl::pdk::ModelCapability cap;
+  cap.model_id = id;
+  cap.model_name = id;
+  cap.n_ctx = n_ctx;
+  cap.max_tokens = max_tokens;
+  cap.per_token_cost = cost;
+  cap.avg_latency_ms = latency;
+  cap.tags = std::move(tags);
+  return cap;
+}
+
+} // namespace
+
+// --- Quality 策略测试 (4 TEST_CASE) ---
+
+TEST_CASE("QualityRouter full-tag-match: gpt-4 (reasoning+code) over gpt-3.5 (general)",
+          "[model_router][quality]") {
+  agenticdsl::pdk::QualityModelRouterPolicy router;
+  agenticdsl::pdk::RoutingContext ctx;
+  ctx.required_tags = {"reasoning", "code"};
+
+  auto candidates = std::vector<agenticdsl::pdk::ModelCapability>{
+    make_pdk_cap("gpt-3.5-turbo", 4096, 4096, 0.002, 200, {"general"}),
+    make_pdk_cap("gpt-4", 8192, 4096, 0.03, 500, {"general", "reasoning", "code"}),
+    make_pdk_cap("claude-3-opus", 16384, 4096, 0.015, 350,
+                 {"general", "reasoning", "code", "vision"}),
+  };
+
+  // gpt-4 匹配 2/2, claude-3 匹配 2/2, gpt-3.5 匹配 0/2
+  // 按匹配度降序, 同分按 stable_sort 保持原顺序 → gpt-4 先加入 scored → 返回 gpt-4
+  auto result = router.route(ctx, candidates);
+  REQUIRE(result == "gpt-4");
+}
+
+TEST_CASE("QualityRouter partial-match: claude-3 (2) over gpt-4 (1)",
+          "[model_router][quality]") {
+  agenticdsl::pdk::QualityModelRouterPolicy router;
+  agenticdsl::pdk::RoutingContext ctx;
+  ctx.required_tags = {"reasoning", "vision"};
+
+  auto candidates = std::vector<agenticdsl::pdk::ModelCapability>{
+    make_pdk_cap("gpt-4", 8192, 4096, 0.03, 500, {"general", "reasoning"}),
+    make_pdk_cap("claude-3-opus", 16384, 4096, 0.015, 350,
+                 {"general", "reasoning", "vision"}),
+  };
+
+  auto result = router.route(ctx, candidates);
+  REQUIRE(result == "claude-3-opus");
+}
+
+TEST_CASE("QualityRouter no-tag-match-fallback: vision → candidates[0]",
+          "[model_router][quality]") {
+  agenticdsl::pdk::QualityModelRouterPolicy router;
+  agenticdsl::pdk::RoutingContext ctx;
+  ctx.required_tags = {"vision"};
+
+  auto candidates = std::vector<agenticdsl::pdk::ModelCapability>{
+    make_pdk_cap("gpt-4", 8192, 4096, 0.03, 500, {"general", "code"}),
+    make_pdk_cap("gpt-3.5-turbo", 4096, 4096, 0.002, 200, {"general"}),
+  };
+
+  auto result = router.route(ctx, candidates);
+  REQUIRE(result == "gpt-4");
+}
+
+TEST_CASE("QualityRouter empty-tag: n_ctx+max_tokens sort, claude-3 highest",
+          "[model_router][quality]") {
+  agenticdsl::pdk::QualityModelRouterPolicy router;
+  agenticdsl::pdk::RoutingContext ctx;
+  // required_tags 为空
+
+  auto candidates = std::vector<agenticdsl::pdk::ModelCapability>{
+    make_pdk_cap("gpt-3.5-turbo", 4096, 4096, 0.002, 200, {"general"}),
+    make_pdk_cap("gpt-4", 8192, 4096, 0.03, 500, {"general", "code"}),
+    make_pdk_cap("claude-3-opus", 16384, 4096, 0.015, 350,
+                 {"general", "reasoning", "vision"}),
+  };
+
+  // claude-3: 16384+4096=20480, gpt-4: 8192+4096=12288, gpt-3.5: 4096+4096=8192
+  auto result = router.route(ctx, candidates);
+  REQUIRE(result == "claude-3-opus");
+}
+
+// --- Latency 策略测试 (4 TEST_CASE) ---
+
+TEST_CASE("LatencyRouter lowest-latency: gpt-4(500ms) over gpt-3.5(200ms)",
+          "[model_router][latency]") {
+  agenticdsl::pdk::LatencyModelRouterPolicy router;
+  agenticdsl::pdk::RoutingContext ctx;
+  ctx.required_tags = {"general"};
+
+  auto candidates = std::vector<agenticdsl::pdk::ModelCapability>{
+    make_pdk_cap("gpt-4", 8192, 4096, 0.03, 500, {"general"}),
+    make_pdk_cap("gpt-3.5-turbo", 4096, 4096, 0.002, 200, {"general"}),
+  };
+
+  auto result = router.route(ctx, candidates);
+  REQUIRE(result == "gpt-3.5-turbo");
+}
+
+TEST_CASE("LatencyRouter latency-budget: max=300ms skips gpt-4(500) and claude-3(350)",
+          "[model_router][latency]") {
+  agenticdsl::pdk::LatencyModelRouterPolicy router;
+  agenticdsl::pdk::RoutingContext ctx;
+  ctx.required_tags = {"general"};
+  ctx.budget_remaining = 300.0;
+
+  auto candidates = std::vector<agenticdsl::pdk::ModelCapability>{
+    make_pdk_cap("gpt-4", 8192, 4096, 0.03, 500, {"general"}),
+    make_pdk_cap("claude-3-opus", 16384, 4096, 0.015, 350, {"general"}),
+    make_pdk_cap("gpt-3.5-turbo", 4096, 4096, 0.002, 200, {"general"}),
+  };
+
+  auto result = router.route(ctx, candidates);
+  REQUIRE(result == "gpt-3.5-turbo");
+}
+
+TEST_CASE("LatencyRouter all-exceed: max=100ms throws NoViableModel",
+          "[model_router][latency]") {
+  agenticdsl::pdk::LatencyModelRouterPolicy router;
+  agenticdsl::pdk::RoutingContext ctx;
+  ctx.required_tags = {"general"};
+  ctx.budget_remaining = 100.0;
+
+  auto candidates = std::vector<agenticdsl::pdk::ModelCapability>{
+    make_pdk_cap("gpt-4", 8192, 4096, 0.03, 500, {"general"}),
+    make_pdk_cap("gpt-3.5-turbo", 4096, 4096, 0.002, 200, {"general"}),
+  };
+
+  REQUIRE_THROWS_AS(router.route(ctx, candidates),
+                    agenticdsl::pdk::ModelRoutingError);
+}
+
+TEST_CASE("LatencyRouter tag-over-latency: vision tag → gpt-4 even if slower",
+          "[model_router][latency]") {
+  agenticdsl::pdk::LatencyModelRouterPolicy router;
+  agenticdsl::pdk::RoutingContext ctx;
+  ctx.required_tags = {"vision"};
+
+  auto candidates = std::vector<agenticdsl::pdk::ModelCapability>{
+    make_pdk_cap("gpt-4", 8192, 4096, 0.03, 500, {"general", "vision"}),
+    make_pdk_cap("gpt-3.5-turbo", 4096, 4096, 0.002, 200, {"general"}),
+  };
+
+  auto result = router.route(ctx, candidates);
+  REQUIRE(result == "gpt-4");
+}
