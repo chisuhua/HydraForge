@@ -1,0 +1,22 @@
+# .clangd — clangd LSP configuration
+# 功能描述: 强制 clangd 使用项目预设的 compile_commands.json, 避免 LSP 索引
+#          过期 cache 或错误目录导致的 false positive 错误。
+# 设计依据: docs/audits/2026-07-03-pdk-model-router-lsp-false-positive.md
+# 适用范围: 项目根 (clangd 自动发现)
+# 作者: Sprint 19 LSP discipline
+# 最后修改日期: 2026-07-03
+
+---
+Diagnostics:
+  # Suppress false positive 类别的错误 (与实际编译器保持一致)
+  # clangd 偶尔会报 gcc 不报的 warning, 通过 category 关闭高频误报
+  Suppress:
+    - "unused_result"          # std::ignore 模式下大量 false positive
+    - "unused-lambda-capture"  # 故意捕获 (如 this captured lambda)
+  # 保留所有真正影响正确性的检查 (undefined-behavior 等)
+
+---
+Index:
+  # Background: 启用 background indexing (clangd 默认)
+  Background: Build
+  StandardLibrary: Yes

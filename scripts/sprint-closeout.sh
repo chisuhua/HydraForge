@@ -205,7 +205,7 @@ fi
 # Step 5: OpenSpec validate
 # ====================================================================
 if [ "$RUN_OPENSPEC_VALIDATE" = true ]; then
-  print_header "Step 5/6: 📋 OpenSpec validate (所有 active changes)"
+  print_header "Step 5/7: 📋 OpenSpec validate (所有 active changes)"
 
   OPENSPEC_CHANGES=$(openspec list 2>/dev/null | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9-]+' | sort -u || true)
 
@@ -230,12 +230,37 @@ if [ "$RUN_OPENSPEC_VALIDATE" = true ]; then
 fi
 
 # ====================================================================
-# Step 6: 总结 + 下一步建议
+# Step 6: LSP discipline (预防 LSP false positive)
+# 设计依据: docs/audits/2026-07-03-pdk-model-router-lsp-false-positive.md
+# ====================================================================
+if [ -f scripts/check-lsp-discipline.sh ]; then
+  print_header "Step 6/7: 🔍 LSP discipline (clangd 配置 + 解析验证)"
+
+  print_step "scripts/check-lsp-discipline.sh --quick..."
+  if ./scripts/check-lsp-discipline.sh --quick 2>&1 | tail -25; then
+    print_ok "LSP discipline 通过"
+  else
+    LSP_EXIT=$?
+    if [ $LSP_EXIT -eq 2 ]; then
+      print_warn "LSP false positive 检测到, 需重启 LSP 客户端 (退出码 2)"
+    elif [ $LSP_EXIT -eq 3 ]; then
+      print_fail "真实 LSP 错误, 需修复代码 (退出码 3)"
+      FAILED=$((FAILED + 1))
+    else
+      print_warn "LSP discipline 配置问题, 退出码 $LSP_EXIT"
+    fi
+  fi
+else
+  print_warn "scripts/check-lsp-discipline.sh 不存在, 跳过"
+fi
+
+# ====================================================================
+# Step 7: 总结 + 下一步建议
 # ====================================================================
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
 
-print_header "Step 6/6: 📊 Summary"
+print_header "Step 7/7: 📊 Summary"
 
 echo "  ✅ PASSED:   $PASSED"
 echo "  ⚠️  WARNINGS: $WARNINGS"
