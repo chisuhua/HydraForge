@@ -27,5 +27,5 @@ target_compile_features(hydraforge_pdk INTERFACE cxx_std_20)
 # Phase 2 集成 IToolRegistry/IInteractionBus 时启用:
 # target_link_libraries(hydraforge_pdk INTERFACE agenticdsl_contract)
 
-# C7 Phase 1 MVP: 成本路由 Plugin
-add_subdirectory(model_router/cost_strategy)
+# C7 Phase 1-2 MVP: 模型路由插件 (cost + quality)
+add_subdirectory(model_router)
