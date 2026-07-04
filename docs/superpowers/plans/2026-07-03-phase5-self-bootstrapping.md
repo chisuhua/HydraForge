@@ -93,7 +93,7 @@
 | **C9** | `2026-07-03-phase4-5-impl-scope-audit` | 审计 | 1 周 | C8 ✅ archived (2026-07-03) | 🟡 **in progress** (Agent 1 工作, 11 个 ADR impl-scope.md 编写) |
 | **C10** | `2026-07-XX-phase5-stage1-step0-lazy-modulestate` | 实施 | 1-2 天 | C9 ✅ ship | ⚪ **placeholder, 待 C9 完成后启动** |
 | **C11** | `2026-07-XX-phase5-stage1-step1-session-registry` | 实施 | 2-3 天 | C9 ✅ ship (+ 建议 C10 ship 后启动) | ✅ **shipped (2026-07-04)** — 63/63 ctest 零回归, 4 个有意延后项 (4.6/5.4/5.6a/5.9) 记录至 C12/C14 |
-| **C12** | `2026-07-XX-phase5-stage1-step2-yield-stream` | 实施 | **5-6 天** (Oracle 审查后 +2.7d for 5 risk mitigations + example + 异常类型) | C10 ✅ ship + C11 ✅ ship (YIELD 需要 module_state 持久化 + Session 标识) | 🟡 **ACTIVE** — `openspec/changes/2026-07-03-phase5-stage1-step2-yield-stream/` proposal.md/tasks.md/spec.md 已 ship-ready (Momus 第 2 轮审查通过后实施) |
+| **C12** | `2026-07-03-phase5-stage1-step2-yield-stream` | 实施 | **5-6 天** (Oracle 审查后 +2.7d for 5 risk mitigations + example + 异常类型) | C10 ✅ ship + C11 ✅ ship (YIELD 需要 module_state 持久化 + Session 标识) | ✅ **shipped (2026-07-04)** — 64/64 ctest 零回归 (63 baseline + test_yield_node 9 case), 5 commits ahead origin/main, 全部 Oracle Q1-Q4 + 5 风险 mitigations ship (TopoScheduler state machine + DAG state 持久化 + IGenerationStream bridge + BudgetChecker 真实注入 + cross-thread yield_mutex_). 估时实际 1 天 (基础 ship + Sprint 20 验证), 与估算差异: 实施部分受益于 C10/C11 ship-ready 状态 + Oracle Q1-Q4 锁定决策, 验证章节 ASan/TSan 首次 build 超时 deferred CI. |
 | **C13** | `2026-07-XX-phase5-stage2-step3-4-fork-checkpoint` | 实施 (延后) | 3-5 天 | C10+C11+C12 ✅ ship + 性能/运维需求触发 | ⚪ **placeholder, 远期延后** |
 | **C14** | `2026-07-XX-phase5-stage3-step5-6-analysis-service` | 实施 (远期) | 4-6 周 | C10+C11+C12+C13 ✅ ship + Phase 3 稳定 | ⚪ **placeholder, 远期延后** |
 
@@ -540,7 +540,7 @@ C14 启动前必须满足:
 |--------|------------|----------------|----------------|---------------------|---------------------|-------------|
 | **Sprint 19** | 2026-07-17 | ✅ C10 ship (C9 收官后立即) | — | C11 启动 | — | — |
 | **Sprint 20** | 2026-07-31 | ✅ C11 ship | ✅ 累计 3 changes | C12 启动 | — | — |
-| **Sprint 21-22** | 2026-08-21 | ✅ C12 ship | — | C13 启动评估 | — | ✅ Stage 1→2 评估 |
+| **Sprint 21-22** | 2026-08-21 | ✅ C12 ship (2026-07-04, ahead of schedule) | — | C13 启动评估 | — | ✅ Stage 1→2 评估 |
 | **Sprint 23-24** | 2026-09-18 | ✅ C13 ship (如启动) | ✅ 累计 5 changes | C14 启动评估 | — | ✅ Stage 2→3 评估 |
 | **Sprint 25+** | 2026-10-31 | ✅ C14 ship | ✅ 累计 6 changes | — | ✅ Phase 5 收官 | ✅ Phase 5→6 |
 
@@ -585,6 +585,7 @@ C14 启动前必须满足:
 | 2026-07-03 | C12 `phase5-stage1-step2-yield-stream` | Oracle 深度审查 (session `ses_0d5985f3effeS1npyEV6SYk2RW`) — 5 个风险 (2 P0 + 2 P1 + 1 P2): (P0) TopoScheduler DAG state 丢失/IGenerationStream 桥接缺失; (P1) Budget 每 token 检查/cross-thread 安全; (P2) NodeType exhaust switch | C12 proposal.md + tasks.md + spec.md 全面更新: §4 TopoScheduler state machine + DAG state 持久化; §6 YieldStreamBridge 辅助类; §5 Budget 每 1 token 检查 + 异常携带已消费 token; §6b yield_mutex_ + atomic resume; §1.5 grep 全库 switch(NodeType). 估时 2.5-3→3.5-4.5 天 (+2.7d) | ✅ resolved (2026-07-03) — 文档已更新 |
 | 2026-07-03 | C11+C12 联合 | Oracle Q1-Q4 4 个决策问题 resolved: (Q1) SessionRegistry 成员模式 confirmed (P0 risk §11.3 line 578 resolved); (Q2) stop_path 为已定义后续节点; (Q3) resume_yield 异步回调 (IInteractionBus); (Q4) 工具安全级别在 C11/C12 ship gate 验证后追加 ADR-0031 | proposal.md C11/C12 均已追加 `## user decision resolved (Oracle Q1-Q4)` 章节 | ✅ resolved (2026-07-03) — Q1-Q4 全部 confirmed |
 | 2026-07-04 | C11 `phase5-stage1-step1-session-registry` | C11 ship | ✅ shipped — 实施 1 天, 63/63 ctest 零回归, ASan 0 leak, TSan 产品代码 0 race (仅 Catch2 框架噪音). 关键变更: (1) SessionRegistry 从 scheduler 模块移至 core (避免 common→scheduler 循环依赖); (2) 4 个 session.* 工具注册从 registry.cpp 移至 engine.cpp (避免 common→core 循环依赖); (3) Oracle 7 风险全部缓解 (P0 is_in_flight + 显式析构 + 工具 approval_policy; P1 shared_mutex + 命名空间 + 前向声明; P2 抽象接口延后); (4) 4 个有意延后项: 4.6 ToolCoordinator audit → C14, 5.4 DSL tool_call 集成测试 → C12+, 5.6a 并发 destroy+run → C12+, 5.9 audit log 验证 → C14 | ✅ resolved (2026-07-04) — C11 ship |
+| 2026-07-04 | C12 `phase5-stage1-step2-yield-stream` | C12 ship | ✅ shipped — 实施 1 天, **64/64 ctest 零回归** (63 baseline + test_yield_node 9 case, 39 assertions, 100% PASS). 关键变更: (1) §5 TopoScheduler state machine: SchedulerState enum + run_main_loop 检测 pending_yield_ 序列化 DAG state + resume_yield(updated_context) 公共 API; (2) §6 BudgetChecker 真实注入 ExecutionSession → NodeExecutor, 通过默认 noop 保持 63 baseline 零回归, CONTINUE 每 token 检查; (3) §1 parser yield factory (make_yield + NodeFactoryRegistry 11→12), JSON 字段 yield_value/mode/stop_path; (4) §3 execute_yield 3 模式 + STOP 模式跳过 LLM 调用优化; (5) §7 test_yield_node.cpp 9 测试 (NEXT/CONTINUE/STOP/null LLM/BudgetException/ExecutionSession/parser/E2E); (6) §8a example phase5_yield_token_generator --mock 验证 3/5/7 tokens. ASan/TSan 首次 build 超时 deferred CI (pre-existing baseline 验证保留). 5 commits ahead origin/main. | ✅ resolved (2026-07-04) — C12 ship |
 
 ### 11.3 预期可能的调整 (基于当前占位假设)
 
