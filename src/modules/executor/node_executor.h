@@ -105,6 +105,8 @@ private:
     Context execute_resource(const ResourceNode* node, const Context& ctx);
     Context execute_generate_subgraph(const GenerateSubgraphNode* node, const Context& ctx);
     Context execute_assert(const AssertNode* node, const Context& ctx) ;
+    // C12 Phase 5 Stage 1 Step 2 §3: YIELD/STREAM 节点执行 (NEXT/CONTINUE/STOP)
+    Context execute_yield(const YieldNode* node, const Context& ctx);
 
     // Sprint 17 C.2: execute_tool_call helper methods
     bool handle_tool_errors(const ToolCallNode* node, const ToolResult& result);

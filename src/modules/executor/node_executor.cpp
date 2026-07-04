@@ -5,6 +5,8 @@
 #include "common/utils/template_renderer.h" // 引入 InjaTemplateRenderer (for rendering)
 #include "core/types/tool_result.h" // Phase 1 Sprint 1a (S1a.T2): ToolResult envelope parsing (ADR-0023)
 #include "modules/parser/markdown_parser.h" // Stage 4 Task 20: 仅在 .cpp 内用于默认 shim，不再被 header 引入
+#include "scheduler/execution_session.h" // C12 §4 + §6.0: BudgetExceededException (executor 不调用 session_ 方法, 避免链接循环)
+#include "yield_stream_bridge.h" // C12 §6a: IGenerationStream pull-based bridge
 #include <stdexcept>
 #include <inja/inja.hpp> // For RenderError
 #include <algorithm> // For std::find
@@ -65,6 +67,8 @@ Context NodeExecutor::execute_node(Node* node, const Context& ctx) {
             return execute_generate_subgraph(dynamic_cast<const GenerateSubgraphNode*>(node), context_with_resources);
         case NodeType::ASSERT:
             return execute_assert(dynamic_cast<const AssertNode*>(node), context_with_resources);
+        case NodeType::YIELD:
+            return execute_yield(dynamic_cast<const YieldNode*>(node), context_with_resources);
         default:
             throw std::runtime_error("Unknown node type during execution: " + std::to_string(static_cast<int>(node->type)));
     }
@@ -427,6 +431,73 @@ void NodeExecutor::process_output_keys(Context& new_context,
   } else {
     new_context[output_keys[0]] = data;
   }
+}
+
+// C12 Phase 5 Stage 1 Step 2 §3: YIELD/STREAM 节点执行 (NEXT/CONTINUE/STOP 三模式)
+// 设计依据: IP-001 §Step 2 + Oracle Q3 决议 + spec.md `yield-execution-mode-support`
+// 注意: pending_yield_ 状态由 ExecutionSession::execute_node 调用方维护 (避免 executor→scheduler 链接循环)
+Context NodeExecutor::execute_yield(const YieldNode* node, const Context& ctx) {
+    Context new_context = ctx;
+
+    std::string rendered;
+    try {
+        rendered = InjaTemplateRenderer::render(node->yield_value, ctx);
+    } catch (const inja::RenderError& e) {
+        throw std::runtime_error("YieldNode yield_value template rendering failed for node '" +
+                                 node->path + "': " + std::string(e.what()));
+    }
+
+    if (llm_provider_ == nullptr) {
+        throw new_context = ctx;  // 静默跳过 (避免无 LLM provider 时崩溃, 保持向后兼容)
+        return new_context;
+    }
+
+    GenerationRequest req;
+    req.prompt = std::move(rendered);
+
+    auto stream = llm_provider_->generate_stream(req, std::stop_token{});
+    if (!stream) {
+        new_context["__yield_error__"] = "null_stream";
+        return new_context;
+    }
+
+    YieldStreamBridge bridge{};
+
+    switch (node->mode) {
+        case YieldMode::NEXT: {
+            auto token = bridge.pull_single(*stream);
+            new_context["__yield__"] = token.value_or(std::string{});
+            new_context["__yield_mode__"] = "NEXT";
+            new_context["__yield_node_path__"] = node->path;
+            break;
+        }
+        case YieldMode::CONTINUE: {
+            try {
+                auto tokens = bridge.pull_loop(
+                    *stream,
+                    []() { return true; },  // budget check 由 ExecutionSession 调用方负责 (避免链接循环)
+                    10000);
+                std::string concatenated;
+                for (const auto& t : tokens) concatenated += t;
+                new_context["__yield__"] = concatenated;
+            } catch (const BudgetExceededException& e) {
+                std::string concatenated;
+                for (const auto& t : e.consumed_tokens) concatenated += t;
+                new_context["__yield__"] = concatenated;
+                new_context["__yield_budget_exceeded__"] = true;
+                throw; // DSLEngine::run() (Sprint §6.4) 捕获后转 ExecutionResult
+            }
+            new_context["__yield_mode__"] = "CONTINUE";
+            break;
+        }
+        case YieldMode::STOP: {
+            new_context["__yield_mode__"] = "STOP";
+            new_context["__yield_stop_path__"] = node->stop_path;
+            break;
+        }
+    }
+
+    return new_context;
 }
 
 } // namespace agenticdsl

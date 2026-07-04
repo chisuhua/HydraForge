@@ -30,14 +30,14 @@
 
 ## 3. NodeExecutor execute_yield() 实现
 
-- [ ] 3.1 `src/modules/executor/node_executor.h` — 声明 `execute_yield(LayeredContext&, YieldNode&)`
-- [ ] 3.2 `src/modules/executor/node_executor.cpp` — 渲染 yield_value 模板
-- [ ] 3.3 实现 NEXT 模式: 包装 ToolResult + 设置 pending_yield_
-- [ ] 3.4 实现 CONTINUE 模式: 循环 `IGenerationStream::next(std::stop_token)`, **每 1 token** 检查 budget (Oracle Risk 11;实际接口在 `src/common/llm/llm_types.h:53-61`,方法名是 `next` 不是 `pull_next`)
-- [ ] 3.5 实现 STOP 模式: 终止流, 跳到 stop_path (Oracle Q2: stop_path 为已定义后续节点)
-- [ ] 3.6 `src/modules/executor/yield_stream_bridge.h/cpp` 新建 — YieldStreamBridge 封装 `next(token)` → YieldState (Oracle Risk 9)
-- [ ] 3.7 CONTINUE 模式 BudgetExceededException **携带已消费 token 片段** (非空结果丢弃) (Oracle Risk 11)
-- [ ] 3.8 **`src/modules/executor/node_executor.cpp` dispatch switch (line 46) 新增 `case NodeType::YIELD: return execute_yield(...)`** — Oracle Risk 12 mitigation (避免 exhaust switch warning, 验证 §1.5 grep 找到的 dispatch 站点都已加 case)
+- [x] 3.1 `src/modules/executor/node_executor.h` — 声明 `execute_yield(LayeredContext&, YieldNode&)`
+- [x] 3.2 `src/modules/executor/node_executor.cpp` — 渲染 yield_value 模板
+- [x] 3.3 实现 NEXT 模式: 包装 ToolResult + 设置 pending_yield_
+- [x] 3.4 实现 CONTINUE 模式: 循环 `IGenerationStream::next(std::stop_token)`, **每 1 token** 检查 budget (Oracle Risk 11;实际接口在 `src/common/llm/llm_types.h:53-61`,方法名是 `next` 不是 `pull_next`)
+- [x] 3.5 实现 STOP 模式: 终止流, 跳到 stop_path (Oracle Q2: stop_path 为已定义后续节点)
+- [x] 3.6 `src/modules/executor/yield_stream_bridge.h/cpp` 新建 — YieldStreamBridge 封装 `next(token)` → YieldState (Oracle Risk 9)
+- [x] 3.7 CONTINUE 模式 BudgetExceededException **携带已消费 token 片段** (非空结果丢弃) (Oracle Risk 11)
+- [x] 3.8 **`src/modules/executor/node_executor.cpp` dispatch switch (line 46) 新增 `case NodeType::YIELD: return execute_yield(...)`** — Oracle Risk 12 mitigation (避免 exhaust switch warning, 验证 §1.5 grep 找到的 dispatch 站点都已加 case)
 
 ---
 
