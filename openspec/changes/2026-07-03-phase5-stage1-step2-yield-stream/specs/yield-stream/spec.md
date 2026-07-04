@@ -13,12 +13,12 @@
 #### Scenario: 枚举值存在
 
 - **WHEN** 检查 `src/core/types/node.h` NodeType enum
-- **THEN** 包含 `YIELD` 枚举值 (与现有 11 类型并列)
+- **THEN** 包含 `YIELD` 枚举值 (与现有 10 类型并列)
 
-#### Scenario: Node 联合体扩展
+#### Scenario: Node 继承体系扩展
 
-- **WHEN** 检查 Node struct
-- **THEN** 包含 `YieldNode yield_data` 成员
+- **WHEN** 检查 Node struct (多态基类, `virtual execute` + `virtual clone`,见 `src/core/types/node.h:35-55`)
+- **THEN** 继承体系新增 `YieldNode : public Node` 子类 (沿用 START/END/ASSIGN/DSL/TOOL_CALL/RESOURCE/FORK/JOIN/GENERATE_SUBGRAPH/ASSERT 模式)
 - **AND** YieldNode 包含 yield_value (string) + mode (YieldMode) + stop_path (NodePath)
 
 ---
@@ -49,10 +49,10 @@
 #### Scenario: CONTINUE 模式
 
 - **WHEN** YieldNode.mode == CONTINUE 且 IGenerationStream 活跃
-- **THEN** execute_yield() 循环 pull IGenerationStream::pull_next()
-- **AND** 每 pull 10 tokens 检查 `is_budget_exceeded()`
+- **THEN** execute_yield() 循环 pull `IGenerationStream::next(std::stop_token)`
+- **AND** 每 pull **1 token** 检查 `is_budget_exceeded()` (Oracle Risk 11 mitigation, N=1 可配置)
 - **AND** 超过预算立即终止流 + 抛 BudgetExceededException
-- **AND** stream 结束 (pull_next() 返回 nullopt) 时退出循环
+- **AND** stream 结束 (`IGenerationStream::next(token)` 返回 nullopt 或 is_active()=false) 时退出循环
 
 #### Scenario: STOP 模式
 
@@ -78,7 +78,7 @@
 
 ### Requirement: yield-budget-checked
 
-CONTINUE 模式 MUST 每 N tokens 检查 budget (默认 N=10, 可配置)。
+CONTINUE 模式 MUST 每 N tokens 检查 budget (**默认 N=1**, 可配置;Oracle Risk 11 mitigation 决议)。
 
 #### Scenario: budget 超限中断
 

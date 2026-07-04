@@ -17,7 +17,7 @@ Phase 5 自举服务化需要支持 token-by-token 流式生成 (BOOT-001 阶段
 依据 IP-001 §Step 2 设计 + Oracle 决议 Q3:
 - 单 YieldNode + mode 枚举 (NEXT/CONTINUE/STOP)
 - 与历史 Oracle 决议一致 (master plan §十一.1)
-- IGenerationStream pull-based 适配最自然 (YIELD 节点内部 pull_next())
+- IGenerationStream pull-based 适配最自然 (YIELD 节点内部 `IGenerationStream::next(std::stop_token)`, 实际接口在 `src/common/llm/llm_types.h:53-61`)
 - **不**用 IInteractionBus 作为推送通道 (后者是 event broker, 不适合 token 高频流)
 
 ## What Changes
@@ -26,7 +26,7 @@ Phase 5 自举服务化需要支持 token-by-token 流式生成 (BOOT-001 阶段
 
 - `src/core/types/node.h`:
   - `NodeType` 枚举加 `YIELD`
-  - `Node` 联合体加 `YieldNode yield_data`
+  - **Node 继承体系新增 `YieldNode` 子类** (沿用 START/END/ASSIGN/DSL/TOOL_CALL/RESOURCE/FORK/JOIN/GENERATE_SUBGRAPH/ASSERT 模式 — Node 是多态基类,非 union)
   - `YieldNode` 结构:
     ```cpp
     struct YieldNode : public Node {
@@ -45,7 +45,7 @@ Phase 5 自举服务化需要支持 token-by-token 流式生成 (BOOT-001 阶段
   - 内部流程:
     - 渲染 yield_value 模板 → 字符串
     - NEXT: 包装为 ToolResult, 设置 pending_yield_ 状态, 返回调用者
-    - CONTINUE: 进入循环, 连续 IGenerationStream::pull_next() 直到 stream 结束或预算耗尽
+    - CONTINUE: 进入循环, 连续 `IGenerationStream::next(std::stop_token)` 直到 stream 结束或预算耗尽
     - STOP: 终止流, 跳到 stop_path 节点
 
 ### 3. ExecutionSession pending_yield_ 扩展
@@ -70,7 +70,7 @@ Phase 5 自举服务化需要支持 token-by-token 流式生成 (BOOT-001 阶段
 ### 6. yield_stream_bridge 桥接 (Oracle Risk 9 mitigation)
 
 - `src/modules/executor/yield_stream_bridge.h/cpp` 新建:
-  - 封装 `IGenerationStream::pull_next()` → `YieldState` 映射
+  - 封装 `IGenerationStream::next(std::stop_token)` → `YieldState` 映射 (实际接口在 `src/common/llm/llm_types.h:53-61`)
   - `pull_single()` 用于 NEXT 模式
   - `pull_loop(budget_checker, max_iter)` 用于 CONTINUE 模式
 - **不**用 IInteractionBus 作为推送通道 (保持 ADR-0030 V2 决策)
@@ -85,7 +85,7 @@ Phase 5 自举服务化需要支持 token-by-token 流式生成 (BOOT-001 阶段
 
 - **ADR-0030 V2 异步运行时** — 完全不动 (IGenerationStream pull 接口保持)
 - **IInteractionBus** — 不作为 YIELD 推送通道 (仅用于 tool.audit 事件)
-- **Node/NodeType 现有 11 种类型** — 兼容, 仅新增 YIELD
+- **Node/NodeType 现有 10 种类型** (START/END/ASSIGN/DSL_CALL/TOOL_CALL/RESOURCE/FORK/JOIN/GENERATE_SUBGRAPH/ASSERT,见 `src/core/types/node.h:22-33`) — 兼容, 仅新增 YIELD
 - **DSL 解析器现有功能** — 兼容, 增量支持 YIELD 字段
 
 ## Capabilities
@@ -111,7 +111,7 @@ Phase 5 自举服务化需要支持 token-by-token 流式生成 (BOOT-001 阶段
 
 **API 兼容性**: 零 breaking change (NodeType 增量, Node 子类仅新增)
 
-**估时**: 3.5-4.5 天 (Oracle 深度审查后从 2.5-3 天调整: +1.5d DAG state + +0.5d stream bridge + +0.3d budget per-token + +0.2d cross-thread + +0.2d exhaust switch)
+**估时**: 5-6 天 (Oracle 深度审查后从 2.5-3 天调整: +1.5d DAG state + +0.5d stream bridge + +0.3d budget per-token + +0.2d cross-thread + +0.2d exhaust switch + **+1.0d examples/phase5_yield_token_generator/ 示例程序** master plan §四 ship gate 要求 + **+0.3d BudgetExceededException 新异常类型声明** tasks §6.0)
 
 ## Risks (Oracle 深度审查 2026-07-03, session `ses_0d5985f3effeS1npyEV6SYk2RW`)
 

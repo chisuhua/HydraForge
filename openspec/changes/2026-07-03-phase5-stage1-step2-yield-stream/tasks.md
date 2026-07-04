@@ -15,7 +15,7 @@
 - [ ] 1.1 `src/core/types/node.h` — NodeType 加 YIELD
 - [ ] 1.2 `src/core/types/node.h` — 定义 `enum class YieldMode { NEXT, CONTINUE, STOP }`
 - [ ] 1.3 `src/core/types/node.h` — 定义 `struct YieldNode { yield_value, mode, stop_path }`
-- [ ] 1.4 Node 联合体加 `YieldNode yield_data`
+- [ ] 1.4 Node 继承体系加 `YieldNode : public Node` 子类 (沿用现有 10 个 Node 子类模式 — Node 是多态基类, 非 union; 见 `src/core/types/node.h:35-55` 的 polymorphic 架构)
 - [ ] 1.5 audit 全库 grep `switch.*NodeType` 站点, 确保 YIELD case 全覆盖 (Oracle Risk 12: exhaust switch)
 
 ---
@@ -33,10 +33,11 @@
 - [ ] 3.1 `src/modules/executor/node_executor.h` — 声明 `execute_yield(LayeredContext&, YieldNode&)`
 - [ ] 3.2 `src/modules/executor/node_executor.cpp` — 渲染 yield_value 模板
 - [ ] 3.3 实现 NEXT 模式: 包装 ToolResult + 设置 pending_yield_
-- [ ] 3.4 实现 CONTINUE 模式: 循环 pull IGenerationStream, **每 1 token** 检查 budget (Oracle Risk 11)
+- [ ] 3.4 实现 CONTINUE 模式: 循环 `IGenerationStream::next(std::stop_token)`, **每 1 token** 检查 budget (Oracle Risk 11;实际接口在 `src/common/llm/llm_types.h:53-61`,方法名是 `next` 不是 `pull_next`)
 - [ ] 3.5 实现 STOP 模式: 终止流, 跳到 stop_path (Oracle Q2: stop_path 为已定义后续节点)
-- [ ] 3.6 `src/modules/executor/yield_stream_bridge.h/cpp` 新建 — YieldStreamBridge 封装 pull→context (Oracle Risk 9)
+- [ ] 3.6 `src/modules/executor/yield_stream_bridge.h/cpp` 新建 — YieldStreamBridge 封装 `next(token)` → YieldState (Oracle Risk 9)
 - [ ] 3.7 CONTINUE 模式 BudgetExceededException **携带已消费 token 片段** (非空结果丢弃) (Oracle Risk 11)
+- [ ] 3.8 **`src/modules/executor/node_executor.cpp` dispatch switch (line 46) 新增 `case NodeType::YIELD: return execute_yield(...)`** — Oracle Risk 12 mitigation (避免 exhaust switch warning, 验证 §1.5 grep 找到的 dispatch 站点都已加 case)
 
 ---
 
@@ -60,6 +61,7 @@
 
 ## 6. Budget 集成 (Oracle Risk 11 mitigation)
 
+- [ ] 6.0 `src/modules/scheduler/execution_session.h` — **新增** `struct BudgetExceededException : public std::exception { std::vector<std::string> consumed_tokens; std::string message; ... }` (C1 fix: 新异常类型, 必须显式声明字段 — 全代码库当前 0 匹配, tasks §3.7/§6.3/§6.4 + spec.md line 127 都引用该类型)
 - [ ] 6.1 CONTINUE 模式 **每 pull 1 token** 检查 `is_budget_exceeded()` (可配置, 默认 1) (Oracle Risk 11)
 - [ ] 6.2 超过预算立即终止流
 - [ ] 6.3 抛 `BudgetExceededException` **携带已消费 token 向量** (新增 exception 类型, 在 execution_session.h) (Oracle Risk 11)
@@ -95,9 +97,19 @@
 
 ---
 
+## 8a. 示例程序 (master plan §四 ship gate 要求, D3b 修复)
+
+- [ ] 8a.1 `examples/phase5_yield_token_generator/` 目录创建 (master plan §四 line 225 ship list item 6)
+- [ ] 8a.2 `main.cpp` 实现: 加载 `.agent.md` (NEXT 模式 yield_value 模板), N 次调用返回 N 个 token
+- [ ] 8a.3 `CMakeLists.txt` + 根 `CMakeLists.txt` `AGENTICDSL_BUILD_EXAMPLES` opt-in 注册 (沿用 Sprint 19 `agent_simple`/`agent_loop` mock LLM 模式)
+- [ ] 8a.4 E2E 验证: yield 之间 module_state 保持 (验证 C10 lazy module_state + C12 YIELD 集成)
+- [ ] 8a.5 `phase5_yield_token_generator --mock` 可运行, 验证 N 次调用返回 N 个 token (master plan §四 line 228 ship gate)
+
+---
+
 ## 8. 验证
 
-- [ ] 8.1 `ctest --output-on-failure` ≥ 61/61 + 新增 test_yield_node 8-10 case 全绿
+- [ ] 8.1 `ctest --output-on-failure` ≥ 63/63 (C11 ship 后基线) + 新增 test_yield_node 8-10 case 全绿 (master plan §四 line 228 要求 ≥64/64, post-C12 总数应 ≥71/71)
 - [ ] 8.2 `python3 tools/adr_lint.py` exit 0 (零 ADR 修改)
 - [ ] 8.3 `python3 tools/docs_drift_audit.py` 0 DRIFT
 - [ ] 8.4 `cmake --preset asan && ctest` 零 ASan error
