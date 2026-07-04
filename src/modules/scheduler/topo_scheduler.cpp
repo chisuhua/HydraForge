@@ -188,6 +188,23 @@ ExecutionResult TopoScheduler::run_main_loop(DagState& state, Context& context) 
         }
 
         context = std::move(session_result.new_context);
+
+        // C12 §5.1: YIELD 暂停 — 序列化 DAG 状态, 写回 pending_yield_, 切换 SchedulerState
+        auto pending_yield = session_.get_pending_yield();
+        if (pending_yield.has_value()) {
+            ready_queue_.push(found.path);
+            YieldState snapshot;
+            snapshot.module_path = found.path;
+            snapshot.resume_context = serialize_dag_state();
+            session_.set_pending_yield(snapshot);
+
+            scheduler_state_ = SchedulerState::YIELDED;
+            yielded_context_ = context;
+            yielded_node_path_ = found.path;
+            LOG_INFO("Scheduler YIELDED at " << found.path);
+            return {true, "YIELDED at " + found.path, context, std::nullopt};
+        }
+
         executed_.insert(found.path);
 
         if (found.node->type == NodeType::FORK) {
@@ -699,6 +716,78 @@ void TopoScheduler::update_successors(Node* current_node, const NodePath& curren
             ready_queue_.push(dependent);
         }
     }
+}
+
+nlohmann::json TopoScheduler::serialize_dag_state() const {
+    nlohmann::json j;
+    j["ready_queue"] = nlohmann::json::array();
+    {
+        std::queue<NodePath> copy = ready_queue_;
+        while (!copy.empty()) {
+            j["ready_queue"].push_back(copy.front());
+            copy.pop();
+        }
+    }
+    j["in_degree"] = nlohmann::json::object();
+    for (const auto& [path, deg] : in_degree_) {
+        j["in_degree"][path] = deg;
+    }
+    j["executed"] = nlohmann::json::array();
+    for (const auto& path : executed_) {
+        j["executed"].push_back(path);
+    }
+    return j;
+}
+
+void TopoScheduler::restore_dag_state(const nlohmann::json& j) {
+    if (!j.is_object()) return;
+    while (!ready_queue_.empty()) ready_queue_.pop();
+    if (j.contains("ready_queue") && j["ready_queue"].is_array()) {
+        for (const auto& item : j["ready_queue"]) {
+            if (item.is_string()) ready_queue_.push(item.get<std::string>());
+        }
+    }
+    in_degree_.clear();
+    if (j.contains("in_degree") && j["in_degree"].is_object()) {
+        for (auto it = j["in_degree"].begin(); it != j["in_degree"].end(); ++it) {
+            if (it.value().is_number()) in_degree_[it.key()] = it.value().get<int>();
+        }
+    }
+    executed_.clear();
+    if (j.contains("executed") && j["executed"].is_array()) {
+        for (const auto& item : j["executed"]) {
+            if (item.is_string()) executed_.insert(item.get<std::string>());
+        }
+    }
+}
+
+ExecutionResult TopoScheduler::resume_yield(const Context& updated_context) {
+    if (scheduler_state_ != SchedulerState::YIELDED) {
+        return {false, "resume_yield called but scheduler not in YIELDED state (current=" +
+                       std::to_string(static_cast<int>(scheduler_state_)) + ")",
+                yielded_context_, std::nullopt};
+    }
+    auto pending_opt = session_.get_pending_yield();
+    if (!pending_opt.has_value()) {
+        return {false, "resume_yield: pending_yield_ missing", yielded_context_, std::nullopt};
+    }
+    YieldState pending = std::move(*pending_opt);
+
+    restore_dag_state(pending.resume_context);
+
+    Context merged = yielded_context_;
+    for (auto it = updated_context.begin(); it != updated_context.end(); ++it) {
+        merged[it.key()] = it.value();
+    }
+
+    session_.clear_pending_yield();
+    scheduler_state_ = SchedulerState::RUNNING;
+    yielded_context_ = Context{};
+    yielded_node_path_.clear();
+
+    DagState state;
+    copy_dag_state_to(state);
+    return run_main_loop(state, merged);
 }
 
 

@@ -20,11 +20,15 @@
 #include <unordered_map>
 #include <vector>
 #include <memory>
+#include <functional>
 
 namespace agenticdsl {
 
 // C₁.2: 前向声明 ILLMProvider（避免 llm_tool.h 的 LLMParams struct 与 llm_types.h 的 alias 冲突）
 class ILLMProvider;
+
+using BudgetChecker = std::function<bool()>;
+inline BudgetChecker default_budget_checker() { return []() { return true; }; }
 
 // C4 Sprint 14 (ADR-0031 P3-P4, Oracle ses_0ed4408faffeLv8VfrC0s5PzW7): 前向声明 ToolCoordinator
 class ToolCoordinator;
@@ -50,7 +54,8 @@ public:
                  IInteractionBus* bus = nullptr);
 
     // 执行一个节点，返回新的上下文
-    Context execute_node(Node* node, const Context& ctx);
+    // C12 §6: budget_checker 默认 noop，仅 YIELD CONTINUE 模式真正使用
+    Context execute_node(Node* node, const Context& ctx, BudgetChecker budget_checker = default_budget_checker());
     void set_append_graphs_callback(AppendGraphsCallback cb) {
         append_graphs_callback_ = std::move(cb);
     }
@@ -106,7 +111,7 @@ private:
     Context execute_generate_subgraph(const GenerateSubgraphNode* node, const Context& ctx);
     Context execute_assert(const AssertNode* node, const Context& ctx) ;
     // C12 Phase 5 Stage 1 Step 2 §3: YIELD/STREAM 节点执行 (NEXT/CONTINUE/STOP)
-    Context execute_yield(const YieldNode* node, const Context& ctx);
+    Context execute_yield(const YieldNode* node, const Context& ctx, BudgetChecker budget_checker);
 
     // Sprint 17 C.2: execute_tool_call helper methods
     bool handle_tool_errors(const ToolCallNode* node, const ToolResult& result);

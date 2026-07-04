@@ -39,12 +39,11 @@ NodeExecutor::NodeExecutor(IToolRegistry& tool_registry, ILLMProvider* llm_provi
       parser_(std::move(parser)), bus_(bus), session_(nullptr) {}
 
 
-Context NodeExecutor::execute_node(Node* node, const Context& ctx) {
+Context NodeExecutor::execute_node(Node* node, const Context& ctx, BudgetChecker budget_checker) {
     Context context_with_resources = ctx;
 
     check_permissions(node->permissions, node->path);
 
-    // 根据节点类型分发执行
     switch (node->type) {
         case NodeType::START:
             return execute_start(dynamic_cast<const StartNode*>(node), context_with_resources);
@@ -60,15 +59,13 @@ Context NodeExecutor::execute_node(Node* node, const Context& ctx) {
             return execute_resource(dynamic_cast<const ResourceNode*>(node), context_with_resources);
         case NodeType::FORK:
         case NodeType::JOIN:
-            // ForkNode/JoinNode 由 TopoScheduler::process_fork_join 处理,
-            // 不应到达 NodeExecutor。这是调度器路由 bug。
             throw std::logic_error("ForkNode/JoinNode reached NodeExecutor - scheduler routing bug");
         case NodeType::GENERATE_SUBGRAPH:
             return execute_generate_subgraph(dynamic_cast<const GenerateSubgraphNode*>(node), context_with_resources);
         case NodeType::ASSERT:
             return execute_assert(dynamic_cast<const AssertNode*>(node), context_with_resources);
         case NodeType::YIELD:
-            return execute_yield(dynamic_cast<const YieldNode*>(node), context_with_resources);
+            return execute_yield(dynamic_cast<const YieldNode*>(node), context_with_resources, budget_checker);
         default:
             throw std::runtime_error("Unknown node type during execution: " + std::to_string(static_cast<int>(node->type)));
     }
@@ -436,7 +433,7 @@ void NodeExecutor::process_output_keys(Context& new_context,
 // C12 Phase 5 Stage 1 Step 2 §3: YIELD/STREAM 节点执行 (NEXT/CONTINUE/STOP 三模式)
 // 设计依据: IP-001 §Step 2 + Oracle Q3 决议 + spec.md `yield-execution-mode-support`
 // 注意: pending_yield_ 状态由 ExecutionSession::execute_node 调用方维护 (避免 executor→scheduler 链接循环)
-Context NodeExecutor::execute_yield(const YieldNode* node, const Context& ctx) {
+Context NodeExecutor::execute_yield(const YieldNode* node, const Context& ctx, BudgetChecker budget_checker) {
     Context new_context = ctx;
 
     std::string rendered;
@@ -448,8 +445,7 @@ Context NodeExecutor::execute_yield(const YieldNode* node, const Context& ctx) {
     }
 
     if (llm_provider_ == nullptr) {
-        throw new_context = ctx;  // 静默跳过 (避免无 LLM provider 时崩溃, 保持向后兼容)
-        return new_context;
+        return ctx;  // 静默跳过 (避免无 LLM provider 时崩溃, 保持向后兼容)
     }
 
     GenerationRequest req;
@@ -473,10 +469,7 @@ Context NodeExecutor::execute_yield(const YieldNode* node, const Context& ctx) {
         }
         case YieldMode::CONTINUE: {
             try {
-                auto tokens = bridge.pull_loop(
-                    *stream,
-                    []() { return true; },  // budget check 由 ExecutionSession 调用方负责 (避免链接循环)
-                    10000);
+                auto tokens = bridge.pull_loop(*stream, budget_checker, 10000);
                 std::string concatenated;
                 for (const auto& t : tokens) concatenated += t;
                 new_context["__yield__"] = concatenated;

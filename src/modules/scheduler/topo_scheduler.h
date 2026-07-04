@@ -50,8 +50,13 @@ public:
     TopoScheduler(Config config, IToolRegistry& tool_registry, ILLMProvider* llm_provider, const std::vector<ParsedGraph>* full_graphs_ = nullptr);
 
     void register_node(std::unique_ptr<Node> node) override;
-    void build_dag() override; // 构建依赖图
+    void build_dag() override;
     ExecutionResult execute(const Context& initial_context) override;
+
+    enum class SchedulerState { RUNNING, YIELDED, COMPLETED, FAILED };
+    SchedulerState get_scheduler_state() const { return scheduler_state_; }
+    bool is_yielded() const { return scheduler_state_ == SchedulerState::YIELDED; }
+    ExecutionResult resume_yield(const Context& updated_context);
 
     // Method for DSLEngine to call to add new graphs dynamically
     void append_dynamic_graphs(std::vector<ParsedGraph> new_graphs) override;
@@ -66,17 +71,20 @@ public:
     }
 
 private:
-    const std::vector<ParsedGraph>* full_graphs_ = nullptr; // ← 新增
-    std::unique_ptr<ResourceManager> resource_manager_; // Sprint 17 C.4: PIMPL-lite 化
+    const std::vector<ParsedGraph>* full_graphs_ = nullptr;
+    std::unique_ptr<ResourceManager> resource_manager_;
     ExecutionSession session_;
     std::vector<std::unique_ptr<Node>> all_nodes_;
     std::unordered_map<NodePath, Node*> node_map_;
-    std::unordered_map<NodePath, std::vector<NodePath>> reverse_edges_; // 后继 -> 前驱
-    std::unordered_map<NodePath, std::vector<NodePath>> wait_for_dependents_; // 被 wait_for 引用 -> 等待者
+    std::unordered_map<NodePath, std::vector<NodePath>> reverse_edges_;
+    std::unordered_map<NodePath, std::vector<NodePath>> wait_for_dependents_;
     std::unordered_map<NodePath, int> in_degree_;
     std::queue<NodePath> ready_queue_;
     std::unordered_set<NodePath> executed_;
-    std::vector<NodePath> call_stack_; // 用于 soft end
+    std::vector<NodePath> call_stack_;
+    SchedulerState scheduler_state_ = SchedulerState::RUNNING;
+    Context yielded_context_;
+    NodePath yielded_node_path_;
     //
 
     void register_resources();
@@ -137,6 +145,8 @@ private:
     std::optional<ExecutionResult> prepare_dag_state(DagState& state);
     // Sprint 18 D-4: execute_parallel 拆分 - tf::Executor 派发核心循环 (拆自 execute_parallel)
     ExecutionResult execute_dag_loop(DagState& state, const Context& context);
+    nlohmann::json serialize_dag_state() const;
+    void restore_dag_state(const nlohmann::json& j);
     // Sprint 18 D-5: DRY 化 execute() / execute_parallel() 重复的 7 行 state 迁移块
     void copy_dag_state_to(DagState& state) const;
     // Sprint 18 D-5.1: execute() 主 while 循环提取

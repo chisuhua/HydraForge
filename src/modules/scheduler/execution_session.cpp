@@ -202,17 +202,18 @@ ExecutionSession::ExecutionResult ExecutionSession::execute_node(Node* node, con
     // 3. 执行节点
     try {
         // 统一执行路径
+        BudgetChecker yield_checker = [this]() { return !budget_controller_->exceeded(); };
+
         auto execution_result = context_engine_->execute_with_snapshot(
-            [this, node](const Context& ctx) {
-                // 对于 GENERATE_SUBGRAPH，注入 available_subgraphs
+            [this, node, yield_checker](const Context& ctx) {
                 if (node->type == NodeType::GENERATE_SUBGRAPH) {
                     const GenerateSubgraphNode* gsn = static_cast<const GenerateSubgraphNode*>(node);
                     std::string rendered_prompt = this->inject_subgraphs_into_prompt(gsn->prompt_template, ctx);
                     Context new_ctx = ctx;
-                    new_ctx["__rendered_prompt__"] = rendered_prompt; // 临时存储
-                    return node_executor_->execute_node(node, new_ctx);
+                    new_ctx["__rendered_prompt__"] = rendered_prompt;
+                    return node_executor_->execute_node(node, new_ctx, yield_checker);
                 }
-                return node_executor_->execute_node(node, ctx);
+                return node_executor_->execute_node(node, ctx, yield_checker);
             },
             context_with_resources,
             snapshot_needed,
@@ -230,11 +231,18 @@ ExecutionSession::ExecutionResult ExecutionSession::execute_node(Node* node, con
             }
         }
 
+        // C12 §5: YIELD 后处理 — 标记 pending_yield_ + paused_at (TopoScheduler 据此挂起主循环)
+        if (node->type == NodeType::YIELD && result.new_context.contains("__yield_mode__")) {
+            YieldState ys;
+            ys.module_path = node->path;
+            ys.resume_context = nlohmann::json::object();
+            set_pending_yield(std::move(ys));
+            result.paused_at = node->path;
+        }
+
         // --- v3.1: Check for LLM Call Pause ---
         if (node->type == NodeType::DSL_CALL) {
              result.paused_at = node->path;
-             // For this synchronous executor, we just return here.
-             // An async executor would handle pausing differently.
         }
 
     } catch (const std::exception& e) {
