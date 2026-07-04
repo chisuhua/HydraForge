@@ -93,7 +93,7 @@
 | **C9** | `2026-07-03-phase4-5-impl-scope-audit` | 审计 | 1 周 | C8 ✅ archived (2026-07-03) | 🟡 **in progress** (Agent 1 工作, 11 个 ADR impl-scope.md 编写) |
 | **C10** | `2026-07-XX-phase5-stage1-step0-lazy-modulestate` | 实施 | 1-2 天 | C9 ✅ ship | ⚪ **placeholder, 待 C9 完成后启动** |
 | **C11** | `2026-07-XX-phase5-stage1-step1-session-registry` | 实施 | 2-3 天 | C9 ✅ ship (+ 建议 C10 ship 后启动) | ✅ **shipped (2026-07-04)** — 63/63 ctest 零回归, 4 个有意延后项 (4.6/5.4/5.6a/5.9) 记录至 C12/C14 |
-| **C12** | `2026-07-XX-phase5-stage1-step2-yield-stream` | 实施 | 2-3 天 | C10 ✅ ship (YIELD 需要 module_state 持久化) | ⚪ **placeholder, 待 C10 完成后详细制定** |
+| **C12** | `2026-07-XX-phase5-stage1-step2-yield-stream` | 实施 | **5-6 天** (Oracle 审查后 +2.7d for 5 risk mitigations + example + 异常类型) | C10 ✅ ship + C11 ✅ ship (YIELD 需要 module_state 持久化 + Session 标识) | 🟡 **ACTIVE** — `openspec/changes/2026-07-03-phase5-stage1-step2-yield-stream/` proposal.md/tasks.md/spec.md 已 ship-ready (Momus 第 2 轮审查通过后实施) |
 | **C13** | `2026-07-XX-phase5-stage2-step3-4-fork-checkpoint` | 实施 (延后) | 3-5 天 | C10+C11+C12 ✅ ship + 性能/运维需求触发 | ⚪ **placeholder, 远期延后** |
 | **C14** | `2026-07-XX-phase5-stage3-step5-6-analysis-service` | 实施 (远期) | 4-6 周 | C10+C11+C12+C13 ✅ ship + Phase 3 稳定 | ⚪ **placeholder, 远期延后** |
 
@@ -204,11 +204,11 @@
 | 字段 | 值 |
 |------|---|
 | **类型** | 实施 (Stage 1 收尾, IP-001 §阶段 1 Step 2) |
-| **估时** | 2-3 天 (单 Sprint 装不下, 拆为 2 周) |
-| **依赖** | C10 ✅ ship (YIELD 需要 module_state 持久化) |
-| **关联 ADR** | ADR-0008 (LayeredContext) / ADR-0019 (IInteractionBus token push 复用) / IP-001 §三 Step 2 |
-| **目录** | `openspec/changes/<date>-phase5-stage1-step2-yield-stream/` |
-| **状态** | ⚪ **placeholder, 待 C10 完成后详细制定** |
+| **估时** | **5-6 天** (Oracle 审查后 +2.7d for 5 risk mitigations + example + 异常类型; 单 Sprint 装不下, 拆为 2 周) |
+| **依赖** | C10 ✅ ship + C11 ✅ ship (YIELD 需要 module_state 持久化 + Session 标识) |
+| **关联 ADR** | ADR-0008 (LayeredContext) / ADR-0030 V2 (异步运行时, IGenerationStream pull-based 正交) / IP-001 §三 Step 2 |
+| **目录** | `openspec/changes/2026-07-03-phase5-stage1-step2-yield-stream/` |
+| **状态** | 🟡 **ACTIVE** (Momus 第 2 轮审查通过后 ship-ready) |
 
 **目标** (来自 IP-001 §阶段 1 Step 2):
 - Token-by-token 生成器 (YIELD 节点)
@@ -328,15 +328,18 @@ void ExecutionSession::ensure_module_state(const std::string& module_path) {
 4. 注册 4 个 session.* 工具到 `src/common/tools/registry.cpp`
 5. 编写 `tests/test_session_registry.cpp`
 
-### 5.3 C12 任务: YIELD / STREAM (Sprint 21-22, 2-3 天)
+### 5.3 C12 任务: YIELD / STREAM (Sprint 21-22, 5-6 天, Oracle 审查后调整)
 
-**实施步骤** (引用 IP-001 §阶段 1 Step 2 + IP-002 §1.5 + §3.2 + §5):
-1. `src/core/types/node.h` NodeType 枚举新增 `YIELD`, 新增 `YieldNode` 结构 (yield_value + mode 字段)
-2. `src/modules/parser/markdown_parser.cpp` 解析 yield 节点 (mode 字段, 默认 NEXT)
-3. `src/modules/executor/node_executor.h/cpp` 新增 `execute_yield()` (渲染 yield_value 模板, 返回 `__yield__` 上下文)
-4. `src/modules/scheduler/topo_scheduler.cpp` yield 暂停逻辑 (保存 resume_at, 跳出主循环)
-5. `ExecutionSession` 新增 `pending_yield_` 状态 (Sprint 22)
-6. 编写 `tests/test_yield_node.cpp` + `examples/phase5_yield_token_generator/`
+**实施步骤** (引用 IP-001 §阶段 1 Step 2 + IP-002 §1.5 + §3.2 + §5 + Oracle Risk 8/9/10/11/12 mitigations):
+1. `src/core/types/node.h` NodeType 枚举新增 `YIELD` (第 11 个值, 与现有 10 类型并列), 新增 `YieldNode` 结构 (yield_value + mode + stop_path 字段)
+2. `src/modules/parser/markdown_parser.cpp` 解析 yield 节点 (mode 字段, 默认 NEXT); yield_value/mode/stop_path 解析失败时清晰错误信息
+3. `src/modules/executor/node_executor.h/cpp` 新增 `execute_yield()` (NEXT/CONTINUE/STOP 3 模式); **dispatch switch 新增 `case NodeType::YIELD`** (Oracle Risk 12)
+4. `src/modules/scheduler/topo_scheduler.cpp` yield 暂停逻辑 (**不跳出主 while 循环**, Oracle Risk 8 mitigation) + DAG state 持久化 (保存 ready_queue + in_degree_table + running_nodes, O(|V|+|E|)) + 新增 `SchedulerState` 枚举 (RUNNING/YIELDED/COMPLETED/FAILED)
+5. `src/modules/scheduler/execution_session.h` 新增 `pending_yield_` 状态 (YieldState struct) + `BudgetExceededException` 新异常类型 (consumed_tokens vector + message 字段)
+6. `src/modules/executor/yield_stream_bridge.h/cpp` 新建 — YieldStreamBridge 封装 `IGenerationStream::next(std::stop_token)` → YieldState (Oracle Risk 9)
+7. CONTINUE 模式 **每 pull 1 token** 检查 `is_budget_exceeded()` (Oracle Risk 11, N=1 可配置) + BudgetExceededException 携带已消费 token 片段
+8. 跨线程安全: `pending_yield_` 字段级 `std::mutex yield_mutex_` (Oracle Risk 10); TSan 验证 cross-thread resume 无 data race
+9. 编写 `tests/test_yield_node.cpp` (≥8 test case, 含 ASan/TSan) + `examples/phase5_yield_token_generator/` (master plan §四 ship gate 要求)
 
 ### 5.4 推理标准库 7 子图 (并行车道)
 
