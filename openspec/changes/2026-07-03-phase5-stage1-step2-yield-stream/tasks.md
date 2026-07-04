@@ -72,7 +72,7 @@
 - [x] 6a.1 `src/modules/executor/yield_stream_bridge.h` 新建 — `class YieldStreamBridge { pull_single(), pull_loop() }`
 - [x] 6a.2 `src/modules/executor/yield_stream_bridge.cpp` 实现 pull_single (NEXT) + pull_loop (CONTINUE)
 - [x] 6a.3 `pull_loop()` 接受 `std::function<bool()> budget_checker` callback (Oracle Risk 11 每 token 检查)
-- [ ] 6a.4 集成到 `execute_yield()` — NEXT 调 pull_single, CONTINUE 调 pull_loop
+- [x] 6a.4 集成到 `execute_yield()` — NEXT 调 pull_single, CONTINUE 调 pull_loop
 
 ## 6b. cross-thread YIELD safety (Oracle Risk 10 mitigation)
 
