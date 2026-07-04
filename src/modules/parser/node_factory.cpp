@@ -256,6 +256,35 @@ std::unique_ptr<Node> make_assert(const NodePath& path, const nlohmann::json& j)
   return node;
 }
 
+// C12 Phase 5 Stage 1 Step 2 §2: YieldNode factory
+// 解析 type:yield 节点 + yield_value/mode/stop_path 字段
+// OpenSpec change 2026-07-03-phase5-stage1-step2-yield-stream §2
+YieldMode parse_yield_mode(const std::string& s, const NodePath& path) {
+  std::string lower = s;
+  for (auto& c : lower) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  if (lower == "next") return YieldMode::NEXT;
+  if (lower == "continue") return YieldMode::CONTINUE;
+  if (lower == "stop") return YieldMode::STOP;
+  throw std::runtime_error("YieldNode '" + path + "': invalid mode '" + s +
+                           "', expected next|continue|stop");
+}
+
+std::unique_ptr<Node> make_yield(const NodePath& path, const nlohmann::json& j) {
+  auto ctx = parse_context(j);
+  std::string yield_value = j.value("yield_value", std::string{});
+  YieldMode mode = YieldMode::NEXT;
+  if (j.contains("mode") && j["mode"].is_string()) {
+    mode = parse_yield_mode(j["mode"].get<std::string>(), path);
+  }
+  NodePath stop_path = j.value("stop_path", std::string{});
+  auto node = std::make_unique<YieldNode>(path, std::move(ctx.next_paths),
+                                          std::move(ctx.metadata), ctx.signature,
+                                          std::move(ctx.permissions),
+                                          std::move(yield_value), mode,
+                                          std::move(stop_path));
+  return node;
+}
+
 }  // namespace
 
 void NodeFactoryRegistry::register_factory(const std::string& type_name, Factory factory) {
@@ -298,6 +327,7 @@ NodeFactoryRegistry& NodeFactoryRegistry::global() {
     r->register_factory("join", make_join);
     r->register_factory("generate_subgraph", make_generate_subgraph);
     r->register_factory("assert", make_assert);
+    r->register_factory("yield", make_yield);
     return r;
   }();
   return *instance;

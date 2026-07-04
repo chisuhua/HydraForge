@@ -378,13 +378,15 @@ next: ["/main/end"]
 // Sprint 7 Day 4: NodeFactoryRegistry 测试补齐 (spec parser-test-coverage)
 // =====================================================================
 
-// Test 13: NodeFactoryRegistry 注册 11 个 NodeType (修正 spec 13→11)
+// Test 13: NodeFactoryRegistry 注册 12 个 NodeType (C12: 11→12, 新增 yield)
 TEST_CASE("factory_registry_registers_all_types", "[parser][day4]") {
     auto& registry = agenticdsl::NodeFactoryRegistry::global();
     // Sprint 6 实际注册 11 个 factory (start, end, assign, dsl_call, llm_call,
     // tool_call, resource, fork, join, generate_subgraph, assert), 与旧 if-else
     // 11 分支一一对应, 零类型丢失. spec 写 13 是笔误, Day 4 修正.
-    REQUIRE(registry.size() == 11);
+    // C12 Phase 5 Stage 1 Step 2: 新增 yield factory, 总数 11→12
+    // OpenSpec change 2026-07-03-phase5-stage1-step2-yield-stream
+    REQUIRE(registry.size() == 12);
 }
 
 // Test 14: create() 返回正确子类型 (type 检查)
