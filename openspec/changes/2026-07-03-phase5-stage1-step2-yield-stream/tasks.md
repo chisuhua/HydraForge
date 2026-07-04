@@ -120,11 +120,11 @@
 
 ## 9. 同步与归档
 
-- [x] 9.1 提交 (4 commits ahead of origin/main, +132 LOC main: af6da4d + 00eda38 + d81e675 + a2fd8a5)
-- [ ] 9.2 `git push origin main` — 待用户确认后执行
-- [ ] 9.3 `openspec archive 2026-07-03-phase5-stage1-step2-yield-stream` — 待用户确认后执行
-- [ ] 9.4 写 §十一 调整日志到 master plan — 待 9.3 后执行
-- [ ] 9.5 更新 master plan §四 C12 行状态 — 待 9.3 后执行
+- [x] 9.1 提交 (6 commits ahead of origin/main: af6da4d + 00eda38 + d81e675 + a2fd8a5 + 2b7c9e4 + 85083b4)
+- [x] 9.2 `git push origin main` — 推送完成
+- [x] 9.3 `openspec archive 2026-07-03-phase5-stage1-step2-yield-stream` — archive 完成
+- [x] 9.4 写 §十一 调整日志到 master plan (commit 85083b4)
+- [x] 9.5 更新 master plan §四 C12 行状态 (commit 85083b4)
 
 ---
 
