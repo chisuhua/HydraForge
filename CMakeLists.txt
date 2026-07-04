@@ -170,6 +170,9 @@ if(AGENTICDSL_BUILD_EXAMPLES)
     # --- Phase 1 Sprint 0 Plugin Stub examples (K1 决策) ---
     add_subdirectory(examples/phase1_model_router_plugin)
     add_subdirectory(examples/phase1_plugin_demo)
+
+    # --- Phase 5 YIELD/STREAM token generator (C12) ---
+    add_subdirectory(examples/phase5_yield_token_generator)
 endif()
 
 # Create alias for tests
