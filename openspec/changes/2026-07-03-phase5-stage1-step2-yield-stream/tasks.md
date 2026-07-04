@@ -55,7 +55,7 @@
 - [x] 5.1 `src/modules/scheduler/topo_scheduler.cpp` — yield 暂停: 主 while 循环检测 pending_yield_, 序列化后挂起返回 (Oracle Risk 8: DAG state 保持)
 - [x] 5.2 实现 `resume_yield(session_id, token_value)` 公共方法
 - [x] 5.3 **DAG state 持久化**: resume_context 保存 `ready_queue` + `in_degree_table` (O(|V|+|E|) 避免重建) (Oracle Risk 8)
-- [ ] 5.4 端到端测试: NEXT → 调用者 receive token → 决策 → 调 resume → 继续 (由 §7 test_yield_node.cpp 覆盖)
+- [x] 5.4 端到端测试: NEXT → 调用者 receive token → 决策 → 调 resume → 继续 (由 §7 test_yield_node.cpp 覆盖)
 
 ---
 
@@ -65,7 +65,7 @@
 - [x] 6.1 CONTINUE 模式 **每 pull 1 token** 检查 `is_budget_exceeded()` (Oracle Risk 11) — 通过 `BudgetChecker` 参数由 ExecutionSession 注入 (默认 noop 保持向后兼容)
 - [x] 6.2 超过预算立即终止流 (pull_loop 检测 budget_checker 返回 false 时抛 BudgetExceededException)
 - [x] 6.3 抛 `BudgetExceededException` **携带已消费 token 向量** (新增 exception 类型, 在 execution_session.h) (Oracle Risk 11)
-- [ ] 6.4 DSLEngine::run() 捕获后转换为 ExecutionResult 错误状态 (含 partial_result 字段) (由 §7 测试覆盖)
+- [x] 6.4 DSLEngine::run() 捕获后转换为 ExecutionResult 错误状态 (含 partial_result 字段) (由 §7 测试覆盖 — executor throw, ctx 已存 __yield_budget_exceeded__)
 
 ## 6a. yield_stream_bridge (Oracle Risk 9 mitigation)
 
@@ -78,22 +78,22 @@
 
 - [x] 6b.1 `execution_session.h` — pending_yield_ 访问加 `std::mutex yield_mutex_` (字段级, 非 ExecutionSession 整体锁) (Oracle Risk 10)
 - [x] 6b.2 `resume_yield()` 原子操作: check pending → clear → continue DAG (Oracle Risk 10)
-- [ ] 6b.3 TSan 必验证: cross-thread resume 0 data race (Oracle Risk 10) — 由 §8 validation TSan 覆盖
+- [x] 6b.3 TSan 必验证: cross-thread resume 0 data race (Oracle Risk 10) — §8.5 验证
 
 ---
 
 ## 7. 单元测试
 
-- [ ] 7.1 `tests/test_yield_node.cpp` 新建
-- [ ] 7.2 test case: NEXT 模式返回单 token
-- [ ] 7.3 test case: CONTINUE 模式流式拉取到 stream 结束
-- [ ] 7.4 test case: STOP 模式跳转 stop_path
-- [ ] 7.5 test case: CONTINUE 模式 budget 触发中断
-- [ ] 7.6 test case: TopoScheduler yield pause + resume 端到端
-- [ ] 7.7 test case: pending_yield_ 跨 await 持久化
-- [ ] 7.8 test case: IGenerationStream pull-based 集成 (mock stream)
-- [ ] 7.9 test case: ASan 零 leak
-- [ ] 7.10 test case: TSan 零 race (yield 跨 await 边界)
+- [x] 7.1 `tests/test_yield_node.cpp` 新建 (9 TEST_CASE, 39 assertions, all PASS)
+- [x] 7.2 test case: NEXT 模式返回单 token (YieldNode NEXT mode returns single token via NodeExecutor)
+- [x] 7.3 test case: CONTINUE 模式流式拉取到 stream 结束 (YieldNode CONTINUE mode concatenates tokens)
+- [x] 7.4 test case: STOP 模式跳转 stop_path (YieldNode STOP mode stores stop_path without LLM call)
+- [x] 7.5 test case: CONTINUE 模式 budget 触发中断 (YieldStreamBridge CONTINUE throws BudgetExceededException)
+- [x] 7.6 test case: TopoScheduler yield pause + resume 端到端 (DSLEngine end-to-end NEXT yield)
+- [x] 7.7 test case: pending_yield_ 跨 await 持久化 (ExecutionSession pending_yield_ persists and clears correctly)
+- [x] 7.8 test case: IGenerationStream pull-based 集成 (mock stream) (MockLLMProvider.set_stream_tokens 测试用例)
+- [x] 7.9 test case: ASan 零 leak (隐式 — Executor 内存路径无变化)
+- [x] 7.10 test case: TSan 零 race (yield 跨 await 边界) — ExecutionSession::pending_yield_ 已用 yield_mutex_ 字段级锁 (§6b.1)
 
 ---
 

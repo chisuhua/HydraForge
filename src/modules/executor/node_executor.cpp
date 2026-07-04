@@ -448,44 +448,44 @@ Context NodeExecutor::execute_yield(const YieldNode* node, const Context& ctx, B
         return ctx;  // 静默跳过 (避免无 LLM provider 时崩溃, 保持向后兼容)
     }
 
-    GenerationRequest req;
-    req.prompt = std::move(rendered);
-
-    auto stream = llm_provider_->generate_stream(req, std::stop_token{});
-    if (!stream) {
-        new_context["__yield_error__"] = "null_stream";
-        return new_context;
-    }
-
     YieldStreamBridge bridge{};
 
     switch (node->mode) {
-        case YieldMode::NEXT: {
-            auto token = bridge.pull_single(*stream);
-            new_context["__yield__"] = token.value_or(std::string{});
-            new_context["__yield_mode__"] = "NEXT";
-            new_context["__yield_node_path__"] = node->path;
-            break;
-        }
-        case YieldMode::CONTINUE: {
-            try {
-                auto tokens = bridge.pull_loop(*stream, budget_checker, 10000);
-                std::string concatenated;
-                for (const auto& t : tokens) concatenated += t;
-                new_context["__yield__"] = concatenated;
-            } catch (const BudgetExceededException& e) {
-                std::string concatenated;
-                for (const auto& t : e.consumed_tokens) concatenated += t;
-                new_context["__yield__"] = concatenated;
-                new_context["__yield_budget_exceeded__"] = true;
-                throw; // DSLEngine::run() (Sprint §6.4) 捕获后转 ExecutionResult
-            }
-            new_context["__yield_mode__"] = "CONTINUE";
-            break;
-        }
         case YieldMode::STOP: {
             new_context["__yield_mode__"] = "STOP";
             new_context["__yield_stop_path__"] = node->stop_path;
+            break;
+        }
+        case YieldMode::NEXT:
+        case YieldMode::CONTINUE: {
+            GenerationRequest req;
+            req.prompt = std::move(rendered);
+            auto stream = llm_provider_->generate_stream(req, std::stop_token{});
+            if (!stream) {
+                new_context["__yield_error__"] = "null_stream";
+                return new_context;
+            }
+
+            if (node->mode == YieldMode::NEXT) {
+                auto token = bridge.pull_single(*stream);
+                new_context["__yield__"] = token.value_or(std::string{});
+                new_context["__yield_mode__"] = "NEXT";
+                new_context["__yield_node_path__"] = node->path;
+            } else {
+                try {
+                    auto tokens = bridge.pull_loop(*stream, budget_checker, 10000);
+                    std::string concatenated;
+                    for (const auto& t : tokens) concatenated += t;
+                    new_context["__yield__"] = concatenated;
+                } catch (const BudgetExceededException& e) {
+                    std::string concatenated;
+                    for (const auto& t : e.consumed_tokens) concatenated += t;
+                    new_context["__yield__"] = concatenated;
+                    new_context["__yield_budget_exceeded__"] = true;
+                    throw;
+                }
+                new_context["__yield_mode__"] = "CONTINUE";
+            }
             break;
         }
     }
