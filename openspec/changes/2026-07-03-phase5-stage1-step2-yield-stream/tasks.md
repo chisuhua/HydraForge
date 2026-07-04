@@ -1,12 +1,12 @@
 # Tasks: Phase 5 Stage 1 Step 2 — YIELD/STREAM Node (C12)
 
-> **STATUS: PLACEHOLDER** ⚠️
+> **STATUS: ACTIVE** 🟡 (Oracle 深度审查完成 2026-07-03)
 > **关联 proposal**: `proposal.md`
 > **关联 spec**: `specs/yield-stream/spec.md`
 > **关联 master plan**: `docs/superpowers/plans/2026-07-03-phase5-self-bootstrapping.md` §十六.3
 > **前置依赖**: C10 ✅ + C11 ✅
-> **估时**: 2.5-3 天
-> **最后更新**: 2026-07-03
+> **估时**: 3.5-4.5 天 (Oracle 审查后调整: +2.7d for 5 risk mitigations)
+> **最后更新**: 2026-07-03 (Oracle 深度审查 session `ses_0d5985f3effeS1npyEV6SYk2RW`)
 
 ---
 
@@ -16,6 +16,7 @@
 - [ ] 1.2 `src/core/types/node.h` — 定义 `enum class YieldMode { NEXT, CONTINUE, STOP }`
 - [ ] 1.3 `src/core/types/node.h` — 定义 `struct YieldNode { yield_value, mode, stop_path }`
 - [ ] 1.4 Node 联合体加 `YieldNode yield_data`
+- [ ] 1.5 audit 全库 grep `switch.*NodeType` 站点, 确保 YIELD case 全覆盖 (Oracle Risk 12: exhaust switch)
 
 ---
 
@@ -32,8 +33,10 @@
 - [ ] 3.1 `src/modules/executor/node_executor.h` — 声明 `execute_yield(LayeredContext&, YieldNode&)`
 - [ ] 3.2 `src/modules/executor/node_executor.cpp` — 渲染 yield_value 模板
 - [ ] 3.3 实现 NEXT 模式: 包装 ToolResult + 设置 pending_yield_
-- [ ] 3.4 实现 CONTINUE 模式: 循环 pull IGenerationStream, 每 N tokens 检查 budget
-- [ ] 3.5 实现 STOP 模式: 终止流, 跳到 stop_path
+- [ ] 3.4 实现 CONTINUE 模式: 循环 pull IGenerationStream, **每 1 token** 检查 budget (Oracle Risk 11)
+- [ ] 3.5 实现 STOP 模式: 终止流, 跳到 stop_path (Oracle Q2: stop_path 为已定义后续节点)
+- [ ] 3.6 `src/modules/executor/yield_stream_bridge.h/cpp` 新建 — YieldStreamBridge 封装 pull→context (Oracle Risk 9)
+- [ ] 3.7 CONTINUE 模式 BudgetExceededException **携带已消费 token 片段** (非空结果丢弃) (Oracle Risk 11)
 
 ---
 
@@ -45,21 +48,35 @@
 
 ---
 
-## 5. TopoScheduler yield pause/resume
+## 5. TopoScheduler yield pause/resume (Oracle Risk 8 mitigation)
 
-- [ ] 5.1 `src/modules/scheduler/topo_scheduler.cpp` — yield 暂停: 跳出主 while 循环
+- [ ] 5.0 `src/modules/scheduler/topo_scheduler.h` — 新增 `SchedulerState` 枚举 (Oracle Risk 8: state machine)
+- [ ] 5.1 `src/modules/scheduler/topo_scheduler.cpp` — yield 暂停: **不跳出主 while 循环**, 循环内检测 pending_yield_ 后挂起 (Oracle Risk 8: DAG state 保持)
 - [ ] 5.2 实现 `resume_yield(session_id, token_value)` 公共方法
-- [ ] 5.3 resume 时从 pending_yield_.resume_context 恢复
+- [ ] 5.3 **DAG state 持久化**: resume_context 保存 `ready_queue` + `in_degree_table` (O(|V|+|E|) 避免重建) (Oracle Risk 8)
 - [ ] 5.4 端到端测试: NEXT → 调用者 receive token → 决策 → 调 resume → 继续
 
 ---
 
-## 6. Budget 集成 (Oracle 风险 mitigation)
+## 6. Budget 集成 (Oracle Risk 11 mitigation)
 
-- [ ] 6.1 CONTINUE 模式每 pull 10 tokens 检查 `is_budget_exceeded()` (可配置 N)
+- [ ] 6.1 CONTINUE 模式 **每 pull 1 token** 检查 `is_budget_exceeded()` (可配置, 默认 1) (Oracle Risk 11)
 - [ ] 6.2 超过预算立即终止流
-- [ ] 6.3 抛 `BudgetExceededException` (新增 exception 类型, 在 execution_session.h)
-- [ ] 6.4 DSLEngine::run() 捕获后转换为 ExecutionResult 错误状态
+- [ ] 6.3 抛 `BudgetExceededException` **携带已消费 token 向量** (新增 exception 类型, 在 execution_session.h) (Oracle Risk 11)
+- [ ] 6.4 DSLEngine::run() 捕获后转换为 ExecutionResult 错误状态 (含 partial_result 字段)
+
+## 6a. yield_stream_bridge (Oracle Risk 9 mitigation)
+
+- [ ] 6a.1 `src/modules/executor/yield_stream_bridge.h` 新建 — `class YieldStreamBridge { pull_single(), pull_loop() }`
+- [ ] 6a.2 `src/modules/executor/yield_stream_bridge.cpp` 实现 pull_single (NEXT) + pull_loop (CONTINUE)
+- [ ] 6a.3 `pull_loop()` 接受 `std::function<bool()> budget_checker` callback (Oracle Risk 11 每 token 检查)
+- [ ] 6a.4 集成到 `execute_yield()` — NEXT 调 pull_single, CONTINUE 调 pull_loop
+
+## 6b. cross-thread YIELD safety (Oracle Risk 10 mitigation)
+
+- [ ] 6b.1 `execution_session.h` — pending_yield_ 访问加 `std::mutex yield_mutex_` (字段级, 非 ExecutionSession 整体锁) (Oracle Risk 10)
+- [ ] 6b.2 `resume_yield()` 原子操作: check pending → clear → continue DAG (Oracle Risk 10)
+- [ ] 6b.3 TSan 必验证: cross-thread resume 0 data race (Oracle Risk 10)
 
 ---
 

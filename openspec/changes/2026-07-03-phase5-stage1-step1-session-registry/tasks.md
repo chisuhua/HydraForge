@@ -1,21 +1,32 @@
 # Tasks: Phase 5 Stage 1 Step 1 — Session Registry + Session Vars (C11)
 
-> **STATUS: PLACEHOLDER** ⚠️
+> **STATUS: ACTIVE** 🟡 (Oracle 深度审查完成 2026-07-03)
 > **关联 proposal**: `proposal.md`
 > **关联 spec**: `specs/session-registry/spec.md`
 > **关联 master plan**: `docs/superpowers/plans/2026-07-03-phase5-self-bootstrapping.md` §十六.2
 > **前置依赖**: C10 ✅
-> **估时**: 2-3 天
-> **最后更新**: 2026-07-03
+> **估时**: 2.5-3.5 天 (Oracle 审查后调整: +1.5d for 7 risk mitigations)
+> **最后更新**: 2026-07-03 (Oracle 深度审查 session `ses_0d5985f3effeS1npyEV6SYk2RW`)
 
 ---
 
 ## 1. SessionRegistry 类实现
 
-- [ ] 1.1 `src/modules/scheduler/session_registry.h` 新建 — 类定义 + 4 公开方法
-- [ ] 1.2 `src/modules/scheduler/session_registry.cpp` 新建 — 4 方法实现
-- [ ] 1.3 线程安全: `std::mutex mutex_` 保护 `unordered_map`
+- [ ] 1.0 `include/agenticdsl/types/session_config.h` 新建 — SessionConfig 结构 (Oracle Risk 7)
+- [ ] 1.1 `src/modules/scheduler/session_registry.h` 新建 — 类定义 + 5 公开方法 (含 is_in_flight)
+- [ ] 1.2 `src/modules/scheduler/session_registry.cpp` 新建 — 5 方法实现
+- [ ] 1.3 线程安全: `std::shared_mutex mutex_` 保护 `unordered_map` (Oracle Risk 4: shared_mutex 读共享/写独占, 与 ToolRegistry 一致)
 - [ ] 1.4 析构安全: 析构时逐个清理 unique_ptr<UserSession>
+- [ ] 1.5 `include/agenticdsl/types/session_registry_fwd.h` 新建 — `class SessionRegistry;` 前向声明 (Oracle Risk 5: ADR-0019 §1.4 前向声明策略)
+
+---
+
+## 1a. Oracle Risk Mitigation — 并发安全
+
+- [ ] 1a.1 `session_registry.cpp` — `is_in_flight(id)` 方法: 检查 UserSession 是否有 running TaskSession (Oracle Risk 1)
+- [ ] 1a.2 `session_registry.cpp` — `destroy_session()` 先调 is_in_flight, 若 running 等待 (timeout 5s) 或拒绝 (Oracle Risk 1)
+- [ ] 1a.3 `session.h` — UserSession + TaskSession 添加显式析构函数, 遍历清理 SubtaskSession + module_states_ (Oracle Risk 6)
+- [ ] 1a.4 `session.h` — 验证 `std::shared_ptr<IExecutionPolicy>` 无循环引用 (Oracle Risk 6 析构链完整性)
 
 ---
 
@@ -36,12 +47,14 @@
 
 ---
 
-## 4. 4 个 Session 工具注册
+## 4. 4 个 Session 工具注册 (Oracle Risk 3 mitigation)
 
-- [ ] 4.1 `src/common/tools/registry.cpp` — 注册 `session.create` 工具
-- [ ] 4.2 `src/common/tools/registry.cpp` — 注册 `session.destroy` 工具 (含 cleanup 验证)
-- [ ] 4.3 `src/common/tools/registry.cpp` — 注册 `session.set_var` 工具
-- [ ] 4.4 `src/common/tools/registry.cpp` — 注册 `session.get_var` 工具
+- [ ] 4.1 `src/common/tools/registry.cpp` — 注册 `session.create` (category=standard, PlanPolicy 需审批)
+- [ ] 4.2 `src/common/tools/registry.cpp` — 注册 `session.destroy` (**category=dangerous, approval=force_approval_always**, 任何 Policy 下都需审批)
+- [ ] 4.3 `src/common/tools/registry.cpp` — 注册 `session.set_var` (category=standard)
+- [ ] 4.4 `src/common/tools/registry.cpp` — 注册 `session.get_var` (category=readonly)
+- [ ] 4.5 4 工具全部使用 C6 DECLARE_TOOL 4 参数宏 (name, desc, category, approval_policy) — 强制 ToolMetadata V2
+- [ ] 4.6 4 工具接入 ToolCoordinator audit log (tool.audit.{invoked,completed,denied}) — C4 ship 模式
 
 ---
 
@@ -53,8 +66,12 @@
 - [ ] 5.4 test case: 4 工具通过 DSL tool_call 可调用
 - [ ] 5.5 test case: session_vars per-run 隔离 (不同 run 互不影响)
 - [ ] 5.6 test case: SessionRegistry 多线程 100x 并发 create/destroy (TSan 验证)
-- [ ] 5.7 test case: Session 销毁后 0 ASan leak
+- [ ] 5.6a test case: 并发 destroy+run 竞态 — 1 worker 执行 TaskSession 时主线程 destroy (Oracle Risk 1, P0)
+- [ ] 5.6b test case: 死锁检测 — mutex 顺序验证 (Oracle Risk 4 shared_mutex 升级)
+- [ ] 5.7 test case: Session 销毁后 0 ASan leak (Oracle Risk 6: 析构链完整)
 - [ ] 5.8 test case: SessionRegistry 与 ToolRegistry 对称模式验证
+- [ ] 5.9 test case: 4 session.* 工具 audit log 事件验证 (Oracle Risk 3)
+- [ ] 5.10 test case: session_vars_ 命名空间前缀隔离 (`/session/` vs `/module/`) (Oracle Risk 2)
 
 ---
 

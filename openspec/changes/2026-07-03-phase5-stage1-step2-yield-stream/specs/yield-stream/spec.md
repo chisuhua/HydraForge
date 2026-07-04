@@ -101,6 +101,39 @@ TopoScheduler MUST 支持从 `pending_yield_` 恢复执行。
 - **AND** "next_token_value" 注入到 LayeredContext (按 resume_context 指定路径)
 - **AND** 继续执行后续节点
 
-## 备注
+## 备注 (Oracle 深度审查 2026-07-03)
 
-本 change 不修改 ADR-0030 V2 异步运行时设计。IGenerationStream pull-based + YieldNode consume 是正交关系, YIELD 节点内部 bridge IGenerationStream 拉取 token (不引入 StreamSink 抽象, Stage 3 远期)。IInteractionBus 不作为 YIELD 推送通道 (后者是 event broker, 适合 tool.audit, 不适合 token 高频流)。
+本 change 不修改 ADR-0030 V2 异步运行时设计。IGenerationStream pull-based + YieldNode consume 是正交关系, YIELD 节点内部 bridge IGenerationStream 拉取 token (YieldStreamBridge 辅助类, Oracle Risk 9 mitigation)。IInteractionBus 不作为 YIELD 推送通道 (后者是 event broker 不适合 token 高频流)。
+
+### Requirement: oracle-r8-resume-dag-state-persisted (P0)
+
+`resume_yield()` MUST 从持久化的 DAG state 恢复 (不重建)。
+
+#### Scenario: DAG state 持久化
+
+- **WHEN** YIELD NEXT 暂停执行, TopoScheduler 进入 YIELDED 状态
+- **THEN** resume_context 保存 `ready_queue` + `in_degree_table`
+- **AND** `resume_yield()` 恢复就绪队列与入度表 (不重新计算)
+- **AND** 恢复后 DAG 继续执行正确的后续节点
+
+### Requirement: oracle-r11-budget-per-token (P1)
+
+CONTINUE MUST 每 pull 1 token 检查 budget (默认 N=1, 可配置)。
+
+#### Scenario: token 级 budget 检查
+
+- **WHEN** CONTINUE 模式已 pull 50 tokens, 第 51 次 pull 前 `is_budget_exceeded()` 返回 true
+- **THEN** 立即终止流 (不等到下一个 batch)
+- **AND** `BudgetExceededException` 携带 `consumed_tokens: [token1, token2, ..., token50]`
+- **AND** DSLEngine 转换为 ExecutionResult{status=failed, partial_result=<已消费 tokens>}
+
+### Requirement: oracle-r10-cross-thread-yield-safe (P1)
+
+`pending_yield_` 访问 MUST 跨线程安全。
+
+#### Scenario: 跨 worker thread resume
+
+- **WHEN** YIELD NEXT 在 Worker A 设置 pending_yield_
+- **AND** Worker B 调用 `resume_yield()` 从 pending_yield_ 恢复
+- **THEN** `resume_yield()` 原子操作 (check → clear → continue)
+- **AND** TSan 0 data race

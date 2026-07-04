@@ -1,6 +1,7 @@
 # Proposal: Phase 5 Stage 1 Step 2 — YIELD/STREAM Node (C12)
 
-> **STATUS: PLACEHOLDER** ⚠️
+> **STATUS: ACTIVE** 🟡 (Oracle 深度审查完成 2026-07-03, session `ses_0d5985f3effeS1npyEV6SYk2RW`) — ready for implementation
+> **Oracle 审查结果**: 5 个风险已识别 (2 P0 + 2 P1 + 1 P2), 详见 §Risks
 > **关联 Oracle 决议**: Q3 — Option A (单 YieldNode + mode 枚举)
 > **关联 master plan**: `docs/superpowers/plans/2026-07-03-phase5-self-bootstrapping.md` §十六.3
 > **关联 IP-001**: `docs/proposals/implementation-roadmap/01-roadmap.md` §Step 2
@@ -53,16 +54,32 @@ Phase 5 自举服务化需要支持 token-by-token 流式生成 (BOOT-001 阶段
   - 加 `std::optional<YieldState> pending_yield_` 字段
   - `YieldState` 结构: `module_path` + `resume_context` (json)
 
-### 4. TopoScheduler yield 暂停逻辑
+### 4. TopoScheduler yield pause/resume (Oracle Risk 8 mitigation — DAG state 持久化)
 
-- `src/modules/scheduler/topo_scheduler.cpp`:
-  - yield 暂停: 跳出主 while 循环, 返回给 DSLEngine::run() 调用者
+- `src/modules/scheduler/topo_scheduler.h/cpp`:
+  - 新增 `enum class SchedulerState { RUNNING, YIELDED, COMPLETED, FAILED }` (Oracle Risk 8)
+  - yield 暂停: **不跳出主 while 循环**, 改为在循环内检测 `pending_yield_` 后挂起 (保持 DAG state)
   - resume 回调: 外部调用 `topo_scheduler.resume_yield(session_id, token_value)` 继续执行
+  - **DAG state 持久化**: resume_context 保存 `ready_queue` + `in_degree_table` + `running_nodes` (O(|V|+|E|) 避免重建)
 
-### 5. Budget 集成 (Oracle 风险 mitigation)
+### 5. Budget 集成 (Oracle Risk 11 mitigation — 每 token 检查)
 
-- YIELD CONTINUE 模式每 pull N tokens 检查 `is_budget_exceeded()`
-- 超过则立即终止流, 抛 BudgetExceededException
+- YIELD CONTINUE 模式 **每 pull 1 token** 检查 `is_budget_exceeded()` (非每 N tokens, Oracle Risk 11)
+- 超过则立即终止流, 抛 `BudgetExceededException` **携带已消费 token 片段** (非空结果丢弃)
+
+### 6. yield_stream_bridge 桥接 (Oracle Risk 9 mitigation)
+
+- `src/modules/executor/yield_stream_bridge.h/cpp` 新建:
+  - 封装 `IGenerationStream::pull_next()` → `YieldState` 映射
+  - `pull_single()` 用于 NEXT 模式
+  - `pull_loop(budget_checker, max_iter)` 用于 CONTINUE 模式
+- **不**用 IInteractionBus 作为推送通道 (保持 ADR-0030 V2 决策)
+
+### 7. 跨线程 YIELD 安全 (Oracle Risk 10 mitigation)
+
+- `ExecutionSession.pending_yield_` 访问加 `std::mutex yield_mutex_` (字段级别)
+- `resume_yield()` 原子操作: 检查 → 清除 pending_yield_ → 继续 DAG
+- TSan 必验证 cross-thread resume 无 data race
 
 ## What Does NOT Change
 
@@ -94,7 +111,25 @@ Phase 5 自举服务化需要支持 token-by-token 流式生成 (BOOT-001 阶段
 
 **API 兼容性**: 零 breaking change (NodeType 增量, Node 子类仅新增)
 
-**估时**: 2.5-3 天 (Oracle 决议后从 2-3 天略增, IGenerationStream bridge 适配 +0.5 天)
+**估时**: 3.5-4.5 天 (Oracle 深度审查后从 2.5-3 天调整: +1.5d DAG state + +0.5d stream bridge + +0.3d budget per-token + +0.2d cross-thread + +0.2d exhaust switch)
+
+## Risks (Oracle 深度审查 2026-07-03, session `ses_0d5985f3effeS1npyEV6SYk2RW`)
+
+| # | Risk | Severitya | Mitigation | Effort |
+|---|---|---|:---:|---|:---:|
+| 8 | TopoScheduler DAG state 在 YIELD pause 期间丢失 (topo_scheduler.cpp 跳出循环后 finalize() 清理) | **P0** | §4 DAG state 持久化 (保存 ready_queue + in_degree + running_nodes) | +1.5d |
+| 9 | IGenerationStream pull-based 到 YIELD 桥接缺失 | **P0** | §6 YieldStreamBridge 辅助类封装 pull→context | +0.5d |
+| 11 | Budget 与 CONTINUE 循环超预算检测延迟 (每 N tokens 才检查) | P1 | §5 每 pull 1 token 检查 budget + 异常携带已消费 token | +0.3d |
+| 10 | pending_yield_ 跨 await 线程安全 (DomainWorkerPool 多 worker) | P1 | §7 yield_mutex_ 字段级 + TSan verify | +0.2d |
+| 12 | NodeType::YIELD 新增导致 exhaust switch 编译错误 | P2 | tasks.md §1.5 grep 全库 switch (NodeType) 审计 | +0.2d |
+
+**Effort Delta**: +2.7 天 (vs 原始 2.5-3 天估时)
+
+## user decision resolved (Oracle Q1-Q4)
+
+- Q2: STOP stop_path 跳转目标为**已定义后续节点** (DAG 连续性保证, 非任意节点)
+- Q3: resume_yield 调用者为**异步回调** (通过 IInteractionBus 订阅 yield token, TUI/AI 消费)
+- Q4: ToolCoordinator audit 集成 — yield.* 事件也走 tool.audit 通道 (tool.audit.yield.{started,completed,cancelled})
 
 ## Non-goals
 

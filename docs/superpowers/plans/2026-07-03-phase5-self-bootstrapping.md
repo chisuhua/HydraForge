@@ -569,6 +569,9 @@ C14 启动前必须满足:
 
 | 日期 | 占位 Change | 调整原因 | 调整内容 | 状态 |
 |------|------------|---------|---------|------|
+| 2026-07-03 | C11 `phase5-stage1-step1-session-registry` | Oracle 深度审查 (session `ses_0d5985f3effeS1npyEV6SYk2RW`) — 7 个风险 (3 P0 + 3 P1 + 1 P2): (P0) destroy+run 竞态 (Use-After-Free)/工具安全模型缺失/析构链不完整; (P1) shared_mutex 升级/SessionVar 命名空间/ADR-0019 include 验证 | C11 proposal.md + tasks.md + spec.md 全面更新: §1 SessionConfig + SessionRegistry 5 方法 + shared_mutex + fwd 前向声明; §1a 并发安全 (is_in_flight + 析构链); §4 工具安全 (category/approval + ToolCoordinator audit); §5 destroy 竞态保护. 估时 2-3→2.5-3.5 天 (+1.5d) | ✅ resolved (2026-07-03) — 文档已更新 |
+| 2026-07-03 | C12 `phase5-stage1-step2-yield-stream` | Oracle 深度审查 (session `ses_0d5985f3effeS1npyEV6SYk2RW`) — 5 个风险 (2 P0 + 2 P1 + 1 P2): (P0) TopoScheduler DAG state 丢失/IGenerationStream 桥接缺失; (P1) Budget 每 token 检查/cross-thread 安全; (P2) NodeType exhaust switch | C12 proposal.md + tasks.md + spec.md 全面更新: §4 TopoScheduler state machine + DAG state 持久化; §6 YieldStreamBridge 辅助类; §5 Budget 每 1 token 检查 + 异常携带已消费 token; §6b yield_mutex_ + atomic resume; §1.5 grep 全库 switch(NodeType). 估时 2.5-3→3.5-4.5 天 (+2.7d) | ✅ resolved (2026-07-03) — 文档已更新 |
+| 2026-07-03 | C11+C12 联合 | Oracle Q1-Q4 4 个决策问题 resolved: (Q1) SessionRegistry 成员模式 confirmed (P0 risk §11.3 line 578 resolved); (Q2) stop_path 为已定义后续节点; (Q3) resume_yield 异步回调 (IInteractionBus); (Q4) 工具安全级别在 C11/C12 ship gate 验证后追加 ADR-0031 | proposal.md C11/C12 均已追加 `## user decision resolved (Oracle Q1-Q4)` 章节 | ✅ resolved (2026-07-03) — Q1-Q4 全部 confirmed |
 
 ### 11.3 预期可能的调整 (基于当前占位假设)
 

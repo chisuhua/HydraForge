@@ -1,6 +1,7 @@
 # Proposal: Phase 5 Stage 1 Step 1 — Session Registry + Session Vars (C11)
 
-> **STATUS: PLACEHOLDER** ⚠️
+> **STATUS: ACTIVE** 🟡 (Oracle 深度审查完成 2026-07-03, session `ses_0d5985f3effeS1npyEV6SYk2RW`) — ready for implementation
+> **Oracle 审查结果**: 7 个风险已识别 (3 P0 + 3 P1 + 1 P2), 详见 §Risks
 > **关联 Oracle 决议**: Q2 — Option A (SessionRegistry 是 Session 之外的注册表)
 > **关联 master plan**: `docs/superpowers/plans/2026-07-03-phase5-self-bootstrapping.md` §十六.2
 > **关联 IP-001**: `docs/proposals/implementation-roadmap/01-roadmap.md` §Step 1
@@ -31,12 +32,30 @@ Phase 5 自举需要支持多用户/多会话隔离。当前 ADR-0033 (C5 ship) 
       void destroy_session(const std::string& id);
       UserSession& get_session(const std::string& id);
       std::vector<std::string> list_sessions() const;
+      bool is_in_flight(const std::string& id) const;  // Oracle Risk 1 mitigation
   private:
       std::unordered_map<std::string, std::unique_ptr<UserSession>> sessions_;
-      std::mutex mutex_;
+      std::shared_mutex mutex_;  // Oracle Risk 4: shared_mutex (读多写少)
   };
   ```
-- 线程安全 (与 ToolRegistry 一致)
+- **Oracle Risk 4 mitigation**: 采用 `std::shared_mutex` 代替 `std::mutex`, 与 ToolRegistry 读多写少模式一致
+
+### 1.1 SessionConfig 设计 (Oracle Risk 7 mitigation)
+
+- `include/agenticdsl/types/session_config.h` 新建:
+  ```cpp
+  struct SessionConfig {
+      std::string name;
+      uint32_t max_concurrent_tasks = 4;
+      uint32_t timeout_ms = 30000;
+      PolicyMode policy_mode = PolicyMode::Agent;
+  };
+  ```
+
+### 1.2 ADR-0019 §1.4 前向声明策略 (Oracle Risk 5 mitigation)
+
+- `include/agenticdsl/types/session_registry_fwd.h` 新建: `class SessionRegistry;` 前向声明
+- `engine.h` 引用 `agenticdsl/types/session_registry_fwd.h` (types 头文件不计数为 modules/ include)
 
 ### 2. DSLEngine 集成
 
@@ -51,18 +70,21 @@ Phase 5 自举需要支持多用户/多会话隔离。当前 ADR-0033 (C5 ship) 
   - 加 `session_vars_: nlohmann::json` 字段 (per-run vars)
 - 与 C10 的 module_states_ 正交 (不同语义: session_vars = run-time config, module_states = module persistence)
 
-### 4. 注册 4 个 Session 工具
+### 4. 注册 4 个 Session 工具 (Oracle Risk 3 mitigation)
 
-- `src/common/tools/registry.cpp`: 注册
-  - `session.create` — 创建 UserSession
-  - `session.destroy` — 销毁 UserSession (含清理所有 TaskSession + module_states)
-  - `session.set_var` — 设置 session var (per-run)
-  - `session.get_var` — 读取 session var
+- `src/common/tools/registry.cpp`: 注册, **所有 4 工具必须声明 ToolMetadata 含 category + approval_policy** (C6 ship 强制要求):
+  - `session.create` — 创建 UserSession (category=standard, PlanPolicy 下需审批)
+  - `session.destroy` — **category=dangerous, approval=force_approval_always** (任何 Policy 下都需审批, Oracle Risk 3)
+  - `session.set_var` — 设置 session var (category=standard)
+  - `session.get_var` — 读取 session var (category=readonly)
+- **ADR-0031 集成**: 4 工具全部接入 ToolCoordinator audit log (tool.audit.{invoked,completed,denied}), 与 C4 ship 模式一致
 
-### 5. 析构安全
+### 5. 析构安全 (Oracle Risk 1 + Risk 6 mitigation)
 
+- **destroy_session 竞态保护**: 销毁前检查是否有 in-flight TaskSession (`is_in_flight()`), 等待完成 (with timeout) 或拒绝
+- **析构链完整性**: UserSession + TaskSession 添加显式析构函数, 遍历清理 SubtaskSession + module_states_
 - DSLEngine 析构时, SessionRegistry 析构 → 所有 UserSession 析构 → 所有 TaskSession 析构 → 所有 ExecutionSession.module_states_ 释放
-- **ship gate 必加**断言测试: 销毁 Session 后 module_states 完全释放 (Oracle Q2 风险 mitigation)
+- **ship gate 必加**: ASan 验证 Session 销毁后 0 leak; TSan 验证并发 destroy+run 0 race
 
 ## What Does NOT Change
 
@@ -94,7 +116,21 @@ Phase 5 自举需要支持多用户/多会话隔离。当前 ADR-0033 (C5 ship) 
 
 **API 兼容性**: 零 breaking change (PIMPL-lite, 新增成员不破坏公开 API)
 
-**估时**: 2-3 天 (Oracle 决议后保持不变)
+**估时**: 2.5-3.5 天 (Oracle 深度审查后从 2-3 天调整: +0.5d concurrency protection + +0.3d tool security + +0.2d shared_mutex)
+
+## Risks (Oracle 深度审查 2026-07-03, session `ses_0d5985f3effeS1npyEV6SYk2RW`)
+
+| # | Risk | Severity | Mitigation | Effort |
+|---|---|---|:---:|---|:---:|
+| 1 | destroy_session 与 in-flight TaskSession Use-After-Free (session.h:132 裸指针) | **P0** | §5 is_in_flight() + timeout wait + ASan/TSan verify | +0.5d |
+| 3 | 4 session.* 工具无 ADR-0031 安全模型 (proposal.md:55-60) | **P0** | §4 ToolMetadata category/approval + ToolCoordinator audit | +0.3d |
+| 6 | UserSession/TaskSession 析构链不完整 (session.h 无显式析构) | **P0** | §5 显式析构 + shared_ptr<IExecutionPolicy> 循环引用检查 | +0.3d |
+| 2 | SessionVars vs ModuleState 语义重叠 (json 类型无强类型隔离) | P1 | tasks.md §3.5 命名空间前缀约定 `/session/` vs `/module/` | +0.2d |
+| 4 | std::mutex 粒度过粗 (DomainWorkerPool 并发瓶颈) | P1 | §1 shared_mutex (读共享/写独占, ToolRegistry 模式) | +0.2d |
+| 5 | ADR-0019 §1.4 engine.h include 计数超标风险 | P1 | §1.2 session_registry_fwd.h types 前向声明 | +0d |
+| 7 | SessionRegistry 无 IToolRegistry 式抽象接口 | P2 | 记录差异, 未来 SecureSessionRegistry 预留 | +0d |
+
+**总 Effort Delta**: +1.5 天 (vs 原始 2-3 天估时)
 
 ## Non-goals
 

@@ -8,13 +8,13 @@
 
 ### Requirement: session-registry-creation
 
-SessionRegistry MUST 持有 `unordered_map<string, unique_ptr<UserSession>>` + `std::mutex`。
+SessionRegistry MUST 持有 `unordered_map<string, unique_ptr<UserSession>>` + `std::shared_mutex` (Oracle Risk 4)。
 
 #### Scenario: 成员存在
 
 - **WHEN** 检查 `src/modules/scheduler/session_registry.h`
 - **THEN** 存在 `unordered_map<string, unique_ptr<UserSession>> sessions_` 成员
-- **AND** 存在 `std::mutex mutex_` 成员
+- **AND** 存在 `std::shared_mutex mutex_` 成员 (不是 std::mutex)
 
 ---
 
@@ -78,6 +78,38 @@ MUST 注册 `session.create` / `session.destroy` / `session.set_var` / `session.
 - **THEN** 调用成功, 工具结果正确返回
 - **AND** `session.set_var` / `session.get_var` 写入/读取 session_vars_ 正确
 
-## 备注
+## 备注 (Oracle 深度审查 2026-07-03)
 
 本 change 不修改 ADR-0033 Session Hierarchy 3-层设计。SessionRegistry 与 UserSession::task_sessions_ 职责正交, 前者管多 UserSession 生命周期, 后者管单 user 多 TaskSession 生命周期。
+
+### Requirement: oracle-r1-destroy-inflight-protection (P0)
+
+`destroy_session` MUST 先检查 in-flight TaskSession, 等待完成或超时拒绝。
+
+#### Scenario: destroy 拒绝 in-flight
+
+- **WHEN** Session 有 running TaskSession, `destroy_session(id)` 被调用
+- **THEN** `is_in_flight(id)` 返回 true
+- **AND** `destroy_session` 等待最多 5s 或立即拒绝 (return false)
+- **AND** UserSession 不被析构 (safe)
+
+### Requirement: oracle-r3-session-tools-audit (P0)
+
+4 个 session.* 工具 MUST 集成 ADR-0031 ToolCoordinator audit + 安全模型。
+
+#### Scenario: session.destroy 需审批
+
+- **WHEN** ADR-0031 处于 PlanPolicy 模式
+- **THEN** `session.destroy` 调用触发审批流程 (category=dangerous, approval=force_approval_always)
+- **AND** Audit log 发出 `tool.audit.invoked` 事件 (含 session_id, operation_name)
+
+### Requirement: oracle-r2-var-namespace (P1)
+
+session_vars_ 与 module_states_ MUST 有命名空间前缀区分。
+
+#### Scenario: 命名空间隔离
+
+- **WHEN** tool `session.set_var` 写入 key `max_tokens`
+- **THEN** session_vars_ 路径为 `/session/max_tokens`
+- **AND** module_states_ 路径为 `/module/inference/model`
+- **AND** `session.get_var("max_tokens")` 不返回 module_states_["/module/inference/model/max_tokens"]
