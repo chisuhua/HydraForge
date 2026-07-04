@@ -20,12 +20,39 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <map> // C10 Phase 5 Stage 1 Step 0: module_states_ per-module json persistence
+#include <mutex> // C12 Phase 5 Stage 1 Step 2: yield_mutex_ 字段级锁
+#include <string>
 
 namespace agenticdsl {
 
 class DSLEngine; // Forward declaration
 class ILLMProvider; // C₁.3: 前向声明 ILLMProvider
 class ToolCoordinator; // C4 Sprint 14 (ADR-0031 P3-P4): 前向声明
+
+// C12 Phase 5 Stage 1 Step 2: YieldNode 暂停状态结构
+// (OpenSpec change 2026-07-03-phase5-stage1-step2-yield-stream §4)
+struct YieldState {
+    std::string module_path;          // 模块路径 (YieldNode 触发暂停时所在)
+    nlohmann::json resume_context;    // DAG state 快照 (ready_queue + in_degree, Oracle Risk 8 mitigation)
+
+    YieldState() = default;
+    YieldState(std::string path, nlohmann::json ctx)
+        : module_path(std::move(path)), resume_context(std::move(ctx)) {}
+};
+
+// C12 Phase 5 Stage 1 Step 2 §6.0: CONTINUE 模式超预算异常类型
+// 携带已消费 token 片段 (Oracle Risk 11 mitigation, 避免空结果丢弃)
+struct BudgetExceededException : public std::exception {
+    std::vector<std::string> consumed_tokens;  // 已消费 token 片段 (Oracle Risk 11)
+    std::string message;
+
+    explicit BudgetExceededException(std::string msg, std::vector<std::string> tokens = {})
+        : consumed_tokens(std::move(tokens)), message(std::move(msg)) {}
+
+    [[nodiscard]] const char* what() const noexcept override {
+        return message.c_str();
+    }
+};
 
 // Sprint 19 D-8: PIMPL-lite 前向声明 7 类 (完整类型在 execution_session.cpp)
 class ContextEngine;
@@ -95,6 +122,12 @@ public:
     nlohmann::json& get_session_vars() { return session_vars_; }
     const nlohmann::json& get_session_vars() const { return session_vars_; }
 
+    // C12 Phase 5 Stage 1 Step 2 §4: pending_yield_ atomic accessors
+    // 跨线程安全: 字段级 yield_mutex_ (Oracle Risk 10 mitigation, 非 ExecutionSession 整体锁)
+    void set_pending_yield(YieldState state);
+    [[nodiscard]] std::optional<YieldState> get_pending_yield() const;
+    void clear_pending_yield();
+
     // ADR-0031 (2026-07-31): 注入审批处理器（透传到 NodeExecutor）
     // Sprint 19: 参数类型 ApprovalHandler* → IApprovalHandler* (依赖抽象, ADR-0019 §1.4)
     // Sprint 19 D-8: 透传逻辑移到 .cpp (node_executor_ 是 unique_ptr 不完整类型)
@@ -114,6 +147,10 @@ private:
     const std::vector<ParsedGraph>* full_graphs_; // ← 指向完整图集
     std::vector<NodePath> call_stack_; // 用于 soft end
     std::map<std::string, nlohmann::json> module_states_; // C10 Phase 5 Step 0: per-module lazy state
+    // C12 Phase 5 Stage 1 Step 2 §4: pending yield state (YieldNode NEXT 模式触发)
+    std::optional<YieldState> pending_yield_;
+    // C12 Phase 5 Stage 1 Step 2 §6b.1: 字段级 mutex (mutable 用于 const accessor)
+    mutable std::mutex yield_mutex_;
     std::string session_id_;              // C11: Session 标识
     nlohmann::json session_vars_;         // C11: per-run Session 变量 (json)
     std::unordered_map<NodePath, std::vector<NodePath>> pending_dynamic_deps_; // NodePath -> [list of unresolved deps]

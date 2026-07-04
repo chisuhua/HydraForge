@@ -69,6 +69,23 @@ bool ExecutionSession::has_module_state(const std::string& module_path) const {
     return module_states_.find(module_path) != module_states_.end();
 }
 
+// C12 Phase 5 Stage 1 Step 2 §4 + §6b: pending_yield_ atomic accessors
+// 跨线程安全: 字段级 yield_mutex_ (Oracle Risk 10 mitigation)
+void ExecutionSession::set_pending_yield(YieldState state) {
+    std::lock_guard<std::mutex> lock(yield_mutex_);
+    pending_yield_ = std::move(state);
+}
+
+std::optional<YieldState> ExecutionSession::get_pending_yield() const {
+    std::lock_guard<std::mutex> lock(yield_mutex_);
+    return pending_yield_;
+}
+
+void ExecutionSession::clear_pending_yield() {
+    std::lock_guard<std::mutex> lock(yield_mutex_);
+    pending_yield_.reset();
+}
+
 // Sprint 19 D-8: PIMPL-lite — set_approval_handler / set_tool_coordinator 透传逻辑
 // 移到 .cpp (header 中 node_executor_ 是 unique_ptr<不完整类型>, 不可在 header 解引用)。
 void ExecutionSession::set_approval_handler(IApprovalHandler* handler) {

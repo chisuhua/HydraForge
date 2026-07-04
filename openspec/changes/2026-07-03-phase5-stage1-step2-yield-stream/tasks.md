@@ -43,9 +43,9 @@
 
 ## 4. ExecutionSession pending_yield_ 扩展
 
-- [ ] 4.1 `src/modules/scheduler/execution_session.h` — 定义 `struct YieldState { module_path, resume_context }`
-- [ ] 4.2 加 `std::optional<YieldState> pending_yield_` 字段
-- [ ] 4.3 默认值: `std::nullopt`
+- [x] 4.1 `src/modules/scheduler/execution_session.h` — 定义 `struct YieldState { module_path, resume_context }`
+- [x] 4.2 加 `std::optional<YieldState> pending_yield_` 字段
+- [x] 4.3 默认值: `std::nullopt`
 
 ---
 
@@ -61,7 +61,7 @@
 
 ## 6. Budget 集成 (Oracle Risk 11 mitigation)
 
-- [ ] 6.0 `src/modules/scheduler/execution_session.h` — **新增** `struct BudgetExceededException : public std::exception { std::vector<std::string> consumed_tokens; std::string message; ... }` (C1 fix: 新异常类型, 必须显式声明字段 — 全代码库当前 0 匹配, tasks §3.7/§6.3/§6.4 + spec.md line 127 都引用该类型)
+- [x] 6.0 `src/modules/scheduler/execution_session.h` — **新增** `struct BudgetExceededException : public std::exception { std::vector<std::string> consumed_tokens; std::string message; ... }` (C1 fix: 新异常类型, 必须显式声明字段 — 全代码库当前 0 匹配, tasks §3.7/§6.3/§6.4 + spec.md line 127 都引用该类型)
 - [ ] 6.1 CONTINUE 模式 **每 pull 1 token** 检查 `is_budget_exceeded()` (可配置, 默认 1) (Oracle Risk 11)
 - [ ] 6.2 超过预算立即终止流
 - [ ] 6.3 抛 `BudgetExceededException` **携带已消费 token 向量** (新增 exception 类型, 在 execution_session.h) (Oracle Risk 11)
@@ -76,8 +76,8 @@
 
 ## 6b. cross-thread YIELD safety (Oracle Risk 10 mitigation)
 
-- [ ] 6b.1 `execution_session.h` — pending_yield_ 访问加 `std::mutex yield_mutex_` (字段级, 非 ExecutionSession 整体锁) (Oracle Risk 10)
-- [ ] 6b.2 `resume_yield()` 原子操作: check pending → clear → continue DAG (Oracle Risk 10)
+- [x] 6b.1 `execution_session.h` — pending_yield_ 访问加 `std::mutex yield_mutex_` (字段级, 非 ExecutionSession 整体锁) (Oracle Risk 10)
+- [x] 6b.2 `resume_yield()` 原子操作: check pending → clear → continue DAG (Oracle Risk 10)
 - [ ] 6b.3 TSan 必验证: cross-thread resume 0 data race (Oracle Risk 10)
 
 ---
