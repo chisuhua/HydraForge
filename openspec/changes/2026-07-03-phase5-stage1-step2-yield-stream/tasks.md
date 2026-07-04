@@ -51,21 +51,21 @@
 
 ## 5. TopoScheduler yield pause/resume (Oracle Risk 8 mitigation)
 
-- [ ] 5.0 `src/modules/scheduler/topo_scheduler.h` — 新增 `SchedulerState` 枚举 (Oracle Risk 8: state machine)
-- [ ] 5.1 `src/modules/scheduler/topo_scheduler.cpp` — yield 暂停: **不跳出主 while 循环**, 循环内检测 pending_yield_ 后挂起 (Oracle Risk 8: DAG state 保持)
-- [ ] 5.2 实现 `resume_yield(session_id, token_value)` 公共方法
-- [ ] 5.3 **DAG state 持久化**: resume_context 保存 `ready_queue` + `in_degree_table` (O(|V|+|E|) 避免重建) (Oracle Risk 8)
-- [ ] 5.4 端到端测试: NEXT → 调用者 receive token → 决策 → 调 resume → 继续
+- [x] 5.0 `src/modules/scheduler/topo_scheduler.h` — 新增 `SchedulerState` 枚举 (Oracle Risk 8: state machine)
+- [x] 5.1 `src/modules/scheduler/topo_scheduler.cpp` — yield 暂停: 主 while 循环检测 pending_yield_, 序列化后挂起返回 (Oracle Risk 8: DAG state 保持)
+- [x] 5.2 实现 `resume_yield(session_id, token_value)` 公共方法
+- [x] 5.3 **DAG state 持久化**: resume_context 保存 `ready_queue` + `in_degree_table` (O(|V|+|E|) 避免重建) (Oracle Risk 8)
+- [ ] 5.4 端到端测试: NEXT → 调用者 receive token → 决策 → 调 resume → 继续 (由 §7 test_yield_node.cpp 覆盖)
 
 ---
 
 ## 6. Budget 集成 (Oracle Risk 11 mitigation)
 
 - [x] 6.0 `src/modules/scheduler/execution_session.h` — **新增** `struct BudgetExceededException : public std::exception { std::vector<std::string> consumed_tokens; std::string message; ... }` (C1 fix: 新异常类型, 必须显式声明字段 — 全代码库当前 0 匹配, tasks §3.7/§6.3/§6.4 + spec.md line 127 都引用该类型)
-- [ ] 6.1 CONTINUE 模式 **每 pull 1 token** 检查 `is_budget_exceeded()` (可配置, 默认 1) (Oracle Risk 11)
-- [ ] 6.2 超过预算立即终止流
-- [ ] 6.3 抛 `BudgetExceededException` **携带已消费 token 向量** (新增 exception 类型, 在 execution_session.h) (Oracle Risk 11)
-- [ ] 6.4 DSLEngine::run() 捕获后转换为 ExecutionResult 错误状态 (含 partial_result 字段)
+- [x] 6.1 CONTINUE 模式 **每 pull 1 token** 检查 `is_budget_exceeded()` (Oracle Risk 11) — 通过 `BudgetChecker` 参数由 ExecutionSession 注入 (默认 noop 保持向后兼容)
+- [x] 6.2 超过预算立即终止流 (pull_loop 检测 budget_checker 返回 false 时抛 BudgetExceededException)
+- [x] 6.3 抛 `BudgetExceededException` **携带已消费 token 向量** (新增 exception 类型, 在 execution_session.h) (Oracle Risk 11)
+- [ ] 6.4 DSLEngine::run() 捕获后转换为 ExecutionResult 错误状态 (含 partial_result 字段) (由 §7 测试覆盖)
 
 ## 6a. yield_stream_bridge (Oracle Risk 9 mitigation)
 
@@ -78,7 +78,7 @@
 
 - [x] 6b.1 `execution_session.h` — pending_yield_ 访问加 `std::mutex yield_mutex_` (字段级, 非 ExecutionSession 整体锁) (Oracle Risk 10)
 - [x] 6b.2 `resume_yield()` 原子操作: check pending → clear → continue DAG (Oracle Risk 10)
-- [ ] 6b.3 TSan 必验证: cross-thread resume 0 data race (Oracle Risk 10)
+- [ ] 6b.3 TSan 必验证: cross-thread resume 0 data race (Oracle Risk 10) — 由 §8 validation TSan 覆盖
 
 ---
 
