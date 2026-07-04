@@ -29,7 +29,7 @@ struct HardEndException : public std::exception {
 TopoScheduler::TopoScheduler(Config config, IToolRegistry& tool_registry, ILLMProvider* llm_provider, const std::vector<ParsedGraph>* full_graphs)
     : full_graphs_(full_graphs),
       resource_manager_(std::make_unique<ResourceManager>()),
-      session_(std::move(config.initial_budget), tool_registry, llm_provider, *resource_manager_,
+      session_("", std::move(config.initial_budget), tool_registry, llm_provider, *resource_manager_,
                full_graphs_,
                [this](std::vector<ParsedGraph> graphs) { this->append_dynamic_graphs(std::move(graphs)); }) { // Pass callback to ExecutionSession
     // ADR-0031 (2026-07-31): 传递审批处理器到执行会话

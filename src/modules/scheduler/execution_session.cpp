@@ -20,13 +20,15 @@ namespace agenticdsl {
 // P1.T4 (2026-06-18): ToolRegistry& → IToolRegistry& (依赖倒置)
 // Sprint 19 D-8: PIMPL-lite — 4 个值成员改用 make_unique 构造
 ExecutionSession::ExecutionSession(
+    const std::string& session_id,
     std::optional<ExecutionBudget> initial_budget,
     IToolRegistry& tool_registry,
     ILLMProvider* llm_provider,
     ResourceManager& resource_manager, // ← 新增
     const std::vector<ParsedGraph>* full_graphs,
     AppendGraphsCallback append_graphs_callback)
-    : resource_manager_(resource_manager), // ← 初始化 (引用)
+    : session_id_(session_id),
+      resource_manager_(resource_manager), // ← 初始化 (引用)
       context_engine_(std::make_unique<ContextEngine>()),
       budget_controller_(std::make_unique<BudgetController>(std::move(initial_budget))),
       trace_exporter_(std::make_unique<TraceExporter>()),

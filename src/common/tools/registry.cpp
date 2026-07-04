@@ -95,20 +95,16 @@ std::vector<std::string> ToolRegistry::list_tools() const {
   return names;
 }
 
-// P1.T2: register_tool_function 实现 (替代原 register_tool 模板内部直接 tools_[name]=fn 赋值)
 void ToolRegistry::register_tool_function(std::string name, ToolMetadata meta, ToolFunc fn) {
-    // Validate
     if (name.empty()) throw std::invalid_argument("ToolRegistry: tool name must not be empty");
     if (tools_.count(name)) throw std::invalid_argument("ToolRegistry: tool '" + name + "' already registered");
     
-    // Category×Approval conflict check
     bool no_plan_or_agent = !meta.approval.requires_approval_in_plan && !meta.approval.requires_approval_in_agent;
     bool dangerous = (meta.category == ToolCategory::Execute || meta.category == ToolCategory::Network || meta.category == ToolCategory::StateModify);
     if (no_plan_or_agent && dangerous) {
         throw std::invalid_argument("ToolRegistry: tool '" + name + "' has dangerous category but no plan or agent approval");
     }
     
-    // min_layer must be in allowed_layers if allowed_layers is non-empty
     if (!meta.allowed_layers.empty()) {
         bool found = false;
         for (auto& l : meta.allowed_layers) { if (l == meta.min_layer) found = true; }
@@ -142,11 +138,6 @@ nlohmann::json ToolRegistry::call_llm_tool(const std::string& name, const std::s
   }
 
   try {
-    // Merge default params with provided params
-    // Sentinel values MUST be derived from LLMConfig{} defaults (single source of truth).
-    // Track 0.1 M1.3 changed max_tokens default from 512 to 2048; using a hardcoded
-    // sentinel caused explicit user values equal to the old default (e.g. 512) to be
-    // silently dropped. See openspec/changes/docs-code-alignment-fixes/.
     const LLMParams kDefaults{};
     LLMParams merged_params = it->second.default_params;
     if (params.temperature != kDefaults.temperature) merged_params.temperature = params.temperature;
@@ -164,13 +155,10 @@ nlohmann::json ToolRegistry::call_llm_tool(const std::string& name, const std::s
       json_result["text"] = result.text;
       json_result["tokens_generated"] = result.tokens_generated;
 
-      // 阶段 4 任务 4.2: 成功后触发成本跟踪回调
-      // 模型名取自合并后的 params.model，回调若未设置则跳过
       if (cost_callback_) {
         try {
           cost_callback_(result.tokens_generated, merged_params.model);
         } catch (...) {
-          // 回调内部异常不污染主调用路径
         }
       }
     } else {
@@ -182,7 +170,6 @@ nlohmann::json ToolRegistry::call_llm_tool(const std::string& name, const std::s
   }
 }
 
-// C6: 注册时验证 ToolMetadata 安全性 (Sprint 16)
 void validate_tool_metadata(const ToolMetadata& meta) {
   check_registration_permission(meta);
 }
@@ -194,4 +181,4 @@ std::vector<std::pair<std::string, ToolMetadata>> ToolRegistry::list_metadata() 
   return result;
 }
 
-} // namespace agenticdsl (End of file - total 160 lines)
+} // namespace agenticdsl

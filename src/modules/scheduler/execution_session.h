@@ -46,6 +46,7 @@ public:
     // C₁.3 迁移：从 LlamaAdapter* 改为 ILLMProvider*
     // P1.T4 (2026-06-18): ToolRegistry& → IToolRegistry& (依赖倒置)
     ExecutionSession(
+        const std::string& session_id,  // C11: Session 标识
         std::optional<ExecutionBudget> initial_budget,
         IToolRegistry& tool_registry,
         ILLMProvider* llm_provider,
@@ -89,6 +90,11 @@ public:
     const nlohmann::json* get_module_state(const std::string& module_path) const;
     bool has_module_state(const std::string& module_path) const;
 
+    // C11: Session 标识与 per-run 变量访问器
+    const std::string& get_session_id() const { return session_id_; }
+    nlohmann::json& get_session_vars() { return session_vars_; }
+    const nlohmann::json& get_session_vars() const { return session_vars_; }
+
     // ADR-0031 (2026-07-31): 注入审批处理器（透传到 NodeExecutor）
     // Sprint 19: 参数类型 ApprovalHandler* → IApprovalHandler* (依赖抽象, ADR-0019 §1.4)
     // Sprint 19 D-8: 透传逻辑移到 .cpp (node_executor_ 是 unique_ptr 不完整类型)
@@ -108,6 +114,8 @@ private:
     const std::vector<ParsedGraph>* full_graphs_; // ← 指向完整图集
     std::vector<NodePath> call_stack_; // 用于 soft end
     std::map<std::string, nlohmann::json> module_states_; // C10 Phase 5 Step 0: per-module lazy state
+    std::string session_id_;              // C11: Session 标识
+    nlohmann::json session_vars_;         // C11: per-run Session 变量 (json)
     std::unordered_map<NodePath, std::vector<NodePath>> pending_dynamic_deps_; // NodePath -> [list of unresolved deps]
     std::unordered_map<NodePath, nlohmann::json> dynamic_wait_for_expressions_; // NodePath -> original wait_for expression
     AppendGraphsCallback append_graphs_callback_; // Callback for dynamic graphs

@@ -92,8 +92,8 @@ private:
     };
     std::unordered_map<std::string, LLMToolEntry> llm_tools_;
 
-    // 成本跟踪回调（由 DSLEngine 在 run() 时注入）
-    CostCallback cost_callback_;
+// 成本跟踪回调（由 DSLEngine 在 run() 时注入）
+  CostCallback cost_callback_;
 };
 
 } // namespace agenticdsl

@@ -68,6 +68,12 @@ void TaskSession::record_failure(const ExecutionResult& result) {
   }
 }
 
+TaskSession::~TaskSession() {
+  // 显式析构：清理 subtask_sessions_ 与 context_
+  // deque<SubtaskSession> 自动析构
+  // Context (nlohmann::json) 自动析构
+}
+
 TaskSession::FailureMode TaskSession::determine_failure_mode() const {
   if (failure_count_ < 3) {
     return FailureMode::KeepSession;
@@ -97,6 +103,12 @@ TaskSession& UserSession::create_task_session() {
   auto& ts = task_sessions_.emplace_back(*this);
   current_task_session_ = &ts;
   return ts; // deque::emplace_back 不使已有引用失效
+}
+
+UserSession::~UserSession() {
+  // 显式析构：清理 current_task_session_ 裸指针引用
+  // task_sessions_ (deque) 自动析构
+  current_task_session_ = nullptr;
 }
 
 } // namespace agenticdsl

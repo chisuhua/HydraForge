@@ -121,6 +121,7 @@ add_subdirectory(pdk)
 add_library(agenticdsl_core STATIC
  src/core/engine.cpp
  src/core/types/session.cpp
+ src/core/types/session_registry.cpp  # C11 Phase 5 Stage 1
 )
 
 target_link_libraries(agenticdsl_core

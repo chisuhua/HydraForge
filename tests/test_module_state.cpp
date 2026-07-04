@@ -41,6 +41,7 @@ struct ModuleStateFixture {
         budget.max_snapshots = 20;
         budget.snapshot_max_size_kb = 512;
         return std::make_unique<ExecutionSession>(
+            "",  // C11: default session_id
             std::make_optional(std::move(budget)),
             tools,
             &mock_llm,

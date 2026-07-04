@@ -22,6 +22,7 @@
 #include "core/types/tool_result.h"      // ToolResult, ErrorCode
 #include "agenticdsl/types/trace_record.h" // TraceRecord
 #include <chrono>
+#include <atomic>
 #include <cstdint>
 #include <deque>
 #include <memory>
@@ -62,6 +63,8 @@ public:
   /// @brief 构造 — 必须绑定 UserSession
   explicit TaskSession(UserSession& user_sess);
 
+  ~TaskSession();  // 显式析构：清理 subtask_sessions_ 与 context_
+
   // --- 反向引用 ---
   UserSession& user_session() { return user_session_; }
   const UserSession& user_session() const { return user_session_; }
@@ -82,7 +85,7 @@ public:
   void record_failure(const ExecutionResult& result);
   /// @brief <3 次 → KeepSession, ≥3 次 → NewSession
   FailureMode determine_failure_mode() const;
-  uint32_t failure_count() const { return failure_count_; }
+  uint32_t failure_count() const { return failure_count_.load(); }
 
   // --- 状态 ---
   std::string status() const { return status_; }
@@ -97,7 +100,7 @@ private:
   UserSession& user_session_;                               // 反向引用（绑定 UserSession 本身）
   std::deque<SubtaskSession> subtask_sessions_;             // deque 确保地址稳定
   std::shared_ptr<IExecutionPolicy> current_policy_;        // 与 DSLEngine 共享
-  uint32_t failure_count_ = 0;
+  std::atomic<uint32_t> failure_count_{0};
   std::string status_ = "active";
   Context context_;                                         // 当前执行上下文
 };
@@ -124,12 +127,22 @@ public:
   const std::string& user_id() const { return user_id_; }
   auto created_at() const { return created_at_; }
 
+  // --- SessionVars (C11: session.* 工具可用) ---
+  void set_session_var(const std::string& key, const nlohmann::json& value) { session_vars_[key] = value; }
+  nlohmann::json get_session_var(const std::string& key) const {
+    auto it = session_vars_.find(key);
+    return (it != session_vars_.end()) ? it.value() : nlohmann::json();
+  }
+
+  ~UserSession();  // 显式析构：清理 current_task_session_ 与 task_sessions_
+
 private:
   std::string user_id_;
   std::chrono::steady_clock::time_point created_at_;
   std::vector<ToolResult> messages_;                        // 追加写（ADR-0023）
   std::deque<TaskSession> task_sessions_;                   // deque 确保 current_task_session_ 地址稳定
   TaskSession* current_task_session_ = nullptr;             // 指向 deque 中元素
+  nlohmann::json session_vars_;                             // C11: per-Session 变量
 };
 
 /// @brief 判断 ErrorCode 是否属于可重试类别

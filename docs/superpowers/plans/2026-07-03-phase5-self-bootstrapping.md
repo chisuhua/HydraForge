@@ -92,7 +92,7 @@
 |---|-----------|------|------|------|------|
 | **C9** | `2026-07-03-phase4-5-impl-scope-audit` | 审计 | 1 周 | C8 ✅ archived (2026-07-03) | 🟡 **in progress** (Agent 1 工作, 11 个 ADR impl-scope.md 编写) |
 | **C10** | `2026-07-XX-phase5-stage1-step0-lazy-modulestate` | 实施 | 1-2 天 | C9 ✅ ship | ⚪ **placeholder, 待 C9 完成后启动** |
-| **C11** | `2026-07-XX-phase5-stage1-step1-session-registry` | 实施 | 2-3 天 | C9 ✅ ship (+ 建议 C10 ship 后启动) | ⚪ **placeholder, 待 C9+C10 完成后详细制定** |
+| **C11** | `2026-07-XX-phase5-stage1-step1-session-registry` | 实施 | 2-3 天 | C9 ✅ ship (+ 建议 C10 ship 后启动) | ✅ **shipped (2026-07-04)** — 63/63 ctest 零回归, 4 个有意延后项 (4.6/5.4/5.6a/5.9) 记录至 C12/C14 |
 | **C12** | `2026-07-XX-phase5-stage1-step2-yield-stream` | 实施 | 2-3 天 | C10 ✅ ship (YIELD 需要 module_state 持久化) | ⚪ **placeholder, 待 C10 完成后详细制定** |
 | **C13** | `2026-07-XX-phase5-stage2-step3-4-fork-checkpoint` | 实施 (延后) | 3-5 天 | C10+C11+C12 ✅ ship + 性能/运维需求触发 | ⚪ **placeholder, 远期延后** |
 | **C14** | `2026-07-XX-phase5-stage3-step5-6-analysis-service` | 实施 (远期) | 4-6 周 | C10+C11+C12+C13 ✅ ship + Phase 3 稳定 | ⚪ **placeholder, 远期延后** |
@@ -168,7 +168,7 @@
 | **依赖** | C9 ✅ ship (建议 C10 ✅ ship 后启动, Oracle 增量引入) |
 | **关联 ADR** | ADR-0033 (Session Hierarchy 验证, UserSession 是 SessionRegistry 注册单元) / IP-001 §三 Step 1 |
 | **目录** | `openspec/changes/<date>-phase5-stage1-step1-session-registry/` |
-| **状态** | ⚪ **placeholder, 待 C9+C10 完成后详细制定** |
+| **状态** | ✅ **shipped (2026-07-04)** — 63/63 ctest 零回归 |
 
 **目标** (来自 IP-001 §阶段 1 Step 1):
 - 多 Session 隔离, Session 级变量
@@ -187,6 +187,15 @@
 - `ctest --output-on-failure` ≥ 63/63 PASS
 - 2 Session 状态隔离 E2E 测试通过
 - `tools/code-review-graph` 显示 `session_registry_` 与 `tool_registry_` 同耦合模式
+
+**C11 ship 状态 (2026-07-04)**:
+- ✅ 实际 ship 时间: ~1 天 (估时 2.5-3.5 天, Oracle 风险预缓解节省)
+- ✅ 全部代码变更: 5 新文件 (session_config.h/session_registry_fwd.h/session_registry.h/session_registry.cpp/test_session_registry.cpp), 9 修改文件
+- ✅ 实际位置调整: SessionRegistry 从 `src/modules/scheduler/` 移至 `src/core/types/` (避免 common→scheduler 循环依赖)
+- ✅ 实际位置调整: 4 个 session.* 工具从 `src/common/tools/registry.cpp` 移至 `src/core/engine.cpp` (避免 common→core 循环依赖)
+- ✅ Ship gate: 63/63 ctest 零回归 / ASan 0 leak / TSan 产品代码 0 race / adr_lint 0 错误 / openspec validate exit 0
+- ⚠️ 4 项有意延后: 4.6 ToolCoordinator audit (→C14), 5.4 DSL tool_call 测试 (→C12+), 5.6a 并发 destroy+run (→C12+), 5.9 audit log 验证 (→C14)
+- 📦 OpenSpec change 待 archive
 
 ---
 
@@ -572,6 +581,7 @@ C14 启动前必须满足:
 | 2026-07-03 | C11 `phase5-stage1-step1-session-registry` | Oracle 深度审查 (session `ses_0d5985f3effeS1npyEV6SYk2RW`) — 7 个风险 (3 P0 + 3 P1 + 1 P2): (P0) destroy+run 竞态 (Use-After-Free)/工具安全模型缺失/析构链不完整; (P1) shared_mutex 升级/SessionVar 命名空间/ADR-0019 include 验证 | C11 proposal.md + tasks.md + spec.md 全面更新: §1 SessionConfig + SessionRegistry 5 方法 + shared_mutex + fwd 前向声明; §1a 并发安全 (is_in_flight + 析构链); §4 工具安全 (category/approval + ToolCoordinator audit); §5 destroy 竞态保护. 估时 2-3→2.5-3.5 天 (+1.5d) | ✅ resolved (2026-07-03) — 文档已更新 |
 | 2026-07-03 | C12 `phase5-stage1-step2-yield-stream` | Oracle 深度审查 (session `ses_0d5985f3effeS1npyEV6SYk2RW`) — 5 个风险 (2 P0 + 2 P1 + 1 P2): (P0) TopoScheduler DAG state 丢失/IGenerationStream 桥接缺失; (P1) Budget 每 token 检查/cross-thread 安全; (P2) NodeType exhaust switch | C12 proposal.md + tasks.md + spec.md 全面更新: §4 TopoScheduler state machine + DAG state 持久化; §6 YieldStreamBridge 辅助类; §5 Budget 每 1 token 检查 + 异常携带已消费 token; §6b yield_mutex_ + atomic resume; §1.5 grep 全库 switch(NodeType). 估时 2.5-3→3.5-4.5 天 (+2.7d) | ✅ resolved (2026-07-03) — 文档已更新 |
 | 2026-07-03 | C11+C12 联合 | Oracle Q1-Q4 4 个决策问题 resolved: (Q1) SessionRegistry 成员模式 confirmed (P0 risk §11.3 line 578 resolved); (Q2) stop_path 为已定义后续节点; (Q3) resume_yield 异步回调 (IInteractionBus); (Q4) 工具安全级别在 C11/C12 ship gate 验证后追加 ADR-0031 | proposal.md C11/C12 均已追加 `## user decision resolved (Oracle Q1-Q4)` 章节 | ✅ resolved (2026-07-03) — Q1-Q4 全部 confirmed |
+| 2026-07-04 | C11 `phase5-stage1-step1-session-registry` | C11 ship | ✅ shipped — 实施 1 天, 63/63 ctest 零回归, ASan 0 leak, TSan 产品代码 0 race (仅 Catch2 框架噪音). 关键变更: (1) SessionRegistry 从 scheduler 模块移至 core (避免 common→scheduler 循环依赖); (2) 4 个 session.* 工具注册从 registry.cpp 移至 engine.cpp (避免 common→core 循环依赖); (3) Oracle 7 风险全部缓解 (P0 is_in_flight + 显式析构 + 工具 approval_policy; P1 shared_mutex + 命名空间 + 前向声明; P2 抽象接口延后); (4) 4 个有意延后项: 4.6 ToolCoordinator audit → C14, 5.4 DSL tool_call 集成测试 → C12+, 5.6a 并发 destroy+run → C12+, 5.9 audit log 验证 → C14 | ✅ resolved (2026-07-04) — C11 ship |
 
 ### 11.3 预期可能的调整 (基于当前占位假设)
 

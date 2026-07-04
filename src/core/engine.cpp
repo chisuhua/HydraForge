@@ -16,6 +16,7 @@
 #include <utility> // Phase 1 Sprint 1b (S1b.T2): std::move for bus injection
 
 #include "common/tools/tool_coordinator.h" // C4 Sprint 14 (ADR-0031 P3-P4): ToolCoordinator 构造
+#include "common/tools/registry.h"         // C11: ToolRegistry downcast for session_registry injection
 
 namespace agenticdsl {
 // P2.C (2026-06-24): forward-declared factories (decouple engine.cpp from concrete headers)
@@ -67,7 +68,8 @@ DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
     : full_graphs_(std::move(initial_graphs)),
       tool_registry_(agenticdsl::tools::create_tool_registry()),
       provider_factory_(agenticdsl::llm::create_provider_factory()),
-      budget_controller_(agenticdsl::budget::create_controller()) {
+      budget_controller_(agenticdsl::budget::create_controller()),
+      session_registry_(std::make_unique<SessionRegistry>()) {
     LOG_INFO("Graphs loaded: " << full_graphs_.size());
 
     // P1.T1 + P2.C: 通过 factory 创建默认 LLM provider (mock 路径)
@@ -95,6 +97,51 @@ DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
             budget_controller_->record_llm_call(tokens, model);
         }
     );
+
+    // C11: 注册 4 个 session.* 工具
+    if (auto* tr = dynamic_cast<ToolRegistry*>(tool_registry_.get())) {
+        tr->register_tool("session.create",
+            ToolMetadata{"session.create", "Create a new session", "builtin", ToolCategory::StateModify, LayerProfile::Workflow, ApprovalPolicy{false, true, false, false}},
+            [this](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+                SessionConfig config;
+                auto name_it = args.find("name");
+                if (name_it != args.end()) config.name = name_it->second;
+                return nlohmann::json{{"session_id", session_registry_->create_session(config)}};
+            });
+
+        tr->register_tool("session.destroy",
+            ToolMetadata{"session.destroy", "Destroy a session", "builtin", ToolCategory::StateModify, LayerProfile::Workflow, ApprovalPolicy{true, true, false, true}},
+            [this](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+                auto it = args.find("session_id");
+                if (it == args.end()) return nlohmann::json{{"error", "Missing session_id"}};
+                session_registry_->destroy_session(it->second);
+                return nlohmann::json{{"destroyed", it->second}};
+            });
+
+        tr->register_tool("session.set_var",
+            ToolMetadata{"session.set_var", "Set a session variable", "builtin", ToolCategory::StateModify, LayerProfile::Workflow, ApprovalPolicy{true, true, false, false}},
+            [this](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+                auto sid = args.find("session_id"), key = args.find("key"), val = args.find("value");
+                if (sid == args.end() || key == args.end() || val == args.end())
+                    return nlohmann::json{{"error", "Missing session_id/key/value"}};
+                try {
+                    auto& s = session_registry_->get_session(sid->second);
+                    s.set_session_var(key->second, nlohmann::json::parse(val->second));
+                    return nlohmann::json{{"ok", true}};
+                } catch (const std::exception& e) { return nlohmann::json{{"error", e.what()}}; }
+            });
+
+        tr->register_tool("session.get_var",
+            ToolMetadata{"session.get_var", "Get a session variable", "builtin", ToolCategory::ReadOnly, LayerProfile::Workflow, ApprovalPolicy{true, true, false, false}},
+            [this](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+                auto sid = args.find("session_id"), key = args.find("key");
+                if (sid == args.end() || key == args.end())
+                    return nlohmann::json{{"error", "Missing session_id/key"}};
+                try {
+                    return session_registry_->get_session(sid->second).get_session_var(key->second);
+                } catch (const std::exception& e) { return nlohmann::json{{"error", e.what()}}; }
+            });
+    }
 }
 
 // 阶段 4 任务 4.3: 返回 session 累计成本
@@ -317,6 +364,14 @@ ExecutionResult DSLEngine::run_impl(TaskSession& task_sess, const std::string& /
   // 注：Fork/Join 的 SubtaskSession 隔离在后续迭代中深化（当前为最小可行集成）
 
   return result;
+}
+
+SessionRegistry* DSLEngine::get_session_registry() {
+  return session_registry_.get();
+}
+
+const SessionRegistry* DSLEngine::get_session_registry() const {
+  return session_registry_.get();
 }
 
 } // namespace agenticdsl

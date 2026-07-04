@@ -45,11 +45,15 @@
 
 // ADR-0033 Session Hierarchy: 三层会话模型 (Sprint 15 / C5)
 #include "core/types/session.h"
+#include "agenticdsl/types/session_registry_fwd.h"
 
 // ADR-0031 (2026-07-31): Policy + ApprovalHandler 集成
 #include "common/policy/policy_factory.h"
 #include "common/policy/approval_handler.h"
 #include "common/policy/approval_callbacks.h"
+
+// SessionRegistry (C11 Phase 5 Stage 1)
+#include "core/types/session_registry.h"
 
 #include <memory>
 #include <string>
@@ -106,6 +110,10 @@ public:
     IToolRegistry& get_tool_registry() { return *tool_registry_; }
     const IToolRegistry& get_tool_registry() const { return *tool_registry_; }
 
+    // C11: SessionRegistry 访问器
+    SessionRegistry* get_session_registry();
+    const SessionRegistry* get_session_registry() const;
+
     std::vector<TraceRecord> get_last_traces() const { return last_traces_; }
 
     // C₁.4 迁移：从 LlamaAdapter* 改为 ILLMProvider*
@@ -151,6 +159,7 @@ private:
 
     std::vector<ParsedGraph> full_graphs_;
     std::unique_ptr<IToolRegistry> tool_registry_; // P1.T4: PIMPL-lite 化 (从 ToolRegistry 值成员改为 unique_ptr<IToolRegistry>)
+    std::unique_ptr<SessionRegistry> session_registry_; // C11: PIMPL-lite, 与 tool_registry_ 模式一致
     std::unique_ptr<ILLMProvider> llm_provider_; // C₁.4: 默认 MockLLMProvider
     std::unique_ptr<IProviderFactory> provider_factory_; // P1.T1: 默认 LLMProviderFactory (PIMPL-lite)
     std::vector<TraceRecord> last_traces_; // ← 存储 Trace
