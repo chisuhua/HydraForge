@@ -22,9 +22,9 @@
 
 ## 2. MarkdownParser JSON 解析
 
-- [ ] 2.1 `src/modules/parser/markdown_parser.cpp` — 解析 `type: yield` 节点
-- [ ] 2.2 解析 yield_value / mode / stop_path 字段
-- [ ] 2.3 解析失败时清晰错误信息
+- [x] 2.1 `src/modules/parser/markdown_parser.cpp` — 解析 `type: yield` 节点
+- [x] 2.2 解析 yield_value / mode / stop_path 字段
+- [x] 2.3 解析失败时清晰错误信息
 
 ---
 
