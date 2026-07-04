@@ -63,6 +63,10 @@ const nlohmann::json* ExecutionSession::get_module_state(const std::string& modu
     return (it != module_states_.end()) ? &it->second : nullptr;
 }
 
+bool ExecutionSession::has_module_state(const std::string& module_path) const {
+    return module_states_.find(module_path) != module_states_.end();
+}
+
 // Sprint 19 D-8: PIMPL-lite — set_approval_handler / set_tool_coordinator 透传逻辑
 // 移到 .cpp (header 中 node_executor_ 是 unique_ptr<不完整类型>, 不可在 header 解引用)。
 void ExecutionSession::set_approval_handler(IApprovalHandler* handler) {

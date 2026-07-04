@@ -28,13 +28,14 @@ NodeExecutor::NodeExecutor(IToolRegistry& tool_registry, ILLMProvider* llm_provi
     // llm_provider_ 可能为 nullptr，NodeExecutor 需要处理这种情况
 }
 
-// Stage 4 Task 20: 主构造函数，通过 IParser 抽象注入具体解析器
+// delegate constructor — 完整 5 参数
 // Phase 1 Sprint 1b (S1b.T3): 接收 bus 参数（非 owning），存为 bus_ 成员
 // P1.T4: ToolRegistry& → IToolRegistry&
 NodeExecutor::NodeExecutor(IToolRegistry& tool_registry, ILLMProvider* llm_provider,
                             std::unique_ptr<IParser> parser, IInteractionBus* bus)
     : tool_registry_(tool_registry), llm_provider_(llm_provider),
-      parser_(std::move(parser)), bus_(bus) {}
+      parser_(std::move(parser)), bus_(bus), session_(nullptr) {}
+
 
 Context NodeExecutor::execute_node(Node* node, const Context& ctx) {
     Context context_with_resources = ctx;

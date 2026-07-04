@@ -29,6 +29,9 @@ class ILLMProvider;
 // C4 Sprint 14 (ADR-0031 P3-P4, Oracle ses_0ed4408faffeLv8VfrC0s5PzW7): 前向声明 ToolCoordinator
 class ToolCoordinator;
 
+// C10 Phase 5 Stage 1 Step 0: 前向声明 ExecutionSession (module_state 持久化)
+class ExecutionSession;
+
 using AppendGraphsCallback = std::function<void(std::vector<ParsedGraph>)>;
 
 class NodeExecutor {
@@ -58,6 +61,8 @@ public:
     [[deprecated("use set_tool_coordinator(ToolCoordinator*)")]]
     void set_approval_handler(IApprovalHandler* handler) { approval_handler_ = handler; }
 
+    void set_session(ExecutionSession* session) { session_ = session; }
+
     // C4 Sprint 14 (Oracle ses_0ed4408faffeLv8VfrC0s5PzW7): 设置 ToolCoordinator
     // 优先级: tool_coordinator_ > approval_handler_ > direct call_tool()
     void set_tool_coordinator(ToolCoordinator* coordinator) {
@@ -76,6 +81,8 @@ private:
     // Phase 1 Sprint 1b (S1b.T3): 非 owning 指针（生命周期短于 DSLEngine）；
     // 默认 nullptr 走原有静默路径，保持现有 11+ 测试零回归。
     IInteractionBus* bus_;
+
+    ExecutionSession* session_{nullptr};
 
     // ADR-0031 (2026-07-31): 可选审批处理器（nullptr 表示跳过审批）
     // Sprint 19: ApprovalHandler* → IApprovalHandler* (依赖抽象, ADR-0019 §1.4)

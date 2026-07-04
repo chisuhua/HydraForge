@@ -87,6 +87,7 @@ public:
     // dsl_call 调用间共享模块状态 (如 prefix_cache 累计 token 统计)
     nlohmann::json& ensure_module_state(const std::string& module_path);
     const nlohmann::json* get_module_state(const std::string& module_path) const;
+    bool has_module_state(const std::string& module_path) const;
 
     // ADR-0031 (2026-07-31): 注入审批处理器（透传到 NodeExecutor）
     // Sprint 19: 参数类型 ApprovalHandler* → IApprovalHandler* (依赖抽象, ADR-0019 §1.4)
