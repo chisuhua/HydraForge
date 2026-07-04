@@ -12,11 +12,11 @@
 
 ## 1. NodeType::YIELD 枚举 + YieldNode 结构
 
-- [ ] 1.1 `src/core/types/node.h` — NodeType 加 YIELD
-- [ ] 1.2 `src/core/types/node.h` — 定义 `enum class YieldMode { NEXT, CONTINUE, STOP }`
-- [ ] 1.3 `src/core/types/node.h` — 定义 `struct YieldNode { yield_value, mode, stop_path }`
-- [ ] 1.4 Node 继承体系加 `YieldNode : public Node` 子类 (沿用现有 10 个 Node 子类模式 — Node 是多态基类, 非 union; 见 `src/core/types/node.h:35-55` 的 polymorphic 架构)
-- [ ] 1.5 audit 全库 grep `switch.*NodeType` 站点, 确保 YIELD case 全覆盖 (Oracle Risk 12: exhaust switch)
+- [x] 1.1 `src/core/types/node.h` — NodeType 加 YIELD
+- [x] 1.2 `src/core/types/node.h` — 定义 `enum class YieldMode { NEXT, CONTINUE, STOP }`
+- [x] 1.3 `src/core/types/node.h` — 定义 `struct YieldNode { yield_value, mode, stop_path }`
+- [x] 1.4 Node 继承体系加 `YieldNode : public Node` 子类 (沿用现有 10 个 Node 子类模式 — Node 是多态基类, 非 union; 见 `src/core/types/node.h:35-55` 的 polymorphic 架构)
+- [x] 1.5 audit 全库 grep `switch.*NodeType` 站点, 确保 YIELD case 全覆盖 (Oracle Risk 12: exhaust switch)
 
 ---
 

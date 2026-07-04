@@ -29,7 +29,15 @@ enum class NodeType : uint8_t {
     FORK,
     JOIN,
     GENERATE_SUBGRAPH,
-    ASSERT
+    ASSERT,
+    YIELD  // C12: token-by-token 流式生成节点
+};
+
+// C12: YieldNode 模式枚举
+enum class YieldMode : uint8_t {
+    NEXT = 0,      // 单 token 拉取 + 暂停
+    CONTINUE = 1,  // 连续拉取到 stream 结束或预算耗尽
+    STOP = 2       // 终止流 + 跳到 stop_path
 };
 
 // Forward declarations for Node structure
@@ -205,6 +213,36 @@ struct AssertNode : public Node {
     AssertNode(NodePath path, std::string condition, std::optional<NodePath> on_fail, std::vector<NodePath> next_paths = {});
     [[nodiscard]] LayeredContext execute(LayeredContext& ctx) override;
     std::unique_ptr<Node> clone() const override;
+};
+
+// C12: YIELD/STREAM 节点 - token-by-token 流式生成
+struct YieldNode : public Node {
+    std::string yield_value;     // 模板表达式
+    YieldMode mode = YieldMode::NEXT;
+    NodePath stop_path;          // STOP 模式跳转目标
+
+    YieldNode(NodePath path,
+              std::vector<NodePath> next = {},
+              nlohmann::json metadata = nlohmann::json::object(),
+              std::optional<std::string> sig = std::nullopt,
+              std::vector<std::string> perms = {},
+              std::string yield_value = "",
+              YieldMode mode = YieldMode::NEXT,
+              NodePath stop_path = "")
+        : Node(std::move(path), NodeType::YIELD, std::move(next),
+               std::move(metadata), std::move(sig), std::move(perms)),
+          yield_value(std::move(yield_value)),
+          mode(mode),
+          stop_path(std::move(stop_path)) {}
+
+    [[nodiscard]] LayeredContext execute(LayeredContext& ctx) override {
+        // §3 实施 execute_yield() 时替换此处
+        return ctx;
+    }
+
+    std::unique_ptr<Node> clone() const override {
+        return std::make_unique<YieldNode>(*this);
+    }
 };
 
 struct NodeResult {
