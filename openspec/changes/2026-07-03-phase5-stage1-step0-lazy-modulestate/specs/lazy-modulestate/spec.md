@@ -52,7 +52,7 @@ ExecutionSession MUST 在 PIMPL Impl struct 持有 `module_states_: std::map<std
 
 ### Requirement: lazy-modulestate-cleanup
 
-ExecutionSession 析构时 PIMPL 自动释放 module_states_ (无泄漏)。
+ExecutionSession 析构时 MUST PIMPL 自动释放 module_states_ (零泄漏)。
 
 #### Scenario: ASan 0 leak
 
