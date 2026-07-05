@@ -21,7 +21,7 @@
 | TSan | **61/61 (100%)** | Sprint 10 修复验证 (P1 jthread + P2 atomic flag) |
 | Phase 0 MVP | ✅ 100% | 2026-06-14 ship |
 | Phase 1 智能体层 | ✅ 100% | 2026-06-24 Sprint 5 ship (5 ADR Approved) |
-| Phase 2 异步运行时 | ✅ 100% | 2026-07-31 C2 ship + archive (ADR-0030 V2 → ✅ Approved) |
+| Phase 2 异步运行时 | 🟡 Partial | 2026-07-31 C2 ship 实施 (ADR-0030 V2 文件状态行仍 🔍 Proposed 未同步;§决策 2 P1-P4 实际状态由 ADR 文件 §最后更新 2026-06-26 反映) |
 | Phase 3 执行策略+安全 | ✅ 100% | 2026-07-02 C5+C6 ship + archive |
 | Phase 4 模型路由 | ✅ 100% | 2026-07-02 C7 fully shipped |
 | Phase 4.5 MVP清理 | ✅ 100% | 2026-07-03 C8 ship (SimpleCognitiveOrchestrator @internal + examples/ 目录梳理) |
@@ -355,7 +355,8 @@ void ExecutionSession::ensure_module_state(const std::string& module_path) {
 | **2b (Step 0 后)** | decoding.md | json scope nesting | 1 天 | C10 ship 后启动 |
 | **2c (Step 2 后)** | batching.md | queue 管理 | 2 天 | C12 ship 后启动 |
 
-**已创建**: engine.md, model.md, session.md (3/7, 来自 Sprint 19 之前)
+**已创建**: session.md (1/7, 来自 Sprint 19 之前)
+**占位 (Week 1 Day 1 创建, B2 实施时填充)**: engine.md, model.md
 **待创建**: prefix_cache.md, kv_cache.md, decoding.md, batching.md (4/7)
 
 ---
@@ -753,7 +754,7 @@ Review Gate 发现问题
 | 优先序 | Change | 估时 | 关键依赖 |
 |--------|--------|------|---------|
 | 1 | **C10** Lazy ModuleState | **1-1.5 天** (略降, 因独立于 LayeredContext) | C9 ✅ |
-| 2 | **C11** SessionRegistry + 2a 子图 (engine/model/session 已 ship) | 2-3 天 (不变) | C10 ✅ |
+| 2 | **C11** SessionRegistry + 2a 子图 (session.md 已 ship; engine/model 占位本周创建) | 2-3 天 (不变) | C10 ✅ |
 | 3 | **C12** YIELD/STREAM + 2b 子图 (prefix_cache/kv_cache/decoding) | **2.5-3 天** (略增, IGenerationStream bridge 适配) | C10 + C11 ✅ |
 | (延后) | 2c `batching.md` | 阶段 2 远期 | C12 ✅ |
 
