@@ -1,7 +1,26 @@
 # SKILL Compiler 设计文档
 
+> ⚠️ **本目录已于 2026-07-06 归档** (从 `docs/compiler/` 移至 `docs/archive/compiler/`)
+>
+> **编号冲突警告**: 本目录下的 `adr-0019` / `adr-0020` / `adr-0021` / `adr-0022` 编号
+> 与主项目 [`docs/adr/`](../../adr/) 中的 ADR 编号**存在重叠**,但议题完全不同:
+>
+> | 本目录 ADR | 主项目 ADR |
+> |-----------|-----------|
+> | `adr-0019-dynamic-graph-execution-model.md` (Fork/Join) | `docs/adr/adr-0019-iinteraction-bus-mvp.md` (IInteractionBus) |
+> | `adr-0020-skill-registry-lifecycle.md` (Skill Registry) | `docs/adr/adr-0020-thread-model-isolation.md` (线程模型) |
+> | `adr-0021-skill-compiler-architecture.md` (SSL-as-IR) | `docs/adr/adr-0021-pdk-design.md` (PDK 设计) |
+> | `adr-0022-bootstrap-loader-design.md` (Bootstrap) | `docs/adr/adr-0022-plugin-loading.md` (插件加载) |
+>
+> 该冲突对自动化工具链 (`tools/adr_lint.py`、`tools/adr_relationships.py`)**当前无害**,
+> 因为这些工具仅扫描 `docs/adr/` + `docs/adr/plugin/`,**不扫描本目录**。
+> 但人工搜索时需注意区分。
+>
+> 恢复方法 (如未来重新激活 SKILL Compiler 子项目): `git mv docs/archive/compiler docs/compiler`
+
 **目录创建**: 2026-05-24
-**状态**: 讨论中
+**归档时间**: 2026-07-06
+**状态**: ⏸ 设计已决 (12/12 决策已确认),实施未启动 (Phase 5 主线聚焦 PDK + Plugin Loader,不依赖独立编译器)
 
 ## 概述
 

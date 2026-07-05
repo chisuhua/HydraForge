@@ -94,8 +94,8 @@
 | **C10** | `2026-07-XX-phase5-stage1-step0-lazy-modulestate` | 实施 | 1-2 天 | C9 ✅ ship | ⚪ **placeholder, 待 C9 完成后启动** |
 | **C11** | `2026-07-XX-phase5-stage1-step1-session-registry` | 实施 | 2-3 天 | C9 ✅ ship (+ 建议 C10 ship 后启动) | ✅ **shipped (2026-07-04)** — 63/63 ctest 零回归, 4 个有意延后项 (4.6/5.4/5.6a/5.9) 记录至 C12/C14 |
 | **C12** | `2026-07-03-phase5-stage1-step2-yield-stream` | 实施 | **5-6 天** (Oracle 审查后 +2.7d for 5 risk mitigations + example + 异常类型) | C10 ✅ ship + C11 ✅ ship (YIELD 需要 module_state 持久化 + Session 标识) | ✅ **shipped (2026-07-04)** — 64/64 ctest 零回归 (63 baseline + test_yield_node 9 case), 5 commits ahead origin/main, 全部 Oracle Q1-Q4 + 5 风险 mitigations ship (TopoScheduler state machine + DAG state 持久化 + IGenerationStream bridge + BudgetChecker 真实注入 + cross-thread yield_mutex_). 估时实际 1 天 (基础 ship + Sprint 20 验证), 与估算差异: 实施部分受益于 C10/C11 ship-ready 状态 + Oracle Q1-Q4 锁定决策, 验证章节 ASan/TSan 首次 build 超时 deferred CI. |
-| **C13** | `2026-07-XX-phase5-stage2-step3-4-fork-checkpoint` | 实施 (延后) | 3-5 天 | C10+C11+C12 ✅ ship + 性能/运维需求触发 | ⚪ **placeholder, 远期延后** |
-| **C14** | `2026-07-XX-phase5-stage3-step5-6-analysis-service` | 实施 (远期) | 4-6 周 | C10+C11+C12+C13 ✅ ship + Phase 3 稳定 | ⚪ **placeholder, 远期延后** |
+| **C13** | `2026-07-XX-phase5-stage2-step3-4-fork-checkpoint` | 实施 (延后) | 3-5 天 | C10+C11+C12 ✅ ship + 性能/运维需求触发 | ⚪ **placeholder, 远期延后** <br/>*#已重定义: B2.0.0 = `phase5-b2-arch-schemas` (2026-07-05), 详见 §5.5* |
+| **C14** | `2026-07-XX-phase5-stage3-step5-6-analysis-service` | 实施 (远期) | 4-6 周 | C10+C11+C12+C13 ✅ ship + Phase 3 稳定 | ⚪ **placeholder, 远期延后** <br/>*#已重定义: B2.1.0 = `phase5-llama-engine-plugin` (2026-07-05), 详见 §5.5* |
 
 **注**: C9 是 audit change, 不属于 Phase 5 实施主体。Phase 5 实际执行链路为 C10 → C11 → C12 → (C13 远期) → (C14 远期), 详细 proposal/design/spec/tasks 在前置依赖完成后填充。
 
@@ -358,6 +358,36 @@ void ExecutionSession::ensure_module_state(const std::string& module_path) {
 **已创建**: session.md (1/7, 来自 Sprint 19 之前)
 **占位 (Week 1 Day 1 创建, B2 实施时填充)**: engine.md, model.md
 **待创建**: prefix_cache.md, kv_cache.md, decoding.md, batching.md (4/7)
+
+### 5.5 推理标准库 B2 拆分说明 — C13/C14/C15 编号重定义 (2026-07-05)
+
+> **ℹ️ 编号重定义声明**: 原 §三 总览表中预留的 **C13 (fork-checkpoint)** 和 **C14 (analysis-service)** 编号,于 2026-07-05 经 Oracle 架构反思(Oracle session `ses_0ce717ac4ffejvLa2We0gzbuds`)重新分配给 **推理标准库 B2 工具化扩展**,原 fork-checkpoint / analysis-service 延后至 **C19 (fork-checkpoint)** 与 **C20 (analysis-service)**,待 Stage 1+2 全链 ship + 性能/运维需求触发后再启动。
+
+#### B2.0.0 / C13 = `phase5-b2-arch-schemas`
+
+- **目录**: `openspec/changes/phase5-b2-arch-schemas/`
+- **内容**: B2.3 (prefix_cache) + B2.4 (kv_cache) + B2.5 (decoding) + B2.7 (cloud_engine) 4 个架构层 schema + SamplerStrategy hook (架构层接口定义,纯 `.md`,零 C++)
+- **关联 handoff**: `docs/handoff/2026-07-05-week1-day1-day2-completion.md` §5.1-5.2
+
+#### B2.1.0 / C14 = `phase5-llama-engine-plugin`
+
+- **目录**: `openspec/changes/phase5-llama-engine-plugin/`
+- **内容**: `pdk/llama_engine/` plugin 骨架 + B2.1 (engine: load/generate/stream) + B2.2 (model: load/unload/list/switch) + SamplerStrategy reference impl
+- **依赖**: C13 (schema 提供 SamplerStrategy 接口契约) — 实施期间并行启动
+- **关联 ADR**: ADR-0034 (Model Router 已 ship 的 plugin 范式)
+
+#### B2.2.0 / C15 = `phase5-batching-queue-plugin`
+
+- **目录**: `openspec/changes/phase5-batching-queue-plugin/`
+- **内容**: `BatchingQueue` PDK 接口(5 方法:submit/flush/cancel/wait_id/size) + `LlamaBatchingQueue` reference impl (FIFO 单请求 loop fallback) + 第三方插件贡献流程(PR 模板 + ADR 模板 + semver ABI policy)
+- **依赖**: C14 (`LlamaBatchingQueue` 实现位于 `pdk/llama_engine/`)
+- **关联 ADR**: ADR-0021 (PDK 设计) §8 第三方插件贡献政策待补
+
+#### 原 C13 (fork-checkpoint) / C14 (analysis-service) 顺延
+
+原 §三 表行 与 §六 / §七 中提到的 C13 / C14 仍代表 fork-checkpoint 与 analysis-service,**未变更**,仅编号语义在 B2 阶段被占用。**B2 工具化扩展完成后**,无论是否启动 fork-checkpoint / analysis-service,这两个编号都不会恢复。
+
+> 任何文档引用 C13 / C14 时,请先核对上下文(本 plan §三 + §六/§七 表示 fork-checkpoint/analysis-service;openspec changes 表 + handoff 表示 B2 工具化扩展)。
 
 ---
 

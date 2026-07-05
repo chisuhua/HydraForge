@@ -136,6 +136,7 @@ docs/
 | `v2.3/` | DSL v2.3 规范 (过期) |
 | `adr/` | 归档 ADR (13 个, 2026-06-12) — 见 [archive/adr/README.md](archive/adr/README.md) |
 | `specs/` | 归档 Spec (Phase 2 标准库 v1.0, 2026-06-12) — 见 [archive/specs/phase2-standard-library-v1.0.md](archive/specs/phase2-standard-library-v1.0.md) |
+| `compiler/` | SKILL Compiler 预研设计 (2026-05-24,设计已决但未实施;2026-07-06 归档) — 见 [archive/compiler/README.md](archive/compiler/README.md) |
 
 **其他归档文件**：
 - `AgenticDSL whitepaper.md` - 白皮书 (过期)

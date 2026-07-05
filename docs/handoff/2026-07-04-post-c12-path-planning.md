@@ -12,6 +12,8 @@
 
 C12 已 100% ship + archive 完成。**8 commits 已 push** 到 `origin/main` (commit `0018234`)。后续任务有 4 阶段路径(A→B→C→D),本周最优先是 **A1 ASan/TSan CI 验证** + **A3 C13 启动触发评估**。本文档提供完整背景,新 session 可以直接从此处启动后续实施而无需重新摸索。
 
+> **ℹ️ 2026-07-06 编号澄清**: 本 handoff 中提到的 C13/C14 仍代表 **fork-checkpoint** 与 **analysis-service** (未变更);**2026-07-05 起 C13/C14/C15 编号被 B2 工具化扩展占用** (`phase5-b2-arch-schemas` / `phase5-llama-engine-plugin` / `phase5-batching-queue-plugin`),详见 `docs/superpowers/plans/2026-07-03-phase5-self-bootstrapping.md` §5.5。本文档若与新编号冲突,以 master plan §5.5 为准。
+
 **立即执行入口**:
 - A1 CI: `cmake --preset asan && ctest` + `cmake --preset tsan && ctest`
 - B2 推理子图: 直接创建 `lib/inference/batching.md` (C12 ship 后可启动)
@@ -31,8 +33,8 @@ C12 已 100% ship + archive 完成。**8 commits 已 push** 到 `origin/main` (c
 | Phase 4 (模型路由 ADR-0034) | ✅ shipped (C7, 2026-07-02) | +1 |
 | Phase 4.5 (MVP 清理) | ✅ shipped (C8, 2026-07-03) | +1 |
 | **Phase 5 Stage 1 (C9-C12)** | **✅ 全链 ship + C12 (2026-07-04)** | +4 |
-| Phase 5 Stage 2 (C13 fork-checkpoint) | ⚪ placeholder, 远期延后 | — |
-| Phase 5 Stage 3 (C14 analysis-service) | ⚪ placeholder, 远期延后 | — |
+| Phase 5 Stage 2 (C13 fork-checkpoint) | ⚪ placeholder, 远期延后 (fork-checkpoint 含义未变;**B2 工具化 C13** = `phase5-b2-arch-schemas`, 与本行不同义) | — |
+| Phase 5 Stage 3 (C14 analysis-service) | ⚪ placeholder, 远期延后 (analysis-service 含义未变;**B2 工具化 C14** = `phase5-llama-engine-plugin`, 与本行不同义) | — |
 
 ### 1.2 C12 Ship 状态 (本 session 主要交付)
 
@@ -269,6 +271,7 @@ cd build/tsan && ctest --output-on-failure
 #### A3 — C13 启动决策 (1 天, 触发 Oracle 决议)
 
 **决策树**:
+> **注**: 本决策树中 C13 仍指 fork-checkpoint(**非** B2.0.0 / `phase5-b2-arch-schemas`,后者已于 2026-07-05 占用 C13 编号;详见 master plan §5.5)。
 ```
 C13 fork-checkpoint 触发?
 ├── 是 (性能 deep_copy bottleneck OR Session 迁移需求)
@@ -312,6 +315,7 @@ C13 fork-checkpoint 触发?
 | C13.6 | 编写 `tests/test_fork_perfield.cpp` + `tests/test_checkpoint_restore.cpp` | `tests/` |
 
 **OpenSpec placeholder 命令**:
+> **注**: 此命令仅在 A3 决定 fork-checkpoint 启动时执行。`2026-07-XX-phase5-stage2-step3-4-fork-checkpoint` 是原 fork-checkpoint C13 占位名称(**非** B2.0.0 / `phase5-b2-arch-schemas`)。
 ```bash
 openspec init 2026-07-XX-phase5-stage2-step3-4-fork-checkpoint
 # 写入 proposal.md/design.md/specs/spec.md/tasks.md

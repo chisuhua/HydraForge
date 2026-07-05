@@ -765,7 +765,7 @@ EventBus (Phase 2 ADR-0002 V2)
 | `docs/proposals/implementation-roadmap/01-roadmap.md` (IP-001) | 阶段 1: 核心自举能力 | Phase 5 阶段 1 |
 | `docs/adr/adr-0019-iinteraction-bus-mvp.md` | IInteractionBus + TUI Chat | Phase 0 Track 0.3 + Phase 1 |
 | `docs/archive/Roadmap.md` | v3.2 对话记忆 MVP | 远期/参考 |
-| `docs/compiler/plan-phase1-foundation.md` | Compiler 阶段 1 | 独立编译器项目 |
+| `docs/archive/compiler/plan-phase1-foundation.md` | Compiler 阶段 1 (SKILL Compiler 子项目, 2026-07-06 归档) | 独立编译器项目 |
 
 ---
 
