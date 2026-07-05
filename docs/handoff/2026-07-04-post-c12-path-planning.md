@@ -457,7 +457,7 @@ cd ../..
 # 1. 查现有 lib/inference/ 目录
 ls lib/inference/
 
-# 2. 写 lib/inference/batching.md (参考 lib/inference/{engine,session,model}.md 模板)
+# 2. 写 lib/inference/batching.md (参考 lib/inference/session.md 模板; engine/model 为本周创建的占位)
 # 3. 注册到根 StandardLibraryLoader (如需要)
 # 4. tests/test_inference_stdlib.cpp 验证
 # 5. 提交: feat(phase5): add inference stdlib batching.md
