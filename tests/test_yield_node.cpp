@@ -23,7 +23,7 @@ TEST_CASE("YieldNode NEXT mode returns single token via NodeExecutor",
     MockLLMProvider* provider_raw = provider_holder.get();
     provider_raw->set_stream_tokens({"Hello", "world"});
 
-    NodeExecutor executor(registry, provider_holder.release());
+    NodeExecutor executor(registry, provider_holder.get());
 
     YieldNode node("/main/yield_next",
                    std::vector<NodePath>{}, nlohmann::json::object(),
@@ -47,7 +47,7 @@ TEST_CASE("YieldNode CONTINUE mode concatenates tokens until stream end",
     auto provider_holder = std::make_unique<MockLLMProvider>();
     provider_holder->set_stream_tokens({"alpha", "-", "beta", "-", "gamma"});
 
-    NodeExecutor executor(registry, provider_holder.release());
+    NodeExecutor executor(registry, provider_holder.get());
 
     YieldNode node("/main/yield_continue",
                    std::vector<NodePath>{}, nlohmann::json::object(),
@@ -67,7 +67,7 @@ TEST_CASE("YieldNode STOP mode stores stop_path without LLM call",
     ToolRegistry registry;
     auto provider_holder = std::make_unique<MockLLMProvider>();
     MockLLMProvider* provider_raw = provider_holder.get();
-    NodeExecutor executor(registry, provider_holder.release());
+    NodeExecutor executor(registry, provider_holder.get());
 
     YieldNode node("/main/yield_stop",
                    std::vector<NodePath>{}, nlohmann::json::object(),
@@ -143,7 +143,7 @@ TEST_CASE("ExecutionSession sets pending_yield_ when YIELD produces __yield_mode
                    "Test prompt", YieldMode::CONTINUE, "");
     Context ctx;
 
-    ExecutionSession session("test-session", std::nullopt, registry, provider.release(), rm, nullptr);
+    ExecutionSession session("test-session", std::nullopt, registry, provider.get(), rm, nullptr);
     ExecutionSession::ExecutionResult result = session.execute_node(&node, ctx);
 
     REQUIRE(result.success);
@@ -168,7 +168,7 @@ TEST_CASE("ExecutionSession pending_yield_ persists and clears correctly",
                    "Test prompt", YieldMode::NEXT, "");
     Context ctx;
 
-    ExecutionSession session("test-session", std::nullopt, registry, provider.release(), rm, nullptr);
+    ExecutionSession session("test-session", std::nullopt, registry, provider.get(), rm, nullptr);
 
     REQUIRE_FALSE(session.get_pending_yield().has_value());
 
