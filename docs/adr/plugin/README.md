@@ -16,7 +16,7 @@
 
 | ADR | 议题 | 状态 | 计划实施方式 |
 |-----|------|------|-------------|
-| [adr-0034-model-router.md](./adr-0034-model-router.md) | IModelRouter 模型路由接口 | 🔍 Proposed | 通过 Plugin SDK 加载第三方模型路由策略（参考 [ADR-0021](../adr-0021-pdk-design.md) PDK 设计） |
+| [adr-0034-model-router.md](./adr-0034-model-router.md) | IModelRouter 模型路由接口 | ✅ Approved (C7 ship, 2026-07-02) | 通过 Plugin SDK 加载第三方模型路由策略（参考 [ADR-0021](../adr-0021-pdk-design.md) PDK 设计） |
 
 > ADR-0021 / ADR-0022 是 plugin 框架本身的 ADR（活跃在 `docs/adr/` 根目录），不属于本目录。
 > 待 PDK 落地后，新的"plugin 化实施"ADR 优先放本目录，根目录保留纯架构 ADR。

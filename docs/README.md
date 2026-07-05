@@ -24,7 +24,7 @@ docs/
 | 文件 | 议题 | 状态 |
 |------|------|------|
 | `adr-0001-illm-provider-streaming-interface.md` | ILLMProvider 流式接口 | ✅ Approved |
-| `adr-0002-eventbus-bounded-queue.md` | EventBus 有界队列 | ✅ Approved |
+| `adr-0002-eventbus-bounded-queue.md` | EventBus 有界队列 | ❌ Not Implemented (V1 归档, Phase 1 改用 ADR-0019 IInteractionBus MVP 承担事件通信) |
 | `adr-0003-dslengine-thread-safety.md` | DSLEngine 线程安全 | ✅ Approved |
 | `adr-0004-toolregistry-security.md` | ToolRegistry 安全模型 | ✅ Approved |
 | `adr-0005-llm-backend-config-factory.md` | LLM 后端配置与工厂 | ✅ Approved |
@@ -37,7 +37,7 @@ docs/
 | `adr-0021-pdk-design.md` | Plugin Development Kit (PDK) 设计 | ✅ Approved (2026-06-24, Sprint 5 ship) |
 | `adr-0022-plugin-loading.md` | 插件加载机制 | ✅ Approved (2026-06-24, Sprint 5 ship) |
 | `adr-0023-tool-result-standard.md` | ToolResult 标准化 | ✅ Approved (2026-06-24, Sprint 5 ship) |
-| `adr-0031-execution-policy.md` | 执行策略 | 🟡 Partial (仅头文件 stub) |
+| `adr-0031-execution-policy.md` | 执行策略 | 🟡 Partial (C3 P1-P2 ✅ Approved 2026-07-31; C4 P3-P4 🟡 active; §决策 8 4 项 defer 至 C6) |
 | `adr-0033-session-hierarchy.md` | 会话层次结构 | ✅ Approved (Sprint 15 C5, 2026-07-02) |
 | `adr-0002-impl-scope-audit.md` | ADR-0002 实施范围审计 (OpenSpec change `docs-code-drift-audit-2026-06` 产出) | 📋 审计补充 |
 | `adr-0004-impl-scope-audit.md` | ADR-0004 实施范围审计 (同上) | 📋 审计补充 |
