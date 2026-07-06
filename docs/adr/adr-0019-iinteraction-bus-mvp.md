@@ -2,11 +2,54 @@
 
 ## 状态
 
-**✅ Approved (2026-06-24, Sprint 5 ship)** — V2.1 版，IInteractionBus + InMemoryBus MVP 已实施（commits 5f21ea3, f07a4b4）。后续 P2（DSLEngine bus 集成）移交 Phase 1。Phase 1 智能体层 100% 收官，变更依据: `openspec/changes/tech-debt-and-phase1-closure/`。
+**🟡 Partial** (2026-07-06 更新 — P0 review 触发扩展, 待 follow-up PR ship `subscribe_topic` 扩展)
+- ✅ Original: V2.1 ship (2026-06-24, Sprint 5)
+- 🟡 New: 计划扩展 `subscribe_topic(topic_pattern, callback)` per [ADR-0046 §2.1](../adr-0046-plugin-communication-protocol.md) — PDK plugin 间通信需要 topic-based subscribe, 而当前接口仅 session-based (`subscribe_events(session_id, callback)`)
 
 > **2026-06-08 截至 (commit f07a4b4)**：`IInteractionBus` 与 `InMemoryBus` 的公共头文件迁移到 `include/agenticdsl/contract/`，实现文件 (`inmemory_bus.cpp`) 与 `CMakeLists.txt` 保留在 `src/common/contract/`。`events.h` 在 M5.2 简化跳过，Event/Token/Session 类型内联到 `IInteractionBus` 头文件。
 
+> **2026-07-06 P0 Review 触发扩展** (per [Oracle review ses_0c9e97925ffete0oXvgRmpLo12](../adversarial-reviews/architecture-overview-two-plugin-communication.md)): ADR-0046 Event Layer 需要 topic-based subscribe, 而 IInteractionBus 当前接口仅支持 session-based. 扩展方案见 §IInteractionBus 接口扩展.
+
+---
+
 ## 状态变更日志
+
+### 2026-07-06 — ADR-0046 触发的接口扩展
+
+参考 [ADR-0046 §2.1](../adr-0046-plugin-communication-protocol.md), 本 ADR 扩展 `subscribe_topic(topic_pattern, callback)` 方法:
+
+```cpp
+class IInteractionBus {
+public:
+    // 现有 (V2.1): session-based
+    virtual void subscribe_events(const std::string& session_id,
+                                  EventCallback callback) = 0;
+
+    // 新增 (V2.2 / 2026-07-06): topic-based for PDK plugin 间通信
+    virtual size_t subscribe_topic(
+        const std::string& topic_pattern,   // 支持 glob: "inference.lifecycle.*"
+        TopicCallback callback) = 0;
+    virtual void unsubscribe(size_t token) = 0;
+
+    // ... 其他现有方法
+};
+```
+
+**InMemoryBus 实现变更**:
+- 添加 `topic_subscribers_: unordered_map<string, vector<pair<token, callback>>>` 字段
+- `emit(topic, payload)` 同时 dispatch 到 session subscribers (现有逻辑) + topic subscribers (新逻辑)
+- topic dispatch 复用现有 dispatch_thread + MPMC queue (零基础设施增量)
+- glob 支持: `subscribe_topic("inference.lifecycle.*", cb)` matches `inference.lifecycle.idle`, `inference.lifecycle.running`, 等
+
+**Layer check** (`subscribe_topic` 需 layer 上下文, 类似 ToolCoordinator):
+- Cognitive 层: 不允许订阅 plugin 内部事件
+- Thinking/Workflow 层: 允许订阅 `inference.lifecycle.*` 等公开事件
+- 实现: subscribe_topic 可选传入 layer 参数 (默认 Workflow), emit 时不检查 (broadcast), 但 subscribe 时记录 layer 用于审计
+
+**修订影响**:
+- Phase 1 智能体层保持 100% 收官 (原有 session-based 用法零变化)
+- 增量 PDK Plugin 间通信能力 (ADR-0046)
+- 实施成本: <1d (复用现有 dispatch_thread 后端)
 
 ### 2026-06-18 — Sprint 2 CognitiveWorker 集成
 

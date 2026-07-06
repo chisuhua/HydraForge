@@ -10,12 +10,12 @@ graph_type: subgraph
 module: "inference::engine"
 signature: "(engine_type: string, config: json) -> (engine_id: string, status: string)"
 permissions:
-  - tool: inference.engine_init
+  - tool: inference/engine/init
 nodes:
   # 节点1: 初始化推理引擎
   - id: init_engine
     type: tool_call
-    tool: inference.engine_init
+    tool: inference/engine/init
     arguments:
       engine_type: "{{ inputs.engine_type }}"
       config: "{{ inputs.config }}"
@@ -90,8 +90,8 @@ nodes:
 
 ## B2 实施清单 (待执行)
 
-- [ ] 注册 `inference.engine_init` 工具 (`src/common/tools/registry.cpp`)
-- [ ] 实现 `engine_init` 底层 C++ 函数 (调用对应引擎 API)
+- [ ] 注册 `inference/engine/init` 工具 (`src/common/tools/registry.cpp`)
+- [ ] 实现 `inference/engine/init` 底层 C++ 函数
 - [ ] 添加 `tests/test_engine_subgraph.cpp` (init_engine / check_status / error 路径)
 - [ ] 更新本文件 `placeholder` 标记 → 删除,改为完整 ship 状态
 - [ ] 在 master plan §五.4 + §十六.4 标记 engine.md "shipped"

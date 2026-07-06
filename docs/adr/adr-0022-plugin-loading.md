@@ -8,6 +8,12 @@
 
 ---
 
+## 生命周期扩展对齐 (2026-07-06 追加)
+
+**与 ADR-0041 (PluginLoader 生命周期扩展) 的对齐说明**: 本 ADR 的 §决策 2 (符号约定) 当前仅定义 `pdk_register_tools` 和 `pdk_plugin_info` 两个符号。Phase 2+ 规划的 "完整 PluginLifecycle 钩子" (如 `pdk_plugin_init`/`pdk_plugin_fini`) 将由 [ADR-0041 (PluginLoader 生命周期扩展)](../adr-0041-pluginloader-lifecycle-extension.md) (P2, 待创建) 定义。GPU 初始化等有状态 Plugin 需求在当前阶段通过 `inference/engine/init` 工具手动触发, 不阻塞 PluginLoader core。
+
+---
+
 ## 替代关系
 
 无替代关系。本 ADR 填补 ADR-0021 (PDK) 与 ADR-0020 (Runtime) 之间的缺口，定义 **Runtime 如何加载 PDK 编译的 `.so` 插件**。
@@ -54,17 +60,28 @@ ADR-0020 (Runtime)       →  执行时: ToolRegistry → NodeExecutor
 
 ### 1. 符号约定
 
-#### 1.1 规则
+#### 1.1 规则 (2026-07-06 扩展)
 
-每个 PDK 编译的 `.so` 必须导出两个符号：
+每个 PDK 编译的 `.so` **必须导出 2 个核心符号**, **可选导出 1 个 ILLMProvider 工厂符号**:
 
 ```cpp
-// 符号 1: 插件元数据 (POD 数据符号)
+// 符号 1 (必须): 插件元数据 (POD 数据符号)
 extern "C" const hydraforge::PluginInfo pdk_plugin_info;
 
-// 符号 2: 工具注册函数 (无返回值, 接受 ToolRegistry 引用)
-extern "C" void pdk_register_tools(hydraforge::ToolRegistry& registry);
+// 符号 2 (必须): 工具注册函数 (无返回值, 接受 ToolRegistry 引用)
+extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry);
+
+// 符号 3 (可选, per ADR-0035 §1.2):
+//            ILLMProvider 工厂函数, 仅提供 LLM 能力的 Plugin (如推理引擎) 导出
+extern "C" std::shared_ptr<::agenticdsl::ILLMProvider> pdk_create_llm_provider();
 ```
+
+**符号 3 设计要点** (ADR-0035 §1.2):
+- 返回 `std::shared_ptr<ILLMProvider>` 而非 raw pointer — 跨 .so 边界内存安全, 与 C++ RAII 一致
+- 若 plugin 不导出符号 3, PluginLoader 跳过此 lookup, DSLEngine 使用默认 ILLMProvider 实现
+- PluginLoader 析构所有 shared_ptr 后再 dlclose (析构顺序保证 — 参考 Sprint 17 C7 destruction order bug)
+
+**符号查找机制** (Linux): `dlsym(handle, "pdk_create_llm_provider")`, 若返回 NULL 表示 plugin 未提供此能力。
 
 #### 1.2 PluginInfo 结构体
 
@@ -79,67 +96,122 @@ namespace hydraforge {
 
 // 插件元数据 — POD 结构，只能包含值类型
 // 目的: Runtime 在调用任何插件函数前即可读取
-struct PluginInfo {
-    // 接口版本 (定义编译时 ABI 兼容性)
-    // 当前版本: 1
-    uint32_t abi_version;
 
-    // 插件名称 (仅 ASCII, 最大 63 字节)
+// === PluginInfo v1 (2026-06-21 Sprint 5 ship, sizeof = 848 bytes) ===
+struct PluginInfoV1 {
+    uint32_t abi_version;             // = 1
     char name[64];
-
-    // 版本号
-    uint32_t major_version;
-    uint32_t minor_version;
-    uint32_t patch_version;
-
-    // 插件描述 (最大 255 字节)
+    uint32_t major_version, minor_version, patch_version;
     char description[256];
-
-    // 提供的能力标签集合 (逗号分隔, 最大 511 字节)
-    // 例如: "code,code::edit,code::lsp"
     char capabilities[512];
 };
 
-// 当前 ABI 版本
-inline constexpr uint32_t CURRENT_ABI_VERSION = 1;
+// === PluginInfo v2 (2026-07-06 P1 fix per ADR-0041, sizeof = 1104 bytes) ===
+//   新增 dependencies[256] 字段 — comma-separated plugin names 表达加载依赖
+struct PluginInfoV2 {
+    uint32_t abi_version;             // = 2 (CURRENT_ABI_VERSION)
+    char name[64];
+    uint32_t major_version, minor_version, patch_version;
+    char description[256];
+    char capabilities[512];
+    char dependencies[256];            // NEW: comma-separated plugin names
+};
+
+// Type alias: 与既有代码兼容
+using PluginInfo = PluginInfoV2;
+
+// 当前 ABI 版本 (bumped to 2 per ADR-0041)
+inline constexpr uint32_t CURRENT_ABI_VERSION = 2;
+
+// V1 也被 PluginLoader 接受 (向后兼容老 .so)
+static constexpr uint32_t SUPPORTED_ABI_VERSIONS[] = {1, CURRENT_ABI_VERSION};
 
 } // namespace hydraforge
 
 #endif
 ```
 
-**选择理由**：
-- `PluginInfo` 是 POD → `dlsym` 获取地址后直接读字段，**零代码执行**
-- ABI 版本控制独立于功能版本，避免 ABI break 误判
+**选择理由**:
+- `PluginInfo` 是 POD → `dlsym` 获取地址后直接读字段,**零代码执行**
+- ABI 版本控制独立于功能版本,避免 ABI break 误判
 - `capabilities` 标签支持未来按能力发现插件
-- 放弃选项 A（固定符号）：多 `.so` 场景符号冲突不可控
-- 放弃纯选项 B（纯版本化符号）：无法在调用前获取元数据
+- **v1/v2 dual ABI support**: PluginLoader 根据 `info.abi_version` dispatch 读 V1 或 V2, 老 .so 仍可加载
+- **依赖声明** (v2 新): orchestration plugin 声明对 inference plugin 依赖 → PluginLoader topological sort
+- 放弃选项 A (固定符号): 多 `.so` 场景符号冲突不可控
+- 放弃纯选项 B (纯版本化符号): 无法在调用前获取元数据
+
+#### 1.2.1 Dual ABI dispatch (2026-07-06 P0 fix per [ADR-0041 §1.5](./adr-0041-pluginloader-lifecycle-extension.md))
+
+PluginLoader 读 `pdk_plugin_info` POD 后,根据 `info.abi_version` 字段选择 reading path:
+
+```cpp
+// PluginLoader::read_pdk_plugin_info unified read
+PluginInfoV2 PluginLoader::read_plugin_info(void* info_handle) {
+  // 1. 读 abi_version (前 4 字节, 安全)
+  uint32_t abi_version;
+  std::memcpy(&abi_version, info_handle, sizeof(uint32_t));
+
+  if (abi_version == 1) {
+    // v1 老 .so
+    PluginInfoV1 raw;
+    std::memcpy(&raw, info_handle, sizeof(PluginInfoV1));
+    return PluginInfoV2{
+      .abi_version = 1, .name = ... // strncpy from raw.name
+      ...
+      .dependencies = ""  // v1 无依赖字段, 视为空
+    };
+  } else if (abi_version == CURRENT_ABI_VERSION) {
+    // 当前版本,直接 memcpy 整个 struct
+    PluginInfoV2 raw;
+    std::memcpy(&raw, info_handle, sizeof(PluginInfoV2));
+    return raw;
+  } else {
+    throw std::runtime_error("Unsupported PluginInfo abi_version: " + std::to_string(abi_version));
+  }
+}
+```
+
+**后向兼容性**:
+- 新 PluginLoader (abi_version=2) 加载老 v1 .so → OK, `dependencies` = ""
+- 老 PluginLoader (abi_version=1) 加载新 v2 .so → 拒绝 (PluginInfoV1 read truncated, 内存不匹配)
 
 #### 1.3 PDK 展开示例
 
-`DECLARE_TOOL(edit_file, ...)` 在 PDK (ADR-0021) 中展开为：
+`DECLARE_TOOL(edit_file, ...)` 在 PDK (ADR-0021) 中展开为:
 
 ```cpp
 // PDK 自动生成的代码 (编译到 edit_file_plugin.so 中)
 #include <hydraforge/pdk.h>
 
-// 自动生成 PluginInfo
-extern "C" const hydraforge::PluginInfo pdk_plugin_info = {
-    .abi_version = hydraforge::CURRENT_ABI_VERSION,
+// 自动生成 PluginInfo v2
+extern "C" const hydraforge::PluginInfoV2 pdk_plugin_info = {
+    .abi_version = hydraforge::CURRENT_ABI_VERSION,  // = 2
     .name = "edit_file",
     .major_version = 1,
     .minor_version = 0,
     .patch_version = 0,
     .description = "Edit files in workspace",
     .capabilities = "code,code::edit,code::file",
+    .dependencies = "",  // 无依赖
 };
 
 // 自动生成注册函数
 extern "C" void pdk_register_tools(hydraforge::ToolRegistry& registry) {
-    registry.register_tool("code::edit_file", [](const auto& args) {
+    registry.register_tool("code/edit_file", [](const auto& args) {
         // 领域逻辑...
         return nlohmann::json{{"ok", true}};
     });
+}
+
+// 可选 init 钩子 (新增 per ADR-0041 §1)
+extern "C" bool pdk_plugin_init(const hydraforge::PluginInfoV2& self) {
+    // 资源初始化
+    return true;
+}
+
+// 可选 fini 钩子
+extern "C" void pdk_plugin_fini() {
+    // 资源清理
 }
 ```
 
@@ -223,43 +295,66 @@ struct Plugin_v1 {
 };
 ```
 
-#### 3.2 加载流程
+#### 3.2 加载流程 (2026-07-06 更新 — per [ADR-0041 §2](./adr-0041-pluginloader-lifecycle-extension.md))
+
+**Note**: 本节最初描述的 `pdk_plugin_lifecycle` struct-based 钩子是早期理论设计。Sprint 5 实际落地采用 **individual dlsym'd symbols** 模式,本节改写以反映现实 + ADR-0041 扩展。
 
 ```
 dlopen(".so", RTLD_NOW | RTLD_LOCAL)
     │
-    ├── dlsym("pdk_plugin_info") → PluginInfo
-    │   ├── abi_version == CURRENT_ABI_VERSION?  → 继续
-    │   └── abi_version != CURRENT_ABI_VERSION?  → 拒绝加载
+    ├── dlsym("pdk_plugin_info") → PluginInfoV2 (or V1 if old .so)
+    │   ├── abi_version ∈ {1, CURRENT_ABI_VERSION}?   → 继续 (dual ABI support)
+    │   └── abi_version 不匹配?                  → 拒绝加载
     │
-    ├── dlsym("pdk_plugin_lifecycle") → Plugin_v1
+    ├── build dependency graph from PluginInfo.dependencies
+    │   └── cyclic dependency?   → 拒绝加载, throw runtime_error
     │
-    ├── 调用 on_load(ctx)
-    │   ├── 返回 true? → 继续
-    │   └── 返回 false? → dlclose, 记录错误
+    ├── dlsym("pdk_plugin_init")         → optional init 钩子 (NEW per ADR-0041)
+    │   ├── 存在 + 返回 true?        → 继续
+    │   ├── 存在 + 返回 false?       → dlclose rollback, 拒绝加载
+    │   └── 不存在?                  → 跳过,继续
     │
-    ├── 调用 register_tools(registry)
+    ├── dlsym("pdk_register_tools")   → 必选
+    │   └── 调用 register_tools(registry)
+    │
+    ├── dlsym("pdk_create_llm_provider") → optional (NEW P0 fix)
+    │   ├── 存在?                    → plugin->llm_provider = factory_fn()
+    │   └── 不存在?                  → 跳过
     │
     └── 记录到 loaded_ 列表
 ```
 
-#### 3.3 卸载策略
+完整 5 个符号集见 [ADR-0041 §1](./adr-0041-pluginloader-lifecycle-extension.md)。
+
+#### 3.3 卸载策略 (2026-07-06 更新 — per [ADR-0041 §2](./adr-0041-pluginloader-lifecycle-extension.md))
 
 ```cpp
-// 卸载单个插件
+// 卸载单个插件 (Sprint 5 既有, ADR-0041 扩展)
 void unload_plugin(const std::string& name) {
     auto it = find_plugin(name);
+    if (it == end) return false;
 
-    if (it->lifecycle.on_unload) {
-        it->lifecycle.on_unload();   // 清理
+    // 1. 释放所有外部引用 (caller responsibility)
+    //    - DSLEngine 释放 shared_ptr<ILLMProvider>
+    //    - 编排 Plugin unsubscribe bus topics
+    //    - ToolRegistry lambdas 必须先于 dlclose 释放 (per Sprint 17 C7 destruction order)
+
+    // 2. ADR-0041 NEW: 调用 pdk_plugin_fini (if present + has_init)
+    if (it->has_init) {
+        auto fini = dlsym(it->handle, "pdk_plugin_fini");
+        if (fini) fini();  // 5s hard timeout (per ADR-0041 §7)
     }
 
-    dlclose(it->handle);             // 卸载 .so
+    // 3. dlclose (existing)
+    dlclose(it->handle);
 
-    // 注意: dlclose 后不保证 C++ 静态析构运行
-    // 解决方案: 进程退出时 _exit(0) 跳过析构
-    // 运行时卸载场景需确保 on_unload 已清理所有资源
+    // 4. 注意: dlclose 后不保证 C++ 静态析构运行
+    //    解决方案: 进程退出时 _exit(0) 跳过析构
+    //    运行时卸载场景需确保 fini 已清理所有资源
+
+    loaded_.erase(it);
 }
+```
 ```
 
 **选择理由**：
@@ -275,8 +370,9 @@ void unload_plugin(const std::string& name) {
 
 | 条件 | 结果 |
 |------|------|
-| `PluginInfo.abi_version == CURRENT_ABI_VERSION` | ✅ 加载 |
-| `PluginInfo.abi_version != CURRENT_ABI_VERSION` | ❌ 拒绝（ABI break） |
+| `PluginInfo.abi_version == CURRENT_ABI_VERSION` (= 2) | ✅ 加载 (v2 PDK dispatch) |
+| `PluginInfo.abi_version == 1` (P1 fix per [ADR-0041 §1.5](./adr-0041-pluginloader-lifecycle-extension.md)) | ✅ 加载 (v1 backward compat) |
+| `PluginInfo.abi_version ∉ {1, CURRENT_ABI_VERSION}` | ❌ 拒绝 (ABI break) |
 | major/minor/patch 不匹配且 abi_version 相同 | ✅ 加载（运行时检查） |
 
 #### 4.2 为什么使用 `abi_version` 而非 `major_version`？

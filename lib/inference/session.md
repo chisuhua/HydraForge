@@ -6,14 +6,14 @@ graph_type: subgraph
 module: "inference::session"
 signature: "(engine_id: string, model_id: string, temperature: float, top_p: float, max_tokens: int, stop_tokens: list) -> (session_id: string, status: string)"
 permissions:
-  - tool: inference.engine_init
-  - tool: inference.model_load
-  - tool: inference.session_create
+  - tool: inference/engine/init
+  - tool: inference/model/load
+  - tool: inference/session/create
 nodes:
   # 节点1: 创建推理会话
   - id: create_session
     type: tool_call
-    tool: inference.session_create
+    tool: inference/session/create
     arguments:
       engine_id: "{{ inputs.engine_id }}"
       model_id: "{{ inputs.model_id }}"

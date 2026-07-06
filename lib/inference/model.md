@@ -10,12 +10,12 @@ graph_type: subgraph
 module: "inference::model"
 signature: "(engine_id: string, model_path: string, model_type: string, quantization: string) -> (model_id: string, status: string)"
 permissions:
-  - tool: inference.model_load
+  - tool: inference/model/load
 nodes:
   # 节点1: 加载模型
   - id: load_model
     type: tool_call
-    tool: inference.model_load
+    tool: inference/model/load
     arguments:
       engine_id: "{{ inputs.engine_id }}"
       model_path: "{{ inputs.model_path }}"
@@ -97,8 +97,8 @@ nodes:
 
 ## B2 实施清单 (待执行)
 
-- [ ] 注册 `inference.model_load` 工具 (`src/common/tools/registry.cpp`)
-- [ ] 实现 `model_load` 底层 C++ 函数 (调用 llama.cpp llama_load_model_from_file 等)
+- [ ] 注册 `inference/model/load` 工具 (`src/common/tools/registry.cpp`)
+- [ ] 实现 `inference/model/load` 底层 C++ 函数
 - [ ] 添加 `tests/test_model_subgraph.cpp` (load_model / check_status / error 路径)
 - [ ] 更新本文件 `placeholder` 标记 → 删除,改为完整 ship 状态
 - [ ] 在 master plan §五.4 + §十六.4 标记 model.md "shipped"

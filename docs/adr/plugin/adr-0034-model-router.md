@@ -337,8 +337,26 @@ if (result.has_value()) {
 
 ---
 
+## 命名约定 (2026-07-06 追加 — ADR-0046 三关键问题 Oracle 审查产出)
+
+> **PDK tool names use slash (`/`) as hierarchy delimiter.** Format: `{namespace}/{component}/{action}`.
+
+本 ADR 的 `model_router/cost` 等工具名是**先例**, 后续所有 PDK Plugin 工具需遵循此约定:
+
+- `model_router/cost`, `model_router/quality` — 路由策略工具 ✅
+- `inference/engine/init`, `inference/generate` — 推理引擎工具 ✅ (ADR-0035)
+- `orchestration/route`, `orchestration/execute` — 编排工具 ✅ (ADR-0045)
+
+**点号 (`.`)** 保留给 C++ 方法调用和 DSL 模块 namespace (如 `inference::engine`), 不与 PDK tool 名混用。
+
+详见 [ADR-0046: PDK 插件间通信协议 §决策 1](../adr-0046-plugin-communication-protocol.md)。
+
+---
+
 ## 参考
 
+- [ADR-0046: PDK 插件间通信协议](../adr-0046-plugin-communication-protocol.md)
+- [ADR-0035: 推理引擎 PDK Plugin 规范](../adr-0035-inference-engine-plugin-spec.md)
 - [ADR-0001: ILLMProvider 流式接口](./adr-0001-illm-provider-streaming-interface.md)
 - [ADR-0030: AsyncRuntime 双层协程](../archive/adr/adr-0030-async-runtime-dual-layer.md)
 - [ADR-0002: EventBus 有界队列](./adr-0002-eventbus-bounded-queue.md)
