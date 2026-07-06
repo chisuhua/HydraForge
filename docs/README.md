@@ -139,12 +139,12 @@ docs/
 | `compiler/` | SKILL Compiler 预研设计 (2026-05-24,设计已决但未实施;2026-07-06 归档) — 见 [archive/compiler/README.md](archive/compiler/README.md) |
 
 **其他归档文件**：
-- `AgenticDSL whitepaper.md` - 白皮书 (过期)
 - `AgenticDSL_LibSpec_v1.1.md` - 旧库规范 (过期)
 - `AgenticDSL_SystemPrompt_v3.6.md` - 旧 System Prompt (过期)
 - `Roadmap.md` - 旧路线图 (过期)
-- `Application_guide.md` - 旧应用指南 (过期)
 - `brain-thinking-spec.md` - 旧思考规范 (过期)
+- ~~`AgenticDSL whitepaper.md`~~ (2026-07-06 删除,内容近似空)
+- ~~`Application_guide.md`~~ (2026-07-06 删除,内容近似空)
 
 ---
 
