@@ -187,6 +187,13 @@ docs/
 > - `2026-06-24-tech-debt-full-closure.md` (1769 行) — 13 步全路径 plan (阶段 A+B 100% + 阶段 C handoff 至 `2026-06-24-engine-include-final-decoupling`),已 ship
 > - `2026-06-24-engine-include-final-decoupling.md` (895 行) — 6.3.x 收官 plan (engine.cpp includes 10→3 + 3 engine_factory tests),已 ship + change 已 archive
 >
+> **2026-07-06 更新** (OpenSpec change `docs-cleanup-phase-2`):5 个已 ship plan 同步归档至 `archive/superpowers/plans/`:
+> - `2026-06-24-engine-include-final-decoupling.md` (Sprint 6 已 ship + change 已 archive)
+> - `2026-06-24-tech-debt-full-closure.md` (Sprint 6 已 ship)
+> - `2026-06-25-sprint-10-pre-existing-sanitizer-cleanup.md` (Sprint 10 已 ship + change 已 archive)
+> - `2026-07-02-c7-model-router-mvp.md` (Sprint 17 Phase 1 MVP 已 ship,被 Phase 2 超集覆盖)
+> - `2026-07-02-c7-phase2-model-router-plugin.md` (Sprint 17 Phase 2 已完整 ship,ADR-0034 ✅ Approved + 61/61 ctest)
+>
 > 后续 superpowers plans 由各 Sprint 启动时按需创建。
 >
 > **历史归档(2026-06-03)**:`docs/superpowers/` 原 3 个文件已归档至 `docs/archive/superpowers/`:

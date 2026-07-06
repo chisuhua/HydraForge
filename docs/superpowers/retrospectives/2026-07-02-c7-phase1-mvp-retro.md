@@ -1,7 +1,7 @@
 # C7 Phase 1 MVP Retrospective (2026-07-02)
 
 > **Sprint 17 Day 1-7 ship record** — IModelRouter interface + CostModelRouter plugin
-> **Plan**: `docs/superpowers/plans/2026-07-02-c7-model-router-mvp.md`
+> **Plan (归档于 2026-07-06)**: `docs/archive/superpowers/plans/2026-07-02-c7-model-router-mvp.md`
 
 ---
 
@@ -115,7 +115,7 @@ After Phase 1 retrospective, Phase 2 should cover:
 
 - OpenSpec change: `openspec/changes/2026-06-26-adr-0034-model-router-plugin/`
 - Master plan: `docs/superpowers/plans/2026-06-26-sprint-11-to-18-roadmap.md` §三 C7 (updated to 🟡 Phase 1 MVP)
-- Plan: `docs/superpowers/plans/2026-07-02-c7-model-router-mvp.md`
+- Plan (归档于 2026-07-06): `docs/archive/superpowers/plans/2026-07-02-c7-model-router-mvp.md`
 - ADR-0034: `docs/adr/plugin/adr-0034-model-router.md` (status 🔍 Proposed → upgrade to ✅ Approved in Phase 2)
 
 ---

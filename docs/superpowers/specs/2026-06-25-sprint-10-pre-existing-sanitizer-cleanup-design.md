@@ -298,7 +298,7 @@ ASan/TSan build artifacts 隔离:
 - **OpenSpec change**: `openspec/changes/2026-06-25-pre-existing-sanitizer-findings/`
 - **Spec**: `engine-include-decoupling` §sanitizer-revalidation Scenario
 - **Audit 报告**: `docs/audits/2026-06-25-sanitizer-revalidation.md`
-- **Plan precedent**: `docs/superpowers/plans/2026-06-24-engine-include-final-decoupling.md` (895 lines)
+- **Plan precedent (归档于 2026-07-06)**: `docs/archive/superpowers/plans/2026-06-24-engine-include-final-decoupling.md` (895 lines)
 - **Commit precedent**: `454fdfc` (P2.5 ship gate documentation)
 - **Systematic debugging skill**: `/home/ubuntu/.config/opencode/skills/superpowers/systematic-debugging/SKILL.md`
 - **Verification before completion skill**: `/home/ubuntu/.config/opencode/skills/superpowers/verification-before-completion/SKILL.md`
