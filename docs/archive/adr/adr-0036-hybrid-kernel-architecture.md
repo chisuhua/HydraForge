@@ -1,6 +1,9 @@
 # ADR-0036：三层服务协议与调用契约（混合内核架构）
 > 📋 **Phase 8 规划: 混合内核架构** (规划于 2026-05/06, 2026-06-09 整理归档) — 见 `implementation-roadmap.md`
-**状态**：❌ 未实施 (2026-05-28, 2026-06-09 标注废弃)
+
+## 状态
+
+❌ Not Implemented (2026-05-28, 2026-06-09 标注废弃)
 
 代码侧无 `HybridKernel` 类。详见 OpenSpec change `tech-debt-and-doc-cleanup`。
 **日期**：2026-05-28

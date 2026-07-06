@@ -1,5 +1,13 @@
 # 规范对齐计划
 
+> ⚠️ **DEPRECATED (2026-07-06)** — 本文件自标 ⚠ 半准确,不再维护。
+>
+> 当前生效 spec 集见 [`docs/specs/`](specs/) 根目录的 5 个有效规范 (`architecture.md` + `layer0.md` + `layer0-refactor.md` + `dsl.md` + `stdlib-v3.10.md` + `memory-v3.10.md`)。
+>
+> 历史归档 spec (Phase 2 标准库 v1.0 等) 见 `docs/archive/specs/`。
+>
+> 本文件保留仅供未来追溯(2026-06-12 重新审计 §结论);实际维护以 `docs/adr-management/` 中的状态词汇表与 ADR 关系图为权威。
+
 ## 背景
 
 我们已创建 9 个 ADR，定义了 Phase 1 的架构决策。以下规范文档需要更新以对齐。
