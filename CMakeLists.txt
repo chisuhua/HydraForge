@@ -136,6 +136,7 @@ target_link_libraries(agenticdsl_core
  agenticdsl_modules_library
  agenticdsl_modules_system
  agenticdsl_modules_cognitive
+ agenticdsl_modules_plugin
  agenticdsl_contract
  agenticdsl_policy
  agenticdsl_secure_tools

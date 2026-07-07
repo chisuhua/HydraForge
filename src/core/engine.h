@@ -36,7 +36,9 @@
 #include "agenticdsl/contract/iprovider_factory.h" // IProviderFactory 抽象 (P1.T1, 替代 mock_provider.h)
 // P1.T2 (2026-06-18): IToolRegistry contract 抽象 (替代 common/tools/registry.h 直接 include)
 // ToolRegistry 完整类型仅在 .cpp 可见 (PIMPL-lite)
-#include "agenticdsl/contract/itool_registry.h" // IToolRegistry 抽象 (P1.T2, 替代 tools/registry.h)
+#include "agenticdsl/contract/itool_registry.h"
+
+namespace hydraforge { class PluginLoader; } // IToolRegistry 抽象 (P1.T2, 替代 tools/registry.h)
 // P1.T3 (2026-06-18): TraceRecord data-only struct 上移到 types 头文件 (from modules/trace/trace_exporter.h)
 #include "agenticdsl/types/trace_record.h" // TraceRecord data-only struct (P1.T3 迁移自 modules/trace/trace_exporter.h)
 // Sprint 20 / migrate-context-to-layered: LayeredContext (5-层结构化, ADR-0008) + 桥接辅助
@@ -151,6 +153,11 @@ ToolCoordinator* get_tool_coordinator() { return tool_coordinator_.get(); }
 // C4 Sprint 14 (ADR-0031 P3-P4, Oracle §决策 5): 显式激活 ToolCoordinator (opt-in, 向后兼容)
 void set_tool_coordinator(std::unique_ptr<ToolCoordinator> coordinator);
 
+    // D5 (C14, decisions-2026-07-07.md): 显式加载 PDK plugin (删除默认注入)
+    // 返回 true 表示加载成功; false 表示 .so 不存在或加载失败
+    // 使用示例: engine->load_plugin("pdk/llama_engine");
+    bool load_plugin(const std::string& plugin_name);
+
     ~DSLEngine(); // Stage 4 / Task 19 + P1.T4: 显式声明 — 头文件外定义, 使 unique_ptr<IBudgetController> + unique_ptr<IToolRegistry> 析构在完整类型下进行
     DSLEngine(std::vector<ParsedGraph> initial_graphs);
 private:
@@ -174,6 +181,9 @@ private:
 
     // C4 Sprint 14 (ADR-0031 P3-P4, Oracle §决策 5): ToolCoordinator
     std::unique_ptr<ToolCoordinator> tool_coordinator_;
+
+    // D5 (C14): 显式 plugin 加载器 — DSLEngine 不再默认注入 plugin
+    std::unique_ptr<hydraforge::PluginLoader> plugin_loader_;
 };
 
 } // namespace agenticdsl

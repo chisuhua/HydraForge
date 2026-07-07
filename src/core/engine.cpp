@@ -15,8 +15,10 @@
 #include <stdexcept>
 #include <utility> // Phase 1 Sprint 1b (S1b.T2): std::move for bus injection
 
+#include "agenticdsl/plugin/plugin_loader.h" // D5 (C14): load_plugin() 需要完整类型
 #include "common/tools/tool_coordinator.h" // C4 Sprint 14 (ADR-0031 P3-P4): ToolCoordinator 构造
 #include "common/tools/registry.h"         // C11: ToolRegistry downcast for session_registry injection
+#include "agenticdsl/plugin/plugin_loader.h" // D5 (C14): 显式 plugin 加载
 
 namespace agenticdsl {
 // P2.C (2026-06-24): forward-declared factories (decouple engine.cpp from concrete headers)
@@ -175,6 +177,20 @@ size_t DSLEngine::subscribe(const std::string& topic,
     }
     // 透传 token 到 InMemoryBus::subscribe，由 bus 统一管理生命周期
     return bus_->subscribe(topic, std::move(cb));
+}
+
+// D5 (C14, decisions-2026-07-07.md Option B): 显式加载 PDK plugin
+// 删除默认注入 — 调用方必须显式调用 load_plugin() 加载 .so
+bool DSLEngine::load_plugin(const std::string& plugin_name) {
+    if (!plugin_loader_) {
+        plugin_loader_ = std::make_unique<hydraforge::PluginLoader>();
+    }
+    try {
+        return plugin_loader_->load_so(plugin_name, get_tool_registry());
+    } catch (const std::exception& e) {
+        LOG_WARN("Failed to load plugin '" << plugin_name << "': " << e.what());
+        return false;
+    }
 }
 
 ExecutionResult DSLEngine::run(const Context& context) {

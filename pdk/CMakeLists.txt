@@ -29,3 +29,6 @@ target_compile_features(hydraforge_pdk INTERFACE cxx_std_20)
 
 # C7 Phase 1-2 MVP: 模型路由插件 (cost + quality)
 add_subdirectory(model_router)
+
+# C14 Phase 5 B2.1: Llama Engine Plugin (12 推理工具)
+add_subdirectory(llama_engine)
