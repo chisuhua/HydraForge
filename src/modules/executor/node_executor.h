@@ -16,6 +16,7 @@
 // Sprint 19: 改为 IApprovalHandler 抽象 (不再拖入 common/policy/approval_handler.h)
 #include "agenticdsl/policy/iapproval_handler.h" // Sprint 19: 审批处理器抽象 (ADR-0019 §1.4 解耦)
 #include <nlohmann/json.hpp>
+#include <atomic>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -92,7 +93,7 @@ private:
     // ADR-0031 (2026-07-31): 可选审批处理器（nullptr 表示跳过审批）
     // Sprint 19: ApprovalHandler* → IApprovalHandler* (依赖抽象, ADR-0019 §1.4)
     IApprovalHandler* approval_handler_{nullptr};
-    size_t tool_call_count_{0}; // 本 session 工具调用计数
+    std::atomic<size_t> tool_call_count_{0}; // 本 session 工具调用计数 (TSan: atomic 防 data race)
 
     // C4 Sprint 14 (Oracle ses_0ed4408faffeLv8VfrC0s5PzW7): ToolCoordinator 优先于 approval_handler_
     ToolCoordinator* tool_coordinator_{nullptr};

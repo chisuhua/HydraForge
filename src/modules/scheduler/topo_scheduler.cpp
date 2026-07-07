@@ -12,6 +12,7 @@
 #include "modules/trace/trace_exporter.h" // get_last_traces() 内联函数 (topo_scheduler.h:62) 调用 TraceExporter::get_traces
 #include <stdexcept>
 #include <algorithm>
+#include <mutex>
 #include <set>
 #include <queue>
 #include <variant>
@@ -258,9 +259,10 @@ ExecutionResult TopoScheduler::execute_dag_loop(DagState& state, const Context& 
     parallel_taskflow_->clear();
     std::unordered_map<NodePath, tf::Task> tf_tasks;
     std::vector<NodePath> locally_executed;
+    std::mutex locally_executed_mutex;
     locally_executed.reserve(state.nodes.size());
     for (const auto& [path, _] : state.nodes) {
-        tf_tasks[path] = parallel_taskflow_->emplace([this, path, &state, &locally_executed]() {
+        tf_tasks[path] = parallel_taskflow_->emplace([this, path, &state, &locally_executed, &locally_executed_mutex]() {
             Context node_context;
             Node* current_node = state.nodes[path];
             auto session_result = session_.execute_node(current_node, node_context);
@@ -268,7 +270,10 @@ ExecutionResult TopoScheduler::execute_dag_loop(DagState& state, const Context& 
                 if (process_jump(session_result.message, path)) return;
                 return;
             }
-            locally_executed.push_back(path);
+            {
+                std::lock_guard<std::mutex> lock(locally_executed_mutex);
+                locally_executed.push_back(path);
+            }
             NodeResult node_result;
             node_result.success = true;
             handle_node_completion(state, node_result, current_node, path);
