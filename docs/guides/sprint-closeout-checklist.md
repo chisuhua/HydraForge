@@ -6,7 +6,7 @@
 >
 > **设计依据**:
 > - `docs/superpowers/plans/2026-06-26-sprint-11-to-18-roadmap.md` §9 (4 种 Review Gates)
-> - `docs/roadmap-status.md` §六 (Sprint 结束前检查)
+> - `docs/active-status.md` §六 (Sprint 结束前检查)
 > - `tools/check_roadmap_drift.py` (Drift Detection 工具)
 >
 > **关联工具**: `scripts/sprint-closeout.sh` (一键 wrapper)
@@ -244,8 +244,8 @@ openspec validate <each-active-change>
 
 ### 5.2 更新项目文档（强制）
 
-- `docs/roadmap-status.md` §四：追加本 Sprint 实施日志
-- `docs/roadmap-status.md` §一：更新 Phase 进度（如有变化）
+- `docs/active-status.md` (快速概览)：更新 Phase 进度/活跃变更状态
+- `docs/active-status.md` (最近完成)：追加本 Sprint 实施日志
 - `AGENTS.md` § Recent Changes：追加 1 行总结
 
 ### 5.3 Git 操作（强制）
@@ -311,7 +311,7 @@ openspec list --specs                # 应显示已合并的 spec
 - **Master Plan**: `docs/superpowers/plans/2026-06-26-sprint-11-to-18-roadmap.md`
 - **Drift Detector**: `tools/check_roadmap_drift.py`
 - **Wrapper Script**: `scripts/sprint-closeout.sh`
-- **Sprint Closeout Checklist**: `docs/roadmap-status.md` §六
+- **Sprint Closeout Checklist**: `docs/active-status.md`
 - **Review Gates 详细定义**: Master plan §9
 - **Skills**:
   - `.opencode/skills/master-plan-driven-changes/` (批量创建 plan + changes)

@@ -12,7 +12,7 @@ docs/
 ├── design/           # 设计文档
 ├── archive/          # 归档 (过期版本)
 ├── proposals/        # AgenticDSL 语言演进提案 (18 docs: 14 话题子目录 + 4 根文件)
-└── implementation-roadmap.md  # 实施路线图 (跨 ADR 执行追踪)
+└── active-status.md  # [统一看板] 当前活跃变更状态追踪 (替代 roadmap-status.md + implementation-roadmap.md)
 ```
 
 ---
@@ -139,6 +139,10 @@ docs/
 | `adr/` | 归档 ADR (13 个, 2026-06-12) — 见 [archive/adr/README.md](archive/adr/README.md) |
 | `specs/` | 归档 Spec (Phase 2 标准库 v1.0, 2026-06-12) — 见 [archive/specs/phase2-standard-library-v1.0.md](archive/specs/phase2-standard-library-v1.0.md) |
 | `compiler/` | SKILL Compiler 预研设计 (2026-05-24,设计已决但未实施;2026-07-06 归档) — 见 [archive/compiler/README.md](archive/compiler/README.md) |
+
+**看板归档 (2026-07-07)**：
+- `archive/roadmap-status.md` — Phase 0-4 Sprint 日志看板 (已过期，被 `active-status.md` 替代)
+- `archive/implementation-roadmap.md` — 2026-06-03 旧实施路线图 (已过期，被 master plan + active-status.md 替代)
 
 **其他归档文件**：
 - `AgenticDSL_LibSpec_v1.1.md` - 旧库规范 (过期)

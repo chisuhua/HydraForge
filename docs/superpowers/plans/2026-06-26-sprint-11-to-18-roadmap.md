@@ -4,7 +4,7 @@
 > **创建日期**: 2026-06-26
 > **维护**: 每个 change 进入 archive 时更新本文件相应行
 > **关联文件**: `openspec/changes/<change-name>/` (active) / `openspec/changes/archive/` (历史)
-> **关联 docs**: `docs/roadmap-status.md` (总进度看板) / `docs/implementation-roadmap.md` (静态蓝图)
+> **关联 docs**: `docs/archive/roadmap-status.md` (Phase 0-4 历史看板) / `docs/archive/implementation-roadmap.md` (旧静态蓝图)
 
 ---
 
@@ -103,8 +103,8 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 **目标**:
 1. 写 ADR-0030 V2 (Phase 2 异步架构), 替代 archive 的 V1 (V1 标注"依赖未引入"已过时)
 2. 修正 ADR-0032 状态 (test_cost_collector 已 PASS, 不应"❌ Not Implemented")
-3. 同步 `docs/implementation-roadmap.md` §Phase 2 (Slice 00 状态修正)
-4. 同步 `docs/roadmap-status.md` §一
+3. 同步 `docs/archive/implementation-roadmap.md` §Phase 2 (Slice 00 状态修正)
+4. 同步 `docs/active-status.md`
 5. 同步 `AGENTS.md` § Recent Changes
 
 **Ship gate**:
@@ -398,7 +398,7 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 1. **状态变更**: 每个 change 进入 archive 时, 本文件相应行的 "状态" 列更新为 `✅ archived (YYYY-MM-DD)`, 并补充 `archive 链接`
 2. **新增 change**: 如需新增未列出的 change, 在本文件末尾追加新行, 并标注依赖关系
 3. **依赖变更**: 如发现 change 间新依赖, 立即更新 §二 依赖图
-4. **同步检查**: 每个 Sprint 收官时, 检查本文件与 `docs/roadmap-status.md` 的一致性
+4. **同步检查**: 每个 Sprint 收官时, 检查本文件与 `docs/archive/roadmap-status.md` 的一致性
 5. **删除规则**: 本文件永不删除, 仅追加与状态更新
 
 ---
@@ -409,8 +409,8 @@ ADR-0019 (IInteractionBus) / ADR-0020 (Thread Model) / ADR-0021 (PDK) / ADR-0022
 - OpenSpec CLI: `openspec list` / `openspec show <change>` / `openspec validate <change>`
 - 历史 archive: `openspec/changes/archive/` (17 个已 archive changes, 2026-06-09 ~ 2026-06-25)
 - Master plans: `docs/superpowers/plans/` (2 个 active, 3 个 archive)
-- 静态蓝图: `docs/implementation-roadmap.md`
-- 动态看板: `docs/roadmap-status.md`
+- 静态蓝图: `docs/archive/implementation-roadmap.md`
+- 动态看板: `docs/archive/roadmap-status.md`
 - AGENTS.md: 项目根入口文档
 
 ---
