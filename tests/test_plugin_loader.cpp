@@ -92,23 +92,33 @@ TEST_CASE("PluginInfo POD layout is stable",
   std::snprintf(info.capabilities, sizeof(info.capabilities), "test,unit");
 
   SECTION("Field values are correctly set") {
-    REQUIRE(info.abi_version == 1);
+    REQUIRE(info.abi_version == 2);
     REQUIRE(info.major_version == 1);
     REQUIRE(info.minor_version == 0);
     REQUIRE(info.patch_version == 0);
     REQUIRE(std::string(info.name) == "test_plugin");
     REQUIRE(std::string(info.description) == "Test plugin");
     REQUIRE(std::string(info.capabilities) == "test,unit");
+    REQUIRE(std::string(info.dependencies) == "");
   }
 
-  SECTION("CURRENT_ABI_VERSION is 1") {
-    REQUIRE(CURRENT_ABI_VERSION == 1);
+  SECTION("CURRENT_ABI_VERSION is 2") {
+    REQUIRE(CURRENT_ABI_VERSION == 2);
   }
 
   SECTION("PluginInfo is POD (no constructor)") {
     // POD 验证: sizeof 仅为字段总和 (无 vptr, 无 padding for non-POD)
-    // 实际 sizeof = 4 + 64 + 4*3 + 256 + 512 = 848 字节
-    REQUIRE(sizeof(PluginInfo) == 848);
+    // V2: 4 + 64 + 4*3 + 256 + 512 + 256 = 1104 字节
+    REQUIRE(sizeof(PluginInfo) == 1104);
+  }
+
+  SECTION("PluginInfoV1 backward compat (sizeof = 848)") {
+    REQUIRE(sizeof(PluginInfoV1) == 848);
+  }
+
+  SECTION("Dual ABI supported versions") {
+    REQUIRE(SUPPORTED_ABI_VERSIONS[0] == 1);
+    REQUIRE(SUPPORTED_ABI_VERSIONS[1] == 2);
   }
 }
 

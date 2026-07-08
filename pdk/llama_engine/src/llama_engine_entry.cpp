@@ -38,9 +38,10 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
 // ============================================================================
 
 extern "C" const hydraforge::PluginInfo pdk_plugin_info = {
-  hydraforge::CURRENT_ABI_VERSION,                              // abi_version
+  hydraforge::CURRENT_ABI_VERSION,                              // abi_version = 2 (V2 with dependencies field)
   "hydraforge_llama_engine",                                    // name
   1, 0, 0,                                                      // semver 1.0.0
   "Llama.cpp reference engine plugin — 12 tools (engine/model/arch)", // description
-  "engine,model,inference,llama"                                 // capabilities
+  "engine,model,inference,llama",                               // capabilities
+  ""                                                            // dependencies (无依赖, llm 由 host 注入)
 };

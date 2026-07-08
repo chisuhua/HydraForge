@@ -281,6 +281,17 @@ bool DSLEngine::load_plugin(const std::string& plugin_name) {
 - lib/inference/engine.md + model.md 从占位升级为真实 schema，向后兼容（DSL 工具名不变）
 - 所有现有测试/示例需迁移：添加 `engine.load_plugin("pdk/llama_engine")` 调用
 
+**PDK 宏使用说明** (ADR-0021 §3.1):
+- 本 change 注册 12 个工具采用 `IToolRegistry::register_tool_function(name, meta, lambda)` 直写模式
+- **未**采用 `DECLARE_TOOL(name, desc, category, approval, body)` 宏
+- **原因**: `DECLARE_TOOL` 展开为 `tool_handler_##name(const nlohmann::json&)`,而 IToolRegistry 接口要求 `lambda(const std::unordered_map<std::string, std::string>&)`,类型不兼容
+- **影响**: 与 ADR-0021 §3.1 "减少样板代码" 设计意图有偏差,但行为等价(同样生成 ToolSpec + try-catch + json 返回)
+- **解决路径** (Phase 6 follow-up):
+  - 方案 A: 引入 adapter 层 — registry lambda 接收 args_map 后转 json 再委托 PDK handler
+  - 方案 B: 扩展 DECLARE_TOOL 接受 args_map 重载 — 保持 PDK 兼容性
+  - 方案 C: 扩展 IToolRegistry 接口接受 json args — 跨核心 API 改动
+- **当前优先级**: P0 (D5 同步) + P0 (ADR-0022 ABI bump) 已 ship, P1-2 (PDK 宏迁移) 延后至 Phase 6
+
 **估时**: 2-3 天（原 1-1.5 天，因 D5 决策新增 4 个 C13 架构工具注册 + D5 显式 load_plugin() API 改造）
 - plugin 骨架 + CMakeLists: 2h
 - B2.1 engine 实现: 4h

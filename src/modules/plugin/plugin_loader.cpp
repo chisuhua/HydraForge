@@ -84,7 +84,39 @@ std::vector<std::string> PluginLoader::get_search_paths() const {
 }
 
 bool PluginLoader::check_compatibility(const PluginInfo& info) const {
-  return info.abi_version == CURRENT_ABI_VERSION;
+  // Dual ABI dispatch (per ADR-0041 §1.5): 接受 V1 (老 .so) + V2 (新 .so)
+  for (uint32_t v : SUPPORTED_ABI_VERSIONS) {
+    if (info.abi_version == v) return true;
+  }
+  return false;
+}
+
+// Dual ABI unified read: 读 V1 或 V2 统一返回 PluginInfoV2
+// 老 V1 .so 的 dependencies 默认为空字符串
+static PluginInfoV2 read_plugin_info_unified(void* info_handle) {
+  // 安全读取前 4 字节 (abi_version 字段)
+  uint32_t abi_version = 0;
+  std::memcpy(&abi_version, info_handle, sizeof(uint32_t));
+
+  if (abi_version == 1) {
+    PluginInfoV1 raw;
+    std::memcpy(&raw, info_handle, sizeof(PluginInfoV1));
+    PluginInfoV2 unified{};
+    unified.abi_version = raw.abi_version;
+    std::strncpy(unified.name, raw.name, sizeof(unified.name));
+    unified.major_version = raw.major_version;
+    unified.minor_version = raw.minor_version;
+    unified.patch_version = raw.patch_version;
+    std::strncpy(unified.description, raw.description, sizeof(unified.description));
+    std::strncpy(unified.capabilities, raw.capabilities, sizeof(unified.capabilities));
+    unified.dependencies[0] = '\0';  // V1 无此字段 → 空字符串
+    return unified;
+  }
+
+  // 当前版本 (V2) — 直接 memcpy
+  PluginInfoV2 raw;
+  std::memcpy(&raw, info_handle, sizeof(PluginInfoV2));
+  return raw;
 }
 
 bool PluginLoader::apply_path_whitelist(const std::string& path) const {
@@ -174,18 +206,20 @@ bool PluginLoader::load_so(const std::string& path,
   }
 
   // 3. 读取 PluginInfo (dlsym 后零代码执行)
-  auto* info = static_cast<const PluginInfo*>(
-      dlsym(handle, "pdk_plugin_info"));
-  if (!info) {
+  auto* info_handle = dlsym(handle, "pdk_plugin_info");
+  if (!info_handle) {
     log_error("dlsym pdk_plugin_info failed for " + path + ": " + dlerror());
     dlclose(handle);
     return false;
   }
 
+  // 3.5 Dual ABI dispatch: 读 V1/V2 统一为 PluginInfoV2
+  PluginInfoV2 info = read_plugin_info_unified(info_handle);
+
   // 4. ABI 版本检查
-  if (!check_compatibility(*info)) {
+  if (!check_compatibility(info)) {
     std::ostringstream oss;
-    oss << "ABI version mismatch: plugin=" << info->abi_version
+    oss << "ABI version mismatch: plugin=" << info.abi_version
         << " runtime=" << CURRENT_ABI_VERSION << " (path=" << path << ")";
     if (strict_version) {
       log_error(oss.str());
@@ -211,14 +245,14 @@ bool PluginLoader::load_so(const std::string& path,
   // 7. 记录到 loaded_ 列表
   LoadedPlugin lp;
   lp.handle = handle;
-  lp.info = *info;  // POD 拷贝
+  lp.info = info;  // POD 拷贝 (PluginInfoV2 = PluginInfo)
   lp.path = path;
   loaded_.push_back(lp);
 
-  log_info("loaded plugin: " + std::string(info->name) +
-           " v" + std::to_string(info->major_version) + "." +
-           std::to_string(info->minor_version) + "." +
-           std::to_string(info->patch_version));
+  log_info("loaded plugin: " + std::string(info.name) +
+           " v" + std::to_string(info.major_version) + "." +
+           std::to_string(info.minor_version) + "." +
+           std::to_string(info.patch_version));
   return true;
 }
 
