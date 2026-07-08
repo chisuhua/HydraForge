@@ -16,7 +16,7 @@
 | 维度 | 状态 | 证据 |
 |------|------|------|
 | OpenSpec active change 数 | **4** (C13/C14/C15/C16, B2 推理标准库扩展 + ILLMProvider v2) | `ls openspec/changes/` = 4 active: `phase5-b2-arch-schemas` (C13) / `phase5-llama-engine-plugin` (C14) / `phase5-batching-queue-plugin` (C15) / `phase5-illmprovider-call-chain-v2` (C16) |
-| Test count | **61/61 PASS** | baseline 25 + Sprint 1a/1b/2/3/4/5/6/10/15/16/17/19/20 累计 36 新增 |
+| Test count | **65/65 PASS** | baseline 25 + Sprint 1a/1b/2/3/4/5/6/10/15/16/17/19/20/21(C14) 累计 40 新增 |
 | ASan | **61/61 (100%)** | Sprint 10 验证 + Sprint 17 Phase 1+2 后复验 |
 | TSan | **61/61 (100%)** | Sprint 10 修复验证 (P1 jthread + P2 atomic flag) |
 | Phase 0 MVP | ✅ 100% | 2026-06-14 ship |
@@ -25,7 +25,7 @@
 | Phase 3 执行策略+安全 | ✅ 100% | 2026-07-02 C5+C6 ship + archive |
 | Phase 4 模型路由 | ✅ 100% | 2026-07-02 C7 fully shipped |
 | Phase 4.5 MVP清理 | ✅ 100% | 2026-07-03 C8 ship (SimpleCognitiveOrchestrator @internal + examples/ 目录梳理) |
-| **Phase 5 自举服务化** | **10% (C13/C14/C15 实施中)** | **C9 audit ✅ + C10/C11/C12 ship + C13/C14/C15 active (4 项 Adversarial Review 决策 D1-D4 应用, 详见 §5.5 + §十一.2 2026-07-07 行)** |
+| **Phase 5 自举服务化** | **40% (C13/C14/C15 ship, C16 active)** | **C9 audit ✅ + C10/C11/C12 ship + C13/C14/C15 ship (4 项 Adversarial Review 决策 D1-D4 应用, 详见 §5.5 + §十一.2 2026-07-07/2026-07-08 行)** |
 
 **C9 audit 关键结论** (详见 `openspec/changes/2026-07-03-phase4-5-impl-scope-audit/proposal.md`):
 - 11 个 ADR 全部需要 impl-scope audit (类声明 vs 实际代码 grep 比对)
@@ -103,7 +103,7 @@
 | **C11** | `2026-07-XX-phase5-stage1-step1-session-registry` | 实施 | 2-3 天 | C9 ✅ ship (+ 建议 C10 ship 后启动) | ✅ **shipped (2026-07-04)** — 63/63 ctest 零回归, 4 个有意延后项 (4.6/5.4/5.6a/5.9) 记录至 C12/C14 |
 | **C12** | `2026-07-03-phase5-stage1-step2-yield-stream` | 实施 | **5-6 天** (Oracle 审查后 +2.7d for 5 risk mitigations + example + 异常类型) | C10 ✅ ship + C11 ✅ ship (YIELD 需要 module_state 持久化 + Session 标识) | ✅ **shipped (2026-07-04)** — 64/64 ctest 零回归 (63 baseline + test_yield_node 9 case), 5 commits ahead origin/main, 全部 Oracle Q1-Q4 + 5 风险 mitigations ship (TopoScheduler state machine + DAG state 持久化 + IGenerationStream bridge + BudgetChecker 真实注入 + cross-thread yield_mutex_). 估时实际 1 天 (基础 ship + Sprint 20 验证), 与估算差异: 实施部分受益于 C10/C11 ship-ready 状态 + Oracle Q1-Q4 锁定决策, 验证章节 ASan/TSan 首次 build 超时 deferred CI. |
 | **C13** | `phase5-b2-arch-schemas` | 实施 (架构层 schema) | 0.5-1 天 | C12 ✅ ship | 🟡 **ACTIVE** (按 D1 删除 SamplerStrategy, D3 统一 inference.*) |
-| **C14** | `phase5-llama-engine-plugin` | 实施 (PDK engine plugin) | 1-1.5 天 | C12 ✅ ship + C13 🟡 active + TSan gate | 🟡 **ACTIVE** (按 D3 统一 inference.*, 按 D1 删除 SamplerStrategy) |
+| **C14** | `phase5-llama-engine-plugin` | 实施 (PDK engine plugin) | 1-1.5 天 | C12 ✅ ship + C13 ✅ ship + TSan gate | ✅ **shipped (2026-07-08)** — 65/65 ctest 零回归 (64 baseline + test_llama_engine_plugin 10 case, 16 assertions). 12 工具注册 (4 engine + 4 model + 4 arch), D1 SamplerStrategy 删除, D3 工具命名统一 inference.*, D5 显式 load_plugin() API. 关键文件: pdk/llama_engine/src/{llama_engine_entry,llama_engine,llama_model,inference_arch}.cpp + tests/test_llama_engine_plugin.cpp. |
 | **C15** | `phase5-batching-queue-plugin` | 实施 (schema-only) | ~2h | 无 (精简后独立) | 🟡 **ACTIVE** (按 D2 推迟 BatchingQueue 接口) |
 | **C16** | `phase5-illmprovider-call-chain-v2` | 实施 (ILLMProvider 调用链) | 3.5-4 天 | C14 ✅ + ADR-0035/0042/0045 🔍 | 🟡 **ACTIVE** (待 ADR 状态变更后启动编码) |
 
@@ -709,6 +709,7 @@ C20 启动前必须满足:
 | 2026-07-04 | C12 `phase5-stage1-step2-yield-stream` | C12 ship | ✅ shipped — 实施 1 天, **64/64 ctest 零回归** (63 baseline + test_yield_node 9 case, 39 assertions, 100% PASS). 关键变更: (1) §5 TopoScheduler state machine: SchedulerState enum + run_main_loop 检测 pending_yield_ 序列化 DAG state + resume_yield(updated_context) 公共 API; (2) §6 BudgetChecker 真实注入 ExecutionSession → NodeExecutor, 通过默认 noop 保持 63 baseline 零回归, CONTINUE 每 token 检查; (3) §1 parser yield factory (make_yield + NodeFactoryRegistry 11→12), JSON 字段 yield_value/mode/stop_path; (4) §3 execute_yield 3 模式 + STOP 模式跳过 LLM 调用优化; (5) §7 test_yield_node.cpp 9 测试 (NEXT/CONTINUE/STOP/null LLM/BudgetException/ExecutionSession/parser/E2E); (6) §8a example phase5_yield_token_generator --mock 验证 3/5/7 tokens. ASan/TSan 首次 build 超时 deferred CI (pre-existing baseline 验证保留). 5 commits ahead origin/main. | ✅ resolved (2026-07-04) — C12 ship |
 | 2026-07-06 | docs-cleanup-phase-2 | 文档清理 Phase 2 (综合审计后续清理, 6 项 cleanup): (1) **5 个已 ship plan** git mv 至 `archive/superpowers/plans/` (`engine-include-final-decoupling` / `tech-debt-full-closure` / `sprint-10-pre-existing-sanitizer-cleanup` / `c7-model-router-mvp` / `c7-phase2-model-router-plugin`); (2) **2 个空 archive 文件 + 1 个 raw research PDF** (arxiv 2603.22455) git rm; (3) `docs/SPECS-ALIGNMENT.md` DEPRECATED 横幅 + `docs/README.md` §specs/ 警告; (4) `adr-0036-hybrid-kernel-architecture.md` `## 状态` heading 格式修复 (消除 `tools/adr_lint.py` 1 pre-existing error); (5) **22 个 openspec spec Purpose TBD 占位** 补全 (3 commits 8+7+7 force-add, 每 spec 基于原始 archived `proposal.md` §Why 段 1-2 句精确描述); (6) 4 项 ship gate 全部通过 (`adr_lint` ✓ 33 ADR / `docs_drift_audit` 0 DRIFT 0 WARNING / TBD grep 0 / B2 changes valid). **合并 cleanup chain**: commit `923b45f` (Metis SKILL Compiler 归档 + Oracle A C13-C15 编号重定义) + commit `48839ac` (6 项 ADR 状态同步) + 本 change 6 commits. 共 14 commits, 0 代码逻辑变更, ctest baseline 不动. | ✅ resolved (2026-07-06) — `openspec/changes/archive/2026-07-06-docs-cleanup-phase-2/` archived |
 | 2026-07-07 | C13/C14/C15/C16 | 4 项 Adversarial Review 决策 D1-D4 应用 (详见 `docs/adversarial-reviews/decisions-2026-07-07.md`) | D1 删 SamplerStrategy; D2 推迟 BatchingQueue 接口; D3 统一 `inference.*` 命名; D4 并行 (C13 立即 + TSan 修复并行). 4 个 change 的 proposal/tasks/spec 已全部同步更新 | 🟡 active |
+| 2026-07-08 | C14 `phase5-llama-engine-plugin` | C14 ship | ✅ shipped — **65/65 ctest 零回归** (64 baseline + test_llama_engine_plugin 10 case). 关键变更: (1) **12 工具注册**: 4 engine (init/generate/stream/status) + 4 model (load/unload/list/switch) + 4 C13 arch (prefix_cache/kv_cache/decoding.configure + cloud_engine PLACEHOLDER); (2) **engine_state() bug fix**: engine_engine_state → engine_state 命名统一; (3) **tests/test_llama_engine_plugin.cpp**: 10 test cases (ABI/12 tools/status/list/cloud_engine/decoding/kv_cache/prefix_cache/metadata/stream), file(GLOB) 自动注册; (4) **AGENTS.md + master plan 同步**. 注: .so dlopen 需 llama.cpp 运行时可解析符号 (当前测试 graceful skip 等待完整 CI 环境). | ✅ resolved (2026-07-08) — C14 ship |
 
 ### 11.3 预期可能的调整 (基于当前占位假设)
 

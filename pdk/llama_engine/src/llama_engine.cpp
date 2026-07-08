@@ -23,7 +23,7 @@ using json = nlohmann::json;
 
 namespace agenticdsl::pdk::llama {
 
-EngineState& engine_engine_state() {
+EngineState& engine_state() {
   static EngineState s;
   return s;
 }
