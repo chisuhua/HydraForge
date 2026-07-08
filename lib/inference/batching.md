@@ -12,12 +12,12 @@ graph_type: subgraph
 module: "inference::batching"
 signature: "(prompt: string, timeout_ms: int) -> (request_id: int, result: string)"
 permissions:
-  - tool: batching.submit_and_wait
+  - tool: inference/batching/submit_and_wait
 nodes:
   # 节点1: 提交并等待批处理结果
   - id: submit_and_wait
     type: tool_call
-    tool: batching.submit_and_wait
+    tool: inference/batching/submit_and_wait
     arguments:
       prompt: "{{ inputs.prompt }}"
       timeout_ms: "{{ inputs.timeout_ms | default(30000) }}"

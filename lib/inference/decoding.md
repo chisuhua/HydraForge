@@ -10,12 +10,12 @@ graph_type: subgraph
 module: "inference::decoding"
 signature: "(temperature: float, top_p: float, top_k: int, repeat_penalty: float, sampler: string) -> (status: string, active_sampler: string, unsupported_warning: string)"
 permissions:
-  - tool: decoding.configure
+  - tool: inference/decoding/configure
 nodes:
   # 节点1: 配置 decoding 参数
   - id: configure_decoding
     type: tool_call
-    tool: decoding.configure
+    tool: inference/decoding/configure
     arguments:
       temperature: "{{ inputs.temperature | default(0.7) }}"        # 0.0-2.0
       top_p: "{{ inputs.top_p | default(0.9) }}"                    # 0.0-1.0
@@ -93,7 +93,7 @@ nodes:
 
 **与 D1 决策一致性**: SamplerStrategy PDK 接口**删除**(D1 决策已应用),采样器 clamp 逻辑内联到 generate 工具实现内部,等出现第二个推理后端时再提取公共接口。
 
-**与 D3 决策一致性**: 架构层工具名 `decoding.configure` (不带 `inference/` 前缀)。
+**与 D3 决策一致性**: 架构层工具名 `inference/decoding/configure` (不带 `inference/` 前缀)。
 
 ---
 

@@ -73,9 +73,9 @@ nodes:
 - `inference/engine/status`: 引擎状态查询 (kv_cache_size / sampler_config / 等)
 
 **与架构工具的委托关系**:
-- `prefix_cache.configure` → 引擎内部委托 llama.cpp 内置 prefix cache（C14 tasks §4.1）
-- `kv_cache.configure` → 引擎内部委托 llama.cpp KV cache 策略（C14 tasks §4.1）
-- `decoding.configure` → 引擎内部委托 llama.cpp sampling API（C14 tasks §4.1）
+- `inference/prefix_cache/configure` → 引擎内部委托 llama.cpp 内置 prefix cache（C14 tasks §4.1）
+- `inference/kv_cache/configure` → 引擎内部委托 llama.cpp KV cache 策略（C14 tasks §4.1）
+- `inference/decoding/configure` → 引擎内部委托 llama.cpp sampling API（C14 tasks §4.1）
 
 **错误处理**:
 - 使用 `assert` 节点检查 `error` 字段

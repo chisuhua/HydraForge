@@ -10,12 +10,12 @@ graph_type: subgraph
 module: "inference::kv_cache"
 signature: "(evict_policy: string, max_size_gb: float) -> (status: string, active_policy: string, current_size_gb: float)"
 permissions:
-  - tool: kv_cache.configure
+  - tool: inference/kv_cache/configure
 nodes:
   # 节点1: 配置 KV cache 策略
   - id: configure_kv_cache
     type: tool_call
-    tool: kv_cache.configure
+    tool: inference/kv_cache/configure
     arguments:
       evict_policy: "{{ inputs.evict_policy | default('lru') }}"  # lru | lfu | fifo
       max_size_gb: "{{ inputs.max_size_gb | default(4.0) }}"
@@ -76,7 +76,7 @@ nodes:
 
 **与 D1 决策一致性**: KV cache 策略算法在 engine plugin 内部实现 (不在此处抽取接口)。
 
-**与 D3 决策一致性**: 架构层工具名 `kv_cache.configure` (不带 `inference/` 前缀)。
+**与 D3 决策一致性**: 架构层工具名 `inference/kv_cache/configure` (不带 `inference/` 前缀)。
 
 ---
 

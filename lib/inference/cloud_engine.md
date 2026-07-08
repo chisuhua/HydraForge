@@ -12,12 +12,12 @@ graph_type: subgraph
 module: "inference::cloud_engine"
 signature: "(provider: string, model: string, api_key_ref: string) -> (status: string, provider: string, model: string)"
 permissions:
-  - tool: cloud_engine.configure
+  - tool: inference/cloud_engine/configure
 nodes:
   # 节点1: 配置 cloud engine provider + model
   - id: configure_cloud_engine
     type: tool_call
-    tool: cloud_engine.configure
+    tool: inference/cloud_engine/configure
     arguments:
       provider: "{{ inputs.provider }}"           # openai | anthropic | deepseek | qwen | moonshot | custom
       model: "{{ inputs.model }}"
@@ -71,7 +71,7 @@ nodes:
 
 **⚠️ 占位状态 — 实施推迟到 Phase 5 Stage 2+**:
 
-本文件定义的是**架构层契约**,供第三方 plugin 团队按 schema 实施 `cloud_engine.configure` 工具。当前**无底层 C++ 实现**:
+本文件定义的是**架构层契约**,供第三方 plugin 团队按 schema 实施 `inference/cloud_engine/configure` 工具。当前**无底层 C++ 实现**:
 
 - ❌ **没有** `pdk/cloud_engine/openai/` plugin
 - ❌ **没有** `pdk/cloud_engine/anthropic/` plugin
@@ -79,7 +79,7 @@ nodes:
 - ❌ **没有** `src/modules/llm/cloud_engine.cpp` 工具实现
 
 **未来实施路径** (Phase 5 Stage 2+ 启动后):
-1. 第三方 plugin 团队按本 schema 实施 `cloud_engine.configure` 工具
+1. 第三方 plugin 团队按本 schema 实施 `inference/cloud_engine/configure` 工具
 2. plugin 工具通过 `pdk/cloud_engine/{provider}/` 目录组织
 3. `LLMProviderFactory` 增加 `cloud_engine` 路由条目
 4. secret store 抽象 (`api_key_ref` 解析) 由 `src/common/secret_store.h` 提供

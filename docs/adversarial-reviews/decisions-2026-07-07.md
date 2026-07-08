@@ -47,23 +47,22 @@
   | `llama_model/unload` | `inference/model/unload` |
   | `llama_model/list` | `inference/model/list` |
   | `llama_model/switch` | `inference/model/switch` |
-- **C13 架构工具命名边界** (2026-07-07 补充):
-  - D3 决策**不适用于** C13 架构层工具（prefix_cache/kv_cache/decoding/cloud_engine）
-  - C13 架构工具命名规则: `<领域>.<动作>`（不带 `inference` 前缀），例如：
+- **C13 架构工具命名** (2026-07-09 修正, 推翻原 2026-07-07 边界决策):
+  - D3 决策适用于 **ALL** 推理引擎工具（含 C13 架构层工具）
+  - 架构工具命名规则: `inference/{component}/{action}`（3 段式，与 engine/model 一致），例如：
     | 工具 | 命名 |
     |------|------|
-    | prefix_cache 配置 | `prefix_cache.configure` |
-    | kv_cache 配置 | `kv_cache.configure` |
-    | decoding 配置 | `decoding.configure` |
-    | cloud_engine 配置 | `cloud_engine.configure` |
-  - 理由: 架构工具属于"基础设施层配置"，与"业务层推理调用"语义不同；`inference.*` 前缀专用于面向业务的推理链路（engine/model），架构配置工具不加此前缀以避免命名空间混淆
-  - C13 schema 文件（`lib/inference/prefix_cache.md` 等）使用相同命名，**内部一致**
+    | prefix_cache 配置 | `inference/prefix_cache/configure` |
+    | kv_cache 配置 | `inference/kv_cache/configure` |
+    | decoding 配置 | `inference/decoding/configure` |
+    | cloud_engine 配置 | `inference/cloud_engine/configure` |
+  - 理由: ADR-0043 统一命名规范覆盖所有 PDK 工具；架构工具与业务工具共享 `inference/` 命名空间，避免命名空间碎片化
+  - 此决定推翻原 2026-07-07 "C13 架构工具命名边界" 决策 (OpenSpec change `fix-adr-naming-policy-2026-07-08`)
 - **影响**:
-  - C14 proposal.md: 8 处工具名替换
-  - C14 tasks.md: 8 处工具名替换
-  - lib/inference/engine.md + model.md: 工具名对齐
-  - C13 schema 文件: 4 处架构工具命名（不应用 D3 重写）
-  - 附加工时: ~30min
+  - C13 schema 文件 (4 个 lib/inference/*.md): DOT → SLASH 工具名替换
+  - C14 PDK 代码 (inference_arch.cpp): 4 工具注册 + 4 metadata 同步
+  - tests/test_llama_engine_plugin.cpp: ~30 处测试断言同步
+  - 附加工时: ~45min
 
 ### D4: 优先级排序
 

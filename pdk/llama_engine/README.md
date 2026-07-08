@@ -91,7 +91,7 @@ ABI 版本号与 `hydraforge::CURRENT_ABI_VERSION` 对齐。
 
 | 决策 | 描述 | 本 plugin 状态 |
 |:---:|---|:---:|
-| **D1** | SamplerStrategy PDK 接口删除 | ✅ 已应用: `decoding.configure` 采样器 clamp 逻辑内联 |
+| **D1** | SamplerStrategy PDK 接口删除 | ✅ 已应用: `inference/decoding/configure` 采样器 clamp 逻辑内联 |
 | **D3** | 工具命名统一 `inference.*` | ✅ 已应用: 8 个 engine/model 工具使用 `inference/engine/*` / `inference/model/*` |
 | **D5** | 删除默认注入 + 显式 load_plugin | ✅ 已应用: 本 plugin 不依赖 DSLEngine 默认注入，通过 `load_plugin()` 显式加载 |
 

@@ -1,8 +1,8 @@
 // pdk/llama_engine/src/inference_arch.cpp
 // 功能描述：C13 架构工具注册 (C14 §4, Oracle 审查 P0 阻塞项修复)
 //           注册 4 个架构层工具 (C13 schema 定义, C14 实现):
-//           prefix_cache.configure / kv_cache.configure
-//           decoding.configure / cloud_engine.configure (PLACEHOLDER)
+//           inference/prefix_cache/configure / inference/kv_cache/configure
+//           inference/decoding/configure / inference/cloud_engine/configure (PLACEHOLDER)
 //           遵循 PDK Plugin 契约 (ADR-0021, ADR-0034 C7 范式)
 // 设计依据：Oracle 审查报告 2026-07-07
 //          C13 lib/inference/{prefix_cache,kv_cache,decoding,cloud_engine}.md
@@ -30,10 +30,10 @@ namespace agenticdsl::pdk::llama {
 
 void register_arch_tools(::agenticdsl::IToolRegistry& registry) {
 
-  // ---- prefix_cache.configure ----
+  // ---- inference/prefix_cache/configure ----
   {
     ::agenticdsl::ToolMetadata meta{
-      "prefix_cache.configure",
+      "inference/prefix_cache/configure",
       "配置 prefix cache 策略 (委托 llama.cpp 内置 prefix cache)",
       "inference",
       ::agenticdsl::ToolCategory::ReadOnly,
@@ -42,7 +42,7 @@ void register_arch_tools(::agenticdsl::IToolRegistry& registry) {
     };
 
     registry.register_tool_function(
-      "prefix_cache.configure",
+      "inference/prefix_cache/configure",
       meta,
       [](const std::unordered_map<std::string, std::string>& args_map) -> json {
         auto& s = engine_state();
@@ -71,10 +71,10 @@ void register_arch_tools(::agenticdsl::IToolRegistry& registry) {
     );
   }
 
-  // ---- kv_cache.configure ----
+  // ---- inference/kv_cache/configure ----
   {
     ::agenticdsl::ToolMetadata meta{
-      "kv_cache.configure",
+      "inference/kv_cache/configure",
       "配置 KV cache 驱逐策略 (lru / lfu / fifo) 和最大容量",
       "inference",
       ::agenticdsl::ToolCategory::ReadOnly,
@@ -83,7 +83,7 @@ void register_arch_tools(::agenticdsl::IToolRegistry& registry) {
     };
 
     registry.register_tool_function(
-      "kv_cache.configure",
+      "inference/kv_cache/configure",
       meta,
       [](const std::unordered_map<std::string, std::string>& args_map) -> json {
         auto& s = engine_state();
@@ -113,10 +113,10 @@ void register_arch_tools(::agenticdsl::IToolRegistry& registry) {
     );
   }
 
-  // ---- decoding.configure ----
+  // ---- inference/decoding/configure ----
   {
     ::agenticdsl::ToolMetadata meta{
-      "decoding.configure",
+      "inference/decoding/configure",
       "配置 decoding 参数 (temperature / top_p / top_k / repeat_penalty / sampler: 5 种字符串选择)",
       "inference",
       ::agenticdsl::ToolCategory::ReadOnly,
@@ -125,7 +125,7 @@ void register_arch_tools(::agenticdsl::IToolRegistry& registry) {
     };
 
     registry.register_tool_function(
-      "decoding.configure",
+      "inference/decoding/configure",
       meta,
       [](const std::unordered_map<std::string, std::string>& args_map) -> json {
         auto& s = engine_state();
@@ -178,10 +178,10 @@ void register_arch_tools(::agenticdsl::IToolRegistry& registry) {
     );
   }
 
-  // ---- cloud_engine.configure (PLACEHOLDER stub) ----
+  // ---- inference/cloud_engine/configure (PLACEHOLDER stub) ----
   {
     ::agenticdsl::ToolMetadata meta{
-      "cloud_engine.configure",
+      "inference/cloud_engine/configure",
       "配置 cloud LLM engine provider + model (PLACEHOLDER — 实现在 Phase 5 Stage 2+)",
       "inference",
       ::agenticdsl::ToolCategory::ReadOnly,
@@ -190,13 +190,13 @@ void register_arch_tools(::agenticdsl::IToolRegistry& registry) {
     };
 
     registry.register_tool_function(
-      "cloud_engine.configure",
+      "inference/cloud_engine/configure",
       meta,
       [](const std::unordered_map<std::string, std::string>& args_map) -> json {
         // PLACEHOLDER stub: 等 Phase 5 Stage 2+ 第三方 plugin 团队实施
         return {
           {"status", "not_yet_implemented"},
-          {"message", "cloud_engine.configure is a PLACEHOLDER. Implementation deferred to Phase 5 Stage 2+ (second inference backend / cloud provider plugin)"},
+          {"message", "inference/cloud_engine/configure is a PLACEHOLDER. Implementation deferred to Phase 5 Stage 2+ (second inference backend / cloud provider plugin)"},
           {"provider", "none"},
           {"model", "none"}
         };

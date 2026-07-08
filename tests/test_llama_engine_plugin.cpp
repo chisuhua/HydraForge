@@ -89,10 +89,10 @@ const std::vector<std::string> EXPECTED_MODEL_TOOLS = {
 };
 
 const std::vector<std::string> EXPECTED_ARCH_TOOLS = {
-  "prefix_cache.configure",
-  "kv_cache.configure",
-  "decoding.configure",
-  "cloud_engine.configure",
+  "inference/prefix_cache/configure",
+  "inference/kv_cache/configure",
+  "inference/decoding/configure",
+  "inference/cloud_engine/configure",
 };
 
 // ──── Plugin Load Helper ─────────────────────────────────────────────────────
@@ -214,10 +214,10 @@ TEST_CASE("llama_engine: model/list returns array",
 }
 
 // =====================================================================
-// Test 5: cloud_engine.configure PLACEHOLDER stub
+// Test 5: inference/cloud_engine/configure PLACEHOLDER stub
 // =====================================================================
 
-TEST_CASE("llama_engine: cloud_engine.configure returns placeholder",
+TEST_CASE("llama_engine: inference/cloud_engine/configure returns placeholder",
           "[llama_engine][c14][arch]") {
   hydraforge::PluginLoader loader;
   MockToolRegistry registry;
@@ -227,17 +227,17 @@ TEST_CASE("llama_engine: cloud_engine.configure returns placeholder",
     return;
   }
 
-  REQUIRE(registry.has_tool("cloud_engine.configure"));
-  auto result = registry.call_tool("cloud_engine.configure", {});
+  REQUIRE(registry.has_tool("inference/cloud_engine/configure"));
+  auto result = registry.call_tool("inference/cloud_engine/configure", {});
   REQUIRE(result.contains("status"));
   REQUIRE(result["status"] == "not_yet_implemented");
 }
 
 // =====================================================================
-// Test 6: decoding.configure 验证 sampler 值 + clamp
+// Test 6: inference/decoding/configure 验证 sampler 值 + clamp
 // =====================================================================
 
-TEST_CASE("llama_engine: decoding.configure validates sampler (D1 compliant)",
+TEST_CASE("llama_engine: inference/decoding/configure validates sampler (D1 compliant)",
           "[llama_engine][c14][arch][decoding]") {
   hydraforge::PluginLoader loader;
   MockToolRegistry registry;
@@ -247,36 +247,36 @@ TEST_CASE("llama_engine: decoding.configure validates sampler (D1 compliant)",
     return;
   }
 
-  REQUIRE(registry.has_tool("decoding.configure"));
+  REQUIRE(registry.has_tool("inference/decoding/configure"));
 
   // 合法 sampler
-  auto r1 = registry.call_tool("decoding.configure",
+  auto r1 = registry.call_tool("inference/decoding/configure",
       {{"sampler", "greedy"}, {"temperature", "0.5"}});
   REQUIRE(r1["active_sampler"] == "greedy");
   REQUIRE(r1["unsupported_warning"] == "");
 
   // mirostat_v2
-  auto r2 = registry.call_tool("decoding.configure",
+  auto r2 = registry.call_tool("inference/decoding/configure",
       {{"sampler", "mirostat_v2"}});
   REQUIRE(r2["active_sampler"] == "mirostat_v2");
 
   // 非法 sampler → fallback greedy
-  auto r3 = registry.call_tool("decoding.configure",
+  auto r3 = registry.call_tool("inference/decoding/configure",
       {{"sampler", "invalid"}});
   REQUIRE(r3["active_sampler"] == "greedy");
   REQUIRE_FALSE(r3["unsupported_warning"].get<std::string>().empty());
 
   // temperature clamp
-  auto r4 = registry.call_tool("decoding.configure",
+  auto r4 = registry.call_tool("inference/decoding/configure",
       {{"temperature", "5.0"}});
   REQUIRE(r4["params"]["temperature"] <= 2.0);
 }
 
 // =====================================================================
-// Test 7: kv_cache.configure 处理 evict_policy
+// Test 7: inference/kv_cache/configure 处理 evict_policy
 // =====================================================================
 
-TEST_CASE("llama_engine: kv_cache.configure handles evict_policy",
+TEST_CASE("llama_engine: inference/kv_cache/configure handles evict_policy",
           "[llama_engine][c14][arch][kv_cache]") {
   hydraforge::PluginLoader loader;
   MockToolRegistry registry;
@@ -286,17 +286,17 @@ TEST_CASE("llama_engine: kv_cache.configure handles evict_policy",
     return;
   }
 
-  REQUIRE(registry.has_tool("kv_cache.configure"));
-  auto result = registry.call_tool("kv_cache.configure",
+  REQUIRE(registry.has_tool("inference/kv_cache/configure"));
+  auto result = registry.call_tool("inference/kv_cache/configure",
       {{"evict_policy", "lfu"}, {"max_size_gb", "2.0"}});
   REQUIRE(result["active_policy"] == "lfu");
 }
 
 // =====================================================================
-// Test 8: prefix_cache.configure 处理参数
+// Test 8: inference/prefix_cache/configure 处理参数
 // =====================================================================
 
-TEST_CASE("llama_engine: prefix_cache.configure handles params",
+TEST_CASE("llama_engine: inference/prefix_cache/configure handles params",
           "[llama_engine][c14][arch][prefix_cache]") {
   hydraforge::PluginLoader loader;
   MockToolRegistry registry;
@@ -306,8 +306,8 @@ TEST_CASE("llama_engine: prefix_cache.configure handles params",
     return;
   }
 
-  REQUIRE(registry.has_tool("prefix_cache.configure"));
-  auto result = registry.call_tool("prefix_cache.configure",
+  REQUIRE(registry.has_tool("inference/prefix_cache/configure"));
+  auto result = registry.call_tool("inference/prefix_cache/configure",
       {{"enabled", "true"}, {"max_size", "256"}});
   REQUIRE(result.contains("status"));
 }
@@ -340,9 +340,9 @@ TEST_CASE("llama_engine: correct tool metadata (category/approval)",
     REQUIRE(meta.approval.requires_approval_in_agent == true);
     REQUIRE(meta.approval.requires_approval_in_plan == true);
   }
-  // decoding.configure: plan 审批, yolo 不审批 (配置变更需计划)
+  // inference/decoding/configure: plan 审批, yolo 不审批 (配置变更需计划)
   {
-    auto& meta = registry.tool_metas.at("decoding.configure");
+    auto& meta = registry.tool_metas.at("inference/decoding/configure");
     REQUIRE(meta.approval.requires_approval_in_plan == true);
     REQUIRE(meta.approval.requires_approval_in_agent == false);
   }

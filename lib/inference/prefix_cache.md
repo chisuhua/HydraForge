@@ -10,12 +10,12 @@ graph_type: subgraph
 module: "inference::prefix_cache"
 signature: "(enabled: bool, max_size: int) -> (status: string, active_patterns: int)"
 permissions:
-  - tool: prefix_cache.configure
+  - tool: inference/prefix_cache/configure
 nodes:
   # 节点1: 配置 prefix cache
   - id: configure_prefix_cache
     type: tool_call
-    tool: prefix_cache.configure
+    tool: inference/prefix_cache/configure
     arguments:
       enabled: "{{ inputs.enabled | default(true) }}"
       max_size: "{{ inputs.max_size | default(512) }}"  # pattern 数量上限
@@ -73,7 +73,7 @@ nodes:
 
 **与 D1 决策一致性**: 采样器 clamp 逻辑内联到 engine plugin (不在此处抽取接口)。
 
-**与 D3 决策一致性**: 架构层工具名 `prefix_cache.configure` (不带 `inference/` 前缀)。
+**与 D3 决策一致性**: 架构层工具名 `inference/prefix_cache/configure` (不带 `inference/` 前缀)。
 
 ---
 
