@@ -36,7 +36,7 @@
 
 - **决策**: 选项 A — **统一 `inference.*`**
 - **描述**: C14 的工具注册从 `llama_engine/init`、`llama_model/load` 等改为 `inference/engine/init`、`inference/model/load`。与现有 `lib/inference/engine.md` 占位文件的 `inference.engine_init` 风格对齐。
-- **命名映射**:
+- **命名映射** (8 个 engine/model 工具):
   | 原名 | 新名 |
   |------|------|
   | `llama_engine/init` | `inference/engine/init` |
@@ -47,10 +47,22 @@
   | `llama_model/unload` | `inference/model/unload` |
   | `llama_model/list` | `inference/model/list` |
   | `llama_model/switch` | `inference/model/switch` |
+- **C13 架构工具命名边界** (2026-07-07 补充):
+  - D3 决策**不适用于** C13 架构层工具（prefix_cache/kv_cache/decoding/cloud_engine）
+  - C13 架构工具命名规则: `<领域>.<动作>`（不带 `inference` 前缀），例如：
+    | 工具 | 命名 |
+    |------|------|
+    | prefix_cache 配置 | `prefix_cache.configure` |
+    | kv_cache 配置 | `kv_cache.configure` |
+    | decoding 配置 | `decoding.configure` |
+    | cloud_engine 配置 | `cloud_engine.configure` |
+  - 理由: 架构工具属于"基础设施层配置"，与"业务层推理调用"语义不同；`inference.*` 前缀专用于面向业务的推理链路（engine/model），架构配置工具不加此前缀以避免命名空间混淆
+  - C13 schema 文件（`lib/inference/prefix_cache.md` 等）使用相同命名，**内部一致**
 - **影响**:
   - C14 proposal.md: 8 处工具名替换
   - C14 tasks.md: 8 处工具名替换
   - lib/inference/engine.md + model.md: 工具名对齐
+  - C13 schema 文件: 4 处架构工具命名（不应用 D3 重写）
   - 附加工时: ~30min
 
 ### D4: 优先级排序

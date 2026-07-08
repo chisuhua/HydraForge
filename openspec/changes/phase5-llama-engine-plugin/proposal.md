@@ -133,6 +133,22 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
 
 ### 4. 已删除（按 Adversarial Review D1 决策 — SamplerStrategy 接口推迟到出现第二个推理后端时再提取）
 
+**D1 决策应用细节**：
+- 删除 `include/agenticdsl/pdk/sampler_strategy.h` PDK 接口
+- 删除 `pdk/llama_engine/src/llama_sampler.cpp` reference impl
+- 采样器 clamp 逻辑内联到 `inference/engine/generate` 工具实现内部：
+  - `temperature = std::clamp(temperature, 0.0f, 2.0f)`
+- `decoding.configure` 工具支持以下 5 种 sampler 字符串选择（与 llama.cpp API 对齐）：
+  | 字符串 | 采样器类型 |
+  |--------|----------|
+  | `greedy` | 贪心采样（argmax） |
+  | `temperature` | 温度采样（带温度的 softmax） |
+  | `mirostat_v1` | Mirostat v1（自适应 perplexity 控制） |
+  | `mirostat_v2` | Mirostat v2（改进版自适应控制） |
+  | `typical_p` | Typical-P 采样（信息论典型性阈值） |
+- 传入其他值时记录 `unsupported_warning` 并 fallback 到 `greedy`
+- 参数 clamp 范围：`temperature ∈ [0.0, 2.0]`, `top_p ∈ [0.0, 1.0]`
+
 ### 5. lib/inference/engine.md + model.md 从 PLACEHOLDER 升级
 
 **当前**：
@@ -159,32 +175,45 @@ signature: "(model_path: string, n_ctx: int, n_gpu_layers: int) -> (status: stri
 
 类似地 model.md 升级。
 
-### 6. DSLEngine 默认 plugin 注入 + fallback
+### 6. DSLEngine 显式 load_plugin() API（D5 Option B）
 
 **当前**：DSLEngine 启动时不自动加载任何 engine plugin
 
-**目标**：
-- DSLEngine 启动时**默认加载** `libhydraforge_llama_engine.so`（opt-out 而非 opt-in，保持向后兼容）
-- 加载失败时 fallback 到内嵌 LlamaAdapter（保留 reference implementation 作为安全网）
+**目标**（按 D5 决策）：
+- DSLEngine 构造**不**默认加载 plugin（删除原 fallback 设计）
+- 提供公开 API `DSLEngine::load_plugin(const std::string& name)`，由调用方显式加载
+- 加载失败时输出 WARN log，**不抛异常**，**不 fallback**（CI 行为可控 + plugin 生命周期清晰）
+- 与 C16 D4 同步（`LlamaAdapter` deprecate 路径一致）
 
-**实施位置**：`src/core/engine.cpp` DSLEngine 构造 + 析构时管理 PluginLoader
+**实施位置**：`src/core/engine.h/.cpp` 暴露 `load_plugin()` 公开方法
 
 ```cpp
+// src/core/engine.h
+class DSLEngine {
+public:
+    // D5 (C14, decisions-2026-07-07.md Option B): 显式加载 PDK plugin
+    // 返回 true 表示加载成功; false 表示 .so 不存在或加载失败
+    // 使用示例: engine->load_plugin("pdk/llama_engine");
+    bool load_plugin(const std::string& plugin_name);
+private:
+    std::unique_ptr<hydraforge::PluginLoader> plugin_loader_;
+};
+
 // src/core/engine.cpp
-DSLEngine::DSLEngine() {
-    // ... 现有初始化 ...
-    if (default_plugin_loader_) {
-        // 默认加载 llama_engine plugin
-        try {
-            default_plugin_loader_->load("pdk/llama_engine");
-        } catch (const std::exception& e) {
-            LOG(WARN) << "Failed to load llama_engine plugin, falling back to LlamaAdapter: " << e.what();
-            // Fallback: 内嵌 LlamaAdapter (reference implementation)
-            register_default_llama_adapter();
-        }
+bool DSLEngine::load_plugin(const std::string& plugin_name) {
+    if (!plugin_loader_) {
+        plugin_loader_ = std::make_unique<hydraforge::PluginLoader>();
+    }
+    try {
+        return plugin_loader_->load_so(plugin_name, get_tool_registry());
+    } catch (const std::exception& e) {
+        LOG_WARN("Failed to load plugin '" << plugin_name << "': " << e.what());
+        return false;
     }
 }
 ```
+
+**BREAKING 变更**：DSLEngine 构造不再自动加载 plugin；调用方需显式 `engine.load_plugin("pdk/llama_engine")`。所有现有测试/示例需迁移。
 
 ### 7. 测试
 
@@ -222,7 +251,7 @@ DSLEngine::DSLEngine() {
 - `llama-engine-plugin-registers-tools`: `pdk_register_tools` MUST 注册 ≥6 个工具：inference/engine/{init, generate, stream, status} + inference/model/{load, unload, list, switch}
 - `lib-inference-engine-md-upgraded`: `lib/inference/engine.md` MUST 从 PLACEHOLDER 升级为引用 inference/engine/init 工具的真实 schema
 - `lib-inference-model-md-upgraded`: `lib/inference/model.md` MUST 从 PLACEHOLDER 升级为引用 inference/model/load 工具的真实 schema
-- `dslengine-default-plugin-injection`: DSLEngine 构造时 MUST 尝试加载 libhydraforge_llama_engine.so，加载失败 MUST fallback 到内嵌 LlamaAdapter（不抛异常）
+- `dslengine-explicit-load-plugin`: DSLEngine MUST 暴露 `bool load_plugin(const std::string& name)` 公开 API；构造时**不**自动加载 plugin；`load_plugin()` 失败 MUST 输出 WARN log 而**不抛异常**，**不** fallback 到内嵌实现
 - `tests-test-llama-engine-plugin-shipped`: `tests/test_llama_engine_plugin.cpp` MUST 包含 ≥7 test cases，覆盖 plugin dlopen / ABI 匹配 / 6 工具 / generate/model lifecycle
 
 ## Impact
@@ -246,24 +275,27 @@ DSLEngine::DSLEngine() {
 
 **总净增**: ~750 行新文件 + ~60 行修改
 
-**API 兼容性**: **零 breaking change**
-- DSLEngine 构造时新增 plugin 加载逻辑，但加载失败有 fallback
+**API 兼容性**: **BREAKING change**（D5 决策）
+- DSLEngine 构造时**不**自动加载 plugin（删除原默认注入 + fallback 设计）
+- 调用方必须显式调用 `engine.load_plugin("pdk/llama_engine")`
 - lib/inference/engine.md + model.md 从占位升级为真实 schema，向后兼容（DSL 工具名不变）
+- 所有现有测试/示例需迁移：添加 `engine.load_plugin("pdk/llama_engine")` 调用
 
-**估时**: 1-1.5 天（Day 2 工作量）
+**估时**: 2-3 天（原 1-1.5 天，因 D5 决策新增 4 个 C13 架构工具注册 + D5 显式 load_plugin() API 改造）
 - plugin 骨架 + CMakeLists: 2h
 - B2.1 engine 实现: 4h
 - B2.2 model 实现: 2h
+- C13 架构工具注册（4 工具）: 2h
 - lib/inference 升级: 1h
-- DSLEngine 默认注入 + fallback: 1h
-- 测试 + 文档: 2h
+- D5 显式 `load_plugin()` API: 1h
+- 测试 + 文档 + 示例迁移: 3h
 
 ## Non-goals
 
 - **不实现 vLLM/SGLang/cloud plugin** — 仅 pdk/llama_engine/，第三方 plugin 留 C15/PR 模板阶段
 - **不实现真实 batching** — pdk/llama_engine/ 仅声明"不支持 batching"，BatchingQueue 接口及贡献流程推迟到第二个推理后端出现时（按 Adversarial Review D2 决策）
 - **不实现 prefix_cache/kv_cache 内部逻辑** — engine plugin 内部使用 llama.cpp 内置，架构层仅 schema
-- **不修改 LlamaAdapter 现有实现** — 保留作为 fallback
+- **不修改 LlamaAdapter 现有实现** — 保留作为 reference implementation（不再作为 fallback，D5 决策后 plugin 缺失仅 WARN log）
 - **不修改 C12 YIELD/STREAM** — 通过 IGenerationStream 集成即可
 - **不修改 pdk/model_router/** — 已 ship C7
 

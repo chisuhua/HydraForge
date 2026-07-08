@@ -83,24 +83,38 @@
 
 ---
 
-### Requirement: dslengine-default-plugin-injection
+### Requirement: dslengine-explicit-load-plugin（D5 Option B）
 
-`DSLEngine` 构造时 MUST 尝试加载 `libhydraforge_llama_engine.so`，加载失败 MUST fallback 到内嵌 `LlamaAdapter`（不抛异常）。
+`DSLEngine` MUST 暴露 `bool load_plugin(const std::string& name)` 公开 API，用于显式加载 PDK plugin。DSLEngine 构造**不**自动加载任何 plugin（按 D5 决策，删除原默认注入 + fallback 设计）。
 
-#### Scenario: plugin 加载成功
+#### Scenario: 构造不加载 plugin
 
-- **WHEN** DSLEngine 构造（plugin .so 可用）
+- **WHEN** DSLEngine 构造
+- **THEN** **不**调用 PluginLoader
+- **AND** `plugin_loader_` 成员**保持** nullptr
+- **AND** IToolRegistry **不**自动注册 inference/engine/* 或 inference/model/* 工具
+
+#### Scenario: 显式 load_plugin 成功
+
+- **WHEN** 调用 `engine.load_plugin("pdk/llama_engine")`（plugin .so 可用）
 - **THEN** PluginLoader dlopen 成功
-- **AND** 8 工具注册到 IToolRegistry
-- **AND** 不调用 LlamaAdapter fallback
+- **AND** 12 工具（4 engine + 4 model + 4 架构）注册到 IToolRegistry
+- **AND** 返回 `true`
 
-#### Scenario: plugin 加载失败 fallback
+#### Scenario: 显式 load_plugin 失败 — WARN log 不抛异常
 
-- **WHEN** DSLEngine 构造（plugin .so 不可用，模拟删除 .so 场景）
+- **WHEN** 调用 `engine.load_plugin("pdk/nonexistent")`（plugin .so 不存在）
 - **THEN** PluginLoader dlopen 失败
-- **AND** DSLEngine 构造**不**抛异常
-- **AND** 输出 WARN log: "Failed to load llama_engine plugin, falling back to LlamaAdapter"
-- **AND** 调用 `register_default_llama_adapter()` 注入 reference impl
+- **AND** DSLEngine **不**抛异常
+- **AND** 输出 WARN log: `"Failed to load plugin '<name>': <error>"`
+- **AND** 返回 `false`
+- **AND** **不** fallback 到任何内嵌实现
+
+#### Scenario: BREAKING 迁移指引
+
+- **WHEN** 现有测试/示例使用 DSLEngine
+- **THEN** **必须** 添加 `engine.load_plugin("pdk/llama_engine")` 显式调用
+- **AND** 删除任何对 LlamaAdapter fallback 的依赖
 
 #### Scenario: 析构时正确清理
 
@@ -112,9 +126,9 @@
 
 ### Requirement: tests-test-llama-engine-plugin-shipped
 
-`tests/test_llama_engine_plugin.cpp` MUST 包含 ≥7 test cases，覆盖 plugin dlopen / ABI 匹配 / 6 工具 / generate/model lifecycle。
+`tests/test_llama_engine_plugin.cpp` MUST 包含 ≥12 test cases，覆盖 plugin dlopen / ABI 匹配 / 12 工具（4 engine + 4 model + 4 C13 架构）/ generate/model lifecycle / sampler clamp / D5 load_plugin 显式注入。
 
-#### Scenario: 7 test cases 覆盖
+#### Scenario: 12 test cases 覆盖
 
 - **WHEN** 检查 `tests/test_llama_engine_plugin.cpp`
 - **THEN** 包含以下 TEST_CASE：
@@ -125,17 +139,22 @@
   5. `inference_engine_stream_integrates_with_yield` — C12 YIELD 集成
   6. `inference_model_load_unload_lifecycle` — load + unload 序列
   7. `inference_model_switch_active` — switch 工具调用
+  8. `prefix_cache_configure_registers` — C13 架构工具注册
+  9. `kv_cache_configure_registers` — C13 架构工具注册
+  10. `decoding_configure_sampler_clamp` — D1 决策验证：sampler clamp 内联 + 5 种字符串合法值校验
+  11. `cloud_engine_configure_placeholder_stub` — C13 cloud_engine PLACEHOLDER 验证
+  12. `dslengine_explicit_load_plugin_returns_true` — D5 验证：显式 load_plugin 返回 true
 
-#### Scenario: 全部 8 测试 PASS
+#### Scenario: 全部 12 测试 PASS
 
 - **WHEN** 运行 `ctest -R test_llama_engine_plugin`
 - **THEN** exit 0
-- **AND** 8/8 PASS
+- **AND** 12/12 PASS
 
 #### Scenario: 零回归
 
 - **WHEN** 运行完整 `ctest`
-- **THEN** 72/72 PASS（64 baseline + 8 new）
+- **THEN** 76/76 PASS（64 baseline + 12 new）
 
 ---
 

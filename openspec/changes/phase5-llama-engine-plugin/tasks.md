@@ -98,15 +98,20 @@
   - tool_call 节点引用 `inference/model/load` 工具
 - [ ] 6.3 保留与 B2.3/B2.4/B2.5 (C13) 的交叉引用（prefix_cache + kv_cache + decoding schema 已 ship）
 
-## 7. DSLEngine 默认 plugin 注入
+## 7. DSLEngine 显式 load_plugin() API（D5 Option B — 已 ship）
 
-- [ ] 7.1 修改 `src/core/engine.cpp` DSLEngine 构造 (~30 行)
-  - 尝试加载 `libhydraforge_llama_engine.so`
-  - 加载失败 fallback 到内嵌 LlamaAdapter（不抛异常, 仅 WARN log）
-- [ ] 7.2 验证向后兼容：
-  - 现有 64 测试零回归（构造时不抛异常）
-  - examples/* 正常运行
-- [ ] 7.3 析构时正确卸载 plugin
+> **状态**: ✅ 已 ship（commit `e82a826`，代码已实现 + TSan gate 通过）
+> **关联决策**: `docs/adversarial-reviews/decisions-2026-07-07.md` §D5
+> **关联代码**: `src/core/engine.h` (PluginLoader 前向声明 + 公开方法) + `src/core/engine.cpp` (load_plugin() 实现 + unique_ptr<hydraforge::PluginLoader> plugin_loader_)
+
+- [x] 7.1 `src/core/engine.h` 暴露 `bool load_plugin(const std::string& plugin_name)` 公开方法
+- [x] 7.2 `src/core/engine.h` 声明 `std::unique_ptr<hydraforge::PluginLoader> plugin_loader_` 成员（PIMPL-lite）
+- [x] 7.3 `src/core/engine.cpp` 实现 `load_plugin()`：缺失 plugin → WARN log → 返回 false，**不抛异常，**不** fallback**
+- [x] 7.4 验证 D5 BREAKING 变更影响范围：
+  - DSLEngine 构造不再自动加载 plugin（与 C7 model_router 一致）
+  - 现有测试/示例需添加 `engine.load_plugin("pdk/llama_engine")` 显式调用
+- [x] 7.5 析构时正确清理 plugin（`unique_ptr<PluginLoader>` 自动 dlclose）
+- [ ] 7.6 迁移所有现有测试/示例（添加 `load_plugin()` 调用）— D5 BREAKING 配套任务
 
 ## 8. 测试
 
@@ -154,7 +159,7 @@
 - [ ] 12.1 Git 提交 1: `feat(pdk-llama-engine): add 4 engine + 4 model tools (load/generate/stream/status + load/unload/list/switch)`
 - [ ] 12.2 Git 提交 2: `feat(pdk-llama-engine): register 4 C13 architecture tools (prefix_cache/kv_cache/decoding/cloud_engine)`
 - [ ] 12.3 Git 提交 3: `feat(phase5-stdlib): upgrade engine.md + model.md from PLACEHOLDER to real schema`
-- [ ] 12.4 Git 提交 4: `feat(engine): DSLEngine explicit load_plugin() API (D5 Option B)`
+- [x] 12.4 Git 提交 4: `feat(engine): DSLEngine explicit load_plugin() API (D5 Option B)` — commit `e82a826`
 - [ ] 12.5 Git 提交 5: `test(pdk-llama-engine): add 12 test cases for plugin dlopen + tools + arch tools + sampler`
 - [ ] 12.6 Git 提交 6: `docs(pdk-llama-engine): README + AGENTS + master plan + ADR-0021 update + D5 recorded`
 - [ ] 12.7 Git 提交 7: `chore(openspec): mark C14 tasks complete (12 tools shipped) before archive`
@@ -167,7 +172,7 @@
 - [ ] 1. pdk/llama_engine/ plugin 编译成功 (.so 产物存在)
 - [ ] 2. 12 个工具正确注册 (inference/engine/{init,generate,stream,status} × 4 + inference/model/{load,unload,list,switch} × 4 + **C13 架构工具** prefix_cache.configure / kv_cache.configure / decoding.configure / cloud_engine.configure × 4)
 - [ ] 3. lib/inference/engine.md + model.md 从 PLACEHOLDER 升级
-- [ ] 4. DSLEngine 默认 plugin 注入成功（构造时 dlopen）+ fallback 测试通过
+- [ ] 4. DSLEngine 显式 `load_plugin()` API 测试通过（缺失 WARN log，不抛异常，不 fallback）
 - [ ] 5. tests/test_llama_engine_plugin.cpp 12 cases 全部 PASS (7 engine/model + 4 架构工具 + 1 D5 注入)
 - [ ] 6. ctest 76/76 PASS 零回归 (64 baseline + 12 新测试)
 - [ ] 8. ASan ≥ 64/64 / TSan ≥ 64/64
