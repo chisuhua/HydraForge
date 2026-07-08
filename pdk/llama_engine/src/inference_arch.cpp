@@ -45,6 +45,9 @@ void register_arch_tools(::agenticdsl::IToolRegistry& registry) {
       "prefix_cache.configure",
       meta,
       [](const std::unordered_map<std::string, std::string>& args_map) -> json {
+        auto& s = engine_state();
+        std::lock_guard<std::mutex> lock(s.mtx);
+
         json args;
         for (const auto& [k, v] : args_map) {
           if (!v.empty() && (v.front() == '[' || v.front() == '{')) {
@@ -83,6 +86,9 @@ void register_arch_tools(::agenticdsl::IToolRegistry& registry) {
       "kv_cache.configure",
       meta,
       [](const std::unordered_map<std::string, std::string>& args_map) -> json {
+        auto& s = engine_state();
+        std::lock_guard<std::mutex> lock(s.mtx);
+
         json args;
         for (const auto& [k, v] : args_map) {
           if (!v.empty() && (v.front() == '[' || v.front() == '{')) {
@@ -122,6 +128,9 @@ void register_arch_tools(::agenticdsl::IToolRegistry& registry) {
       "decoding.configure",
       meta,
       [](const std::unordered_map<std::string, std::string>& args_map) -> json {
+        auto& s = engine_state();
+        std::lock_guard<std::mutex> lock(s.mtx);
+
         json args;
         for (const auto& [k, v] : args_map) {
           if (!v.empty() && (v.front() == '[' || v.front() == '{')) {

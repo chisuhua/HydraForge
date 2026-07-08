@@ -42,6 +42,6 @@ extern "C" const hydraforge::PluginInfo pdk_plugin_info = {
   "hydraforge_llama_engine",                                    // name
   1, 0, 0,                                                      // semver 1.0.0
   "Llama.cpp reference engine plugin — 12 tools (engine/model/arch)", // description
-  "engine,model,inference,llama",                               // capabilities
+  "engine,model,inference,llama,sampler",                          // capabilities
   ""                                                            // dependencies (无依赖, llm 由 host 注入)
 };

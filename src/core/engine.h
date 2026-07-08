@@ -165,6 +165,11 @@ private:
     ExecutionResult run_impl(TaskSession& task_sess, const std::string& message);
 
     std::vector<ParsedGraph> full_graphs_;
+    // D5 (C14): 显式 plugin 加载器 — DSLEngine 不再默认注入 plugin
+    // ⚠️ 声明顺序: plugin_loader_ 在 tool_registry_ 之前 → 析构时最后释放 → dlclose 在 ToolRegistry lambdas 清理之后
+    //  (C++ 逆声明顺序析构; Sprint 17 C7 destruction order bug fix: PluginLoader 必须晚于 ToolRegistry 释放)
+    std::unique_ptr<hydraforge::PluginLoader> plugin_loader_;
+
     std::unique_ptr<IToolRegistry> tool_registry_; // P1.T4: PIMPL-lite 化 (从 ToolRegistry 值成员改为 unique_ptr<IToolRegistry>)
     std::unique_ptr<SessionRegistry> session_registry_; // C11: PIMPL-lite, 与 tool_registry_ 模式一致
     std::unique_ptr<ILLMProvider> llm_provider_; // C₁.4: 默认 MockLLMProvider
@@ -181,9 +186,6 @@ private:
 
     // C4 Sprint 14 (ADR-0031 P3-P4, Oracle §决策 5): ToolCoordinator
     std::unique_ptr<ToolCoordinator> tool_coordinator_;
-
-    // D5 (C14): 显式 plugin 加载器 — DSLEngine 不再默认注入 plugin
-    std::unique_ptr<hydraforge::PluginLoader> plugin_loader_;
 };
 
 } // namespace agenticdsl

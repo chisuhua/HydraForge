@@ -121,8 +121,9 @@ void register_model_tools(::agenticdsl::IToolRegistry& registry) {
     registry.register_tool_function(
       "inference/model/list",
       meta,
-      [](const std::unordered_map<std::string, std::string>& args_map) -> json {
+      [](const std::unordered_map<std::string, std::string>&) -> json {
         auto& s = engine_state();
+        std::lock_guard<std::mutex> lock(s.mtx);
         json arr = json::array();
         for (const auto& m : s.loaded_models) {
           arr.push_back({{"model_id", m.model_id}, {"model_path", m.model_path}, {"active", m.active}});
