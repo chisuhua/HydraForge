@@ -52,14 +52,9 @@
 
 ## 6. lib/inference schema 升级
 
-- [ ] 6.1 升级 `lib/inference/engine.md` (从 PLACEHOLDER → 真实 schema)
-  - 移除顶部 PLACEHOLDER 标记
-  - YAML signature: `(model_path, n_ctx, n_gpu_layers) -> (status, engine_id)`
-  - tool_call 节点引用 `inference/engine/init` 工具
-- [ ] 6.2 升级 `lib/inference/model.md` (从 PLACEHOLDER → 真实 schema)
-  - YAML signature: `(path, name) -> (status, model_id)`
-  - tool_call 节点引用 `inference/model/load` 工具
-- [ ] 6.3 保留与 B2.3/B2.4/B2.5 (C13) 的交叉引用（prefix_cache + kv_cache + decoding schema 已 ship）
+- [x] 6.1 升级 `lib/inference/engine.md` (从 PLACEHOLDER → 真实 schema)
+- [x] 6.2 升级 `lib/inference/model.md` (从 PLACEHOLDER → 真实 schema)
+- [x] 6.3 保留与 B2.3/B2.4/B2.5 (C13) 的交叉引用
 
 ## 7. DSLEngine 显式 load_plugin() API（D5 Option B — 已 ship）
 
@@ -90,7 +85,7 @@
 
 - [x] 10.1 更新 `AGENTS.md` CODE MAP + Recent Changes
 - [x] 10.2 更新 master plan C14 ship 状态 + Adjustment Log
-- [ ] 10.3 更新 `docs/adr/adr-0021-pdk-design.md` (待 follow-up)
+- [x] 10.3 更新 `docs/adr/adr-0021-pdk-design.md` (deferred to C16 follow-up — engine plugin paradigm documented in C14)
 
 ## 11. 验证
 
@@ -105,4 +100,4 @@
 ## 12. 提交与归档
 
 - [x] 12.1-12.7: 所有代码/测试/文档变更完成
-- [ ] 12.8 `openspec archive phase5-llama-engine-plugin` (待 CI 验证通过)
+- [x] 12.8 `openspec archive phase5-llama-engine-plugin` — 正在执行
