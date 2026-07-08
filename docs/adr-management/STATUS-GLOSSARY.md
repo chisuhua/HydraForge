@@ -9,11 +9,11 @@
 
 | 标签 | 英文 | 语义 | 使用场景 |
 |------|------|------|----------|
-| ✅ Approved | Approved | ADR 已批准 + 代码已落地 | ADR-0001, ADR-0003, ADR-0005, ADR-0008, ADR-0009, ADR-0019 |
-| 🟡 Partial | Partial | 接口/部分方法已实现，框架可见 | ADR-0007, ADR-0020, ADR-0023, ADR-0031 |
-| ❌ Not Implemented | Not Implemented | ADR 已批准但代码无对应实现 | ADR-0002, ADR-0010-0018, ADR-0030, ADR-0032, ADR-0034, ADR-0036 |
-| ⛔ Superseded | Superseded | 被新 ADR 替代 | ADR-0006（被 ADR-0020 替代） |
-| 🔍 Proposed | Proposed | 仅是提案，未到实施阶段 | ADR-0021, ADR-0022 |
+| ✅ Approved | Approved | ADR 已批准 + 代码已落地 | ADR-0001, ADR-0003, ADR-0005, ADR-0008, ADR-0009, ADR-0019, ADR-0021, ADR-0022, ADR-0023, ADR-0034 |
+| 🟡 Partial | Partial | 接口/部分方法已实现，框架可见 | ADR-0007, ADR-0020, ADR-0031 |
+| ❌ Not Implemented | Not Implemented | ADR 已批准但代码无对应实现 | ADR-0002, ADR-0010-0018, ADR-0032 |
+| ⛔ Superseded | Superseded | 被新 ADR 替代 | ADR-0006（被 ADR-0020 替代）, ADR-0036（被 ADR-0045 替代, 2026-07-08 软归档） |
+| 🔍 Proposed | Proposed | 仅是提案，未到实施阶段 | ADR-0030 |
 | 📋 Reserved | Reserved | 编号预留，无内容 | (无活跃 ADR，未来用于占位) |
 
 ## 已废弃词汇（迁移对照表）
@@ -32,4 +32,5 @@
 
 1. 新 ADR 起草时必须从这 6 个标签中选一个。
 2. 任何 ADR 状态变更时，README、relationships.md、SPECS-ALIGNMENT.md 必须同步。
+   - **同步方向**: From `## 状态` 字段 → STATUS-GLOSSARY 状态表 (单向)，任何 ADR 状态变更时 MUST 在同一次 commit 中同步。
 3. 不再创建新的状态标签；如需扩展，先在本表添加定义再使用。

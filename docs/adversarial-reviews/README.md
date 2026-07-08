@@ -81,7 +81,7 @@
 |------|------|------|:----:|
 | **`README.md`** (本文) | 背景 + 文档索引 + 决策点 | — | — |
 | **`main-report.md`** | 综合 Adversarial Review 报告 (5 大发现 + 4 方案对比) | 4 个探索 agent 综合 | 8 页 |
-| **`ref-1-b2-oopenspec-arch.md`** | B2 三个 openspec change 架构边界深度审查 | explore bg_0a74e604 | 6 页 |
+| **`ref-1-b2-openspec-arch.md`** | B2 三个 openspec change 架构边界深度审查 | explore bg_0a74e604 | 6 页 |
 | **`ref-2-pdk-paradigm-c7.md`** | C7 Model Router PDK Plugin 范式审查与 B2 复用性 | explore bg_54cd898e | 8 页 |
 | **`ref-3-lib-inference-state.md`** | B1 lib/inference 真实状态与 B2 起点假设验证 | explore bg_594ba48f | 5 页 |
 | **`ref-4-external-llm-comparison.md`** | 7 个主流推理引擎 Plugin 抽象对比调研 | librarian bg_ee40d227 | 7 页 |

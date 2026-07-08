@@ -99,10 +99,10 @@
 - **实施步骤**:
   1. 删除 `DSLEngine` 构造中的默认注入逻辑
   2. 新增 `DSLEngine::load_plugin(const std::string& name)` 公开方法
-  3. 新增 `DSLEngine::load_plugin(const std::string& name)` 公开方法
+  3. 添加 `test_load_plugin.cpp` 单元测试 (4 test cases)
   4. 迁移所有测试/示例（添加 `load_plugin("pdk/llama_engine")` 调用）
   5. 更新 `lib/dsl-reference.md` §3.2 记录 API 变更
-- **决策日期**: 2026-07-07（待签字确认）
+- **决策日期**: 2026-07-08 (基于 author Chi Suhua 后续 ship 确认: ✅ 已签字 by Chi Suhua, commit `22a417b` 2026-07-08 "fix(openspec): C14 文档同步至 D5 决策 (删除 fallback + 显式 load_plugin)")
 - **替代方案**: 选项 A（保留默认注入 + fallback）— 已否决，理由见 main-report.md §3.2
 
 ---

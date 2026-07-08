@@ -315,7 +315,7 @@ N + M + K = ~2 + 16 + 8 = 26 (8核机器, M 可配置)
 - [ADR-0019: IInteractionBus 接口与 TUI Chat MVP 架构](./adr-0019-iinteraction-bus-mvp.md)
 - [ADR-0020: 多智能体线程模型与隔离策略](./adr-0020-thread-model-isolation.md)
 - [ADR-0025: 并行子任务](./adr-0025-parallel-subtasks.md) — Fleet 协议依据
-- [ADR-0036: 混合内核架构总纲](./adr-0036-three-layer-service-protocol.md)
+- [ADR-0036: 混合内核架构总纲](../archive/adr/adr-0036-three-layer-service-protocol.md) (⛔ Superseded 2026-07-08, 被 ADR-0045 替代)
 - [Slice 00 验证报告](../implementation-roadmap.md#slice-00--基础设施验证) — Taskflow + async_simple 引入
 - OpenSpec change: `2026-06-26-doc-alignment-adr-states` (本 V2 产出)
 

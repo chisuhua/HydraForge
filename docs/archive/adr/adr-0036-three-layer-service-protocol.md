@@ -1,8 +1,14 @@
 # ADR-0036：三层服务协议与调用契约
 
+> **⛔ DEPRECATED (2026-07-08)** — 本 ADR 已被 ADR-0045 (renumbered from 0036) 替代。
+> 详见: `docs/adr/adr-0045-orchestration-plugin-spec.md` + `docs/adr-management/STATUS-GLOSSARY.md` + `openspec/changes/fix-adr-doc-alignment-hotfix-2026-07-08/`
+> 软归档原因: 2026-07-06 B2 架构方案讨论中, 编排 plugin spec 从 0036 renumber 到 0045 (避免与本 ADR 编号冲突)
+> 原始状态: 🔍 Proposed (2026-05-28, 未实施)
+
 ## 状态
 
-**🔍 Proposed** (2026-05-28, 当前未实施 — 描述 hybrid kernel + 三层服务架构, 与 ADR-0036-hybrid-kernel-architecture 旧 archive 同源, 等待 Phase 5 自举阶段决定采纳策略)
+**⛔ Superseded** (2026-07-08 — 被 ADR-0045 替代, 软归档至 `docs/archive/adr/`)
+**原状态**: 🔍 Proposed (2026-05-28, 当前未实施 — 描述 hybrid kernel + 三层服务架构, 与 ADR-0036-hybrid-kernel-architecture 旧 archive 同源, 等待 Phase 5 自举阶段决定采纳策略)
 
 **日期**：2026-05-28
 **领域**：基座 / 系统架构

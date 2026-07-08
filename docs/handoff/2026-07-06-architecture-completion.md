@@ -50,6 +50,7 @@
 **未误伤验证**:
 - 10 个旧版本关联文件 (adr-0004/0030/0033/adr-0036-three-layer-service-protocol/adr-0037-causal-ordering/docs-adr-management/implementation-roadmap/implementation-slices/archive-adr-0030) 的 0036/0037 引用全部完整保留
 - ADR cross-ref 完整性: 12 个新文件每个仅 1 处 0036/0037 残留 (即 renumber note 中的历史叙事)
+- **2026-07-08 补充 (OpenSpec change `fix-adr-doc-alignment-hotfix-2026-07-08`)**: ADR-0036 已软归档至 `docs/archive/adr/`, 状态标 `⛔ Superseded` (被 ADR-0045 替代)。`docs/adr/adr-0030-async-runtime-v2.md:318` 旧引用已同步更新为 `../archive/adr/adr-0036-three-layer-service-protocol.md` + Superseded 标注。
 
 ### 1.3 设计产物清单 (本会话累计)
 
