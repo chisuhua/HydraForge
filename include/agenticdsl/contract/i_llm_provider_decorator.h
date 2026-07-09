@@ -16,6 +16,7 @@
 
 #include <functional>  // std::function (wrap_chain 签名)
 #include <memory>      // std::unique_ptr
+#include <optional>    // std::optional<LLMError> (pre_check 钩子返回值)
 #include <stdexcept>   // std::runtime_error
 #include <vector>      // std::vector
 
@@ -103,6 +104,29 @@ class ILLMProviderDecorator : public ILLMProvider {
  protected:
   // === 子类扩展钩子 (默认 pass-through) ===
   // 子类 override 这些方法注入 cost/compliance/ratelimit 逻辑
+
+  /**
+   * @brief 同步 generate pre-check 钩子
+   * @param req 原始请求 (只读)
+   * @return std::optional<LLMError>: nullopt = pass-through;
+   *         设置值 = 基类不再调用 inner, 直接返回该错误
+   *
+   * 用例 (Phase 5 REQ-IPD-004): RateLimitDecorator 在 pre-check 中预扣配额,
+   * 配额不足立即返回 RateLimited, 不会真实调用 inner provider (避免消耗底层资源)。
+   */
+  virtual std::optional<LLMError> pre_check_generate(
+      const GenerationRequest& /*req*/) {
+    return std::nullopt;
+  }
+
+  /**
+   * @brief 流式 generate_stream pre-check 钩子
+   * @return 同 pre_check_generate 语义
+   */
+  virtual std::optional<LLMError> pre_check_generate_stream(
+      const GenerationRequest& /*req*/) {
+    return std::nullopt;
+  }
 
   /**
    * @brief 同步 generate 钩子

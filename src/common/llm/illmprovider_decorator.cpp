@@ -22,6 +22,11 @@ ILLMProviderDecorator::ILLMProviderDecorator(std::unique_ptr<ILLMProvider> inner
 
 Result<GenerationResult, LLMError> ILLMProviderDecorator::generate(
     const GenerationRequest& req, std::stop_token token) {
+  // 0. pre-check 钩子: 让子类在内层调用前拒绝 (Phase 5 REQ-IPD-004 RateLimit)
+  //    默认 nullopt → pass-through; 设置值 → 直接返回错误, inner 不被调用
+  if (auto err = pre_check_generate(req)) {
+    return Result<GenerationResult, LLMError>::failure(std::move(*err));
+  }
   // 1. 转发到 inner provider (Result 是 move-only, 用 auto 持有)
   auto inner_result = inner_->generate(req, token);
   // 2. 调用子类钩子 (默认 pass-through)
@@ -31,6 +36,19 @@ Result<GenerationResult, LLMError> ILLMProviderDecorator::generate(
 std::unique_ptr<IGenerationStream>
 ILLMProviderDecorator::generate_stream(const GenerationRequest& req,
                                         std::stop_token token) {
+  // 0. pre-check 钩子: 同步路径语义, 失败时返回立即 inactive 的错误流
+  if (auto err = pre_check_generate_stream(req)) {
+    class PreCheckErrorStream : public IGenerationStream {
+     public:
+      explicit PreCheckErrorStream(LLMError e) : err_(std::move(e)) {}
+      std::optional<std::string> next(std::stop_token) override { return std::nullopt; }
+      bool is_active() const override { return false; }
+      std::optional<LLMError> error() const override { return err_; }
+     private:
+      LLMError err_;
+    };
+    return std::make_unique<PreCheckErrorStream>(std::move(*err));
+  }
   // 1. 转发到 inner provider
   auto inner_stream = inner_->generate_stream(req, token);
   // 2. 调用子类钩子 (子类可返回 TrackingStream 包装)
