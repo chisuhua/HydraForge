@@ -62,56 +62,64 @@ bool RateLimitDecorator::try_consume(int tokens) {
 Result<GenerationResult, LLMError> RateLimitDecorator::decorate_generate(
     const GenerationRequest& req,
     Result<GenerationResult, LLMError> inner_result) {
-  // === 1. 预扣配额 (用 max_tokens 作为上界估算) ===
+  // Phase 5 修复: 预扣已迁移到 pre_check_generate (在基类调用 inner 之前)。
+  // 本方法仅负责在 inner 调用完之后, 根据成功 / 失败退还预扣的配额。
   const int max_tokens = req.params.max_tokens;
-  if (max_tokens > 0 && !try_consume(max_tokens)) {
-    // 配额不足, 返回 RateLimited (不调用 inner)
-    return Result<GenerationResult, LLMError>::failure(
-        LLMError(LLMError::Code::RateLimited,
-                 "tenant " + tenant_id_ + " quota exceeded"));
+  if (max_tokens <= 0) {
+    return inner_result;
   }
 
-  // === 2. 配额充足, 转发 (inner_result 已由基类 generate() 调用 inner 得到) ===
-  // 装饰器不修改业务返回值, 但需要根据成功/失败决定是否退还差额
+  int refund = 0;
   if (inner_result.has_value()) {
-    // === 3. 成功: 退还差额 (max_tokens - actual_tokens) ===
+    // 成功: 退还差额 (max_tokens - actual_tokens)
     const auto& result = inner_result.value();
     const int actual_tokens = result.prompt_tokens + result.completion_tokens;
-    const int refund = max_tokens - actual_tokens;
-    if (refund > 0) {
-      std::lock_guard<std::mutex> lock(bucket_mutex_);
-      // 退还不超过 max_tokens (防止溢出)
-      tokens_remaining_ = std::min(
-          tokens_remaining_ + refund,
-          static_cast<double>(tokens_per_minute_));
-    }
+    refund = max_tokens - actual_tokens;
   } else {
-    // === 4. 失败: 全额退还 (避免失败请求消耗配额) ===
-    if (max_tokens > 0) {
-      std::lock_guard<std::mutex> lock(bucket_mutex_);
-      tokens_remaining_ = std::min(
-          tokens_remaining_ + max_tokens,
-          static_cast<double>(tokens_per_minute_));
-    }
+    // 失败: 全额退还, 避免失败请求消耗配额
+    refund = max_tokens;
+  }
+
+  if (refund > 0) {
+    std::lock_guard<std::mutex> lock(bucket_mutex_);
+    // 退还不超过 max_tokens (防止溢出)
+    tokens_remaining_ = std::min(
+        tokens_remaining_ + refund,
+        static_cast<double>(tokens_per_minute_));
   }
 
   return inner_result;
+}
+
+std::optional<LLMError> RateLimitDecorator::pre_check_generate(
+    const GenerationRequest& req) {
+  const int max_tokens = req.params.max_tokens;
+  if (max_tokens > 0 && !try_consume(max_tokens)) {
+    return LLMError(LLMError::Code::RateLimited,
+                    "tenant " + tenant_id_ + " quota exceeded");
+  }
+  return std::nullopt;
+}
+
+std::optional<LLMError> RateLimitDecorator::pre_check_generate_stream(
+    const GenerationRequest& req) {
+  const int max_tokens = req.params.max_tokens;
+  if (max_tokens > 0 && !try_consume(max_tokens)) {
+    return LLMError(LLMError::Code::RateLimited,
+                    "tenant " + tenant_id_ + " quota exceeded");
+  }
+  return std::nullopt;
 }
 
 std::unique_ptr<IGenerationStream>
 RateLimitDecorator::decorate_generate_stream(
     const GenerationRequest& req,
     std::unique_ptr<IGenerationStream> inner_stream) {
-  const int max_tokens = req.params.max_tokens;
-  // === 1. 预扣配额 ===
-  if (max_tokens > 0 && !try_consume(max_tokens)) {
-    // 配额不足: 返回注入 RateLimited 错误的流包装
-    return std::make_unique<RateLimitStream>(
-        nullptr, this, max_tokens);
-  }
-  // === 2. 配额充足: 包装 inner_stream, 流结束退还差额 ===
+  // Phase 5 修复: 预扣已迁移到 pre_check_generate_stream.
+  // 基类保证 inner_stream 非 null (pre-check 失败时已直接返回 ErrorStream).
+  // RateLimitStream 的 nullptr 重载保留为防御性 dead-branch (Phase 5 后无入口触发).
   return std::make_unique<RateLimitStream>(
-      std::move(inner_stream), this, max_tokens);
+      std::move(inner_stream), this, req.params.max_tokens);
 }
 
 // =====================================================================

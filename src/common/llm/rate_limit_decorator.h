@@ -15,6 +15,7 @@
 #include <chrono>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 
 namespace agenticdsl {
@@ -53,12 +54,23 @@ class RateLimitDecorator : public ILLMProviderDecorator {
  protected:
   // === 钩子实现 ===
 
-  /// 同步 generate: 预扣 max_tokens, 成功后退还差额
+  /// 同步 generate pre-check: 预扣 max_tokens, 不足直接返回 RateLimited
+  /// (不调用 inner_) — Phase 5 REQ-IPD-004 修复 (修复前在 decorate_generate
+  /// post-check, 配额超限无法阻止底层调用)
+  std::optional<LLMError> pre_check_generate(
+      const GenerationRequest& req) override;
+
+  /// 流式 generate_stream pre-check: 同上语义, 流版本
+  std::optional<LLMError> pre_check_generate_stream(
+      const GenerationRequest& req) override;
+
+  /// 同步 generate: 仅负责根据成功 / 失败退还预扣的配额 (post-refund)
   Result<GenerationResult, LLMError> decorate_generate(
       const GenerationRequest& req,
       Result<GenerationResult, LLMError> inner_result) override;
 
-  /// 流式 generate_stream: 预扣 max_tokens, 流结束退还差额
+  /// 流式 generate_stream: 包装 inner_stream 为 RateLimitStream (退款逻辑在
+  /// RateLimitStream::next / ~RateLimitStream 中完成)
   std::unique_ptr<IGenerationStream> decorate_generate_stream(
       const GenerationRequest& req,
       std::unique_ptr<IGenerationStream> inner_stream) override;

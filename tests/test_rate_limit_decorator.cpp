@@ -111,3 +111,61 @@ TEST_CASE("RateLimitDecorator opt-in via engine flag",
   REQUIRE(bare_result.has_value());
   CHECK(bare_result.value().text == "bare");
 }
+
+// === REQ-IPD-004 Scenario: 配额不足时 MUST 阻止 inner provider 被调用 ===
+// Bug repro (修复前): 基类 generate() 先调用 inner_->generate(), 再调用
+// decorate_generate() 做 post-check。结果是 mock 被调用 1 次, 即使真实应该
+// 因为配额不足被阻止 — 内层资源 (API 配额 / token 成本) 仍然消耗。
+TEST_CASE("RateLimitDecorator quota exceeded blocks inner provider call",
+          "[decorator][rate_limit][pre_check]") {
+  // Given: 配置响应 + 配额 50 tokens/min (远小于请求 100)
+  auto mock_provider = std::make_unique<MockLLMProvider>();
+  MockLLMProvider* mock_raw = mock_provider.get();
+  mock_provider->set_fixed_response(GenerationResult{
+      .text = "should-never-be-returned",
+      .prompt_tokens = 5,
+      .completion_tokens = 3});
+
+  auto decorator = std::make_unique<RateLimitDecorator>(
+      std::move(mock_provider), "tenant-blocked", /*tokens_per_minute=*/50);
+
+  GenerationRequest req;
+  req.prompt = "expensive";
+  req.params = LLMConfig{.model = "m", .max_tokens = 100};
+
+  // When: generate 在 配额耗尽 场景下被调用
+  const auto result = decorator->generate(req, {});
+
+  // Then: 返回 RateLimited 失败
+  REQUIRE_FALSE(result.has_value());
+  REQUIRE(result.error().code == LLMError::Code::RateLimited);
+
+  // Then (核心): inner MUST NOT 被调用 — call_count 必须为 0
+  REQUIRE(mock_raw->call_count() == 0);
+}
+
+// === Stream path 同步测试: 配额不足时 MUST 阻止 inner.generate_stream() ===
+TEST_CASE("RateLimitDecorator stream path blocks inner when quota exceeded",
+          "[decorator][rate_limit][pre_check][stream]") {
+  auto mock_provider = std::make_unique<MockLLMProvider>();
+  MockLLMProvider* mock_raw = mock_provider.get();
+  mock_provider->set_stream_tokens({"chunk-a", "chunk-b"});
+
+  auto decorator = std::make_unique<RateLimitDecorator>(
+      std::move(mock_provider), "tenant-stream", /*tokens_per_minute=*/50);
+
+  GenerationRequest req;
+  req.prompt = "stream-expensive";
+  req.params = LLMConfig{.model = "m", .max_tokens = 100};
+
+  // When: generate_stream 在配额不足场景
+  auto stream = decorator->generate_stream(req, {});
+
+  // Then: 流立即不活跃, 报告 RateLimited
+  REQUIRE_FALSE(stream->is_active());
+  REQUIRE(stream->error().has_value());
+  REQUIRE(stream->error()->code == LLMError::Code::RateLimited);
+
+  // Then (核心): inner.generate_stream MUST NOT 被调用
+  REQUIRE(mock_raw->call_count() == 0);
+}
