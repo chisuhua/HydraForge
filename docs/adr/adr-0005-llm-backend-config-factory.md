@@ -115,6 +115,8 @@ api_key_file: /run/secrets/anthropic.key
 
 ### 3. 工厂接口设计
 
+> **Cloud Plugin 路径共存注记 (2026-07-09, per ADR-0042 §4 修订 + OpenSpec change `phase5-illmprovider-call-chain-v2` Decision 3)**: Cloud 后端 (openai/anthropic/deepseek/qwen/moonshot/custom) 已 plugin 化为 `pdk/cloud/` first-party plugin (`libhydraforge_pdk_cloud.so`)。`LLMProviderFactory::create()` 路由保留 `ProviderCreator` 注册机制, 但 cloud 路由改为 `CloudPluginLoader::load_provider(config)` (dlopen plugin), 与 local 推理 Plugin 路由 (`LlamaEnginePluginLoader`) 共存。用户配置零改动 (provider 字符串不变)。本节 `ProviderCreator` 接口和 YAML 配置 schema 仍有效, `LLMProviderFactory` 内部路由实现已从直接 new Creator 改为 dlopen + fallback 到 Mock。详见 ADR-0042 §2 + §4。
+
 ```cpp
 // ============================================================
 // 配置数据结构

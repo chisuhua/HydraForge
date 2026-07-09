@@ -1,5 +1,6 @@
 #include "catch_amalgamated.hpp"
 #include "common/llm/mock_provider.h"
+#include "agenticdsl/contract/i_llm_provider_decorator.h"
 #include "common/tools/registry.h"
 #include "common/utils/parser_utils.h"
 #include "core/engine.h"
@@ -242,7 +243,9 @@ nodes:
     )";
 
     auto engine = DSLEngine::from_markdown(dsl);
-    auto* provider = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
+    ILLMProvider* _p_y = engine->get_llm_provider();
+    auto* provider = dynamic_cast<MockLLMProvider*>(_p_y);
+    if (!provider) { if (auto* d = dynamic_cast<ILLMProviderDecorator*>(_p_y)) provider = dynamic_cast<MockLLMProvider*>(d->inner()); }
     REQUIRE(provider != nullptr);
     provider->set_stream_tokens({"token-A", "token-B"});
 

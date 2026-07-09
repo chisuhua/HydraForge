@@ -68,6 +68,9 @@ public:
   /// 模型名称
   std::string model_name() const { return config_.model; }
 
+  // === REQ-ICC-004: available_models() override ===
+  std::vector<ModelInfo> available_models() const override;
+
   // === 配置管理 ===
   /// 获取当前配置（只读）
   const LLMConfig& config() const { return config_; }

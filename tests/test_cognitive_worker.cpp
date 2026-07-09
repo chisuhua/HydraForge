@@ -25,6 +25,7 @@
 #include "core/types/tool_result.h"
 #include "common/llm/llm_types.h"
 #include "common/llm/mock_provider.h"
+#include "agenticdsl/contract/i_llm_provider_decorator.h"
 
 #include <atomic>
 #include <chrono>
@@ -58,7 +59,10 @@ nodes:
 // 辅助: 创建配置好 mock LLM 的 DSLEngine
 std::unique_ptr<DSLEngine> make_engine_with_mock(const std::string& response) {
   auto engine = DSLEngine::from_markdown(kEmptyDsl);
-  if (auto* mock = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider())) {
+  ILLMProvider* _p = engine->get_llm_provider();
+    auto* mock_from_inner = dynamic_cast<MockLLMProvider*>(_p);
+    if (!mock_from_inner) { if (auto* d = dynamic_cast<ILLMProviderDecorator*>(_p)) mock_from_inner = dynamic_cast<MockLLMProvider*>(d->inner()); }
+    if (auto* mock = mock_from_inner) {
     mock->set_fixed_response(response);
   }
   return engine;
@@ -170,7 +174,10 @@ TEST_CASE("CognitiveWorker propagates error with ErrorCode enum",
           "[cognitive_worker][sprint2][error]") {
   auto bus = std::make_shared<InMemoryBus>();
   auto engine = make_engine_with_mock("");
-  if (auto* mock = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider())) {
+  ILLMProvider* _p = engine->get_llm_provider();
+    auto* mock_from_inner = dynamic_cast<MockLLMProvider*>(_p);
+    if (!mock_from_inner) { if (auto* d = dynamic_cast<ILLMProviderDecorator*>(_p)) mock_from_inner = dynamic_cast<MockLLMProvider*>(d->inner()); }
+    if (auto* mock = mock_from_inner) {
     mock->set_simulate_error(LLMError::Code::NetworkError, "connection refused");
   }
 
@@ -272,7 +279,10 @@ TEST_CASE("CognitiveWorker error_code bridge covers LLM error paths",
   // Case A: NetworkError -> Retry
   {
     auto engine = make_engine_with_mock("");
-    if (auto* mock = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider())) {
+    ILLMProvider* _p = engine->get_llm_provider();
+    auto* mock_from_inner = dynamic_cast<MockLLMProvider*>(_p);
+    if (!mock_from_inner) { if (auto* d = dynamic_cast<ILLMProviderDecorator*>(_p)) mock_from_inner = dynamic_cast<MockLLMProvider*>(d->inner()); }
+    if (auto* mock = mock_from_inner) {
       mock->set_simulate_error(LLMError::Code::NetworkError, "net");
     }
     std::atomic<int> done{0};
@@ -296,7 +306,10 @@ TEST_CASE("CognitiveWorker error_code bridge covers LLM error paths",
   // Case B: AuthenticationError -> PermissionDenied
   {
     auto engine = make_engine_with_mock("");
-    if (auto* mock = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider())) {
+    ILLMProvider* _p = engine->get_llm_provider();
+    auto* mock_from_inner = dynamic_cast<MockLLMProvider*>(_p);
+    if (!mock_from_inner) { if (auto* d = dynamic_cast<ILLMProviderDecorator*>(_p)) mock_from_inner = dynamic_cast<MockLLMProvider*>(d->inner()); }
+    if (auto* mock = mock_from_inner) {
       mock->set_simulate_error(LLMError::Code::AuthenticationError, "auth");
     }
     std::atomic<int> done{0};

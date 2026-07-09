@@ -71,6 +71,20 @@ bool HttpLLMAdapter::is_available() const {
     return !config_.api_url.empty();
 }
 
+std::vector<ILLMProvider::ModelInfo>
+HttpLLMAdapter::available_models() const {
+  std::string name = config_.model.empty() ? std::string("local-http-default")
+                                           : config_.model;
+  return {
+      ModelInfo(std::move(name),
+                {ModelCapability::Chat, ModelCapability::Completion},
+                config_.n_ctx > 0 ? static_cast<std::int64_t>(config_.n_ctx)
+                                  : 2048,
+                config_.provider.empty() ? std::string("local")
+                                         : config_.provider),
+  };
+}
+
 // =====================================================================
 // 请求构造
 // =====================================================================

@@ -7,7 +7,8 @@
 
 namespace agenticdsl {
 
-class LlamaAdapter {
+class [[deprecated("LlamaAdapter is deprecated; use pdk/llama_engine/ plugin, see ADR-0042 §2")]]
+    LlamaAdapter {
 public:
     struct Config {
         std::string api_url = "http://localhost:8080";
@@ -25,6 +26,7 @@ public:
 
     std::string generate(const std::string& prompt);
     bool is_loaded() const;
+    const Config& config() const { return config_; }
 
 private:
     Config config_;

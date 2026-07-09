@@ -36,7 +36,9 @@
 #include "agenticdsl/contract/iprovider_factory.h" // IProviderFactory 抽象 (P1.T1, 替代 mock_provider.h)
 // P1.T2 (2026-06-18): IToolRegistry contract 抽象 (替代 common/tools/registry.h 直接 include)
 // ToolRegistry 完整类型仅在 .cpp 可见 (PIMPL-lite)
-#include "agenticdsl/contract/itool_registry.h" // IToolRegistry 抽象 (P1.T2, 替代 tools/registry.h)
+#include "agenticdsl/contract/itool_registry.h"
+
+namespace hydraforge { class PluginLoader; } // IToolRegistry 抽象 (P1.T2, 替代 tools/registry.h)
 // P1.T3 (2026-06-18): TraceRecord data-only struct 上移到 types 头文件 (from modules/trace/trace_exporter.h)
 #include "agenticdsl/types/trace_record.h" // TraceRecord data-only struct (P1.T3 迁移自 modules/trace/trace_exporter.h)
 // Sprint 20 / migrate-context-to-layered: LayeredContext (5-层结构化, ADR-0008) + 桥接辅助
@@ -120,9 +122,20 @@ public:
     ILLMProvider* get_llm_provider() { return llm_provider_.get(); }
 
     // C₁.4: 注入自定义 LLM provider（默认是 MockLLMProvider，可被替换为真实 provider）
+    // Phase 5 REQ-ICC-008: set_llm_provider MUST 重新包装 Decorator 链 (避免自定义 provider 绕过计费)
     void set_llm_provider(std::unique_ptr<ILLMProvider> provider) {
-        llm_provider_ = std::move(provider);
+        llm_provider_ = decorate_provider(std::move(provider));
     }
+
+    // === Phase 5 (Section 2 / REQ-IPD-003, REQ-IPD-004): opt-in decorator flags ===
+    // 默认 OFF (per spec REQ-IPD-003/004 default disabled), 单租户场景无意义
+    void set_compliance_enabled(bool enabled) { compliance_enabled_ = enabled; }
+    bool is_compliance_enabled() const { return compliance_enabled_; }
+    void set_rate_limit_enabled(bool enabled, int tokens_per_minute = 10000) {
+        rate_limit_enabled_ = enabled;
+        rate_limit_tokens_per_minute_ = tokens_per_minute;
+    }
+    bool is_rate_limit_enabled() const { return rate_limit_enabled_; }
 
     // === 阶段 4 任务 4.3: 暴露 session cost API ===
     // 返回自 DSLEngine 创建（或上次 reset）以来 LLM 调用的累计成本（USD）
@@ -151,13 +164,33 @@ ToolCoordinator* get_tool_coordinator() { return tool_coordinator_.get(); }
 // C4 Sprint 14 (ADR-0031 P3-P4, Oracle §决策 5): 显式激活 ToolCoordinator (opt-in, 向后兼容)
 void set_tool_coordinator(std::unique_ptr<ToolCoordinator> coordinator);
 
+    // D5 (C14, decisions-2026-07-07.md): 显式加载 PDK plugin (删除默认注入)
+    // 返回 true 表示加载成功; false 表示 .so 不存在或加载失败
+    // 使用示例: engine->load_plugin("pdk/llama_engine");
+    bool load_plugin(const std::string& plugin_name);
+
     ~DSLEngine(); // Stage 4 / Task 19 + P1.T4: 显式声明 — 头文件外定义, 使 unique_ptr<IBudgetController> + unique_ptr<IToolRegistry> 析构在完整类型下进行
     DSLEngine(std::vector<ParsedGraph> initial_graphs);
 private:
     // ADR-0033 Session Hierarchy (Sprint 15 / C5): 内部执行委托
     ExecutionResult run_impl(TaskSession& task_sess, const std::string& message);
 
+    // Phase 5 (REQ-ICC-008 / REQ-IPD-005): 私有 helper — 包装 ILLMProvider Decorator 链
+    // 顺序(从外到内): CostTracking -> [Compliance opt-in] -> [RateLimit opt-in] -> inner
+    // 链深度限制由 ILLMProviderDecorator::wrap_chain 强制 ≤ 4
+    std::unique_ptr<ILLMProvider> decorate_provider(std::unique_ptr<ILLMProvider> base);
+
+    // Phase 5 (Section 2): opt-in decorator flags
+    bool compliance_enabled_ = false;
+    bool rate_limit_enabled_ = false;
+    int rate_limit_tokens_per_minute_ = 10000;
+
     std::vector<ParsedGraph> full_graphs_;
+    // D5 (C14): 显式 plugin 加载器 — DSLEngine 不再默认注入 plugin
+    // ⚠️ 声明顺序: plugin_loader_ 在 tool_registry_ 之前 → 析构时最后释放 → dlclose 在 ToolRegistry lambdas 清理之后
+    //  (C++ 逆声明顺序析构; Sprint 17 C7 destruction order bug fix: PluginLoader 必须晚于 ToolRegistry 释放)
+    std::unique_ptr<hydraforge::PluginLoader> plugin_loader_;
+
     std::unique_ptr<IToolRegistry> tool_registry_; // P1.T4: PIMPL-lite 化 (从 ToolRegistry 值成员改为 unique_ptr<IToolRegistry>)
     std::unique_ptr<SessionRegistry> session_registry_; // C11: PIMPL-lite, 与 tool_registry_ 模式一致
     std::unique_ptr<ILLMProvider> llm_provider_; // C₁.4: 默认 MockLLMProvider

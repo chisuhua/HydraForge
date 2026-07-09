@@ -49,8 +49,8 @@ TEST_CASE("execute_parallel dispatches independent nodes concurrently",
     std::atomic<int> in_flight{0};
     std::atomic<int> max_concurrent{0};
 
-    auto register_work = [&](const std::string& name) {
-        tools.register_tool_function(name, agenticdsl::ToolMetadata{name, "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [&](const auto&) -> nlohmann::json {
+    auto register_work = [&](std::string name) {
+        tools.register_tool_function(name, agenticdsl::ToolMetadata{name, "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [name, &in_flight, &max_concurrent](const auto&) -> nlohmann::json {
             int current = in_flight.fetch_add(1) + 1;
             int prev_max = max_concurrent.load();
             while (current > prev_max &&

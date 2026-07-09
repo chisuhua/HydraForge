@@ -3,7 +3,7 @@
 # 功能描述: Sprint 收官 wrapper — 自动运行 ship gate + Drift Detection
 #          自 2026-06-26 起，每个 Sprint 收官前必须执行此脚本
 # 设计依据: docs/superpowers/plans/2026-06-26-sprint-11-to-18-roadmap.md §9 Review Gates
-#          docs/roadmap-status.md §六 Sprint 结束前检查
+#          docs/active-status.md Sprint 结束前检查
 # 用法:
 #   ./scripts/sprint-closeout.sh              # 完整 sprint-closeout
 #   ./scripts/sprint-closeout.sh --drift-only # 仅 Drift Detection (快速检查)
@@ -287,7 +287,7 @@ if [ $FAILED -eq 0 ]; then
   echo ""
   echo "下一步:"
   echo "  1. 跑 git status 确认 clean"
-  echo "  2. 更新 docs/roadmap-status.md §四 实施日志"
+  echo "  2. 更新 docs/active-status.md 活跃变更看板"
   echo "  3. 跑 openspec archive <change> 归档已 ship changes"
   echo "  4. 更新 Master plan §十/§十一/§十二 (如有 drift/调整/转向)"
   echo "  5. 更新 AGENTS.md § Recent Changes 追加 Sprint 收官记录"

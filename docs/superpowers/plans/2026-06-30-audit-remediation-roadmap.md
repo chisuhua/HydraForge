@@ -5,7 +5,7 @@
 > **审计输入**: 2026-06-30 全项目审计 (code-review-graph + 直接工具 + 2 explore agent)
 > **审计基线**: 41/41 ctest PASS, build clean, 当前 commit `4f6d184` (Sprint 14 C4 ship)
 > **关联文件**: `openspec/changes/2026-06-30-*` (本规划创建的 3 个新 change)
-> **关联 docs**: `docs/roadmap-status.md` (总进度看板) / `docs/implementation-roadmap.md` (静态蓝图) / `docs/superpowers/plans/2026-06-26-sprint-11-to-18-roadmap.md` (上游 9-change 路线图)
+> **关联 docs**: `docs/active-status.md` (活跃变更看板) / `docs/archive/implementation-roadmap.md` (旧静态蓝图) / `docs/superpowers/plans/2026-06-26-sprint-11-to-18-roadmap.md` (上游 9-change 路线图)
 
 ---
 
@@ -763,7 +763,7 @@ Scope: 4 字母以内 (如 exec, sched, llm, ctx)
 
 **上游文档**:
 - `docs/superpowers/plans/2026-06-26-sprint-11-to-18-roadmap.md` — 主线 9-change 路线图
-- `docs/roadmap-status.md` — 总进度看板
+- `docs/archive/roadmap-status.md` — 总进度看板 (已归档)
 - `docs/audits/2026-06-30-full-project-audit.md` — 审计源报告 (待创建)
 
 **下游文档**:

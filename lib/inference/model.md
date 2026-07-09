@@ -1,8 +1,8 @@
-### AgenticDSL `/lib/inference/model` (PLACEHOLDER)
+### AgenticDSL `/lib/inference/model`
 
-> ⚠️ **Placeholder** — 创建于 2026-07-04 (Week 1 Day 1 drift 修复)
-> **状态**: 占位 (结构同 session.md 模板,等待 B2 Week 2 实施填充)
-> **关联**: `lib/inference/engine.md` (同为占位,提供 engine_id) + `lib/inference/session.md` (已 ship 完整模板,消费 model_id)
+> **关联**: C14 (`phase5-llama-engine-plugin`) — B2.2 模型管理 schema
+> **实施日期**: 2026-07-07 (C14 tasks §6.2 就绪, 待 C14 编码后激活)
+> **底层实现**: `pdk/llama_engine/src/llama_model.cpp` (4 模型工具)
 
 ```yaml
 # --- BEGIN AgenticDSL ---
@@ -10,12 +10,15 @@ graph_type: subgraph
 module: "inference::model"
 signature: "(engine_id: string, model_path: string, model_type: string, quantization: string) -> (model_id: string, status: string)"
 permissions:
-  - tool: inference.model_load
+  - tool: inference/model/load
+  - tool: inference/model/unload
+  - tool: inference/model/list
+  - tool: inference/model/switch
 nodes:
   # 节点1: 加载模型
   - id: load_model
     type: tool_call
-    tool: inference.model_load
+    tool: inference/model/load
     arguments:
       engine_id: "{{ inputs.engine_id }}"
       model_path: "{{ inputs.model_path }}"
@@ -53,20 +56,23 @@ nodes:
 
 ## 说明
 
-**功能**: 推理模型加载 —— 在已初始化的引擎上加载具体模型,作为推理链路的第二步。
+**功能**: 推理模型加载与管理 —— 在已初始化的引擎上加载具体模型,作为推理链路的第二步 (`engine → model → session`)。
 
 **输入**:
 - `engine_id`: 引擎 ID (由 `lib/inference/engine.md` 返回)
-- `model_path`: 模型文件路径 (gguf / safetensors)
-- `model_type`: 模型架构 (llama / mistral / qwen / gemma)
-- `quantization`: 量化方案 (q4_0 / q8_0 / fp16 / bf16)
+- `model_path`: 模型文件路径 (gguf / safetensors 格式)
+- `model_type`: 模型架构 (`llama` / `mistral` / `qwen` / `gemma`)
+- `quantization`: 量化方案 (`q4_0` / `q8_0` / `fp16` / `bf16`)
 
 **输出**:
 - `model_id`: 模型唯一标识符 (成功时)
-- `status`: 状态字符串 ("ok" 或 "error: ...")
+- `status`: 状态字符串 (`"ok"` / `"error: ..."`)
 
-**依赖工具**:
-- `inference.model_load`: 底层 C++ 工具 (待 B2 实施注册)
+**依赖工具** (C14 注册):
+- `inference/model/load`: 加载模型到引擎 (`pdk/llama_engine/src/llama_model.cpp`)
+- `inference/model/unload`: 释放模型资源
+- `inference/model/list`: 列出已加载模型
+- `inference/model/switch`: 切换活跃模型
 
 **错误处理**:
 - 使用 `assert` 节点检查 `error` 字段
@@ -86,24 +92,27 @@ nodes:
 ```
 
 ## 特点
-- 纯 tool_call 聚合,无新增运行时依赖
+- 纯 tool_call 聚合, 无新增运行时依赖
 - 消费 `engine.md` 的输出 (engine_id)
 - 暴露核心模型控制参数 (model_path / model_type / quantization)
 - 遵循标准库子图规范 (与 session.md 同模式)
+- D3 决策: 工具名统一为 `inference/model/*` 命名空间
 
 ## 与自举的关系
 
-模型加载是推理链路的核心步骤 (`engine → model → session`)。Agent 通过 DSL 控制模型加载参数,实现"模型选择的 DSL 化"。
+模型加载是推理链路的核心步骤 (`engine → model → session`)。Agent 通过 DSL 控制模型加载参数, 实现"模型选择的 DSL 化"。
 
-## B2 实施清单 (待执行)
+## B2.2 实施清单 (C14 编码后)
 
-- [ ] 注册 `inference.model_load` 工具 (`src/common/tools/registry.cpp`)
-- [ ] 实现 `model_load` 底层 C++ 函数 (调用 llama.cpp llama_load_model_from_file 等)
-- [ ] 添加 `tests/test_model_subgraph.cpp` (load_model / check_status / error 路径)
-- [ ] 更新本文件 `placeholder` 标记 → 删除,改为完整 ship 状态
-- [ ] 在 master plan §五.4 + §十六.4 标记 model.md "shipped"
+- [ ] C14 注册 `inference/model/load` 工具 (`pdk/llama_engine/src/llama_model.cpp`)
+- [ ] C14 注册 `inference/model/unload` 工具
+- [ ] C14 注册 `inference/model/list` 工具
+- [ ] C14 注册 `inference/model/switch` 工具
+- [ ] 添加 `tests/test_llama_engine_plugin.cpp` (4 model tests: load/unload/list/switch)
+- [ ] 升级本文件从 PLACEHOLDER → 完整 ship 状态
 
 ---
 
-*文档版本*: PLACEHOLDER v0.1 (2026-07-04)
-*下次更新*: B2 Week 2 实施完成后
+*文档版本*: 1.0 (C14 tasks §6.2 就绪, 2026-07-07)
+*Schema 版本*: B2.2 (与 C14 同步激活)
+*下次更新*: C14 编码完成后删除 B2.2 实施清单, 改为完整 ship 状态

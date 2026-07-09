@@ -8,6 +8,7 @@
 #include "catch_amalgamated.hpp"
 #include "core/engine.h"
 #include "common/llm/mock_provider.h"
+#include "agenticdsl/contract/i_llm_provider_decorator.h"
 #include "common/llm/llama_adapter_provider.h"
 #include "core/types/context.h"
 
@@ -79,6 +80,7 @@ TEST_CASE("DSLEngine defaults to MockLLMProvider (no local LLM needed)", "[execu
 
     // MockLLMProvider 应该可以直接被 dynamic_cast
     auto* mock = dynamic_cast<MockLLMProvider*>(provider);
+    if (!mock) { auto* _d = dynamic_cast<ILLMProviderDecorator*>(provider); if (_d) mock = dynamic_cast<MockLLMProvider*>(_d->inner()); }
     REQUIRE(mock != nullptr);
 }
 
@@ -107,7 +109,9 @@ TEST_CASE("set_llm_provider replaces default MockLLMProvider", "[executor][mock_
     auto engine = DSLEngine::from_markdown(kSimpleDsl);
 
     // 默认是 Mock
-    auto* default_mock = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
+    ILLMProvider* _p2 = engine->get_llm_provider();
+    auto* default_mock = dynamic_cast<MockLLMProvider*>(_p2);
+    if (!default_mock) { if (auto* d = dynamic_cast<ILLMProviderDecorator*>(_p2)) default_mock = dynamic_cast<MockLLMProvider*>(d->inner()); }
     REQUIRE(default_mock != nullptr);
 
     // 注入自定义 provider
@@ -150,7 +154,9 @@ TEST_CASE("End-to-end: DSLEngine → TopoScheduler → ExecutionSession → Node
     auto engine = DSLEngine::from_markdown(kGenerateSubgraphDsl);
 
     // 获取默认 mock provider 并配置响应
-    auto* mock = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
+    auto* mock_unwrapped = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
+  if (!mock_unwrapped) { if (auto* d = dynamic_cast<ILLMProviderDecorator*>(engine->get_llm_provider())) mock_unwrapped = dynamic_cast<MockLLMProvider*>(d->inner()); }
+  auto* mock = mock_unwrapped;
     REQUIRE(mock != nullptr);
     mock->set_fixed_response(kMockDslResponse);
 

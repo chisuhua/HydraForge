@@ -31,6 +31,11 @@
    - 若 ADR 被废弃 → `git mv` 移至 `docs/archive/adr/`，并删除 `plugin-candidate` 标记。
 5. **禁止重复归档**：本目录 ADR 不得同时存在于 `docs/archive/adr/`（避免双源真相）。
 
+## Renumber 历史
+
+- **2026-07-06**: 编排 plugin spec 从 ADR-0036 renumber 到 ADR-0045（避免与 `docs/archive/adr/adr-0036-three-layer-service-protocol.md` 旧 ADR 编号冲突）。原编排 plugin 草案已合并到 ADR-0045。
+- **2026-07-08**: ADR-0036 软归档至 `docs/archive/adr/`，状态标 `⛔ Superseded`（详见 `openspec/changes/fix-adr-doc-alignment-hotfix-2026-07-08/`）。
+
 ## 创建时间
 
 2026-06-16，作为 project-organization 计划的 plugin 目录预留产出。

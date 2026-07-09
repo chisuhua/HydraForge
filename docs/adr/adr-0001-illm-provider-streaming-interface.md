@@ -4,6 +4,11 @@
 
 **✅ Approved** (2026-05-28)
 
+**增量决议** (2026-07-06, OpenSpec change `phase5-illmprovider-call-chain-v2` Task 7.1):
+- `available_models()` pure virtual 决议 (2026-07-06) — 从默认空实现 (`virtual std::vector<ModelInfo> available_models() const { return {}; }`) 改为 `= 0` pure virtual (BREAKING change, 见本 ADR 附录 + ADR-0042 §1 + ADR-0035 §1.2 + OpenSpec change `phase5-illmprovider-call-chain-v2` D5)。所有第三方 `ILLMProvider` 子类 MUST override。
+- `is_available()` / `name()` deferred indefinitely — 当前接口保留,未列入 Phase 5/6 修订范围;后续演进 (e.g., `[[deprecated]]` 或合并到 `available_models()` 返回的 `ModelInfo` 元数据) 待 Phase 6+ scoping ADR 决议。
+- `Result<T,E>` → `std::expected` 重命名 pending C++23 基线 — 等 HydraForge 升级到 C++23 编译器基线 (~2+ 年) 后,通过 `using Result = std::expected;` 一行替换完成。当前 `Result<T,E>` 保留 (per ADR-0042 §3 + OpenSpec change `phase5-illmprovider-call-chain-v2` Non-goals)。
+
 ## 背景
 
 HydraForge Phase 1 需要支持多后端 LLM（OpenAI SSE、Anthropic SSE、llama-server HTTP），TUI 需要流式显示 token 实现打字机效果，同时需要支持 Ctrl+C 取消执行。现有的 `ILLMAdapter` 接口（同步 `generate()`，阻塞 `httplib::Client::Post`）无法满足需求。

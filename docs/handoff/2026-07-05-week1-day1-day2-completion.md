@@ -466,8 +466,8 @@ git log --oneline origin/main..HEAD  # 0 commits (已 sync)
 
 - ⏳ **B2.1+B2.2 engine/model 实施** (Day 3, 1 天)
 - ⏳ **TSan race fix** (Day 4 AM, 1h) — Oracle Q1 NOW
-- ⏳ **B2.3-B2.5 prefix_cache/kv_cache/decoding** (Day 4 PM)
-- ⏳ **B2.6 batching.md skeleton** (Day 5 AM)
+- ✅ **B2.3-B2.5 prefix_cache/kv_cache/decoding** (C13 ship 2026-07-07, 4 个 .md schema: `prefix_cache.md` / `kv_cache.md` / `decoding.md` / `cloud_engine.md` 已落地;D1 SamplerStrategy 已删除,D3 命名统一)
+- ✅ **B2.6 batching.md skeleton** (C15 ship 2026-07-07, `lib/inference/batching.md` 已落地,D2 精简版仅 schema 占位,BatchingQueue 接口推迟到第二个推理后端出现时)
 - ⏳ **docs_drift_audit.py 增强** (Day 5 PM, 2h)
 - ⏳ **roadmap-status + master plan 同步** (Day 5 PM, 30min)
 - ⏳ **Week 2 A0 + A3 C13 决议**

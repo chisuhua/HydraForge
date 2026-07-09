@@ -3,20 +3,28 @@
 // 功能描述：PluginLoader 类 — 动态加载 PDK 编译的 .so 插件 (per ADR-0022 §2-3)。
 //          支持 Linux dlopen/dlsym, 含 ABI 版本检查 + 路径白名单 + 自动发现。
 //          头文件仅前向声明 IToolRegistry (避免引入 Runtime 内部, 编译时验证 P3 静态链接)。
-// 设计依据：ADR-0022 §2-3 + openspec/changes/2026-07-14-plugin-loader
-// 作者：AgenticDSL Phase 1 Sprint 5
-// 最后修改日期：2026-06-19
+//          Phase 5 (OpenSpec `phase5-illmprovider-call-chain-v2` §6):
+//            - 5 符号查找 (新增 pdk_create_llm_provider / pdk_plugin_init / pdk_plugin_fini)
+//            - lifecycle 顺序保证 (init → register → 加载; 释放 shared_ptr → fini → dlclose)
+//            - create_llm_provider() 抽象方法 — 通过 plugin 获取 shared_ptr<ILLMProvider>
+//            - dependencies 循环检测 + 缺失依赖报错 (MVP, per proposal-v2 non-goals)
+// 设计依据：ADR-0022 §2-3 + ADR-0041 §1 PluginLoader lifecycle extension
+//          + openspec/changes/phase5-illmprovider-call-chain-v2/specs/plugin-loader/spec.md
+// 作者：AgenticDSL Phase 1 Sprint 5 → Phase 5 B2 (C14 增量)
+// 最后修改日期：2026-07-09 (Phase 5 §6: 5 符号查找 + lifecycle + create_llm_provider)
 
 #pragma once
 
 #include "agenticdsl/plugin/plugin_info.h"
 
 #include <cstddef>
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace agenticdsl {
 class IToolRegistry;  // contract 层抽象 (ADR-0019 §1.4)
+class ILLMProvider;   // contract 层抽象 (Phase 5: pdk_create_llm_provider 返回类型)
 }
 
 namespace hydraforge {
@@ -74,10 +82,50 @@ class PluginLoader {
 
   /**
    * @brief 卸载单个插件 (按 name 查找)
+   *
+   * Phase 5 lifecycle 顺序 (per REQ-PL-IPD-002 Scenario "lifecycle 顺序保证"):
+   *   1. 释放该 plugin 持有的所有 shared_ptr<ILLMProvider> (若 loader 内部仍引用)
+   *   2. 调用 pdk_plugin_fini() (若存在, 失败仅记 ERROR 不抛异常)
+   *   3. 从 loaded_ 列表移除
+   *   4. dlclose(handle)
+   *
    * @param name 插件名 (PluginInfo::name)
    * @return true: 找到并卸载; false: 未找到
    */
   bool unload_plugin(const std::string& name);
+
+  /**
+   * @brief 通过 plugin 创建 ILLMProvider 实例 (Phase 5 新增)
+   *
+   * 调用 plugin 导出的 `pdk_create_llm_provider(const void* config)` 符号,
+   * 返回 `shared_ptr<ILLMProvider>` (RAII 自动管理, 解决 Sprint 17 C7 destruction order bug)。
+   *
+   * 语义 (per REQ-PL-IPD-001 Scenario "pdk_create_llm_provider 调用语义"):
+   *   - plugin 已加载且实现该符号 → 调用并返回 shared_ptr
+   *   - plugin 已加载但未实现该符号 → 返回 nullptr (plugin 仅提供工具, 不提供 LLM)
+   *   - plugin 已卸载 (handle 已 dlclose) → throw std::runtime_error
+   *
+   * @param plugin_name 已加载 plugin 的 name (PluginInfo::name)
+   * @param config 透传给 plugin 的配置指针 (cross-ABI 安全, 实际类型由 plugin 自行解释)
+   * @return shared_ptr<ILLMProvider> 或 nullptr
+   */
+  virtual std::shared_ptr<::agenticdsl::ILLMProvider>
+      create_llm_provider(const std::string& plugin_name,
+                          const void* config);
+
+  /**
+   * @brief 验证插件依赖关系 (MVP: 循环检测 + 缺失依赖报错)
+   *
+   * Phase 5 新增 (per REQ-PL-IPD-003 Scenario "拓扑加载依赖"):
+   *   - 检查每个 plugin 的依赖项是否都存在于 loaded 列表中
+   *   - 检测循环依赖 (A 依赖 B 且 B 依赖 A)
+   *   - 不做完整 Kahn 拓扑排序 (per proposal-v2 non-goals)
+   *
+   * @param plugin_deps 每个元素: {plugin_name, comma-separated dependencies string}
+   * @return {missing_errors, circular_errors} 各包含人可读的错误消息
+   */
+  static std::pair<std::vector<std::string>, std::vector<std::string>>
+      validate_dependencies(const std::vector<std::pair<std::string, std::string>>& plugin_deps);
 
  private:
   /**
@@ -102,11 +150,24 @@ class PluginLoader {
 
   /**
    * @brief 内部结构: 已加载插件记录
+   *
+   * Phase 5 扩展: 新增 3 个符号缓存字段 (create_llm_provider_fn / fini_fn) +
+   * 持有的 shared_ptr<ILLMProvider> 列表 (用于 unload 时顺序释放)。
+   * init_fn 不缓存 (调用即结束, 不需后续调用)。
    */
   struct LoadedPlugin {
-    void* handle;              // dlopen handle (non-null)
-    PluginInfo info;           // POD 拷贝
-    std::string path;          // 原始路径 (用于日志)
+    void* handle = nullptr;              // dlopen handle (non-null)
+    PluginInfo info{};                   // POD 拷贝
+    std::string path;                    // 原始路径 (用于日志)
+
+    // Phase 5 新增符号缓存 (可选, nullptr = plugin 未实现)
+    void* create_llm_provider_fn = nullptr;  // pdk_create_llm_provider 函数指针
+    void* fini_fn = nullptr;                 // pdk_plugin_fini 函数指针
+
+    // Phase 5 新增: loader 内部持有的 provider 实例 (用于 unload 时先释放)
+    // 注: caller 通过 create_llm_provider() 拿到的 shared_ptr 由 caller 自行 RAII 管理,
+    //     loader 不持有 caller 的引用 (per REQ-PL-IPD-001 Scenario "plugin 卸载时释放 shared_ptr")
+    std::vector<std::weak_ptr<::agenticdsl::ILLMProvider>> provider_refs;
   };
 
   std::vector<LoadedPlugin> loaded_;
