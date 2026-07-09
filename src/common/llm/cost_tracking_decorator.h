@@ -74,6 +74,10 @@ class CostTrackingDecorator : public ILLMProviderDecorator {
    *  - 精确 (测试): dynamic_cast inner_ 到 MockLLMProvider, 调用其
    *    last_stream_total_tokens() hook
    *  - 近似 (生产): 使用 req.params.max_tokens 作为上界估计
+   *
+   * 析构兜底 (Phase 5 REQ-IPD-002 修复): 流对象被提前销毁 (异常 / 取消 /
+   * 调用方中断) 时, next() 不会返回 nullopt, recorded_ 保持 false —
+   * 由 ~TrackingStream 兜底完成计费, 避免 budget hole。
    */
   class TrackingStream : public IGenerationStream {
    public:
@@ -81,6 +85,7 @@ class CostTrackingDecorator : public ILLMProviderDecorator {
                    std::shared_ptr<IBudgetController> budget,
                    std::string model_name,
                    int max_tokens_estimate);
+    ~TrackingStream() override;
 
     std::optional<std::string> next(std::stop_token token) override;
     bool is_active() const override;

@@ -134,3 +134,55 @@ TEST_CASE("CostTrackingDecorator passes through results unchanged",
   REQUIRE(r.value().prompt_tokens == 1);
   REQUIRE(r.value().completion_tokens == 2);
 }
+
+// === REQ-IPD-002 Scenario: 流式跟踪兜底计费 (流被提前销毁) ===
+// Bug repro (修复前): TrackingStream 仅在 next() 返回 nullopt 时记录费用。
+// 若调用方中途销毁流 (异常 / 取消 / 提前返回), recorded_ 保持 false,
+// 费用永久不入账 — 又一次 budget hole。
+TEST_CASE("CostTrackingDecorator charges on early stream destruction",
+          "[decorator][cost][stream][destructor]") {
+  auto mock = std::make_unique<MockLLMProvider>();
+  mock->set_stream_tokens({"a", "b", "c", "d", "e"});  // 5 个 chunk
+  auto budget = std::make_shared<MockBudget>();
+
+  CostTrackingDecorator d(std::move(mock), budget);
+  GenerationRequest req;
+  req.prompt = "p";
+  req.params.model = "m";
+  req.params.max_tokens = 50;
+
+  // 主动制造 partial consumption + 提前销毁场景:
+  // 读 1 个 chunk 后不读了 — 既不到结尾 (recorded_ 应为 false),
+  // 也直接丢掉 stream 对象。
+  {
+    auto stream = d.generate_stream(req, {});
+    auto first = stream->next({});
+    REQUIRE(first.has_value());
+    REQUIRE(budget->call_count == 0);  // 中途不收费
+    // stream 在这里离开作用域, ~TrackingStream 必须兜底收费
+  }
+  REQUIRE(budget->call_count == 1);
+  REQUIRE(budget->last_tokens == 50);
+  REQUIRE(budget->last_model == "m");
+}
+
+// === 配套: 完全不消费任何 chunk, 直接丢弃 stream, 仍需计费 ===
+TEST_CASE("CostTrackingDecorator charges when stream never consumed",
+          "[decorator][cost][stream][destructor]") {
+  auto mock = std::make_unique<MockLLMProvider>();
+  mock->set_stream_tokens({"a", "b", "c"});
+  auto budget = std::make_shared<MockBudget>();
+
+  CostTrackingDecorator d(std::move(mock), budget);
+  GenerationRequest req;
+  req.prompt = "p";
+  req.params.model = "m";
+  req.params.max_tokens = 25;
+
+  {
+    auto stream = d.generate_stream(req, {});
+    // 故意连一次 next() 都不调用 — 只丢弃
+  }
+  REQUIRE(budget->call_count == 1);
+  REQUIRE(budget->last_tokens == 25);
+}

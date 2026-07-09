@@ -65,6 +65,17 @@ CostTrackingDecorator::TrackingStream::TrackingStream(
       model_name_(std::move(model_name)),
       max_tokens_estimate_(max_tokens_estimate) {}
 
+CostTrackingDecorator::TrackingStream::~TrackingStream() {
+  // Phase 5 REQ-IPD-002 修复: 兜底计费。
+  // 若 next() 未返回 nullopt (调用方提前销毁 / 异常 / 取消), recorded_
+  // 仍为 false — 在析构中补扣, 保证 budget 无遗漏。
+  // 与 ComplianceStream / RateLimitStream 的析构兜底模式保持一致。
+  if (!recorded_ && budget_ != nullptr && max_tokens_estimate_ > 0) {
+    recorded_ = true;
+    budget_->record_llm_call(max_tokens_estimate_, model_name_);
+  }
+}
+
 std::optional<std::string>
 CostTrackingDecorator::TrackingStream::next(std::stop_token token) {
   auto chunk = inner_->next(token);
