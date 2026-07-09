@@ -153,8 +153,9 @@ public:
   };
 
   /// 返回当前 provider 注册的所有模型
-  /// 默认空实现, MockLLMProvider/CloudAdapter 应 override
-  virtual std::vector<ModelInfo> available_models() const { return {}; }
+  /// REQ-ICC-004: pure virtual — 所有 ILLMProvider 子类 MUST override
+  /// (Phase 5 ILLMProvider Call Chain V2, 2026-07-09)
+  virtual std::vector<ModelInfo> available_models() const = 0;
 };
 
 inline std::vector<std::string> split(const std::string& s) {

@@ -353,6 +353,26 @@ CloudLLMAdapter::generate(const GenerationRequest& req, std::stop_token token) {
   }
 }
 
+std::vector<ILLMProvider::ModelInfo>
+CloudLLMAdapter::available_models() const {
+  // 实现：返回当前 config 声明的单个 ModelInfo (per REQ-ICC-004 + REQ-CLP-006)
+  // capabilities: 4 种模型类型 (Chat + ToolUse + Vision + Completion)
+  // context_window: 默认 4096 (cloud provider 通常提供大上下文)
+  std::vector<ModelCapability> caps = {ModelCapability::Chat, ModelCapability::ToolUse};
+  if (config_.provider == "anthropic") {
+    // Anthropic 支持 vision
+    caps.push_back(ModelCapability::Vision);
+  }
+  std::int64_t ctx_window = 4096;
+  if (config_.provider == "openai" && config_.model.find("gpt-4o") != std::string::npos) {
+    ctx_window = 128000;  // gpt-4o default
+  } else if (config_.provider == "anthropic") {
+    ctx_window = 200000;  // claude-3-5 default
+  }
+  std::string model_name = config_.model.empty() ? std::string("unknown-cloud-model") : config_.model;
+  return {ModelInfo(std::move(model_name), std::move(caps), ctx_window, config_.provider)};
+}
+
 std::unique_ptr<IGenerationStream>
 CloudLLMAdapter::generate_stream(const GenerationRequest& req,
                                   std::stop_token token) {

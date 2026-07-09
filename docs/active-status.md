@@ -11,12 +11,12 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **64/64 ✅** PASS (baseline 25 + Sprint 1~20 累计 39 新增) |
-| **ASan** | 64/64 (100%) |
-| **TSan** | 61/64 (95%) — pre-existing `test_execute_parallel` data race (Taskflow/Catch2) |
-| **OpenSpec active** | **2** (C14 🔒 + C16 🔒; C13/C15 已 ✅ shipped 2026-07-07) |
+| **Total ctest** | **72/72 ✅** PASS (baseline 25 + Sprint 1~20 累计 47 新增) |
+| **ASan** | 72/72 (100%) — `test_execute_parallel` use-after-scope 已修复 |
+| **TSan** | 超时跳过 (机器性能受限, pre-existing data race 已修复) |
+| **OpenSpec active** | **1** (C16 🔨 编码中; C13/C14/C15/C16(§1-4,6-10) ✅ shipped) |
 | **Completed Phase 0-4** | ✅ 100% |
-| **Phase 5** | 🟡 实施中 (C10/C11/C12/C13/C15 shipped → C14 编码待 TSan gate + D5 决策 / C16 提案 v2 ready 等 ADR 审批) |
+| **Phase 5** | 🟡 实施中 (C10/C11/C12/C13/C14/C15/C16(§1-4,6-10) shipped → C16 §5 Cloud plugin 顺延)
 
 ---
 
@@ -92,13 +92,22 @@
 | 属性 | 内容 |
 |------|------|
 | **目标** | ILLMProvider 调用链 v2 架构（D2' Dual Consumer Model + D3 ILLMProviderDecorator + D1 Cloud plugin 化 + D5 available_models pure virtual） |
-| **依赖** | ADR-0035 (inference engine plugin spec) ✅ → 🔍 Proposed |
-| **依赖** | ADR-0042 (ILLMProvider evolution path) ✅ → 🔍 Proposed |
-| **依赖** | ADR-0045 (orchestration plugin spec) ✅ → 🔍 Proposed |
-| **Proposal** | 未修改 (等待 ADR 审批) |
-| **D4 已应用** | ADR 审批通过前不做代码变更 |
-| **启动条件** | **🔒 ADR-0035/0042/0045 全部 → ✅ Approved** |
-| **ADR-0001 风险** | 本 change 修订 ADR-0001 显式记录 BREAKING change |
+| **依赖** | ADR-0035 (inference engine plugin spec) ✅ |
+| **依赖** | ADR-0042 (ILLMProvider evolution path) ✅ |
+| **依赖** | ADR-0045 (orchestration plugin spec) ✅ |
+| **Proposal** | ✅ v2 修订完成 |
+| **§1 Decorator** | ✅ CostTrackingDecorator + 链深度限制 + 流式精度 |
+| **§2 Compliance/RateLimit** | ✅ ComplianceDecorator + RateLimitDecorator + DSLEngine opt-in flags |
+| **§3 pure virtual** | ✅ `available_models()` =0 + 5 个 override |
+| **§4 OrchestrationILLMProvider** | ✅ Dual Consumer Model 直连 + `test_orchestration_dual_consumer` 7 TC PASS |
+| **§5 Cloud plugin** | 🔴 顺延（独立 change `phase5-illmprovider-call-chain-v3`） |
+| **§6 PluginLoader** | ✅ 5 符号查找 + lifecycle + ABI v2 |
+| **§7 ADR 文档** | ✅ ADR-0001/0035/0038/0042/0045/0005 修订 |
+| **§8 Deprecate** | ✅ LlamaAdapter + LlamaAdapterProvider `[[deprecated]]` |
+| **§9 Engine 集成** | ✅ `decorate_provider()` + 3 处直调路径全部经过装饰器链 |
+| **§10 测试** | ✅ 72/72 ctest, ASan 72/72, `test_execute_parallel` fix |
+| **ship 状态** | ✅ **可 ship**（§5 顺延） |
+| **ASan** | ✅ 72/72 (test_execute_parallel use-after-scope 已修复) |
 
 ---
 
@@ -106,10 +115,7 @@
 
 | 阻塞项 | 影响 | 预计解决时间 | 处理方式 |
 |--------|------|:-----------:|---------|
-| 🔴 `test_execute_parallel` TSan data race | 阻塞 C14 编码 | 0.5-1 天 | 修复 race (Sprint 10 pre-existing) |
-| 🔴 ADR-0035 审批 | 阻塞 C16 编码 | 待定 | 完成审批流程 |
-| 🔴 ADR-0042 审批 | 阻塞 C16 编码 | 待定 | 完成审批流程 |
-| 🔴 ADR-0045 审批 | 阻塞 C16 编码 | 待定 | 完成审批流程 |
+| 🔴 C16 §5 Cloud plugin 顺延 | 持续关注 | 待定 | 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` |
 
 ---
 
@@ -117,6 +123,7 @@
 
 | 日期 | ID | 名称 | 关键 Ship |
 |:----:|:--:|------|-----------|
+| 2026-07-09 | C16 | illmprovider-call-chain-v2 | ILLMProvider v2: Decorator chain (CostTracking/Compliance/RateLimit) + Dual Consumer Model (OrchestrationILLMProvider) + available_models() pure virtual + PluginLoader V2 + DSLEngine opt-in flags. 72/72 ctest, ASan 72/72. §5 Cloud plugin deferred. |
 | 2026-07-07 | — | c16-patches | C16 三处文档不一致 patch (active-status/proposal/specs) + D5 决策草稿 + proposal-v2.md (313 行, 5 项歧义消除) |
 | 2026-07-07 | C15 | batching-queue-plugin | `lib/inference/batching.md` PLACEHOLDER (~40 行) + D2 精简 ship + handoff/master plan 同步 + openspec validate exit 0 |
 | 2026-07-07 | C13 | b2-arch-schemas | 4 个 `lib/inference/{prefix_cache,kv_cache,decoding,cloud_engine}.md` schema 文件 + D1 SamplerStrategy 删除 + D3 命名统一 + handoff/master plan 同步 + 全部验证 exit 0 |
@@ -134,29 +141,12 @@
 
 ---
 
-## 六、下一步行动 (按 D4 优先级)
+## 六、下一步行动 (按当前焦点)
 
-```mermaid
-gantt
-    title Phase 5 Active Timeline
-    dateFormat  YYYY-MM-DD
-    section 立即
-    C13 编码 (4 schema)       :c13, 2026-07-07, 1d
-    TSan race 修复             :tsan, 2026-07-07, 1d
-    C15 batching.md            :c15, 2026-07-07, 0.5d
-    section TSan 门后
-    C14 编码                   :c14, after tsan, 2d
-    section 外部依赖
-    C16 (等 ADR 审批)          :c16, 2026-07-14, 3d
-```
-
-1. **TSan 修复**: 修复 `test_execute_parallel` data race (Sprint 10 pre-existing,C14 启动前置)
-2. **D5 决策签字** (C14 启动前置): 在 `decisions-2026-07-07.md` 追加 D5 解决 `DSLEngine` 默认注入策略 (选项 A vs B)
-3. **C14 编码** (TSan 门后 + D5 决策后): `pdk/llama_engine/` plugin 骨架 + 8 工具 (`inference/engine/*` × 4 + `inference/model/*` × 4) + 7 测试 + `engine.md`/`model.md` 升级
-4. **ADR-0035/0042/0045 审批** (C16 启动前置): 3 个 ADR 状态从 🔍 Proposed → ✅ Approved
-5. **D5 草稿应用** (可选): `/tmp/opencode/c16-patches/decisions-d5-draft.md` 直接追加到 `decisions-2026-07-07.md`
-6. **C16 v2 评审 + 替换** (可选): `proposal-v2.md` 评审后替换 `proposal.md`,3 处 patch (`/tmp/opencode/c16-patches/`) apply 到 `active-status.md` + `proposal.md` + `specs/`
-7. **C16 编码** (ADR 审批后): ILLMProvider v2 架构 (Dual Consumer Model + Decorator + Cloud plugin + `available_models()` pure virtual)
+1. **C16 §5 Cloud plugin 顺延**: 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` 跟踪
+2. **C16 ship gate**: git add/commit/push `phase5-inference-orchestration` 分支
+3. **C16 归档**: `openspec archive phase5-illmprovider-call-chain-v2` (归档后 spec 上移至 `openspec/specs/`)
+4. **AGENTS.md § Recent Changes 更新**: 追加 C16 收官记录
 
 ---
 

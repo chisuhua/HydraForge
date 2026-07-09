@@ -122,9 +122,20 @@ public:
     ILLMProvider* get_llm_provider() { return llm_provider_.get(); }
 
     // C₁.4: 注入自定义 LLM provider（默认是 MockLLMProvider，可被替换为真实 provider）
+    // Phase 5 REQ-ICC-008: set_llm_provider MUST 重新包装 Decorator 链 (避免自定义 provider 绕过计费)
     void set_llm_provider(std::unique_ptr<ILLMProvider> provider) {
-        llm_provider_ = std::move(provider);
+        llm_provider_ = decorate_provider(std::move(provider));
     }
+
+    // === Phase 5 (Section 2 / REQ-IPD-003, REQ-IPD-004): opt-in decorator flags ===
+    // 默认 OFF (per spec REQ-IPD-003/004 default disabled), 单租户场景无意义
+    void set_compliance_enabled(bool enabled) { compliance_enabled_ = enabled; }
+    bool is_compliance_enabled() const { return compliance_enabled_; }
+    void set_rate_limit_enabled(bool enabled, int tokens_per_minute = 10000) {
+        rate_limit_enabled_ = enabled;
+        rate_limit_tokens_per_minute_ = tokens_per_minute;
+    }
+    bool is_rate_limit_enabled() const { return rate_limit_enabled_; }
 
     // === 阶段 4 任务 4.3: 暴露 session cost API ===
     // 返回自 DSLEngine 创建（或上次 reset）以来 LLM 调用的累计成本（USD）
@@ -163,6 +174,16 @@ void set_tool_coordinator(std::unique_ptr<ToolCoordinator> coordinator);
 private:
     // ADR-0033 Session Hierarchy (Sprint 15 / C5): 内部执行委托
     ExecutionResult run_impl(TaskSession& task_sess, const std::string& message);
+
+    // Phase 5 (REQ-ICC-008 / REQ-IPD-005): 私有 helper — 包装 ILLMProvider Decorator 链
+    // 顺序(从外到内): CostTracking -> [Compliance opt-in] -> [RateLimit opt-in] -> inner
+    // 链深度限制由 ILLMProviderDecorator::wrap_chain 强制 ≤ 4
+    std::unique_ptr<ILLMProvider> decorate_provider(std::unique_ptr<ILLMProvider> base);
+
+    // Phase 5 (Section 2): opt-in decorator flags
+    bool compliance_enabled_ = false;
+    bool rate_limit_enabled_ = false;
+    int rate_limit_tokens_per_minute_ = 10000;
 
     std::vector<ParsedGraph> full_graphs_;
     // D5 (C14): 显式 plugin 加载器 — DSLEngine 不再默认注入 plugin

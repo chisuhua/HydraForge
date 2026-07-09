@@ -79,6 +79,11 @@ add_library(agenticdsl_common STATIC
     src/common/llm/factory.cpp                  # Sprint 6 P2-7
     src/common/llm/sse_stream.cpp
     src/common/llm/stream_to_bus.cpp            # C2 Day 1-2: IGenerationStream → IInteractionBus bridge
+    src/common/llm/illmprovider_decorator.cpp   # Phase 5: ILLMProviderDecorator 基类 (REQ-IPD-001)
+    src/common/llm/cost_tracking_decorator.cpp  # Phase 5: CostTrackingDecorator 计费 (REQ-IPD-002)
+    src/common/llm/compliance_decorator.cpp     # Phase 5: ComplianceDecorator 合规日志 (REQ-IPD-003)
+    src/common/llm/rate_limit_decorator.cpp     # Phase 5: RateLimitDecorator 配额限制 (REQ-IPD-004)
+    src/common/llm/orchestration_illm_provider.cpp  # Phase 5: Dual Consumer Model (REQ-ICC-001)
     src/common/tools/registry.cpp
     src/common/tools/factory.cpp              # P2.C: ToolRegistry factory (decouple engine.cpp)
     src/common/utils/parser_utils.cpp

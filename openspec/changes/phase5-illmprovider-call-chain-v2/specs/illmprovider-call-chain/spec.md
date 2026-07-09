@@ -68,20 +68,22 @@ HydraForge ILLMProvider 调用链 MUST 支持 **Dual Consumer Model**: 同一推
 
 ### Requirement: agent-loop-raw-illmprovider-access (REQ-ICC-003)
 
-Agent 循环(ReAct / PlanExecute / ForkJoin) MUST 通过 `engine_->get_llm_provider()` 获取 raw `ILLMProvider*`,绕开编排包装。
+Agent 循环(ReAct / PlanExecute / ForkJoin) MUST 通过 `engine_->get_llm_provider()` 获取 `ILLMProvider*`,绕开**编排包装**(OrchestrationILLMProvider),但仍经过 Decorator 链(CostTracking/Compliance/RateLimit)。
+
+> **语义澄清**: "raw" 指"非 OrchestrationILLMProvider 包装",**不是**"无任何装饰器"。Agent 循环仍需经过 Decorator 链以保证计费/合规/限流。`engine_->get_llm_provider()` 返回 Decorator 链最外层或推理 Plugin provider(若无编排包装)。
 
 #### Scenario: PlanExecuteLoop 直连
 
 - **WHEN** `PlanExecuteLoop::plan_phase()` / `verify_phase()` 调 LLM
 - **THEN** MUST 调 `engine_->get_llm_provider()->generate(req)`
-- **AND** `engine_->get_llm_provider()` MUST 返回推理 Plugin ILLMProvider(**非** OrchestrationILLMProvider)
+- **AND** `engine_->get_llm_provider()` MUST 返回非 OrchestrationILLMProvider 的 ILLMProvider(Decorator 链最外层或推理 Plugin provider)
 - **AND** `engine_->get_llm_provider()` 签名 MUST 保持不变(向后兼容)
 
 #### Scenario: SimpleCognitiveOrchestrator 直连
 
 - **WHEN** `SimpleCognitiveOrchestrator::react_once()` 调 LLM
 - **THEN** MUST 调 `llm_->generate(req)`(成员 `ILLMProvider* llm_`)
-- **AND** `llm_` MUST 指向推理 Plugin ILLMProvider
+- **AND** `llm_` MUST 指向非 OrchestrationILLMProvider 的 ILLMProvider(经 Decorator 链)
 - **AND** **不**经过 `OrchestrationILLMProvider`
 
 #### Scenario: ForkJoinLoop 不直连
@@ -183,3 +185,16 @@ Agent 循环(ReAct / PlanExecute / ForkJoin) MUST 通过 `engine_->get_llm_provi
 - **WHEN** 检查 `docs/adr/adr-0038-dynamic-config-interface.md`
 - **THEN** MUST 含 "BatchingQueue 接口 deferred 到第二个推理 backend 实现时 (per adversarial review)" 注释
 - **AND** 当前实现 MUST 仅支持单请求 FIFO loop(per OpenSpec `phase5-batching-queue-plugin` reference impl)
+
+---
+
+### Requirement: set-llm-provider-decorator-rewrapping (REQ-ICC-008)
+
+`DSLEngine::set_llm_provider()` MUST 在设置新 provider 时重新包装 Decorator 链,避免自定义 provider 绕过计费。
+
+#### Scenario: set_llm_provider 触发重新包装
+
+- **WHEN** 用户调用 `engine->set_llm_provider(custom_provider)`
+- **THEN** DSLEngine MUST 先 `move` 旧 provider,再按 REQ-IPD-005 顺序包装 Decorator 链
+- **AND** `engine->get_llm_provider()` MUST 返回新链的最外层装饰器(含 CostTrackingDecorator)
+- **AND** 该行为 MUST 与构造器中初始包装一致(共享同一 `decorate_provider()` 私有方法)

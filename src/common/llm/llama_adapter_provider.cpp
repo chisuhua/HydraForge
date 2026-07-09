@@ -75,6 +75,21 @@ LlamaAdapterProvider::LlamaAdapterProvider(const LlamaAdapter::Config& config)
 
 LlamaAdapterProvider::~LlamaAdapterProvider() = default;
 
+std::vector<ILLMProvider::ModelInfo>
+LlamaAdapterProvider::available_models() const {
+  // 从底层 LlamaAdapter::Config 读取模型名 (fallback "llama-cpp-default")
+  // ADR-0042 §2 deprecated 路径保留查询能力,但消费者应迁移到 pdk/llama_engine/
+  const auto& cfg = adapter_->config();
+  std::string name = cfg.model.empty() ? std::string("llama-cpp-default")
+                                       : cfg.model;
+  return {
+      ModelInfo(std::move(name),
+                {ModelCapability::Chat, ModelCapability::Completion},
+                cfg.n_ctx > 0 ? static_cast<std::int64_t>(cfg.n_ctx) : 2048,
+                "llama.cpp"),
+  };
+}
+
 Result<GenerationResult, LLMError>
 LlamaAdapterProvider::generate(const GenerationRequest& req, std::stop_token token) {
     // 检查取消（调用前）

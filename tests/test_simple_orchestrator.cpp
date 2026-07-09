@@ -13,6 +13,7 @@
 #include "common/llm/mock_provider.h"
 #include "common/llm/llm_types.h"
 #include "agenticdsl/cognitive/simple_orchestrator.h"
+#include "agenticdsl/contract/i_llm_provider_decorator.h"
 
 #include <atomic>
 #include <memory>
@@ -46,7 +47,9 @@ TEST_CASE("SimpleCognitiveOrchestrator mock success chain",
   engine->register_tool("echo", agenticdsl::ToolMetadata{"echo", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>& args) {
     return nlohmann::json{{"echoed", args.at("message")}};
   });
-  auto* mock = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
+  auto* mock_unwrapped = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
+  if (!mock_unwrapped) { if (auto* d = dynamic_cast<ILLMProviderDecorator*>(engine->get_llm_provider())) mock_unwrapped = dynamic_cast<MockLLMProvider*>(d->inner()); }
+  auto* mock = mock_unwrapped;
   REQUIRE(mock != nullptr);
   mock->set_fixed_response(R"({"tool":"echo","args":{"message":"hi"}})");
 
@@ -72,7 +75,9 @@ TEST_CASE("SimpleCognitiveOrchestrator LLM error injection",
   engine->register_tool("echo", agenticdsl::ToolMetadata{"echo", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>&) {
     return nlohmann::json::object();
   });
-  auto* mock = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
+  auto* mock_unwrapped = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
+  if (!mock_unwrapped) { if (auto* d = dynamic_cast<ILLMProviderDecorator*>(engine->get_llm_provider())) mock_unwrapped = dynamic_cast<MockLLMProvider*>(d->inner()); }
+  auto* mock = mock_unwrapped;
   REQUIRE(mock != nullptr);
   mock->set_simulate_error(LLMError::Code::NetworkError, "connection refused");
 
@@ -95,7 +100,9 @@ TEST_CASE("SimpleCognitiveOrchestrator tool not found",
           "[cognitive][stage0]") {
   auto engine = DSLEngine::from_markdown(kEmptyDsl);
   // 注意：不注册 echo 工具
-  auto* mock = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
+  auto* mock_unwrapped = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
+  if (!mock_unwrapped) { if (auto* d = dynamic_cast<ILLMProviderDecorator*>(engine->get_llm_provider())) mock_unwrapped = dynamic_cast<MockLLMProvider*>(d->inner()); }
+  auto* mock = mock_unwrapped;
   REQUIRE(mock != nullptr);
   mock->set_fixed_response(R"({"tool":"nonexistent","args":{}})");
 
@@ -119,7 +126,9 @@ TEST_CASE("SimpleCognitiveOrchestrator JSON parse failure",
   engine->register_tool("echo", agenticdsl::ToolMetadata{"echo", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>&) {
     return nlohmann::json::object();
   });
-  auto* mock = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
+  auto* mock_unwrapped = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
+  if (!mock_unwrapped) { if (auto* d = dynamic_cast<ILLMProviderDecorator*>(engine->get_llm_provider())) mock_unwrapped = dynamic_cast<MockLLMProvider*>(d->inner()); }
+  auto* mock = mock_unwrapped;
   REQUIRE(mock != nullptr);
   mock->set_fixed_response("not valid json {");
 
@@ -143,7 +152,9 @@ TEST_CASE("SimpleCognitiveOrchestrator end-to-end JSON output",
   engine->register_tool("echo", agenticdsl::ToolMetadata{"echo", "test", "test", agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow}, [](const std::unordered_map<std::string, std::string>& args) {
     return nlohmann::json{{"echoed", args.at("message")}, {"len", 5}};
   });
-  auto* mock = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
+  auto* mock_unwrapped = dynamic_cast<MockLLMProvider*>(engine->get_llm_provider());
+  if (!mock_unwrapped) { if (auto* d = dynamic_cast<ILLMProviderDecorator*>(engine->get_llm_provider())) mock_unwrapped = dynamic_cast<MockLLMProvider*>(d->inner()); }
+  auto* mock = mock_unwrapped;
   REQUIRE(mock != nullptr);
   mock->set_fixed_response(R"({"tool":"echo","args":{"message":"hello"}})");
 

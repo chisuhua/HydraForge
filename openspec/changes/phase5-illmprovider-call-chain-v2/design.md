@@ -172,8 +172,8 @@ pdk/cloud/
 
 ```cpp
 extern "C" {
-  const PdkPluginInfo* pdk_plugin_info();
-  int pdk_register_tools(PdkToolRegistry* reg);  // 空实现(cloud plugin 无工具,仅 ILLMProvider)
+  const PluginInfo pdk_plugin_info;                                               // 数据符号,非函数
+  void pdk_register_tools(::agenticdsl::IToolRegistry& reg);                     // 空实现(cloud plugin 无工具,仅 ILLMProvider)
   std::shared_ptr<::agenticdsl::ILLMProvider> pdk_create_llm_provider(const PdkProviderConfig* cfg);
   bool pdk_plugin_init();
   void pdk_plugin_fini();
@@ -213,9 +213,9 @@ if (backend == "openai" || ...) {
 |---|---|---|
 | Phase 1 trigger | "本 ADR Approved 即生效" | 不变 |
 | Phase 2 trigger | "推理 Plugin ✅ + 1 release cycle" | 不变 |
-| Phase 2 措施 | "移除 `local` → LlamaAdapterProvider 映射" | **改为 remap `local` → InferencePlugin**(用户配置零改动) |
+| Phase 2 措施 | "移除 `local` → LlamaAdapterProvider 映射" | **改为 remap `local` → llama_engine Plugin**(用户配置零改动) |
 | Phase 3 trigger | "Telemetry 30 天零实例化" | **改为 Phase 2 后 2 release cycles** |
-| Phase 3 措施 | "删除 `LlamaAdapterProvider`" | **同时删除 `LlamaAdapter`(底层 HTTP 包装)** |
+| Phase 3 措施 | "删除 `LlamaAdapterProvider`" | **同时删除 `LlamaAdapter`(llama.cpp 本地封装)** |
 | §4 决议 | "cloud 留 HTTP 客户端在核心" | **推翻**:cloud plugin 化(per Decision 3) |
 
 **Phase 2/3 时间线明确定义**(消除歧义):
@@ -223,7 +223,7 @@ if (backend == "openai" || ...) {
 | Phase | 触发时间 | 同步信号 |
 |---|---|---|
 | **Phase 1** | 本 ADR Approved 后立即 | 当前 OpenSpec change `phase5-illmprovider-call-chain-v2` ship |
-| **Phase 2** | 推理 Plugin(`pdk/inference_engine/`)✅ Approved + **下一个 minor release**(per ADR-0042 §2 trigger) | 跟踪信号:`docs/adr/adr-0035-inference-engine-plugin-spec.md` 状态从 🔍 Proposed → ✅ Approved + `openspec/changes/phase5-llama-engine-plugin/` archived |
+| **Phase 2** | 推理 Plugin(`pdk/llama_engine/`)✅ Approved + **下一个 minor release**(per ADR-0042 §2 trigger) | 跟踪信号:`docs/adr/adr-0035-inference-engine-plugin-spec.md` 状态从 🔍 Proposed → ✅ Approved + `openspec/changes/phase5-llama-engine-plugin/` archived |
 | **Phase 3** | Phase 2 ship 后**再 2 个 minor release**(估算 ~6-12 个月,per 项目 release cadence) | 跟踪信号:`git log --grep="v0\."` 计数 + OpenSpec change `phase5-illmprovider-call-chain-v2` 标记为 Phase 3 ready |
 
 **注意**:
@@ -235,13 +235,13 @@ if (backend == "openai" || ...) {
 
 ```cpp
 // src/common/llm/llama_adapter_provider.h
-class [[deprecated("Use pdk/inference_engine/ plugin instead, see ADR-0042 §2")]]
+class [[deprecated("Use pdk/llama_engine/ plugin instead, see ADR-0042 §2")]]
     LlamaAdapterProvider : public ILLMProvider {
   // ...
 };
 
 // src/common/llm/llama_adapter.h
-class [[deprecated("LlamaAdapter is deprecated; use pdk/inference_engine/ plugin, see ADR-0042 §2")]]
+class [[deprecated("LlamaAdapter is deprecated; use pdk/llama_engine/ plugin, see ADR-0042 §2")]]
     LlamaAdapter {
   // ...
 };

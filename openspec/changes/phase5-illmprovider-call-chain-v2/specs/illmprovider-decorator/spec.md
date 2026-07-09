@@ -21,8 +21,8 @@
 #### Scenario: 装饰器链深度限制
 
 - **WHEN** 装饰器链通过 `std::move` 多次嵌套构造
-- **THEN** DSLEngine MUST 限制最大深度 ≤ 3(避免性能开销 + 调试复杂度)
-- **AND** 超出深度 MUST 抛 `std::runtime_error("decorator chain too deep")`
+- **THEN** DSLEngine MUST 限制最大层数 ≤ 4(含 inner_ 在内,即最多 3 个装饰器 + 1 个 inner_ = 4 层 ILLMProvider)
+- **AND** 超出层数 MUST 抛 `std::runtime_error("decorator chain too deep")`(如 CostTracking→Compliance→RateLimit→inner_=4 层 OK;再加一层=5 层 throw)
 
 #### Scenario: 装饰器可独立 mock 测试
 
@@ -59,8 +59,8 @@
 #### Scenario: budget hole 修复
 
 - **WHEN** 集成测试跑 100 次 NodeExecutor execute_generate_subgraph + 100 次 execute_yield + 100 次 SimpleCognitiveOrchestrator react
-- **THEN** `IBudgetController::total_cost_usd()` MUST > 0(非零)
-- **AND** `budget_->get_call_count()` MUST == 300(每次 LLM 调用都计费)
+- **THEN** `IBudgetController::record_llm_call` MUST 被调用次数 == 300(每次 LLM 调用都计费,**非**仅 total_cost_usd > 0)
+- **AND** 每次 `record_llm_call` 调用 MUST 携带非零 token 数(Mock 响应需包含显式 prompt_tokens/completion_tokens)
 
 ### Requirement: compliance-decorator (REQ-IPD-003)
 
@@ -128,7 +128,7 @@ DSLEngine 构造时 MUST 按特定顺序部署装饰器链,顺序变更 MUST NOT
   2. **ComplianceDecorator**(若 opt-in 启用,记录 prompt/completion hash)
   3. **RateLimitDecorator**(若 opt-in 启用,在 generate 前检查配额)
   4. **inner_**(推理 Plugin ILLMProvider 或 OrchestrationILLMProvider)
-- **AND** 装饰器链总深度 MUST ≤ 3
+- **AND** 装饰器链总深度 MUST ≤ 4(含 inner_)
 
 #### Scenario: 装饰器链测试
 
@@ -143,3 +143,10 @@ DSLEngine 构造时 MUST 按特定顺序部署装饰器链,顺序变更 MUST NOT
 - **WHEN** 跑 10000 次 generate,每次均带装饰器链
 - **THEN** 总开销 MUST < 100ms(每个调用 < 10μs)
 - **AND** 相对 llama_decode ~200ms 开销 MUST < 0.005%
+
+#### Scenario: set_llm_provider 重新包装
+
+- **WHEN** 用户调用 `engine->set_llm_provider(custom_provider)`
+- **THEN** DSLEngine MUST 重新包装 Decorator 链(按 REQ-IPD-005 顺序)
+- **AND** 先 `move` 旧 provider 的生命周期由新链接管
+- **AND** 确保 `get_llm_provider()` 返回新链的最外层装饰器(含 CostTrackingDecorator,保证自定义 provider 也不绕过计费)

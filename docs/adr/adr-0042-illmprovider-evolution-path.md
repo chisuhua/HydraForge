@@ -44,13 +44,44 @@ PluginLoader 在 `load_so` 后查找此符号, 由 DSLEngine 持有返回的 `sh
 - ADR-0022 §1.1 已声明 `::agenticdsl::ILLMProvider`
 - 同步修正 ADR-0035 §1.2（同错误）
 
-### 2. LlamaAdapterProvider 退役路径 (P0 fix 触发条件明确)
+### 2. LlamaAdapterProvider 退役路径 (P0 fix 触发条件明确; 2026-07-09 修订 per OpenSpec change `phase5-illmprovider-call-chain-v2` Task 7.6 + Decision 4)
 
 | 阶段 | 触发条件 | 措施 |
 |:----:|---------|------|
-| **Phase 1** | 本 ADR Approved 即生效 | `[[deprecated]]` 标记 LlamaAdapterProvider, 推荐迁移到推理 Plugin |
-| **Phase 2** | 推理 Plugin ✅ Approved + 1 release cycle 后 | 从默认 `IProviderFactory` (ADR-0005 §3 映射) 中移除 `"local"` → `LlamaAdapterProvider` 映射 |
-| **Phase 3** | Telemetry 显示 30 天内 LlamaAdapterProvider 实例化计数=0 | 删除 `LlamaAdapterProvider` 实现 |
+| **Phase 1** | 本 ADR Approved 即生效 | `[[deprecated]]` 标记 `LlamaAdapterProvider` + `LlamaAdapter` (底层 HTTP 包装), 推荐迁移到推理 Plugin |
+| **Phase 2** | 推理 Plugin (`pdk/llama_engine/`) ✅ Approved + 1 release cycle 后 | **remap** `"local"` → `llama_engine` Plugin / `pdk/llama_engine/` (per ADR-0042 §2 修订; 用户配置零改动, factory 内部路由切换, `LlamaAdapterProvider` 不再被默认实例化) |
+| **Phase 3** | Phase 2 完成后**再 2 个 minor release cycles** (估算 ~6-12 个月, per 项目 release cadence; 原 "Telemetry 30 天零实例化" trigger 不可执行 — 当前仓库无 telemetry 基础设施) | 删除 `LlamaAdapterProvider` + `LlamaAdapter` (底层 HTTP 包装) 实现 |
+
+**Phase 2/3 时间线明确定义** (消除歧义):
+
+| Phase | 触发时间 | 同步信号 |
+|---|---|---|
+| **Phase 1** | 本 ADR Approved 后立即 | 当前 OpenSpec change `phase5-illmprovider-call-chain-v2` ship |
+| **Phase 2** | 推理 Plugin (`pdk/llama_engine/`) ✅ Approved + **下一个 minor release** (per ADR-0042 §2 trigger) | 跟踪信号: `docs/adr/adr-0035-inference-engine-plugin-spec.md` 状态从 🔍 Proposed → ✅ Approved + `openspec/changes/phase5-llama-engine-plugin/` archived |
+| **Phase 3** | Phase 2 ship 后**再 2 个 minor release** (估算 ~6-12 个月, per 项目 release cadence) | 跟踪信号: `git log --grep="v0\."` 计数 + OpenSpec change `phase5-illmprovider-call-chain-v2` 标记为 Phase 3 ready |
+
+**注意**:
+- "release cycle" 指 HydraForge minor release (估算 3-6 个月一次), 非 minor commit 或 patch release
+- Phase 2 实际接入点已经在本 change 中预留 (`Task 5.12c`), 无需新 OpenSpec change
+- Phase 3 删除 `LlamaAdapterProvider` + `LlamaAdapter` 需要新建独立 OpenSpec change (2027+)
+
+**Deprecate 范围 (2026-07-09 修订)**: 同时 deprecate `LlamaAdapterProvider` (ILLMProvider 适配器) + `LlamaAdapter` (底层 llama.cpp HTTP 包装), 关闭 escape hatch (避免用户直接 `new LlamaAdapter` 绕过 factory)。
+
+**`[[deprecated]]` 标注** (非 breaking):
+
+```cpp
+// src/common/llm/llama_adapter_provider.h
+class [[deprecated("Use pdk/llama_engine/ plugin instead, see ADR-0042 §2")]]
+    LlamaAdapterProvider : public ILLMProvider {
+  // ...
+};
+
+// src/common/llm/llama_adapter.h
+class [[deprecated("LlamaAdapter is deprecated; use pdk/llama_engine/ plugin, see ADR-0042 §2")]]
+    LlamaAdapter {
+  // ...
+};
+```
 
 ### 3. ILLMProvider 接口保持不变 + 三层消费链引用
 
@@ -58,11 +89,13 @@ ADR-0001 接口不需要修改。推理 Plugin 实现 `generate()`, `generate_st
 
 **关键澄清** (P0 fix per ADR-0035 §1.1): 推理 Plugin 的 ILLMProvider 是**内部接口**, 仅编排 Plugin 的 ILLMProvider 实现委托给它。DSLEngine/SimpleCognitiveOrchestrator 直接消费的是编排 Plugin 的 ILLMProvider。详见 [ADR-0035 §1.1](./adr-0035-inference-engine-plugin-spec.md) 三层消费链。
 
-### 4. 远程 llama-server 用例处理 (P1 fix @Oracle review)
+### 4. 远程 llama-server 用例处理 (P1 fix @Oracle review) + Cloud Plugin 化 (2026-07-09 修订, per ADR-0042 §4 修订 + OpenSpec change `phase5-illmprovider-call-chain-v2` Decision 3)
 
 **LlamaAdapterProvider 删除后的远程推理用例**: 由独立的 HTTP ILLMProvider 承担 (推测命名 `RemoteLlamaProvider` 或 `HttpOpenAILLMProvider`), 通过 `IProviderFactory` `remote` / `openai` provider 类型路由, 已在 [ADR-0005 (LLM 后端配置与工厂)](./adr-0005-llm-backend-config-factory.md) §3 基础设施中支持。
 
 **In-process 本地推理 (新)**: 通过 Inference Plugin 的 ILLMProvider, 由 DSLEngine 从 PluginLoader 动态注入。
+
+**Cloud 后端 plugin 化 (2026-07-09 新增)**: 推翻原 "cloud 留 HTTP 客户端在核心" 决议。CloudLLMAdapter 从 `src/common/llm/` 移至 `pdk/cloud/` 作为 first-party plugin, 所有 backend (cloud + local) 统一走 PDK plugin 机制。理由: (1) 5 年视角下统一机制 vs 两套机制, 前者总成本 < 后者; (2) cloud 路径补全 lifecycle hooks (`pdk_plugin_init/fini`) 支持连接池、key rotation; (3) 内部 gateway 代理、自定义 auth 等部署需求可由第三方 plugin 满足; (4) 与推理 plugin 共享 ABI, 架构对称。详见 [ADR-0042 §4 + OpenSpec change `phase5-illmprovider-call-chain-v2` Design Decision 3](./adr-0042-illmprovider-evolution-path.md)。
 
 ```
 DSLEngine::run()

@@ -83,6 +83,9 @@ public:
   /// 获取当前配置（只读）
   const LLMConfig& config() const { return config_; }
 
+  // === REQ-ICC-004: available_models() override ===
+  std::vector<ModelInfo> available_models() const override;
+
 private:
   /**
    * @brief 发起 POST 请求

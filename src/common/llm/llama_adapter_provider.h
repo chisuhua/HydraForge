@@ -22,8 +22,11 @@ namespace agenticdsl {
  * 本类在 ILLMProvider 接口上包装 LlamaAdapter 调用，把同步结果转换为流式 handle。
  *
  * 用于向后兼容已有代码路径；Phase 2 全部迁移到 ILLMProvider 后删除。
+ *
+ * @deprecated Phase 5 ADR-0042 §2 — 改用 pdk/llama_engine/ plugin。
  */
-class LlamaAdapterProvider : public ILLMProvider {
+class [[deprecated("Use pdk/llama_engine/ plugin instead, see ADR-0042 §2")]]
+    LlamaAdapterProvider : public ILLMProvider {
 public:
   /**
    * @brief 构造（接管现有 LlamaAdapter 所有权）
@@ -51,7 +54,7 @@ public:
    * @return 成功时返回 GenerationResult，失败时返回 LLMError
    */
   Result<GenerationResult, LLMError>
-  generate(const GenerationRequest& req, std::stop_token token) override;
+      generate(const GenerationRequest& req, std::stop_token token) override;
 
   /**
    * @brief 流式生成（实现 ILLMProvider 接口）
@@ -65,7 +68,9 @@ public:
    * @return stream handle（unique_ptr）
    */
   std::unique_ptr<IGenerationStream>
-  generate_stream(const GenerationRequest& req, std::stop_token token) override;
+      generate_stream(const GenerationRequest& req, std::stop_token token) override;
+
+  std::vector<ModelInfo> available_models() const override;
 
   /// 获取底层 LlamaAdapter（用于测试/调试）
   LlamaAdapter* underlying() { return adapter_.get(); }

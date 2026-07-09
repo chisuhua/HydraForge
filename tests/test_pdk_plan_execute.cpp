@@ -20,6 +20,7 @@
 #include "agenticdsl/types/layered_context.h"
 #include "common/llm/llm_types.h"
 #include "common/llm/mock_provider.h"
+#include "agenticdsl/contract/i_llm_provider_decorator.h"
 #include "core/engine.h"
 
 #include <memory>
@@ -47,11 +48,19 @@ nodes:
 )";
 
 // 辅助: 创建配置 MockLLM 的 DSLEngine
+namespace {
+agenticdsl::MockLLMProvider* unwrap_to_mock(agenticdsl::ILLMProvider* p) {
+  if (!p) return nullptr;
+  if (auto* m = dynamic_cast<agenticdsl::MockLLMProvider*>(p)) return m;
+  if (auto* d = dynamic_cast<agenticdsl::ILLMProviderDecorator*>(p))
+    return dynamic_cast<agenticdsl::MockLLMProvider*>(d->inner());
+  return nullptr;
+}
+}  // namespace
 std::unique_ptr<agenticdsl::DSLEngine> make_engine_with_mock_responses(
     std::queue<agenticdsl::GenerationResult> responses) {
   auto engine = agenticdsl::DSLEngine::from_markdown(kMinimalValidDsl);
-  if (auto* mock =
-          dynamic_cast<agenticdsl::MockLLMProvider*>(engine->get_llm_provider())) {
+  if (auto* mock = unwrap_to_mock(engine->get_llm_provider())) {
     while (!responses.empty()) {
       mock->enqueue_response(responses.front());
       responses.pop();
@@ -146,8 +155,7 @@ TEST_CASE("PDK PlanExecuteLoop: LLM simulated error → fail",
   auto bus = std::make_shared<agenticdsl::InMemoryBus>();
 
   auto engine = make_engine_with_mock_responses({});
-  if (auto* mock =
-          dynamic_cast<agenticdsl::MockLLMProvider*>(engine->get_llm_provider())) {
+  if (auto* mock = unwrap_to_mock(engine->get_llm_provider())) {
     mock->set_simulate_error(agenticdsl::LLMError::Code::NetworkError,
                               "connection refused");
   }

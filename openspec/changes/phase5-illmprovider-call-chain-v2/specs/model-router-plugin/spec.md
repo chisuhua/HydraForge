@@ -46,7 +46,7 @@
 - **WHEN** `OrchestrationILLMProvider::generate(req, token)` 被调用
 - **THEN** MUST 调用 `router_->select(inference_provider_->available_models(), req)` 获取 `ModelInfo`
 - **AND** MUST 验证 `ModelInfo.provider` 与 `req` 配置的 `provider` 字符串匹配
-- **AND** 若 `available_models()` 为空,MUST 返回 `Result::failure(LLMError::Code::InvalidRequest, "no models available")`
+- **AND** 若 `available_models()` 返回空 vector,MUST 返回 `Result::failure(LLMError::Code::InvalidRequest, "no models available")`(防止 Router 静默失败,per REQ-MR-003 场景 "Router 静默失败防护")
 
 #### Scenario: Router 注入构造
 

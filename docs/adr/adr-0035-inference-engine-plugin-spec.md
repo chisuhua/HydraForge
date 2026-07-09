@@ -70,33 +70,44 @@ HydraForge Framework
 
 **关键决策**: 推理引擎 Plugin **同时**实现 PDK ToolRegistry 工具注册 + ILLMProvider 接口。
 
-#### 1.1 三层消费链 (Oracle 裁决, 2026-07-06)
+#### 1.1 Dual Consumer Model (Oracle 裁决, 2026-07-06; 重画 2026-07-09 per OpenSpec change `phase5-illmprovider-call-chain-v2` Task 7.2)
+
+> **修订说明 (2026-07-09, per OpenSpec change `phase5-illmprovider-call-chain-v2` Decision 1)**: 原三层消费链图被本 Dual Consumer Model 替换。`OrchestrationILLMProvider::generate()` 内部从 `call_tool("inference/generate", ...)` 改为**直连** `inference_provider_->generate()` (共享 `shared_ptr<ILLMProvider>`)。Agent 循环 (ReAct/PlanExecute/ForkJoin) 通过 `engine_->get_llm_provider()` 获取 raw ILLMProvider*, **绕开编排包装**。LLM "thought" 不再经 ToolCoordinator audit pipeline (修复 ADR-0031 §决策 5 语义误用)。
 
 ```
-DSLEngine / SimpleCognitiveOrchestrator
-  │
-  │ ILLMProvider::generate(req, token) → GenerationResult
-  ▼
-[编排 Plugin (implements ILLMProvider)]
-  │
-  │ 内部包装: call_tool("inference/generate", args)
-  ▼       OR  raw ILLMProvider::generate (直连, 不经 ToolCoordinator)
-[推理引擎 Plugin (implements ILLMProvider + registers inference/* tools)]
-  │
-  │ llama_decode() / sampler
-  ▼
-llama.cpp C API
+┌────────────────── Orchestration Plugin ──────────────────┐
+│                                                           │
+│  ┌────────────────────────────┐  ┌─────────────────────┐ │
+│  │ OrchestrationILLMProvider  │  │ Agent Loops         │ │
+│  │ (路由 + 会话管理)            │  │ (ReAct/PlanExec/    │ │
+│  │                            │  │  ForkJoin)          │ │
+│  │ 消费者: DSLEngine/          │  │                     │ │
+│  │          NodeExecutor       │  │ 消费者: 循环自身      │ │
+│  │                            │  │                     │ │
+│  │ 直连推理 (no Tool dispatch)│  │ 直连推理(同样无包装) │ │
+│  └──────────┬─────────────────┘  └──────────┬──────────┘ │
+│             │                                 │            │
+│             ▼                                 ▼            │
+│        ┌──────────────────────────────────────────────┐    │
+│        │  推理 Plugin ILLMProvider                   │    │
+│        └────────────────────┬─────────────────────────┘    │
+└────────────────────────────┼───────────────────────────────┘
+                             ▼
+                       llama_decode()
 ```
 
-**关键洞察**: 推理 Plugin 的 ILLMProvider 是**内部接口** (仅编排 Plugin 使用),不直接暴露给 DSLEngine/SimpleCognitiveOrchestrator。**推荐层级 (三层链)**: DSLEngine → 编排 ILLMProvider (经编排逻辑) → 推理 ILLMProvider (不经审批) → llama.cpp。**或**: DSLEngine → 编排 ILLMProvider → `inference/generate` tool (经内部 registry,但豁免 ToolCoordinator)。
+**关键洞察 (修订后)**: 推理 Plugin 的 ILLMProvider 是**内部接口** (仅编排 Plugin + Agent 循环使用),不直接暴露给 DSLEngine/SimpleCognitiveOrchestrator 的对外消费路径。**编排层 ILLMProvider 真实价值** = 路由 + 会话管理 (ADR-0045 §2.2),不依赖 Tool dispatch 即可实现。
 
 | 接口 | 暴露给 | 语义 | 走审批? |
 |------|--------|------|:------:|
 | **`inference/*` Tools** | DSL workflow 节点 (经 ToolCoordinator) | Agent "行动" (audited tool call) | ✅ ToolCoordinator |
-| **`inference/*` Tools (内部)** | 编排 Plugin (经 internal registry, 豁免 ToolCoordinator) | 编排 Plugin 内部 reasoning 链 | ❌ 豁免, 仅 emit audit 事件 |
-| **ILLMProvider (推理 Plugin)** | 编排 Plugin (C++ 直接调用, 不经 ToolRegistry) | Agent "思考" (LLM reasoning) | ❌ 不经审批 |
+| **ILLMProvider (推理 Plugin)** | 编排 Plugin + Agent 循环 (C++ 直接调用, 不经 ToolRegistry) | Agent "思考" (LLM reasoning) | ❌ 不经审批 |
 
-**依据**: ReAct 循环中 LLM 生成 thought 是 agent 的推理内层, ToolCoordinator 审批的是 agent 对外调用的 tool。把 LLM 生成塞进 tool approval 等于语义误用 (违反 ADR-0031 设计意图)。
+**依据**: ReAct 循环中 LLM 生成 thought 是 agent 的推理内层, ToolCoordinator 审批的是 agent 对外调用的 tool。把 LLM 生成塞进 tool approval 等于语义误用 (违反 ADR-0031 §决策 5 设计意图)。Oracle 实证 (代码 trace 2026-07-06): Tool dispatch 开销 ~5μs vs llama_decode ~200ms = 0.0025%, 性能不是争论点; 但 LLM thought 经 ToolCoordinator audit pipeline 是**语义误用** (ADR-0031 §决策 5)。
+
+**与原三层链的差异**:
+- 原方案: DSLEngine → 编排 ILLMProvider → `inference/generate` tool (经内部 registry + ToolCoordinator 豁免)
+- 新方案 (Dual Consumer Model): DSLEngine → 编排 ILLMProvider (直连推理 Provider) → llama_decode(); Agent 循环平行路径直连推理 Provider (绕开编排包装)
 
 #### 1.2 Plugin 工厂符号规范 (P0 fix @Oracle review, namespace 统一 @P1 review)
 
@@ -184,12 +195,14 @@ UNINITIALIZED ──→ inference/engine/init ──→ INITIALIZED
 
 ### 4. 配置参数分层
 
+> **Deferred 注记 (2026-07-09, per OpenSpec change `phase5-illmprovider-call-chain-v2` Task 7.4 + Adversarial Review 2026-07-06)**: `SamplerStrategy` 接口 (作为独立 PDK 抽象 `include/agenticdsl/pdk/sampler_strategy.h`) **deferred 到 Phase 6+**。当前推理 Plugin 内部采样器 clamp 逻辑 (`temperature = std::clamp(temperature, 0.0f, 2.0f)` 等) 内联到 `inference/engine/generate` 工具实现内部, 不提取为独立接口。提取时机: 出现第二个推理后端 (e.g., vLLM/SGLang plugin) 时, 按 ADR-0034 "核心保留契约 + 算法 plugin 化" 范式重新评估。SamplerStrategy 相关测试用例 (`sampler_chain_compose` test #15) 保留在 §8 测试表中, 作为 Phase 6+ 启用时的覆盖基线。
+
 | 分层 | 粒度 | 配置入口 | 示例参数 |
 |------|:----:|---------|---------|
 | **L1 - 静态/模型加载** | per-model-load | `inference/engine/init` | n_gpu_layers, split_mode, use_mmap, devices, tensor_split |
 | **L2 - 静态/会话创建** | per-session | `inference/session/create` | n_ctx, n_batch, n_ubatch, flash_attn, type_k, type_v, offload_kqv, rope_scaling |
 | **L3a - 动态/运行时** | any time (即时/next-request 生效) | `inference/configure` | n_threads, n_threads_batch, default_temperature, default_top_k, default_top_p, prefer |
-| **L3b - 采样策略** | per-session (需重建 sampler chain) | `inference/sampler/configure` | sampler chain 类型组合 (greedy/temperature/top_k/mirostat/grammar) |
+| **L3b - 采样策略** (SamplerStrategy 接口 deferred 到 Phase 6+) | per-session (需重建 sampler chain) | `inference/sampler/configure` | sampler chain 类型组合 (greedy/temperature/top_k/mirostat/grammar) |
 | **L4 - 每请求** | per-generate | `inference/generate` 入参 | temperature, top_k, top_p, min_p, seed, max_tokens, stop, grammar, penalties |
 
 **L3a 与 L3b 的区别**:

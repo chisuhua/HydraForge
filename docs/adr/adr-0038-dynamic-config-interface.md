@@ -4,6 +4,8 @@
 
 🔍 Proposed (2026-07-06 — 架构方案讨论产出, 待 review; **2026-07-06 P1 fix** 应用: L3a/L3b split, `offload_kqv` 移除, prefer enum 补全, error schema 新增, thread safety 细化); **2026-07-06 renumber**: 兄弟 ADR-0036 → ADR-0045 (编排 plugin), ADR-0037 → ADR-0046 (通信协议), 避免与旧 ADR-0036-三层服务协议 / ADR-0037-因果序冲突
 
+**增量决议** (2026-07-09, per OpenSpec change `phase5-illmprovider-call-chain-v2` Task 7.5 + Adversarial Review 2026-07-06): `BatchingQueue` 接口 **deferred 到第二个推理 backend 实现时** (e.g., vLLM/SGLang plugin 出现)。当前 `llama_engine` plugin 单后端场景下, `BatchingQueue` 抽象 (作为独立 PDK 接口 `include/agenticdsl/pdk/batching_queue.h`) 不提取, 推理请求调度内联到 plugin 内部。提取时机: 出现第二个推理后端 + 调度策略出现实质差异时, 按 ADR-0034 "核心保留契约 + 算法 plugin 化" 范式重新评估。关联 OpenSpec change `phase5-batching-queue-plugin` (C15, 正交)。
+
 ## 领域
 
 基座 / Inference Engine / Config

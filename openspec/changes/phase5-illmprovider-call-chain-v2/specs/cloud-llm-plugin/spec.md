@@ -14,15 +14,15 @@ Cloud plugin MUST 导出 5 个 PDK 符号(per ADR-0041),含 2 个必选 + 3 个�
 
 - **WHEN** 编译 `pdk/cloud/src/cloud_plugin.cpp`
 - **THEN** MUST 导出以下 5 个 `extern "C"` 符号:
-  - `const PdkPluginInfo* pdk_plugin_info()` — **必选**,返回静态 `PluginInfo` 实例
-  - `int pdk_register_tools(PdkToolRegistry* reg)` — **必选**,MVP 实现为空(cloud plugin 无 DSL 工具)
-  - `std::shared_ptr<::agenticdsl::ILLMProvider> pdk_create_llm_provider(const PdkProviderConfig* cfg)` — **可选**,返回 `CloudLLMAdapter` 实例
+  - `extern "C" const PluginInfo pdk_plugin_info` — **必选**(数据符号,非函数),包含 ABI 版本 + 元数据
+  - `void pdk_register_tools(IToolRegistry& reg)` — **必选**,MVP 实现为空(cloud plugin 无 DSL 工具)
+  - `std::shared_ptr<::agenticdsl::ILLMProvider> pdk_create_llm_provider(const PdkProviderConfig* cfg)` — **可选**,返回 `CloudLLMAdapter` 实例 (**注意**: `PdkProviderConfig` 为纯 POD struct,跨 .so ABI 安全,定义见 [PdkProviderConfig 定义](#pdkproviderconfig-定义))
   - `bool pdk_plugin_init()` — **可选**,初始化 httplib 连接池 + API key 缓存
   - `void pdk_plugin_fini()` — **可选**,释放 httplib 资源 + 清 API key 缓存
 
 #### Scenario: PluginInfo 元数据
 
-- **WHEN** 检查 `pdk_plugin_info()` 返回的 `PluginInfo`
+- **WHEN** 检查 `pdk_plugin_info` 数据符号指向的 `PluginInfo`
 - **THEN** MUST 含:
   - `abi_version = 2`(per ADR-0041 §1.5 v2)
   - `name = "pdk_cloud"`
@@ -69,7 +69,7 @@ Cloud plugin MUST 在 `pdk_create_llm_provider()` 内部根据 `config.provider`
 
 ### Requirement: factory-routing-dlopen (REQ-CLP-003)
 
-`LLMProviderFactory::create()` MUST 改为薄路由:cloud provider 字符串委托到 `CloudPluginLoader`(内置 dlopen cache),不再直接 `new CloudLLMAdapter`。
+`LLMProviderFactory::create()` MUST 改为薄路由:cloud provider 字符串委托到 `CloudPluginLoader`(内置 dlopen cache),不再直接 `new CloudLLMAdapter`。`PdkProviderConfig` 为纯 POD struct,跨 .so 边界安全传递配置信息。
 
 #### Scenario: cloud 路由 dlopen
 
@@ -91,6 +91,7 @@ Cloud plugin MUST 在 `pdk_create_llm_provider()` 内部根据 `config.provider`
 - **THEN** MUST 记录 ERROR 日志(`hydraforge_pdk_cloud.so load failed: <reason>`)
 - **AND** MUST 返回 `MockLLMProvider` 实例(兜底,永不返回 nullptr)
 - **AND** MUST NOT throw 异常(保证 caller 永不崩溃)
+- **AND** 首次 dlopen 失败后,MUST 缓存失败状态,后续调用同一 provider MUST NOT 重试 dlopen(避免性能退化);用户修复 .so 后需重启进程 或调用 `CloudPluginLoader::reset()`
 
 ### Requirement: cloud-plugin-lifecycle (REQ-CLP-004)
 
@@ -124,13 +125,13 @@ Cloud plugin MUST 实现 `pdk_plugin_init()` / `pdk_plugin_fini()` lifecycle hoo
 
 ### Requirement: factory-local-remap (REQ-CLP-005)
 
-`LLMProviderFactory::create()` MUST 将 `"local"` / `"llama"` provider 字符串 remap 到新推理 Plugin(`pdk/inference_engine/`),per ADR-0042 §2 修订。
+`LLMProviderFactory::create()` MUST 将 `"local"` / `"llama"` provider 字符串 remap 到 C14 推理 Plugin(`pdk/llama_engine/`,已 ship),per ADR-0042 §2 修订。
 
 #### Scenario: local remap 到推理 Plugin
 
 - **WHEN** 调用 `LLMProviderFactory::create(config)` 且 `config.provider ∈ {"local", "llama"}`
-- **THEN** MUST 调用 `InferencePluginLoader::instance().load_provider(config)`
-- **AND** `InferencePluginLoader` MUST dlopen `libhydraforge_pdk_inference_engine.so`
+- **THEN** MUST 调用 `LlamaEnginePluginLoader::instance().load_provider(config)`
+- **AND** `LlamaEnginePluginLoader` MUST dlopen `libhydraforge_pdk_llama_engine.so`
 - **AND** 调用 `pdk_create_llm_provider` 返回推理 Plugin ILLMProvider 实例
 - **AND** 用户配置 `provider: "local"` 无需改动即可从 LlamaAdapterProvider 迁移到推理 Plugin
 
@@ -169,3 +170,36 @@ Cloud plugin 的 `CloudLLMAdapter::available_models()` MUST 显式 override,返�
 
 - **WHEN** 第三方 cloud ILLMProvider 实现未 override `available_models()`
 - **THEN** MUST 编译失败(纯虚方法未实现,per REQ-ICC-004)
+
+---
+
+## PdkProviderConfig 定义
+
+> **设计约束**: `pdk_create_llm_provider()` 跨越 .so 边界,参数必须为纯 POD struct,避免 `std::string`/`std::optional` 等非平凡类型导致的 ABI 问题。
+
+```cpp
+// include/agenticdsl/plugin/pdk_provider_config.h
+struct LLMConfig;  // 前向声明(在 src/common/llm/llm_types.h)
+
+// 纯 POD,跨 .so ABI 安全
+struct PdkProviderConfig {
+  const char* provider;         // "openai" / "anthropic" / "deepseek" / "qwen" / "moonshot" / "custom"
+  const char* model;            // 模型名 (如 "gpt-4o")
+  const char* api_key;          // API key (可为 nullptr,plugin 自行解析 env)
+  const char* base_url;         // 自定义 endpoint (可为 nullptr,用默认值)
+  const char* api_version;      // API 版本 (可为 nullptr)
+  const char* organization;     // org id (可为 nullptr)
+  uint32_t max_retries;         // 最大重试次数 (默认 3)
+  uint32_t timeout_ms;          // 请求超时(毫秒,默认 30000)
+  float temperature;            // 采样温度 (默认 0.7, -1.0 表示用 provider 默认值)
+  float top_p;                  // nucleus sampling (默认 1.0)
+};
+
+// plugin 侧将 PdkProviderConfig 转换为内部 LLMConfig
+// LLMConfig from_pdk_config(const PdkProviderConfig* cfg);
+```
+
+**生命周期职责**:
+- `pdk_create_llm_provider()` 接收 `const PdkProviderConfig*`，内部深拷贝为 `LLMConfig`
+- caller 负责保证 `PdkProviderConfig` 在调用期间有效
+- plugin 内部 `cloud_adapter.cpp` 通过 `from_pdk_config()` 转换后,原 `PdkProviderConfig` 可安全释放

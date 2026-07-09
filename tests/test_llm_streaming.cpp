@@ -223,6 +223,9 @@ TEST_CASE("MockProvider generate returns text", "[llm_streaming][llm_provider]")
       };
       return std::make_unique<StreamImpl>(req.prompt);
     }
+    std::vector<ModelInfo> available_models() const override {
+      return {ModelInfo("mock-test", {ModelCapability::Chat}, 4096, "test")};
+    }
   };
 
   MockProvider provider;
@@ -257,6 +260,9 @@ TEST_CASE("MockProvider generate_stream returns tokens", "[llm_streaming][llm_pr
           bool is_active() const override { return active; }
       };
       return std::make_unique<StreamImpl>(req.prompt);
+    }
+    std::vector<ModelInfo> available_models() const override {
+      return {ModelInfo("mock-stream-test", {ModelCapability::Chat}, 4096, "test")};
     }
   };
 

@@ -1,5 +1,9 @@
 // src/core/engine.cpp
 #include "engine.h"
+#include "agenticdsl/contract/i_llm_provider_decorator.h"  // Phase 5: ILLMProviderDecorator base
+#include "common/llm/cost_tracking_decorator.h"            // Phase 5: REQ-IPD-002 budget hole fix
+#include "common/llm/compliance_decorator.h"              // Phase 5: REQ-IPD-003 opt-in
+#include "common/llm/rate_limit_decorator.h"              // Phase 5: REQ-IPD-004 opt-in
 #include "common/log/log.h"  // agenticdsl::log facade
 // P2.C (2026-06-24): LLM/budget 头文件均移除
 // engine.h 已通过 common/llm/llm_types.h 提供 LLMConfig 完整类型
@@ -76,9 +80,11 @@ DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
 
     // P1.T1 + P2.C: 通过 factory 创建默认 LLM provider (mock 路径)
     // LLMProviderFactory::create() 保证未知 provider 兜底返回 Mock provider (永不 nullptr)
+    // Phase 5 (REQ-ICC-008 / REQ-IPD-005): 立即用 CostTrackingDecorator 包装, 修 budget hole
     LLMConfig mock_config;
     mock_config.provider = "mock";
-    llm_provider_ = provider_factory_->create(mock_config);
+    auto base_provider = provider_factory_->create(mock_config);
+    llm_provider_ = decorate_provider(std::move(base_provider));
 
 // ADR-0031 (2026-07-31): 默认 Agent 模式执行策略
   policy_ = PolicyFactory::create(PolicyMode::Agent);
@@ -163,6 +169,45 @@ const IBudgetController& DSLEngine::get_budget_controller() const { return *budg
 //           §决策 5 (subscribe 透传 token，不缓存)
 void DSLEngine::set_interaction_bus(std::shared_ptr<IInteractionBus> bus) {
     bus_ = std::move(bus);
+}
+
+// === Phase 5 (REQ-ICC-008 / REQ-IPD-005): decorate_provider 私有 helper ===
+// 按 REQ-IPD-005 默认部署顺序包装 Decorator 链:
+//   CostTrackingDecorator(最外层, 强制) -> Compliance(opt-in) -> RateLimit(opt-in) -> inner
+// 链深度限制由 ILLMProviderDecorator::wrap_chain 强制 ≤ 4 (含 inner)
+std::unique_ptr<ILLMProvider> DSLEngine::decorate_provider(std::unique_ptr<ILLMProvider> base) {
+  if (!base) {
+    return nullptr;  // 防御性编程, factory 保证非 nullptr, 但 wrap_chain 需要非 nullptr
+  }
+  std::vector<std::function<std::unique_ptr<ILLMProvider>(std::unique_ptr<ILLMProvider>)>> factories;
+
+  // 1. CostTrackingDecorator (强制, 最外层) — 修 budget hole
+  std::shared_ptr<IBudgetController> budget = std::shared_ptr<IBudgetController>(
+      budget_controller_.get(), [](IBudgetController*) {});
+  factories.push_back([budget](std::unique_ptr<ILLMProvider> inner) {
+    return std::make_unique<CostTrackingDecorator>(std::move(inner), budget);
+  });
+
+  // 2. ComplianceDecorator (opt-in)
+  if (compliance_enabled_ && bus_) {
+    std::shared_ptr<IInteractionBus> bus = bus_;
+    factories.push_back([bus](std::unique_ptr<ILLMProvider> inner) {
+      return std::make_unique<ComplianceDecorator>(std::move(inner), bus);
+    });
+  }
+
+  // 3. RateLimitDecorator (opt-in)
+  if (rate_limit_enabled_) {
+    int tpm = rate_limit_tokens_per_minute_;
+    factories.push_back([tpm](std::unique_ptr<ILLMProvider> inner) {
+      return std::make_unique<RateLimitDecorator>(std::move(inner), "default", tpm);
+    });
+  }
+
+  if (factories.empty()) {
+    return base;
+  }
+  return ILLMProviderDecorator::wrap_chain(std::move(base), std::move(factories));
 }
 
 std::shared_ptr<IInteractionBus> DSLEngine::get_interaction_bus() const {

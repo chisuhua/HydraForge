@@ -82,8 +82,8 @@ class MockToolRegistry : public ::agenticdsl::IToolRegistry {
 // =====================================================================
 TEST_CASE("PluginInfo POD layout is stable",
           "[plugin_loader][sprint5][plugin_info]") {
-  PluginInfo info;
-  info.abi_version = CURRENT_ABI_VERSION;
+PluginInfo info{};
+info.abi_version = CURRENT_ABI_VERSION;
   info.major_version = 1;
   info.minor_version = 0;
   info.patch_version = 0;

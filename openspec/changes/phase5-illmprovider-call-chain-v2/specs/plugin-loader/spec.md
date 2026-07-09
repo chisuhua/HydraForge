@@ -102,8 +102,7 @@
 #### Scenario: register_tools 参数签名
 
 - **WHEN** PluginLoader 调用 `pdk_register_tools(reg)`
-- **THEN** MUST 传入 `PdkToolRegistry*` 参数(plugin 端通过该参数注册工具)
-- **AND** `PdkToolRegistry` MUST 包装 `IToolRegistry&`(暴露 `register_tool(name, ToolMetadata, ToolFunc)` 方法)
+- **THEN** MUST 传入 `IToolRegistry&` 引用(**保持现有签名 `void (*)(IToolRegistry&)`,与 `pdk/model_router/` / `pdk/llama_engine/` 已有 plugin 一致**)
 - **AND** plugin 注册的工具 MUST 立即可用于 DSL workflow(无需额外步骤)
 
 #### Scenario: 多 plugin 工具命名冲突
@@ -139,3 +138,22 @@ Cloud plugin 作为 first-party plugin MUST 被 `PluginLoader` 通过 `load_all(
 - **THEN** MUST 拒绝加载(strict_version=true)
 - **AND** MUST 记录 ERROR:`abi version mismatch: plugin=2, runtime=3`
 - **AND** MUST 降级到 MockLLMProvider(永不返回 nullptr)
+
+---
+
+### Requirement: plugin-loader-dedup (REQ-PL-IPD-006)
+
+Cloud PluginLoader 与 DSLEngine::plugin_loader_ MUST 共享同一 dlopen handle,避免重复加载 .so 导致全局状态损坏。
+
+#### Scenario: dlopen 句柄共享
+
+- **WHEN** DSLEngine 构造时同时需要 cloud plugin (通过 CloudPluginLoader)和 llama_engine plugin (通过 LlamaEnginePluginLoader)
+- **THEN** `PluginLoader::load_so()` MUST 检查 `loaded_` 列表,若 .so 已由 DSLEngine::plugin_loader_ 加载,MUST 复用句柄而非重新 dlopen
+- **AND** `pdk_plugin_init()` MUST NOT 被重复调用(已调用则跳过)
+- **AND** `pdk_create_llm_provider` 可通过任意 PluginLoader 引用调用
+
+#### Scenario: 非 PluginLoader 的独立 factory loader
+
+- **WHEN** `CloudPluginLoader::instance()` 是独立单例(非 PluginLoader 子类)
+- **THEN** MUST 实现与 DSLEngine PluginLoader 兼容的句柄共享机制(通过全局 `loaded_handles_` map keyed by .so path)
+- **AND** dlopen 后 MUST 缓存 handle 到全局 map,PluginLoader::load_so 先查全局 map 再 dlopen

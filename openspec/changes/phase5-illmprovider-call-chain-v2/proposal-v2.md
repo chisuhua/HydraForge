@@ -160,6 +160,7 @@ C14 独立实施（不与 C16 重叠）:
 | Plugin | `src/common/llm/cost_tracking_decorator.{h,cpp}` | 新建 |
 | Plugin | `src/common/llm/compliance_decorator.{h,cpp}` | 新建 |
 | Plugin | `src/common/llm/rate_limit_decorator.{h,cpp}` | 新建 |
+| Plugin | `include/agenticdsl/plugin/pdk_provider_config.h` | 新建 PdkProviderConfig 纯 POD struct(跨 .so ABI 安全) |
 | Plugin | `include/agenticdsl/pdk/llm_provider_decorator.h` | 新建 PDK helper |
 | Plugin | `include/agenticdsl/pdk/router_decorator.h` | 新建 PDK helper |
 | Adapter | `src/common/llm/cloud_adapter.{h,cpp}` | 移至 `pdk/cloud/src/` 作为 first-party plugin 实现 |
@@ -214,14 +215,14 @@ C14 独立实施（不与 C16 重叠）:
 
 | 阶段 | v1 估时 | v2 估时 | 原因 |
 |:----:|:-------:|:-------:|------|
-| 阶段 1 (Decorator + budget hole) | 1-2d | 1.5-2d | streaming 精度测试 + 装饰器深度限制 |
-| 阶段 2 (Dual Consumer Model) | 1-2d | 1-2d | 不变 |
-| 阶段 3 (Cloud Plugin 化) | 2-3d | 2-3d | 不变 |
-| 阶段 4 (ADR + available_models) | 0.5-1d | 0.5-1d | 不变 |
-| 阶段 5 (deprecate 标注) | 0.5d | 0.5d | 不变 |
-| **总计** | **3.5-4d** | **5-6d** | 低估了 D5 BREAKING 验证 + streaming 精度测试 + 集成测试 |
+| 阶段 1 (Decorator + budget hole) | 1-2d | 2-3d | streaming 精度测试 + 装饰器深度限制 + set_llm_provider 重新包装 |
+| 阶段 2 (Dual Consumer Model) | 1-2d | 2-3d | 新建 OrchestrationILLMProvider 类 + 移除 internal_registry_ |
+| 阶段 3 (Cloud Plugin 化) | 2-3d | 3-5d | Anthropic 真实协议实现 + SSE + CloudPluginLoader + factory 重构 |
+| 阶段 4 (ADR + available_models) | 0.5-1d | 2-3d | 全代码库 ILLMProvider 子类扫描 + 编译失败兜底 + Router 静默失败防护 |
+| 阶段 5 (deprecate 标注) | 0.5d | 0.5-1d | 不变 |
+| **总计** | **3.5-4d** | **9-13d** | 低估了 Anthropic 协议实施(2-3d)、available_models 全代码库修复(1-2d)、PluginLoader 扩展(1-2d) |
 
-> **v2 修正说明**: v1 估时 3.5-4d 低估。实际工作含 D5 BREAKING 验证(所有实现 override + 编译失败兜底 + Router 静默失败测试)、streaming token 计数精度测试(零误差断言)、多测试文件创建(~30 test cases)等。v2 修正为 5-6d。
+> **v2 修正说明**: v1 估时 3.5-4d 低估。v2 修正为 9-13d,经 Metis 审查(2026-07-09)确认:Anthropic 协议实现(2-3d)、available_models 全代码库子类扫描+修复(1-2d)、PluginLoader 扩展+lifecycle+拓扑排序(1-2d)、集成回归(1-2d)均被低估。PdkProviderConfig 纯 POD 定义额外增加跨 .so ABI 工作。
 
 ### 关联 ADR / OpenSpec Changes
 - **依赖**: ADR-0035(推理 plugin 规范)、ADR-0045(编排 plugin 规范)、ADR-0042(ILLMProvider 演进)、ADR-0041(PluginLoader 生命周期)
