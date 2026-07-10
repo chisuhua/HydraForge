@@ -1,5 +1,7 @@
 # Phase 1 实施路线图：智能体层
 
+> ✅ **Phase 1 已收官 (2026-06-24, Sprint 5 ship, 100%)** — 本文档为历史归档路线图，已 ship 的 Sprint 0-5 详情请见 `AGENTS.md` Recent Changes 与 `docs/active-status.md` 第五章。后续 Phase 2-5 进度见 [`active-status.md`](./active-status.md)。
+
 > **基于**: `.omo/decisions/phase1-entry.md` (Phase 1 入口决策)
 > **关联**: `docs/implementation-roadmap.md` §Phase 1
 > **时间窗口**: 2026-06-16 ~ 2026-07-15 (4 周 + Sprint 0 1 天)

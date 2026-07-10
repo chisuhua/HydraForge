@@ -14,7 +14,7 @@
 | **Total ctest** | **72/72 ✅** PASS (baseline 25 + Sprint 1~20 累计 47 新增) |
 | **ASan** | 72/72 (100%) — `test_execute_parallel` use-after-scope 已修复 |
 | **TSan** | 超时跳过 (机器性能受限, pre-existing data race 已修复) |
-| **OpenSpec active** | **1** (C16 🔨 编码中; C13/C14/C15/C16(§1-4,6-10) ✅ shipped) |
+| **OpenSpec active** | **0** (C10-C16 全部 ✅ shipped + archived, 仅 C16 §5 Cloud plugin 顺延至独立 change) |
 | **Completed Phase 0-4** | ✅ 100% |
 | **Phase 5** | 🟡 实施中 (C10/C11/C12/C13/C14/C15/C16(§1-4,6-10) shipped → C16 §5 Cloud plugin 顺延)
 
@@ -22,12 +22,18 @@
 
 ## 二、活跃变更一览
 
-| ID | 名称 | 阶段 | 状态 | 阻塞于 | 最后更新 |
-|----|------|------|:----:|--------|:--------:|
-| **C13** | B2 架构层 Schema (`phase5-b2-arch-schemas`) | ✅ Done | **✅ shipped 2026-07-07** | — | 2026-07-07 |
-| **C14** | Llama Engine Plugin (`phase5-llama-engine-plugin`) | 📋 Proposal ✅ | **🔒 阻塞** | TSan gate + D5 默认注入决策 | 2026-07-07 |
-| **C15** | Batching Queue Plugin (`phase5-batching-queue-plugin`) | ✅ Done | **✅ shipped 2026-07-07 (D2 精简版)** | — | 2026-07-07 |
-| **C16** | ILLMProvider Call Chain V2 (`phase5-illmprovider-call-chain-v2`) | 🔍 分析 | **🔒 阻塞** | ADR-0035/42/45 审批 + v2 提案 ready | 2026-07-07 |
+> ✅ **0 个活跃变更** — Phase 5 全部 8 个 OpenSpec changes (C9-C16) 已于 2026-07-03 ~ 2026-07-09 ship + archived。下表为最近归档的 Phase 5 变更状态汇总，**仅作历史参考**。
+
+| ID | 名称 | 阶段 | 状态 | 最后更新 |
+|----|------|------|:----:|:--------:|
+| **C9** | Phase 4.5 Impl-Scope Audit (`2026-07-03-phase4-5-impl-scope-audit`) | ✅ Done | **✅ shipped + archived 2026-07-03** | 2026-07-03 |
+| **C10** | Phase 5 Step 0 Lazy ModuleState (`2026-07-03-phase5-stage1-step0-lazy-modulestate`) | ✅ Done | **✅ shipped + archived 2026-07-03** | 2026-07-03 |
+| **C11** | Phase 5 Step 1 Session Registry (`2026-07-04-phase5-stage1-step1-session-registry`) | ✅ Done | **✅ shipped + archived 2026-07-04** | 2026-07-04 |
+| **C12** | Phase 5 Step 2 Yield Stream (`2026-07-04-phase5-stage1-step2-yield-stream`) | ✅ Done | **✅ shipped + archived 2026-07-04** | 2026-07-04 |
+| **C13** | B2 架构层 Schema (`phase5-b2-arch-schemas`) | ✅ Done | **✅ shipped + archived 2026-07-07** | 2026-07-07 |
+| **C14** | Llama Engine Plugin (`phase5-llama-engine-plugin`) | ✅ Done | **✅ shipped + archived 2026-07-08** | 2026-07-08 |
+| **C15** | Batching Queue Plugin (`phase5-batching-queue-plugin`) | ✅ Done | **✅ shipped + archived 2026-07-07 (D2 精简版)** | 2026-07-07 |
+| **C16** | ILLMProvider Call Chain V2 (`phase5-illmprovider-call-chain-v2`) | ✅ Done | **✅ shipped + archived 2026-07-09 (§5 顺延)** | 2026-07-09 |
 
 ### 状态图例
 
@@ -111,11 +117,11 @@
 
 ---
 
-## 四、阻塞项
+## 四、顺延项（无启动触发条件）
 
-| 阻塞项 | 影响 | 预计解决时间 | 处理方式 |
-|--------|------|:-----------:|---------|
-| 🔴 C16 §5 Cloud plugin 顺延 | 持续关注 | 待定 | 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` |
+| 顺延项 | 影响 | 启动条件 | 处理方式 |
+|--------|------|:--------:|---------|
+| ➡️ C16 §5 Cloud plugin 顺延 | 持续关注 | 外部触发 (CloudLLMProvider 实施需求) | 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` 跟踪 |
 
 ---
 

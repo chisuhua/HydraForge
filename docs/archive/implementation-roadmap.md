@@ -77,7 +77,7 @@ Phase 5 — 自举与服务化 (远期)
 |------|------|------|
 | **8 个核心模块** (parser/scheduler/executor/context/budget/trace/library/system) | ✅ 已实现 | ~4,532 行 |
 | **Common 组件** (llm/tools/utils) | ✅ 已实现 | 含 HttpAdapter + LlamaAdapter |
-| **ADR-0019~0036 新增组件** (contract/worker/plugin/async/event/cost/sandbox/pdk/cognitive) | 🟢 大部分实现 | ADR-0019 ✅ / ADR-0020 ✅ (Sprint 3 ship) / ADR-0021 🟡 (Sprint 4 ship) / ADR-0022 ✅ (Sprint 5 ship) / ADR-0023 ✅ / ADR-0030 🔍 V2 Proposed / ADR-0031 🟡 / ADR-0032 ✅ Approved (2026-06-30 C9 ship, 4 核心类已 ship; BudgetController 集成 defer) / ADR-0033 ✅ Approved (Sprint 15 C5, 2026-07-02) / ADR-0034 ✅ Approved (C7 ship, 2026-07-02) |
+| **ADR-0019~0036 新增组件** (contract/worker/plugin/async/event/cost/sandbox/pdk/cognitive) | 🟢 大部分实现 | ADR-0019 ✅ / ADR-0020 ✅ (Sprint 3 ship) / ADR-0021 🟡 (Sprint 4 ship) / ADR-0022 ✅ (Sprint 5 ship) / ADR-0023 ✅ / ADR-0030 🔍 V2 Proposed / ADR-0031 🟡 / ADR-0032 ✅ Approved (2026-06-30 状态提升; C9 docs audit 二次确认 2026-07-03, 4 核心类已 ship 2026-06-14; BudgetController 集成 defer) / ADR-0033 ✅ Approved (Sprint 15 C5, 2026-07-02) / ADR-0034 ✅ Approved (C7 ship, 2026-07-02) |
 | **外部依赖** (Taskflow / async_simple) | ✅ 已引入 (Slice 00, 2026-06-07) | Taskflow v4.0 header-only + async_simple v1.4；V2 决策移除 async_simple 协程层依赖 |
 | **测试** | ✅ 全部通过 | 27/27 全部通过 (2026-06-17 验证, 含 Sprint 1a/1b 新增) |
 
@@ -534,10 +534,10 @@ Eric 审查指出的问题——`call_tool_with_policy()` 之前在 Roadmap 中�
 | 11.2 | `src/common/tools/registry.h` | 修改 | [ ] | `register_tool(ToolMetadata, func)` 新 API |
 | 11.3 | `src/common/tools/registry.cpp` | 修改 | [ ] | 保留旧 API 兼容 |
 
-### ADR-0032 — CostCollector (✅ Approved, 2026-06-30 C9 ship)
+### ADR-0032 — CostCollector (✅ Approved, 2026-06-30 状态提升；C9 docs audit 二次确认)
 
-> **状态 (2026-07-06 同步)**: ✅ Approved — 2026-06-30 经 C9 `phase4-5-impl-scope-audit` ship 后状态修正 (原 archive/adr/adr-0032 已标 ✅). 4 核心类 (`CostTracker` + `CostRecord` + `CostStats` + 全局累加) 已 ship (commit `451e395`, 2026-06-14); `BudgetController::CostTracker` 集成延后至 C6 (ADR-0004 V2 + IBudgetController) 已 ship.
-> **状态变更**: ❌ Not Implemented (2026-06-12 归档) → 🟡 Partial (2026-06-26, `doc-alignment-adr-states`) → ✅ Approved (2026-06-30, C9).
+> **状态 (2026-07-06 同步)**: ✅ Approved — 2026-06-30 状态提升 (原 archive/adr/adr-0032 已标 ✅), 2026-07-03 经 C9 `phase4-5-impl-scope-audit` docs audit 二次确认. 4 核心类 (`CostTracker` + `CostRecord` + `CostStats` + 全局累加) 已 ship (commit `451e395`, 2026-06-14); `BudgetController::CostTracker` 集成延后至 C6 (ADR-0004 V2 + IBudgetController) 已 ship. 注: ADR-0032 实施 ship 时间 (2026-06-14) 早于 C9 ship 时间 (2026-07-03), C9 为 docs-only audit 不涉及代码改动。
+> **状态变更**: ❌ Not Implemented (2026-06-12 归档) → 🟡 Partial (2026-06-26, `doc-alignment-adr-states`) → ✅ Approved (2026-06-30 状态提升, 2026-07-03 C9 docs audit 二次确认).
 > **ADR 文件**: 原 `docs/archive/adr/adr-0032-cost-collector.md` (V1 归档保留); 当前活跃 ADR 引用见 `docs/adr/README.md` §"audit 补充" 行. 后续若需重新启用可 `git mv` archive ADR 至 `docs/adr/`.
 
 | # | 文件 | 操作 | 状态 | 说明 |

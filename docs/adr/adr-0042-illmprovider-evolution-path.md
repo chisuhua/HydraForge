@@ -1,5 +1,14 @@
 # ADR-0042: ILLMProvider 演进路径
 
+> **C16 增量决议 (2026-07-09, ILLMProvider v2 ship, OpenSpec change `phase5-illmprovider-call-chain-v2`)**: 本 ADR 提出的演进路径中以下 5 项已在 C16 实施：
+> - **Decorator 链** — `ILLMProviderDecorator` 基类 + `CostTrackingDecorator` (修复 P0 budget hole) + `ComplianceDecorator` (hash-only) + `RateLimitDecorator` (token-bucket)
+> - **Dual Consumer Model** — `OrchestrationILLMProvider` 直连 `inference_provider_->generate()`, 与 reactive consumer 并行
+> - **`available_models()` pure virtual** — `=0`, 5 个子类 override (`LlamaAdapterProvider` / `MockLLMProvider` / 3 个装饰器派生)
+> - **PluginLoader V2** — 5 符号查找 + lifecycle + ABI v2 (`CURRENT_ABI_VERSION` 1→2)
+> - **LlamaAdapter 弃用** — `LlamaAdapter` + `LlamaAdapterProvider` 加 `[[deprecated]]` 标注
+>
+> ADR 整体状态仍保持 🔍 Proposed（C16 仅实施部分决策，C17+ 演进路径需独立 change 跟踪）。
+
 ## 状态
 
 🔍 Proposed (2026-07-06 — 架构方案讨论产出, 待 review); **2026-07-06 renumber**: 兄弟 ADR-0036 → ADR-0045 (编排 plugin), ADR-0037 → ADR-0046 (通信协议), 避免与旧 ADR-0036-三层服务协议 / ADR-0037-因果序冲突

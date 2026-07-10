@@ -15,17 +15,17 @@
 
 | 维度 | 状态 | 证据 |
 |------|------|------|
-| OpenSpec active change 数 | **4** (C13/C14/C15/C16, B2 推理标准库扩展 + ILLMProvider v2) | `ls openspec/changes/` = 4 active: `phase5-b2-arch-schemas` (C13) / `phase5-llama-engine-plugin` (C14) / `phase5-batching-queue-plugin` (C15) / `phase5-illmprovider-call-chain-v2` (C16) |
-| Test count | **65/65 PASS** | baseline 25 + Sprint 1a/1b/2/3/4/5/6/10/15/16/17/19/20/21(C14) 累计 40 新增 |
-| ASan | **61/61 (100%)** | Sprint 10 验证 + Sprint 17 Phase 1+2 后复验 |
-| TSan | **61/61 (100%)** | Sprint 10 修复验证 (P1 jthread + P2 atomic flag) |
+| OpenSpec active change 数 | **0** (Phase 5 全部 8 个 change C9-C16 已 ship + archived; 仅 C16 §5 Cloud plugin 顺延至独立 change) | `ls openspec/changes/` = 仅含 `archive/` 子目录, 48 个归档目录 |
+| Test count | **72/72 PASS** | baseline 25 + Sprint 1a/1b/2/3/4/5/6/10/15/16/17/19/20/21 累计 47 新增 (含 C14 test_llama_engine_plugin + C16 test_orchestration_dual_consumer) |
+| ASan | **72/72 (100%)** | Sprint 17 Phase 1+2 后复验 + Sprint 21 C16 后 `test_execute_parallel` use-after-scope 修复 |
+| TSan | **72/72 (100%)** | Sprint 10 修复验证 (P1 jthread + P2 atomic flag) + Sprint 21 复验 |
 | Phase 0 MVP | ✅ 100% | 2026-06-14 ship |
 | Phase 1 智能体层 | ✅ 100% | 2026-06-24 Sprint 5 ship (5 ADR Approved) |
 | Phase 2 异步运行时 | 🟡 Partial | 2026-07-31 C2 ship 实施 (ADR-0030 V2 文件状态行仍 🔍 Proposed 未同步;§决策 2 P1-P4 实际状态由 ADR 文件 §最后更新 2026-06-26 反映) |
 | Phase 3 执行策略+安全 | ✅ 100% | 2026-07-02 C5+C6 ship + archive |
 | Phase 4 模型路由 | ✅ 100% | 2026-07-02 C7 fully shipped |
 | Phase 4.5 MVP清理 | ✅ 100% | 2026-07-03 C8 ship (SimpleCognitiveOrchestrator @internal + examples/ 目录梳理) |
-| **Phase 5 自举服务化** | **40% (C13/C14/C15 ship, C16 active)** | **C9 audit ✅ + C10/C11/C12 ship + C13/C14/C15 ship (4 项 Adversarial Review 决策 D1-D4 应用, 详见 §5.5 + §十一.2 2026-07-07/2026-07-08 行)** |
+| **Phase 5 自举服务化** | **~70% (C9-C16 全部 ship, 仅 C16 §5 Cloud plugin 顺延至独立 change)** | **C9 audit ✅ + C10/C11/C12 ship + C13/C14/C15 ship + C16 ILLMProvider v2 ship (4 项 Adversarial Review 决策 D1-D4 应用 + 5 项 C16 v2 决议, 详见 §5.5 + §十一.2 2026-07-07/2026-07-08 行 + §C16 增量注记)** |
 
 **C9 audit 关键结论** (详见 `openspec/changes/2026-07-03-phase4-5-impl-scope-audit/proposal.md`):
 - 11 个 ADR 全部需要 impl-scope audit (类声明 vs 实际代码 grep 比对)
@@ -98,14 +98,14 @@
 
 | # | Change 名 | 类型 | 估时 | 依赖 | 状态 |
 |---|-----------|------|------|------|------|
-| **C9** | `2026-07-03-phase4-5-impl-scope-audit` | 审计 | 1 周 | C8 ✅ archived (2026-07-03) | 🟡 **in progress** (Agent 1 工作, 11 个 ADR impl-scope.md 编写) |
-| **C10** | `2026-07-XX-phase5-stage1-step0-lazy-modulestate` | 实施 | 1-2 天 | C9 ✅ ship | ⚪ **placeholder, 待 C9 完成后启动** |
+| **C9** | `2026-07-03-phase4-5-impl-scope-audit` | 审计 | 1 周 | C8 ✅ archived (2026-07-03) | ✅ **shipped + archived (2026-07-03)** — 11 个 ADR impl-scope.md 完成 (Shipped/Evolved/Deferred 分类), AGENTS.md Recent Changes + ADR 状态校准同步, 54/54 ctest 零回归 |
+| **C10** | `2026-07-03-phase5-stage1-step0-lazy-modulestate` | 实施 | 1-2 天 | C9 ✅ ship | ✅ **shipped + archived (2026-07-03)** — 65/65 ctest 零回归, lazy ModuleState 实施 + Session 持久化基础 |
 | **C11** | `2026-07-XX-phase5-stage1-step1-session-registry` | 实施 | 2-3 天 | C9 ✅ ship (+ 建议 C10 ship 后启动) | ✅ **shipped (2026-07-04)** — 63/63 ctest 零回归, 4 个有意延后项 (4.6/5.4/5.6a/5.9) 记录至 C12/C14 |
 | **C12** | `2026-07-03-phase5-stage1-step2-yield-stream` | 实施 | **5-6 天** (Oracle 审查后 +2.7d for 5 risk mitigations + example + 异常类型) | C10 ✅ ship + C11 ✅ ship (YIELD 需要 module_state 持久化 + Session 标识) | ✅ **shipped (2026-07-04)** — 64/64 ctest 零回归 (63 baseline + test_yield_node 9 case), 5 commits ahead origin/main, 全部 Oracle Q1-Q4 + 5 风险 mitigations ship (TopoScheduler state machine + DAG state 持久化 + IGenerationStream bridge + BudgetChecker 真实注入 + cross-thread yield_mutex_). 估时实际 1 天 (基础 ship + Sprint 20 验证), 与估算差异: 实施部分受益于 C10/C11 ship-ready 状态 + Oracle Q1-Q4 锁定决策, 验证章节 ASan/TSan 首次 build 超时 deferred CI. |
-| **C13** | `phase5-b2-arch-schemas` | 实施 (架构层 schema) | 0.5-1 天 | C12 ✅ ship | 🟡 **ACTIVE** (按 D1 删除 SamplerStrategy, D3 统一 inference.*) |
+| **C13** | `phase5-b2-arch-schemas` | 实施 (架构层 schema) | 0.5-1 天 | C12 ✅ ship | ✅ **shipped + archived (2026-07-07)** — 4 个 `lib/inference/{prefix_cache,kv_cache,decoding,cloud_engine}.md` schema 落地 + D1 SamplerStrategy 删除 + D3 命名统一 + handoff/master plan 同步 |
 | **C14** | `phase5-llama-engine-plugin` | 实施 (PDK engine plugin) | 1-1.5 天 | C12 ✅ ship + C13 ✅ ship + TSan gate | ✅ **shipped (2026-07-08)** — 65/65 ctest 零回归 (64 baseline + test_llama_engine_plugin 10 case, 16 assertions). 12 工具注册 (4 engine + 4 model + 4 arch), D1 SamplerStrategy 删除, D3 工具命名统一 inference.*, D5 显式 load_plugin() API. 关键文件: pdk/llama_engine/src/{llama_engine_entry,llama_engine,llama_model,inference_arch}.cpp + tests/test_llama_engine_plugin.cpp. |
-| **C15** | `phase5-batching-queue-plugin` | 实施 (schema-only) | ~2h | 无 (精简后独立) | 🟡 **ACTIVE** (按 D2 推迟 BatchingQueue 接口) |
-| **C16** | `phase5-illmprovider-call-chain-v2` | 实施 (ILLMProvider 调用链) | 3.5-4 天 | C14 ✅ + ADR-0035/0042/0045 🔍 | 🟡 **ACTIVE** (待 ADR 状态变更后启动编码) |
+| **C15** | `phase5-batching-queue-plugin` | 实施 (schema-only) | ~2h | 无 (精简后独立) | ✅ **shipped + archived (2026-07-07, D2 精简版)** — `lib/inference/batching.md` PLACEHOLDER 落地 (~40 行) + BatchingQueue 接口推迟至第二个推理后端出现时 |
+| **C16** | `phase5-illmprovider-call-chain-v2` | 实施 (ILLMProvider 调用链) | 3.5-4 天 | C14 ✅ + ADR-0035/0042/0045 🔍 | ✅ **shipped + archived (2026-07-09, §5 顺延)** — 72/72 ctest 零回归, ASan 72/72, ILLMProvider v2 全栈: Decorator chain (CostTracking/Compliance/RateLimit) + Dual Consumer Model + available_models() pure virtual + PluginLoader V2 + LlamaAdapter `[[deprecated]]`; §5 Cloud plugin 顺延至独立 change `phase5-illmprovider-call-chain-v3` |
 
 **注**: C9 是 audit change, 不属于 Phase 5 实施主体。Phase 5 实际执行链路为 C10 → C11 → C12 → (C13/C14/C15 B2 推理标准库扩展 active) → (C16 ILLMProvider v2 待 ADR) → (C19 fork-checkpoint 远期) → (C20 analysis-service 远期), 详细 proposal/design/spec/tasks 在前置依赖完成后填充。C13/C14 编号在 B2 阶段被重定义占用 (原 fork-checkpoint / analysis-service 顺延至 C19/C20, 详见 §5.5)。
 

@@ -110,6 +110,8 @@
 | Phase 4.5 → Phase 5 过渡 | 100% ██████████ | ✅ **已完成 (2026-07-03, C9 ship)** — 11 ADR impl-scope audit 完成，ADR 状态校准并同步文档 | 2-3 天 | Phase 4.5 |
 | Phase 5 自举服务化 | 0% ░░░░░░░░░░ | ⏸ 远期 | — | Phase 5 |
 
+> ⚠️ **已归档快照 (2026-07-07)** — 本文件反映 2026-07-07 状态快照。Phase 5 实际进度 ~70%（C10-C16 全部 ship + archived, 仅 C16 §5 Cloud plugin 顺延）。最新真相源见 [`../active-status.md`](../active-status.md)；master plan 见 [`../../superpowers/plans/2026-07-03-phase5-self-bootstrapping.md`](../../superpowers/plans/2026-07-03-phase5-self-bootstrapping.md)。Phase 5 全部 OpenSpec changes 归档至 `openspec/changes/archive/`（`2026-07-03-...-phase5-stage1-step0-lazy-modulestate` 至 `2026-07-09-...-phase5-illmprovider-call-chain-v2`）。
+
 ---
 
 ## 二、当前 Sprint（本周）

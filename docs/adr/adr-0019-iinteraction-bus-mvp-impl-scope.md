@@ -69,3 +69,7 @@ ADR-0019 的 `Session` 概念演进为 ADR-0033 三层会话模型 (`UserSession
 - Phase 5 TUI Chat 启动时, 实施 `TUI` + `Role` + `Token` 流式显示
 - `SessionData` 随 ADR-0033 会话模型演进
 - 本 audit 文档供 Phase 5 backlog 参考
+
+---
+
+> **注**: 本 impl-scope audit 反映 **Phase 4.5 (2026-07-03) 快照状态** ✅ Approved，主 ADR 文档 [`adr-0019-iinteraction-bus-mvp.md`](./adr-0019-iinteraction-bus-mvp.md) 当前状态 **🟡 Partial** (2026-07-06 更新)，新增待办 `subscribe_topic` 扩展尚未实施。两状态差异属**有意识时点差异**：本 audit 反映 Phase 4.5 收官时的实施范围（5 Shipped + 4 Evolved + 4 Deferred），主文档反映 2026-07-06 之后的最新需求增量。读者应同时参考两文档以获取完整实施状态。
