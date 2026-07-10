@@ -554,17 +554,25 @@ C19 启动前必须满足:
 
 ### 7.5 推理标准库 7 子图补齐 (并行车道, 1 周)
 
-**待创建** (C10-C12 实施期间完成大部分, C19/C20 阶段补齐):
-- prefix_cache.md / kv_cache.md / decoding.md (C13 20min 并行)
-- batching.md (C15 2h schema only)
+**已 ship** (C13/C14/C15 完整 ship, 2026-07-08~2026-07-09):
+- [x] engine.md (C14, commit `1cf27b0`)
+- [x] model.md (C14, commit `1cf27b0`)
+- [x] session.md (C14)
+- [x] prefix_cache.md (C13, commit `3308980` + Change B SLASH `641b036`)
+- [x] kv_cache.md (C13, commit `3308980` + Change B SLASH `641b036`)
+- [x] decoding.md (C13, commit `3308980` + Change B SLASH `641b036`)
+- [x] cloud_engine.md (C13, commit `3308980` + Change B SLASH `641b036`) — 含 batching schema 合并
+- [x] batching.md (C15, commit `3308980`)
 
-**验证**: 7/7 子图通过 ctest, 推理标准库覆盖率 100%
+**验证**: 7/7 子图通过 ctest ✅ (65/65 PASS, 含 test_llama_engine_plugin 10 cases), 推理标准库覆盖率 100%
+
+**变更依据**: `openspec/changes/phase5-b2-arch-schemas/` (C13) + `phase5-llama-engine-plugin/` (C14) + `phase5-batching-queue-plugin/` (C15) + `fix-adr-naming-policy-2026-07-08/` (Change B SLASH 统一)
 
 ### 7.6 触发条件检查清单
 
 C20 启动前必须满足:
 - [ ] C10+C11+C12 全链 ship + 1 个月稳定运行
-- [ ] 推理标准库 7/7 子图全部 ship
+- [x] 推理标准库 7/7 子图全部 ship (2026-07-09, 见 §7.5)
 - [ ] C19 决定是否实施 (性能/运维需求)
 - [ ] Oracle 验证自进化可行性 (避免"AI 写的代码 AI 看不懂"陷阱)
 - [ ] 团队有 4-6 周时间投入
@@ -577,7 +585,7 @@ C20 启动前必须满足:
 
 - [ ] 1 个推理 Session 可完整创建/配置/运行/销毁
 - [ ] 多 Session 之间状态完全隔离 (2 Session E2E 测试通过)
-- [ ] 推理标准库 7/7 子图全部 ship (engine/model/session + prefix_cache/kv_cache/decoding/batching)
+- [x] 推理标准库 7/7 子图全部 ship (engine/model/session + prefix_cache/kv_cache/decoding/batching) (2026-07-09, 见 §7.5)
 - [ ] YIELD 节点 token-by-token 生成器工作正常 (N 次调用返回 N 个 token)
 - [ ] yield 之间 module_state 保持 (C10 基础)
 - [ ] Session 工具 4 个注册成功 (create/destroy/set_var/get_var)

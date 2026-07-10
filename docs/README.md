@@ -70,7 +70,7 @@ docs/
 | `STATUS-GLOSSARY.md` | ADR 状态词汇表 | 6 个标准标签定义 + 维护规则 |
 | `relationships.md` | ADR 关联性分析 | 由 `tools/adr_relationships.py` 自动生成 |
 
-> ADR 编号 0024-0028 为未来 Phase-4 / Phase-6 规划保留；占位文件 0029/0035 已删除（2026-06-12）；12 个已废弃 ADR 已归档到 [docs/archive/adr/](archive/adr/README.md)（ADR-0034 已迁出归档至 plugin 候选区）。
+> ADR 编号 0024-0028 为未来 Phase-4 / Phase-6 规划保留；占位文件 0029/0035 已删除（2026-06-12）；13 个已废弃 ADR 已归档到 [docs/archive/adr/](archive/adr/README.md)（ADR-0034 已迁出归档至 plugin 候选区）。
 
 ---
 

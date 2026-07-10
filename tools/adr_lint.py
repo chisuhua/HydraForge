@@ -28,6 +28,7 @@ VALID_STATUSES = {
     "superseded",          # ⛔ Superseded
     "proposed",            # 🔍 Proposed
     "reserved",            # 📋 Reserved
+    "audit",               # 📋 Audit (impl-scope-audit 文档专用)
 }
 
 # ADR 子目录列表（与 docs/adr/ 根目录同级，存放同一编号空间的子集）
@@ -64,10 +65,10 @@ DEPRECATED_STATUS_WORDS = [
 ADR_PATTERN = re.compile(r"^adr-(\d{4})-.*\.md$")
 
 # 状态行识别模式：匹配加粗+emoji+英文 形式
-# 例: **✅ Approved**、**🟡 Partial (2026-06-08)**
+# 例: **✅ Approved**、**🟡 Partial (2026-06-08)**、**📋 Audit**
 STATUS_PATTERN = re.compile(
     r"\*{0,2}\s*"
-    r"(?:✅\s*Approved|🟡\s*Partial|❌\s*Not\s*Implemented|⛔\s*Superseded|🔍\s*Proposed|📋\s*Reserved)"
+    r"(?:✅\s*Approved|🟡\s*Partial|❌\s*Not\s*Implemented|⛔\s*Superseded|🔍\s*Proposed|📋\s*Reserved|📋\s*Audit)"
     r"\s*\*{0,2}",
     re.IGNORECASE,
 )
@@ -188,9 +189,9 @@ def lint_adr_file(path: Path, all_adr_numbers: set[str]) -> list[str]:
                 break
         if not status_found:
             errors.append(
-                f"{rel}: '## 状态' 章节必须使用 6 个标准标签之一 "
+                f"{rel}: '## 状态' 章节必须使用 7 个标准标签之一 "
                 f"（✅ Approved / 🟡 Partial / ❌ Not Implemented / "
-                f"⛔ Superseded / 🔍 Proposed / 📋 Reserved）"
+                f"⛔ Superseded / 🔍 Proposed / 📋 Reserved / 📋 Audit）"
             )
 
     # 3. 废弃状态词检查：仅在 `## 状态` 章节内、且本应是状态行的位置检查

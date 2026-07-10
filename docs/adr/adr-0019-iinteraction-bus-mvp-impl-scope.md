@@ -7,6 +7,8 @@
 
 ## 状态
 
+**📋 Audit** (impl-scope-audit 文档, 与 docs-code-drift-audit 配套使用)
+
 ✅ Approved (audit 后保持 — 所有 11 个 ADR 核心契约类均已 Shipped 或 Evolved, 无需调整主 ADR 状态)
 
 ## Drift 摘要

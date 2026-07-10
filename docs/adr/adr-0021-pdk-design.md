@@ -6,6 +6,8 @@
 
 > **Sprint 4 增量 (2026-06-19, OpenSpec change `2026-07-07-pdk-skeleton`)**：PDK 头文件落地（`include/agenticdsl/pdk/{tool_macros,agent_macros,safe_exec,pdk}.h`）+ monorepo `pdk/` 子目录 + INTERFACE 库 (`hydraforge_pdk`)。5 个新测试 + 31 基线 = 32/32 ctest pass, P3 静态链接验证 (PDK 头文件仅依赖 Runtime 契约接口 `agenticdsl/contract/*.h`)。Phase 2/3 后续: PlanExecute/ForkJoin 完整循环 + FakeStateStore/StubLLM/MockSandbox 测试替身 + PluginLifecycle + 完整 SafeExec (fork/cgroups/seccomp) + `hydraforge-pdk` 独立仓库发布。Sprint 5 后续: PluginLoader 通过 PDK 编译的 `.so` 加载 (T4b 异步, Sprint 5 收官变 ✅ Approved)。
 
+> **2026-07-08 update**: §8 SamplerStrategy 接口被 `docs/adversarial-reviews/decisions-2026-07-07.md` D1 决策撤销 (B2 实施前对齐)。采样器 clamp 逻辑内联到 llama_engine plugin 的 `inference/decoding/configure` 工具, 不再抽取独立 PDK 接口 (1 虚接口仅 1 个实现, `supports()` 永远 true)。变更依据: `openspec/changes/fix-adr-doc-alignment-p2-cleanup-2026-07-08/`。
+
 ## 背景
 
 ### 问题
