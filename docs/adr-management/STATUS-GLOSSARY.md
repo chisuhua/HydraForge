@@ -9,13 +9,15 @@
 
 | 标签 | 英文 | 语义 | 使用场景 |
 |------|------|------|----------|
-| ✅ Approved | Approved | ADR 已批准 + 代码已落地 | ADR-0001, ADR-0003, ADR-0005, ADR-0008, ADR-0009, ADR-0019, ADR-0021, ADR-0022, ADR-0023, ADR-0034 |
-| 🟡 Partial | Partial | 接口/部分方法已实现，框架可见 | ADR-0007, ADR-0020, ADR-0031 |
-| ❌ Not Implemented | Not Implemented | ADR 已批准但代码无对应实现 | ADR-0002, ADR-0010-0018, ADR-0032 |
+| ✅ Approved | Approved | ADR 已批准 + 代码已落地 | ADR-0001, ADR-0003, ADR-0005, ADR-0008, ADR-0009, ADR-0020, ADR-0021, ADR-0022, ADR-0023, ADR-0034 |
+| 🟡 Partial | Partial | 接口/部分方法已实现，框架可见 | ADR-0007, ADR-0019, ADR-0031 |
+| ❌ Not Implemented | Not Implemented | ADR 已批准但代码无对应实现 | ADR-0002, ADR-0010-0018 |
 | ⛔ Superseded | Superseded | 被新 ADR 替代 | ADR-0006（被 ADR-0020 替代）, ADR-0036（被 ADR-0045 替代, 2026-07-08 软归档） |
 | 🔍 Proposed | Proposed | 仅是提案，未到实施阶段 | ADR-0030, ADR-0035, ADR-0038-0044, ADR-0045, ADR-0046 |
 | 📋 Reserved | Reserved | 编号预留，无内容 | (无活跃 ADR，未来用于占位) |
 | 📋 Audit | Audit | 审计补充文档 | 11 个 `adr-*-impl-scope.md` (0001/0003/0005/0007/0008/0019/0020/0022/0023/0033 + 0004 合并行) 专用 (与 `docs-code-drift-audit` 配套使用) |
+
+> **已归档 ADR 排除说明** (2026-07-10 同步, docs-cleanup-phase-3 followup): 上表仅含 `docs/adr/` 活跃 ADR + `docs/adr/plugin/` 候选 ADR。已 `git mv` 至 `docs/archive/adr/` 的 ADR (含 ADR-0010~0018 系列、ADR-0030 V1、ADR-0032、ADR-0036 hybrid-kernel 等) **不**列入本表，其状态以各自归档文件 `## 状态` 字段为准。例如 ADR-0032 (`docs/archive/adr/adr-0032-cost-collector.md`) 当前状态为 ✅ Approved (2026-06-30 状态提升)，不再列为 ❌ Not Implemented。
 
 > **ADR-0036 编号冲突备注** (2026-07-09, 发现于 `fix-adr-doc-alignment-p2-cleanup-2026-07-08` 实施): `docs/archive/adr/` 目录下存在 2 个 ADR-0036 文件 (不同议题):
 > - `adr-0036-hybrid-kernel-architecture.md` (旧, 2026-06-09 归档, ❌ Not Implemented, Phase 8 规划)

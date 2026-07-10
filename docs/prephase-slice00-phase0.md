@@ -1,5 +1,7 @@
 # Pre-Phase + Slice 00 + Phase 0 详细实施计划
 
+> ✅ **历史归档 (Phase 0 已 2026-06-14 ship, 100% 收官)** — 本文档为 Pre-Phase + Slice 00 + Phase 0 实施计划历史快照（v1.2, 2026-05-30），已 ship。最新项目状态见 [`active-status.md`](./active-status.md)。
+
 **版本**: v1.2（基于 2026-05-30 Alex 跨文档对齐审查修正）
 **关联**: `docs/implementation-roadmap.md` Phase Pre-Phase / Slice 00 / Phase 0
 **工期**: 7-10 天
