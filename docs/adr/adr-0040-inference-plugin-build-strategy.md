@@ -2,7 +2,9 @@
 
 ## 状态
 
-🔍 Proposed (2026-07-06 — 架构方案讨论产出, 待 review; **2026-07-06 P1 fix**: sync-pdk.sh 关系澄清为新脚本 `sync-inference-plugin.sh`, 补 ABI 版本管理, 补 CMake 依赖管理细节); **2026-07-06 renumber**: 兄弟 ADR-0036 → ADR-0045 (编排 plugin), ADR-0037 → ADR-0046 (通信协议), 避免与旧 ADR-0036-三层服务协议 / ADR-0037-因果序冲突
+✅ Approved (2026-07-10 — OpenSpec change `phase5-llama-engine-plugin` (C14) ship); **2026-07-06 P1 fix**: sync-pdk.sh 关系澄清为新脚本 `sync-inference-plugin.sh`, 补 ABI 版本管理, 补 CMake 依赖管理细节; **2026-07-06 renumber**: 兄弟 ADR-0036 → ADR-0045 (编排 plugin), ADR-0037 → ADR-0046 (通信协议), 避免与旧 ADR-0036-三层服务协议 / ADR-0037-因果序冲突
+
+> **实施依据**: `phase5-llama-engine-plugin` (C14) 已 ship + archived (2026-07-08), 验证: `pdk/llama_engine/` 作为 SHARED 库构建 (per `pdk/llama_engine/CMakeLists.txt`) + ABI v2 协调 (per C16 PluginLoader 5 符号 + ADR-0041 lifecycle 钩子) + ADR-0021 §7 Dual-Repo Policy 同步 (vendored in monorepo `pdk/`, 后续由 `scripts/sync-pdk.sh` 异步同步至 standalone `hydraforge-pdk` repo)。详见 `docs/superpowers/plans/2026-07-03-phase5-self-bootstrapping.md` §三 C14 行 + `openspec/changes/archive/2026-07-08-phase5-llama-engine-plugin/`。
 
 ## 领域
 
