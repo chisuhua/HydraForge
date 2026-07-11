@@ -14,9 +14,11 @@
 | **Total ctest** | **72/72 ✅** PASS (baseline 25 + Sprint 1~20 累计 47 新增) |
 | **ASan** | 72/72 (100%) — `test_execute_parallel` use-after-scope 已修复 |
 | **TSan** | 超时跳过 (机器性能受限, pre-existing data race 已修复) |
-| **OpenSpec active** | **0** (C10-C16 全部 ✅ shipped + archived, 仅 C16 §5 Cloud plugin 顺延至独立 change) |
+| **OpenSpec active** | **1** (`2026-07-10-phase5-adr-states-final-sync` C17 🟡 active, ADR 状态同步) |
+| **ADR Approved** | **19** (13 existing + 5 C17 FLIP; ADR-0031 Partial 不计入) |
+| **ADR 🔍 Proposed** | **7** (C17 排除清单 — ADR-0030 V2 / 0037 / 0038 / 0039 / 0042 / 0045 / 0046; 详见 §四 顺延项) |
 | **Completed Phase 0-4** | ✅ 100% |
-| **Phase 5** | 🟡 实施中 (C10/C11/C12/C13/C14/C15/C16(§1-4,6-10) shipped → C16 §5 Cloud plugin 顺延)
+| **Phase 5** | 🟡 实施中 (C10/C11/C12/C13/C14/C15/C16(§1-4,6-10) + C17(ADR 同步) shipped → C16 §5 Cloud plugin 顺延)
 
 ---
 
@@ -122,6 +124,15 @@
 | 顺延项 | 影响 | 启动条件 | 处理方式 |
 |--------|------|:--------:|---------|
 | ➡️ C16 §5 Cloud plugin 顺延 | 持续关注 | 外部触发 (CloudLLMProvider 实施需求) | 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` 跟踪 |
+| ➡️ C17 排除 ADR-0030 V2 顺延 | Fleet 实施需求 | FleetOrchestrator 解除延迟 (Oracle 2026-06-27 决议) | C19 或后续 ship 时迁移至 🟡 Partial |
+| ➡️ C17 排除 ADR-0037 顺延 | 因果排序机制未实施 | Phase 6 实施 | 由 C19/C20 范围评估 |
+| ➡️ C17 排除 ADR-0038 顺延 | 推理引擎动态配置接口未实施 | 第二个推理 backend 出现时 (per ADR-0038 §增量决议) | C15 实施后由 C18 重新评估 |
+| ➡️ C17 排除 ADR-0039 顺延 | JSON 查询工具 (`inference/get/status`) 未实现 | C19 实施 (Phase 6) | C19 plan 时纳入 |
+| ➡️ C17 排除 ADR-0042 顺延 | ILLMProvider 演进路径仅部分决策实施 | C16 §5 Cloud 插件 + 第 2 阶段重新映射交付后 | C20 处理 |
+| ➡️ C17 排除 ADR-0045 顺延 | 编排 Plugin 仅 step 2 部分交付 (~20% 实施) | Phase 6 实施 | C19/C20 范围评估 |
+| ➡️ C17 排除 ADR-0046 顺延 | 4 通道架构仅通道 ① 完成 (~25% 实施) | Phase 6 实施 | C19/C20 范围评估 |
+
+> **C17 排除原因明细**: 详见 [`docs/superpowers/plans/2026-07-10-phase5-remainder-adr-sync.md` §十一.3](superpowers/plans/2026-07-10-phase5-remainder-adr-sync.md) (Metis 审查 `ses_0b02706b7ffepKdYy3qxnmOzXy` 裁决后用户选项 A 决策 2026-07-10, 范围 12 → 5)
 
 ---
 
@@ -149,10 +160,10 @@
 
 ## 六、下一步行动 (按当前焦点)
 
-1. **C16 §5 Cloud plugin 顺延**: 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` 跟踪
-2. **C16 ship gate**: git add/commit/push `phase5-inference-orchestration` 分支
-3. **C16 归档**: `openspec archive phase5-illmprovider-call-chain-v2` (归档后 spec 上移至 `openspec/specs/`)
-4. **AGENTS.md § Recent Changes 更新**: 追加 C16 收官记录
+1. **C17 ADR 同步 ship**: 5 个 ADR 状态翻转 (ADR-0035/0040/0041/0043/0044) + 7 个排除 ADR 文档化 + README/active-status/AGENTS 同步 + `tools/adr_relationships.py` 重跑
+2. **C17 归档**: `openspec archive 2026-07-10-phase5-adr-states-final-sync --yes` (ship 后立即归档)
+3. **C18 启动**: C17 ship + archived 后启动 `2026-07-10-phase5-sprint22-drift-strategic-gate` (Drift Gate + Strategic Alignment Gate + Stage Gate 评估)
+4. **C16 §5 Cloud plugin 顺延**: 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` 跟踪 (C17 ship 后 ADR-0035 ✅ Approved 满足实施依赖)
 
 ---
 

@@ -39,7 +39,12 @@ docs/
 | `adr-0023-tool-result-standard.md` | ToolResult 标准化 | ✅ Approved (2026-06-24, Sprint 5 ship) |
 | `adr-0031-execution-policy.md` | 执行策略 | 🟡 Partial (C3 P1-P2 ✅ Approved 2026-07-31; C4 P3-P4 🟡 active; §决策 8 4 项 defer 至 C6) |
 | `adr-0033-session-hierarchy.md` | 会话层次结构 | ✅ Approved (Sprint 15 C5, 2026-07-02) |
-| `adr-0002-impl-scope-audit.md` | ADR-0002 实施范围审计 (OpenSpec change `docs-code-drift-audit-2026-06` 产出) | 📋 审计补充 |
+| `adr-0035-inference-engine-plugin-spec.md` | 推理引擎 PDK Plugin 规范 | ✅ Approved (2026-07-10 — C14 `phase5-llama-engine-plugin` ship) |
+| `adr-0040-inference-plugin-build-strategy.md` | 推理引擎 Plugin 构建与交付策略 | ✅ Approved (2026-07-10 — C14 `phase5-llama-engine-plugin` ship) |
+| `adr-0041-pluginloader-lifecycle-extension.md` | PluginLoader 生命周期扩展 (pdk_plugin_init / fini 钩子) | ✅ Approved (2026-07-10 — C16 `phase5-illmprovider-call-chain-v2` ship) |
+| `adr-0043-pdk-tool-naming-convention.md` | PDK 工具命名约定规范 | ✅ Approved (2026-07-10 — C13/C14 D3 决策已应用) |
+| `adr-0044-inference-plugin-security-model.md` | 推理引擎 Plugin 安全模型 | ✅ Approved (2026-07-10 — C14 `phase5-llama-engine-plugin` ship, 三层安全模型应用) |
+| `adr-0002-impl-scope-audit.md` | ADR-0002 实施范围审计 (OpenSpec change `docs-code-drift-audit-2026-
 | `adr-0004-impl-scope-audit.md` | ADR-0004 实施范围审计 (同上) | 📋 审计补充 |
 | `adr-0001-illm-provider-streaming-interface-impl-scope.md` | ADR-0001 实施范围审计 (C9) | 📋 审计补充 |
 | `adr-0003-dslengine-thread-safety-impl-scope.md` | ADR-0003 实施范围审计 (C9) | 📋 审计补充 |
