@@ -18,7 +18,8 @@
 | **ADR Approved** | **19** (13 existing + 5 C17 FLIP; ADR-0031 Partial 不计入) |
 | **ADR 🔍 Proposed** | **7** (C17 排除清单 — ADR-0030 V2 / 0037 / 0038 / 0039 / 0042 / 0045 / 0046; 详见 §四 顺延项) |
 | **Completed Phase 0-4** | ✅ 100% |
-| **Phase 5** | 🟡 实施中 (C10/C11/C12/C13/C14/C15/C16(§1-4,6-10) + C17(ADR 同步) shipped → C16 §5 Cloud plugin 顺延)
+| **Phase 5** | ✅ 收官 (C9-C18 全部 ✅ shipped + archived; C18 adr-0050 Oracle 推荐 Phase 6 启动 Candidate B 服务化) |
+| **Phase 6** | 🟡 待启动 (Oracle 推荐 Candidate B 服务化, 4-6 周 / 1-2 工程师; 启动条件: C20 激活 + 集成目标确认 + ADR-0020 并发隔离 Week 4 TSan gate; 见 [`adr-0050`](../adr/adr-0050-phase6-strategic-evaluation.md) + [`stage-gate-evaluation`](../handoff/2026-07-31-stage-gate-evaluation.md))
 
 ---
 
@@ -160,10 +161,14 @@
 
 ## 六、下一步行动 (按当前焦点)
 
-1. **C17 ADR 同步 ship**: 5 个 ADR 状态翻转 (ADR-0035/0040/0041/0043/0044) + 7 个排除 ADR 文档化 + README/active-status/AGENTS 同步 + `tools/adr_relationships.py` 重跑
-2. **C17 归档**: `openspec archive 2026-07-10-phase5-adr-states-final-sync --yes` (ship 后立即归档)
-3. **C18 启动**: C17 ship + archived 后启动 `2026-07-10-phase5-sprint22-drift-strategic-gate` (Drift Gate + Strategic Alignment Gate + Stage Gate 评估)
-4. **C16 §5 Cloud plugin 顺延**: 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` 跟踪 (C17 ship 后 ADR-0035 ✅ Approved 满足实施依赖)
+1. **C18 归档**: `openspec archive 2026-07-10-phase5-sprint22-drift-strategic-gate --yes` (4 个 deliverables 已 ship: drift-audit + adr-0050 + stage-gate-evaluation + master plan 同步)
+2. **Stage Gate 重新评估 (2026-07-18)**: 3 项 PARTIAL 状态 (C10/C11/C12 满 2 周稳定) + 团队容量确认 + C19 触发信号
+3. **Phase 6 kickoff 评估 (Sprint 23 起)**: 满足 5 项硬前置后启动 Candidate B 服务化 (per adr-0050)
+   - C20 placeholder 激活: 创建正式 OpenSpec change `phase6-service-ification`
+   - 集成目标确认: ≥1 个外部 consumer (agent/tool)
+   - ADR-0020 并发隔离 Week 4 TSan gate (硬阻断)
+4. **C19 (fork-checkpoint) 推迟**: 与 Candidate A (自进化) 重新对齐, ADR-0033 已覆盖请求级隔离
+5. **C16 §5 Cloud plugin 顺延**: 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` 跟踪 (C17 ship 后 ADR-0035 ✅ Approved 满足实施依赖)
 
 ---
 
