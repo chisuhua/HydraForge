@@ -2,7 +2,9 @@
 
 ## 状态
 
-🔍 Proposed (2026-07-06 — 架构方案讨论产出, 待 review); **2026-07-06 renumber**: 兄弟 ADR-0036 → ADR-0045 (编排 plugin), ADR-0037 → ADR-0046 (通信协议), 避免与旧 ADR-0036-三层服务协议 / ADR-0037-因果序冲突
+✅ Approved (2026-07-10 — OpenSpec change `phase5-llama-engine-plugin` (C14) ship); **2026-07-06 renumber**: 兄弟 ADR-0036 → ADR-0045 (编排 plugin), ADR-0037 → ADR-0046 (通信协议), 避免与旧 ADR-0036-三层服务协议 / ADR-0037-因果序冲突
+
+> **实施依据**: `phase5-llama-engine-plugin` (C14) 已 ship + archived (2026-07-08), 验证: `pdk/llama_engine/` 12 个推理工具注册 (`inference/engine/{init,generate,stream,status}` × 4 + `inference/model/{load,unload,list,switch}` × 4 + C13 4 个 schema 工具 `prefix_cache/kv_cache/decoding/cloud_engine` `.configure`) + DSLEngine `load_plugin()` 显式 API + PluginLoader 5 符号查找 + 65/65 ctest + 0 回归。详见 `docs/superpowers/plans/2026-07-03-phase5-self-bootstrapping.md` §三 C14 行 + `docs/active-status.md` §五 2026-07-08 行 + `openspec/changes/archive/2026-07-08-phase5-llama-engine-plugin/`。
 
 ## 领域
 
