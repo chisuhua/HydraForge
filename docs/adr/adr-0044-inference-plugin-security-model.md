@@ -2,7 +2,9 @@
 
 ## 状态
 
-🔍 Proposed (2026-07-06 — 架构方案讨论产出, 待 review; **2026-07-06 P1 fix**: `inference/engine/init` Category 修正为 `StateModify`, 内部 vs 外部 approval 豁免明确化, ModelCapability threat model 补充); **2026-07-06 renumber**: 兄弟 ADR-0036 → ADR-0045 (编排 plugin), ADR-0037 → ADR-0046 (通信协议), 避免与旧 ADR-0036-三层服务协议 / ADR-0037-因果序冲突
+✅ Approved (2026-07-10 — OpenSpec change `phase5-llama-engine-plugin` (C14) ship, 三层安全模型应用于推理插件); **2026-07-06 P1 fix**: `inference/engine/init` Category 修正为 `StateModify`, 内部 vs 外部 approval 豁免明确化, ModelCapability threat model 补充; **2026-07-06 renumber**: 兄弟 ADR-0036 → ADR-0045 (编排 plugin), ADR-0037 → ADR-0046 (通信协议), 避免与旧 ADR-0036-三层服务协议 / ADR-0037-因果序冲突
+
+> **实施依据**: `phase5-llama-engine-plugin` (C14) 已 ship + archived (2026-07-08), 验证: 三层安全模型完整应用于 12 个推理插件工具 — L1 路径白名单 (per ADR-0022 §2.1, `PluginLoader` 拒绝非白名单路径) + L2 ToolMetadata V2 (per ADR-0004 V2, `category` + `min_layer` + `approval_policy` 字段, 详见 `tests/test_llama_engine_plugin.cpp` 10 TC metadata 审批策略验证) + L3 ToolCoordinator (per ADR-0031 §决策 5, 层检查 → 审批 → 审计 pipeline)。`inference/engine/init` Category 经 P1 fix 修正为 `StateModify`。详见 `docs/superpowers/plans/2026-07-03-phase5-self-bootstrapping.md` §三 C14 行 + `tests/test_llama_engine_plugin.cpp` + `openspec/changes/archive/2026-07-08-phase5-llama-engine-plugin/`。
 
 ## 领域
 
