@@ -689,6 +689,8 @@ C20 启动前必须满足:
 
 | 日期 | Change | 偏离类型 | 偏离描述 | 响应 Change | 状态 |
 |------|--------|---------|---------|-----------|------|
+| 2026-07-10 | C17 `phase5-adr-states-final-sync` | retro | 12 个 ADR 状态与 C2/C14/C16 实际 ship 不符, 累计 drift | C17 | ✅ resolved (2026-07-10, C17 ship + archived) |
+| 2026-07-10 | C18 `phase5-sprint22-drift-strategic-gate` | drift + strategic | Architecture Drift Gate (4 路 0 CRITICAL) + Strategic Alignment Gate (Oracle 推荐 Candidate B 服务化) + Stage Gate (推迟至 2026-07-18 重新评估, 3 项 PARTIAL) | C18 | ✅ resolved (2026-07-10, C18 ship + archived; Phase 6 启动评估完成) |
 
 ### 10.3 待填充模板
 
@@ -718,6 +720,8 @@ C20 启动前必须满足:
 | 2026-07-06 | docs-cleanup-phase-2 | 文档清理 Phase 2 (综合审计后续清理, 6 项 cleanup): (1) **5 个已 ship plan** git mv 至 `archive/superpowers/plans/` (`engine-include-final-decoupling` / `tech-debt-full-closure` / `sprint-10-pre-existing-sanitizer-cleanup` / `c7-model-router-mvp` / `c7-phase2-model-router-plugin`); (2) **2 个空 archive 文件 + 1 个 raw research PDF** (arxiv 2603.22455) git rm; (3) `docs/SPECS-ALIGNMENT.md` DEPRECATED 横幅 + `docs/README.md` §specs/ 警告; (4) `adr-0036-hybrid-kernel-architecture.md` `## 状态` heading 格式修复 (消除 `tools/adr_lint.py` 1 pre-existing error); (5) **22 个 openspec spec Purpose TBD 占位** 补全 (3 commits 8+7+7 force-add, 每 spec 基于原始 archived `proposal.md` §Why 段 1-2 句精确描述); (6) 4 项 ship gate 全部通过 (`adr_lint` ✓ 33 ADR / `docs_drift_audit` 0 DRIFT 0 WARNING / TBD grep 0 / B2 changes valid). **合并 cleanup chain**: commit `923b45f` (Metis SKILL Compiler 归档 + Oracle A C13-C15 编号重定义) + commit `48839ac` (6 项 ADR 状态同步) + 本 change 6 commits. 共 14 commits, 0 代码逻辑变更, ctest baseline 不动. | ✅ resolved (2026-07-06) — `openspec/changes/archive/2026-07-06-docs-cleanup-phase-2/` archived |
 | 2026-07-07 | C13/C14/C15/C16 | 4 项 Adversarial Review 决策 D1-D4 应用 (详见 `docs/adversarial-reviews/decisions-2026-07-07.md`) | D1 删 SamplerStrategy; D2 推迟 BatchingQueue 接口; D3 统一 `inference.*` 命名; D4 并行 (C13 立即 + TSan 修复并行). 4 个 change 的 proposal/tasks/spec 已全部同步更新 | 🟡 active |
 | 2026-07-08 | C14 `phase5-llama-engine-plugin` | C14 ship | ✅ shipped — **65/65 ctest 零回归** (64 baseline + test_llama_engine_plugin 10 case). 关键变更: (1) **12 工具注册**: 4 engine (init/generate/stream/status) + 4 model (load/unload/list/switch) + 4 C13 arch (prefix_cache/kv_cache/decoding.configure + cloud_engine PLACEHOLDER); (2) **engine_state() bug fix**: engine_engine_state → engine_state 命名统一; (3) **tests/test_llama_engine_plugin.cpp**: 10 test cases (ABI/12 tools/status/list/cloud_engine/decoding/kv_cache/prefix_cache/metadata/stream), file(GLOB) 自动注册; (4) **AGENTS.md + master plan 同步**. 注: .so dlopen 需 llama.cpp 运行时可解析符号 (当前测试 graceful skip 等待完整 CI 环境). | ✅ resolved (2026-07-08) — C14 ship |
+| 2026-07-10 | C17 `phase5-adr-states-final-sync` | **scope-fix (Metis 审查)** | C17 原计划翻转 12 个 ADR, Metis 预规划审查 (session `ses_0b02706b7ffepKdYy3qxnmOzXy`) 发现: 7 个存在硬性阻碍 (ADR-0030 V2 P1-P4 未满足 / ADR-0037 纯规范 / ADR-0038 BatchingQueue 延迟 / ADR-0039 JSON 工具未实现 / ADR-0042 硬性 banner / ADR-0045 5步仅step2 / ADR-0046 4通道仅①). **范围修正 12 → 5**: ADR-0035/0040/0041/0043/0044 翻转 + 7 排除原因文档化 | C17 proposal.md + tasks.md + spec.md; AGENTS.md + README.md + active-status.md + relationships.md | ✅ resolved (2026-07-10) — 5 commits + docs sync + adr_relationships 重跑 |
+| 2026-07-10 | C18 `phase5-sprint22-drift-strategic-gate` | **Phase 6 战略决议 (Oracle)** | Oracle session `ses_0ae4b8107ffetONLmb2Sv2wTb5` 评估 4 候选 (A 自进化 / B 服务化 / C 第三方生态 / D Cloud-native), 推荐 **Candidate B (服务化)** | C18 adr-0050 创建 + C20 placeholder 激活 + C19 推迟 + Stage Gate 推迟至 2026-07-18 | ✅ resolved (2026-07-10) — Oracle 决议 + C20 激活 |
 
 ### 11.3 预期可能的调整 (基于当前占位假设)
 
@@ -742,7 +746,8 @@ C20 启动前必须满足:
 ### 12.2 Phase 5 期间 Pivot (待填充)
 
 | 日期 | 原方向 | 新方向 | 影响 Changes | 决策依据 |
-|------|--------|--------|------------|---------|
+|------|--------|--------|------------|----------|
+| 2026-07-10 | Phase 6 4 候选方向 (A 自进化 8-12 周 / B 服务化 4-6 周 / C 第三方生态 6-8 周 / D Cloud-native 8-12 周) | **推荐 Candidate B (服务化)** — 4-6 周 / 1-2 工程师可负担, 兑现 Phase 5 服务化路径投资, 产出可消费外部接口 | (1) C20 placeholder 激活 (Phase 6 kickoff 升级为正式 change); (2) C19 推迟 (与 Candidate A 重新对齐); (3) ADR-0020 并发隔离成为 Week 4 TSan 硬阻断项 | Oracle session `ses_0ae4b8107ffetONLmb2Sv2wTb5` 决议 + adr-0050 创建 (2026-07-10, C18 ship); Phase 5 收官评估 (72/72 ctest, 19 ADR Approved, 0 DRIFT) |
 
 ### 12.3 待填充模板
 

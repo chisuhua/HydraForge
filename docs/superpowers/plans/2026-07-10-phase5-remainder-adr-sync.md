@@ -54,7 +54,7 @@
 | # | Change 名 | 类型 | 估时 | 依赖 | 状态 |
 |---|-----------|------|------|------|------|
 | **C17** | `2026-07-10-phase5-adr-states-final-sync` | 文档同步 | 1-2 天 | 无 | ⚪ **immediate** |
-| **C18** | `2026-07-10-phase5-sprint22-drift-strategic-gate` | Gate 审计 + 战略评估 | 2-3 天 | C17 ✅ (soft) | ⚪ **immediate** |
+| **C18** | `2026-07-10-phase5-sprint22-drift-strategic-gate` | Gate 审计 + 战略评估 | 2-3 天 | C17 ✅ (soft) | ✅ **shipped + archived (2026-07-10)** |
 
 ---
 
@@ -266,7 +266,8 @@
 | 日期 | Change | 偏离类型 | 偏离描述 | 响应 Change | 状态 |
 |------|--------|---------|---------|-----------|------|
 | 2026-07-10 | C17 | retro | 12 个 ADR 状态与 C2/C14/C16 实际 ship 不符, 累计 drift | C17 | 🟡 active |
-| 2026-07-10 | C18 | drift + strategic | Drift Gate + Strategic Gate 触发 | C18 | 🟡 active |
+| 2026-07-10 | C18 | drift + strategic | Drift Gate + Strategic Gate 触发 | C18 | ✅ resolved (2026-07-10, C18 ship + archived) |
+| 2026-07-10 | C18 | **scope-fix (Oracle 决议)** | Oracle Phase 6 战略评估 (session `ses_0ae4b8107ffetONLmb2Sv2wTb5`) 推荐 Candidate B (服务化, 4-6 周), 拒绝 A (容量超 2x) / C (社区未涌现) / D (cold-start 灾难). ADR-0020 并发隔离为最危险不变量 | C18 adr-0050 创建 + Stage Gate 推迟至 2026-07-18 | ✅ resolved (2026-07-10) |
 | 2026-07-10 | C17 | **scope-fix (Metis 审查)** | C17 原计划翻转 12 个 ADR, Metis 预规划审查 (session `ses_0b02706b7ffepKdYy3qxnmOzXy`) 发现: 7 个存在硬性阻碍 (ADR-0030 V2 P1-P4 未满足 / ADR-0037 纯规范 / ADR-0038 BatchingQueue 延迟 / ADR-0039 JSON 工具未实现 / ADR-0042 硬性 banner / ADR-0045 5步仅step2 / ADR-0046 4通道仅①). **范围修正 12 → 5** | C17 proposal.md + tasks.md + spec.md | ✅ resolved (user 选项 A 决策) |
 
 ---
@@ -276,7 +277,8 @@
 | 日期 | 占位 Change | 调整原因 | 调整内容 | 状态 |
 |------|------------|---------|---------|------|
 | 2026-07-10 | C19 (原 fork-checkpoint) | C18 Stage Gate 评估明确触发条件 | 占位不变, 触发检查表追加至 C18 handoff | 🟡 active |
-| 2026-07-10 | C20 (原 analysis-service) | C18 Strategic Gate 评估 Phase 6 方向 | 占位不变, Oracle 验证清单追加至 adr-0050 | 🟡 active |
+| 2026-07-10 | C20 (原 analysis-service) | **C18 adr-0050 决议: Candidate B (服务化) 与 C20 直接对齐** | **C20 placeholder 激活**: Phase 6 kickoff 立即升级为正式 OpenSpec change, scope = "暴露 DSLEngine 分析能力为 MCP tools + OpenAI API endpoints" (per adr-0050 §C19/C20 决策 + §启动条件 5 项) | ✅ resolved (2026-07-10, C18 ship) |
+| 2026-07-10 | C19 (fork-checkpoint) | **C18 adr-0050 决议: Candidate B 不需要 fork-rollback** | **C19 推迟 (非归档)**: 触发条件改为 "Candidate A (自进化) 正式启动时"; ADR-0033 session hierarchy 已覆盖请求级隔离, 不归档 C19 保留 Phase 7+ 自进化回滚安全网 | ⏸ 推迟 (per adr-0050 §C19/C20 决策) |
 | 2026-07-10 | C16 §5 Cloud plugin (`phase5-illmprovider-call-chain-v3`) | C17 ADR 校准后 C16 §5 实施依赖部分解除 (ADR-0035 ✅) 但 ADR-0042/0045 仍 🔍 Proposed | 触发条件细化为 "ADR-0035 ✅ Approved (C17 ship 后满足) + CloudLLMProvider 外部需求" | 🟡 active |
 | 2026-07-10 | **C17 排除 ADR 列表** (Metis 审查要求) | 7 个 ADR 排除翻转需文档化理由, 防止后续 Sprint 误判 | 见下表 | 🟡 active |
 
@@ -300,6 +302,7 @@
 |------|--------|--------|------------|---------|
 | 2026-07-10 | Phase 5 全部 ship 等待外部触发 | C17/C18 立即启动, 闭合 ADR drift + 评估 Phase 6 | C19/C20 启动延后, Phase 6 评估提前 | user decision (选项 A: ADR sync + Drift Gate) |
 | 2026-07-10 | C17 翻转 12 个 ADR (`🔍 Proposed` → `✅ Approved`) | **C17 范围修正 12 → 5** (Metis FAIL 裁决后) | C17 proposal.md / tasks.md / spec.md / 本 plan §四/§五/§六/§十/§十一 同步更新; 估时 1-2 天 → 0.5-1 天; 后续 C16 §5 实施依赖部分解除 | **Metis session `ses_0b02706b7ffepKdYy3qxnmOzXy` FAIL 裁决 + user 选项 A 决策 (2026-07-10)** |
+| 2026-07-10 | Phase 6 4 候选 (A 自进化 / B 服务化 / C 第三方生态 / D Cloud-native) | **推荐 Candidate B (服务化)** | C20 placeholder 激活 (Phase 6 kickoff 立即升级为正式 change); C19 推迟 (与 Candidate A 重新对齐); 估时 4-6 周 / 1-2 工程师; ADR-0020 并发隔离为最危险不变量 (Week 4 TSan gate) | **Oracle session `ses_0ae4b8107ffetONLmb2Sv2wTb5` 决议 + C18 adr-0050 创建 (2026-07-10)** |
 
 ---
 
