@@ -28,7 +28,7 @@
 | adr-0008 | ADR-0008 Implementation Scope Audit | ✅ Approved | Unknown |  |
 | adr-0008 | 结构化 Context | ✅ Approved | Unknown |  |
 | adr-0009 | DSL 标准库规划 | ✅ Approved | 2026-05-12 |  |
-| adr-0019 | ADR-0019 Implementation Scope Audit | ✅ Approved | Unknown |  |
+| adr-0019 | ADR-0019 Implementation Scope Audit | ✅ Approved | 2026-07-03 |  |
 | adr-0019 | IInteractionBus 接口与 TUI Chat MVP 架构 | 🟡 Partial | Unknown | 替代 adr-0006 |
 | adr-0020 | ADR-0020 Implementation Scope Audit | ✅ Approved | Unknown |  |
 | adr-0020 | 多智能体线程模型与隔离策略 | ✅ Approved | Unknown | 替代 adr-0006 |
@@ -42,15 +42,15 @@
 | adr-0033 | ADR-0033 Implementation Scope Audit | ✅ Approved | Unknown |  |
 | adr-0033 | Session Hierarchy 执行会话层级体系 | ✅ Approved | Unknown |  |
 | adr-0034 | IModelRouter 模型路由接口 | ✅ Approved | Unknown |  |
-| adr-0035 | 推理引擎 PDK Plugin 规范 | 🔍 Proposed | Unknown |  |
+| adr-0035 | 推理引擎 PDK Plugin 规范 | ✅ Approved | Unknown |  |
 | adr-0037 | 跨 Worker 事件因果序与逻辑时间戳 | 🔍 Proposed | 2026-06-26 |  |
 | adr-0038 | 推理引擎动态配置接口 | 🔍 Proposed | Unknown |  |
 | adr-0039 | 推理引擎性能元数据契约 | 🔍 Proposed | Unknown |  |
-| adr-0040 | 推理引擎 Plugin 构建与交付策略 | 🔍 Proposed | Unknown |  |
-| adr-0041 | PluginLoader 生命周期扩展 (pdk_plugin_init / fini 钩子) | 🔍 Proposed | Unknown |  |
+| adr-0040 | 推理引擎 Plugin 构建与交付策略 | ✅ Approved | Unknown |  |
+| adr-0041 | PluginLoader 生命周期扩展 (pdk_plugin_init / fini 钩子) | ✅ Approved | Unknown |  |
 | adr-0042 | ILLMProvider 演进路径 | 🔍 Proposed | Unknown |  |
-| adr-0043 | PDK 工具命名约定规范 | 🔍 Proposed | Unknown |  |
-| adr-0044 | 推理引擎 Plugin 安全模型 | 🔍 Proposed | Unknown |  |
+| adr-0043 | PDK 工具命名约定规范 | ✅ Approved | Unknown |  |
+| adr-0044 | 推理引擎 Plugin 安全模型 | ✅ Approved | Unknown |  |
 | adr-0045 | 编排 PDK Plugin 规范 | 🔍 Proposed | Unknown |  |
 | adr-0046 | PDK 插件间通信协议 | 🔍 Proposed | Unknown |  |
 
@@ -128,11 +128,11 @@ graph TD
 
 | 状态 | 数量 |
 |------|------|
-| ✅ Approved | 23 |
+| ✅ Approved | 28 |
 | 🟡 Partial | 3 |
 | ❌ Not Implemented | 1 |
 | ⛔ Superseded | 1 |
-| 🔍 Proposed | 12 |
+| 🔍 Proposed | 7 |
 | 📋 Reserved | 2 |
 
 ---
