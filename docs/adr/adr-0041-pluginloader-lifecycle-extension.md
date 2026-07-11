@@ -2,7 +2,9 @@
 
 ## 状态
 
-🔍 Proposed (2026-07-06 — 架构方案讨论产出,待 review); **2026-07-06 renumber**: 兄弟 ADR-0036 → ADR-0045 (编排 plugin), ADR-0037 → ADR-0046 (通信协议), 避免与旧 ADR-0036-三层服务协议 / ADR-0037-因果序冲突
+✅ Approved (2026-07-10 — OpenSpec change `phase5-illmprovider-call-chain-v2` (C16) ship, 含 C14 集成); **2026-07-06 renumber**: 兄弟 ADR-0036 → ADR-0045 (编排 plugin), ADR-0037 → ADR-0046 (通信协议), 避免与旧 ADR-0036-三层服务协议 / ADR-0037-因果序冲突
+
+> **实施依据**: `phase5-illmprovider-call-chain-v2` (C16) 已 ship + archived (2026-07-09), 验证: PluginLoader V2 升级 — 5 符号查找 (`pdk_plugin_info` + `pdk_register_tools` + `pdk_create_llm_provider` + **`pdk_plugin_init`** + **`pdk_plugin_fini`**) + PluginInfo v2 ABI (`dependencies[256]` 字段) + dual ABI dispatch (向后兼容 v1) + 拓扑排序依赖加载 + lifecycle 钩子 pair-test。详见 `docs/superpowers/plans/2026-07-03-phase5-self-bootstrapping.md` §三 C16 行 + `openspec/changes/archive/2026-07-09-phase5-illmprovider-call-chain-v2/` + `tests/test_plugin_loader.cpp` (Sprint 17 C7 + Sprint 21 C16 累计)。
 
 ## 领域
 
