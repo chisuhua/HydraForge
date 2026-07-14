@@ -1,17 +1,19 @@
-## 1. W1 RED Verdict Remediation (active, in-progress)
+## 1. W1 RED Verdict Remediation ✅ COMPLETE (2026-07-14, per active-status.md §二 + ADR-0051 §启动条件 #1)
 
-- [ ] 1.1 Change change定位: "ADR-0050 Candidate B v1" → "Phase 6 PDK Composition Spike (pre-strategic validation)"
-- [ ] 1.2 Verify proposal/design/specs/tasks reflect Spike framing (no more ADR-0050 §决策修改)
-- [ ] 1.3 Create `docs/adr/adr-0051-phase6-pdk-composition-spike.md` (🔍 Proposed status)
-- [ ] 1.4 ADR-0051 §决策 records Spike scope; explicitly NOT Candidate B兑现
-- [ ] 1.5 Replace all DECLARE_TOOL references with `IToolRegistry::register_tool_function()` pattern
-- [ ] 1.6 Rename `knowledge_base.query` → `knowledge_base/query` (ADR-0043 slash-only)
-- [ ] 1.7 G3 ToolCategory fixed to `Execute`; `allowed_layers` = `{Workflow}` only
-- [ ] 1.8 Contract normalized to `unordered_map<string,string> args → nlohmann::json result` (remove "JSON-in/JSON-out" claim)
-- [ ] 1.9 Delete `ToolRegistry::call_tool()` instrumentation task; use existing `tool.audit.*` events instead
-- [ ] 1.10 Re-classify 5 escalation triggers: 2 runtime safety (ToolCoordinator RAII) + 2 plugin health (audit + G3 self-check) + 1 design review (manual)
-- [ ] 1.11 Run `openspec validate phase6-service-ification-v1 --strict` and confirm exit 0
-- [ ] 1.12 Run second Metis review and confirm 0 CRITICAL findings
+> **Oracle 审查 P0 修复**: active-status §二 记录 "W1 fix list 11/12 ✅ + 2nd Metis 0 CRITICAL ✅" (2026-07-14)。本节 12/12 全部 completed,作为 W2-W3 启动的 W1 baseline。
+
+- [x] 1.1 Change change定位: "ADR-0050 Candidate B v1" → "Phase 6 PDK Composition Spike (pre-strategic validation)"
+- [x] 1.2 Verify proposal/design/specs/tasks reflect Spike framing (no more ADR-0050 §决策修改)
+- [x] 1.3 Create `docs/adr/adr-0051-phase6-pdk-composition-spike.md` (🔍 Proposed status)
+- [x] 1.4 ADR-0051 §决策 records Spike scope; explicitly NOT Candidate B兑现
+- [x] 1.5 Replace all DECLARE_TOOL references with `IToolRegistry::register_tool_function()` pattern
+- [x] 1.6 Rename `knowledge_base.query` → `knowledge_base/query` (ADR-0043 slash-only)
+- [x] 1.7 G3 ToolCategory fixed to `Execute`; `allowed_layers` = `{Workflow}` only
+- [x] 1.8 Contract normalized to `unordered_map<string,string> args → nlohmann::json result` (remove "JSON-in/JSON-out" claim)
+- [x] 1.9 Delete `ToolRegistry::call_tool()` instrumentation task; use existing `tool.audit.*` events instead
+- [x] 1.10 Re-classify 5 escalation triggers: 2 runtime safety (ToolCoordinator RAII) + 2 plugin health (audit + G3 self-check) + 1 design review (manual)
+- [x] 1.11 Run `openspec validate phase6-service-ification-v1 --strict` and confirm exit 0
+- [x] 1.12 Run second Metis review and confirm 0 CRITICAL findings
 
 ## 2. G3 Knowledge Base Plugin
 
@@ -19,8 +21,10 @@
 
 - [ ] 2.1 Create directory structure `pdk/g3_knowledge_base/` matching `pdk/llama_engine/` pattern (CMakeLists.txt + plugin.cpp + plugin.h)
 - [ ] 2.2 Implement G3 plugin entry point with `pdk_register_tools(IToolRegistry&)` using `registry.register_tool_function("knowledge_base/query", meta, lambda)` (NOT DECLARE_TOOL)
+- [ ] 2.2.1 **Construct ToolMetadata per ADR-0004 V2 4-param format**: `ToolCategory::Execute` + `allowed_layers={LayerProfile::Workflow}` + `approval_policy=make_approval("agent")` (plan+agent enabled, force_approval_always=false, yolo=false) + `cost_estimate=0.0` (mock LLM = free); reference `pdk/llama_engine/` registration pattern (Sprint 4 PDK skeleton + Sprint 6 C6 upgrade)
 - [ ] 2.3 Implement tool handler with hardcoded 3-5 document snippets (in-memory `std::vector<std::string>`)
 - [ ] 2.4 Implement internal session store keyed by `session_id` (`std::unordered_map<string, SessionState>`)
+- [ ] 2.4.1 **Protect session store with `std::shared_mutex`** (R2 risk mitigation per Oracle 审查): read lock (`std::shared_lock`) on `get()`/`has()` operations, write lock (`std::unique_lock`) on `insert()`/`update()`; ensures ctest parallel execution safety per ADR-0020 logical-not-physical isolation warning
 - [ ] 2.5 Implement MockLLMProvider call in tool handler (max 30 lines per spec)
 - [ ] 2.6 Implement mandatory error schema `{success: bool, error: string?, payload: object?}` for all return paths
 - [ ] 2.7 Verify G3 tool handler does NOT call any approval-requiring tool internally (defect #5 prevention)
@@ -83,13 +87,16 @@
 
 **BLOCKED until**: §2-§3 complete + ToolCoordinator RAII implementation complete
 
-- [ ] 6.1 Implement ToolCoordinator RAII guard: nesting depth > 2 → HARD KILL (ToolCoordinator .h/.cpp modification allowed per Oracle Q4)
+- [ ] 6.1 Implement ToolCoordinator RAII guard: nesting depth > 2 → HARD KILL (in `src/common/tools/tool_coordinator.h/.cpp`, modification allowed per Oracle Q4 + ADR-0051 §决策 5)
+- [ ] 6.1.1 Use `thread_local int nesting_depth_` + `thread_local std::vector<std::string> active_call_stack_` for RAII scope tracking; depth++/--/pop in RAII ctor/dtor; cycle detection on push (check `active_call_stack_` for duplicate tool name)
+- [ ] 6.1.2 Emit `cycle_detected_log` audit event payload (call stack trace + caller/callee names + thread_local snapshot) before HARD KILL for forensic analysis
 - [ ] 6.2 Implement ToolCoordinator cycle detection (same tool on stack twice) → IMMEDIATE HARD KILL
 - [ ] 6.3 G3 plugin self-reports session store size via audit event; trigger if > 1K
 - [ ] 6.4 G3 plugin self-reports error-as-success ratio via audit; trigger if > 10%
-- [ ] 6.5 ADR-0051 review process: 2+ awkward pattern categories from Layer 1 + Layer 3 dual memos → formalization trigger
-- [ ] 6.6 Add unit test for each escalation trigger (5 tests total)
+- [ ] 6.5 ADR-0051 review process: 2+ awkward pattern categories from Layer 1 + Layer 3 dual memos → formalization trigger (event-trigger; lower bar than §13.1 strategic promotion threshold — see §13.7)
+- [ ] 6.6 Add unit test for each escalation trigger (5 tests total: depth>2 / cycle / session>1K / error>10% / design review)
 - [ ] 6.7 Wire escalation triggers to `tests/test_service_v1.cpp` E2E tests
+- [ ] 6.8 Add normal 2-level nesting regression test (R4 false-positive mitigation per Oracle 审查): G1→G3 composition (depth=2, no cycle, no escalation trigger fired) → assert successful return; verifies RAII guard does NOT误杀 legitimate nested calls
 
 ## 7. ADR-0051 Finalization
 
@@ -115,7 +122,7 @@
 
 ## 9. Complete Test Coverage
 
-**BLOCKED until**: §2-§8 complete
+**BLOCKED until**: §4 complete (per Oracle D1 议程建议 #D-6, 2026-07-16; §9.1-§9.4 与 §2/§3/§4 重叠已在 capacity doc §9 0.5 人天分配中合并入 §2/§3/§4, §9.5 跑 ctest 只需 §4 E2E 通过后即可启动, 无需等 §5-§8)
 
 - [ ] 9.1 Expand `tests/test_service_v1.cpp` to cover all 3 spec files' requirements
 - [ ] 9.2 Test pdk-service-composition contract: in-process discovery, transport-agnostic signatures, logical-not-physical declaration
@@ -133,11 +140,15 @@
 - [ ] 10.4 Verify ASan zero regression (72+N/72+N PASS)
 - [ ] 10.5 Verify NO DECLARE_SERVICE macro introduced (grep `include/agenticdsl/` for `DECLARE_SERVICE` returns 0)
 - [ ] 10.6 Verify NO new namespace introduced (grep for `agenticdsl::service` returns 0)
-- [ ] 10.7 Verify NO existing ADR amended (Tier 1/2/3 fallback protocol satisfied if any defect)
+- [ ] 10.7 Verify NO existing ADR amended (**Tier 1/2/3 fallback protocol defined inline** per Oracle 审查 P2 修复):
+  - **Tier 1 (cosmetic/doc fix)**: 在 ADR implementation notes 内的 cosmetic 修正 (typo / broken link / example 错误) — 不需新建 ADR,直接修正 ADR 的 implementation notes 段
+  - **Tier 2 (ship-block defect, behavioral change)**: Spike ship gate 阻断的 defect 需新增 behavior → **新建 ADR-0052+** 而非 amend 现有 ADR (per proposal.md line 37)
+  - **Tier 3 (architectural change)**: 改变 ADR 决策方向或扩展核心架构 → **新建 ADR-0052+ + Oracle consultation** 后再 ship
+  - **约束**: 0 amendments to existing ADRs (Tier 1 除外); 所有 Tier 2/3 走 ADR-0052+ 路径
 - [ ] 10.8 Verify BOTH Layer 3 dual memos committed to `docs/service-composition/observations/`
-- [ ] 10.9 Verify all 5 escalation triggers wired and tested (5 unit tests PASS)
-- [ ] 10.10 Run `openspec validate phase6-service-ification-v1 --strict` and confirm exit 0
-- [ ] 10.11 ToolCoordinator RAII guard implementation present (nesting depth + cycle detection, per Oracle Q4)
+- [ ] 10.9 Verify all 5 escalation triggers wired and tested (5 unit tests PASS, per §6.6)
+- [ ] 10.10 Run `openspec validate phase6-service-ification-v1 --strict` and confirm exit 0 (validates W3 full artifacts; distinct from §1.11 W1-only validation which was completed 2026-07-14)
+- [ ] 10.11 ToolCoordinator RAII guard implementation present (nesting depth + cycle detection + thread_local tracking, per §6.1.1-§6.1.2 + Oracle Q4)
 
 ## 11. ADR Status Flip and Archive
 
@@ -161,6 +172,7 @@
 - [ ] 12.2 Schedule C20 kickoff date (single unified kickoff for G2/G4/G5 teams using spike-onboarding.md as material)
 - [ ] 12.3 Begin ADR-0052+ drafts only if 2+ different-category awkward patterns triggered during demo (per spec §Awkward Pattern Detection Methodology)
 - [ ] 12.4 Monitor escalation triggers in production for 2 weeks (per Stage Gate 2-week stability rule)
+- [ ] 12.5 **Schedule Oracle round 4 session** (per Oracle 审查 P1 #4 + §13.4 / ADR-0051 §提升标准 #4): estimated **2026-08-04** (Sprint 24 D1, 3 days after Spike archive) — validates internal Spike evidence supports ADR-0050 §启动条件 #5 re-interpretation ("internal Spike evidence supports external agent/tool demand"); required prerequisite for ADR-0052 proposal per §13.5; output = Oracle verdict on whether Spike ship evidence justifies promoting to Candidate B v1
 
 ## 13. Spike → Candidate B Promotion Criteria (W4+, post-Spike)
 
@@ -169,4 +181,10 @@
 - [ ] 13.3 Layer 3 dual memos convergence: primary + reviewer memos agree on ≥1 major awkward pattern
 - [ ] 13.4 ADR-0050 §启动条件 #5 re-evaluation: Oracle round 4 confirms internal Spike evidence supports "外部 agent/tool" demand
 - [ ] 13.5 If all 13.1-13.4 met: propose ADR-0052 "Phase 6 Candidate B v1" (decides whether to launch Phase 6 with `phase6-service-ification-v2`)
-- [ ] 13.6 If not met: ADR-0051 stays ✅ Approved (experimental); strategic direction re-evaluation required
+- [ ] 13.6 If not met: ADR-0051 stays ✅ Approved (experimental); strategic direction re-evaluation required (owner: 项目负责人)
+- [ ] 13.7 **Threshold tier clarification** (per Oracle 审查 P1 #5): §6.5 vs §13.1 are TWO DIFFERENT thresholds at different governance layers:
+  - **§6.5 (event-trigger, lower bar)**: 2+ awkward pattern categories from Layer 1 + Layer 3 dual memos → **DECLARE_SERVICE formalization EVENT** (artifact creation trigger for Phase 6 v2+ design doc)
+  - **§13.1 (decision-trigger, higher bar)**: ≥3 awkward patterns from ≥2 different Layer 1 categories → **ADR-0052 PROPOSAL** (governance action trigger for Phase 6 v1 launch)
+  - **Both can fire concurrently**: §6.5 fires first (when 2 categories surface) and creates DECLARE_SERVICE design doc; §13.1 fires later (when ≥3 patterns surface across ≥2 categories) and proposes ADR-0052 to launch Phase 6 v1
+  - **NOT a bug**: §6.5 (low bar) ⊂ §13.1 (high bar) — meeting §13.1 implies §6.5 already fired; meeting §6.5 does NOT imply §13.1 met
+  - **Reference**: ADR-0051 §决策 6 (Escalation Trigger Re-classification) + §提升标准 1 (≥3 patterns × ≥2 categories)

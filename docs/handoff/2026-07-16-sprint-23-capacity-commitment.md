@@ -41,20 +41,24 @@ Sprint 23 时间线:
 
 ### 1.3 工作分配 (W2-W3 per ADR-0051 §估时)
 
+> **Oracle 审查修订 (2026-07-16)**: §10 由 0.5 → 1.0 人天 (P1 #3, ctest + ASan 编译时间无法压缩); §9 由 2.0 → 0.5 人天 (P2 #7, 与 §2/§3/§4 大幅重叠,合并后仅保留 §9.5 跑 ctest); Buffer 由 4.5 → 5.5 人天 (R1 风险增强覆盖)。**总人天保持 22.5 不变**。
+
 | tasks.md 章节 | 内容 | 人天 | 角色 |
 |--------------|------|------|------|
-| §2 (G3 Plugin) | 15 tasks | 4 | Primary |
+| §2 (G3 Plugin) | 17 tasks (was 15; + §2.2.1 ToolMetadata + §2.4.1 shared_mutex) | 4 | Primary |
 | §3 (G1 Plugin) | 12 tasks | 3 | Reviewer |
 | §4 (E2E Integration) | 10 tasks | 2 | Primary |
 | §5 (Awkward Pattern Detection) | 9 tasks | 2 | Reviewer |
-| §6 (Escalation Trigger Monitoring) | 7 tasks | 2 | Primary (ToolCoordinator RAII) + Reviewer (audit events) |
+| §6 (Escalation Trigger Monitoring) | 10 tasks (was 7; + §6.1.1 RAII thread_local + §6.1.2 cycle_detected_log audit + §6.8 normal-case test) | 2 | Primary (ToolCoordinator RAII) + Reviewer (audit events) |
 | §7 (ADR-0051 Finalization) | 5 tasks | 1 | Primary |
 | §8 (Onboarding Documentation) | 7 tasks | 1 | Reviewer |
-| §9 (Complete Test Coverage) | 5 tasks | 2 | Primary |
-| §10 (Ship Gate Verification) | 11 tasks | 0.5 | Both |
+| §9 (Complete Test Coverage) | 5 tasks (与 §2/§3/§4 重叠,合并后仅保留 §9.5 跑 ctest) | 0.5 | Primary |
+| §10 (Ship Gate Verification) | 11 tasks (+ Tier 1/2/3 fallback protocol inline 定义于 §10.7) | 1.0 | Both |
 | §11 (Archive + ADR-0051 Flip) | 11 tasks | 0.5 | Primary |
-| **Buffer / Risk** | — | **4.5** | Both |
-| **Total** | 93 tasks | **22.5** | — |
+| **§2-§11 小计** | 97 tasks (was 92) | **17** | — |
+| **§12-§13 post-Spike** (Oracle 审查新增 2 tasks: §12.5 Oracle round 4 / §13.7 threshold tier clarification) | 12 tasks (was 10) | — | — |
+| **Buffer / Risk** | — | **5.5** | Both |
+| **Total (W2-W3 commitment)** | 97 tasks + 5.5 人天 buffer = **22.5 人天** | **22.5** | — |
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## 状态
 
-🔍 Proposed (2026-07-14 — Oracle session `ses_0a17108b5ffexaXTWhF8vXot6b` 产出; **待 W1 fix list 完成 + 二次 Metis 复审**)
+🔍 Proposed (2026-07-14 — Oracle session `ses_0a17108b5ffexaXTWhF8vXot6b` 产出; W1 fix list 12/12 ✅ + 二次 Metis 0 CRITICAL ✅ 已完成,等待 W3 ship gate flip → ✅ Approved (experimental))
 
 ## 领域
 
@@ -89,13 +89,13 @@ G3 `knowledge_base/query` 工具分类为 `ToolCategory::Execute`，`allowed_lay
 
 > Spike 自身的启动条件 (非 Phase 6 启动条件)
 
-1. **W1 fix list 11/11 完成**: proposal/design/specs/tasks/ADR-0051 全部修正 + openspec validate exit 0 + 二次 Metis 复审 0 CRITICAL
+1. **W1 fix list 12/12 完成** (2026-07-14, per `openspec/changes/phase6-service-ification-v1/tasks.md` §1 ✅ + active-status.md §二): proposal/design/specs/tasks/ADR-0051 全部修正 + openspec validate exit 0 + 二次 Metis 复审 0 CRITICAL
 2. **Stage Gate 2026-07-18 通过**: Risk V1-R2 解除
 3. **Sprint 23 启动 commitment**: 1.5 eng × 2 周
 
 ## Ship Gate (硬阻断)
 
-- W1 fix list 11/11 完成
+- W1 fix list 12/12 完成 (per `openspec/changes/phase6-service-ification-v1/tasks.md` §1 ✅)
 - ctest 72+N/72+N PASS 零回归 (基线 + 新增 Spike 测试)
 - ASan 72+N/72+N PASS 零回归
 - Layer 3 dual memos (primary + reviewer) 提交到 `docs/service-composition/observations/`
@@ -155,6 +155,6 @@ G3 `knowledge_base/query` 工具分类为 `ToolCategory::Execute`，`allowed_lay
 
 ---
 
-**最后更新**: 2026-07-14 (Oracle session `ses_0a17108b5ffexaXTWhF8vXot6b` Q1-Q6 决策合成)
-**状态**: 🔍 Proposed (待 W1 fix list 完成 + 二次 Metis 复审)
+**最后更新**: 2026-07-16 (W1 12/12 ✅ + 二次 Metis 0 CRITICAL ✅ + W2-W3 文档修订已应用; Oracle D1 议程建议 #D-4/#D-5/#D-6 已 ship)
+**状态**: 🔍 Proposed (W1 12/12 ✅ 完成; 等待 Stage Gate 2026-07-18 + Sprint 23 capacity + W3 ship gate → ✅ Approved (experimental))
 **关联**: [ADR-0050 Phase 6 战略评估](./adr-0050-phase6-strategic-evaluation.md)
