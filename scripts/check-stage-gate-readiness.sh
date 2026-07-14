@@ -208,17 +208,23 @@ if [ -z "$CATEGORY" ] || [ "$CATEGORY" = "A" ]; then
       print_warn "build/ 不存在, 跳过 ctest"
     else
       print_step "运行 ctest --output-on-failure..."
-      # 保存输出用于计数
       CTEST_OUTPUT=$(cd build && ctest --output-on-failure 2>&1) || true
-      cd ..
-      PASS_COUNT=$(echo "$CTEST_OUTPUT" | grep -oP 'tests passed.*\K\d+' | tail -1 || echo "?")
-      FAIL_COUNT=$(echo "$CTEST_OUTPUT" | grep -oP 'tests failed.*\K\d+' | tail -1 || echo "?")
       echo "$CTEST_OUTPUT" | tail -10
 
-      if [ "$FAIL_COUNT" = "0" ] || [ "$FAIL_COUNT" = "" ]; then
-        print_ok "ctest: $PASS_COUNT 通过, 0 失败 ✅"
+      TOTAL_COUNT=$(echo "$CTEST_OUTPUT" | grep -oE 'tests passed.*[0-9]+ tests failed out of [0-9]+' | grep -oE 'out of [0-9]+' | grep -oE '[0-9]+' | tail -1 || echo "?")
+      FAIL_LINE=$(echo "$CTEST_OUTPUT" | grep -oE '[0-9]+ tests failed out of [0-9]+' | tail -1 || echo "")
+      if [ -n "$FAIL_LINE" ]; then
+        FAIL_COUNT=$(echo "$FAIL_LINE" | grep -oE '^[0-9]+' || echo "?")
       else
-        print_fail "ctest: $FAIL_COUNT 失败"
+        FAIL_COUNT="0"
+      fi
+
+      if [ "$FAIL_COUNT" = "0" ] && [ "$TOTAL_COUNT" != "?" ]; then
+        print_ok "ctest: $TOTAL_COUNT/72 通过, 0 失败 ✅"
+      elif [ "$TOTAL_COUNT" = "?" ]; then
+        print_warn "ctest: 无法解析测试数 (输出格式异常), 需人工检查"
+      else
+        print_fail "ctest: $FAIL_COUNT/$TOTAL_COUNT 失败"
       fi
     fi
   else
