@@ -14,29 +14,39 @@
 | **Total ctest** | **72/72 ✅** PASS (baseline 25 + Sprint 1~20 累计 47 新增) |
 | **ASan** | 72/72 (100%) — `test_execute_parallel` use-after-scope 已修复 |
 | **TSan** | 超时跳过 (机器性能受限, pre-existing data race 已修复) |
-| **OpenSpec active** | **1** (`2026-07-10-phase5-adr-states-final-sync` C17 🟡 active, ADR 状态同步) |
+| **OpenSpec active** | **1** (`phase6-service-ification-v1` C20-Spike 🟡 active, BLOCKED W2-W3 等待 Stage Gate + Sprint 23 capacity) |
 | **ADR Approved** | **19** (13 existing + 5 C17 FLIP; ADR-0031 Partial 不计入) |
-| **ADR 🔍 Proposed** | **7** (C17 排除清单 — ADR-0030 V2 / 0037 / 0038 / 0039 / 0042 / 0045 / 0046; 详见 §四 顺延项) |
+| **ADR 🔍 Proposed** | **8** (C17 排除 7 + ADR-0051 Phase 6 Spike 2026-07-14; 详见 §四 顺延项) |
 | **Completed Phase 0-4** | ✅ 100% |
 | **Phase 5** | ✅ 收官 (C9-C18 全部 ✅ shipped + archived; C18 adr-0050 Oracle 推荐 Phase 6 启动 Candidate B 服务化) |
-| **Phase 6** | 🟡 待启动 (Oracle 推荐 Candidate B 服务化, 4-6 周 / 1-2 工程师; 启动条件: C20 激活 + 集成目标确认 + ADR-0020 并发隔离 Week 4 TSan gate; 见 [`adr-0050`](../adr/adr-0050-phase6-strategic-evaluation.md) + [`stage-gate-evaluation`](../handoff/2026-07-31-stage-gate-evaluation.md))
+| **Phase 6** | 🟡 C20-Spike 起草完成 (ADR-0051 🔍 Proposed + W1 fix list 11/12 active + 2nd Metis 0 CRITICAL); **不修改** ADR-0050 §决策 / §启动条件; W2-W3 启动条件: Stage Gate 2026-07-18 通过 + Sprint 23 capacity 1.5 eng × 2 周 + Oracle Spike→Candidate B 提升标准评估 |
 
 ---
 
 ## 二、活跃变更一览
 
-> ✅ **0 个活跃变更** — Phase 5 全部 8 个 OpenSpec changes (C9-C16) 已于 2026-07-03 ~ 2026-07-09 ship + archived。下表为最近归档的 Phase 5 变更状态汇总，**仅作历史参考**。
+### 🔵 当前活跃 (1 个)
 
 | ID | 名称 | 阶段 | 状态 | 最后更新 |
 |----|------|------|:----:|:--------:|
-| **C9** | Phase 4.5 Impl-Scope Audit (`2026-07-03-phase4-5-impl-scope-audit`) | ✅ Done | **✅ shipped + archived 2026-07-03** | 2026-07-03 |
-| **C10** | Phase 5 Step 0 Lazy ModuleState (`2026-07-03-phase5-stage1-step0-lazy-modulestate`) | ✅ Done | **✅ shipped + archived 2026-07-03** | 2026-07-03 |
-| **C11** | Phase 5 Step 1 Session Registry (`2026-07-04-phase5-stage1-step1-session-registry`) | ✅ Done | **✅ shipped + archived 2026-07-04** | 2026-07-04 |
-| **C12** | Phase 5 Step 2 Yield Stream (`2026-07-04-phase5-stage1-step2-yield-stream`) | ✅ Done | **✅ shipped + archived 2026-07-04** | 2026-07-04 |
-| **C13** | B2 架构层 Schema (`phase5-b2-arch-schemas`) | ✅ Done | **✅ shipped + archived 2026-07-07** | 2026-07-07 |
-| **C14** | Llama Engine Plugin (`phase5-llama-engine-plugin`) | ✅ Done | **✅ shipped + archived 2026-07-08** | 2026-07-08 |
-| **C15** | Batching Queue Plugin (`phase5-batching-queue-plugin`) | ✅ Done | **✅ shipped + archived 2026-07-07 (D2 精简版)** | 2026-07-07 |
+| **C20-Spike** | Phase 6 PDK Composition Spike (`phase6-service-ification-v1`) | 🟡 Spike | **🔒 BLOCKED W2-W3** — W1 fix list 11/12 ✅ + 2nd Metis 0 CRITICAL ✅; 等待 Stage Gate 2026-07-18 + Sprint 23 capacity | 2026-07-14 |
+
+### ✅ 已归档 (历史参考)
+
+> Phase 5 全部 8 个 OpenSpec changes (C9-C16) 已于 2026-07-03 ~ 2026-07-09 ship + archived；C17/C18 已于 2026-07-10 ship + archived。下表为最近归档的 Phase 5 变更状态汇总，**仅作历史参考**。
+
+| ID | 名称 | 阶段 | 状态 | 最后更新 |
+|----|------|------|:----:|:--------:|
+| **C18** | Phase 5 Sprint 22 Drift + Strategic Gate (`2026-07-10-phase5-sprint22-drift-strategic-gate`) | ✅ Done | **✅ shipped + archived 2026-07-10** | 2026-07-10 |
+| **C17** | Phase 5 ADR States Final Sync (`2026-07-10-phase5-adr-states-final-sync`) | ✅ Done | **✅ shipped + archived 2026-07-10** | 2026-07-10 |
 | **C16** | ILLMProvider Call Chain V2 (`phase5-illmprovider-call-chain-v2`) | ✅ Done | **✅ shipped + archived 2026-07-09 (§5 顺延)** | 2026-07-09 |
+| **C15** | Batching Queue Plugin (`phase5-batching-queue-plugin`) | ✅ Done | **✅ shipped + archived 2026-07-07 (D2 精简版)** | 2026-07-07 |
+| **C14** | Llama Engine Plugin (`phase5-llama-engine-plugin`) | ✅ Done | **✅ shipped + archived 2026-07-08** | 2026-07-08 |
+| **C13** | B2 架构层 Schema (`phase5-b2-arch-schemas`) | ✅ Done | **✅ shipped + archived 2026-07-07** | 2026-07-07 |
+| **C12** | Phase 5 Step 2 Yield Stream (`2026-07-04-phase5-stage1-step2-yield-stream`) | ✅ Done | **✅ shipped + archived 2026-07-04** | 2026-07-04 |
+| **C11** | Phase 5 Step 1 Session Registry (`2026-07-04-phase5-stage1-step1-session-registry`) | ✅ Done | **✅ shipped + archived 2026-07-04** | 2026-07-04 |
+| **C10** | Phase 5 Step 0 Lazy ModuleState (`2026-07-03-phase5-stage1-step0-lazy-modulestate`) | ✅ Done | **✅ shipped + archived 2026-07-03** | 2026-07-03 |
+| **C9** | Phase 4.5 Impl-Scope Audit (`2026-07-03-phase4-5-impl-scope-audit`) | ✅ Done | **✅ shipped + archived 2026-07-03** | 2026-07-03 |
 
 ### 状态图例
 
@@ -132,8 +142,13 @@
 | ➡️ C17 排除 ADR-0042 顺延 | ILLMProvider 演进路径仅部分决策实施 | C16 §5 Cloud 插件 + 第 2 阶段重新映射交付后 | C20 处理 |
 | ➡️ C17 排除 ADR-0045 顺延 | 编排 Plugin 仅 step 2 部分交付 (~20% 实施) | Phase 6 实施 | C19/C20 范围评估 |
 | ➡️ C17 排除 ADR-0046 顺延 | 4 通道架构仅通道 ① 完成 (~25% 实施) | Phase 6 实施 | C19/C20 范围评估 |
+| 🔒 ADR-0050 §启动条件 #5 字面要求 | C20-Spike 内部 PDK 互调 vs ADR-0050 "外部 agent/tool" 字面冲突 | Oracle round 4 re-evaluation 确认内部 Spike 证据支持 (Spike→Candidate B 提升条件 #4) | C20-Spike → C20 正式启动时 |
+| 🔒 ADR-0051 Phase 6 PDK Composition Spike | 🔍 Proposed 2026-07-14 (Phase 6 内部组合可行性 Spike; **不兑现** ADR-0050 Candidate B 战略目标) | Spike ship gate (W3 D14) + Oracle Q6 follow-up confirmation | C20-Spike W3 → archive 后翻 ✅ Approved (experimental) |
+| 🔒 C20-Spike W2-W3 实施 | W2-W3 BLOCKED on (i) Stage Gate 2026-07-18 通过; (ii) Sprint 23 capacity 1.5 eng × 2 周; (iii) Oracle Q6 confirmation | 3 项 unlock 全部满足 | C20-Spike → W2-W3 启动 |
 
 > **C17 排除原因明细**: 详见 [`docs/superpowers/plans/2026-07-10-phase5-remainder-adr-sync.md` §十一.3](superpowers/plans/2026-07-10-phase5-remainder-adr-sync.md) (Metis 审查 `ses_0b02706b7ffepKdYy3qxnmOzXy` 裁决后用户选项 A 决策 2026-07-10, 范围 12 → 5)
+>
+> **C20-Spike reframing**: Oracle session `ses_0a206a23cffe1IEirU5iNaxFxC` (二轮) + `ses_0a17108b5ffexaXTWhF8vXot6b` (Q1-Q6 决策) 共同裁定 C20 内部 PDK 组合与 ADR-0050 §决策 "外部 MCP/OpenAI API" 战略目标存在 reframing；Spike 保留 ADR-0050 §决策不动，新建 ADR-0051 作为 Phase 6 内部组合 Spike；Phase 6 正式 Candidate B v1 仍需满足 ADR-0050 §启动条件 5 项。
 
 ---
 
@@ -141,6 +156,8 @@
 
 | 日期 | ID | 名称 | 关键 Ship |
 |:----:|:--:|------|-----------|
+| 2026-07-14 | C20-Spike | phase6-service-ification-v1 W1 fix list | Oracle Q1-Q6 决策应用 + ADR-0051 创建 (🔍 Proposed) + Spike framing (不兑现 ADR-0050 Candidate B) + DECLARE_TOOL→register_tool_function + slash 命名 (knowledge_base/query) + G3 ToolCategory::Execute + audit events 替代 ToolRegistry 注入 + W1 fix list 11/12 ✅ + 2nd Metis 0 CRITICAL + `openspec validate --strict` EXIT 0 + adr_lint EXIT 0 + docs_drift_audit 0 DRIFT. W2-W3 BLOCKED awaiting Stage Gate 2026-07-18 + Sprint 23 capacity. |
+| 2026-07-10 | C18 | phase5-sprint22-drift-strategic-gate | Architecture Drift Gate (4 路 0 CRITICAL) + Strategic Alignment Gate (Oracle 推荐 Candidate B 服务化) + Stage Gate 推迟至 2026-07-18 + ADR-0050 🔍 Proposed 创建 + C20 placeholder 激活 + C19 推迟 |
 | 2026-07-09 | C16 | illmprovider-call-chain-v2 | ILLMProvider v2: Decorator chain (CostTracking/Compliance/RateLimit) + Dual Consumer Model (OrchestrationILLMProvider) + available_models() pure virtual + PluginLoader V2 + DSLEngine opt-in flags. 72/72 ctest, ASan 72/72. §5 Cloud plugin deferred. |
 | 2026-07-07 | — | c16-patches | C16 三处文档不一致 patch (active-status/proposal/specs) + D5 决策草稿 + proposal-v2.md (313 行, 5 项歧义消除) |
 | 2026-07-07 | C15 | batching-queue-plugin | `lib/inference/batching.md` PLACEHOLDER (~40 行) + D2 精简 ship + handoff/master plan 同步 + openspec validate exit 0 |
@@ -161,14 +178,14 @@
 
 ## 六、下一步行动 (按当前焦点)
 
-1. **C18 归档**: `openspec archive 2026-07-10-phase5-sprint22-drift-strategic-gate --yes` (4 个 deliverables 已 ship: drift-audit + adr-0050 + stage-gate-evaluation + master plan 同步)
-2. **Stage Gate 重新评估 (2026-07-18)**: 3 项 PARTIAL 状态 (C10/C11/C12 满 2 周稳定) + 团队容量确认 + C19 触发信号
-3. **Phase 6 kickoff 评估 (Sprint 23 起)**: 满足 5 项硬前置后启动 Candidate B 服务化 (per adr-0050)
-   - C20 placeholder 激活: 创建正式 OpenSpec change `phase6-service-ification`
-   - 集成目标确认: ≥1 个外部 consumer (agent/tool)
-   - ADR-0020 并发隔离 Week 4 TSan gate (硬阻断)
-4. **C19 (fork-checkpoint) 推迟**: 与 Candidate A (自进化) 重新对齐, ADR-0033 已覆盖请求级隔离
-5. **C16 §5 Cloud plugin 顺延**: 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` 跟踪 (C17 ship 后 ADR-0035 ✅ Approved 满足实施依赖)
+1. **C20-Spike W2-W3 启动 gate** (BLOCKED — 等待全部 3 项 unlock):
+   - **Stage Gate 重新评估 (2026-07-18)**: C10/C11/C12 满 2 周稳定 + 团队容量确认 + ADR-0020 并发隔离 Week 4 TSan gate
+   - **Sprint 23 capacity commitment**: 1.5 eng × 2 周
+   - **Oracle Q6 confirmation**: ADR-0051 §后续 Spike→Candidate B 提升标准 5 项 评估 (≥3 awkward patterns × ≥2 Layer 1 类别 / Layer 1 reviewer agreement / Layer 3 dual memos convergence / Oracle round 4 / ADR-0050 §启动条件 #2/#4/#5 re-eval)
+2. **C19 (fork-checkpoint) 推迟**: 与 Candidate A (自进化) 重新对齐, ADR-0033 已覆盖请求级隔离; C19 触发条件 = Candidate A 正式启动时
+3. **C16 §5 Cloud plugin 顺延**: 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` 跟踪 (C17 ship 后 ADR-0035 ✅ Approved 满足实施依赖)
+4. **ADR-0051 状态翻 ✅ Approved (experimental)**: C20-Spike W3 ship gate 通过后自动翻; 不影响 ADR-0050 🔍 Proposed 状态
+5. **ADR-0050 保持不动**: §决策 / §启动条件 全部保留; Phase 6 Candidate B v1 正式启动仍需满足全部 5 项硬前置
 
 ---
 
