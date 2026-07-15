@@ -32,3 +32,6 @@ add_subdirectory(model_router)
 
 # C14 Phase 5 B2.1: Llama Engine Plugin (12 推理工具)
 add_subdirectory(llama_engine)
+
+# Phase 6 W1: G3 Knowledge Base Plugin (1 retrieval + LLM Q&A 工具)
+add_subdirectory(g3_knowledge_base)
