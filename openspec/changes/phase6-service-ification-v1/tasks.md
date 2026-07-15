@@ -26,7 +26,7 @@
 - [ ] 2.4 Implement internal session store keyed by `session_id` (`std::unordered_map<string, SessionState>`)
 - [ ] 2.4.1 **Protect session store with `std::shared_mutex`** (R2 risk mitigation per Oracle 审查): read lock (`std::shared_lock`) on `get()`/`has()` operations, write lock (`std::unique_lock`) on `insert()`/`update()`; ensures ctest parallel execution safety per ADR-0020 logical-not-physical isolation warning
 - [ ] 2.5 Implement MockLLMProvider call in tool handler (max 30 lines per spec)
-- [ ] 2.6 Implement mandatory error schema `{success: bool, error: string?, payload: object?}` for all return paths
+- [ ] 2.6 Implement mandatory error schema `{success: bool, answer: string?, error: string?}` for all return paths (unified per Metis review A1: `answer` NOT `payload` — G1 ReAct loop expects `answer` field)
 - [ ] 2.7 Verify G3 tool handler does NOT call any approval-requiring tool internally (defect #5 prevention)
 - [ ] 2.8 Add `pdk/g3_knowledge_base/` to root `CMakeLists.txt` (PDK plugin subdirectory pattern)
 - [ ] 2.9 Write `tests/test_g3_knowledge_base.cpp`: single-shot call test (new session_id)
@@ -42,12 +42,12 @@
 **BLOCKED until**: §2 complete + §1 12/12 complete
 
 - [ ] 3.1 Create directory structure `pdk/g1_coding_assistant/` matching `pdk/llama_engine/` pattern
-- [ ] 3.2 Implement G1 plugin entry point with `DEFINE_AGENT(React, ...)` per Sprint 20 macro
+- [ ] 3.2 Implement G1 plugin entry point with `DEFINE_AGENT(CodingAssistant, AgentLoopType::React)` (2-parameter macro, per `include/agenticdsl/pdk/agent_macros.h` actual definition from Sprint 20); construct `DSLEngine` instance with `engine->set_llm_provider(std::make_unique<MockLLMProvider>())` (or equivalent injection pipeline)
 - [ ] 3.3 Register exactly 1 tool manifest entry referencing `knowledge_base/query` (discover via `IToolRegistry::has_tool()`)
 - [ ] 3.4 Implement 2-step ReAct loop: step 1 invokes G3 tool, step 2 synthesizes final review comment
 - [ ] 3.5 Implement mock code input handler (treat code as opaque string, no parsing)
-- [ ] 3.6 Implement MockLLMProvider wiring (Sprint 19 mock pattern)
-- [ ] 3.7 Verify G1 source uses `DEFINE_AGENT(React, ...)` syntax (no new agent loop macro)
+- [ ] 3.6 Implement MockLLMProvider wiring (Sprint 19 mock pattern): G1's DSLEngine MUST receive `MockLLMProvider` via `engine->set_llm_provider()` or constructor injection; G3 MUST use per-test-instance `MockLLMProvider` (NOT shared static instance) to avoid data race (Metis F2/H5: `mock_provider.h:33` declares single-threaded, `generate()` operates lock-free on `history_`/`response_queue_`)
+- [ ] 3.7 Verify G1 source uses `DEFINE_AGENT(CodingAssistant, AgentLoopType::React)` syntax (2-parameter, matching actual macro; no new agent loop macro; NO `agent_id=`, `tool_manifest=`, `llm_provider=` pseudo-arguments — those are fabricated in original spec, per Metis F2 code verification)
 - [ ] 3.8 Add `pdk/g1_coding_assistant/` to root `CMakeLists.txt`
 - [ ] 3.9 Write `tests/test_g1_coding_assistant.cpp`: 2-step ReAct loop execution test
 - [ ] 3.10 Write `tests/test_g1_coding_assistant.cpp`: tool manifest size assertion (exactly 1 entry)
@@ -88,7 +88,7 @@
 **BLOCKED until**: §2-§3 complete + ToolCoordinator RAII implementation complete
 
 - [ ] 6.1 Implement ToolCoordinator RAII guard: nesting depth > 2 → HARD KILL (in `src/common/tools/tool_coordinator.h/.cpp`, modification allowed per Oracle Q4 + ADR-0051 §决策 5)
-- [ ] 6.1.1 Use `thread_local int nesting_depth_` + `thread_local std::vector<std::string> active_call_stack_` for RAII scope tracking; depth++/--/pop in RAII ctor/dtor; cycle detection on push (check `active_call_stack_` for duplicate tool name)
+- [ ] 6.1.1 Use `thread_local int nesting_depth_` + `thread_local std::vector<std::string> active_call_stack_` for RAII scope tracking; depth++/--/pop in RAII ctor/dtor; cycle detection on push (check `active_call_stack_` for duplicate tool name). **Known limitation (Metis F4)**: thread_local variables are per-jthread-worker (DomainWorkerPool, Sprint 3); cycle detection is limited to same-thread invocations only. Cross-thread cycle (e.g., G1 on Worker A → G3 on Worker B → G1 on Worker A) is NOT detectable by thread_local mechanism. This is an accepted v1 limitation documented in ADR-0051 §不变量.
 - [ ] 6.1.2 Emit `cycle_detected_log` audit event payload (call stack trace + caller/callee names + thread_local snapshot) before HARD KILL for forensic analysis
 - [ ] 6.2 Implement ToolCoordinator cycle detection (same tool on stack twice) → IMMEDIATE HARD KILL
 - [ ] 6.3 G3 plugin self-reports session store size via audit event; trigger if > 1K
@@ -124,11 +124,12 @@
 
 **BLOCKED until**: §4 complete (per Oracle D1 议程建议 #D-6, 2026-07-16; §9.1-§9.4 与 §2/§3/§4 重叠已在 capacity doc §9 0.5 人天分配中合并入 §2/§3/§4, §9.5 跑 ctest 只需 §4 E2E 通过后即可启动, 无需等 §5-§8)
 
-- [ ] 9.1 Expand `tests/test_service_v1.cpp` to cover all 3 spec files' requirements
-- [ ] 9.2 Test pdk-service-composition contract: in-process discovery, transport-agnostic signatures, logical-not-physical declaration
-- [ ] 9.3 Test coding-assistant-agent: 2-step ReAct, single tool, mock code, DEFINE_AGENT(React) usage
-- [ ] 9.4 Test knowledge-base-agent: hardcoded retrieval, multi-turn session, session isolation, error schema, ≤30 line handler
-- [ ] 9.5 Run full ctest suite: confirm 72+N/72+N PASS
+- [ ] 9.1 Cross-reference: verify G3 test coverage from §2.9-§2.13 is complete (5 tests PASS) — no new test writing needed
+- [ ] 9.2 Cross-reference: verify G1 test coverage from §3.9-§3.11 is complete (3 tests PASS) — no new test writing needed
+- [ ] 9.3 Cross-reference: verify E2E test coverage from §4.5-§4.7 is complete (3 tests PASS) — no new test writing needed
+- [ ] 9.4 Cross-reference: verify contract spec coverage in §4.5-§4.7 covers pdk-service-composition requirements — no new test writing needed
+- [ ] 9.5 Run full ctest suite: confirm 72+N/72+N PASS (aggregate regression gate; distinct from §4.8 per-module testing)
+- [ ] 9.6 Cross-reference: verify spike-onboarding.md red banner (§8.1 note per Metis H2: Spike code is tension-maximizing MVP, NOT production reference for G2/G4/G5)
 
 ## 10. Ship Gate Hard Block Verification
 
@@ -138,7 +139,7 @@
 - [ ] 10.2 Verify Sprint 23 commitment: 1.5 eng × 2 weeks committed (Risk V1-R2 closed)
 - [ ] 10.3 Verify ctest zero regression (72+N/72+N PASS)
 - [ ] 10.4 Verify ASan zero regression (72+N/72+N PASS)
-- [ ] 10.5 Verify NO DECLARE_SERVICE macro introduced (grep `include/agenticdsl/` for `DECLARE_SERVICE` returns 0)
+- [ ] 10.5 Verify NO DECLARE_SERVICE macro introduced (grep `include/agenticdsl/` for `DECLARE_SERVICE` returns 0) AND NO `call_tool_json` overload implemented (grep `src/` `pdk/` for `call_tool_json` returns 0 — per Metis F3: 'v2+ may introduce' in spec MUST NOT be implemented in Spike)
 - [ ] 10.6 Verify NO new namespace introduced (grep for `agenticdsl::service` returns 0)
 - [ ] 10.7 Verify NO existing ADR amended (**Tier 1/2/3 fallback protocol defined inline** per Oracle 审查 P2 修复):
   - **Tier 1 (cosmetic/doc fix)**: 在 ADR implementation notes 内的 cosmetic 修正 (typo / broken link / example 错误) — 不需新建 ADR,直接修正 ADR 的 implementation notes 段

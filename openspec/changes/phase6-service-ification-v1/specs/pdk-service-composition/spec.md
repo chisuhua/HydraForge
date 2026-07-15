@@ -17,7 +17,7 @@ The system MUST enforce a transport-agnostic service contract where every servic
 #### Scenario: Service endpoint uses string args per current IToolRegistry contract
 - **WHEN** reviewing a service endpoint (e.g., `knowledge_base/query`) source code
 - **THEN** the handler function signature MUST accept `std::unordered_map<std::string, std::string> args` (matching current `IToolRegistry` contract); complex values MUST be JSON-encoded into string values; return type MUST be `nlohmann::json` (value type)
-- **AND** v2+ may introduce `call_tool_json()` overload per Oracle Q5 decision to support native JSON args without string encoding
+- **AND** v2+ may introduce `call_tool_json()` overload per Oracle Q5 decision to support native JSON args without string encoding; v1 Spike MUST NOT implement or declare any `call_tool_json` symbol (ship gate §10.5 grep enforcement per Metis F3)
 
 #### Scenario: Service endpoint does not leak in-process affordances
 - **WHEN** reviewing a service endpoint (e.g., `knowledge_base/query`) source code
@@ -43,7 +43,7 @@ The system MUST provide a 3-layer awkward pattern detection methodology that sur
 
 #### Scenario: Layer 2 runtime instrumentation via existing audit events
 - **WHEN** `call_tool` is invoked
-- **THEN** the instrumentation MUST use existing `tool.audit.{invoked,completed,denied}` events (C4 / ADR-0031) and log 5 fields per service invocation: `caller_session_id` (from audit payload), `callee_tool_name` (from audit event topic), `args_keys_only` (audit MUST redact values; defense-in-depth per C4), `return_latency_ms` (audit timestamp diff between `invoked` and `completed`), `callee_internally_invoked_llm` (G3 plugin MUST self-report boolean via audit metadata field; NOT monitored by ToolCoordinator)
+- **THEN** the instrumentation MUST use existing `tool.audit.{invoked,completed,denied}` events (C4 / ADR-0031) and log 5 fields per service invocation: `caller_session_id` (from audit payload), `callee_tool_name` (from audit event topic), `args_keys_only` (audit MUST redact values; defense-in-depth per C4), `return_latency_ms` (audit timestamp diff between `invoked` and `completed`), `callee_internally_invoked_llm` (G3 plugin MUST self-report boolean via audit metadata field; `true` ONLY when G3's internal MockLLMProvider::generate() was actually called during this invocation; absent or `false` otherwise. Must NOT be set on non-G3 tool completed events to avoid audit pollution — per Metis F7)
 - **AND** MUST NOT introduce new ToolRegistry instrumentation; reuse existing C4 audit event bus
 
 #### Scenario: Layer 3 post-demo observation memo
@@ -66,7 +66,7 @@ The system MUST implement 5 escalation triggers that surface when v1 contract is
 - **THEN** the instrumentation MUST log escalation trigger #3 (Error Flattening Silent Defect) via audit log but MUST NOT hard kill
 
 #### Scenario: Trigger #4 (Plugin health) — Session store growth exceeds bound
-- **WHEN** G3's internal session store accumulates more than 1000 unique `session_id` entries (counted by G3 self-check, reported via audit event metadata)
+- **WHEN** G3's internal session store accumulates more than 1000 **currently active** `session_id` entries (measured by `session_store.size()` at periodic self-check interval, e.g., every 100 invocations; NOT lifetime cumulative count. If a session expires or is evicted, it is no longer "active.")
 - **THEN** the instrumentation MUST log escalation trigger #4 (session store unbounded growth) via audit log but MUST NOT hard kill
 
 #### Scenario: Trigger #5 (Design review) — Awkward pattern category diversity
@@ -74,7 +74,7 @@ The system MUST implement 5 escalation triggers that surface when v1 contract is
 - **THEN** the system MUST trigger ADR-0051 design review (manual; requires DECLARE_SERVICE formalization exploration as v2 candidate)
 
 ### Requirement: Mandatory Error Schema for Service Responses
-The system MUST enforce that all service endpoint responses use the schema `{success: bool, error: string?, payload: object?}` to prevent error flattening silent defects. Empty or undefined error paths MUST be explicit.
+The system MUST enforce that all service endpoint responses use the schema `{success: bool, answer: string?, error: string?}` to prevent error flattening silent defects. Empty or undefined error paths MUST be explicit. (Unified per Metis review A1: `answer` field is the canonical v1 response field name; `payload` envelope deferred to v2.)
 
 #### Scenario: Service response includes explicit success flag
 - **WHEN** G3 returns a result to G1

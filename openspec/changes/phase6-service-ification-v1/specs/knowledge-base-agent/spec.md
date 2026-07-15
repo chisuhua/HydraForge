@@ -36,16 +36,18 @@ The G3 plugin MUST use hardcoded document snippets (3-5 entries) as the retrieva
 ### Requirement: G3 Plugin Internal Agent Loop Bounded
 The G3 plugin MUST internally call `MockLLMProvider` to generate answers (per its multi-turn semantics), but MUST NOT internally call other tools that require approval via `ToolCoordinator` (defect #5 prevention). ToolCategory is `ToolCategory::Execute` (NOT `ReadOnly`; ADR-0004 V2 ReadOnly = filesystem read-only, does not cover LLM generation + session mutation).
 
+The G3 plugin MUST use a **per-test-instance** `MockLLMProvider` strategy (NOT a shared static instance) to avoid concurrent access data races. Per Metis H5 code verification, `mock_provider.h:33` declares "single-threaded use" and `generate()` operates lock-free on internal `history_`/`response_queue_`. When ctest runs `test_g3_knowledge_base` tests in parallel, each test fixture MUST create its own `MockLLMProvider` instance and inject it into G3's DSLEngine independently.
+
 #### Scenario: G3 plugin does not call approval-required tools internally
 - **WHEN** reviewing G3 plugin source code
 - **THEN** G3's internal logic MUST only call `MockLLMProvider::generate()` and MUST NOT call any tool that triggers `ToolCoordinator` approval (verified by code review + runtime instrumentation showing `tool_coordinator_invocation_depth == 0` for G3-internal calls)
 
 ### Requirement: G3 Plugin Tool Handler Size Constraint
-The G3 plugin's `knowledge_base/query` tool handler function MUST be ≤30 lines (excluding comments and error schema construction). This bounds the "awkward adapter" boilerplate size and makes Layer 1 pattern #1 (stateful tool) visible if it exceeds the threshold.
+The G3 plugin's `knowledge_base/query` tool handler function MUST be ≤30 lines (excluding comments and error schema construction). The tool handler MUST delegate stateful operations to a separate `SessionStore` class (whose methods are NOT counted toward the 30-line limit). The handler body contains only: arg parsing, session store lookup/delegation, LLM call, and result construction. This keeps the handler small while surfacing stateful-tool complexity in the `SessionStore` module (Layer 1 pattern #1).
 
 #### Scenario: G3 plugin tool handler is at most 30 lines
-- **WHEN** `wc -l` is run on the G3 tool handler function body (excluding comments)
-- **THEN** the line count MUST be ≤30 (verified by CI script in `tests/test_service_v1.cpp`)
+- **WHEN** `wc -l` is run on the G3 tool handler function body (excluding comments; handler MUST be an independently-named function e.g., `handle_knowledge_base_query` to allow line-count verification; `SessionStore` class methods excluded from count)
+- **THEN** the handler function body line count MUST be ≤30 (verified by CI script in `tests/test_service_v1.cpp` which counts lines between function's opening `{` and closing `}` brace + PR reviewer manual verification; file-level `wc -l` is NOT sufficient per Metis F6)
 
 ### Requirement: G3 Plugin Directory Layout Matches pdk/llama_engine Pattern
 The G3 plugin MUST be located at `pdk/g3_knowledge_base/` following the directory pattern established by `pdk/llama_engine/` (C14 ship) and `pdk/model_router/` (C7 ship).

@@ -78,6 +78,8 @@ G3 `knowledge_base/query` 工具分类为 `ToolCategory::Execute`，`allowed_lay
 ## 不变量
 
 - Spike v1 仅 **逻辑隔离**，非物理隔离 (继承 ADR-0020 + ADR-0033)。单 Agent 未捕获异常可能导致整个进程崩溃
+- ToolCoordinator RAII guard **cycle detection 仅同线程有效** (Metis F4 已记录)：`thread_local` 变量 per-jthread-worker (DomainWorkerPool Sprint 3)；跨线程 cycle (如 G1 Worker A → G3 Worker B → G1 Worker A) 不可检测，接受为 v1 known limitation
+- G3 `MockLLMProvider` **必须 per-test-instance** (Metis H5/A4)：`mock_provider.h:33` 声明单线程使用，`generate()` 无锁操作 `history_`/`response_queue_`。每个 test fixture 独立创建 MockLLMProvider；多线程 ctest 并行时不共享 static 实例
 - **不修改** ADR-0050 §决策 / §启动条件 (Spike 范围)
 - **不引入** DECLARE_SERVICE 宏 (推迟到 Phase 6 v2+；需 ≥2 不同类别 awkward pattern 涌现触发)
 - **不引入** 新 namespace (`agenticdsl::service` 留 Phase 6 v2+)

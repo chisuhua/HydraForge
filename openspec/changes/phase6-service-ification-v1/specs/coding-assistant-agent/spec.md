@@ -1,11 +1,11 @@
 ## ADDED Requirements
 
 ### Requirement: G1 Coding Assistant Plugin MVP Scope
-The system MUST provide a G1 Coding Assistant PDK plugin at `pdk/g1_coding_assistant/` that implements a 2-step ReAct loop, discovers exactly 1 tool (`knowledge_base/query`), accepts a mock code string as input, and synthesizes a final review comment. The plugin MUST use `DEFINE_AGENT(React)` (Sprint 20) and `MockLLMProvider` (Sprint 19). G1 registers no tools of its own; the single tool manifest entry comes from discovering `knowledge_base/query` via `ToolRegistry::has_tool()`.
+The system MUST provide a G1 Coding Assistant PDK plugin at `pdk/g1_coding_assistant/` that implements a 2-step ReAct loop, discovers exactly 1 tool (`knowledge_base/query`), accepts a mock code string as input, and synthesizes a final review comment. The plugin MUST use the `DEFINE_AGENT(name, loop_type)` macro (Sprint 20, 2-parameter signature: `DEFINE_AGENT(CodingAssistant, AgentLoopType::React)`) and construct its `DSLEngine` with `MockLLMProvider` (Sprint 19). G1 registers no tools of its own; the single tool manifest entry comes from discovering `knowledge_base/query` via `ToolRegistry::has_tool()`. The `DSLEngine` is constructed by the plugin's `pdk_init()` entry point with `engine->set_llm_provider(std::make_unique<MockLLMProvider>())` (or equivalent injection).
 
 #### Scenario: G1 plugin registered via DEFINE_AGENT macro
 - **WHEN** the G1 plugin module is loaded via `PluginLoader::load()`
-- **THEN** the plugin MUST register an Agent instance using `DEFINE_AGENT(React, ...)` with a tool manifest containing exactly 1 entry: `knowledge_base/query`
+- **THEN** the plugin MUST register an Agent instance using `DEFINE_AGENT(CodingAssistant, AgentLoopType::React)` and construct a `DSLEngine` with `MockLLMProvider` injected via `engine->set_llm_provider(std::make_unique<MockLLMProvider>())`
 
 #### Scenario: G1 plugin accepts mock code input
 - **WHEN** a caller invokes G1 with `{"request": "审查这段代码", "code": "<mock code string>"}`
@@ -27,11 +27,11 @@ The G1 plugin MUST discover exactly 1 tool (`knowledge_base/query`) and MUST NOT
 - **THEN** the manifest MUST contain exactly 1 entry (`knowledge_base/query`), verified by unit test `tests/test_service_v1.cpp`
 
 ### Requirement: G1 Plugin Reuses Sprint 20 DEFINE_AGENT
-The G1 plugin MUST use the existing `DEFINE_AGENT(React)` macro (Sprint 20) and MUST NOT introduce new agent loop macros. This enforces the "no new macros in v1" constraint.
+The G1 plugin MUST use the existing `DEFINE_AGENT(name, loop_type)` macro (Sprint 20, 2-parameter form) and MUST NOT introduce new agent loop macros. This enforces the "no new macros in v1" constraint. The `DSLEngine` instance must be constructed by the plugin's `pdk_init()` (or equivalent entry point) with `MockLLMProvider` set via `engine->set_llm_provider(...)` before the agent loop starts.
 
 #### Scenario: G1 plugin source uses DEFINE_AGENT(React)
 - **WHEN** reviewing the G1 plugin source code
-- **THEN** the plugin MUST use `DEFINE_AGENT(React, ...)` syntax and MUST NOT define a new agent loop macro
+- **THEN** the plugin MUST use `DEFINE_AGENT(CodingAssistant, AgentLoopType::React)` (2-parameter syntax, matching `include/agenticdsl/pdk/agent_macros.h` actual macro definition) and MUST NOT define a new agent loop macro
 
 ### Requirement: G1 Plugin MockLLMProvider Wiring
 The G1 plugin MUST use `MockLLMProvider` (Sprint 19) for all LLM calls within the ReAct loop, to avoid requiring a real LLM runtime for the v1 demo.
