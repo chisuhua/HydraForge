@@ -27,9 +27,11 @@
 
 ### 🔵 当前活跃 (0 个)
 
+> Phase 6 决定**不采用 OpenSpec change 仪式**启动 (Solo dev 管理简化), 改用 **直接 plan + 直接 commit** 模式 (见 `docs/superpowers/plans/2026-07-15-phase6-agentforge-mvp.md`). ADR 文档记录决策但无 openspec/ 变更目录.
+
 ### ✅ 已归档 (历史参考)
 
-> Phase 5 全部 8 个 OpenSpec changes (C9-C16) 已于 2026-07-03 ~ 2026-07-09 ship + archived；C17/C18 已于 2026-07-10 ship + archived；C19 (phase6-service-ification-v1) 已于 2026-07-15 ship + archived。下表为最近归档的变更状态汇总，**仅作历史参考**。
+> Phase 5 全部 8 个 OpenSpec changes (C9-C16) 已于 2026-07-03 ~ 2026-07-09 ship + archived；C17/C18 已于 2026-07-10 ship + archived；C19 (phase6-service-ification-v1) 已于 2026-07-15 ship + archived。Phase 6 (服务化) 暂缓, Phase 6-Redirect (AgentForge MVP) 不创建 OpenSpec change。下表为最近归档的变更状态汇总，**仅作历史参考**。
 
 | ID | 名称 | 阶段 | 状态 | 最后更新 |
 |----|------|------|:----:|:--------:|
@@ -37,16 +39,16 @@
 
 | ID | 名称 | 阶段 | 状态 | 最后更新 |
 |----|------|------|:----:|:--------:|
-| **C18** | Phase 5 Sprint 22 Drift + Strategic Gate (`2026-07-10-phase5-sprint22-drift-strategic-gate`) | ✅ Done | **✅ shipped + archived 2026-07-10** | 2026-07-10 |
-| **C17** | Phase 5 ADR States Final Sync (`2026-07-10-phase5-adr-states-final-sync`) | ✅ Done | **✅ shipped + archived 2026-07-10** | 2026-07-10 |
-| **C16** | ILLMProvider Call Chain V2 (`phase5-illmprovider-call-chain-v2`) | ✅ Done | **✅ shipped + archived 2026-07-09 (§5 顺延)** | 2026-07-09 |
-| **C15** | Batching Queue Plugin (`phase5-batching-queue-plugin`) | ✅ Done | **✅ shipped + archived 2026-07-07 (D2 精简版)** | 2026-07-07 |
-| **C14** | Llama Engine Plugin (`phase5-llama-engine-plugin`) | ✅ Done | **✅ shipped + archived 2026-07-08** | 2026-07-08 |
-| **C13** | B2 架构层 Schema (`phase5-b2-arch-schemas`) | ✅ Done | **✅ shipped + archived 2026-07-07** | 2026-07-07 |
-| **C12** | Phase 5 Step 2 Yield Stream (`2026-07-04-phase5-stage1-step2-yield-stream`) | ✅ Done | **✅ shipped + archived 2026-07-04** | 2026-07-04 |
-| **C11** | Phase 5 Step 1 Session Registry (`2026-07-04-phase5-stage1-step1-session-registry`) | ✅ Done | **✅ shipped + archived 2026-07-04** | 2026-07-04 |
-| **C10** | Phase 5 Step 0 Lazy ModuleState (`2026-07-03-phase5-stage1-step0-lazy-modulestate`) | ✅ Done | **✅ shipped + archived 2026-07-03** | 2026-07-03 |
-| **C9** | Phase 4.5 Impl-Scope Audit (`2026-07-03-phase4-5-impl-scope-audit`) | ✅ Done | **✅ shipped + archived 2026-07-03** | 2026-07-03 |
+| **C18** | Phase 5 Sprint 22 Drift + Strategic Gate (`2026-07-10-phase5-sprint22-drift-strategic-gate`) | ✅ Done | **✅ shipped + archived 2026-07-10** |
+| **C17** | Phase 5 ADR States Final Sync (`2026-07-10-phase5-adr-states-final-sync`) | ✅ Done | **✅ shipped + archived 2026-07-10** |
+| **C16** | ILLMProvider Call Chain V2 (`phase5-illmprovider-call-chain-v2`) | ✅ Done | **✅ shipped + archived 2026-07-09 (§5 顺延)** |
+| **C15** | Batching Queue Plugin (`phase5-batching-queue-plugin`) | ✅ Done | **✅ shipped + archived 2026-07-07 (D2 精简版)** |
+| **C14** | Llama Engine Plugin (`phase5-llama-engine-plugin`) | ✅ Done | **✅ shipped + archived 2026-07-08** |
+| **C13** | B2 架构层 Schema (`phase5-b2-arch-schemas`) | ✅ Done | **✅ shipped + archived 2026-07-07** |
+| **C12** | Phase 5 Step 2 Yield Stream (`2026-07-04-phase5-stage1-step2-yield-stream`) | ✅ Done | **✅ shipped + archived 2026-07-04** |
+| **C11** | Phase 5 Step 1 Session Registry (`2026-07-04-phase5-stage1-step1-session-registry`) | ✅ Done | **✅ shipped + archived 2026-07-04** |
+| **C10** | Phase 5 Step 0 Lazy ModuleState (`2026-07-03-phase5-stage1-step0-lazy-modulestate`) | ✅ Done | **✅ shipped + archived 2026-07-03** |
+| **C9** | Phase 4.5 Impl-Scope Audit (`2026-07-03-phase4-5-impl-scope-audit`) | ✅ Done | **✅ shipped + archived 2026-07-03** |
 
 ### 状态图例
 
@@ -58,7 +60,9 @@
 | 🔨 编码 | 正在写代码 |
 | ✅ Done | 全部 ship gate 通过 |
 | 🔒 阻塞 | 等待外部条件 |
+| ⏸ 暂缓 | 结构性暂缓 (ADR-0050 Solo Dev 重新评估) |
 | ➡️ 顺延 | 无启动触发条件 |
+| 🚀 New Sprint | 新 Sprint 启动 (无 OpenSpec change 仪式) |
 
 ---
 
@@ -134,21 +138,23 @@
 
 | 顺延项 | 影响 | 启动条件 | 处理方式 |
 |--------|------|:--------:|---------|
-| ➡️ C16 §5 Cloud plugin 顺延 | 持续关注 | 外部触发 (CloudLLMProvider 实施需求) | 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` 跟踪 |
+| ⏸ **Phase 6 服务化 (Candidate B)** | **结构性暂缓** — ADR-0050 §启动条件 #4 Solo Dev 容量 + #5 AgentForge 非真正"外部" 双重不满足 | (1) PDK 生产化达 Sprint 25 末里程碑; (2) AgentForge MVP 验证; (3) 服务化范围文档 ≤1 周可完成 (Solo dev 适配) | ADR-0050 Solo Dev 重新评估 (2026-07-15) + 新 plan `2026-07-15-phase6-agentforge-mvp.md` |
+| ➡️ C16 §5 Cloud plugin 顺延 | 持续关注 | 外部触发 (CloudLLMProvider 实施需求) | 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` 跟踪 (受 Phase 6 暂缓影响) |
 | ➡️ C17 排除 ADR-0030 V2 顺延 | Fleet 实施需求 | FleetOrchestrator 解除延迟 (Oracle 2026-06-27 决议) | C19 或后续 ship 时迁移至 🟡 Partial |
-| ➡️ C17 排除 ADR-0037 顺延 | 因果排序机制未实施 | Phase 6 实施 | 由 C19/C20 范围评估 |
+| ➡️ C17 排除 ADR-0037 顺延 | 因果排序机制未实施 | Phase 7+ 自进化 | 由 AgentForge 使用情况触发 |
 | ➡️ C17 排除 ADR-0038 顺延 | 推理引擎动态配置接口未实施 | 第二个推理 backend 出现时 (per ADR-0038 §增量决议) | C15 实施后由 C18 重新评估 |
-| ➡️ C17 排除 ADR-0039 顺延 | JSON 查询工具 (`inference/get/status`) 未实现 | C19 实施 (Phase 6) | C19 plan 时纳入 |
-| ➡️ C17 排除 ADR-0042 顺延 | ILLMProvider 演进路径仅部分决策实施 | C16 §5 Cloud 插件 + 第 2 阶段重新映射交付后 | C20 处理 |
-| ➡️ C17 排除 ADR-0045 顺延 | 编排 Plugin 仅 step 2 部分交付 (~20% 实施) | Phase 6 实施 | C19/C20 范围评估 |
-| ➡️ C17 排除 ADR-0046 顺延 | 4 通道架构仅通道 ① 完成 (~25% 实施) | Phase 6 实施 | C19/C20 范围评估 |
-| 🔒 ADR-0050 §启动条件 #5 字面要求 | C20-Spike 内部 PDK 互调 vs ADR-0050 "外部 agent/tool" 字面冲突 | Oracle round 4 re-evaluation 确认内部 Spike 证据支持 (Spike→Candidate B 提升条件 #4) | C20-Spike → C20 正式启动时 |
-| 🔒 ADR-0051 Phase 6 PDK Composition Spike | 🔍 Proposed 2026-07-14 (Phase 6 内部组合可行性 Spike; **不兑现** ADR-0050 Candidate B 战略目标) | Spike ship gate (W3 D14) + Oracle Q6 follow-up confirmation | C20-Spike W3 → archive 后翻 ✅ Approved (experimental) |
-| 🔒 C20-Spike W2-W3 实施 | W2-W3 BLOCKED on (i) Stage Gate 2026-07-18 通过; (ii) Sprint 23 capacity 1.5 eng × 2 周; (iii) Oracle Q6 confirmation | 3 项 unlock 全部满足 | C20-Spike → W2-W3 启动 |
+| ➡️ C17 排除 ADR-0039 顺延 | JSON 查询工具 (`inference/get/status`) 未实现 | 实际外部消费者触发时 | 由 AgentForge 反馈触发 |
+| ➡️ C17 排除 ADR-0042 顺延 | ILLMProvider 演进路径仅部分决策实施 | C16 §5 Cloud 插件 + 第 2 阶段重新映射交付后 | Phase 6 服务化重新评估时处理 |
+| ➡️ C17 排除 ADR-0045 顺延 | 编排 Plugin 仅 step 2 部分交付 (~20% 实施) | Phase 6 实施 | 由 AgentForge 多 agent 协作需求触发 |
+| ➡️ C17 排除 ADR-0046 顺延 | 4 通道架构仅通道 ① 完成 (~25% 实施) | Phase 6 实施 | 由 AgentForge 多通道需求触发 |
+| 🔒 ADR-0050 §启动条件 #5 字面要求 | AgentForge = HydraForge 同人项目, 非真正"外部 agent/tool" | Oracle round 4 重新评估 (选项 A/B/C per ADR-0051 §后续 #9 注释) | Sprint 24-25 后评估 |
+| ✅ ADR-0051 Phase 6 PDK Composition Spike | ✅ Approved (experimental) 2026-07-15 | 已满足 | 一 |
+| 🚀 Sprint 24 AgentForge MVP | 启动中 | 不需要 (已启动) | plan 文件 `2026-07-15-phase6-agentforge-mvp.md` |
 
 > **C17 排除原因明细**: 详见 [`docs/superpowers/plans/2026-07-10-phase5-remainder-adr-sync.md` §十一.3](superpowers/plans/2026-07-10-phase5-remainder-adr-sync.md) (Metis 审查 `ses_0b02706b7ffepKdYy3qxnmOzXy` 裁决后用户选项 A 决策 2026-07-10, 范围 12 → 5)
 >
-> **C20-Spike reframing**: Oracle session `ses_0a206a23cffe1IEirU5iNaxFxC` (二轮) + `ses_0a17108b5ffexaXTWhF8vXot6b` (Q1-Q6 决策) 共同裁定 C20 内部 PDK 组合与 ADR-0050 §决策 "外部 MCP/OpenAI API" 战略目标存在 reframing；Spike 保留 ADR-0050 §决策不动，新建 ADR-0051 作为 Phase 6 内部组合 Spike；Phase 6 正式 Candidate B v1 仍需满足 ADR-0050 §启动条件 5 项。
+
+> **2026-07-15 新增**: Phase 6 服务化结构性暂缓, 由 `2026-07-15-phase6-agentforge-mvp.md` 替代. 所有原 Phase 6 顺延项 (ADR-0037/0038/0039/0042/0045/0046 + ADR-0050 #5) 启动条件统一改为 "AgentForge 使用反馈触发".
 
 ---
 
@@ -179,12 +185,35 @@
 
 ## 六、下一步行动 (按当前焦点)
 
-1. **C20-Spike ✅ shipped + archived**: ADR-0051 ✅ Approved (experimental), OpenSpec change `phase6-service-ification-v1` archived to `2026-07-15-phase6-service-ification-v1`. §12 (5 Post-Ship items) + §13 (7 Promotion Criteria) deferred to Sprint 24+.
-2. **C20 kickoff (Sprint 24+)**: G2/G4/G5 teams use `docs/service-composition/spike-onboarding.md` as onboarding material. C20 scope: Phase 6 Candidate B v1 (ADR-0050 §决策 正式实施).
-3. **C19 (fork-checkpoint) 推迟**: 与 Candidate A (自进化) 重新对齐, ADR-0033 已覆盖请求级隔离; C19 触发条件 = Candidate A 正式启动时
-3. **C16 §5 Cloud plugin 顺延**: 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` 跟踪 (C17 ship 后 ADR-0035 ✅ Approved 满足实施依赖)
-4. **ADR-0051 状态翻 ✅ Approved (experimental)**: C20-Spike W3 ship gate 通过后自动翻; 不影响 ADR-0050 🔍 Proposed 状态
-5. **ADR-0050 保持不动**: §决策 / §启动条件 全部保留; Phase 6 Candidate B v1 正式启动仍需满足全部 5 项硬前置
+> **2026-07-15 方向重定向**: Phase 6 (服务化) 结构性暂缓 (见 ADR-0050 §决策 Solo Developer 重新评估段); 转向 PDK 生产化 + AgentForge MVP 路径 (新 plan: `docs/superpowers/plans/2026-07-15-phase6-agentforge-mvp.md`).
+
+### Sprint 24 (2026-07-15 ~ 2026-07-29, 2 周)
+
+1. **本周 (Day 1-2)**: 创建 `agentforge/` 独立项目脚手架
+   - 拷贝 `examples/agent_basic/` 作为种子
+   - 实现 1 个微型领域 agent (任何领域都行, 目标是建立 PDK 连接)
+   - 验证 `DSLEngine::set_llm_provider()` + DECLARE_TOOL 调用成功
+   - **边界**: 不超过 4 小时; 不要追求完美
+2. **Week 1**: SafeExec 重写 (PDK 最高风险修复)
+   - `std::async` + `wait_for` → `std::jthread` + `stop_token` 或复用 `DomainWorkerPool`
+   - TDD: 先写测试验证线程不泄漏
+3. **Week 2**: PDK README + 真实 LLM 路由示例
+   - `include/agenticdsl/pdk/README.md` (~2 页贯穿示例)
+   - Demo: AgentForge agent 通过 `ILLMProvider` (非 Mock) 调用
+
+### Sprint 25 (2026-07-29 ~ 2026-08-12, 2 周)
+
+4. **PDK 开发者指南完整化**: 文档 + 3 个 agent loop 示例
+5. **AgentForge 第 2 个领域 agent**: 验证 PDK 复用性
+6. **Sprint 24 末决策点**: 评估 Phase 6 服务化是否重新启动
+
+### 已归档的 Phase 6 服务化路径
+
+- ⏸ **Phase 6 服务化 (Candidate B)** 暂缓, 启动条件重新定义 (见 §四)
+- ⏸ **C20 (analysis-service)** 暂停, 等 Sprint 24-25 末评估 (ADR-0050 §决策 Solo 重新评估段)
+- ⏸ **C16 §5 Cloud plugin** 顺延不变 (独立 change 跟踪)
+- ⏸ **C19 (fork-checkpoint)** 推迟不变, 触发条件 = Phase 7+ 自进化
+- ✅ **ADR-0051 ✅ Approved (experimental)** 状态保留, 不影响其他 ADR
 
 ---
 

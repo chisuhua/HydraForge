@@ -11,6 +11,21 @@
 
 ---
 
+## Phase 5 收官 + Phase 6 重定向 (2026-07-15 更新)
+
+> ⚠️ **本计划作为 Phase 5 收官档案保留**. Phase 6 服务化 (原 C20) 结构性暂缓, Sprint 24+ 转向 **PDK 生产化 + AgentForge MVP** 路径.
+>
+> **Phase 6 新主计划** (替代本文件的活跃追踪) → `docs/superpowers/plans/2026-07-15-phase6-agentforge-mvp.md`
+>
+> **触发决策**: ADR-0050 §决策 Solo Developer 重新评估 (2026-07-15)
+> - 单一开发者无法 commit "1-2 eng × 4-6 周无中断" 容量 (#4 字面失效)
+> - 唯一具体集成目标 AgentForge 由同一构建者开发, 非真正"外部 agent/tool" (#5 实质失效)
+> - 替代路径: Sprint 24-25 PDK 生产化 + AgentForge MVP 验证 (2 周反馈循环), 等 Sprint 25 末重新评估服务化
+>
+> **历史 sprint 跟踪** (本文件 §一 / §二 / §三 全部有效, 仅作为 2026-07-03 ~ 2026-07-15 期间的 sprint 完整记录), 后续活跃 Sprint 24+ 见新 plan.
+
+---
+
 ## 一、当前项目基线 (2026-07-03)
 
 | 维度 | 状态 | 证据 |

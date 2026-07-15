@@ -266,6 +266,10 @@ Per ADR-0051 §不变量: `thread_local` 变量绑定 DomainWorkerPool jthread w
 7. **Post-Spike**: 2 周 production-like 监控 escalation triggers
 8. **ADR-0052 draft**: 仅当 2+ different-category awkward patterns 触发 (per §触发条件 T-5)
 9. **Oracle round 4**: 评估内部 Spike 证据是否支持 ADR-0050 §启动条件 #5 (外部 agent/tool 需求)
+   - **2026-07-15 注释**: 在 Solo Dev + AgentForge 同人项目现实下, "外部 agent/tool" 字面要求 **结构性不成立** (AgentForge 由 HydraForge 同一构建者开发). Oracle round 4 需重新评估:
+     - 选项 A: 接受 AgentForge = 内部跨项目消费 (#5 解释放宽)
+     - 选项 B: 引入真正外部触发后再启动服务化 (e.g. AgentForge 团队招募第二位贡献者, 或外部项目 cite HydraForge)
+     - 选项 C: 暂缓 Oracle round 4, 等 Sprint 24+ AgentForge MVP 落地后用真实证据评估
 
 ---
 

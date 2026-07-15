@@ -108,6 +108,21 @@
 - **Session**: `ses_0ae4b8107ffetONLmb2Sv2wTb5` (2026-07-11, Phase 6 战略评估)
 - **核心论证**: 团队容量是 binding constraint, 路径依赖决定 B 优先, 外部触发因素 (C16 §5) 未到
 
+### Solo Developer 重新评估 (2026-07-15) ⚠️ 状态补充
+
+**触发**: 用户 2026-07-15 确认 HydraForge 由 **单一开发者**维护 (非 1-2 工程师团队), 且已规划基于 HydraForge PDK 启动下游项目 **AgentForge** 作为领域 Agent 实现载体。
+
+**对原决策的影响**:
+
+| §项 | 原措辞 | Solo Dev 修正 | 影响 |
+|------|--------|-------------|------|
+| §决策推荐 B | "1-2 工程师 × 4-6 周" | "1 人 × 6-10 日历周 (连续投入不足, 间歇性)" | B 估时翻倍; 服务化预算 vs. PDK 生产化预算 互斥 |
+| §启动条件 #4 | "1-2 工程师 4-6 周无中断可用" | 重写为 solo dev 容量 (见下方修正) | 字面失效 |
+| §启动条件 #5 | "≥1 个外部 agent/tool" | **部分满足**: AgentForge 由同一构建者开发, 非真正外部实体 | Oracle round 4 重新评估 |
+| §不变量 ADR-0020 | "Week 4 TSan" | "Week 8-10 TSan" (日历时间扩展) | 缓解窗口拉长 |
+
+**修正后的方向**: 见 [§决策后续](#solo-dev-重新评估后续-action-2026-07-15) — 暂缓 Phase 6 服务化, 优先 PDK 生产化 + AgentForge MVP 验证 (单一开发者路径).
+
 ---
 
 ## 启动条件 (Phase 6 硬前置)
@@ -117,8 +132,17 @@
 1. **Phase 5 完全关闭**: C17 OpenSpec change 已 archive (✅), active OpenSpec changes = 0 (C18 收官后满足)
 2. **服务化范围文档批准**: 明确 in-scope (MCP server + OpenAI-compatible `/v1/chat/completions` + `/v1/models`) 和 out-of-scope (cloud deployment → Candidate D follow-up), 使 C16 §5 成为可选而非阻塞依赖
 3. **C20 placeholder 决议**: analysis-service placeholder 激活 (见下文 §C19/C20 决策)
-4. **团队容量确认**: 1-2 工程师 4-6 周无中断可用
-5. **≥1 个具体集成目标**: 至少识别 1 个会消费 MCP/OpenAI API 的外部 agent/tool (避免"建了没人用")
+4. ~~**团队容量确认**: 1-2 工程师 4-6 周无中断可用~~ → **修正 (2026-07-15 Solo Dev 重新评估)**: Solo dev 容量受日常事项 + 其他项目 (含 AgentForge) 挤压. Phase 6 启动条件 #4 **重写为** "Solo dev 连续 8-10 周不投入其他大幅工作的承诺". 实务上 = 先推 Sprint 24-25 PDK 生产化 + AgentForge MVP (可衡量), 待 PDK 成熟后再评估服务化启动窗口.
+5. **≥1 个具体集成目标**: 至少识别 1 个会消费 MCP/OpenAI API 的外部 agent/tool (避免"建了没人用"). **修正 (2026-07-15)**: AgentForge 作为 HydraForge 同一构建者的下游项目, 不构成字面"外部"消费者. Oracle round 4 (ADR-0051 §后续 #9) 需重新评估 #5 是否可放宽至"内部跨项目消费" 或 是否需引入真正外部触发后再启动服务化.
+
+> **Phase 6 启动条件当前状态**:
+> - #1 ✅
+> - #2 🔒 未启动 (Phase 6 整体暂停中)
+> - #3 ✅ (analysis-service placeholder 激活决策已记录, 但 OpenSpec change 不启动)
+> - #4 🔴 **修正后仍不可行** (8-10 周连续 solo dev 不现实)
+> - #5 🟡 **部分满足但需重新评估**
+>
+> **结论**: Phase 6 Candidate B (服务化) 在 Solo Dev 现实下 **结构性阻塞**, 不应再 push. 转向 "PDK 生产化 + AgentForge MVP 验证" 路径 (新 plan: `docs/superpowers/plans/2026-07-15-phase6-agentforge-mvp.md`).
 
 ---
 
@@ -158,6 +182,20 @@
 **不归档理由**: ADR-0033 session hierarchy 已覆盖请求级隔离, 但 C19 的 "checkpoint" 语义在 Phase 7+ 自进化仍有价值.
 
 **触发条件**: 重新评估时机 = Candidate A (自进化) 正式启动时. 若 Phase 7 仍不启动, 且 ADR-0033 证明足够, 则归档 C19.
+
+---
+
+### Solo Dev 重新评估后续 Action (2026-07-15)
+
+**Phase 6 服务化 (Candidate B) → ⏸ 暂缓, 结构性降级为 Path-dependent 启动条件.**
+
+原 C20 决策 (analysis-service 激活) 暂停. 等以下条件重新满足时再评估:
+
+1. PDK 生产化达 Sprint 25 末里程碑 (SafeExec 重写 + 文档 + 真实 LLM 集成完成)
+2. AgentForge MVP 验证 (≥1 个领域 agent 通过 PDK 调用成功)
+3. **同时**, Phase 6 服务化范围文档可压缩到 ≤1 周完成 (Solo dev 适配)
+
+满足上述 3 项后, 可重新评估 C20 OpenSpec change 创建 (估时窗口: Sprint 26 末).
 
 ---
 
