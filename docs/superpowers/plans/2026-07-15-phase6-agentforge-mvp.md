@@ -217,9 +217,46 @@ git add -A && git commit -m "feat: bootstrap AgentForge with first domain agent 
 | 2026-07-15 | 不创建 OpenSpec change | Solo Dev 减少管理开销原则 |
 | 2026-07-15 | 不重命名 master plan | `2026-07-03-phase5-self-bootstrapping.md` 仅加 closeout banner |
 | 2026-07-15 | ADR-0050 §启动条件 #4/#5 修正但保持 🔍 Proposed | Phase 6 服务化决策保留, 不强行翻转 |
+| 2026-07-15 | Q3 实施路线 = **Route B+** (Oracle 推荐, Medium-High 置信度) | Oracle session `ses_097e891c3ffeDhQaBnl1yuFnX2`: SafeExec 不在 Day 1-6 critical path, dopamine feedback 优先 |
+| 2026-07-15 | Repo = 新建 `chisuhua/AgentForge` (Q1 已接受, librararian + Oracle 验证) | hydraforge-pdk = PDK 分发仓库, 角色反向, 生命周期不同 |
+| 2026-07-15 | TUI 库 = FTXUI v6 vendor (Q2 已接受) | ADR-0019 §5.3 设计一致 + header-only |
+
+## 八、执行日志 (Sprint 24 进度)
+
+### Day 1 (2026-07-15) ✅ Done
+
+**Commit**: `chisuhua/AgentForge@3f189e3` (root commit on main, forced update replaced auto-generated README)
+**URL**: https://github.com/chisuhua/AgentForge
+**实际时长**: ≤1h (远低于 Oracle 4h STOP 条件)
+
+**Deliverables (6 files, 308 insertions)**:
+- `CMakeLists.txt` — `find_package` stub + `FetchContent(HydraForge)` (Day 2+ 接入 targets)
+- `README.md` — purpose + ASCII mock + Sprint 24 状态 + 5 决策摘要
+- `docs/ADR-AF-001-design.md` — 5 个关键决策固化 (TUI/Loop/LLM/工具/审批), 标记 DRAFT (Sprint 24 末升级)
+- `.gitignore` — build/ vendor/build/ .agentforge/ 等完整覆盖
+- `LICENSE` — Apache 2.0 (与 HydraForge 一致)
+- `src/main.cpp` — 5 行 hello world
+
+**关键决策落地**:
+- ✅ gh auth `chisuhua` 账号已配置 (Oracle STOP 条件 #1 不触发)
+- ✅ force push 成功 (`0e2fdfc...3f189e3 main -> main`)
+- ✅ LSP discipline 不适用 (AgentForge 是新 repo, HydraForge pre-existing 错误与本任务无关)
+- ✅ 0 代码逻辑 (符合 Day 1 "skeleton only" 边界)
+- ✅ 工作目录 `/tmp/opencode/agentforge/` (避免 HydraForge monorepo 污染)
+
+**下一步 (Day 2)**:
+1. vendor/ftxui/ v6 git subtree 或 cp -r (~1h)
+2. HydraForgeClient 封装 (DSLEngine + InMemoryBus) (~3h)
+3. 验证 `cmake -B build && cmake --build build` 通过 (≤1h)
+4. Day 2 commit + push
+
+**Oracle B+ STOP 条件触发监控**:
+- Day 1 ≤ 1h elapsed ✅ (远低于 6h 上限)
+- FetchContent 未执行 (Day 2 才用) ⏳
+- FTXUI vendor 未执行 (Day 2 才用) ⏳
 
 ---
 
-**最后更新**: 2026-07-15 (创建)
-**计划状态**: 🚀 Active (Sprint 24 已启动)
-**下一决策点**: 2026-07-29 (Sprint 24 末) + 2026-08-12 (Sprint 25 末)
+**最后更新**: 2026-07-15 (Day 1 完成)
+**计划状态**: 🚀 Active (Sprint 24 Day 1 ✅, Day 2-12 pending)
+**下一决策点**: 2026-07-29 (Sprint 24 末验收) + 2026-08-12 (Sprint 25 末)
