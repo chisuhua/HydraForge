@@ -301,8 +301,60 @@ cmake --build build   # [100%] Built target agentforge
 4. DECLARE_TOOL × 2 起步 (fs/read + fs/write)
 5. 跑通 MockLLMProvider 端到端测试
 
+### Day 3 (2026-07-15) 🟡 STOP 条件触发 + Pivot
+
+**Commit**: `dc33384` (docs(adr): Day 3 lessons learned — HydraForge FetchContent blocked, pivot to MockLLMProvider)
+**URL**: https://github.com/chisuhua/AgentForge/commit/dc33384
+
+**事件**: 尝试 `cmake -DAGENTFORGE_FETCH_HYDRAFORGE=ON` 验证 HydraForge FetchContent 路径
+
+**Oracle B+ STOP 条件 #2 触发**: "FetchContent >2h fail → commit ADR-AF-001 lessons learned + pivot to alternative path" (实际 <2h 即明确阻塞)
+
+**根因**:
+```
+CMake Error at build/_deps/hydraforge-src/CMakeLists.txt:46 (add_subdirectory):
+  add_subdirectory given source "external/taskflow" which is not an existing
+  directory.
+```
+- HydraForge monorepo `CMakeLists.txt:46` 引用 `external/taskflow`
+- 该目录不在 git tree 中（不是 submodule, `.gitmodules` 中也没有）
+- HydraForge 内部 vendoring 不完整 (nlohmann_json/inja/yaml-cpp 是 submodule, taskflow 不是)
+- **不是 AgentForge 配置问题, 是 HydraForge 仓库问题**
+
+**Pivot 决策** (per Oracle B+ STOP + Solo Dev 减少管理原则):
+- ❌ **不**等待 HydraForge 修复 taskflow (阻塞 AgentForge 进度)
+- ❌ **不**vendor HydraForge 整个 monorepo (100s MB 超 MVP 合理体积)
+- ✅ **Day 4 改用 MockLLMProvider-only 路径** (复用 HydraForge `examples/agent_simple/` 模式, 但不 fetch 整个 Runtime)
+- ✅ **起草 HydraForge 侧 ADR-AF-001 镜像提案** (推动 Runtime install rules + `find_package(HydraForge ...)` consumer entry, 这是 FetchContent 路径长期解锁的唯一办法)
+
+**对 §蓝图的影响**:
+- 决策 1 (TUI = FTXUI v6) ✅ 不变 (vendor 完成)
+- 决策 2 (Agent Loop = React) ✅ 不变 (DEFINE_AGENT 不依赖 HydraForge Runtime)
+- 决策 4 (工具 = DECLARE_TOOL + register_tool_function) ✅ 不变 (宏 + 函数注册不依赖 Runtime)
+- 决策 5 (审批 = stdin transport) ✅ 不变 (ApprovalHandler 已 ship 在 hydraforge-pdk)
+- 决策 3 (LLM 接入 = LLMProviderFactory + Decorator 链) 🟡 **暂时降级为 MockLLMProvider**, 等 install rules ship 后升级
+
+**Day 4 调整后路径**:
+| 步骤 | 原计划 | Day 3 pivot |
+|------|--------|-------------|
+| Day 4 | HydraForgeClient 真实 LLM | MockLLMProvider 模式 + DEFINE_AGENT 端到端 |
+| Day 5-8 | 7 个 fs/* + shell/exec 工具 | **不变** (DECLARE_TOOL 不依赖 Runtime) |
+| Day 9 | 真实 LLM 端到端 | **推迟** 到 HydraForge install rules ship |
+| Day 10 | docs ADR-AF-001 final | **不变** (Day 3 已写 lessons learned 段) |
+
+**HydraForge 侧紧急事项** (Sprint 24 末决策点):
+1. 修复 `external/taskflow` vendoring (add as submodule 或 vendored 目录)
+2. 起草 Runtime install rules + `find_package(HydraForge ...)` consumer entry (推动 AgentForge FetchContent 路径)
+3. 这 2 项完成 → Sprint 25+ 可重新评估 Phase 6 服务化 (ADR-0050 §决策 Solo 重新评估段触发条件)
+
+**Oracle B+ STOP 条件 Day 3 监控**:
+- FetchContent fail < 2h ✅ (实际 <2h, 立即触发 pivot)
+- Day 3 实际 ≤ 30min elapsed
+- ADR-AF-001 lessons learned 段已添加 ✅
+- Pivot 决策明确记录 ✅
+
 ---
 
-**最后更新**: 2026-07-15 (Day 1 + Day 2 完成)
-**计划状态**: 🚀 Active (Sprint 24 Day 1-2 ✅, Day 3-12 pending)
-**下一决策点**: 2026-07-29 (Sprint 24 末验收) + 2026-08-12 (Sprint 25 末)
+**最后更新**: 2026-07-15 (Day 1 + Day 2 + Day 3 完成, Day 3 STOP 触发)
+**计划状态**: 🚧 Active (Sprint 24 Day 1-3 ✅, Day 4 pivot to MockLLMProvider, Day 5+ 待定)
+**下一决策点**: 2026-07-29 (Sprint 24 末验收) — 评估 4 项 (HydraForge install rules / taskflow 修复 / Mock-only 路径 / Sprint 25 启动)
