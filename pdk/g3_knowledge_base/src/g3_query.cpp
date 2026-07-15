@@ -97,9 +97,18 @@ struct G3AuditRecord {
   std::vector<std::string> args_keys_only;
   int64_t return_latency_ms = 0;
   bool callee_internally_invoked_llm = false;
+
+  // §6.3+§6.4 escalation triggers
+  size_t session_store_size = 0;        // §6.3: flag if > 1000
+  size_t total_calls = 0;              // §6.4: denominator for error ratio
+  size_t error_calls = 0;              // §6.4: flag if error/total > 0.1
 };
 
 static G3AuditRecord g_last_audit;
+
+// §6.4 error ratio counters (static, plugin-lifetime)
+static size_t g_total_query_calls = 0;
+static size_t g_error_query_calls = 0;
 
 static std::vector<std::string> collect_arg_keys(
     const std::unordered_map<std::string, std::string>& m) {
@@ -126,8 +135,12 @@ json handle_knowledge_base_query(const std::unordered_map<std::string, std::stri
   std::string answer = g3_internal_llm(context + "Q: " + question + "\nA:");
   auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - t0).count();
-  g_last_audit = {session_id, "knowledge_base/query", collect_arg_keys(args_map), ms, true};
-  if (answer.empty())
+  bool is_error = answer.empty();
+  g_total_query_calls++;
+  if (is_error) g_error_query_calls++;
+  g_last_audit = {session_id, "knowledge_base/query", collect_arg_keys(args_map), ms, true,
+                  store.size(), g_total_query_calls, g_error_query_calls};
+  if (is_error)
     return {{"success", false}, {"error", "LLM returned empty response"}};
   store.append(session_id, question, answer);
   return {{"success", true}, {"answer", answer}};
@@ -184,6 +197,21 @@ int64_t g3_kb_audit_latency_ms() {
 }
 int g3_kb_audit_llm_invoked() {
   return agenticdsl::pdk::g3::g_last_audit.callee_internally_invoked_llm ? 1 : 0;
+}
+
+// §6.3+§6.4 escalation trigger field accessors
+size_t g3_kb_session_store_size() {
+  return agenticdsl::pdk::g3::g_last_audit.session_store_size;
+}
+size_t g3_kb_total_calls() {
+  return agenticdsl::pdk::g3::g_total_query_calls;
+}
+size_t g3_kb_error_calls() {
+  return agenticdsl::pdk::g3::g_error_query_calls;
+}
+void g3_kb_reset_counters() {
+  agenticdsl::pdk::g3::g_total_query_calls = 0;
+  agenticdsl::pdk::g3::g_error_query_calls = 0;
 }
 
 } // extern "C"

@@ -69,6 +69,12 @@ public:
     return ctx;
   }
 
+  /// 获取会话总数 (§6.3 escalation trigger: >1K → flag)
+  size_t size() const {
+    std::shared_lock lock(mutex_);
+    return sessions_.size();
+  }
+
   /// 清空所有会话 (测试用)
   void clear() {
     std::unique_lock lock(mutex_);
