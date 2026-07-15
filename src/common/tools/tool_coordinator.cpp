@@ -83,19 +83,10 @@ ToolCoordinatorNestingGuard::ToolCoordinatorNestingGuard(
     const std::string& tool_name,
     const std::shared_ptr<IInteractionBus>& bus)
     : name_(tool_name) {
-  // ----- depth check (BEFORE state modification) -----
-  if (tls_nesting_depth >= 2) {
-    throw std::runtime_error(
-        "ToolCoordinator nesting depth > 2 (depth=" +
-        std::to_string(tls_nesting_depth + 1) + "): " + name_ +
-        " | call_stack: " + format_call_stack());
-  }
-
-  // ----- cycle check (同一工具名已在 stack 中?) -----
+  // ----- cycle check FIRST (more specific than depth, per ADR-0051 §Decision 6) -----
   auto it = std::find(tls_active_call_stack.begin(),
                       tls_active_call_stack.end(), name_);
   if (it != tls_active_call_stack.end()) {
-    // 发射 cycle_detected_log audit event (before HARD KILL)
     if (bus) {
       nlohmann::json payload;
       nlohmann::json stack = nlohmann::json::array();
@@ -113,6 +104,14 @@ ToolCoordinatorNestingGuard::ToolCoordinatorNestingGuard(
     throw std::runtime_error(
         "ToolCoordinator cycle detected: " + name_ +
         " already in call_stack | stack: " + format_call_stack());
+  }
+
+  // ----- depth check -----
+  if (tls_nesting_depth >= 2) {
+    throw std::runtime_error(
+        "ToolCoordinator nesting depth > 2 (depth=" +
+        std::to_string(tls_nesting_depth + 1) + "): " + name_ +
+        " | call_stack: " + format_call_stack());
   }
 
   // ----- push state (检查通过后才修改) -----
