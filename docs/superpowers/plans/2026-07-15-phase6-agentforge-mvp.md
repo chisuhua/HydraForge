@@ -255,8 +255,54 @@ git add -A && git commit -m "feat: bootstrap AgentForge with first domain agent 
 - FetchContent 未执行 (Day 2 才用) ⏳
 - FTXUI vendor 未执行 (Day 2 才用) ⏳
 
+### Day 2 (2026-07-15) ✅ Done
+
+**Commits**:
+- `c123858` (fix: Day 1.1 — resolve Threads + gate HydraForge FetchContent)
+- `82fb139` (feat: vendor FTXUI v6.1.9 + HydraForgeClient skeleton)
+
+**URL**: https://github.com/chisuhua/AgentForge/commits/main
+
+**Deliverables (4 files new, 2 modified, +42562 insertions)**:
+- `vendor/ftxui/` — v6.1.9 tarball vendor (2.1MB, 308 files, header-only 用法)
+  - blueprint 写 v6.0.0 但该 tag 不存在, 改用最新 v6.1.9 (v7.0.0 风险过高, v6.x 末班车)
+  - `add_subdirectory` 留 Day 3+ (本期 header-only 不用构建 FTXUI 库)
+- `include/agentforge/hydraforge_client.h` — PIMPL interface (75 行)
+  - 5 公开方法: `initialize` / `start_session` / `stop_session` / `session_active` / `instance`
+  - 决策固化 per ADR-AF-001 §五决策 3 (LLM 接入 + Decorator 链)
+- `src/hydraforge_client.cpp` — Day 2 stub Impl (50 行)
+  - 所有方法返回 false / no-op 满足 linker; PIMPL Impl 仅含 `mutex` + `atomic<bool>` 占位
+  - Day 3+ 填 DSLEngine + IInteractionBus + LLMProviderFactory
+- `src/main.cpp` — 调用 `HydraForgeClient::instance()` (Day 2 dry-run)
+- `CMakeLists.txt` — `target_include_directories(agentforge PUBLIC include)` + 条件 PRIVATE FTXUI include path + 加入 `hydraforge_client.cpp` 到 target
+
+**构建验证**:
+```bash
+cmake -B build -S .   # 0.7s
+cmake --build build   # [100%] Built target agentforge
+./build/agentforge    # → "AgentForge MVP — Sprint 24 Day 2"
+```
+
+**Oracle B+ STOP 条件 Day 2 监控**:
+- Day 1.1 ≤ 30min (修复 Threads::Threads + 加 option gate) ✅
+- Day 2 vendor FTXUI ≤ 5min (curl tarball 比 git clone 快 4x) ✅
+- cmake configure 0.7s ✅
+- 实际 ≤2h elapsed (远低于 Oracle 6h 上限)
+
+**网络/构建观察**:
+- github.com curl OK (200), git clone 慢 (120s timeout for shallow) — tarball 路径更快更稳定
+- vendor/ftxui 全量提交 2.1MB, 308 files — 体积可接受 (header-only 必要文件)
+- HydraForge FetchContent (cmake -DAGENTFORGE_FETCH_HYDRAFORGE=ON) 仍 Day 3+ 验证
+
+**下一步 (Day 3+)**:
+1. 验证 `cmake -DAGENTFORGE_FETCH_HYDRAFORGE=ON` + cmake configure 通过
+2. 检查 HydraForge main 分支 DSLEngine 构造签名 (是否需要 `set_interaction_bus()` 前置)
+3. 替换 `HydraForgeClient::initialize()` stub 为真实 `LLMProviderFactory::create("openai")` + C16 Decorator 链
+4. DECLARE_TOOL × 2 起步 (fs/read + fs/write)
+5. 跑通 MockLLMProvider 端到端测试
+
 ---
 
-**最后更新**: 2026-07-15 (Day 1 完成)
-**计划状态**: 🚀 Active (Sprint 24 Day 1 ✅, Day 2-12 pending)
+**最后更新**: 2026-07-15 (Day 1 + Day 2 完成)
+**计划状态**: 🚀 Active (Sprint 24 Day 1-2 ✅, Day 3-12 pending)
 **下一决策点**: 2026-07-29 (Sprint 24 末验收) + 2026-08-12 (Sprint 25 末)
