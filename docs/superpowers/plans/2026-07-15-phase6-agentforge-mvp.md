@@ -73,6 +73,17 @@ git add -A && git commit -m "feat: bootstrap AgentForge with first domain agent 
 
 **失败 fallback**: 至少写一个 `AGENTFORGE.md` 文档列出 3 个 PDK 改进需求, 提交. 不需要代码.
 
+**📖 详细设计蓝图**: 见 [`docs/proposals/implementation/agentforge-mvp-blueprint.md`](../proposals/implementation/agentforge-mvp-blueprint.md) (Sprint 24 Day-by-Day 计划 + 5 个关键架构决策 + 6 个 Sprint 演进路径 + 风险评估). 任务 1 的具体实施细节（FTXUI vendor、7 工具清单、DEFINE_AGENT(React) 范式、DECLARE_TOOL + register_tool_function 混用、ApprovalHandler stdin transport 等）全部固化在该 blueprint 中.
+
+**关键决策摘要**（详见 blueprint §五）：
+- TUI 库 = **FTXUI v6** vendor 进 `vendor/ftxui/` (header-only, 与 ADR-0019 §5.3 设计一致)
+- Agent Loop = **React** (`DEFINE_AGENT`, 沿用 `pdk/g1_coding_assistant/` 范式)
+- LLM 接入 = **`LLMProviderFactory::create("openai")` + C16 Decorator 链** (CostTracking + RateLimit)
+- 工具注册 = **DECLARE_TOOL + register_tool_function 混用** (简单工具用宏, 需 state 的用函数)
+- 审批 = **ApprovalHandler stdin transport** (避免实现 ConfirmationDialog deferred 债)
+
+**任务 1 → 12 (Sprint 24 Day-by-Day)**: blueprint §八. 估时 ~38h ≈ 1.5 周, 含 CMake 骨架 + FTXUI vendor + 7 工具 + TUI 基础 + 真实 LLM 测试 + ADR-AF-001/002 文档.
+
 ### 任务 2: SafeExec 重写 (Week 1, ~22 小时)
 
 > **PDK 最高风险修复**. 当前 `std::async` + `wait_for` 在 `std::future` 销毁时泄漏线程.
