@@ -1,7 +1,8 @@
 // pdk/g3_knowledge_base/src/g3_query.cpp
-// 功能描述：knowledge_base/query 工具处理函数 + MockLLMProvider 集成
-//          注册工具到 IToolRegistry, 内部使用 SessionStore 管理多轮会话。
-//          Hardcoded retrieval (3-5 snippets) + MockLLMProvider generate()
+// 功能描述：knowledge_base/query 工具处理函数 + 内部 LLM 回调
+//          注册工具到 IToolRegistry, 使用 SessionStore 管理多轮会话。
+//          Hardcoded retrieval (3-5 snippets) + pluggable LLM callback
+//          避免依赖 agenticdsl_core (MockLLMProvider vtable/fPIC 冲突)
 // 设计依据：openspec/changes/phase6-service-ification-v1/
 //          tasks.md §2.3-2.7, specs/knowledge-base-agent/spec.md
 // 参考范式：pdk/llama_engine/src/llama_engine.cpp (C14 tool registration)
@@ -11,30 +12,68 @@
 #include "g3_state.h"
 
 #include "agenticdsl/contract/itool_registry.h"
-#include "common/llm/mock_provider.h"
 #include "common/policy/execution_policy.h"
 
 #include <nlohmann/json.hpp>
 
+#include <functional>
+#include <mutex>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 using json = nlohmann::json;
 
 namespace agenticdsl::pdk::g3 {
 
 // ============================================================================
-// MockLLMProvider (per Metis H5: 单线程, 每个 test 独立实例)
+// Internal LLM callback system (避免 MockLLMProvider vtable/fPIC 冲突)
 // ============================================================================
 
-static ::agenticdsl::MockLLMProvider& g3_mock_provider() {
-  static ::agenticdsl::MockLLMProvider instance;
-  return instance;
+/// LLM 回调签名: prompt → answer
+using LLMCallback = std::function<std::string(const std::string& prompt)>;
+
+namespace {
+  std::mutex g_cb_mutex;
+  LLMCallback g_llm_cb;
+  std::vector<std::string> g_call_prompts;
+  std::vector<std::string> g_queued_responses;
 }
 
-void g3_reset_mock() { g3_mock_provider().reset(); }
-void g3_enqueue_response(const std::string& text) { g3_mock_provider().enqueue_response(text); }
-const std::vector<::agenticdsl::GenerationRequest>& g3_call_history() { return g3_mock_provider().call_history(); }
+void g3_set_llm_callback(LLMCallback cb) {
+  std::lock_guard lock(g_cb_mutex);
+  g_llm_cb = std::move(cb);
+}
+
+void g3_reset_mock() {
+  std::lock_guard lock(g_cb_mutex);
+  g_call_prompts.clear();
+  g_queued_responses.clear();
+}
+
+void g3_enqueue_response(const std::string& text) {
+  std::lock_guard lock(g_cb_mutex);
+  g_queued_responses.push_back(text);
+}
+
+const std::vector<std::string>& g3_call_history() {
+  std::lock_guard lock(g_cb_mutex);
+  return g_call_prompts;
+}
+
+/// 内部 LLM 调用: 消费队列响应, 记录 prompt
+static std::string g3_internal_llm(const std::string& prompt) {
+  std::lock_guard lock(g_cb_mutex);
+  if (g_llm_cb) return g_llm_cb(prompt);
+
+  g_call_prompts.push_back(prompt);
+  if (!g_queued_responses.empty()) {
+    std::string r = g_queued_responses.front();
+    g_queued_responses.erase(g_queued_responses.begin());
+    return r;
+  }
+  return "G3: no response queued";
+}
 
 // ============================================================================
 // SessionStore (static singleton)
@@ -61,12 +100,11 @@ json handle_knowledge_base_query(const std::unordered_map<std::string, std::stri
   auto& store = g3_sessions();
   store.get_or_create(session_id);
   std::string context = store.build_context(session_id);
-  ::agenticdsl::GenerationRequest req{context + "Q: " + question + "\nA:"};
-  auto result = g3_mock_provider().generate(req, std::stop_token{});
-  if (!result.has_value())
-    return {{"success", false}, {"error", result.error().message}};
-  store.append(session_id, question, result.value().text);
-  return {{"success", true}, {"answer", result.value().text}};
+  std::string answer = g3_internal_llm(context + "Q: " + question + "\nA:");
+  if (answer.empty())
+    return {{"success", false}, {"error", "LLM returned empty response"}};
+  store.append(session_id, question, answer);
+  return {{"success", true}, {"answer", answer}};
 }
 
 // ============================================================================
@@ -90,3 +128,15 @@ void register_g3_tools(::agenticdsl::IToolRegistry& registry) {
 }
 
 } // namespace agenticdsl::pdk::g3
+
+// ============================================================================
+// Test helpers (extern "C" — dlsym'd by test_g3_knowledge_base)
+// ============================================================================
+
+extern "C" {
+
+void g3_kb_reset_mock() { agenticdsl::pdk::g3::g3_reset_mock(); }
+void g3_kb_enqueue_response(const char* text) { agenticdsl::pdk::g3::g3_enqueue_response(text); }
+void g3_kb_clear_sessions() { agenticdsl::pdk::g3::g3_clear_sessions(); }
+
+} // extern "C"
