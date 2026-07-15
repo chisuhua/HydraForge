@@ -3,7 +3,7 @@
 > 本文件由 `tools/adr_relationships.py` 自动生成，**请勿手动编辑**。
 > 任何手动修改会在下次运行时被覆盖。
 > 最后更新: 由 `tools/adr_relationships.py` 生成（运行时刻见 git commit 时间戳）
-> ADR 总数: 42
+> ADR 总数: 44
 
 ---
 
@@ -53,6 +53,8 @@
 | adr-0044 | 推理引擎 Plugin 安全模型 | ✅ Approved | Unknown |  |
 | adr-0045 | 编排 PDK Plugin 规范 | 🔍 Proposed | Unknown |  |
 | adr-0046 | PDK 插件间通信协议 | 🔍 Proposed | Unknown |  |
+| adr-0050 | Phase 6 战略方向评估 — 服务化 (Service-ification) | 🔍 Proposed | Unknown |  |
+| adr-0051 | Phase 6 PDK Composition Spike | ✅ Approved | Unknown |  |
 
 ---
 
@@ -102,6 +104,8 @@ graph TD
     adr_0044["adr-0044: 推理引擎 Plugin 安全模型"]
     adr_0045["adr-0045: 编排 PDK Plugin 规范"]
     adr_0046["adr-0046: PDK 插件间通信协议"]
+    adr_0050["adr-0050: Phase 6 战略方向评估 — 服务化 (Service-ification)"]
+    adr_0051["adr-0051: Phase 6 PDK Composition Spike"]
 
     adr_0031 --> adr_0002
     adr_0031 --> adr_0019
@@ -109,7 +113,7 @@ graph TD
     adr_0020 -.->|supersedes| adr_0006
 ```
 
-> 图中包含 42 个节点、2 条依赖边、2 条替代边。
+> 图中包含 44 个节点、2 条依赖边、2 条替代边。
 > 渲染说明：实线 (`-->`) 表示依赖关系；虚线带标签 (`-.->|supersedes|`) 表示替代关系。
 
 ---
@@ -128,11 +132,11 @@ graph TD
 
 | 状态 | 数量 |
 |------|------|
-| ✅ Approved | 28 |
+| ✅ Approved | 29 |
 | 🟡 Partial | 3 |
 | ❌ Not Implemented | 1 |
 | ⛔ Superseded | 1 |
-| 🔍 Proposed | 7 |
+| 🔍 Proposed | 8 |
 | 📋 Reserved | 2 |
 
 ---

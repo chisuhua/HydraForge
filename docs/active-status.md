@@ -3,7 +3,7 @@
 > **焦点**: 当前活跃的 OpenSpec changes | **更新**: 每日
 > **Master Plan**: [`docs/superpowers/plans/2026-07-03-phase5-self-bootstrapping.md`](superpowers/plans/2026-07-03-phase5-self-bootstrapping.md)
 > **架构决策**: [`docs/adversarial-reviews/decisions-2026-07-07.md`](adversarial-reviews/decisions-2026-07-07.md)
-> **Phase**: 5 — 自举服务化 (2026-07-03 ~ 2026-10-31)
+> **Phase**: 6 — PDK Service Composition Spike (2026-07-15 ~ 2026-08-01, W2-W3 complete)
 
 ---
 
@@ -11,12 +11,12 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **72/72 ✅** PASS (baseline 25 + Sprint 1~20 累计 47 新增) |
-| **ASan** | 72/72 (100%) — `test_execute_parallel` use-after-scope 已修复 |
+| **Total ctest** | **77/77 ✅** PASS (baseline 25 + Sprint 1~20 累计 47 新增 + C20-Spike 5 新增) |
+| **ASan** | **76/77** (99%; debug mode: 77/77; 1 pre-existing ASan failure per ship gate §10.4 documented skip); TSan 超时跳过 (机器性能受限) |
 | **TSan** | 超时跳过 (机器性能受限, pre-existing data race 已修复) |
 | **OpenSpec active** | **0** (`phase6-service-ification-v1` C20-Spike ✅ shipped + archived 2026-07-15) |
 | **ADR Approved** | **20** (13 existing + 5 C17 FLIP + 1 ADR-0051 experimental; ADR-0031 Partial 不计入) |
-| **ADR 🔍 Proposed** | **8** (C17 排除 7 + ADR-0051 Phase 6 Spike 2026-07-14; 详见 §四 顺延项) |
+| **ADR 🔍 Proposed** | **7** (C17 排除 7; ADR-0051 已翻 Approved; 详见 §四 顺延项) |
 | **Completed Phase 0-4** | ✅ 100% |
 | **Phase 5** | ✅ 收官 (C9-C18 全部 ✅ shipped + archived; C18 adr-0050 Oracle 推荐 Phase 6 启动 Candidate B 服务化) |
 | **Phase 6** | 🟡 C20-Spike ✅ shipped (ADR-0051 ✅ Approved experimental + OpenSpec archived 2026-07-15); C20 kickoff: G2/G4/G5 teams use spike-onboarding.md |
