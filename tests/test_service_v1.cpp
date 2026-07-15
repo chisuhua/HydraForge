@@ -17,6 +17,7 @@
 #include "agenticdsl/plugin/plugin_loader.h"
 #include "agenticdsl/plugin/plugin_info.h"
 #include "common/policy/execution_policy.h"
+#include "common/tools/tool_coordinator.h"  // §6.7: ToolCoordinatorNestingGuard
 
 #include <nlohmann/json.hpp>
 
@@ -125,6 +126,17 @@ struct ServiceFixture {
 
   G1SetCBFn g1_set_callback = nullptr;
 
+  // §6.3+§6.4 escalation trigger field accessors
+  using G3StoreSizeFn  = size_t (*)();
+  using G3TotalCallsFn = size_t (*)();
+  using G3ErrorCallsFn = size_t (*)();
+  using G3ResetCtrFn   = void (*)();
+
+  G3StoreSizeFn  g3_store_size  = nullptr;
+  G3TotalCallsFn g3_total_calls = nullptr;
+  G3ErrorCallsFn g3_error_calls = nullptr;
+  G3ResetCtrFn   g3_reset_ctrs  = nullptr;
+
   static constexpr const char* G3_SO_PATH =
       "/workspace/project/HydraForge/build/debug/pdk/g3_knowledge_base/"
       "libhydraforge_g3_knowledge_base.so";
@@ -154,6 +166,15 @@ struct ServiceFixture {
           dlsym(g3_handle, kG3SetLLMCallbackMangled));
       g3_call_history = reinterpret_cast<G3HistoryFn>(
           dlsym(g3_handle, kG3CallHistoryMangled));
+      // §6.3+§6.4 escalation trigger accessors
+      g3_store_size  = reinterpret_cast<G3StoreSizeFn>(
+          dlsym(g3_handle, "g3_kb_session_store_size"));
+      g3_total_calls = reinterpret_cast<G3TotalCallsFn>(
+          dlsym(g3_handle, "g3_kb_total_calls"));
+      g3_error_calls = reinterpret_cast<G3ErrorCallsFn>(
+          dlsym(g3_handle, "g3_kb_error_calls"));
+      g3_reset_ctrs  = reinterpret_cast<G3ResetCtrFn>(
+          dlsym(g3_handle, "g3_kb_reset_counters"));
     }
 
     // Step 2: 加载 G1 (编码助手, 内部调用 G3 的 knowledge_base/query)
@@ -346,4 +367,137 @@ TEST_CASE("service_v1: G3 handler function body ≤30 lines (cross-verify)",
           "[service_v1][e2e][line-count]") {
   // 此测试已在 test_g3_knowledge_base.cpp Test 6 覆盖, 此处跳过避免重复断言
   SUCCEED("G3 handler line count verified by test_g3_knowledge_base Test 6");
+}
+
+// ============================================================================
+// §6.7 Wire: escalation trigger E2E verification in G1→G3 composition
+// ============================================================================
+
+TEST_CASE("service_v1 §6.7: session store size tracked via audit record",
+          "[service_v1][escalation][session_size]") {
+  ServiceFixture fix;
+  if (!fix.load()) return;
+
+  if (fix.g3_reset) fix.g3_reset();
+  if (fix.g3_clear_sessions) fix.g3_clear_sessions();
+  if (fix.g3_reset_ctrs) fix.g3_reset_ctrs();
+
+  if (fix.g3_set_callback) {
+    fix.g3_set_callback([](const std::string&) -> std::string {
+      return "Session tracking test answer";
+    });
+  }
+  if (fix.g1_set_callback) {
+    fix.g1_set_callback([](const std::string&) -> std::string {
+      return "[G1] Session tracking synthesized";
+    });
+  }
+
+  // Run multiple queries → session store grows
+  for (int i = 0; i < 5; i++) {
+    auto session_id = "svc_sessions_" + std::to_string(i);
+    auto result = fix.g1_review("Question " + std::to_string(i), "code_" + std::to_string(i),
+                                session_id);
+    REQUIRE(result["success"] == true);
+  }
+
+  // Verify: session store size is tracked (≥5 distinct sessions)
+  if (fix.g3_store_size) {
+    size_t store_sz = fix.g3_store_size();
+    REQUIRE(store_sz >= 5);
+  }
+}
+
+TEST_CASE("service_v1 §6.7: error ratio tracked via audit counters",
+          "[service_v1][escalation][error_ratio]") {
+  ServiceFixture fix;
+  if (!fix.load()) return;
+
+  if (fix.g3_reset) fix.g3_reset();
+  if (fix.g3_clear_sessions) fix.g3_clear_sessions();
+  if (fix.g3_reset_ctrs) fix.g3_reset_ctrs();
+
+  // 设置 G3 callback: 前 2 次返回空 (模拟 error), 后 8 次返回正常
+  int call_count = 0;
+  if (fix.g3_set_callback) {
+    fix.g3_set_callback([&](const std::string&) -> std::string {
+      call_count++;
+      if (call_count <= 2) return "";  // error: empty answer
+      return "Error tracking test answer #" + std::to_string(call_count);
+    });
+  }
+  if (fix.g1_set_callback) {
+    fix.g1_set_callback([&](const std::string& prompt) -> std::string {
+      // G1 应该在 G3 失败时传播错误
+      if (call_count <= 2) return "";
+      return "[G1] Error tracking synthesized: " + prompt.substr(0, 60);
+    });
+  }
+
+  // 执行 10 次查询 (2 次 error + 8 次 success = 20% error ratio > 10% threshold)
+  int errors = 0;
+  int successes = 0;
+  for (int i = 0; i < 10; i++) {
+    auto result = fix.g1_review("Error tracking Q" + std::to_string(i), "code",
+                                "svc_errors");
+    if (result["success"] == true)
+      successes++;
+    else
+      errors++;
+  }
+
+  // 验证: 至少 2 次 error (G3 空回答 → G1 传播)
+  REQUIRE(errors >= 2);
+
+  // 验证: G3 审计计数器记录了 errors
+  if (fix.g3_error_calls && fix.g3_total_calls) {
+    size_t total = fix.g3_total_calls();
+    size_t errs  = fix.g3_error_calls();
+    REQUIRE(total > 0);
+    REQUIRE(errs >= 2);
+    // 20% error ratio > 10% threshold
+    double ratio = static_cast<double>(errs) / total;
+    bool trigger = (ratio > 0.1);
+    REQUIRE(trigger);
+  }
+}
+
+// ============================================================================
+// §6.8 Normal 2-level regression — G1→G3 composition depth=2
+//   Verifies RAII guard does NOT误杀 legitimate nested calls (Oracle R4)
+// ============================================================================
+
+TEST_CASE("service_v1 §6.8: normal 2-level nesting — NO escalation trigger fires",
+          "[service_v1][escalation][regression][2level]") {
+  // §6.8.1: ToolCoordinatorNestingGuard — depth=2 嵌套应通过 (no throw)
+  bool threw = false;
+  try {
+    agenticdsl::ToolCoordinatorNestingGuard g1("G1/coding_assistant", nullptr);
+    agenticdsl::ToolCoordinatorNestingGuard g2("G3/knowledge_base", nullptr);
+  } catch (const std::runtime_error&) {
+    threw = true;
+  }
+  REQUIRE_FALSE(threw);
+
+  // §6.8.2: G1→G3 E2E 正常流程 — 完整 2-level 组合不触发 escalation
+  ServiceFixture fix;
+  if (!fix.load()) return;
+
+  if (fix.g3_reset) fix.g3_reset();
+  if (fix.g3_clear_sessions) fix.g3_clear_sessions();
+
+  if (fix.g3_set_callback) {
+    fix.g3_set_callback([](const std::string&) -> std::string {
+      return "R4 regression: HydraForge is an AgenticDSL engine.";
+    });
+  }
+  if (fix.g1_set_callback) {
+    fix.g1_set_callback([](const std::string&) -> std::string {
+      return "[G1 R4] Normal 2-level composition works correctly";
+    });
+  }
+
+  auto r = fix.g1_review("What is HydraForge?", "int main() {}", "svc_r4");
+  REQUIRE(r["success"] == true);
+  REQUIRE(r.contains("answer"));
 }
