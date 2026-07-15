@@ -73,12 +73,26 @@ G3 `knowledge_base/query` 工具分类为 `ToolCategory::Execute`，`allowed_lay
 - **Plugin health** (audit + G3 self-check): error-as-success 比例 > 10% / session store > 1K → escalation log
 - **Design review** (manual, ADR-0051 review): 2+ awkward pattern 类别 (来自 Layer 1 + Layer 3 dual memos) → DECLARE_SERVICE 形式化触发 (Phase 6 v2+)
 
+### Decision 7 — Finalized v1 Contract (W3 Ship Gate)
+
+Spike v1 实施完成后的最终合约：
+
+- **注册模式**: `IToolRegistry::register_tool_function(name, metadata, lambda)` (与 `pdk/llama_engine/` / `pdk/model_router/` 一致, 无新宏)
+- **工具命名**: ADR-0043 slash-only (`knowledge_base/query`, `coding_assistant/review`)
+- **Args 签名**: `std::unordered_map<std::string, std::string> → nlohmann::json result` (Decision 2 落地)
+- **Error Schema**: 强制 `{success: bool, answer?: string, error?: string}` 格式, 所有 return path 统一
+- **Transport**: 进程内 `IToolRegistry::call_tool()` (非网络 / 非 MCP / 非 OpenAI API)
+- **G3 ToolCategory**: `ToolCategory::Execute`, `allowed_layers = {LayerProfile::Workflow}`
+- **G1 循环**: `AgentLoopType::React`, 2-step (invoke G3 → synthesize comment)
+- **核心代码修改**: 仅 ToolCoordinator RAII guard (nesting depth + cycle detection + thread_local state)
+- **Layer 2 审计**: 复用 C4 ship 的 `tool.audit.{invoked,completed,denied}` events; G3 自报告 5 个审计字段 (caller_session_id / callee_tool_name / args_keys_only / return_latency_ms / callee_internally_invoked_llm)
+
 ---
 
 ## 不变量
 
-- Spike v1 仅 **逻辑隔离**，非物理隔离 (继承 ADR-0020 + ADR-0033)。单 Agent 未捕获异常可能导致整个进程崩溃
-- ToolCoordinator RAII guard **cycle detection 仅同线程有效** (Metis F4 已记录)：`thread_local` 变量 per-jthread-worker (DomainWorkerPool Sprint 3)；跨线程 cycle (如 G1 Worker A → G3 Worker B → G1 Worker A) 不可检测，接受为 v1 known limitation
+- **逻辑隔离非物理隔离** (继承 ADR-0020 per-agent 线程隔离 + ADR-0033 会话层级)：Spike v1 的所有 agent plugin 运行在同一进程中, 共享同一地址空间. 单 Agent 的未捕获异常或内存越界写入会导致整个进程崩溃, **不是**进程级沙箱。G1 和 G3 之间通过 `IToolRegistry::call_tool()` 进行 in-process 函数调用, 非 IPC/网络。这是 v1 接受的风险, 记录在此供 Phase 6 Candidate B v2 评估是否需要 `fork()` 或进程池隔离
+- **ToolCoordinator RAII guard cycle detection 仅同线程有效** (Metis F4 已记录)：`thread_local` 变量绑定到 DomainWorkerPool (Sprint 3) 的 jthread worker 线程。跨线程 cycle (如 G1 on Worker A → G3 on Worker B → G1 on Worker A) 不可检测, 接受为 v1 known limitation。v2 需评估全局 cycle graph 或 per-process cycle counter
 - G3 `MockLLMProvider` **必须 per-test-instance** (Metis H5/A4)：`mock_provider.h:33` 声明单线程使用，`generate()` 无锁操作 `history_`/`response_queue_`。每个 test fixture 独立创建 MockLLMProvider；多线程 ctest 并行时不共享 static 实例
 - **不修改** ADR-0050 §决策 / §启动条件 (Spike 范围)
 - **不引入** DECLARE_SERVICE 宏 (推迟到 Phase 6 v2+；需 ≥2 不同类别 awkward pattern 涌现触发)
@@ -86,6 +100,55 @@ G3 `knowledge_base/query` 工具分类为 `ToolCategory::Execute`，`allowed_lay
 - **不修改** ADR-0019/0020/0021/0022/0023/0031/0033/0034/0043/0044/0004 V2 全部 (Tier 1/2/3 fallback 协议应对暴露缺陷，新建 ADR-0052+)
 - 复用 Sprint 4 PDK 头文件 (PDK 静态链接独立验证)
 - 复用 Sprint 19 MockLLMProvider (单线程使用声明，v1 Spike 不要求并发)
+
+---
+
+## 观察 (Layer 3 Dual Memo Findings)
+
+> **来源**: Primary + Reviewer 独立 Layer 3 1-page memo (2026-07-15), 参见:
+> - [`docs/service-composition/layer3-memo-primary.md`](../service-composition/layer3-memo-primary.md)
+> - [`docs/service-composition/layer3-memo-reviewer.md`](../service-composition/layer3-memo-reviewer.md)
+> - [`docs/service-composition/layer3-comparison.md`](../service-composition/layer3-comparison.md) (分歧分析)
+
+### ✅ 双审查一致发现 (6 项 — 高置信度)
+
+两个独立审查者同时捕获的 pattern:
+
+| # | 发现 | 严重度 |
+|---|------|--------|
+| **O-1** | LLM callback 签名 `string→string` 不支持 error return — G3 回调无法表达 failure mode (Defect #6 根因) | 🔴 P0 |
+| **O-2** | 魔术字符串 "G3: no response queued" 伪装为有效 answer — 流入正常 data flow 被 G1 synthesis 处理 | 🔴 P0 |
+| **O-3** | Hardcoded tool name `"knowledge_base/query"` 无编译时检查 — G1 字符串匹配 G3, 改名仅运行时发现 | 🟠 P1 |
+| **O-4** | 缺失 shared contract header — G1/G3 合约全在 README.md 而非 `.h` 文件, 无编译时 schema 验证 | 🟠 P1 |
+| **O-5** | LLM callback pattern copy-paste — G1 和 G3 各自实现 `set_llm_callback()`/`enqueue_response()`, 代码几乎一致 | 🟡 P2 |
+| **O-6** | `call_tool` 签名保真度不足 — `string→json` 将所有类型信息退化为字符串, 无编译时类型验证 | 🟠 P1 |
+
+### 🔀 互补性发现 (4 项 — 正交信号)
+
+| # | Primary 独见 | Reviewer 独见 | 互补性 |
+|---|-------------|--------------|--------|
+| **D-1** | 30 行 handler 约束限制错误处理 (无空间加 try-catch) | handler 无 try-catch 保护 LLM 调用 (异常穿透致进程崩溃) | 🟢 约束→后果 |
+| **D-2** | MockLLMProvider 多线程不安全性 (Worker pool 并发数据竞争) | G1 registry 指针 data race (写带锁读不带锁) | 🟢 两个独立 race |
+| **D-3** | 错误传播丢失根因 (G1 替换 G3 error 为通用消息) | callback 异常未捕获 (`g3_internal_llm()` 异常穿透整个调用栈) | 🟡 数据流+控制流 |
+| **D-4** | Agent 间缺少类型级区分 (看起来都一样) | Agent 角色分类缺失 (不区分 orchestrator vs compute) | 🟢 同一根因不同角度 |
+
+### 📊 净信号
+
+- **共识发现**: 6 项 (2 P0 + 3 P1 + 1 P2)
+- **互补发现**: 4 项 (零冲突)
+- **触及 ADR-0051 决策**: 4/6 决策受影响 (D2 contract / D3 registration / D4 G3 ToolCategory / D5 core code)
+- **Layer 3 收敛评估**: ✅ 满足 ADR-0051 §提升标准 #3 (primary + reviewer ≥1 major awkward pattern 共识)
+
+### 🚦 形式化触发评估
+
+当前满足 DECLARE_SERVICE 形式化触发条件 (ADR-0051 §决策 6):
+1. **≥2 不同类别**: 4/5 Layer 1 checklist 类别出现 P0/P1 (Contract Drift, Lifecycle Coupling, Error Propagation, Resource Lifetime) ✓
+2. **Layer 1 reviewer agreement**: 6 项 AGREE + 零 CONFLICT ✓
+3. **Layer 3 convergence**: 6 项一致 (含 2 P0) ✓
+
+**建议**: 在 Spike ship 时同步创建 ADR-0052 DECLARE_SERVICE 提案草稿, 但**不立即兑现** (样本仅 2 agent, G2/G4/G5 可能揭示新 pattern 类别)。
+
+---
 
 ## 启动条件
 
@@ -106,6 +169,40 @@ G3 `knowledge_base/query` 工具分类为 `ToolCategory::Execute`，`allowed_lay
 - ADR-0050 §决策 / §启动条件 未修改
 - G3 tool handler ≤30 行
 - error schema 强制 `{success, error}`
+
+---
+
+## 触发条件 (Escalation Triggers — W3 实施后)
+
+> 5 个 escalation triggers 全部 wired + tested (per tasks.md §6.6, test_escalation_triggers.cpp 6/6 PASS)
+
+### Runtime Safety (ToolCoordinator RAII guard)
+
+| Trigger | 条件 | 响应 | 测试 |
+|---------|------|------|------|
+| **T-1** | 嵌套深度 > 2 (G1→G3→G3 再加一层) | HARD KILL (`std::runtime_error` throw) | `nesting_depth_exceeds_2_kills` |
+| **T-2** | 环检测 (同一工具名已在 `thread_local` call stack 中) | HARD KILL (`std::runtime_error` throw) + `cycle_detected_log` audit event | `cycle_detection_kills` |
+
+Per ADR-0051 §不变量: `thread_local` 变量绑定 DomainWorkerPool jthread worker, 跨线程 cycle 不可检测 (v1 接受限制)。
+
+### Plugin Health (Audit + G3 Self-Check)
+
+| Trigger | 条件 | 响应 | 测试 |
+|---------|------|------|------|
+| **T-3** | G3 session store size > 1K entries | Escalation log + session 清理警告 | `session_store_size_triggers_1k` |
+| **T-4** | G3 error-as-success ratio > 10% | Escalation log + 健康检查告警 | `error_ratio_triggers_10_percent` |
+
+### Design Review (Manual)
+
+| Trigger | 条件 | 响应 | 测试 |
+|---------|------|------|------|
+| **T-5** | 2+ awkward pattern 类别 (来自 Layer 1 + Layer 3 dual memos) | ADR-0052 draft proposal (DECLARE_SERVICE 形式化) | `design_review_trigger` |
+
+### Normal Regression Safeguard (R4)
+
+| Test | 条件 | 响应 |
+|------|------|------|
+| **R4** | G1→G3 composition (depth=2, no cycle, no escalation trigger fired) | Assert successful return; RAII guard does NOT误杀 legitimate nested calls |
 
 ---
 
@@ -147,16 +244,31 @@ G3 `knowledge_base/query` 工具分类为 `ToolCategory::Execute`，`allowed_lay
 
 ## 后续行动
 
-1. **修 W1 fix list** → 二次 Metis 复审 → 0 CRITICAL
-2. **Stage Gate 2026-07-18** → 通过则启动 W2-W3
-3. **W2 D5 前** 用户确认 Layer 3 memo 模板 (5 个固定 section)
-4. **W2 D10 末** 如无 E2E call 触发 HARD KILL
-5. **W3 末** 如无收敛触发 DRIFT KILL (写 learnings doc，不延 W4)
-6. **W3 D15** Spike ship → ADR-0051 翻 ✅ Approved (experimental)
+### 已完成 (W1-W3)
+1. ✅ **W1 fix list** → 12/12 完成 → 二次 Metis 复审 0 CRITICAL
+2. ✅ **W2 G3 + G1 plugin** → 实施 + 集成 (per tasks.md §2-§4)
+3. ✅ **W2 Layer 3 dual memos** → primary + reviewer + comparison 归档
+4. ✅ **W3 ToolCoordinator RAII** → nesting depth + cycle detection + thread_local state
+5. ✅ **W3 5 escalation triggers** → 全部 wired + tested (6/6 PASS)
+6. ✅ **W3 ADR-0051 finalization** → §决策/§不变量/§观察/§触发条件/§后续 全部更新
+
+### Spike Onboarding (G2/G4/G5 启动材料)
+- 📖 **`docs/service-composition/spike-onboarding.md`** — G2/G4/G5 团队 kickoff 参考文档 (2-3 页, ~15 分钟阅读)
+  - §1 "What Spike IS" — in-process / `register_tool_function`-based / `unordered_map<string,string> → nlohmann::json` / no new macros
+  - §2 "What Spike IS NOT" — not networked / not async / not streaming / not multi-tenant / not Candidate B v1
+  - §3 "Spike Contract" — 规范性契约 (~1 page: tool name format / args schema / return schema / error schema)
+  - §4 "Does your Agent fit Spike?" — 决策树 (4 questions: stateless / session / streaming / cross-agent)
+  - §5 Trigger thresholds — DECLARE_SERVICE push 触发阈值 (交叉引用 §触发条件)
+  - §6 Reference implementations — G1 + G3 插件链接
+  - ⚠️ **RED BANNER**: Spike 代码是 tension-maximizing MVP, **非** G2/G4/G5 的生产参考
+
+### Post-Ship (Deferred to Sprint 24+)
 7. **Post-Spike**: 2 周 production-like 监控 escalation triggers
+8. **ADR-0052 draft**: 仅当 2+ different-category awkward patterns 触发 (per §触发条件 T-5)
+9. **Oracle round 4**: 评估内部 Spike 证据是否支持 ADR-0050 §启动条件 #5 (外部 agent/tool 需求)
 
 ---
 
-**最后更新**: 2026-07-16 (W1 12/12 ✅ + 二次 Metis 0 CRITICAL ✅ + W2-W3 文档修订已应用; Oracle D1 议程建议 #D-4/#D-5/#D-6 已 ship)
-**状态**: 🔍 Proposed (W1 12/12 ✅ 完成; 等待 Stage Gate 2026-07-18 + Sprint 23 capacity + W3 ship gate → ✅ Approved (experimental))
+**最后更新**: 2026-07-15 (W3 ship gate — §7.1-§7.5 ADR-0051 finalization 完成)
+**状态**: 🔍 Proposed (W1 12/12 ✅ + W2 实施 ✅ + W3 收尾 ship gate 验证中; 等待 commit 4 → ✅ Approved (experimental))
 **关联**: [ADR-0050 Phase 6 战略评估](./adr-0050-phase6-strategic-evaluation.md)
