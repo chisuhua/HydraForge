@@ -14,26 +14,26 @@
 | **Total ctest** | **72/72 ✅** PASS (baseline 25 + Sprint 1~20 累计 47 新增) |
 | **ASan** | 72/72 (100%) — `test_execute_parallel` use-after-scope 已修复 |
 | **TSan** | 超时跳过 (机器性能受限, pre-existing data race 已修复) |
-| **OpenSpec active** | **1** (`phase6-service-ification-v1` C20-Spike 🟡 active, BLOCKED W2-W3 等待 Stage Gate + Sprint 23 capacity) |
-| **ADR Approved** | **19** (13 existing + 5 C17 FLIP; ADR-0031 Partial 不计入) |
+| **OpenSpec active** | **0** (`phase6-service-ification-v1` C20-Spike ✅ shipped + archived 2026-07-15) |
+| **ADR Approved** | **20** (13 existing + 5 C17 FLIP + 1 ADR-0051 experimental; ADR-0031 Partial 不计入) |
 | **ADR 🔍 Proposed** | **8** (C17 排除 7 + ADR-0051 Phase 6 Spike 2026-07-14; 详见 §四 顺延项) |
 | **Completed Phase 0-4** | ✅ 100% |
 | **Phase 5** | ✅ 收官 (C9-C18 全部 ✅ shipped + archived; C18 adr-0050 Oracle 推荐 Phase 6 启动 Candidate B 服务化) |
-| **Phase 6** | 🟡 C20-Spike 起草完成 (ADR-0051 🔍 Proposed + W1 fix list 11/12 active + 2nd Metis 0 CRITICAL); **不修改** ADR-0050 §决策 / §启动条件; W2-W3 启动条件: Stage Gate 2026-07-18 通过 + Sprint 23 capacity 1.5 eng × 2 周 + Oracle Spike→Candidate B 提升标准评估 |
+| **Phase 6** | 🟡 C20-Spike ✅ shipped (ADR-0051 ✅ Approved experimental + OpenSpec archived 2026-07-15); C20 kickoff: G2/G4/G5 teams use spike-onboarding.md |
 
 ---
 
 ## 二、活跃变更一览
 
-### 🔵 当前活跃 (1 个)
-
-| ID | 名称 | 阶段 | 状态 | 最后更新 |
-|----|------|------|:----:|:--------:|
-| **C20-Spike** | Phase 6 PDK Composition Spike (`phase6-service-ification-v1`) | 🟡 Spike | **🔒 BLOCKED W2-W3** — W1 fix list 11/12 ✅ + 2nd Metis 0 CRITICAL ✅; 等待 Stage Gate 2026-07-18 + Sprint 23 capacity | 2026-07-14 |
+### 🔵 当前活跃 (0 个)
 
 ### ✅ 已归档 (历史参考)
 
-> Phase 5 全部 8 个 OpenSpec changes (C9-C16) 已于 2026-07-03 ~ 2026-07-09 ship + archived；C17/C18 已于 2026-07-10 ship + archived。下表为最近归档的 Phase 5 变更状态汇总，**仅作历史参考**。
+> Phase 5 全部 8 个 OpenSpec changes (C9-C16) 已于 2026-07-03 ~ 2026-07-09 ship + archived；C17/C18 已于 2026-07-10 ship + archived；C19 (phase6-service-ification-v1) 已于 2026-07-15 ship + archived。下表为最近归档的变更状态汇总，**仅作历史参考**。
+
+| ID | 名称 | 阶段 | 状态 | 最后更新 |
+|----|------|------|:----:|:--------:|
+| **C19** | Phase 6 PDK Composition Spike (`phase6-service-ification-v1`) | ✅ Done | **✅ shipped + archived 2026-07-15** — ADR-0051 ✅ Approved (experimental) + spike-onboarding.md + ToolCoordinator RAII + 5 escalation triggers + Layer 3 dual memos + G1+G3 plugins (8 tests) + E2E (3 tests) + ctest 77/77 PASS + §12/§13 deferred to Sprint 24+ | 2026-07-15 |
 
 | ID | 名称 | 阶段 | 状态 | 最后更新 |
 |----|------|------|:----:|:--------:|
@@ -156,6 +156,7 @@
 
 | 日期 | ID | 名称 | 关键 Ship |
 |:----:|:--:|------|-----------|
+| 2026-07-15 | C19 | phase6-service-ification-v1 Spike ship | ADR-0051 ✅ Approved (experimental) + spike-onboarding.md + ToolCoordinator RAII + 5 escalation triggers (6 tests) + G1+G3 plugins (8 tests) + E2E (3 tests) + ctest 77/77 PASS + ASan documented skip + `openspec validate --strict` EXIT 0 + OpenSpec archived. 5 commits. §12 (5 items) + §13 (7 items) deferred to Sprint 24+. C20 kickoff: G2/G4/G5 teams use spike-onboarding.md. |
 | 2026-07-14 | C20-Spike | phase6-service-ification-v1 W1 fix list | Oracle Q1-Q6 决策应用 + ADR-0051 创建 (🔍 Proposed) + Spike framing (不兑现 ADR-0050 Candidate B) + DECLARE_TOOL→register_tool_function + slash 命名 (knowledge_base/query) + G3 ToolCategory::Execute + audit events 替代 ToolRegistry 注入 + W1 fix list 11/12 ✅ + 2nd Metis 0 CRITICAL + `openspec validate --strict` EXIT 0 + adr_lint EXIT 0 + docs_drift_audit 0 DRIFT. W2-W3 BLOCKED awaiting Stage Gate 2026-07-18 + Sprint 23 capacity. |
 | 2026-07-10 | C18 | phase5-sprint22-drift-strategic-gate | Architecture Drift Gate (4 路 0 CRITICAL) + Strategic Alignment Gate (Oracle 推荐 Candidate B 服务化) + Stage Gate 推迟至 2026-07-18 + ADR-0050 🔍 Proposed 创建 + C20 placeholder 激活 + C19 推迟 |
 | 2026-07-09 | C16 | illmprovider-call-chain-v2 | ILLMProvider v2: Decorator chain (CostTracking/Compliance/RateLimit) + Dual Consumer Model (OrchestrationILLMProvider) + available_models() pure virtual + PluginLoader V2 + DSLEngine opt-in flags. 72/72 ctest, ASan 72/72. §5 Cloud plugin deferred. |
@@ -178,11 +179,9 @@
 
 ## 六、下一步行动 (按当前焦点)
 
-1. **C20-Spike W2-W3 启动 gate** (BLOCKED — 等待全部 3 项 unlock):
-   - **Stage Gate 重新评估 (2026-07-18)**: C10/C11/C12 满 2 周稳定 + 团队容量确认 + ADR-0020 并发隔离 Week 4 TSan gate
-   - **Sprint 23 capacity commitment**: 1.5 eng × 2 周
-   - **Oracle Q6 confirmation**: ADR-0051 §后续 Spike→Candidate B 提升标准 5 项 评估 (≥3 awkward patterns × ≥2 Layer 1 类别 / Layer 1 reviewer agreement / Layer 3 dual memos convergence / Oracle round 4 / ADR-0050 §启动条件 #2/#4/#5 re-eval)
-2. **C19 (fork-checkpoint) 推迟**: 与 Candidate A (自进化) 重新对齐, ADR-0033 已覆盖请求级隔离; C19 触发条件 = Candidate A 正式启动时
+1. **C20-Spike ✅ shipped + archived**: ADR-0051 ✅ Approved (experimental), OpenSpec change `phase6-service-ification-v1` archived to `2026-07-15-phase6-service-ification-v1`. §12 (5 Post-Ship items) + §13 (7 Promotion Criteria) deferred to Sprint 24+.
+2. **C20 kickoff (Sprint 24+)**: G2/G4/G5 teams use `docs/service-composition/spike-onboarding.md` as onboarding material. C20 scope: Phase 6 Candidate B v1 (ADR-0050 §决策 正式实施).
+3. **C19 (fork-checkpoint) 推迟**: 与 Candidate A (自进化) 重新对齐, ADR-0033 已覆盖请求级隔离; C19 触发条件 = Candidate A 正式启动时
 3. **C16 §5 Cloud plugin 顺延**: 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` 跟踪 (C17 ship 后 ADR-0035 ✅ Approved 满足实施依赖)
 4. **ADR-0051 状态翻 ✅ Approved (experimental)**: C20-Spike W3 ship gate 通过后自动翻; 不影响 ADR-0050 🔍 Proposed 状态
 5. **ADR-0050 保持不动**: §决策 / §启动条件 全部保留; Phase 6 Candidate B v1 正式启动仍需满足全部 5 项硬前置
