@@ -35,3 +35,6 @@ add_subdirectory(llama_engine)
 
 # Phase 6 W1: G3 Knowledge Base Plugin (1 retrieval + LLM Q&A 工具)
 add_subdirectory(g3_knowledge_base)
+
+# Phase 6 W1: G1 Coding Assistant Plugin (2-step ReAct loop + G3 orchestration)
+add_subdirectory(g1_coding_assistant)
