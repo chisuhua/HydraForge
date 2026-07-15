@@ -120,13 +120,40 @@ C19 (原 `phase5-stage2-step3-fork-perfield`) 触发条件:
 2. **提前评估风险**: 即使今天决议启动 Stage 2, Sprint 23 时间窗口仍紧 (团队饱和)
 3. **C19 触发缺失**: 无 deep_copy 瓶颈信号 / Session 迁移需求, 启动 Stage 2 无明确业务驱动
 
+### 2026-07-15 中间状态 (P0 Cleanup + Readiness 更新)
+
+> **审计文档**: `docs/audits/2026-07-15-p0-and-readiness-update.md` (完整证据 150+ lines)
+
+**P0 清理 (2026-07-15 执行)**:
+- commit `ea904f9 docs(plans): Phase 6 Agent OS Reference — 战略愿景 + Spike methodology reconciliation (1308 lines)`
+- `git push origin main` → 5d0b938..ea904f9 已推送
+- ctest: 72/72 PASS (100%, 零回归)
+
+**Readiness 改善 (10/15 ✅, July 10 的 4/7 → 当前 10/15)**:
+
+| Item | July 10 | July 15 | July 18 预期 |
+|------|:---:|:---:|:---:|
+| A1 (C10) | 🟡 7d | 🟡 12d | ✅ auto-PASS 2026-07-17 |
+| A2 (C11) | 🟡 6d | 🟡 11d | ✅ auto-PASS 2026-07-18 |
+| A3 (C12) | 🟡 6d | 🟡 11d | ✅ auto-PASS 2026-07-18 |
+| A4 (ctest) | ✅ | ✅ | ✅ 72/72 |
+| A5 (标准库) | ✅ | ✅ | ✅ 7/7 |
+| A6 (C19) | ⚠️ | ⚠️ | ⚠️ expected (C19 延期 per ADR-0050 §C19/C20) |
+| A7 (团队) | ⚠️ | ⚠️ | ⚠️ 需 Sprint 23 启动会 (7-19) |
+
+**C10/C11/C12 Hotfix Audit**: 零 post-ship hotfix (12/11/11 天无 P0 bug). B4 ✅ (Sprint 23 commitment doc 已存在). B5 ✅ (proposal.md G1+G3, Oracle Q6 reframing). C2 ✅ (Sprint 23 capacity committed).
+
+**July 18 预期**: 13/15 ✅ (A1/A2/A3 auto-pass 后). 剩余 2 ⚠️: A6 (C19 expected deferral) + A7 (Sprint 23 启动会).
+
 ### 后续时间表
 
 | 日期 | 事件 | 决策点 |
 |------|------|--------|
-| **2026-07-18** | C10/C11/C12 满 2 周稳定 | 重新评估 Stage Gate (4 项 PASS 全部满足) |
-| 2026-07-19 ~ 2026-07-25 | Sprint 23 (若决议启动 Stage 2) | C19 启动 + 推理标准库 v2 (若有需求) |
-| 2026-07-31 | Phase 5 完整收官报告 | master plan §一基线更新 |
+| **2026-07-16** | Sprint 23 commitment 签字 | 项目负责人签署 §五 签字栏 |
+| **2026-07-17** | C10 满 2 周 → A1 auto-PASS | 11/15 ✅ |
+| **2026-07-18** | C11/C12 满 2 周 → A2/A3 auto-PASS | **13/15 ✅ STAGE GATE READY** |
+| 2026-07-19 ~ 2026-08-01 | Sprint 23 (W2-W3 实施) | 93 tasks / 22.5 人天 |
+| 2026-08-01 | Phase 6 Spike W3 ship | ADR-0051 🔍 → ✅ Approved
 
 ---
 
@@ -165,7 +192,7 @@ C19 (原 `phase5-stage2-step3-fork-perfield`) 触发条件:
 
 ---
 
-**最后更新**: 2026-07-10 (C18 Day 3 上午, Sisyphus 自动生成)
+**最后更新**: 2026-07-15 (C18 Day 3 + July 15 中间审计, Sisyphus)
 **关联文档**:
 - [C18 评估依据](../superpowers/plans/2026-07-10-phase5-remainder-adr-sync.md) §四 C18 行
 - [Drift Gate 报告](2026-07-10-drift-gate.md) (Day 1 已 ship, 4 路 PASS)
