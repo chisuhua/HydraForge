@@ -11,16 +11,11 @@
 #pragma once
 
 #include "agenticdsl/contract/itool_registry.h"
-#include "common/llm/mock_provider.h"
 
-#include <memory>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <vector>
-
-namespace agenticdsl {
-class DSLEngine;  // 前向声明 (完整类型定义在 core/engine.h)
-} // namespace agenticdsl
 
 namespace agenticdsl::pdk::g1 {
 
@@ -34,11 +29,12 @@ struct G1State {
   /// 指向注册时传入的 IToolRegistry (用于 handler 内调用 G3 工具)
   ::agenticdsl::IToolRegistry* registry = nullptr;
 
-  /// MockLLMProvider 指针 (测试用 — 验证 wiring)
-  ::agenticdsl::MockLLMProvider* mock_provider = nullptr;
+  /// LLM 回调 (prompt → answer) — 测试注入 MockLLMProvider 或 mock 实现
+  /// 与 G3 的 g3_set_llm_callback 模式一致, 避免 .so 链接 agenticdsl_common
+  std::function<std::string(const std::string& prompt)> llm_callback;
 
-  /// DSLEngine (持有 MockLLMProvider 的所有权, 析构时释放)
-  std::unique_ptr<agenticdsl::DSLEngine> engine;
+  /// LLM 调用计数 (测试验证 wiring)
+  int llm_call_count = 0;
 };
 
 /// 全局状态单例
