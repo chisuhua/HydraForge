@@ -139,11 +139,11 @@ C19 (原 `phase5-stage2-step3-fork-perfield`) 触发条件:
 | A4 (ctest) | ✅ | ✅ | ✅ 72/72 |
 | A5 (标准库) | ✅ | ✅ | ✅ 7/7 |
 | A6 (C19) | ⚠️ | ⚠️ | ⚠️ expected (C19 延期 per ADR-0050 §C19/C20) |
-| A7 (团队) | ⚠️ | ⚠️ | ⚠️ 需 Sprint 23 启动会 (7-19) |
+| A7 (团队) | ⚠️ | ✅ RESOLVED | ✅ Sprint 23 已签字 (2026-07-15) |
 
-**C10/C11/C12 Hotfix Audit**: 零 post-ship hotfix (12/11/11 天无 P0 bug). B4 ✅ (Sprint 23 commitment doc 已存在). B5 ✅ (proposal.md G1+G3, Oracle Q6 reframing). C2 ✅ (Sprint 23 capacity committed).
+**C10/C11/C12 Hotfix Audit**: 零 post-ship hotfix (12/11/11 天无 P0 bug). B4 ✅ (Sprint 23 commitment doc 已存在). B5 ✅ (proposal.md G1+G3, Oracle Q6 reframing). C2 ✅ (Sprint 23 capacity committed). **A7 ✅ RESOLVED (2026-07-15 签字完成)**.
 
-**July 18 预期**: 13/15 ✅ (A1/A2/A3 auto-pass 后). 剩余 2 ⚠️: A6 (C19 expected deferral) + A7 (Sprint 23 启动会).
+**July 18 预期**: 14/15 ✅ (A1/A2/A3 auto-pass + A7 RESOLVED). 剩余 1 ⚠️: A6 (C19 expected deferral).
 
 ### 后续时间表
 

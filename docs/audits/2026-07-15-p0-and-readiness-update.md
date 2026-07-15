@@ -4,7 +4,7 @@
 > **前序评估**: [2026-07-14-stage-gate-readiness.md](2026-07-14-stage-gate-readiness.md) (July 14) + [2026-07-31-stage-gate-evaluation.md](../handoff/2026-07-31-stage-gate-evaluation.md) (July 10)
 > **评估者**: Sisyphus
 > **关联变更**: `phase6-service-ification-v1` (C20-Spike), P0 cleanup (commit `ea904f9`)
-> **下一步**: 输入至 Sprint 23 签字会议 (2026-07-16) + Stage Gate 终评 (2026-07-18)
+> **下一步**: Sprint 23 已签字 (2026-07-15) → Stage Gate 终评 (2026-07-18) → W2-W3 解锁 (2026-07-19)
 
 ---
 
@@ -31,7 +31,7 @@
 | A4 (ctest) | ✅ 72 | ⚠️ skipped | ✅ **72/72** | ✅ (已绿) |
 | A5 (标准库 7/7) | ✅ | ✅ | ✅ | ✅ |
 | A6 (C19 触发) | ⚠️ | ⚠️ | ⚠️ | ⚠️ (延期, expected) |
-| A7 (团队时间) | ⚠️ | ⚠️ | ⚠️ | ⚠️ (需 7-19 启动会议) |
+| A7 (团队时间) | ⚠️ | ⚠️ | ✅ RESOLVED | ✅ (7-15 签字) |
 | B1-B4 | — | ✅ (4/4) | ✅ (4/4) | ✅ (4/4) |
 | B5 (集成目标) | — | ⚠️ | ✅ (Oracle Q6 reframing) | ✅ |
 | C1 (Stage Gate) | — | ⚠️ | ⚠️ | ✅ (A1-A3 auto-pass 后) |
@@ -79,11 +79,11 @@ git log --since="2026-07-03" --until="2026-07-15" --oneline --grep="fix" | grep 
 | 检查项 | 状态 | 证据 |
 |--------|:----:|------|
 | **B4**: Sprint 23 commitment doc | ✅ PASS | `docs/handoff/2026-07-16-sprint-23-capacity-commitment.md` 存在 (172 lines) |
-| **A7**: 团队时间确认 | ⚠️ MANUAL | handoff doc 存在 (evidence base)，需 Sprint 23 启动会议人工确认 |
-| **签字**: 2026-07-16 | ⏳ PENDING | document §五 签字栏空白，需项目负责人签署 |
+| **A7**: 团队时间确认 | ✅ RESOLVED | 签字完成 (2026-07-15, Chi Suhua) — 1.5 eng × 2 周 = 22.5 人天 |
+| **签字**: 2026-07-15 | ✅ COMPLETE | document §五 已签署 |
 | **启动会议**: 2026-07-19 D1 上午 | ⏳ PENDING | agenda 7 项已定义 (per commitment doc §二) |
 
-**P1 建议行动**: 签字者应在 2026-07-16 完成 §五 签字栏 + 确认 22.5 人天分配。
+**P1 建议行动**: ✅ 已完成 (2026-07-15, Chi Suhua 签署)。下一步: 2026-07-19 Sprint 23 启动会议。
 
 ---
 
@@ -102,7 +102,7 @@ git log --since="2026-07-03" --until="2026-07-15" --oneline --grep="fix" | grep 
 | 项 | 状态 | 说明 | 建议 |
 |---|:---:|------|------|
 | **A6** (C19 触发) | ⚠️ PENDING | C19 已明确推迟 (ADR-0050 §C19/C20 + `docs/handoff/2026-07-31-stage-gate-evaluation.md` §Item 6)。`test_session.cpp` 缺 fork 测试是预期行为——C19 fork-checkpoint 语义与 Candidate B 服务化路径不直接对齐。 | **接受此 ⚠️ 为 expected**。不需要为 Stage Gate 添加 fork 测试。Phase 7+ 自进化启动时重新评估 C19。 |
-| **A7** (团队时间) | ⚠️ MANUAL | 依赖 Sprint 23 启动会议 (2026-07-19) 确认 1.5 eng × 2 周分配。 | 签字完成后，A7 可标记为 RESOLVED。 |
+| **A7** (团队时间) | ✅ RESOLVED | Sprint 23 已签字 (2026-07-15, Chi Suhua)。1.5 eng × 2 周 = 22.5 人天 confirmed。 | 无需进一步操作。启动会议 7-19 为 logistics，不影响 Stage Gate。 |
 
 ### 已自动验证项 (需 no action)
 
@@ -126,10 +126,10 @@ git log --since="2026-07-03" --until="2026-07-15" --oneline --grep="fix" | grep 
 2026-07-10  C18 Stage Gate 初始评估 (3 PASS / 4 ⚠️ / 0 ❌)
 2026-07-14  C20-Spike W1 fix list ship + readiness audit (9 PASS / 6 ⚠️)
 2026-07-15  P0 cleanup ship + 本次审计 (10 PASS / 5 ⚠️)
-2026-07-16  ⏰ Sprint 23 签字截止
-2026-07-17  A1 (C10) auto-PASS → 11/15
-2026-07-18  ⏰ A2 (C11) + A3 (C12) auto-PASS → 13/15 ✅ STAGE GATE READY
-2026-07-19  Sprint 23 D1 启动会议 → A7 RESOLVED → 14/15
+2026-07-16  ⏰ Sprint 23 签字截止 → ✅ 已提前完成 (7-15)
+2026-07-17  A1 (C10) auto-PASS → 11/15 (A7 resolved + A1 PASS)
+2026-07-18  ⏰ A2 (C11) + A3 (C12) auto-PASS → 14/15 ✅ STAGE GATE READY
+2026-07-19  Sprint 23 D1 启动会议 → W2-W3 实施开始
 ```
 
 ---
@@ -138,7 +138,7 @@ git log --since="2026-07-03" --until="2026-07-15" --oneline --grep="fix" | grep 
 
 1. **C1 脚本预期输出**: 当前 readiness 脚本在 2026-07-15 输出 "C1: Stage Gate 不满足 — 未满 2 周: C10 C11 C12"，此为**预期行为**——July 18 重跑将自动清除。
 2. **A6 expected ⚠️**: 接受 C19 延期为 Stage Gate 通过前提。不需为通过脚本检查而添加 fork 测试代码。
-3. **签字阻断**: 若 2026-07-16 未完成 Sprint 23 签字，A7 将无法在 July 18 标记为 RESOLVED（但不影响 A1-A3 auto-pass → C1 auto-PASS）。
+3. **签字完成 ✅**: Sprint 23 签字已完成 (2026-07-15), A7 标记为 RESOLVED。A1-A3 auto-pass 后将达到 14/15。
 
 ---
 
