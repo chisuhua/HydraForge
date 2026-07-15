@@ -2,7 +2,7 @@
 
 ## 状态
 
-🔍 Proposed (2026-07-14 — Oracle session `ses_0a17108b5ffexaXTWhF8vXot6b` 产出; W1 fix list 12/12 ✅ + 二次 Metis 0 CRITICAL ✅ 已完成,等待 W3 ship gate flip → ✅ Approved (experimental))
+✅ Approved (experimental) (2026-07-15 — W3 ship gate §10 11/11 ✅ PASS + ADR-0051 finalized + spike-onboarding.md ship + OpenSpec `phase6-service-ification-v1` archived. W1 12/12 ✅ + W2 G1+G3 实施 ✅ + W3 ToolCoordinator RAII + 5 escalation triggers wired + Layer 3 dual memos.)
 
 ## 领域
 
@@ -270,5 +270,5 @@ Per ADR-0051 §不变量: `thread_local` 变量绑定 DomainWorkerPool jthread w
 ---
 
 **最后更新**: 2026-07-15 (W3 ship gate — §7.1-§7.5 ADR-0051 finalization 完成)
-**状态**: 🔍 Proposed (W1 12/12 ✅ + W2 实施 ✅ + W3 收尾 ship gate 验证中; 等待 commit 4 → ✅ Approved (experimental))
+**状态**: ✅ Approved (experimental) (2026-07-15 — W3 ship gate §10 11/11 PASS + ADR-0051 finalized + spike-onboarding.md ship)
 **关联**: [ADR-0050 Phase 6 战略评估](./adr-0050-phase6-strategic-evaluation.md)
