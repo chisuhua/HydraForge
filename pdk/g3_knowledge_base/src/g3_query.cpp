@@ -16,6 +16,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <chrono>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -87,6 +88,27 @@ static SessionStore& g3_sessions() {
 void g3_clear_sessions() { g3_sessions().clear(); }
 
 // ============================================================================
+// Audit record (plugin-internal, ADR-0051 §Decision 5)
+// ============================================================================
+
+struct G3AuditRecord {
+  std::string caller_session_id;
+  std::string callee_tool_name;
+  std::vector<std::string> args_keys_only;
+  int64_t return_latency_ms = 0;
+  bool callee_internally_invoked_llm = false;
+};
+
+static G3AuditRecord g_last_audit;
+
+static std::vector<std::string> collect_arg_keys(
+    const std::unordered_map<std::string, std::string>& m) {
+  std::vector<std::string> keys; keys.reserve(m.size());
+  for (const auto& [k, v] : m) keys.push_back(k);
+  return keys;
+}
+
+// ============================================================================
 // knowledge_base/query 工具处理函数 (≤30 lines)
 // ============================================================================
 
@@ -100,7 +122,11 @@ json handle_knowledge_base_query(const std::unordered_map<std::string, std::stri
   auto& store = g3_sessions();
   store.get_or_create(session_id);
   std::string context = store.build_context(session_id);
+  auto t0 = std::chrono::steady_clock::now();
   std::string answer = g3_internal_llm(context + "Q: " + question + "\nA:");
+  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::steady_clock::now() - t0).count();
+  g_last_audit = {session_id, "knowledge_base/query", collect_arg_keys(args_map), ms, true};
   if (answer.empty())
     return {{"success", false}, {"error", "LLM returned empty response"}};
   store.append(session_id, question, answer);
@@ -138,5 +164,26 @@ extern "C" {
 void g3_kb_reset_mock() { agenticdsl::pdk::g3::g3_reset_mock(); }
 void g3_kb_enqueue_response(const char* text) { agenticdsl::pdk::g3::g3_enqueue_response(text); }
 void g3_kb_clear_sessions() { agenticdsl::pdk::g3::g3_clear_sessions(); }
+
+const char* g3_kb_audit_session_id() {
+  return agenticdsl::pdk::g3::g_last_audit.caller_session_id.c_str();
+}
+const char* g3_kb_audit_tool_name() {
+  return agenticdsl::pdk::g3::g_last_audit.callee_tool_name.c_str();
+}
+int g3_kb_audit_args_keys_count() {
+  return static_cast<int>(agenticdsl::pdk::g3::g_last_audit.args_keys_only.size());
+}
+const char* g3_kb_audit_args_key(int idx) {
+  auto& keys = agenticdsl::pdk::g3::g_last_audit.args_keys_only;
+  if (idx < 0 || static_cast<size_t>(idx) >= keys.size()) return "";
+  return keys[idx].c_str();
+}
+int64_t g3_kb_audit_latency_ms() {
+  return agenticdsl::pdk::g3::g_last_audit.return_latency_ms;
+}
+int g3_kb_audit_llm_invoked() {
+  return agenticdsl::pdk::g3::g_last_audit.callee_internally_invoked_llm ? 1 : 0;
+}
 
 } // extern "C"
