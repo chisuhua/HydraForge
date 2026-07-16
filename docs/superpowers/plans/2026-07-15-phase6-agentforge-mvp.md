@@ -353,8 +353,55 @@ CMake Error at build/_deps/hydraforge-src/CMakeLists.txt:46 (add_subdirectory):
 - ADR-AF-001 lessons learned 段已添加 ✅
 - Pivot 决策明确记录 ✅
 
+### Day 4 (2026-07-15) ✅ Done — Oracle Option D 路径完成
+
+**Commits**:
+- HydraForge `a413c24` (4 files: CMakeLists + LICENSE + TaskflowConfig.cmake.in)
+- HydraForge `ab0be49` (88 files: taskflow/ + cmake/ core library 1.1MB)
+- HydraForge remote push: `4e953d6..ab0be49 main -> main` ✅
+- AgentForge `5ee1c6d` (Day 4 ADR-AF-001 update + Known Limitations #1 撤销)
+- AgentForge remote push: `dc33384..5ee1c6d main -> main` ✅
+
+**事件**: Oracle Q3 路由后续咨询 (Day 3 STOP 触发后) → 推荐 Option D (HIGH 置信度) — 直接在 HydraForge 修根本原因, 优于 MockLLMProvider 旁路方案 (后者存在隐性 ILLMProvider 依赖, 4-6h 估时过乐观)
+
+**Oracle Option D 实施**:
+
+| 步骤 | 结果 | 验证 |
+|------|------|------|
+| HydraForge `external/taskflow/` 调查 | ✅ | ls 显示本地有, 但 `.gitignore` line 17 排除推送 |
+| `external/taskflow/` 调查 | ✅ | 本地有完整源码, 但 .gitignore 排除推送, GitHub 404 Not Found |
+| git submodule add (240s timeout) | ❌ | GnuTLS recv -110 TLS 连接超时, github.com 网络不稳 |
+| tarball vendor (curl + selective extract) | ✅ | 1.1MB (CMakeLists + taskflow/ + cmake/ + TaskflowConfig.cmake.in + LICENSE) |
+| 排除 3rd-party/ (35MB) | ✅ | 验证 cmake configure 仍 OK (TF_BUILD_TESTS=OFF + TF_BUILD_BENCHMARKS=OFF) |
+| 排除 benchmarks/, docs/, doxygen/, examples/, unittests/ | ✅ | TF_BUILD_* OFF 已生效, 不需要源文件 |
+| commit 分拆 (4 files + 88 files) | ✅ | git commit 33k+ insertions 在 115s timeout 内可完成 (单次大 commit 33k 文件超时) |
+| HydraForge cmake configure | ✅ | 0.2s configure + 24.8s generate |
+| HydraForge cmake --build | ✅ | 全量通过 |
+| HydraForge ctest | ✅ | **77/77 PASS 零回归** (17.05s 总测试时间) |
+| HydraForge push to remote | ✅ | `4e953d6..ab0be49 main -> main` |
+| AgentForge FetchContent 验证 | ✅ | `cmake -DAGENTFORGE_FETCH_HYDRAFORGE=ON` 33.8s 通过 |
+| AgentForge "HydraForge Runtime + PDK enabled" | ✅ | CMake 配置消息确认 |
+
+**§决策 3 (LLM 接入) 恢复**: Day 4+ 不再需要 Mock-only 旁路方案, 恢复原始计划 - `LLMProviderFactory::create("openai")` + C16 Decorator 链 (CostTracking + RateLimit).
+
+**§蓝图影响**: blueprint §八 Day 4 描述从"MockLLMProvider 模式"恢复为"替换 HydraForgeClient::initialize() stub 为真实 LLMProviderFactory + Decorator 链". Day 5-8 工具开发路径不变.
+
+**§下一决策点更新** (per ADR-AF-001 §Day 4 更新):
+1. **2026-07-29 (Sprint 24 末验收)**: 评估 3 项
+   - (a) AgentForge Day 5-8 工具开发是否按原计划前进 (DECLARE_TOOL × 5)
+   - (b) Day 9 真实 LLM 端到端 (OpenAI API key + Decorator 链) 是否能跑通
+   - (c) Sprint 25 是否启动第二 domain agent
+2. **Sprint 25 末 (2026-08-12)**: Phase 6 服务化重新评估
+3. **Deferred (Sprint 25+)**: HydraForge install rules + `find_package(HydraForge ...)` 提案 (不再阻塞, 但仍是改进)
+
+**Oracle B+ STOP 条件 Day 4 监控**:
+- Oracle 推荐 Option D, 实际执行 < 4h ✅
+- 关键 commit (88 files taskflow core) 单次完成 ✅
+- HydraForge 77 ctest 零回归 ✅
+- AgentForge FetchContent 验证通过 ✅
+
 ---
 
-**最后更新**: 2026-07-15 (Day 1 + Day 2 + Day 3 完成, Day 3 STOP 触发)
-**计划状态**: 🚧 Active (Sprint 24 Day 1-3 ✅, Day 4 pivot to MockLLMProvider, Day 5+ 待定)
-**下一决策点**: 2026-07-29 (Sprint 24 末验收) — 评估 4 项 (HydraForge install rules / taskflow 修复 / Mock-only 路径 / Sprint 25 启动)
+**最后更新**: 2026-07-15 (Day 1 + Day 2 + Day 3 + Day 4 完成, Oracle Option D 路径跑通)
+**计划状态**: 🚀 Active (Sprint 24 Day 1-4 ✅, Day 5-8 工具开发就绪)
+**下一决策点**: 2026-07-29 (Sprint 24 末验收 3 项) + 2026-08-12 (Sprint 25 末 Phase 6 重启评估)
