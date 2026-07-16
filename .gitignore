@@ -12,7 +12,9 @@ Testing/Temporary/
 
 # Async dependencies (cloned manually; rebuild via CMake add_subdirectory)
 external/async_simple/
-external/taskflow/
+# external/taskflow/ was previously .gitignored (2026-07-15 fix: AgentForge FetchContent
+# downstream consumers need taskflow). Now vendored at commit Hash (v3.9.0 taskflow
+# source retained as plain files; benchmarks/docs/doxygen omitted to keep repo small).
 
 # Sisyphus orchestration
 .omo/
