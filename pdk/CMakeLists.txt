@@ -38,3 +38,12 @@ add_subdirectory(g3_knowledge_base)
 
 # Phase 6 W1: G1 Coding Assistant Plugin (2-step ReAct loop + G3 orchestration)
 add_subdirectory(g1_coding_assistant)
+
+# pdk_chat_demo v1 - Phase A 端到端 demo 的 6 个 Agent Plugin
+# 关联: examples/pdk_chat_demo/DESIGN.md
+add_subdirectory(loop_agent)        # Chat Loop Agent (DSL loader)
+add_subdirectory(provider_agent)    # LLM Provider + 凭据管理
+add_subdirectory(session_agent)     # 多轮会话 + JSONL 持久化
+add_subdirectory(budget_agent)      # 预算查询 + 告警
+add_subdirectory(fs_tools)          # 文件系统 read/write/list/exists
+add_subdirectory(shell_tools)       # shell exec + 危险命令黑名单
