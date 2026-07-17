@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schemas.hydraforge.io/pdk-manifest-v1.json",
+  "id": "infra.provider",
+  "name": "Provider Agent",
+  "version": "0.1.0",
+  "abi_version": 2,
+  "min_host_version": "0.3.0",
+  "max_host_version": "1.0.0",
+  "interface_versions": ["IAgentV1"],
+  "implementation_forms": ["cpp"],
+  "entry_tool": "provider/resolve",
+  "provided_tools": [
+    "provider/register",
+    "provider/resolve",
+    "provider/list",
+    "provider/health"
+  ],
+  "capabilities": ["provider_management", "credential_lookup", "model_resolution"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "provider_id": {"type": "string"},
+      "model_id": {"type": "string"}
+    },
+    "required": ["provider_id"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "provider": {"type": "string"},
+      "model": {"type": "string"},
+      "max_tokens": {"type": "integer"},
+      "temperature": {"type": "number"},
+      "api_url": {"type": "string"},
+      "api_key_env": {"type": "string"}
+    }
+  },
+  "requires_isolation": false,
+  "resources": {
+    "timeout_ms": 10000,
+    "max_concurrent": 8
+  },
+  "publisher": "hydraforge-team",
+  "trust_level": "high"
+}
