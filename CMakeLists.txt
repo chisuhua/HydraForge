@@ -179,6 +179,10 @@ if(AGENTICDSL_BUILD_EXAMPLES)
 
     # --- Phase 5 YIELD/STREAM token generator (C12) ---
     add_subdirectory(examples/phase5_yield_token_generator)
+
+    # --- pdk_chat_demo (Phase A 端到端 Agent-as-Plugin 验证) ---
+    # 关联: examples/pdk_chat_demo/DESIGN.md (784 行, 15 节)
+    add_subdirectory(examples/pdk_chat_demo)
 endif()
 
 # Create alias for tests
