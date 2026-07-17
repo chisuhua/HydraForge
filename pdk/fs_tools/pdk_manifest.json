@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schemas.hydraforge.io/pdk-manifest-v1.json",
+  "id": "tool.fs",
+  "name": "FS Tools",
+  "version": "0.1.0",
+  "abi_version": 2,
+  "min_host_version": "0.3.0",
+  "max_host_version": "1.0.0",
+  "interface_versions": ["IAgentV1"],
+  "implementation_forms": ["cpp"],
+  "entry_tool": "fs/read",
+  "provided_tools": ["fs/read", "fs/write", "fs/list", "fs/exists"],
+  "capabilities": ["file_read", "file_write", "directory_list"],
+  "requires_isolation": false,
+  "resources": {
+    "timeout_ms": 10000,
+    "max_concurrent": 8
+  },
+  "publisher": "hydraforge-team",
+  "trust_level": "high"
+}
