@@ -1,0 +1,121 @@
+{
+  "$schema": "https://schemas.hydraforge.io/pdk_chat_demo-v1.json",
+  "schema_version": "1.0",
+  "app_id": "pdk_chat_demo",
+
+  "providers": {
+    "openai": {
+      "api_key_env": "OPENAI_API_KEY",
+      "api_url": "https://api.openai.com/v1",
+      "models": {
+        "gpt-4o":      { "model": "gpt-4o",      "max_tokens": 4096, "temperature": 0.7 },
+        "gpt-4o-mini": { "model": "gpt-4o-mini", "max_tokens": 2048, "temperature": 0.7 }
+      }
+    },
+    "anthropic": {
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "api_url": "https://api.anthropic.com/v1",
+      "models": {
+        "claude-sonnet": { "model": "claude-sonnet-4-20250514", "max_tokens": 4096 }
+      }
+    },
+    "mock": {
+      "models": {
+        "test": { "model": "mock-llm-v1", "max_tokens": 1024 }
+      }
+    }
+  },
+
+  "agent": {
+    "loop_type": "react",
+    "provider": "mock",
+    "model": "test",
+    "system_prompt": "You are a helpful coding assistant with access to tools.",
+    "tools": ["fs/read", "fs/write", "shell/exec", "code_review/run"],
+    "max_steps": 50,
+    "timeout_ms": 300000,
+    "budget_limit_usd": 1.0
+  },
+
+  "plugins": [
+    {
+      "id": "chat.loop",
+      "path": "@CMAKE_BINARY_DIR@/pdk/loop_agent/libLoopAgent.so",
+      "lifecycle": "lazy",
+      "activation_events": ["onTool:loop/run"]
+    },
+    {
+      "id": "infra.provider",
+      "path": "@CMAKE_BINARY_DIR@/pdk/provider_agent/libProviderAgent.so",
+      "lifecycle": "lazy",
+      "activation_events": ["onTool:provider/resolve"]
+    },
+    {
+      "id": "infra.session",
+      "path": "@CMAKE_BINARY_DIR@/pdk/session_agent/libSessionAgent.so",
+      "lifecycle": "lazy",
+      "activation_events": ["onTool:session/persist"]
+    },
+    {
+      "id": "infra.budget",
+      "path": "@CMAKE_BINARY_DIR@/pdk/budget_agent/libBudgetAgent.so",
+      "lifecycle": "lazy",
+      "activation_events": ["onTool:budget/query"]
+    },
+    {
+      "id": "tool.fs",
+      "path": "@CMAKE_BINARY_DIR@/pdk/fs_tools/libFSTools.so"
+    },
+    {
+      "id": "tool.shell",
+      "path": "@CMAKE_BINARY_DIR@/pdk/shell_tools/libShellTools.so"
+    },
+    {
+      "id": "skill.code_review",
+      "path": "@SKILL_CODE_REVIEW_PATH@/SKILL.md",
+      "type": "skill",
+      "requires_isolation": true
+    }
+  ],
+
+  "orchestration": {
+    "model": "event_driven",
+    "entry": "user_input",
+    "event_topics": [
+      "user.input",
+      "loop.turn.start",
+      "loop.turn.end",
+      "llm.request",
+      "llm.response",
+      "loop.decision",
+      "tool.execution.start",
+      "tool.execution.end",
+      "loop.done",
+      "loop.error",
+      "session.persisted",
+      "budget.checked"
+    ]
+  },
+
+  "observability": {
+    "otel_enabled": false,
+    "endpoint": "http://localhost:4318",
+    "sample_rate": 1.0,
+    "export_format": "otlp+http"
+  },
+
+  "session": {
+    "persist_dir": "~/.hydraforge/sessions/",
+    "compact_threshold_tokens": 8000,
+    "branch_on_user_request": true
+  },
+
+  "safety": {
+    "default_trust_level": "medium",
+    "high_risk_tools_require_approval": true,
+    "budget_alerts": [
+      {"threshold": 0.5, "severity": "warning"},
+      {"threshold": 0.9, "severity": "critical"}
+    ]
+  }
+}
