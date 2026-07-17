@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schemas.hydraforge.io/pdk-manifest-v1.json",
+  "id": "infra.session",
+  "name": "Session Agent",
+  "version": "0.1.0",
+  "abi_version": 2,
+  "min_host_version": "0.3.0",
+  "max_host_version": "1.0.0",
+  "interface_versions": ["IAgentV1"],
+  "implementation_forms": ["cpp"],
+  "entry_tool": "session/persist",
+  "provided_tools": [
+    "session/history",
+    "session/branch",
+    "session/compact",
+    "session/persist",
+    "session/search"
+  ],
+  "capabilities": ["session_management", "history_persistence", "branch_fork", "compaction"],
+  "requires_isolation": false,
+  "resources": {
+    "timeout_ms": 10000,
+    "max_concurrent": 16
+  },
+  "publisher": "hydraforge-team",
+  "trust_level": "high"
+}
