@@ -1,0 +1,26 @@
+{
+  "$schema": "https://schemas.hydraforge.io/pdk-manifest-v1.json",
+  "id": "infra.budget",
+  "name": "Budget Agent",
+  "version": "0.1.0",
+  "abi_version": 2,
+  "min_host_version": "0.3.0",
+  "max_host_version": "1.0.0",
+  "interface_versions": ["IAgentV1"],
+  "implementation_forms": ["cpp"],
+  "entry_tool": "budget/query",
+  "provided_tools": [
+    "budget/query",
+    "budget/set_limit",
+    "budget/alerts",
+    "budget/cost_breakdown"
+  ],
+  "capabilities": ["budget_tracking", "cost_aggregation", "alert_subscription"],
+  "requires_isolation": false,
+  "resources": {
+    "timeout_ms": 5000,
+    "max_concurrent": 16
+  },
+  "publisher": "hydraforge-team",
+  "trust_level": "high"
+}
