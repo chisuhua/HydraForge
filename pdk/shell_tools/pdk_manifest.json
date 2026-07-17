@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schemas.hydraforge.io/pdk-manifest-v1.json",
+  "id": "tool.shell",
+  "name": "Shell Tools",
+  "version": "0.1.0",
+  "abi_version": 2,
+  "min_host_version": "0.3.0",
+  "max_host_version": "1.0.0",
+  "interface_versions": ["IAgentV1"],
+  "implementation_forms": ["cpp"],
+  "entry_tool": "shell/exec",
+  "provided_tools": ["shell/exec", "shell/which", "shell/env"],
+  "capabilities": ["shell_exec", "command_lookup"],
+  "requires_isolation": true,
+  "resources": {
+    "timeout_ms": 30000,
+    "max_concurrent": 2
+  },
+  "publisher": "hydraforge-team",
+  "trust_level": "high"
+}
