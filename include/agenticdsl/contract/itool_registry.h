@@ -26,7 +26,11 @@ namespace agenticdsl {
 /**
  * @brief 工具注册表抽象接口 (ADR-0023 §C.3 标准化)
  *
- * 包含 9 个虚函数 (P1.T2 v3 修订, 移除未使用的 has_cost_callback, YAGNI):
+ * 包含 9 个虚函数 (P1.T2 v3 修订, 移除未使用的 has_cost_callback, YAGNI)
+ * 外加 2 个非虚 JSON 便捷方法 (call_tool_json / register_tool_function_json,
+ * 参见 openspec/changes/2026-07-17-hydraforge-itoolregistry-json-args/):
+ *
+ * 总计 11 个公开方法 (9 pure virtual + 2 non-virtual JSON convenience).
  *
  * 基础查询 (3):
  *   - has_tool(name) const
@@ -66,6 +70,20 @@ class IToolRegistry {
   using ToolFunc = std::function<nlohmann::json(
       const std::unordered_map<std::string, std::string>&)>;
 
+  /**
+   * @brief JSON-native tool function signature (paired with call_tool_json).
+   *
+   * Use this when your plugin receives complex/typed arguments and wants
+   * to avoid manual json::parse() at every call site.
+   *
+   * v1 limitation: default registry impl does NOT store ToolFuncJson
+   * separately; handlers registered via register_tool_function_json will
+   * have their args re-stringified when called via call_tool(map) and
+   * re-parsed when called via call_tool_json(). True zero-copy is a v2
+   * optimization (override these methods in ToolRegistry).
+   */
+  using ToolFuncJson = std::function<nlohmann::json(const nlohmann::json&)>;
+
   virtual ~IToolRegistry() = default;
 
   // === 基础查询 (3) ===
@@ -74,6 +92,26 @@ class IToolRegistry {
   virtual nlohmann::json call_tool(
       const std::string& name,
       const std::unordered_map<std::string, std::string>& args) = 0;
+
+  /**
+   * @brief Call a tool with nlohmann::json arguments (non-virtual convenience).
+   *
+   * Default implementation converts json args to unordered_map<string,string>
+   * (stringifying non-string values) and delegates to call_tool(name, map).
+   *
+   * @warning Type loss: integers/bools/arrays/objects are serialized to JSON
+   *          strings via .dump(). Downstream handlers registered via
+   *          register_tool_function (the map variant) will receive the string
+   *          form and need json::parse to recover types. To avoid this,
+   *          register via register_tool_function_json.
+   */
+  nlohmann::json call_tool_json(const std::string& name, const nlohmann::json& args) {
+    std::unordered_map<std::string, std::string> map_args;
+    for (auto& [k, v] : args.items()) {
+      map_args[k] = v.is_string() ? v.get<std::string>() : v.dump();
+    }
+    return call_tool(name, map_args);
+  }
   virtual std::vector<std::string> list_tools() const = 0;
 
   // === 函数工具注册 (1, 模板桥接) ===
@@ -87,6 +125,28 @@ class IToolRegistry {
    * ToolRegistry::register_tool<Func> 内部委托到 register_tool_function(name, fn).
    */
   virtual void register_tool_function(std::string name, ToolMetadata meta, ToolFunc fn) = 0;
+
+  /**
+   * @brief Register a tool that takes nlohmann::json args (non-virtual convenience).
+   *
+   * Default implementation wraps the ToolFuncJson to accept
+   * unordered_map<string,string> (re-stringifying map values into a json
+   * object) and delegates to register_tool_function.
+   *
+   * @note v1 does NOT store ToolFuncJson separately; for true zero-copy,
+   *       ToolRegistry subclasses should override this method to maintain
+   *       a parallel tools_json_ map.
+   */
+  void register_tool_function_json(std::string name, ToolMetadata meta, ToolFuncJson fn) {
+    register_tool_function(std::move(name), std::move(meta),
+        [fn = std::move(fn)](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+          nlohmann::json json_args;
+          for (auto& [k, v] : args) {
+            json_args[k] = v;
+          }
+          return fn(json_args);
+        });
+  }
 
   // === LLM 工具管理 (4) ===
 
