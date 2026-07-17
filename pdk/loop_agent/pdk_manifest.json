@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schemas.hydraforge.io/pdk-manifest-v1.json",
+  "id": "chat.loop",
+  "name": "Loop Agent",
+  "version": "0.1.0",
+  "abi_version": 2,
+  "min_host_version": "0.3.0",
+  "max_host_version": "1.0.0",
+  "interface_versions": ["IAgentV1"],
+  "implementation_forms": ["dsl"],
+  "entry_tool": "loop/run",
+  "provided_tools": ["loop/run", "loop/plan_execute", "loop/fork_join"],
+  "capabilities": ["react_loop", "plan_execute_loop", "fork_join_loop"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "loop_type": {"type": "string", "enum": ["react", "plan_execute", "fork_join"], "default": "react"},
+      "prompt": {"type": "string"},
+      "system_prompt": {"type": "string"},
+      "history": {"type": "array", "items": {"type": "object"}},
+      "tools": {"type": "array", "items": {"type": "string"}},
+      "max_steps": {"type": "integer", "default": 50},
+      "timeout_ms": {"type": "integer", "default": 300000}
+    },
+    "required": ["prompt"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "response": {"type": "string"},
+      "steps": {"type": "integer"},
+      "tokens_used": {"type": "integer"},
+      "cost_usd": {"type": "number"},
+      "success": {"type": "boolean"}
+    }
+  },
+  "requires_isolation": false,
+  "resources": {
+    "timeout_ms": 300000,
+    "max_concurrent": 4
+  },
+  "publisher": "hydraforge-team",
+  "trust_level": "high"
+}
