@@ -139,7 +139,10 @@ int main(int argc, char* argv[]) {
                           << ": " << e.what() << std::endl;
             }
         } else if (plugin_cfg.type == "skill") {
-            std::cout << "[main] Skill registered (mock): " << plugin_cfg.id << std::endl;
+            // SKILL.md 当前不支持实际加载执行 — 需要 SkillInterpreter (ADR-0055)
+            // 参见: docs/adr/adr-0055-skill-isolation.md
+            std::cout << "[main] Skill registered (mock-only, requires SkillInterpreter ADR-0055): "
+                      << plugin_cfg.id << std::endl;
         }
     }
 

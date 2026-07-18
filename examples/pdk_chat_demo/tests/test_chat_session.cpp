@@ -19,8 +19,8 @@ TEST_CASE("ChatConfig::from_json parses valid config", "[chat_session]") {
     REQUIRE(cfg.schema_version == "1.0");
     REQUIRE(cfg.app_id == "pdk_chat_demo");
     REQUIRE(cfg.agent.loop_type == "react");
-    REQUIRE(cfg.agent.provider == "mock");
-    REQUIRE(cfg.agent.model == "test");
+    REQUIRE(cfg.agent.provider == "deepseek");
+    REQUIRE(cfg.agent.model == "deepseek-v4-pro");
     REQUIRE(cfg.agent.max_steps == 50);
     REQUIRE(cfg.agent.timeout_ms == 300000);
     REQUIRE(cfg.agent.budget_limit_usd == 1.0);
@@ -39,9 +39,9 @@ TEST_CASE("ChatConfig::validate rejects bad config", "[chat_session]") {
 
 TEST_CASE("ChatConfig::override_provider switches provider and model", "[chat_session]") {
     ChatConfig cfg = ChatConfig::from_json("../config.json");
-    // config.json 默认为 mock/test
-    REQUIRE(cfg.agent.provider == "mock");
-    REQUIRE(cfg.agent.model == "test");
+    // config.json 默认为 deepseek/deepseek-v4-pro
+    REQUIRE(cfg.agent.provider == "deepseek");
+    REQUIRE(cfg.agent.model == "deepseek-v4-pro");
 
     // 切换到 openai/gpt-4o
     cfg.override_provider("openai", "gpt-4o");
