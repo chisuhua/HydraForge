@@ -17,6 +17,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(PkgConfig REQUIRED)
 find_package(Threads REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 # cpp-httplib (header-only)
 set(HTTPLIB_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/external/cpp-httplib")
@@ -94,6 +95,8 @@ add_library(agenticdsl_common STATIC
 target_link_libraries(agenticdsl_common PUBLIC
     agenticdsl_includes
     agenticdsl_policy
+    OpenSSL::SSL
+    OpenSSL::Crypto
 )
 
 add_subdirectory(src/modules/parser)

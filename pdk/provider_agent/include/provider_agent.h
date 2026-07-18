@@ -24,6 +24,7 @@ struct ModelConfig {
 struct ProviderInfo {
     std::string id;                // "openai", "anthropic", "mock"
     std::string api_url;
+    std::string api_endpoint;       // API 端点路径 (默认 /v1/chat/completions)
     std::string api_key_env;       // 环境变量名 (延迟解析)
     std::map<std::string, ModelConfig> models;  // model_id -> config
 

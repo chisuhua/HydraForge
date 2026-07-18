@@ -184,6 +184,9 @@ int main(int argc, char* argv[]) {
                 llm_cfg.api_url = llm_cfg_json["api_url"].get<std::string>();
             if (llm_cfg_json.contains("api_key"))
                 llm_cfg.api_key = llm_cfg_json["api_key"].get<std::string>();
+            // 某些 provider (如百度千帆) 使用非标准 endpoint，需手动指定
+            if (llm_cfg_json.contains("api_endpoint"))
+                llm_cfg.api_endpoint = llm_cfg_json["api_endpoint"].get<std::string>();
 
             agenticdsl::LLMProviderFactory factory;
             llm_provider = factory.create(llm_cfg);

@@ -16,6 +16,10 @@
 #include <agenticdsl/types/layered_context.h>
 #include <agenticdsl/contract/itool_registry.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
+#include <common/llm/llm_config.h>
+#include <common/llm/llm_types.h>
+
+#include <stop_token>
 
 namespace pdk_chat_demo {
 
@@ -166,55 +170,103 @@ ChatResult ChatSession::chat(const std::string& user_input) {
         .meta = {{"session_id", session_id_}, {"input", user_input}}
     });
 
-    // 3. 调用 Loop Agent
-    std::unordered_map<std::string, std::string> loop_args;
-    loop_args["loop_type"] = impl_->agent_cfg.loop_type;
-    loop_args["prompt"] = user_input;
-    loop_args["system_prompt"] = impl_->agent_cfg.system_prompt;
-    loop_args["history"] = nlohmann::json(impl_->messages).dump();
-    loop_args["tools"] = nlohmann::json(impl_->agent_cfg.tools).dump();
-    loop_args["max_steps"] = std::to_string(impl_->agent_cfg.max_steps);
-    loop_args["timeout_ms"] = std::to_string(impl_->agent_cfg.timeout_ms);
+    // 3. 获取 LLM 响应
+    //    - 如果有真实 LLM provider (非 mock 模式)，直接调用
+    //    - 否则回退到 Loop Agent 工具 (mock 模式)
+    agenticdsl::ILLMProvider* llm = impl_->engine ? impl_->engine->get_llm_provider() : nullptr;
+    bool use_direct_llm = (llm != nullptr);
 
     try {
-        nlohmann::json loop_result = impl_->registry->call_tool("loop/run", loop_args);
-
-        result.response = loop_result.value("response", "");
-        result.total_steps = loop_result.value("steps", 0);
-        result.total_tokens = loop_result.value("tokens_used", 0);
-        result.cost_usd = loop_result.value("cost_usd", 0.0);
-        result.success = true;
-
-        // 4. 追加 assistant 消息到历史
-        nlohmann::json assistant_msg = {
-            {"role", "assistant"},
-            {"content", result.response},
-            {"timestamp", std::chrono::system_clock::now().time_since_epoch().count()},
-            {"steps", result.total_steps},
-            {"tokens", result.total_tokens}
-        };
-        impl_->messages.push_back(assistant_msg);
-
-        // 5. emit "loop.done"
-        impl_->bus->emit("loop.done", agenticdsl::ToolResult{
-            .ok = true,
-            .meta = {
-                {"session_id", session_id_},
-                {"response", result.response},
-                {"total_steps", result.total_steps},
-                {"total_tokens", result.total_tokens}
+        if (use_direct_llm) {
+            // 直连 LLM provider — 构造完整 prompt
+            std::string full_prompt;
+            if (!impl_->agent_cfg.system_prompt.empty()) {
+                full_prompt += "System: " + impl_->agent_cfg.system_prompt + "\n\n";
             }
-        });
+            for (const auto& msg : impl_->messages) {
+                full_prompt += msg.value("role", "user") + ": "
+                             + msg.value("content", "") + "\n";
+            }
+            full_prompt += "assistant: ";
 
-        // 6. 持久化 (异步, 简化版 fire-and-forget)
-        if (impl_->session_cfg.persist_dir != "") {
-            impl_->bus->emit("session.persist_request", agenticdsl::ToolResult{
+            agenticdsl::GenerationRequest req(full_prompt);
+            req.params.model = impl_->agent_cfg.model;
+            req.params.max_tokens = 4096;
+            req.params.temperature = 0.7;
+
+            auto gen_result = llm->generate(req, std::stop_token{});
+            if (gen_result.has_value()) {
+                auto& gv = gen_result.value();
+                result.response = gv.text;
+                result.total_tokens = gv.prompt_tokens + gv.completion_tokens;
+                result.total_steps = 1;
+                result.success = true;
+            } else {
+                auto& err = gen_result.error();
+                std::string code_str;
+                switch (err.code) {
+                    case agenticdsl::LLMError::Code::AuthenticationError: code_str = "auth"; break;
+                    case agenticdsl::LLMError::Code::NetworkError: code_str = "network"; break;
+                    case agenticdsl::LLMError::Code::RateLimited: code_str = "rate_limited"; break;
+                    case agenticdsl::LLMError::Code::ServerError: code_str = "server"; break;
+                    case agenticdsl::LLMError::Code::InvalidRequest: code_str = "invalid_request"; break;
+                    default: code_str = "unknown"; break;
+                }
+                result.error_message = "[LLM/" + code_str + "] " + err.message;
+                result.success = false;
+                result.success = false;
+            }
+        } else {
+            // 回退到 Loop Agent 工具 (mock 模式)
+            std::unordered_map<std::string, std::string> loop_args;
+            loop_args["loop_type"] = impl_->agent_cfg.loop_type;
+            loop_args["prompt"] = user_input;
+            loop_args["system_prompt"] = impl_->agent_cfg.system_prompt;
+            loop_args["history"] = nlohmann::json(impl_->messages).dump();
+            loop_args["tools"] = nlohmann::json(impl_->agent_cfg.tools).dump();
+            loop_args["max_steps"] = std::to_string(impl_->agent_cfg.max_steps);
+
+            nlohmann::json loop_result = impl_->registry->call_tool("loop/run", loop_args);
+
+            result.response = loop_result.value("response", "");
+            result.total_steps = loop_result.value("steps", 0);
+            result.total_tokens = loop_result.value("tokens_used", 0);
+            result.cost_usd = loop_result.value("cost_usd", 0.0);
+            result.success = true;
+        }
+
+        if (result.success) {
+            // 4. 追加 assistant 消息到历史
+            nlohmann::json assistant_msg = {
+                {"role", "assistant"},
+                {"content", result.response},
+                {"timestamp", std::chrono::system_clock::now().time_since_epoch().count()},
+                {"steps", result.total_steps},
+                {"tokens", result.total_tokens}
+            };
+            impl_->messages.push_back(assistant_msg);
+
+            // 5. emit "loop.done"
+            impl_->bus->emit("loop.done", agenticdsl::ToolResult{
                 .ok = true,
                 .meta = {
                     {"session_id", session_id_},
-                    {"messages", nlohmann::json(impl_->messages)}
+                    {"response", result.response},
+                    {"total_steps", result.total_steps},
+                    {"total_tokens", result.total_tokens}
                 }
             });
+
+            // 6. 持久化 (异步, 简化版 fire-and-forget)
+            if (impl_->session_cfg.persist_dir != "") {
+                impl_->bus->emit("session.persist_request", agenticdsl::ToolResult{
+                    .ok = true,
+                    .meta = {
+                        {"session_id", session_id_},
+                        {"messages", nlohmann::json(impl_->messages)}
+                    }
+                });
+            }
         }
     } catch (const std::exception& e) {
         result.success = false;

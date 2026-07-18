@@ -8,6 +8,10 @@
 #include "cloud_adapter.h"
 #include "sse_stream.h"
 
+// 启用 cpp-httplib 的 HTTPS 支持（需要 -lssl -lcrypto）
+#ifndef CPPHTTPLIB_OPENSSL_SUPPORT
+#define CPPHTTPLIB_OPENSSL_SUPPORT
+#endif
 #include <httplib.h>
 #include <nlohmann/json.hpp>
 
@@ -311,7 +315,7 @@ CloudLLMAdapter::generate(const GenerationRequest& req, std::stop_token token) {
   }
 
   std::string body = build_request_body(req, /*stream=*/false);
-  auto http_resp = do_post("/v1/chat/completions", body, false, token);
+  auto http_resp = do_post(config_.api_endpoint, body, false, token);
 
   if (http_resp.network_error) {
     return Result<GenerationResult, LLMError>::failure(
@@ -382,7 +386,7 @@ CloudLLMAdapter::generate_stream(const GenerationRequest& req,
   }
 
   std::string body = build_request_body(req, /*stream=*/true);
-  auto http_resp = do_post("/v1/chat/completions", body, true, token);
+  auto http_resp = do_post(config_.api_endpoint, body, true, token);
 
   if (http_resp.network_error || http_resp.status_code < 200 ||
       http_resp.status_code >= 300) {

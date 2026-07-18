@@ -21,7 +21,8 @@
     },
     "deepseek": {
       "api_key_env": "QIANFAN_API_KEY",
-      "api_url": "https://qianfan.baidubce.com/v2/coding",
+      "api_url": "https://qianfan.baidubce.com",
+      "api_endpoint": "/v2/coding/chat/completions",
       "models": {
         "deepseek-v4-pro": { "model": "deepseek-v4-pro", "max_tokens": 4096, "temperature": 0.7 }
       }

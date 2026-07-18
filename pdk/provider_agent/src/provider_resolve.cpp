@@ -25,6 +25,9 @@ void ProviderRegistry::register_providers(const nlohmann::json& providers_config
         info.id = provider_id;
         info.api_url = pcfg.value("api_url", "");
         info.api_key_env = pcfg.value("api_key_env", "");
+        // api_endpoint 可选，默认使用 CloudLLMAdapter 的内置值 (/v1/chat/completions)
+        if (pcfg.contains("api_endpoint"))
+            info.api_endpoint = pcfg["api_endpoint"].get<std::string>();
 
         if (pcfg.contains("models") && pcfg["models"].is_object()) {
             for (auto mit = pcfg["models"].begin(); mit != pcfg["models"].end(); ++mit) {
@@ -103,6 +106,9 @@ nlohmann::json ProviderRegistry::resolve(
     result["temperature"] = mc.temperature;
     result["api_url"] = info.api_url;
     result["api_key_env"] = info.api_key_env;
+    // 如果设置了非标准 endpoint, 传递给 LLMConfig
+    if (!info.api_endpoint.empty())
+        result["api_endpoint"] = info.api_endpoint;
 
     // 延迟解析 API key (不持久化)
     auto api_key = info.resolve_api_key();
