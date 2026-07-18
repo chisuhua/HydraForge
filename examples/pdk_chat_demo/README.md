@@ -6,70 +6,106 @@
 
 ## 概述
 
-`pdk_chat_demo` 演示 HydraForge "AgenticOS" 范式:
+`pdk_chat_demo` 演示 HydraForge "AgenticOS" 范式：
 
-- **应用 = Agent 组合** (无业务代码)
-- **万物皆 Agent，Agent 皆 Plugin** (6 个独立 Plugin)
-- **6 个 Agent 协作**: Chat / Loop / Provider / Session / Budget / Code Review
+- **应用 = Agent 组合** — Chat 应用由 6 个独立 Agent Plugin 编排
+- **万物皆 Agent，Agent 皆 Plugin** — 每个 Agent 是独立 .so
+- **6 个 Agent 协作**: Chat / Loop / Provider / Session / Budget / FS / Shell
 
 ## 编译
 
 ```bash
 # 在项目根目录
 mkdir build && cd build
-cmake .. -DAGENTICDSL_BUILD_PDK_AGENTS=ON -DPDK_CHAT_BUILD_TESTS=ON
-make -j$(nproc) pdk_chat_demo
+cmake .. -DCMAKE_BUILD_TYPE=Release -DAGENTICDSL_BUILD_EXAMPLES=ON
+make -j$(nproc)
 ```
+
+编译完成后 `build/examples/pdk_chat_demo/pdk_chat_demo` 可用。
 
 ## 运行
 
-### Mock 模式（CI 验证）
+### Mock 模式（CI 验证，零依赖）
 
 ```bash
 ./build/examples/pdk_chat_demo/pdk_chat_demo --mock
 ```
 
-输入测试用例:
+输入测试用例：
+
 ```
 User> Write a hello world in C++
 ```
 
-### 真实 LLM 模式
+### 真实 LLM 模式（deepseek-v4-pro）
 
 ```bash
-export OPENAI_API_KEY=sk-...
-export ANTHROPIC_API_KEY=sk-ant-...
+export QIANFAN_API_KEY=sk-...
 ./build/examples/pdk_chat_demo/pdk_chat_demo
 ```
 
-默认使用 mock provider，可在 `config.json` 中切换。
+默认使用 `deepseek` provider + `deepseek-v4-pro` 模型（百炼 API），对话输出真实的 LLM 回复：
+
+```
+User> Write a hello world in C++
+
+Assistant: Here's a simple "Hello, World!" program in C++:
+
+```cpp
+#include <iostream>
+
+int main() {
+    std::cout << "Hello, World!" << std::endl;
+    return 0;
+}
+```
+```
+
+### 事件输出
+
+demo 同时输出结构化事件日志（时间戳 + topic）：
+
+```
+[23:58:49] user.input: Write a hello world in C++
+[23:58:54] loop.done: total_steps=1, total_tokens=258
+```
+
+## 配置说明
+
+配置文件 `examples/pdk_chat_demo/config.json` 可自定义：
+
+| 字段 | 默认值 | 说明 |
+|------|--------|------|
+| `agent.provider` | `"deepseek"` | LLM 提供方 (deepseek/openai/anthropic/mock) |
+| `agent.model` | `"deepseek-v4-pro"` | 模型名 |
+| `agent.system_prompt` | — | 系统提示词 |
+| `providers` | 4 个预配置 | 各 provider 的 api_url / api_key_env |
+
+### 切换默认 provider
+
+编辑 `config.json`：
+
+```json
+"agent": {
+    "provider": "openai",
+    "model": "gpt-4o"
+}
+```
+
+并确保对应 provider 的 `api_key_env` 环境变量已设置。
 
 ## Plugin 构成
 
-| Plugin | 形态 | 路径 |
-|--------|------|------|
-| Loop Agent | DSL (.agent.md) | `lib/loop/react.agent.md` |
-| Provider Agent | C++ (.so) | `pdk/provider_agent/` |
-| Session Agent | C++ (.so) | `pdk/session_agent/` |
-| Budget Agent | C++ (.so) | `pdk/budget_agent/` |
-| FS Tools | C++ (.so) | `pdk/fs_tools/` |
-| Shell Tools | C++ (.so) | `pdk/shell_tools/` |
-| Code Review Skill | SKILL.md | `skills/code-review/SKILL.md` |
-
-## 事件流示例
-
-```
-$ ./pdk_chat_demo --mock
-[10:23:45] user.input: "Write a hello world in C++"
-[10:23:45] loop.turn.start: turn=1, step=1
-[10:23:45] llm.request: model=mock-llm-v1
-[10:23:46] llm.response: tokens=85, duration=210ms
-[10:23:46] loop.decision: tool_call (shell/exec)
-[10:23:46] tool.execution.start: shell/exec
-[10:23:47] tool.execution.end: ok=true, duration=890ms
-[10:23:47] loop.done: total_steps=2, total_tokens=127
-Assistant: Here's the C++ code...
-```
+| Plugin | 形态 | 路径 | 角色 |
+|--------|------|------|------|
+| Chat Agent | C++ (`main.cpp`) | `examples/pdk_chat_demo/` | 编排器 + 交互循环 |
+| Loop Agent | C++ (.so) | `pdk/loop_agent/` | DSL 执行器（当前 mock，需 ADR-0019） |
+| Provider Agent | C++ (.so) | `pdk/provider_agent/` | LLM provider 注册与解析 |
+| Session Agent | C++ (.so) | `pdk/session_agent/` | 多轮会话管理 |
+| Budget Agent | C++ (.so) | `pdk/budget_agent/` | 预算控制 |
+| FS Tools | C++ (.so) | `pdk/fs_tools/` | 文件系统工具 |
+| Shell Tools | C++ (.so) | `pdk/shell_tools/` | Shell 命令执行 |
+| Code Review | SKILL.md | `skills/code-review/` | 代码审查（mock-only, 需 ADR-0055） |
 
 ## 测试
 
@@ -79,28 +115,42 @@ ctest -R pdk_chat --output-on-failure
 ```
 
 测试用例:
-- `test_chat_session`: 单元测试（ChatSession 状态机）
-- `test_e2e_mock`: 端到端 mock 模式测试
+
+- `test_chat_session`: ChatSession 单元测试（5 个 test case, 25 断言）
+- `test_e2e_mock`: 端到端 mock 模式测试（3 个 test case, 9 断言）
+
+全量:
+
+```bash
+ctest -j$(nproc)
+```
+
+## 常见问题
+
+| 问题 | 原因 | 解决 |
+|------|------|------|
+| `'https' scheme is not supported` | cpp-httplib 编译时未启用 SSL | 确认安装了 `libssl-dev` 并重新 cmake |
+| `Connection failed` | API endpoint 路径错误 | 确认 `config.json` 中 `api_endpoint` 正确 |
+| `plugin registration: dangerous category` | ApprovalPolicy 未设置 plan/agent 审批 | 检查各 plugin 的 `ApprovalPolicy` |
+| `LLM generation failed` | API key 无效或未设置 | `echo $QIANFAN_API_KEY` 确认已 export |
+| demo 启动后无响应 | provider/resolve 死锁（已修复） | 更新至最新 commit |
 
 ## 设计文档
 
-完整设计见 [DESIGN.md](./DESIGN.md)，包括:
-- 完整架构图
+完整设计见 [DESIGN.md](./DESIGN.md)（784 行），包括:
+
+- 完整架构图 + 组件关系
 - JSON 配置 schema
 - 6 个 Agent 详细设计
 - 事件流 + 错误处理
-- 测试策略
-- 15 项验证清单
+- 与 ADR 的完整对照
 
 ## 相关文档
 
-- `docs/architecture/agent-as-plugin-architecture-v1.1.md` - 总架构
-- `docs/architecture/agent-evolution-pipeline.md` - 4 阶段管线
-- `docs/adr/adr-0052-agent-plugin-manifest.md` - manifest 规范
-- `docs/adr/adr-0053-agent-descriptor-interface.md` - AgentDescriptor
-- `docs/adr/adr-0054-capability-discovery.md` - Capability 索引
-- `docs/adr/adr-0055-skill-isolation.md` - SKILL 隔离
-- `docs/adr/adr-0057-agent-lifecycle.md` - Plugin 生命周期
-- `docs/adr/adr-0058-tool-schema-validation.md` - Schema 校验
-- `docs/adr/adr-0060-agent-composition.md` - 6 种协作模式
-- `docs/adr/adr-0061-agent-evolution-and-solidification.md` - Skill 进化
+- `docs/architecture/agent-as-plugin-architecture-v1.1.md` — 总架构
+- `docs/architecture/agent-evolution-pipeline.md` — 4 阶段管线
+- `docs/adr/adr-0052-agent-plugin-manifest.md` — manifest 规范
+- `docs/adr/adr-0054-capability-discovery.md` — Capability 索引
+- `docs/adr/adr-0057-agent-lifecycle.md` — Plugin 生命周期
+- `docs/adr/adr-0058-tool-schema-validation.md` — Schema 校验
+- `docs/adr/adr-0060-agent-composition.md` — 6 种协作模式
