@@ -98,16 +98,16 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
 
     // budget/alerts
     registry.register_tool_function(
-        "budget/alerts",
+"budget/alerts",
         ::agenticdsl::ToolMetadata{
             .name = "budget/alerts",
-            .description = "Register budget alert",
+            .description = "Subscribe to budget alerts",
             .domain = "budget",
             .category = ::agenticdsl::ToolCategory::Execute,
             .min_layer = ::agenticdsl::LayerProfile::Workflow,
             .approval = ::agenticdsl::ApprovalPolicy{
-                .requires_approval_in_plan = false,
-                .requires_approval_in_agent = false,
+                .requires_approval_in_plan = true,
+                .requires_approval_in_agent = true,
                 .requires_approval_in_yolo = false,
                 .force_approval_always = false
             },

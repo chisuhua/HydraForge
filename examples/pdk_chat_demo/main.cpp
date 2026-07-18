@@ -96,6 +96,25 @@ int main(int argc, char* argv[]) {
     // ============================================================
     // 3. 加载所有 Plugin
     // ============================================================
+
+    static constexpr std::string_view kPluginPathPrefix = "/pdk/";
+    {
+        std::string plugin_root;
+        for (const auto& plugin_cfg : config.plugins) {
+            if (plugin_cfg.type == "so") {
+                auto pos = plugin_cfg.path.find(kPluginPathPrefix);
+                if (pos != std::string::npos) {
+                    plugin_root = plugin_cfg.path.substr(0, pos + kPluginPathPrefix.size());
+                    break;
+                }
+            }
+        }
+        if (!plugin_root.empty()) {
+            setenv("HYDRAFORGE_PLUGIN_PATH", plugin_root.c_str(), 1);
+            std::cout << "[main] HYDRAFORGE_PLUGIN_PATH=" << plugin_root << std::endl;
+        }
+    }
+
     hydraforge::PluginLoader loader;
     g_loader = &loader;
 
@@ -107,7 +126,12 @@ int main(int argc, char* argv[]) {
                               << " (skipping, demo mode)" << std::endl;
                     continue;
                 }
-                loader.load_so(plugin_cfg.path, engine->get_tool_registry());
+                if (!loader.load_so(plugin_cfg.path, engine->get_tool_registry())) {
+                    std::cerr << "[main] FAILED to load plugin: " << plugin_cfg.id
+                              << " from " << plugin_cfg.path
+                              << " (see PluginLoader WARN/ERROR above)" << std::endl;
+                    continue;
+                }
                 std::cout << "[main] Loaded plugin: " << plugin_cfg.id
                           << " from " << plugin_cfg.path << std::endl;
             } catch (const std::exception& e) {
@@ -115,7 +139,6 @@ int main(int argc, char* argv[]) {
                           << ": " << e.what() << std::endl;
             }
         } else if (plugin_cfg.type == "skill") {
-            // SKILL.md 在 mock 模式下不实际加载（需要 SkillInterpreter）
             std::cout << "[main] Skill registered (mock): " << plugin_cfg.id << std::endl;
         }
     }
@@ -167,6 +190,17 @@ int main(int argc, char* argv[]) {
     }
 
     engine->set_llm_provider(std::move(llm_provider));
+
+    if (mock_mode) {
+        auto* mock = dynamic_cast<agenticdsl::MockLLMProvider*>(
+            engine->get_llm_provider());
+        if (mock) {
+            mock->enqueue_response(
+                R"({"content":"I'll write a hello world in C++ for you.","tool_calls":[]})");
+            mock->enqueue_response(
+                R"({"content":"Here's the C++ code:\n\n```cpp\n#include <iostream>\nint main(){ std::cout << \"Hello, World!\" << std::endl; return 0; }\n```","tool_calls":[]})");
+        }
+    }
 
     // ============================================================
     // 6. 订阅事件 → 终端输出

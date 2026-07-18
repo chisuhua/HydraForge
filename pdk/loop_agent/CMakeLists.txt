@@ -21,7 +21,6 @@ target_include_directories(LoopAgent PRIVATE
 
 target_link_libraries(LoopAgent PRIVATE
     hydraforge_pdk
-
 )
 
 set_target_properties(LoopAgent PROPERTIES

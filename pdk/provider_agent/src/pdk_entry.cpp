@@ -57,10 +57,10 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
             .category = ::agenticdsl::ToolCategory::StateModify,
             .min_layer = ::agenticdsl::LayerProfile::Workflow,
             .approval = ::agenticdsl::ApprovalPolicy{
-                .requires_approval_in_plan = false,
-                .requires_approval_in_agent = false,
+                .requires_approval_in_plan = true,
+                .requires_approval_in_agent = true,
                 .requires_approval_in_yolo = false,
-                .force_approval_always = false
+                .force_approval_always = true
             },
             .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
         },

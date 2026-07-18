@@ -100,16 +100,16 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
 
     // session/branch
     registry.register_tool_function(
-        "session/branch",
+"session/branch",
         ::agenticdsl::ToolMetadata{
             .name = "session/branch",
-            .description = "Branch session at message index",
+            .description = "Branch session",
             .domain = "session",
             .category = ::agenticdsl::ToolCategory::Execute,
             .min_layer = ::agenticdsl::LayerProfile::Workflow,
             .approval = ::agenticdsl::ApprovalPolicy{
-                .requires_approval_in_plan = false,
-                .requires_approval_in_agent = false,
+                .requires_approval_in_plan = true,
+                .requires_approval_in_agent = true,
                 .requires_approval_in_yolo = false,
                 .force_approval_always = false
             },
@@ -136,10 +136,10 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
             .category = ::agenticdsl::ToolCategory::Execute,
             .min_layer = ::agenticdsl::LayerProfile::Workflow,
             .approval = ::agenticdsl::ApprovalPolicy{
-                .requires_approval_in_plan = false,
-                .requires_approval_in_agent = false,
+                .requires_approval_in_plan = true,
+                .requires_approval_in_agent = true,
                 .requires_approval_in_yolo = false,
-                .force_approval_always = false
+                .force_approval_always = true
             },
             .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
         },
@@ -165,18 +165,18 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
 
     // session/persist
     registry.register_tool_function(
-        "session/persist",
+"session/persist",
         ::agenticdsl::ToolMetadata{
             .name = "session/persist",
-            .description = "Persist session to disk",
+            .description = "Persist session to JSONL",
             .domain = "session",
             .category = ::agenticdsl::ToolCategory::Execute,
             .min_layer = ::agenticdsl::LayerProfile::Workflow,
             .approval = ::agenticdsl::ApprovalPolicy{
-                .requires_approval_in_plan = false,
-                .requires_approval_in_agent = false,
+                .requires_approval_in_plan = true,
+                .requires_approval_in_agent = true,
                 .requires_approval_in_yolo = false,
-                .force_approval_always = false
+                .force_approval_always = true
             },
             .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
         },
