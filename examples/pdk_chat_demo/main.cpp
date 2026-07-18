@@ -150,8 +150,10 @@ int main(int argc, char* argv[]) {
     // 4. 注册 provider configs
     // ============================================================
     try {
+        // provider/register handler 解析 args["args"] 为 JSON
+        // 见 pdk/provider_agent/src/pdk_entry.cpp:70
         std::unordered_map<std::string, std::string> provider_map;
-        provider_map["config"] = config.providers.dump();
+        provider_map["args"] = config.providers.dump();
         engine->get_tool_registry().call_tool("provider/register", provider_map);
     } catch (const std::exception& e) {
         std::cerr << "[main] provider/register failed: " << e.what() << std::endl;
@@ -252,9 +254,17 @@ int main(int argc, char* argv[]) {
     }
 
     // ============================================================
-    // 9. 优雅退出
+    // 9. 优雅退出 — 先销毁 ChatSession + DSLEngine（释放 ToolRegistry
+    //    中的 plugin function ptr），再 unload plugin .so，避免
+    //    dangling function pointer → SIGSEGV
     // ============================================================
     bus->emit("app.shutdown", agenticdsl::ToolResult{.ok = true, .meta = nullptr});
+    // 跳出局部 scope 以销毁 ChatSession 和 DSLEngine
+    //（它们的析构函数会清理 ToolRegistry 中的 plugin 引用）
+    {
+        pdk_chat_demo::ChatSession discard(nullptr, nullptr, nullptr, {}, {});
+        engine.reset();
+    }
     unload_all_plugins(loader);
     std::cout << std::endl << "[main] Goodbye!" << std::endl;
 

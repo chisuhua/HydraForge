@@ -63,19 +63,26 @@ nlohmann::json ProviderRegistry::resolve(
     const std::string& provider_id,
     const std::string& model_id
 ) const {
+    // 先获取可用 provider 列表（不持锁），用于错误消息
+    auto available_ids = [this]() {
+        std::vector<std::string> ids;
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            ids.reserve(providers_.size());
+            for (const auto& [id, _] : providers_) ids.push_back(id);
+        }
+        std::sort(ids.begin(), ids.end());
+        return ids;
+    }();
+
     std::lock_guard<std::mutex> lock(mutex_);
 
     auto pit = providers_.find(provider_id);
     if (pit == providers_.end()) {
+        std::string s;
+        for (const auto& id : available_ids) { if (!s.empty()) s += ", "; s += id; }
         throw std::runtime_error(
-            "Unknown provider: " + provider_id +
-            " (available: " +
-            [&]() {
-                auto ids = list_providers();
-                std::string s;
-                for (const auto& id : ids) { if (!s.empty()) s += ", "; s += id; }
-                return s;
-            }() + ")"
+            "Unknown provider: " + provider_id + " (available: " + s + ")"
         );
     }
 
