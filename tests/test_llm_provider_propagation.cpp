@@ -6,6 +6,9 @@
 #include "common/llm/mock_provider.h"
 #include "agenticdsl/types/layered_context.h"
 
+#include <thread>
+#include <atomic>
+
 using namespace agenticdsl;
 
 static const char* kMinimalDSL = R"(
@@ -192,4 +195,66 @@ nodes:
     ctx.working["user_input"] = "hello fork_join";
     auto result = child->run(ctx);
     REQUIRE(result.success);
+}
+
+TEST_CASE("child provider chain preserves CostTrackingDecorator (no re-wrap)", "[engine][provider-propagation][cost]") {
+    // 父引擎通过 set_llm_provider → decorate_provider 包裹 CostTrackingDecorator
+    auto parent = std::make_unique<DSLEngine>(std::vector<ParsedGraph>{});
+    auto mock = std::make_unique<MockLLMProvider>();
+    mock->enqueue_response(R"({"content":"test","tool_calls":[]})");
+    parent->set_llm_provider(std::move(mock));
+
+    // 子引擎继承已装饰 provider
+    auto child = DSLEngine::from_markdown(
+        R"(### AgenticDSL `/main`
+```yaml
+# --- BEGIN AgenticDSL ---
+graph_type: subgraph
+nodes:
+  - id: start
+    type: start
+    next: [/main/end]
+  - id: end
+    type: end
+    termination_mode: hard
+# --- END AgenticDSL ---
+```
+)", *parent->get_llm_provider());
+
+    // 关键断言：child provider == parent provider（同一个对象，未重新装饰）
+    auto* parent_provider = parent->get_llm_provider();
+    auto* child_provider  = child->get_llm_provider();
+    REQUIRE(child_provider == parent_provider);
+
+    // verify generate() works through the chain
+    GenerationRequest req;
+    req.prompt = "test";
+    auto result = child_provider->generate(req, std::stop_token{});
+    REQUIRE(result.has_value());
+}
+
+TEST_CASE("dual-engine concurrency isolation", "[engine][provider-propagation][concurrency]") {
+    // 验证不同线程的 engine 实例互不干扰
+    MockLLMProvider pA, pB;
+
+    std::atomic<bool> ready{false};
+    std::atomic<int> phase{0};
+
+    auto thread_func = [&](MockLLMProvider& provider, int expected_phase) {
+        auto engine = std::make_unique<DSLEngine>(std::vector<ParsedGraph>{});
+        engine->set_borrowed_provider(provider);
+
+        // 等待两个线程都就绪
+        phase++;
+        while (phase < 2) { std::this_thread::yield(); }
+
+        // 验证各自引擎的 provider 独立
+        REQUIRE(engine->get_llm_provider() == &provider);
+    };
+
+    std::thread t1(thread_func, std::ref(pA), 0);
+    std::thread t2(thread_func, std::ref(pB), 0);
+
+    t1.join();
+    t2.join();
 }
