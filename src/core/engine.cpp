@@ -53,9 +53,21 @@ std::unique_ptr<DSLEngine> DSLEngine::from_markdown(const std::string& markdown_
         throw std::runtime_error("Required /main subgraph not found");
     }
 
-    // P1.T1: DSLEngine 构造器已通过 provider_factory_ 创建默认 llm_provider_ (mock 路径)
+    // P1.T1: DSLEngine 构造器已通过 provider_factory_ 创建默认 owned_provider_ (mock 路径)
     // 不再需要在 from_markdown 中显式构造 LLMProvider
     auto engine = std::make_unique<DSLEngine>(std::move(graphs));
+    return engine;
+}
+
+// loop-agent-dsl-execution: 新重载 — 子引擎继承父引擎的已装饰 LLM provider
+// 实现：复用基础 from_markdown → 释放默认 Mock → 非拥有借用父 provider
+std::unique_ptr<DSLEngine> DSLEngine::from_markdown(
+    const std::string& markdown_content,
+    ILLMProvider& parent_provider)
+{
+    auto engine = from_markdown(markdown_content);
+    engine->owned_provider_.reset();                  // 释放 MockLLMProvider
+    engine->borrowed_provider_ = &parent_provider;     // 非拥有借用，不调用 set_llm_provider()
     return engine;
 }
 
@@ -84,7 +96,7 @@ DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
     LLMConfig mock_config;
     mock_config.provider = "mock";
     auto base_provider = provider_factory_->create(mock_config);
-    llm_provider_ = decorate_provider(std::move(base_provider));
+    owned_provider_ = decorate_provider(std::move(base_provider));
 
 // ADR-0031 (2026-07-31): 默认 Agent 模式执行策略
   policy_ = PolicyFactory::create(PolicyMode::Agent);
@@ -259,7 +271,7 @@ ExecutionResult DSLEngine::run(const LayeredContext& ctx) {
     scheduler_cfg.approval_handler = approval_handler_.get(); // ADR-0031 (2026-07-31): 传递审批处理器
     scheduler_cfg.tool_coordinator = tool_coordinator_.get(); // C4 Sprint 14 (ADR-0031 P3-P4): 传递 ToolCoordinator
     auto scheduler_unique = agenticdsl::scheduler::create(
-        std::move(scheduler_cfg), *tool_registry_, llm_provider_.get(), &full_graphs_);
+        std::move(scheduler_cfg), *tool_registry_, get_llm_provider(), &full_graphs_);
     IScheduler& scheduler = *scheduler_unique;
 
     // 注册所有节点（包括系统节点）
@@ -399,7 +411,7 @@ ExecutionResult DSLEngine::run_impl(TaskSession& task_sess, const std::string& /
   scheduler_cfg.approval_handler = approval_handler_.get();
   scheduler_cfg.tool_coordinator = tool_coordinator_.get();
   auto scheduler_unique = agenticdsl::scheduler::create(
-      std::move(scheduler_cfg), *tool_registry_, llm_provider_.get(), &full_graphs_);
+      std::move(scheduler_cfg), *tool_registry_, get_llm_provider(), &full_graphs_);
   IScheduler& scheduler = *scheduler_unique;
 
   // 注册所有节点

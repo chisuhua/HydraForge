@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
@@ -78,6 +79,11 @@ std::string load_agent_file(const std::string& loop_type) {
 
 }  // namespace
 
+// loop-agent-dsl-execution: thread_local storage for parent engine's LLM provider
+// Uses thread_local for per-thread isolation (multi-engine scenarios).
+// nullptr = not set, mock fallback path.
+static thread_local ::agenticdsl::ILLMProvider* tls_parent_provider = nullptr;
+
 // --- pdk_plugin_info ---
 extern "C" const hydraforge::PluginInfo pdk_plugin_info = {
     hydraforge::CURRENT_ABI_VERSION,                                  // abi_version = 2
@@ -90,6 +96,47 @@ extern "C" const hydraforge::PluginInfo pdk_plugin_info = {
 
 // --- pdk_register_tools ---
 extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
+    // loop/set_parent_provider — 配置父引擎 LLM provider 引用
+    // force_approval_always=true, allowed_layers={Workflow} (仅 hand-written DSL 可调用)
+    registry.register_tool_function(
+        "loop/set_parent_provider",
+        ::agenticdsl::ToolMetadata{
+            .name = "loop/set_parent_provider",
+            .description = "Set parent engine LLM provider for loop agent DSL execution",
+            .domain = "loop",
+            .category = ::agenticdsl::ToolCategory::StateModify,
+            .min_layer = ::agenticdsl::LayerProfile::Workflow,
+            .approval = ::agenticdsl::ApprovalPolicy{
+                .requires_approval_in_plan = false,
+                .requires_approval_in_agent = true,
+                .requires_approval_in_yolo = false,
+                .force_approval_always = true
+            },
+            .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
+        },
+        [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+            auto it = args.find("provider_ptr");
+            if (it == args.end() || it->second.empty()) {
+                return {{"success", false}, {"error", "Missing provider_ptr argument"}};
+            }
+            try {
+                auto* new_provider = reinterpret_cast<::agenticdsl::ILLMProvider*>(
+                    std::stoull(it->second));
+                if (!new_provider) {
+                    return {{"success", false}, {"error", "Null provider_ptr"}};
+                }
+                if (tls_parent_provider && tls_parent_provider != new_provider) {
+                    std::cerr << "[loop_agent] WARNING: overwriting parent provider "
+                              << tls_parent_provider << " → " << new_provider << std::endl;
+                }
+                tls_parent_provider = new_provider;
+                return {{"success", true}};
+            } catch (const std::exception& e) {
+                return {{"success", false}, {"error", std::string("Invalid provider_ptr: ") + e.what()}};
+            }
+        }
+    );
+
     // 注册 loop/run 工具
     registry.register_tool_function(
         "loop/run",
@@ -111,19 +158,52 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
             std::string loop_type = str_arg(args, "loop_type", "react");
             std::string user_prompt = str_arg(args, "prompt");
 
-            nlohmann::json output;
-            output["response"] =
-                "[loop_agent/" + loop_type + "] Processed: \"" + user_prompt + "\"\n\n"
-                "This is a mock response from the Loop Agent plugin. In production, "
-                "this would invoke lib/loop/" + loop_type + ".agent.md via DSLEngine::from_markdown. "
-                "For the demo --mock mode, we return a canned response to avoid the architectural "
-                "limitation that DSLEngine::from_markdown creates an isolated sub-engine whose LLM "
-                "provider cannot inherit configuration from the parent engine (ADR-0019 follow-up).";
-            output["steps"] = 1;
-            output["tokens_used"] = 42;
-            output["cost_usd"] = 0.001;
-            output["success"] = true;
-            return output;
+            // loop_type 合法性校验 (Q7: 仅 react/plan_execute/fork_join)
+            if (loop_type != "react" && loop_type != "plan_execute" && loop_type != "fork_join") {
+                return {{"success", false},
+                        {"error", "Invalid loop_type: '" + loop_type +
+                         "'. Must be one of: react, plan_execute, fork_join"}};
+            }
+
+            // Mock fallback when parent provider not set (Q3/Q7)
+            if (!tls_parent_provider) {
+                nlohmann::json output;
+                output["response"] =
+                    "[loop_agent/" + loop_type + "] Processed: \"" + user_prompt + "\"\n\n"
+                    "Mock fallback: parent LLM provider not set. Call loop/set_parent_provider first, "
+                    "or this will return the legacy mock response.";
+                output["steps"] = 1;
+                output["tokens_used"] = 42;
+                output["cost_usd"] = 0.001;
+                output["success"] = true;
+                return output;
+            }
+
+            // Real DSL execution path (Q4: errors propagate via return)
+            try {
+                auto agent_content = load_agent_file(loop_type);
+
+                auto child = ::agenticdsl::DSLEngine::from_markdown(
+                    agent_content, *tls_parent_provider);
+
+                ::agenticdsl::LayeredContext ctx;
+                ctx.working["user_input"] = user_prompt;
+
+                auto result = child->run(ctx);
+
+                nlohmann::json output;
+                output["success"] = result.success;
+                output["error"]   = result.success ? "" : result.message;
+                output["response"] = result.final_context.value("response",
+                    result.final_context.value("output", result.message));
+                output["steps"]  = 1;
+                output["tokens_used"] = 0;
+                output["cost_usd"]    = 0.0;
+                return output;
+            } catch (const std::exception& e) {
+                return {{"success", false}, {"error", e.what()},
+                        {"response", ""}, {"steps", 0}, {"tokens_used", 0}, {"cost_usd", 0.0}};
+            }
         }
     );
 }

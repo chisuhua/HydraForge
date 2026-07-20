@@ -8,6 +8,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <sstream>
 
 #include <nlohmann/json.hpp>
 
@@ -207,6 +208,24 @@ int main(int argc, char* argv[]) {
                 R"({"content":"I'll write a hello world in C++ for you.","tool_calls":[]})");
             mock->enqueue_response(
                 R"({"content":"Here's the C++ code:\n\n```cpp\n#include <iostream>\nint main(){ std::cout << \"Hello, World!\" << std::endl; return 0; }\n```","tool_calls":[]})");
+        }
+    }
+
+    // ============================================================
+    // 5.5. 传递 LLM provider 给 Loop Agent (loop-agent-dsl-execution)
+    // ============================================================
+    {
+        auto* provider = engine->get_llm_provider();
+        if (provider) {
+            std::stringstream ss;
+            ss << reinterpret_cast<uintptr_t>(provider);
+            std::unordered_map<std::string, std::string> set_provider_args;
+            set_provider_args["provider_ptr"] = ss.str();
+            auto result = engine->get_tool_registry().call_tool(
+                "loop/set_parent_provider", set_provider_args);
+            if (result.value("success", false)) {
+                std::cout << "[main] Loop Agent provider configured" << std::endl;
+            }
         }
     }
 

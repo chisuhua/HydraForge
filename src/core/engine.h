@@ -71,6 +71,8 @@ class ToolCoordinator; // C4 Sprint 14 (ADR-0031 P3-P4): 前向声明 (PIMPL-lit
 class DSLEngine {
 public:
     static std::unique_ptr<DSLEngine> from_markdown(const std::string& markdown_content);
+    static std::unique_ptr<DSLEngine> from_markdown(const std::string& markdown_content,
+                                                      ILLMProvider& parent_provider);
     static std::unique_ptr<DSLEngine> from_file(const std::string& file_path);
 
     // Sprint 20 (2026-07-01) / OpenSpec migrate-context-to-layered:
@@ -119,12 +121,21 @@ public:
     std::vector<TraceRecord> get_last_traces() const { return last_traces_; }
 
     // C₁.4 迁移：从 LlamaAdapter* 改为 ILLMProvider*
-    ILLMProvider* get_llm_provider() { return llm_provider_.get(); }
+    // loop-agent-dsl-execution: 双字段路由 — borrowed > owned
+    ILLMProvider* get_llm_provider() { return borrowed_provider_ ? borrowed_provider_ : owned_provider_.get(); }
 
     // C₁.4: 注入自定义 LLM provider（默认是 MockLLMProvider，可被替换为真实 provider）
     // Phase 5 REQ-ICC-008: set_llm_provider MUST 重新包装 Decorator 链 (避免自定义 provider 绕过计费)
     void set_llm_provider(std::unique_ptr<ILLMProvider> provider) {
-        llm_provider_ = decorate_provider(std::move(provider));
+        owned_provider_ = decorate_provider(std::move(provider));
+        borrowed_provider_ = nullptr; // 清除 borrowed 引用，owned 接管
+    }
+
+    // loop-agent-dsl-execution: 非拥有借用 setter — 用于子引擎从父引擎借用 provider
+    // 调用后 get_llm_provider() 返回 borrowed_provider_（优先于 owned_provider_）
+    void set_borrowed_provider(ILLMProvider& provider) {
+        owned_provider_.reset();           // 释放可能持有的 MockLLMProvider
+        borrowed_provider_ = &provider;    // 不转移所有权
     }
 
     // === Phase 5 (Section 2 / REQ-IPD-003, REQ-IPD-004): opt-in decorator flags ===
@@ -193,7 +204,8 @@ private:
 
     std::unique_ptr<IToolRegistry> tool_registry_; // P1.T4: PIMPL-lite 化 (从 ToolRegistry 值成员改为 unique_ptr<IToolRegistry>)
     std::unique_ptr<SessionRegistry> session_registry_; // C11: PIMPL-lite, 与 tool_registry_ 模式一致
-    std::unique_ptr<ILLMProvider> llm_provider_; // C₁.4: 默认 MockLLMProvider
+    std::unique_ptr<ILLMProvider> owned_provider_;       // C₁.4: 默认 MockLLMProvider (set_llm_provider 路径)
+    ILLMProvider* borrowed_provider_ = nullptr;           // 非拥有借用 (from_markdown + ILLMProvider& 路径)，优先于 owned_provider_
     std::unique_ptr<IProviderFactory> provider_factory_; // P1.T1: 默认 LLMProviderFactory (PIMPL-lite)
     std::vector<TraceRecord> last_traces_; // ← 存储 Trace
     std::unique_ptr<IBudgetController> budget_controller_; // C1 Day 6.2: IBudgetController 抽象接口 (持有 CostTracker)

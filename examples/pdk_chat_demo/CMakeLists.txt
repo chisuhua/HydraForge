@@ -40,6 +40,9 @@ target_link_libraries(pdk_chat_demo PRIVATE
     Threads::Threads
 )
 
+# 使 dlopen 的 .so 插件能解析宿主二进制中的 agenticdsl_core 符号
+target_link_options(pdk_chat_demo PRIVATE -Wl,--export-dynamic)
+
 # --- Configure config.json with build directory paths ---
 set(SKILL_CODE_REVIEW_PATH "${PROJECT_SOURCE_DIR}/skills/code-review")
 

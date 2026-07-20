@@ -50,3 +50,39 @@ add_test(
     COMMAND test_e2e_mock
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# test_loop_agent_plugin — loop-agent-dsl-execution 集成测试
+# 验证: dlopen LoopAgent.so → set_parent_provider → loop/run 真实执行
+add_executable(test_loop_agent_plugin
+    test_loop_agent_plugin.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_loop_agent_plugin PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_loop_agent_plugin PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+target_compile_definitions(test_loop_agent_plugin PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+    LOOP_AGENT_SO_PATH="${PROJECT_BINARY_DIR}/pdk/loop_agent/libLoopAgent.so"
+)
+# dlopen 的 LoopAgent.so 需解析 agenticdsl_core 符号
+target_link_options(test_loop_agent_plugin PRIVATE -Wl,--export-dynamic)
+add_test(
+    NAME test_loop_agent_plugin
+    COMMAND test_loop_agent_plugin
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../..  # build/tests → workspace root
+)
+set_tests_properties(test_loop_agent_plugin PROPERTIES
+    ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk:${CMAKE_BINARY_DIR}/pdk"
+)
