@@ -6,11 +6,19 @@ set(CATCH_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 # 定义创建单个 Catch2 测试的函数
 function(add_catch_test TEST_NAME)
-    # 参数：测试名称，其余为该测试的源文件（不含 catch_amalgamated.cpp）
+    # 参数：测试名称，其余为该测试的源文件（不含 catch_amalgamated.cpp/main_test_runner.cpp）
     set(SOURCES ${ARGN})
 
-    # 自动包含 catch_amalgamated.cpp
-    list(APPEND SOURCES ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp main_test_runner.cpp)
+    # test_skill_interpreter 需要自定义 main（支持 --skill-child 早期分支）
+    if(TEST_NAME STREQUAL "test_skill_interpreter")
+        list(APPEND SOURCES
+            ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+            ${CATCH_INCLUDE_DIR}/main_skill_test_runner.cpp
+        )
+    else()
+        # 自动包含 catch_amalgamated.cpp 和 main_test_runner.cpp
+        list(APPEND SOURCES ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp main_test_runner.cpp)
+    endif()
 
     # 创建可执行文件
     add_executable(${TEST_NAME} ${SOURCES})
@@ -44,6 +52,12 @@ function(add_catch_test TEST_NAME)
     # test_async_bridge 仅链接 Taskflow (C2 Day 1-2 移除 async_simple, ADR-0030 V2 决策)
     if(TEST_NAME STREQUAL "test_async_bridge")
         target_link_libraries(${TEST_NAME} PRIVATE Taskflow)
+    endif()
+
+    # test_skill_interpreter 需要 CATCH_AMALGAMATED_CUSTOM_MAIN
+    # 自定义 main() 支持 --skill-child 早期分支
+    if(TEST_NAME STREQUAL "test_skill_interpreter")
+        target_compile_definitions(${TEST_NAME} PRIVATE CATCH_AMALGAMATED_CUSTOM_MAIN)
     endif()
 endfunction()
 
