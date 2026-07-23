@@ -24,7 +24,19 @@ static std::string ptr_to_str(ILLMProvider* p) {
     std::stringstream ss; ss << reinterpret_cast<uintptr_t>(p); return ss.str();
 }
 
+// 确保 HYDRAFORGE_PLUGIN_PATH 已设置（PluginLoader 白名单要求）
+// 当通过 ctest 运行时，CMakeLists.txt 已设置此变量；直接运行时自动推导
+static void ensure_plugin_path_env() {
+    if (std::getenv("HYDRAFORGE_PLUGIN_PATH")) return;
+#ifdef LOOP_AGENT_SO_PATH
+    auto p = fs::path(LOOP_AGENT_SO_PATH);
+    auto pdk_dir = p.parent_path().parent_path().string();
+    setenv("HYDRAFORGE_PLUGIN_PATH", pdk_dir.c_str(), 0);
+#endif
+}
+
 TEST_CASE("LoopAgent loads and registers tools", "[loop-agent][plugin][load]") {
+    ensure_plugin_path_env();
     hydraforge::PluginLoader loader;
     auto engine = std::make_unique<DSLEngine>(std::vector<ParsedGraph>{});
     // engine 必须在 loader 之前析构（避免 dlclose 后遗留 function pointer）
@@ -33,6 +45,7 @@ TEST_CASE("LoopAgent loads and registers tools", "[loop-agent][plugin][load]") {
 }
 
 TEST_CASE("loop/set_parent_provider callable", "[loop-agent][plugin]") {
+    ensure_plugin_path_env();
     hydraforge::PluginLoader loader;
     auto engine = std::make_unique<DSLEngine>(std::vector<ParsedGraph>{});
     REQUIRE(loader.load_so(find_loop_agent_so(), engine->get_tool_registry()));
@@ -44,6 +57,7 @@ TEST_CASE("loop/set_parent_provider callable", "[loop-agent][plugin]") {
 }
 
 TEST_CASE("loop/run mock fallback when no provider", "[loop-agent][plugin][fallback]") {
+    ensure_plugin_path_env();
     hydraforge::PluginLoader loader;
     auto engine = std::make_unique<DSLEngine>(std::vector<ParsedGraph>{});
     REQUIRE(loader.load_so(find_loop_agent_so(), engine->get_tool_registry()));
@@ -54,6 +68,7 @@ TEST_CASE("loop/run mock fallback when no provider", "[loop-agent][plugin][fallb
 }
 
 TEST_CASE("loop/run rejects invalid loop_type", "[loop-agent][plugin][validation]") {
+    ensure_plugin_path_env();
     hydraforge::PluginLoader loader;
     auto engine = std::make_unique<DSLEngine>(std::vector<ParsedGraph>{});
     REQUIRE(loader.load_so(find_loop_agent_so(), engine->get_tool_registry()));
@@ -70,6 +85,7 @@ TEST_CASE("loop/run file-not-found error path covered by catch block", "[loop-ag
     // load_agent_file("nonexistent") throws → caught by try-catch → returns {success:false, error:"..."}
     // But "nonexistent" hits loop_type validation first. Verify the catch path via
     // structural guarantee: if load_agent_file throws, catch returns error JSON.
+    ensure_plugin_path_env();
     hydraforge::PluginLoader loader;
     auto engine = std::make_unique<DSLEngine>(std::vector<ParsedGraph>{});
     REQUIRE(loader.load_so(find_loop_agent_so(), engine->get_tool_registry()));

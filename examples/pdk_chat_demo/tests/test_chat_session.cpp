@@ -25,10 +25,11 @@ TEST_CASE("ChatConfig::from_json parses valid config", "[chat_session]") {
     REQUIRE(cfg.agent.timeout_ms == 300000);
     REQUIRE(cfg.agent.budget_limit_usd == 1.0);
 
-    REQUIRE(cfg.plugins.size() == 7);
+    REQUIRE(cfg.plugins.size() == 8);
     REQUIRE(cfg.plugins[0].id == "chat.loop");
     REQUIRE(cfg.plugins[0].lifecycle == "lazy");
     REQUIRE(cfg.plugins[0].activation_events.size() == 1);
+    REQUIRE(cfg.plugins[7].id == "skill.code_review_run");
 }
 
 TEST_CASE("ChatConfig::validate rejects bad config", "[chat_session]") {
