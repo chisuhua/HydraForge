@@ -23,7 +23,7 @@ namespace agenticdsl {
 
 // === Phase 1 Sprint 1a 新增: ErrorCode enum (REQ-TR-001) ===
 // 替代 Phase 0 X 阶段自由 string (e.g. "ERR_LLM.NETWORK")
-// 11 个值: Unknown + P1 4 个 (ADR-0023 §3.1) + P2 6 个 (RETRY/SKIP/ABORT/AUDIT/TIMEOUT/RESOURCE_EXHAUSTED)
+// 17 个值: Unknown + P1 4 个 (ADR-0023 §3.1) + P2 6 个 (RETRY/SKIP/ABORT/AUDIT/TIMEOUT/RESOURCE_EXHAUSTED) + P3 6 个 (SkillInterpreter, 2026-07-21 skill-interpreter-real-loading change)
 enum class ErrorCode {
   Unknown = 0,
 
@@ -40,6 +40,15 @@ enum class ErrorCode {
   Audit,               // 需要审计
   Timeout,             // 工具执行超时
   ResourceExhausted,   // 资源耗尽 (内存/磁盘/句柄)
+
+  // P3 新增 (6 个, skill-interpreter-real-loading change 2026-07-21)
+  // SkillInterpreter 专用错误码, 复用于 SkillResult.error_code
+  SandboxViolation,    // 子进程触发 seccomp 白名单违规 (WIFSIGNALED + WTERMSIG == SIGSYS)
+  MaxStepsExceeded,    // 父进程 IPC 循环 max_steps 强制触发, 已 SIGKILL 子进程
+  Crash,               // 子进程因信号 (SIGSEGV/SIGABRT 等) 异常退出
+  BudgetExhausted,     // Skill 内部 USD 预算耗尽 (SkillInterpreter::consume_budget)
+  UnsupportedPlatform, // 在非 Linux 平台调用 SkillInterpreter::run() (编译时 #ifdef __linux__ 守卫)
+  InvalidArg,          // 错误输入参数 (SKILL.md 不存在/frontmatter 缺失字段/EXIT_CHILD_PARSE_ERROR=64)
 };
 
 // 工具执行结果的标准信封 (MVP + P2-P4 扩展)
