@@ -8,6 +8,8 @@
 
 > **2026-07-08 update**: §8 SamplerStrategy 接口被 `docs/adversarial-reviews/decisions-2026-07-07.md` D1 决策撤销 (B2 实施前对齐)。采样器 clamp 逻辑内联到 llama_engine plugin 的 `inference/decoding/configure` 工具, 不再抽取独立 PDK 接口 (1 虚接口仅 1 个实现, `supports()` 永远 true)。变更依据: `openspec/changes/fix-adr-doc-alignment-p2-cleanup-2026-07-08/`。
 
+> **2026-07-23 update (v1.2 对齐)**: 架构文档 [`agent-as-plugin-architecture-v1.2.md`](../architecture/agent-as-plugin-architecture-v1.2.md) (2026-07-22) 将 PDK 概念细化为 L2 (Plugin 工具层) 与 L3 (PDK 接口契约层) 两个层级。本 ADR 的 P1-P6 原则不受影响；`DECLARE_TOOL`/`DEFINE_AGENT` 等宏属于 L3 契约层 (`include/agenticdsl/pdk/`), 而 `shell_tools`/`fs_tools`/`provider_agent` 等原子工具属于 L2 实现层 (`pdk/`)。详见 [ADR-0067 §决策 3](./adr-0067-layered-plugin-architecture-split.md)，该 ADR 记录了 L2/L3/L4 拆分的架构决策 (A13-A16 + 依赖规则 R1-R5)。
+
 ## 背景
 
 ### 问题
@@ -49,19 +51,19 @@ agentic register-tool --lib ./build/libmy_app.so
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  HydraForge Runtime — 领域无关, 最小化, 稳定                       │
-│  ├─ L0-L6 核心引擎                                               │
+│  ├─ L0-L4 核心引擎 (v1.2 架构)                                    │
 │  ├─ 通过契约接口暴露工具调用/状态/事件能力                          │
-│  └─ 当前: ToolRegistry · DSLEngine · StateStore                  │
+│  └─ 当前: ToolRegistry · DSLEngine                               │
 ├─────────────────────────────────────────────────────────────────┤
-│  Plugin Dev Kit (PDK) — 独立仓库, 可选依赖, 开发者工具包            │
+│  Plugin Dev Kit (PDK) — 独立仓库, 可选依赖, 开发者工具包 (L3 契约层)│
 │  ├─ 宏定义 · 模板库 · 测试替身 · CMake 生成器                     │
 │  ├─ 静态链接到插件, 不增加 Runtime 负担                           │
 │  └─ 独立版本演进, 向后兼容多个 Runtime 版本                        │
 ├─────────────────────────────────────────────────────────────────┤
-│  Domain Plugin (领域插件) — 基于 PDK 开发                         │
-│  ├─ 编程助手插件 (code::)                                         │
-│  ├─ 浏览器插件 (browser::)                                        │
-│  └─ 文件系统插件 (fs::)                                           │
+│  Domain Plugin (领域插件) — 基于 PDK 开发 (L4 应用 / L2 工具)      │
+│  ├─ L4 应用: coding_assistant::, loop:: (编排 L2 工具)            │
+│  ├─ L2 工具: shell_tools::, fs_tools:: (原子能力)                 │
+│  └─ 浏览器插件 (browser::)                                        │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -76,22 +78,36 @@ agentic register-tool --lib ./build/libmy_app.so
 | **P5** | **PDK 版本与 Runtime 解耦** — PDK 可独立升级 |
 | **P6** | **PDK 提供测试替身** — 插件可独立测试，无需 Runtime |
 
+### 1.1 PDK 组件的层级化映射 (v1.2 对齐)
+
+> 架构文档 v1.2 ([`agent-as-plugin-architecture-v1.2.md`](../architecture/agent-as-plugin-architecture-v1.2.md)) 将 L2 "Agent Plugin Layer" 拆分为 L4 (编排应用) + L3 (接口契约) + L2 (原子工具) 三层。以下为 PDK 核心组件在 v1.2 中的层级归属，P1-P6 原则不受影响。详见 [ADR-0067](./adr-0067-layered-plugin-architecture-split.md)。
+
+| PDK 组件 | v1.2 层级 | 说明 |
+|---------|:---------:|------|
+| `DECLARE_TOOL` / `DEFINE_AGENT` 宏 | **L3** | 编译期展开，定义 Agent 注册契约格式 |
+| Agent Loop 模板 (`react_loop.h` 等) | **L3** | Header-only 类，编译进调用者二进制 |
+| `SafeExec` | **L3** | Header-only 沙箱封装接口 |
+| `FakeStateStore` / `StubLLM` | **L3** | 测试替身，位于契约层 |
+| CMake Generators | **工具链** | 构建期，不属于运行时层级 |
+| `pdk/loop_agent/` 插件 (`.so`) | **L4** | 独立 .so，编排 L2 工具 |
+| `pdk/shell_tools/` 等 | **L2** | 原子工具实现，不自组织不编排 |
+
 ### 2. PDK 核心组件
 
 #### 2.1 组件全景
 
-| 组件 | 功能 | MVP |
-|------|------|-----|
-| **Plugin Lifecycle** | `init()` / `load()` / `unload()` / `health_check()` | ✅ |
-| **Tool Registration** | `DECLARE_TOOL()` / `REGISTER_SCHEMA()` / `SET_PERMISSIONS()` | ✅ |
-| **Agent Loop Template** | `REACT_LOOP_TEMPLATE` / `PLAN_EXECUTE_TEMPLATE` | ✅ |
-| **SafeExec** | 沙箱执行封装（MVP 跳过 seccomp） | ✅ |
-| **Testing Mocks** | `MockSandbox` / `FakeStateStore` / `StubLLM` | ✅ |
-| **State Wrapper** | `StateReader()` / `StateWriter()` / `NamespaceGuard()` | ✅ |
-| **Logging & Tracing** | `StructuredLog()` / `SpanTracer()` | 🔜 Phase 2 |
-| **Build Generator** | `cmake_init()` / `project_template()` | 🔜 Phase 2 |
-| **Metrics** | `MetricsCollector()` | 🔜 Phase 3 |
-| **Cost Tracker** | `CostTracker()` / `BudgetGuard()` | 🔜 Phase 3 |
+| 组件 | 功能 | v1.2 层级 | MVP |
+|------|------|:---------:|-----|
+| **Plugin Lifecycle** | `init()` / `load()` / `unload()` / `health_check()` | L3 | ✅ |
+| **Tool Registration** | `DECLARE_TOOL()` / `REGISTER_SCHEMA()` / `SET_PERMISSIONS()` | L3 | ✅ |
+| **Agent Loop Template** | `REACT_LOOP_TEMPLATE` / `PLAN_EXECUTE_TEMPLATE` | L3 | ✅ |
+| **SafeExec** | 沙箱执行封装（MVP 跳过 seccomp） | L3 | ✅ |
+| **Testing Mocks** | `MockSandbox` / `FakeStateStore` / `StubLLM` | L3 | ✅ |
+| **State Wrapper** | `StateReader()` / `StateWriter()` / `NamespaceGuard()` | L3 | ✅ |
+| **Logging & Tracing** | `StructuredLog()` / `SpanTracer()` | L3 | 🔜 Phase 2 |
+| **Build Generator** | `cmake_init()` / `project_template()` | 工具链 | 🔜 Phase 2 |
+| **Metrics** | `MetricsCollector()` | L3 | 🔜 Phase 3 |
+| **Cost Tracker** | `CostTracker()` / `BudgetGuard()` | L3 | 🔜 Phase 3 |
 
 #### 2.2 PDK 仓库结构
 
@@ -504,3 +520,4 @@ target_link_libraries(my_plugin PRIVATE hydraforge::pdk)
 | ADR-0019 | PDK 的 `DECLARE_TOOL` 运行时使用 `IInteractionBus` 推送事件 |
 | ADR-0020 | PDK 的 `DEFINE_AGENT` 模板内部使用 `CognitiveWorker` 模式 |
 | ADR-0004 | PDK 的 `SafeExec` 调用 ADR-0004 的权限校验 |
+| ADR-0067 | L2/L3/L4 分层架构细化 PDK 概念 (L3 契约层 + L2 工具实现)，P1-P6 原则不变 |

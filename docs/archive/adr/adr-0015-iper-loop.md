@@ -87,6 +87,14 @@ permissions:
 > **实现说明**：IPER 循环在 ADR-0030 中由 async_simple `Lazy<T>` 协程状态机实现，
 > 支持 `co_await` 挂起等待（如用户审批）和 `co_yield` 流式推送（如计划生成过程）。
 > 参见 [ADR-0030 第 3 节](../archive/adr/adr-0030-async-runtime-dual-layer.md) IPER 循环示例。
+>
+> **当前实现对应** (2026-08-01): Plan → Execute → Verify 三阶段循环
+> (`include/agenticdsl/pdk/agent_loops/plan_execute_loop.h`, Sprint 20, ADR-0021 §3.2)
+> 实现了 IPER 中 Plan→Execute→Reflect 的核心逻辑，以简化三状态机
+> (Planning→Executing→Verifying→Done/Retry) 替代原始五阶段 (Intent→Plan→Execute→Reflect→Retry)。
+> 关键差异: 当前实现省略了独立的 "Intent" 阶段（意图隐含在 goal prompt 中），
+> Verify 阶段等价于原 "Reflect" 阶段。重试机制保持（max_retries=3），但无 reflection_count 累积。详见
+> [`include/agenticdsl/pdk/agent_loops/plan_execute_loop.h`](../../../include/agenticdsl/pdk/agent_loops/plan_execute_loop.h)。
 
 ### 3. Trace 输出
 

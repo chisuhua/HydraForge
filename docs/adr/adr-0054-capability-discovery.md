@@ -88,6 +88,43 @@ struct QueryOptions {
 } // namespace hydraforge
 ```
 
+### 职责边界 — CapabilityRegistry vs IInteractionBus vs IToolRegistry
+
+Agent 发现与通信涉及三个组件, 职责严格分离:
+
+| 组件 | 职责 | 类比例子 | 层级 |
+|------|------|---------|:----:|
+| **`CapabilityRegistry`** | "哪些 Agent 存在？它们能做什么？" 按能力标签 + input/output schema 匹配、rank 排序、版本约束筛选 | FIPA Directory Facilitator (黄页) | L1 |
+| **`IToolRegistry`** | "如何调用一个已发现的能力？" 注册时验证工具元数据, 调用时执行 Layer Profile 检查, 路由到具体实现 | Linux `exec()` | L3 |
+| **`IInteractionBus`** | "事件如何传递？谁接收了什么？" 异步 pub/sub, topic-based routing, 不感知 Agent 能力 | Unix pipe / message queue | L1 |
+
+**路由决策流程**:
+
+```
+L4 Agent: call_tool("knowledge_base/query", args)
+    │
+    ▼
+L3 IToolRegistry::call_tool()
+    ├─ 1. 通过 tool_name 查找已注册工具 (注册时已关联 capability)
+    ├─ 2. Layer Profile 校验 (ADR-0004/0031)
+    └─ 3. 调用对应 L2 工具实现
+         │
+         ▼
+    L2 工具执行, 返回 ToolResult
+
+-- 异步事件路径 --
+L4 Agent: emit("temporal.workflow.complete", payload)
+    │
+    ▼
+L1 IInteractionBus::emit()
+    └─ 分发到所有订阅 "temporal.workflow.complete" 的 Agent
+         │
+         ▼
+    订阅者处理事件 (不涉及 CapabilityRegistry)
+```
+
+**关键原则**: `CapabilityRegistry` 是 **发现层** (discovery), `IToolRegistry` 是 **调用层** (invocation), `IInteractionBus` 是 **通信层** (communication)。三者不共享状态, 通过 `AgentDescriptor` 的 `provided_tools` 字段隐式关联: 注册工具时自动注册 capability, 实现发现→调用闭环。
+
 ### 决策 2 — `query` 查找规则
 
 ```

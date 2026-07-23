@@ -30,6 +30,9 @@
 | `adr-0030-async-runtime-dual-layer.md` | 异步运行时双层架构 | ❌ Not Implemented (V1, **SUPERSEDED by V2** at 2026-06-26 — 见 [`docs/adr/adr-0030-async-runtime-v2.md`](../adr/adr-0030-async-runtime-v2.md)) |
 | `adr-0032-cost-collector.md` | 成本收集器 | ✅ Approved (2026-06-30 提升, 4 核心类 ship 2026-06-14 `test_cost_collector.cpp`, `BudgetController::CostTracker` 集成推迟到 C8) |
 | `adr-0036-hybrid-kernel-architecture.md` | 混合内核架构 | ❌ Not Implemented (愿景性, 依赖多个前置 ADR) |
+| `adr-0036-three-layer-service-protocol.md` | 三层服务协议与调用契约 | ⛔ Superseded (被 [ADR-0045](../adr/adr-0045-orchestration-plugin-spec.md) 替代, 2026-07-08 软归档) |
+
+> ⚠️ **ADR-0036 编号冲突**: 本目录存在 **两个不同议题的 ADR-0036 文件**（混合内核架构 vs 三层服务协议）。这是已记录的遗留问题 (见 [`docs/adr-management/STATUS-GLOSSARY.md`](../adr-management/STATUS-GLOSSARY.md))。**任何操作 ADR-0036 的操作 MUST 注意此冲突**；如需复活任一 ADR-0036, MUST 先 renumber 以避免与另一文件或活跃 ADR-0036 节点冲突。
 
 > 2026-06-16 变更：`adr-0034-model-router.md` 因重新定位为「Plugin 化实施候选」移出本目录至 [`docs/adr/plugin/`](../adr/plugin/README.md)，状态由 ❌ Not Implemented 调整为 🔍 Proposed (plugin-candidate)。归档目录不再保留此 ADR。
 

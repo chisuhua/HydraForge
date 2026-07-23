@@ -7,9 +7,17 @@
 
 ## 状态
 
-**🔍 Proposed** (2026-06-26, OpenSpec change `2026-06-26-doc-alignment-adr-states` 收官产出)
+**🟡 Partial** (2026-06-26 起草 → 2026-07-23 状态提升)。以下核心组件已实施：
+- `DomainWorkerPool` (Sprint 3, N×std::jthread + 共享 FIFO 队列) ✅
+- `InMemoryBus` MPMC 异步分发 (Sprint 12 C2, background dispatch_thread) ✅
+- `stream_to_bus` bridge runner (Sprint 12 C2, IGenerationStream→IInteractionBus) ✅
+- Context fork/merge 深拷贝 (Sprint 12 C2) ✅
+- Taskflow DAG 依赖已引入 (`external/taskflow/`) ✅
+- Fleet 模式 (16 路 LLM 并行) ➡️ 延迟实施 (C17 排除, Oracle 2026-06-27 决议, 零使用场景)
 
-> **Sprint 12 收官目标**: 状态变更 🔍 Proposed → ✅ Approved (随 C2 OpenSpec change `2026-06-26-adr-0030-v2-async-runtime` 实施完成)
+> **注**: Fleet 模式是唯一未实施的 ADR-0030 组件。其余 5 项 (DomainWorkerPool/InMemoryBus/stream_to_bus/Context fork-merge/Taskflow) 均已 ship。C17 顺延, 启动条件 = 出现并行 LLM 调用需求时。详见 [active-status.md §四 顺延项](../active-status.md#四顺延项无启动触发条件)。
+
+> **Sprint 12 收官**: C2 OpenSpec change `2026-06-26-adr-0030-v2-async-runtime` 核心组件已 ship, 但 `FleetOrchestrator` (16 路 LLM 并行) 因零使用场景推迟 (C17 排除, 顺延至 C19+)。本 ADR 整体状态按 [ADR-0032 CostCollector 先例](./adr-0004-impl-scope-audit.md) 提升为 🟡 Partial。
 
 ## 领域
 
