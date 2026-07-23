@@ -1225,3 +1225,46 @@ class MockLLMProvider : public ILLMProvider {
 
 **参考执行器 v1.0** 已开源，包含完整的 DAG 调度器、上下文引擎、LLM 工具注册机制及 Trace 导出。  
 **v1.x 计划**：真正并发执行（Fork/Join）、对话协议完整实现、Context TTL、`codelet_call` 沙箱支持。
+
+---
+
+## 附录 C: 需求可追溯矩阵 (REQ Traceability)
+
+> **治理规则**: 每个来自 Approved ADR 的需求必须在此处有对应的 REQ-XXX 条目。
+> 每当 ADR Approved，ADR Sponsor 必须在 1 周内在此补充 REQ。
+> Drift Gate (每 2-3 Sprint) 验证 "Approved ADR 数量 == 此处引用 ADR 数量"。
+
+### REQ-CTX-001: Context 必须支持 5 层结构 (L1-L5)
+
+- **来源**: ADR-0008 §决策 1
+- **行为**: `LayeredContext` 提供 L1(系统) / L2(会话) / L3(认知) / L4(领域) / L5(工具) 五层隔离
+- **验证**: `tests/test_layered_context.cpp::test_five_layers_access`
+- **状态**: ✅ 已实现 (2026-06-12)
+
+### REQ-DAG-001: 引擎必须支持 DAG 拓扑调度
+
+- **来源**: ADR-0020 §决策 2
+- **行为**: `TopoScheduler` 按拓扑顺序调度节点执行，支持 `fork`/`join` 分支合并
+- **验证**: `tests/test_scheduler.cpp::test_topo_order` + `test_fork_join_basic`
+- **状态**: ✅ 已实现
+
+### REQ-TOOL-001: 工具注册表必须支持分层权限
+
+- **来源**: ADR-0004 §决策 3
+- **行为**: `ToolRegistry` 注册工具时验证 `ToolMetadata` 中的 `allowed_layers` 和 `approval_policy`
+- **验证**: `tests/test_tool_registry.cpp::test_layer_permission_check`
+- **状态**: ✅ 已实现 (2026-07-02)
+
+### REQ-DSL-001: `dsl_call` 必须支持 Markdown DSL 子图调用
+
+- **来源**: DSL v3.10 规范 §5.9
+- **行为**: `DSLEngine::from_markdown()` 解析 Markdown DSL → `ParsedGraph`，通过 `dsl_call` 节点调用子图
+- **验证**: `tests/test_basic.cpp::test_dsl_call_simple`
+- **状态**: ✅ 已实现
+
+### REQ-SKILL-001: SKILL.md 必须在隔离子进程中执行
+
+- **来源**: ADR-0055 §决策 1
+- **行为**: `SkillInterpreter::run()` 通过 `posix_spawn` + `seccomp(BPF)` + `pipe IPC` 执行 SKILL.md
+- **验证**: `tests/test_skill_interpreter.cpp::test_basic_execution`
+- **状态**: ✅ 已实现 (2026-07-22)
