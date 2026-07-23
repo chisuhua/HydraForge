@@ -3,6 +3,7 @@
 ## 状态
 
 ✅ Approved (2026-07-16, 架构评审确认)
+✅ 实施完成 (2026-07-22, skill-interpreter-real-loading change ship, 18/18 tests pass)
 
 ## 领域
 
@@ -10,11 +11,58 @@ Agent-as-Plugin 架构 / SKILL 运行时
 
 ## 关联
 
-- [ADR-0021 — PDK Design](../adr-0021-pdk-design.md) — SafeExec 沙箱封装 (§3.3)
+- [ADR-0021 — PDK Design](../adr-0021-pdk-design.md) — SafeExec 沙箱封装 (§3.3, **注**: SafeExec 当前 MVP 仅 `std::async + wait_for`, fork/seccomp 为 Phase 2/3, 本 ADR 不依赖其实现)
 - [ADR-0004 — ToolRegistry Security](../adr-0004-toolregistry-security.md) — 权限校验
 - [ADR-0031 — Execution Policy](../adr-0031-execution-policy.md) — 审批策略
 - [ADR-0053 — AgentDescriptor 与 pdk_register_agent](./adr-0053-agent-descriptor-interface.md) — `requires_isolation` 字段
 - [ADR-0052 — Agent Plugin Manifest](./adr-0052-agent-plugin-manifest.md) — `trust_level` 与 `requires_isolation`
+
+## 实施修订记录 (2026-07-21)
+
+> 来源: OpenSpec change `skill-interpreter-real-loading` 设计审查, ADR 修订走正式流程
+
+### 修订 1 — 隔离技术: fork() → posix_spawn() + execve()
+
+**原决策**: `fork()` + `seccomp(BPF)` + `setrlimit()`
+
+**修订后**: **`posix_spawn()` + `execve(/proc/self/exe, "--skill-child")` + `seccomp(BPF)` + `setrlimit()`**
+
+**理由**: 父进程 `DSLEngine` 持有 `InMemoryBus` dispatch_thread + 可能持有 `DomainWorkerPool`/`CognitiveWorker`(`std::jthread`), 属于多线程进程. 直接 `fork()` 会继承 mutex 状态, 子进程调用任何非 async-signal-safe 函数(`std::string`/`std::vector`/`nlohmann::json`/`malloc`)立即死锁. `posix_spawn()` 是 POSIX 为多线程程序设计的进程创建接口, `execve` 重置地址空间后子进程可用完整 C++20.
+
+**影响**: 决策 1 理由中"与 ADR-0021 SafeExec 的 `with_timeout` + `fork` 模式一致"陈述**不准确**(SafeExec 当前无 fork 实现), 本修订同时澄清.
+
+### 修订 2 — Capability 注入: 决策 3 实施分期
+
+**原决策**: Capability 三方交集(`manifest` × `SKILL metadata` × `OS policy`), 启动时一次注入.
+
+**修订后**: 
+- **V1**: 硬编码 `default_skill_capability()` 返回固定值, 不实现 `derive_capability()` 三方交集. SkillInterpreter::run() 接受 2 参数 `(skill_path, cap)`, 调用方负责提供 cap.
+- **V2 (独立 future change)**: 实现 `derive_capability(manifest, skill_meta, os_policy)` 三方交集; 引入 `pdk_manifest.json` 加载器、SKILL frontmatter `requires_*` 字段、`IExecutionPolicy::get_capability()` 集成.
+
+**理由**: V1 阶段 manifest 加载器未实现, YAGNI 原则下避免提前设计抽象; V1 硬编码 cap 即可满足 pdk_chat_demo 验证需求.
+
+### 修订 3 — 语法子集: V1 不实现 read_context
+
+**原决策 4**: host function 接口包含 6 个 (`host_call_tool` / `host_emit_event` / `host_consume_budget` / `host_read_context` / `host_llm_generate` / `host_log`).
+
+**修订后 V1**:
+- **实现**: 4 个 (`host_call_tool` / `host_emit_event` / `host_consume_budget` / `host_llm_generate`) —— `host_consume_budget` 用 SkillInterpreter 内部 `std::atomic<double>` 计数器, 不调用 IBudgetController (见 design.md Decision 11 + 修订 4)
+- **V2 defer**: `host_read_context(key)` 留待 V2 实现 (LayeredContext 序列化 + IPC 协议扩展)
+- **静默丢弃**: `host_log` —— V1 SKILL 无显式日志 API; 子进程日志通过 `pipe_err` 收集到 `SkillResult.stderr_content` (见 design.md Decision 10), 满足调试需求
+
+**理由**: V1 阶段 LayeredContext 桥接期 (ADR-0008, OpenSpec `migrate-context-to-layered` 2026-08-01 ship) 尚未稳定, read_context 的 IPC 序列化语义需与桥接层对齐, 提前实现会引入 Breaking change. `host_log` 与 `pipe_err` 功能重叠, V1 不重复实现.
+
+### 修订 4 — 错误码扩展
+
+新增 6 个 P3 ErrorCode 值于 `src/core/types/tool_result.h` (2026-07-21):
+- `SandboxViolation` — 子进程触发 seccomp 白名单违规
+- `MaxStepsExceeded` — 父进程 IPC 循环 max_steps 强制触发
+- `Crash` — 子进程因信号异常退出
+- `BudgetExhausted` — Skill USD 预算耗尽
+- `UnsupportedPlatform` — 非 Linux 平台调用
+- `InvalidArg` — 错误输入参数 (SKILL.md 不存在 / frontmatter 缺失字段 / 环境变量缺失)
+
+`SkillResult.error_code` (skill_interpreter 内部) 复用这些值.
 
 ## 背景
 
@@ -34,12 +82,15 @@ SKILL.md 是 Agent 的一种实现形态——非结构化描述，解释执行�
 
 ### 决策 1 — 隔离技术：进程隔离 + seccomp
 
-**v1 推荐技术栈**：`fork()` + `seccomp(BPF)` + `setrlimit()`
+> ⚠️ **2026-07-21 修订**: 见 [实施修订记录](#实施修订记录-2026-07-21) § 修订 1. 实际技术栈从 `fork()` 改为 `posix_spawn() + execve()`.
+> 以下原始决策保留作为架构意图记录，实施细节已变更.
+
+**v1 推荐技术栈（原始, 已修订）**：`posix_spawn()` + `execve(/proc/self/exe, "--skill-child")` + `seccomp(BPF)` + `setrlimit()`
 
 ```
 [SkillInterpreter (主进程)]
         │
-        ├── fork() → [SANDOXED CHILD]
+        ├── posix_spawn → [SANDOXED CHILD via execve(--skill-child)]
         │                │
         │                ├── seccomp 白名单（~20 syscalls）
         │                ├── setrlimit(RLIMIT_CPU, 30s)
@@ -84,7 +135,7 @@ SKILL.md 是 Agent 的一种实现形态——非结构化描述，解释执行�
 
 **理由**：
 - `seccomp(BPF)` 是 Linux 上最轻量的 syscall 过滤方案（无容器开销）
-- 与 ADR-0021 `SafeExec` 的 `with_timeout` + `fork` 模式一致
+- ~~与 ADR-0021 `SafeExec` 的 `with_timeout` + `fork` 模式一致~~ （**已废止**: SafeExec 当前实现是 `std::async`，无 fork 模式；ADR-0021 §3.3 计划中 fork/seccomp 为 Phase 2/3。本修订 1 将 fork 改为 posix_spawn）
 - 无需 Docker/Firecracker 等重型容器
 
 ### 决策 2 — SKILL.md 语法子集
@@ -221,15 +272,18 @@ void host_log(
 
 ### 决策 5 — 超时与资源回收
 
+> ⚠️ **2026-07-21 修订**: 步骤 1 已从 `fork()` 改为 `posix_spawn()` + `execve(self, "--skill-child")`. 其余步骤保持.
+
 ```
 SkillInterpreter::run(skill_path, capability):
-  1. fork() 子进程
+  1. posix_spawn() + execve(/proc/self/exe, "--skill-child", envp) 子进程
   2. 子进程：seccomp + setrlimit + 注入 capability
-  3. 子进程：解释执行 SKILL.md，通过 IPC 调用 host functions
-  4. 父进程：waitpid(timeout)
-     ├── 正常退出 → 收集结果
-     ├── 超时 → SIGKILL → 返回 ERR_TIMEOUT
-     └── 信号异常 → 返回 ERR_SANDBOX_VIOLATION
+   3. 子进程：解释执行 SKILL.md，通过 IPC 调用 host functions
+   4. 父进程：waitpid(timeout) + EINTR 重试
+      ├── 正常退出 → 收集结果
+      ├── 超时 → SIGKILL → 返回 ErrorCode::Timeout
+      ├── SIGSYS (seccomp 违规) → 返回 ErrorCode::SandboxViolation（修订 4）
+      └── 其他信号死亡 (SIGSEGV/SIGABRT/SIGBUS) → 返回 ErrorCode::Crash（修订 4）
   
   5. 回收子进程资源
      - close pipe fds
@@ -277,7 +331,7 @@ SkillInterpreter::run(skill_path, capability):
 
 ## 后续行动
 
-- 实现 `SkillInterpreter` 组件（fork + seccomp + capability injection）
+- 实现 `SkillInterpreter` 组件（**posix_spawn + execve(self, --skill-child)** + seccomp + capability injection，见修订 1）
 - ADR-0056: Wasm 隔离（固化后的 Agent 用 Wasm 而不是进程）
 - Phase 2: 用户显式授权（CLI 交互审批超出默认 capability 的操作）
 
