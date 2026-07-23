@@ -1,8 +1,8 @@
-# ADR-0050: Phase 6 战略方向评估 — 服务化 (Service-ification)
+# ADR-0050: Phase 6 战略方向评估 — 从服务化到 PDK 生产化
 
 ## 状态
 
-🔍 Proposed (2026-07-10 — OpenSpec change `2026-07-10-phase5-sprint22-drift-strategic-gate` (C18) 产出; **待评审**)
+✅ Approved (2026-07-23 — Solo Dev 重估生效: Candidate B 结构性阻塞, 转向 PDK 生产化 + AgentForge MVP 验证。原始 Oracle 评估记录保留, 重开条件见 §Candidate B 重开条件)
 
 ## 领域
 
@@ -87,62 +87,122 @@
 
 ## 决策
 
-### 推荐方向: **Candidate B (服务化)**
+### 裁决: Candidate B (服务化) 暂缓 — Solo Dev 结构性阻塞
+
+Phase 6 Candidate B 因以下硬前置条件不满足而**暂缓实施**：
+
+| # | 条件 | 状态 | 阻塞判断 |
+|:---:|------|:---:|------|
+| 1 | Phase 5 完全关闭 | ✅ | — |
+| 2 | 服务化范围文档批准 | 🔒 | 非阻塞, 可随时启动 |
+| 3 | C20 placeholder 决议 | ✅ | 已决议但随 B 冻结 |
+| **4** | **8-10 周连续 solo dev 投入** | 🔴 | **结构性阻塞** — solo dev 现实下不可行 |
+| **5** | **≥1 个真正外部消费者** | 🔴 | **阻塞** — AgentForge 为同一构建者, 不构成外部验证 |
+
+**结论**: Candidate B 在 Solo Dev 约束下不可行。不推翻原 Oracle 评估 (B 仍是容量匹配度最高的方向), 但承认启动条件不满足的现实。
+
+### 新方向: PDK 生产化 + AgentForge MVP 验证
+
+优先级从"暴露服务接口"切换为"巩固 PDK 基础 + 用 AgentForge 验收 PDK 可用性":
+
+| 阶段 | 范围 | 估时 | 完成标准 |
+|------|------|:---:|------|
+| **Phase 6a** | PDK 生产化 | 2-4 周 | ① manifest 校验补全 (PluginLoader 预读 `pdk_manifest.json`) + ② SafeExec 超时/异常隔离真实测试 + ③ PDK API 文档 (`pdk.h` doxygen 注释覆盖率 ≥80%) + ④ ctest 加入 PDK 插件 manifest 校验 case |
+| **Phase 6b** | AgentForge MVP | 2-4 周 | ① ≥1 个领域 agent 通过 `DEFINE_AGENT` + PDK 构建 + ② 该 agent 通过真实 LLM (非 Mock) 跑通一次完整交互 + ③ 产出 AgentForge 的 1 页 README |
+| **Phase 6c** | 重新评估服务化 | N/A | ① Phase 6a + 6b 完成标准全部达到 + ② ≥1 个真实外部消费者出现 |
+
+### 对存量 ADR 的影响
+
+本裁决后, ADR-0052~0067 分类如下:
+
+**Phase 6a 激活** (PDK 生产化直接需要):
+| ADR | 行动 |
+|-----|------|
+| ADR-0052 §决策 1 (manifest 预读校验) | ✅ 实施 (P0, 2-3 天) |
+
+**Phase 6b 待命** (AgentForge 需要时才启动):
+| ADR | 行动 |
+|-----|------|
+| ADR-0053 AgentDescriptor 接口 | ⏸ 待 Phase 6b |
+| ADR-0058 Tool Schema Validation | ⏸ 待 Phase 6b |
+
+**⏸ 冻结** (服务化暂缓, 不做):
+| ADR | 行动 |
+|-----|------|
+| ADR-0054 CapabilityRegistry 运行时 | ⏸ 冻结 |
+| ADR-0057 Agent Lifecycle | ⏸ 冻结 |
+| ADR-0059 Cross-Process Protocol | ⏸ 冻结 |
+| ADR-0060 Agent Composition | ⏸ 冻结 |
+
+**⏸ 维持** (不因本裁决改变):
+| ADR | 行动 |
+|-----|------|
+| ADR-0061 P0 全部 6 项 | ⏸ 维持 Approved-but-unimplemented |
+| ADR-0061 P2 全部 6 项 (PASTE/AFlow/GEPA 等) | ⏸ 维持 🔍 Proposed |
+| ADR-0056/0062/0063/0064/0065 | ⏸ 维持 Approved-but-unimplemented |
+
+**✅ 已完成** (不受本裁决影响):
+| ADR | 行动 |
+|-----|------|
+| ADR-0051 PDK Composition Spike | ✅ Phase 6 W1+W2+W3 已 ship |
+| ADR-0055 SKILL.md 隔离 | ✅ Sprint 22 已 ship |
+| ADR-0066 Skill Interpreter 架构 | 🟡 Partial (V1 done) |
+| ADR-0067 L4 分层架构 | ✅ 追溯性 Approved (代码已落地) |
+
+---
+
+### 历史记录: 原始 4 候选评估 (2026-07-10)
+
+> **标注**: 以下为 Phase 5 收官时 Oracle 的原始战略评估, **已被上述 Solo Dev 重估覆盖**。保留作为决策链的完整记录。
+
+**Oracle 推荐方向: Candidate B (服务化)**
 
 **1-2 句话理由**:
 > Phase 5 已在 service-ification 方向投入沉没成本 (ADR-0019/0020/0033 + C12 YIELD + C16 ILLMProvider v2), Candidate B 以 4-6 周 / 1-2 工程师的可负担代价完成这条路径, 产出可预测、可消费的外部接口 (MCP + OpenAI-compatible API), 边际收益最确定.
 
-**为什么 B 是 A/D 的前置条件**:
-> 服务化是自进化 (A) 和云原生 (D) 的**前置条件**——没有稳定的服务接口, 优化 (A) 和部署 (D) 都是空中楼阁. 先完成 B, 后续 A/D 才有附着点.
-
-### 为什么**不**选其他 3 个
+**为什么不选其他 3 个**:
 
 | 候选 | 拒绝理由 |
 |------|---------|
-| **A 自进化** | 8-12 周超出容量 2x; Quality signal noise + reward hacking 是研究问题而非工程问题, 小团队不适合承担高方差研究; **没有服务化基础做自进化 = 优化没人消费的东西** (过早优化) |
-| **C 第三方生态** | 网络效应需要 critical mass, 社区尚不存在; 1-2 工程师无法同时建设 contribution 基础设施 AND seed 社区; **第三方插件要消费什么? 没有 B 的服务接口, 生态无附着点** |
-| **D Cloud-native** | 8-12 周超出容量; LLM 推理延迟敏感 + 有状态, cloud cold-start 是灾难性匹配; ADR-0042 §C16 §5 仍 🔍 Proposed, 连批准都未完成 |
+| **A 自进化** | 8-12 周超出容量 2x; Quality signal noise + reward hacking 是研究问题而非工程问题, 小团队不适合承担高方差研究 |
+| **C 第三方生态** | 网络效应需要 critical mass, 社区尚不存在; 1-2 工程师无法同时建设 contribution 基础设施 AND seed 社区 |
+| **D Cloud-native** | 8-12 周超出容量; LLM 推理延迟敏感 + 有状态, cloud cold-start 是灾难性匹配; ADR-0042 §C16 §5 仍 🔍 Proposed |
 
-### Oracle 引用
-
+**Oracle 引用**:
 - **Session**: `ses_0ae4b8107ffetONLmb2Sv2wTb5` (2026-07-11, Phase 6 战略评估)
 - **核心论证**: 团队容量是 binding constraint, 路径依赖决定 B 优先, 外部触发因素 (C16 §5) 未到
 
-### Solo Developer 重新评估 (2026-07-15) ⚠️ 状态补充
+---
 
-**触发**: 用户 2026-07-15 确认 HydraForge 由 **单一开发者**维护 (非 1-2 工程师团队), 且已规划基于 HydraForge PDK 启动下游项目 **AgentForge** 作为领域 Agent 实现载体。
+### Solo Developer 重新评估 (2026-07-15) — 导致本次裁决的直接依据
+
+**触发**: 用户 2026-07-15 确认 HydraForge 由 **单一开发者**维护, 且已规划基于 HydraForge PDK 启动下游项目 **AgentForge** 作为领域 Agent 实现载体。
 
 **对原决策的影响**:
 
 | §项 | 原措辞 | Solo Dev 修正 | 影响 |
 |------|--------|-------------|------|
-| §决策推荐 B | "1-2 工程师 × 4-6 周" | "1 人 × 6-10 日历周 (连续投入不足, 间歇性)" | B 估时翻倍; 服务化预算 vs. PDK 生产化预算 互斥 |
-| §启动条件 #4 | "1-2 工程师 4-6 周无中断可用" | 重写为 solo dev 容量 (见下方修正) | 字面失效 |
-| §启动条件 #5 | "≥1 个外部 agent/tool" | **部分满足**: AgentForge 由同一构建者开发, 非真正外部实体 | Oracle round 4 重新评估 |
+| §决策推荐 B | "1-2 工程师 × 4-6 周" | "1 人 × 6-10 日历周" | B 估时翻倍; 服务化预算 vs. PDK 生产化预算互斥 |
+| §启动条件 #4 | "1-2 工程师 4-6 周无中断可用" | 重写为 solo dev 容量 | 字面失效 |
+| §启动条件 #5 | "≥1 个外部 agent/tool" | AgentForge 非真正外部实体 | 不满足 |
 | §不变量 ADR-0020 | "Week 4 TSan" | "Week 8-10 TSan" (日历时间扩展) | 缓解窗口拉长 |
 
-**修正后的方向**: 见 [§决策后续](#solo-dev-重新评估后续-action-2026-07-15) — 暂缓 Phase 6 服务化, 优先 PDK 生产化 + AgentForge MVP 验证 (单一开发者路径).
+**修正后的方向**: 暂缓 Phase 6 服务化, 优先 PDK 生产化 + AgentForge MVP 验证 (单一开发者路径)。即为本裁决的主决策。
 
 ---
 
-## 启动条件 (Phase 6 硬前置)
+## Candidate B 重开条件
 
-> **5 项硬前置**: 全部满足后才可启动 Phase 6 实施
+Phase 6 服务化在以下条件**全部**满足时可重新评估:
 
-1. **Phase 5 完全关闭**: C17 OpenSpec change 已 archive (✅), active OpenSpec changes = 0 (C18 收官后满足)
-2. **服务化范围文档批准**: 明确 in-scope (MCP server + OpenAI-compatible `/v1/chat/completions` + `/v1/models`) 和 out-of-scope (cloud deployment → Candidate D follow-up), 使 C16 §5 成为可选而非阻塞依赖
-3. **C20 placeholder 决议**: analysis-service placeholder 激活 (见下文 §C19/C20 决策)
-4. ~~**团队容量确认**: 1-2 工程师 4-6 周无中断可用~~ → **修正 (2026-07-15 Solo Dev 重新评估)**: Solo dev 容量受日常事项 + 其他项目 (含 AgentForge) 挤压. Phase 6 启动条件 #4 **重写为** "Solo dev 连续 8-10 周不投入其他大幅工作的承诺". 实务上 = 先推 Sprint 24-25 PDK 生产化 + AgentForge MVP (可衡量), 待 PDK 成熟后再评估服务化启动窗口.
-5. **≥1 个具体集成目标**: 至少识别 1 个会消费 MCP/OpenAI API 的外部 agent/tool (避免"建了没人用"). **修正 (2026-07-15)**: AgentForge 作为 HydraForge 同一构建者的下游项目, 不构成字面"外部"消费者. Oracle round 4 (ADR-0051 §后续 #9) 需重新评估 #5 是否可放宽至"内部跨项目消费" 或 是否需引入真正外部触发后再启动服务化.
+| # | 条件 | 当前状态 |
+|:---:|------|:---:|
+| 1 | PDK 生产化完成 + AgentForge MVP 验证通过 (Phase 6a + 6b) | 🔒 |
+| 2 | Solo dev 有 ≥6 周连续可用窗口 (非原估 8-10 周) | 🔒 |
+| 3 | 识别到 ≥1 个真正的、独立于 HydraForge 的外部消费者 | 🔒 |
+| 4 | C16 §5 Cloud plugin 状态不阻塞 (仍为可选依赖) | 🔒 |
 
-> **Phase 6 启动条件当前状态**:
-> - #1 ✅
-> - #2 🔒 未启动 (Phase 6 整体暂停中)
-> - #3 ✅ (analysis-service placeholder 激活决策已记录, 但 OpenSpec change 不启动)
-> - #4 🔴 **修正后仍不可行** (8-10 周连续 solo dev 不现实)
-> - #5 🟡 **部分满足但需重新评估**
->
-> **结论**: Phase 6 Candidate B (服务化) 在 Solo Dev 现实下 **结构性阻塞**, 不应再 push. 转向 "PDK 生产化 + AgentForge MVP 验证" 路径 (新 plan: `docs/superpowers/plans/2026-07-15-phase6-agentforge-mvp.md`).
+> **当前状态**: 🔒 全部未满足, 服务化暂缓。Phase 6c 为自然触发点。
 
 ---
 
@@ -184,18 +244,6 @@
 **触发条件**: 重新评估时机 = Candidate A (自进化) 正式启动时. 若 Phase 7 仍不启动, 且 ADR-0033 证明足够, 则归档 C19.
 
 ---
-
-### Solo Dev 重新评估后续 Action (2026-07-15)
-
-**Phase 6 服务化 (Candidate B) → ⏸ 暂缓, 结构性降级为 Path-dependent 启动条件.**
-
-原 C20 决策 (analysis-service 激活) 暂停. 等以下条件重新满足时再评估:
-
-1. PDK 生产化达 Sprint 25 末里程碑 (SafeExec 重写 + 文档 + 真实 LLM 集成完成)
-2. AgentForge MVP 验证 (≥1 个领域 agent 通过 PDK 调用成功)
-3. **同时**, Phase 6 服务化范围文档可压缩到 ≤1 周完成 (Solo dev 适配)
-
-满足上述 3 项后, 可重新评估 C20 OpenSpec change 创建 (估时窗口: Sprint 26 末).
 
 ---
 
@@ -248,15 +296,17 @@
 
 ## 后续行动
 
-1. **Sprint 22 (2026-07-10 ~ 2026-07-31)**: C18 ship + archived; 等待 Stage Gate 重新评估 (2026-07-18)
-2. **Sprint 23 (2026-07-19 ~ 2026-07-25)** (若决议启动 Phase 6):
-   - 创建 OpenSpec change `phase6-service-ification` (W1 设计)
-   - C20 placeholder 升级为正式 change
-3. **Master Plan 更新**: `2026-07-03-phase5-self-bootstrapping.md` §十一 Adjustment Log 追加本 ADR 引用 + §十二 Strategic Pivots Log 追加 Phase 6 启动决议
-4. **本 ADR 状态**: 待评审 → 若 Sprint 23 启动 Phase 6 实施, 状态升级为 `✅ Approved`
+1. **Sprint 24+**: 启动 Phase 6a — PDK 生产化 (manifest 校验补全 + SafeExec 测试 + doxygen 文档, 2-4 周)
+2. **Sprint 25+**: 启动 Phase 6b — AgentForge MVP (首个领域 agent PDK 验证, 2-4 周)
+3. **Sprint 26+**: 启动 Phase 6c — 重新评估服务化 (基于 Phase 6a/6b 完成状态 + 重开条件)
+4. **文档同步**:
+   - `docs/active-status.md` Phase 6 行更新为 "✅ Approved (PDK 生产化)"
+   - `docs/README.md` ADR-0052~0060 表中标注 `⚠` (Approved-but-unimplemented) 标签区分已验证契约
+   - `docs/adr/adr-0051-phase6-pdk-composition-spike.md` 补充 G1/G3 spike 转正条件 (若尚未写入)
+5. **Master Plan 更新**: `docs/superpowers/plans/` 新建 Phase 6a PDK 生产化 plan
 
 ---
 
-**最后更新**: 2026-07-10 (C18 Day 2, Oracle session `ses_0ae4b8107ffetONLmb2Sv2wTb5` 输出合成)
-**状态**: 🔍 Proposed (待 Sprint 23 启动评审)
-**关联**: [Drift Gate ✅](../audits/2026-07-10-drift-gate.md), [Stage Gate 推迟决议](../handoff/2026-07-31-stage-gate-evaluation.md)
+**最后更新**: 2026-07-23 (ADR-0050 裁决: Solo Dev 重估生效, Candidate B 暂缓, 转向 PDK 生产化)
+**状态**: ✅ Approved (Solo Dev 重估裁决)
+**关联**: [Drift Gate ✅](../audits/2026-07-10-drift-gate.md), [Stage Gate 推迟决议](../handoff/2026-07-31-stage-gate-evaluation.md), [ADR-0051 Spike](./adr-0051-phase6-pdk-composition-spike.md)
