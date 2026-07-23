@@ -1,0 +1,709 @@
+// src/modules/skill_interpreter/skill_interpreter.cpp
+// 功能描述：SkillInterpreter PIMPL 实现 — ADR-0055 父进程侧隔离执行引擎。
+//          负责 posix_spawn + IPC 循环（poll + NDJSON）+ max_steps 强制 +
+//          capability 检查 + budget 计数器 + stderr 收集 + 超时 SIGKILL。
+// 设计依据：ADR-0055 + openspec/changes/skill-interpreter-real-loading/design.md
+// 作者：AgenticDSL SkillInterpreter change
+// 最后修改日期：2026-07-22
+
+#include "agenticdsl/skill/skill_interpreter.h"
+
+#include <algorithm>
+#include <atomic>
+#include <cerrno>
+#include <chrono>
+#include <csignal>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <limits>
+#include <memory>
+#include <string>
+#include <thread>
+#include <vector>
+
+// Linux 特有头文件
+#ifdef __linux__
+#include <fcntl.h>
+#include <poll.h>
+#include <sys/prctl.h>
+#include <sys/wait.h>
+#include <sys/resource.h>
+#include <unistd.h>
+#include <spawn.h>
+#endif
+
+#include <nlohmann/json.hpp>
+
+#include "agenticdsl/contract/iinteraction_bus.h"
+#include "agenticdsl/contract/itool_registry.h"
+#include "agenticdsl/types/layered_context.h"
+#include "core/types/tool_result.h"
+
+// common/llm/llm_types.h 中的 ILLMProvider（非契约层 forward-declare）
+#include "common/llm/llm_types.h"
+
+namespace agenticdsl {
+
+// ============================================================
+// 常量定义
+// ============================================================
+
+/// NDJSON 单条消息上限（1 MB，防止恶意 SKILL OOM 父进程）
+constexpr size_t kIPCMessageMaxBytes = 1024 * 1024;
+
+/// stderr 收集上限（1 MB）
+constexpr size_t kStderrMaxBytes = 1024 * 1024;
+
+/// 子进程退出码约定（父进程 WEXITSTATUS 检测）
+constexpr int EXIT_CHILD_PARSE_ERROR = 64;
+constexpr int EXIT_CHILD_ENV_MISSING = 70;
+constexpr int EXIT_CHILD_PRCTL_ERROR = 71;
+constexpr int EXIT_CHILD_SECCOMP_ERROR = 72;
+constexpr int EXIT_CHILD_THREAD_LEAK = 73;
+
+// ============================================================
+// 内部工具函数
+// ============================================================
+
+/// 从 fd 读取一行（以 \n 结尾），维护行缓冲。返回空 string 表示 EOF。
+/// 单条消息超限时截断并标记。
+struct ReadLineResult {
+  std::string line;
+  bool truncated = false;
+};
+
+static ReadLineResult read_line(int fd, std::string& buf) {
+  // 从 fd 读取到内部缓冲区
+  char tmp[4096];
+  ssize_t n = read(fd, tmp, sizeof(tmp));
+  if (n <= 0) {
+    // EOF 或错误：如果缓冲区有残存数据，当作最后一行
+    if (!buf.empty()) {
+      std::string line = std::move(buf);
+      buf.clear();
+      return {line, false};
+    }
+    return {"", false};
+  }
+
+  buf.append(tmp, static_cast<size_t>(n));
+
+  // 查找 \n
+  auto pos = buf.find('\n');
+  if (pos == std::string::npos) {
+    // 没有完整行：检查是否超限
+    if (buf.size() > kIPCMessageMaxBytes) {
+      buf.resize(kIPCMessageMaxBytes);
+      // 丢弃多余数据直到下一个 \n
+      return {"", true};
+    }
+    return {"", false};
+  }
+
+  std::string line = buf.substr(0, pos);
+  buf.erase(0, pos + 1);
+  return {line, false};
+}
+
+/// 写行到 fd（追加 \n）
+static bool write_line(int fd, const std::string& msg) {
+  std::string framed = msg + '\n';
+  const char* data = framed.data();
+  size_t remaining = framed.size();
+  while (remaining > 0) {
+    ssize_t n = write(fd, data, remaining);
+    if (n < 0) {
+      if (errno == EINTR) continue;
+      return false;
+    }
+    data += n;
+    remaining -= static_cast<size_t>(n);
+  }
+  return true;
+}
+
+/// 解析 NDJSON 帧为 IPC 请求
+struct IPCRequest {
+  std::string method;
+  nlohmann::json params;
+};
+
+static bool parse_request(const std::string& line, IPCRequest& req) {
+  try {
+    auto j = nlohmann::json::parse(line);
+    req.method = j.value("method", "");
+    req.params = j.value("params", nlohmann::json::object());
+    return !req.method.empty();
+  } catch (...) {
+    return false;
+  }
+}
+
+/// 构造 IPC 响应
+static std::string make_response(bool ok, nlohmann::json result,
+                                  const std::string& error = "") {
+  nlohmann::json j;
+  j["ok"] = ok;
+  if (!result.is_null()) j["result"] = std::move(result);
+  if (!error.empty()) j["error"] = error;
+  return j.dump();
+}
+
+// ============================================================
+// SkillInterpreter::Impl — PIMPL 实现
+// ============================================================
+
+class SkillInterpreter::Impl {
+ public:
+  Impl(IToolRegistry& tools,
+       IInteractionBus& bus,
+       ILLMProvider* llm,
+       const LayeredContext* ctx)
+      : tools_(&tools),
+        bus_(&bus),
+        llm_(llm),
+        ctx_(ctx) {}
+
+  ~Impl() {
+    // 析构时自动回收子进程，防止僵尸
+    if (child_pid_ > 0) {
+      kill(child_pid_, SIGKILL);
+      // SIGKILL 失败忽略
+      waitpid_reap(child_pid_, nullptr);
+      child_pid_ = -1;
+    }
+    close_all_pipes();
+  }
+
+  SkillResult run(const std::string& skill_path,
+                  const SkillCapability& cap) {
+#ifdef __linux__
+    // 重置预算计数器
+    budget_used_.store(0.0, std::memory_order_relaxed);
+    auto start_time = std::chrono::steady_clock::now();
+
+    // === Step 1: 创建 3 对 pipe ===
+    int pipe_in[2] = {-1, -1};   // 父→子（响应）
+    int pipe_out[2] = {-1, -1};  // 子→父（请求）
+    int pipe_err[2] = {-1, -1};  // 子→父（stderr）
+
+    if (pipe2(pipe_in, O_CLOEXEC) < 0 ||
+        pipe2(pipe_out, O_CLOEXEC) < 0 ||
+        pipe2(pipe_err, O_CLOEXEC) < 0) {
+      return make_error(ErrorCode::ResourceExhausted,
+                        "pipe2 failed", 0, -1);
+    }
+
+    // === Step 2: 获取自身可执行路径 ===
+    char exe_path[PATH_MAX];
+    ssize_t n = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+    if (n < 0) {
+      close_fd(pipe_in[0]); close_fd(pipe_in[1]);
+      close_fd(pipe_out[0]); close_fd(pipe_out[1]);
+      close_fd(pipe_err[0]); close_fd(pipe_err[1]);
+      return make_error(ErrorCode::UnsupportedPlatform,
+                        "readlink(/proc/self/exe) failed", 0, -1);
+    }
+    exe_path[n] = '\0';
+
+    // === Step 3: 构造 posix_spawn file_actions ===
+    // 顺序敏感（spike §0.4 C5 修正）：先 dup2 再 closefrom
+    posix_spawn_file_actions_t actions;
+    posix_spawn_file_actions_init(&actions);
+
+    // 3a. 先 dup2：将 pipe fd 映射到 0/1/2
+    posix_spawn_file_actions_adddup2(&actions, pipe_in[0], STDIN_FILENO);
+    posix_spawn_file_actions_adddup2(&actions, pipe_out[1], STDOUT_FILENO);
+    posix_spawn_file_actions_adddup2(&actions, pipe_err[1], STDERR_FILENO);
+
+    // 3b. 再 closefrom：关闭 ≥3 的所有 fd（POSIX 按 add-order 执行）
+    posix_spawn_file_actions_addclosefrom_np(&actions, 3);
+
+    // === Step 4: 构造 argv + envp ===
+    const char* argv[] = {exe_path, "--skill-child", nullptr};
+
+    std::string env_skill_path = "SKILL_PATH=" + skill_path;
+    std::string env_ipc_in     = "SKILL_IPC_IN=0";   // STDIN_FILENO
+    std::string env_ipc_out    = "SKILL_IPC_OUT=1";  // STDOUT_FILENO
+    std::string env_ipc_err    = "SKILL_IPC_ERR=2";  // STDERR_FILENO
+
+    char* envp[] = {
+        env_skill_path.data(),
+        env_ipc_in.data(),
+        env_ipc_out.data(),
+        env_ipc_err.data(),
+        nullptr,
+    };
+
+    // === Step 5: posix_spawn ===
+    pid_t pid;
+    int spawn_ret = posix_spawn(&pid, exe_path, &actions, nullptr,
+                                 const_cast<char* const*>(argv),
+                                 const_cast<char* const*>(envp));
+
+    posix_spawn_file_actions_destroy(&actions);
+
+    if (spawn_ret != 0) {
+      close_fd(pipe_in[0]); close_fd(pipe_in[1]);
+      close_fd(pipe_out[0]); close_fd(pipe_out[1]);
+      close_fd(pipe_err[0]); close_fd(pipe_err[1]);
+      return make_error(ErrorCode::ResourceExhausted,
+                        "posix_spawn failed: " + std::string(std::strerror(spawn_ret)),
+                        0, -1);
+    }
+
+    child_pid_ = pid;
+
+    // === Step 5a: 设置父进程资源限制 ===
+    // RLIMIT_CORE=0: 防止子进程 crash 产生 core dump 泄露内存
+    struct rlimit core_lim = {0, 0};
+    setrlimit(RLIMIT_CORE, &core_lim);
+    // RLIMIT_CPU: CPU 时间兜底（父进程 SIGKILL 之外的二道防线）
+    struct rlimit cpu_lim;
+    cpu_lim.rlim_cur = static_cast<rlim_t>(cap.timeout_ms.count() / 1000) + 1;
+    cpu_lim.rlim_max = cpu_lim.rlim_cur + 1;
+    setrlimit(RLIMIT_CPU, &cpu_lim);
+
+    // 父进程关闭子进程端的 pipe fd
+    close_fd(pipe_in[0]);   // 子进程已 dup2 到 STDIN，父进程不需要读端
+    close_fd(pipe_out[1]);  // 子进程已 dup2 到 STDOUT
+    close_fd(pipe_err[1]);  // 子进程已 dup2 到 STDERR
+
+    // === Step 6: IPC 循环 ===
+    SkillResult result = ipc_loop_and_wait(
+        pid, pipe_out[0], pipe_in[1], pipe_err[0], cap);
+
+    auto end_time = std::chrono::steady_clock::now();
+    result.duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        end_time - start_time).count();
+
+    // 关闭父进程端 pipe fd
+    close_fd(pipe_out[0]);
+    close_fd(pipe_in[1]);
+    close_fd(pipe_err[0]);
+
+    child_pid_ = -1;
+    return result;
+
+#else
+    (void)skill_path;
+    (void)cap;
+    return make_error(ErrorCode::UnsupportedPlatform,
+                      "SkillInterpreter requires Linux", 0, -1);
+#endif
+  }
+
+ private:
+  IToolRegistry* tools_;
+  IInteractionBus* bus_;
+  ILLMProvider* llm_;
+  const LayeredContext* ctx_;
+  std::atomic<double> budget_used_{0.0};
+  pid_t child_pid_ = -1;
+
+  // pipe fd 缓存（用于析构关闭）
+  int pipe_in_w_ = -1;
+  int pipe_out_r_ = -1;
+  int pipe_err_r_ = -1;
+
+  void close_fd(int& fd) {
+    if (fd >= 0) {
+      close(fd);
+      fd = -1;
+    }
+  }
+
+  void close_all_pipes() {
+    close_fd(pipe_in_w_);
+    close_fd(pipe_out_r_);
+    close_fd(pipe_err_r_);
+  }
+
+  SkillResult make_error(ErrorCode code, const std::string& msg,
+                          uint64_t duration, int exit_status) {
+    SkillResult r;
+    r.success = false;
+    r.error_code = code;
+    r.stderr_content = msg;
+    r.duration_ms = duration;
+    r.child_exit_status = exit_status;
+    return r;
+  }
+
+  /// waitpid EINTR 重试（避免僵尸残留）
+  static int waitpid_reap(pid_t pid, int* status) {
+    int s;
+    int ret;
+    do {
+      ret = waitpid(pid, &s, 0);
+    } while (ret == -1 && errno == EINTR);
+    if (status && ret > 0) *status = s;
+    return ret;
+  }
+
+  /// kill EINTR 重试
+  static int kill_retry(pid_t pid, int sig) {
+    int ret;
+    do {
+      ret = kill(pid, sig);
+    } while (ret == -1 && errno == EINTR);
+    return ret;
+  }
+
+  /// IPC 循环 + waitpid 超时管理
+  SkillResult ipc_loop_and_wait(pid_t pid, int pipe_out_r, int pipe_in_w,
+                                 int pipe_err_r, const SkillCapability& cap) {
+    // 保存 pipe fd 以便析构时关闭
+    pipe_out_r_ = pipe_out_r;
+    pipe_in_w_ = pipe_in_w;
+    pipe_err_r_ = pipe_err_r;
+
+    // 预算计数器重置
+    budget_used_.store(0.0, std::memory_order_relaxed);
+
+    auto deadline = std::chrono::steady_clock::now() + cap.timeout_ms;
+    size_t steps_used = 0;
+    std::string stderr_buf;
+    bool stderr_truncated = false;
+    std::string read_buf_in;   // pipe_out 行缓冲
+    std::string read_buf_err;  // pipe_err 行缓冲
+    nlohmann::json output = nlohmann::json::object();
+
+    pollfd fds[2];
+    fds[0].fd = pipe_out_r;
+    fds[0].events = POLLIN;
+    fds[1].fd = pipe_err_r;
+    fds[1].events = POLLIN;
+
+    while (true) {
+      auto now = std::chrono::steady_clock::now();
+      auto remaining = deadline - now;
+
+      if (remaining <= std::chrono::nanoseconds(0)) {
+        kill_retry(pid, SIGKILL);
+        int status;
+        waitpid_reap(pid, &status);
+        SkillResult r;
+        r.success = false;
+        r.error_code = ErrorCode::Timeout;
+        r.stderr_content = stderr_buf;
+        r.stderr_truncated = stderr_truncated;
+        r.child_exit_status = status;
+        return r;
+      }
+
+      // poll EINTR 重试
+      int timeout_ms = 0;
+      if (remaining > std::chrono::nanoseconds(0)) {
+        auto rem_ms = std::chrono::duration_cast<std::chrono::milliseconds>(remaining);
+        // 最小 1ms，防止截断为 0 导致 false timeout
+        timeout_ms = std::max(1, static_cast<int>(rem_ms.count()));
+      }
+
+      int n;
+      do {
+        n = poll(fds, 2, timeout_ms);
+      } while (n < 0 && errno == EINTR);
+
+      if (n == 0) {
+        // 超时无事件
+        continue;
+      }
+
+      if (n < 0) {
+        // poll 错误（非 EINTR），SIGKILL 子进程
+        kill_retry(pid, SIGKILL);
+        int status;
+        waitpid_reap(pid, &status);
+        SkillResult r;
+        r.success = false;
+        r.error_code = ErrorCode::ResourceExhausted;
+        r.stderr_content = stderr_buf;
+        r.stderr_truncated = stderr_truncated;
+        r.child_exit_status = status;
+        return r;
+      }
+
+      // 处理 stderr（先读，防止 pipe 缓冲区满阻塞子进程）
+      if (fds[1].revents & POLLIN) {
+        auto rl = read_line(pipe_err_r, read_buf_err);
+        if (!rl.line.empty()) {
+          if (stderr_buf.size() + rl.line.size() <= kStderrMaxBytes) {
+            stderr_buf += rl.line + "\n";
+          } else {
+            stderr_truncated = true;
+          }
+        }
+      }
+
+      // 处理 pipe_out（子进程 IPC 请求）
+      if (fds[0].revents & POLLIN) {
+        auto rl = read_line(pipe_out_r, read_buf_in);
+        if (rl.truncated) {
+          // IPC 消息超 1MB → SIGKILL
+          kill_retry(pid, SIGKILL);
+          int status;
+          waitpid_reap(pid, &status);
+          SkillResult r;
+          r.success = false;
+          r.error_code = ErrorCode::MaxStepsExceeded;
+          r.stderr_content = stderr_buf;
+          r.stderr_truncated = stderr_truncated;
+          r.child_exit_status = status;
+          return r;
+        }
+
+        if (rl.line.empty()) {
+          // EOF — 子进程已退出（pipe 关闭）
+          break;
+        }
+
+        // max_steps 强制：每收到一个 IPC 请求就递增
+        if (++steps_used > cap.max_steps) {
+          kill_retry(pid, SIGKILL);
+          int status;
+          waitpid_reap(pid, &status);
+          SkillResult r;
+          r.success = false;
+          r.error_code = ErrorCode::MaxStepsExceeded;
+          r.stderr_content = stderr_buf;
+          r.stderr_truncated = stderr_truncated;
+          r.child_exit_status = status;
+          return r;
+        }
+
+        // 解析 IPC 请求
+        IPCRequest req;
+        if (!parse_request(rl.line, req)) {
+          write_line(pipe_in_w, make_response(false, nullptr, "parse error"));
+          continue;
+        }
+
+        // dispatch
+        IPCResponse resp = dispatch(req, cap, pid);
+        if (!write_line(pipe_in_w, serialize(resp))) {
+          // 写失败 → 子进程 pipe 已关闭
+          break;
+        }
+
+        // 捕获 return 值
+        if (req.method == "return") {
+          output = req.params.value("value", nlohmann::json::object());
+          break;
+        }
+
+        // 检查 terminate 标志（budget 超限时 dispatch 已 SIGKILL 子进程）
+        if (resp.terminate) {
+          int status;
+          waitpid_reap(pid, &status);
+          SkillResult tr;
+          tr.success = false;
+          tr.error_code = ErrorCode::BudgetExhausted;
+          tr.stderr_content = stderr_buf;
+          tr.stderr_truncated = stderr_truncated;
+          tr.child_exit_status = status;
+          return tr;
+        }
+      }
+
+      // POLLHUP — 子进程 pipe 关闭
+      if (fds[0].revents & POLLHUP) {
+        break;
+      }
+    }
+
+    // === waitpid 回收 ===
+    int status;
+    waitpid_reap(pid, &status);
+
+    SkillResult r;
+    r.success = (WIFEXITED(status) && WEXITSTATUS(status) == 0);
+    r.output = output;
+    r.stderr_content = stderr_buf;
+    r.stderr_truncated = stderr_truncated;
+    r.child_exit_status = status;
+
+    // 区分退出原因
+    if (WIFEXITED(status)) {
+      int exit_code = WEXITSTATUS(status);
+      if (exit_code == EXIT_CHILD_PARSE_ERROR) {
+        r.success = false;
+        r.error_code = ErrorCode::InvalidArg;
+      } else if (exit_code == EXIT_CHILD_ENV_MISSING) {
+        r.success = false;
+        r.error_code = ErrorCode::InvalidArg;
+      } else if (exit_code == EXIT_CHILD_PRCTL_ERROR) {
+        r.success = false;
+        r.error_code = ErrorCode::UnsupportedPlatform;
+      } else if (exit_code == EXIT_CHILD_SECCOMP_ERROR) {
+        r.success = false;
+        r.error_code = ErrorCode::SandboxViolation;
+      } else if (exit_code == EXIT_CHILD_THREAD_LEAK) {
+        r.success = false;
+        r.error_code = ErrorCode::Crash;
+      } else if (exit_code != 0) {
+        r.success = false;
+        r.error_code = ErrorCode::Crash;
+      }
+    } else if (WIFSIGNALED(status)) {
+      int sig = WTERMSIG(status);
+      if (sig == SIGSYS) {
+        r.success = false;
+        r.error_code = ErrorCode::SandboxViolation;
+      } else if (sig == SIGKILL) {
+        // 超时或 budget 超限已在上层处理
+        if (r.error_code == ErrorCode::Unknown) {
+          r.success = false;
+          r.error_code = ErrorCode::Crash;
+        }
+      } else {
+        r.success = false;
+        r.error_code = ErrorCode::Crash;
+      }
+    }
+
+    return r;
+  }
+
+  // === dispatch — 将 IPC 请求分发给 host 服务 ===
+  struct IPCResponse {
+    bool ok = false;
+    nlohmann::json result;
+    std::string error;
+    bool terminate = false;  // true = SIGKILL 后该 IPC 不到达
+  };
+
+  std::string serialize(const IPCResponse& resp) {
+    return make_response(resp.ok, resp.result, resp.error);
+  }
+
+  IPCResponse dispatch(const IPCRequest& req, const SkillCapability& cap,
+                       pid_t pid) {
+    if (req.method == "call_tool") {
+      return dispatch_call_tool(req, cap, pid);
+    } else if (req.method == "emit_event") {
+      return dispatch_emit_event(req, cap);
+    } else if (req.method == "llm_generate") {
+      return dispatch_llm_generate(req, cap);
+    } else if (req.method == "consume_budget") {
+      return dispatch_consume_budget(req, cap, pid);
+    } else if (req.method == "return") {
+      // return 由上层捕获，不放行到这里
+      return IPCResponse{true, req.params.value("value", nlohmann::json::object())};
+    } else {
+      return IPCResponse{false, nullptr, "unknown method"};
+    }
+  }
+
+  IPCResponse dispatch_call_tool(const IPCRequest& req,
+                                  const SkillCapability& cap,
+                                  pid_t pid) {
+    std::string tool_name = req.params.value("name", "");
+    auto args = req.params.value("args", nlohmann::json::object());
+
+    // capability 检查：allowed_tools 白名单
+    if (!cap.allowed_tools.empty()) {
+      if (std::find(cap.allowed_tools.begin(), cap.allowed_tools.end(),
+                    tool_name) == cap.allowed_tools.end()) {
+        return IPCResponse{false, nullptr, "tool not allowed"};
+      }
+    }
+
+    if (!tools_) {
+      return IPCResponse{false, nullptr, "no tool registry"};
+    }
+
+    try {
+      // IToolRegistry::call_tool_json 接受 name+json args
+      nlohmann::json result = tools_->call_tool_json(tool_name, args);
+      return IPCResponse{true, result};
+    } catch (const std::exception& e) {
+      return IPCResponse{false, nullptr, e.what()};
+    }
+  }
+
+  IPCResponse dispatch_emit_event(const IPCRequest& req,
+                                   const SkillCapability& cap) {
+    std::string topic = req.params.value("topic", "");
+    auto payload = req.params.value("payload", nlohmann::json::object());
+
+    // C3 defense: allowed_topics whitelist
+    if (!cap.allowed_topics.empty()) {
+      if (std::find(cap.allowed_topics.begin(), cap.allowed_topics.end(),
+                    topic) == cap.allowed_topics.end()) {
+        return IPCResponse{false, nullptr,
+                           "emit_event topic not in allowed_topics"};
+      }
+    }
+
+    if (bus_) {
+      // Decision 12: 桥接到 string 重载
+      bus_->emit(topic, payload.dump());
+    }
+    return IPCResponse{true};
+  }
+
+  IPCResponse dispatch_llm_generate(const IPCRequest& req,
+                                     const SkillCapability& cap) {
+    if (!cap.allow_llm || !llm_) {
+      return IPCResponse{false, nullptr, "llm_generate not allowed"};
+    }
+
+    std::string prompt = req.params.value("prompt", "");
+    // V1 简化：使用 generate() 同步接口
+    // V2 可扩展为流式
+    try {
+      GenerationRequest gen_req;
+      gen_req.prompt = prompt;
+      auto result = llm_->generate(gen_req, std::stop_token{});
+      if (result.has_value()) {
+        return IPCResponse{true, {{"content", result.value().text}}};
+      } else {
+        return IPCResponse{false, nlohmann::json::object(), "LLM generation failed"};
+      }
+    } catch (const std::exception& e) {
+      return IPCResponse{false, nlohmann::json::object(), e.what()};
+    }
+  }
+
+  IPCResponse dispatch_consume_budget(const IPCRequest& req,
+                                       const SkillCapability& cap,
+                                       pid_t pid) {
+    double amount = req.params.value("amount", 0.0);
+    // Decision 11: 内部 std::atomic<double> 计数器
+    double current = budget_used_.load(std::memory_order_relaxed);
+    while (true) {
+      if (current + amount > cap.budget_limit_usd) {
+        kill_retry(pid, SIGKILL);
+        return IPCResponse{false, nlohmann::json::object(), "budget exceeded", true};
+      }
+      if (budget_used_.compare_exchange_weak(current, current + amount)) {
+        break;
+      }
+    }
+    return IPCResponse{true};
+  }
+};
+
+// ============================================================
+// SkillInterpreter 公开 API
+// ============================================================
+
+SkillInterpreter::SkillInterpreter(IToolRegistry& tools,
+                                    IInteractionBus& bus,
+                                    ILLMProvider* llm,
+                                    const LayeredContext* ctx)
+    : impl_(std::make_unique<Impl>(tools, bus, llm, ctx)) {}
+
+SkillInterpreter::~SkillInterpreter() = default;  // out-of-line
+
+SkillInterpreter::SkillInterpreter(SkillInterpreter&&) noexcept = default;
+SkillInterpreter& SkillInterpreter::operator=(SkillInterpreter&&) noexcept = default;
+
+SkillResult SkillInterpreter::run(const std::string& skill_path,
+                                   const SkillCapability& cap) {
+  return impl_->run(skill_path, cap);
+}
+
+}  // namespace agenticdsl
