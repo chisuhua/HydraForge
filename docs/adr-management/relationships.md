@@ -3,7 +3,7 @@
 > 本文件由 `tools/adr_relationships.py` 自动生成，**请勿手动编辑**。
 > 任何手动修改会在下次运行时被覆盖。
 > 最后更新: 由 `tools/adr_relationships.py` 生成（运行时刻见 git commit 时间戳）
-> ADR 总数: 44
+> ADR 总数: 60
 
 ---
 
@@ -37,7 +37,7 @@
 | adr-0022 | 插件加载机制 | ✅ Approved | Unknown |  |
 | adr-0023 | ADR-0023 Implementation Scope Audit | ✅ Approved | Unknown |  |
 | adr-0023 | ToolResult 标准化 | ✅ Approved | Unknown |  |
-| adr-0030 | ADR-0030 V2: Phase 2 异步运行时（Taskflow DAG + std::jthread Worker Pool） | 🔍 Proposed | Unknown |  |
+| adr-0030 | ADR-0030 V2: Phase 2 异步运行时（Taskflow DAG + std::jthread Worker Pool） | 🟡 Partial | Unknown |  |
 | adr-0031 | IExecutionPolicy 执行策略与三模式审批 | 🟡 Partial | Unknown |  |
 | adr-0033 | ADR-0033 Implementation Scope Audit | ✅ Approved | Unknown |  |
 | adr-0033 | Session Hierarchy 执行会话层级体系 | ✅ Approved | Unknown |  |
@@ -53,8 +53,24 @@
 | adr-0044 | 推理引擎 Plugin 安全模型 | ✅ Approved | Unknown |  |
 | adr-0045 | 编排 PDK Plugin 规范 | 🔍 Proposed | Unknown |  |
 | adr-0046 | PDK 插件间通信协议 | 🔍 Proposed | Unknown |  |
-| adr-0050 | Phase 6 战略方向评估 — 服务化 (Service-ification) | 🔍 Proposed | Unknown |  |
+| adr-0050 | Phase 6 战略方向评估 — 从服务化到 PDK 生产化 | ✅ Approved | Unknown |  |
 | adr-0051 | Phase 6 PDK Composition Spike | ✅ Approved | Unknown |  |
+| adr-0052 | Agent Plugin Manifest 规范 | ✅ Approved | Unknown |  |
+| adr-0053 | AgentDescriptor 与 `pdk_register_agent` 接口 | ✅ Approved | Unknown |  |
+| adr-0054 | Capability-Based Agent Discovery | ✅ Approved | Unknown |  |
+| adr-0055 | SKILL.md 执行与隔离模型 | ✅ Approved | Unknown |  |
+| adr-0056 | WebAssembly Agent 运行时 | ✅ Approved | Unknown |  |
+| adr-0057 | Agent 生命周期管理 | ✅ Approved | Unknown |  |
+| adr-0058 | Tool Input/Output Schema 强制校验 | ✅ Approved | Unknown |  |
+| adr-0059 | 跨进程/跨网络 Agent 协议 | ✅ Approved | Unknown |  |
+| adr-0060 | Agent 组合协议与声明式编排 | ✅ Approved | Unknown |  |
+| adr-0061 | Agent 进化与固化（Solidification） | ✅ Approved | Unknown |  |
+| adr-0062 | Agent Marketplace 与包格式 | ✅ Approved | Unknown |  |
+| adr-0063 | OpenTelemetry / Distributed Tracing 集成 | ✅ Approved | Unknown |  |
+| adr-0064 | PDK Conformance Test Suite | ✅ Approved | Unknown |  |
+| adr-0065 | 多语言 PDK 支持（仅 Python → Wasm） | ✅ Approved | Unknown |  |
+| adr-0066 | SkillInterpreter 模块架构 | 🟡 Partial | Unknown |  |
+| adr-0067 | L2/L3/L4 分层插件架构拆分 | ✅ Approved | 2026-07-22 |  |
 
 ---
 
@@ -104,8 +120,24 @@ graph TD
     adr_0044["adr-0044: 推理引擎 Plugin 安全模型"]
     adr_0045["adr-0045: 编排 PDK Plugin 规范"]
     adr_0046["adr-0046: PDK 插件间通信协议"]
-    adr_0050["adr-0050: Phase 6 战略方向评估 — 服务化 (Service-ification)"]
+    adr_0050["adr-0050: Phase 6 战略方向评估 — 从服务化到 PDK 生产化"]
     adr_0051["adr-0051: Phase 6 PDK Composition Spike"]
+    adr_0052["adr-0052: Agent Plugin Manifest 规范"]
+    adr_0053["adr-0053: AgentDescriptor 与 `pdk_register_agent` 接"]
+    adr_0054["adr-0054: Capability-Based Agent Discovery"]
+    adr_0055["adr-0055: SKILL.md 执行与隔离模型"]
+    adr_0056["adr-0056: WebAssembly Agent 运行时"]
+    adr_0057["adr-0057: Agent 生命周期管理"]
+    adr_0058["adr-0058: Tool Input/Output Schema 强制校验"]
+    adr_0059["adr-0059: 跨进程/跨网络 Agent 协议"]
+    adr_0060["adr-0060: Agent 组合协议与声明式编排"]
+    adr_0061["adr-0061: Agent 进化与固化（Solidification）"]
+    adr_0062["adr-0062: Agent Marketplace 与包格式"]
+    adr_0063["adr-0063: OpenTelemetry / Distributed Tracing 集成"]
+    adr_0064["adr-0064: PDK Conformance Test Suite"]
+    adr_0065["adr-0065: 多语言 PDK 支持（仅 Python → Wasm）"]
+    adr_0066["adr-0066: SkillInterpreter 模块架构"]
+    adr_0067["adr-0067: L2/L3/L4 分层插件架构拆分"]
 
     adr_0031 --> adr_0002
     adr_0031 --> adr_0019
@@ -113,7 +145,7 @@ graph TD
     adr_0020 -.->|supersedes| adr_0006
 ```
 
-> 图中包含 44 个节点、2 条依赖边、2 条替代边。
+> 图中包含 60 个节点、2 条依赖边、2 条替代边。
 > 渲染说明：实线 (`-->`) 表示依赖关系；虚线带标签 (`-.->|supersedes|`) 表示替代关系。
 
 ---
@@ -132,11 +164,11 @@ graph TD
 
 | 状态 | 数量 |
 |------|------|
-| ✅ Approved | 29 |
-| 🟡 Partial | 3 |
+| ✅ Approved | 45 |
+| 🟡 Partial | 5 |
 | ❌ Not Implemented | 1 |
 | ⛔ Superseded | 1 |
-| 🔍 Proposed | 8 |
+| 🔍 Proposed | 6 |
 | 📋 Reserved | 2 |
 
 ---

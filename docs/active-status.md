@@ -1,9 +1,9 @@
 # Active Status Board
 
 > **焦点**: 当前活跃的 OpenSpec changes | **更新**: 每日
-> **Master Plan**: [`docs/superpowers/plans/2026-07-03-phase5-self-bootstrapping.md`](superpowers/plans/2026-07-03-phase5-self-bootstrapping.md)
-> **架构决策**: [`docs/adversarial-reviews/decisions-2026-07-07.md`](adversarial-reviews/decisions-2026-07-07.md)
-> **Phase**: 6 — PDK Service Composition Spike (2026-07-15 ~ 2026-08-01, W2-W3 complete)
+> **Master Plan**: [`docs/superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md`](superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md)
+> **架构决策**: [`docs/adr/`](adr/) — 46 ADR (含 14 子节点), 32 Approved, adr_lint 零错误
+> **Phase**: 6 — Agent-as-Plugin (2026-07-15 ~ 至今, Phase 5 ✅ 收官)
 
 ---
 
@@ -11,15 +11,15 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **77/77 ✅** PASS (baseline 25 + Sprint 1~20 累计 47 新增 + C20-Spike 5 新增) |
-| **ASan** | **76/77** (99%; debug mode: 77/77; 1 pre-existing ASan failure per ship gate §10.4 documented skip); TSan 超时跳过 (机器性能受限) |
-| **TSan** | 超时跳过 (机器性能受限, pre-existing data race 已修复) |
-| **OpenSpec active** | **0** (`phase6-service-ification-v1` C20-Spike ✅ shipped + archived 2026-07-15) |
-| **ADR Approved** | **20** (13 existing + 5 C17 FLIP + 1 ADR-0051 experimental; ADR-0031 Partial 不计入) |
-| **ADR 🔍 Proposed** | **7** (C17 排除 7; ADR-0051 已翻 Approved; 详见 §四 顺延项) |
+| **Total ctest** | **83/83 ✅** PASS (baseline + Sprint 1~22 累计) |
+| **ASan** | **83/83** (debug mode; 0 pre-existing failures) |
+| **TSan** | 超时跳过 (机器性能受限) |
+| **OpenSpec active** | **0** (Phase 6 采用 plan + commit 模式, 不创建 OpenSpec changes) |
+| **ADR Approved** | **33** (Phase 0-5: 18 active + Phase 6 架构评审: 14 + ADR-0067 追溯性) |
+| **ADR 🔍 Proposed** | **7** (含 ADR-0050 Phase 6 战略, ADR-0030 V2 → 🟡 Partial 2026-07-23) |
 | **Completed Phase 0-4** | ✅ 100% |
-| **Phase 5** | ✅ 收官 (C9-C18 全部 ✅ shipped + archived; C18 adr-0050 Oracle 推荐 Phase 6 启动 Candidate B 服务化) |
-| **Phase 6** | 🟡 C20-Spike ✅ shipped (ADR-0051 ✅ Approved experimental + OpenSpec archived 2026-07-15); C20 kickoff: G2/G4/G5 teams use spike-onboarding.md |
+| **Phase 5** | ✅ 收官 (C9-C18 全部 ✅ shipped + archived) |
+| **Phase 6** | 🟡 Agent-as-Plugin: pdk_chat_demo ✅ / skill_interpreter ✅ / AgentForge MVP 设计中 |
 
 ---
 
@@ -27,7 +27,7 @@
 
 ### 🔵 当前活跃 (0 个)
 
-> Phase 6 决定**不采用 OpenSpec change 仪式**启动 (Solo dev 管理简化), 改用 **直接 plan + 直接 commit** 模式 (见 `docs/superpowers/plans/2026-07-15-phase6-agentforge-mvp.md`). ADR 文档记录决策但无 openspec/ 变更目录.
+> Phase 6 决定**不采用 OpenSpec change 仪式**启动 (Solo dev 管理简化), 改用 **直接 plan + 直接 commit** 模式。ADR 文档记录决策但无 openspec/ 变更目录。详见 [`docs/GOVERNANCE.md`](GOVERNANCE.md) docs→tasks 驱动流程。
 
 ### ✅ 已归档 (历史参考)
 
@@ -206,6 +206,21 @@
 4. **PDK 开发者指南完整化**: 文档 + 3 个 agent loop 示例
 5. **AgentForge 第 2 个领域 agent**: 验证 PDK 复用性
 6. **Sprint 24 末决策点**: 评估 Phase 6 服务化是否重新启动
+
+### 进化管线服务 (中长期, 不阻塞 Phase A)
+
+> 详见 [`docs/architecture/agent-evolution-pipeline.md` §八](architecture/agent-evolution-pipeline.md)。启动条件由实际需求驱动, 不预设 timeline。
+
+| 服务 | 阶段 | 当前状态 | 启动条件 |
+|------|:----:|---------|:--------:|
+| `SkillInterpreter` V2 完善 | 1 | 🟡 Partial (V1 done) | Sprint 24-25, 3 项 defer 范围 |
+| `DSLValidator` 增强 | 2 | ❌ 无代码 | Sprint 24, 靠 DSLEngine (已有) |
+| Wasm 技术栈预研 | 4 | ❌ 无代码 | Sprint 24-25, ADR-0056 已定义 |
+| `SolidificationEngine` | 1→2 | ❌ 无代码 | DSLValidator + SkillInterpreter V2 完成后 |
+| `WasmRuntime` PoC | 4 | ❌ 无代码 | wasi-sdk 通路验证 + AgentForge MVP 完成 |
+| `RegressionSuite` | 全阶段 | ❌ 无代码 | SolidificationEngine V1 完成后 |
+| `WasmCompiler` | 2→4 | ❌ 无代码 | WasmRuntime 完成后 |
+| `C++CodeGenerator` | 2→3 | ❌ 无代码 | SolidificationEngine 完成后 |
 
 ### 已归档的 Phase 6 服务化路径
 
