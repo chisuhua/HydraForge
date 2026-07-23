@@ -57,6 +57,7 @@ docs/
 | `adr-0022-plugin-loading-impl-scope.md` | ADR-0022 实施范围审计 (C9) | 📋 审计补充 |
 | `adr-0023-tool-result-standard-impl-scope.md` | ADR-0023 实施范围审计 (C9) | 📋 审计补充 |
 | `adr-0033-session-hierarchy-impl-scope.md` | ADR-0033 实施范围审计 (C9) | 📋 审计补充 |
+| `adr-0067-layered-plugin-architecture-split.md` | L2/L3/L4 分层插件架构拆分 | ✅ Approved (追溯性正式化, 2026-07-23, 源自 `agent-as-plugin-architecture-v1.2.md` §2.3) |
 
 ### adr/plugin/ - Plugin 化候选清单
 
@@ -65,6 +66,25 @@ docs/
 | 文件 | 议题 | 状态 |
 |------|------|------|
 | `adr/plugin/adr-0034-model-router.md` | IModelRouter 模型路由接口（plugin-candidate, C7 完整 ship） | ✅ Approved (2026-07-02) |
+
+### adr/skill/ — ADR-0061 技能演化子项
+
+> 12 个子 ADR 记录 Agent 进化管线（阶段 1→4）的详细设计决策。全部以头部行格式书写（`**状态**: ...`），与 `adr/skill/` 目录约定一致。
+
+| 文件 | 议题 | 优先级 | 状态 |
+|------|------|:---:|:----:|
+| `adr-0061-01-skill-std.md` | SKILL.md 标准对齐（Anthropic / Cline Skills） | P0 | ✅ Approved |
+| `adr-0061-02-behavioral-regression.md` | AgentAssay-style 行为回归套件 | P0 | ✅ Approved (⚠ 无代码) |
+| `adr-0061-03-skill-compiler.md` | SkillCompiler 实施 | P0 | ✅ Approved (⚠ 无代码) |
+| `adr-0061-04-slm-routing.md` | SLM 路由优先（NVIDIA 2025） | P1 | ✅ Approved |
+| `adr-0061-05-cpp-wasm-toolchain.md` | wasi-sdk 集成 + C++→Wasm CI | P1 | ✅ Approved (⚠ 无代码) |
+| `adr-0061-06-trajectory-ir.md` | AgentIR-style Trajectory IR 升级 ParsedGraph | P1 | ✅ Approved (⚠ 无代码) |
+| `adr-0061-07-paste-speculation.md` | PASTE-style 推测执行 | P2 | 🔍 Proposed |
+| `adr-0061-08-aflow-search.md` | AFlow-style MCTS 工作流搜索 | P2 | 🔍 Proposed |
+| `adr-0061-09-gepa-loop.md` | GEPA-style 反思循环 | P2 | 🔍 Proposed |
+| `adr-0061-10-formal-lint.md` | λ_A-style Config 结构完整性检查 | P2 | 🔍 Proposed |
+| `adr-0061-11-dsl-wasm.md` | DSL→Wasm Bytecode 编译器 | P2 | 🔍 Proposed |
+| `adr-0061-12-webllm.md` | 浏览器端 WebLLM 集成 | P2 | 🔍 Proposed |
 
 ### adr-management/ - ADR 元数据
 

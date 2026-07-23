@@ -1383,3 +1383,149 @@ git commit -m "docs(pdk_chat): add README and final integration polish"
 - [ ] `ctest -R pdk_chat` — 2/2 PASS（集成测试）
 - [ ] `make pdk_chat_demo` — BUILD SUCCESS
 - [ ] `./pdk_chat_demo --mock` — 交互运行成功
+
+---
+
+## 九、Review Gates
+
+> **Roadmap-Driven Development §5: 每 2-3 Sprint 触发专项审计，追踪文档偏移、架构侵蚀、依赖假设和战略对齐。**
+
+### 9.1 🔄 Sprint Review Gate
+
+| 字段 | 值 |
+|------|---|
+| **触发时机** | 每个 Sprint 收官前 |
+| **责任人** | 实施 subagent / 用户 |
+| **检查内容** | 1) changes ship status 与 master plan §四 一致<br>2) ctest/ASan/TSan 计数与 master plan §三 一致<br>3) ADR 状态变更是否更新至 AGENTS.md<br>4) open issues count 与 plan 声称一致 |
+| **输出** | 更新 master plan §三（状态表）+ §四（Change 进度）；如有偏差 → 追加 §十 Drift Log |
+| **跳过条件** | 无（每 Sprint 必跑） |
+
+### 9.2 🧭 Architecture Drift Gate
+
+| 字段 | 值 |
+|------|---|
+| **触发时机** | 每 2-3 Sprint 或当累计 ≥3 个 changes ship |
+| **责任人** | 用户 + `tools/docs_drift_audit.py` + `tools/adr_lint.py` |
+| **检查内容** | 1) `adr_lint.py` 零 error<br>2) `docs_drift_audit.py` 零 drift<br>3) `check_roadmap_drift.py` 零 CRITICAL<br>4) 新增 ADR 是否正确交叉引用到 AGENTS.md 和 docs/README.md |
+| **输出** | Drift Gate 报告追加到 `docs/audits/` |
+| **跳过条件** | 无（每 2-3 Sprint 必跑） |
+
+### 9.3 🔗 Dependency Refresh Gate
+
+| 字段 | 值 |
+|------|---|
+| **触发时机** | 每个阶段启动前 |
+| **责任人** | 即将实施的 subagent |
+| **检查内容** | 1) 依赖 change 是否真的 ship（grep git log）<br>2) 依赖 change 的接口与占位假设一致<br>3) 估时偏差是否 > 30% |
+| **输出** | 占位 change 内容调整 → 追加到 §十一 Adjustment Log |
+| **跳过条件** | 仅当依赖 change 完全符合占位假设时可跳过 |
+
+### 9.4 🎯 Strategic Alignment Gate
+
+| 字段 | 值 |
+|------|---|
+| **触发时机** | Phase 完成后 / 重大 milestone |
+| **责任人** | 用户 + Oracle 咨询 |
+| **检查内容** | 1) 当前 backlog 是否仍服务于项目核心目标<br>2) 是否出现新 ADR 改变方向<br>3) 新发现的能力缺口 |
+| **输出** | Roadmap 重大调整 → 追加到 §十二 Strategic Pivots Log |
+| **跳过条件** | 仅当 Phase 目标完全达成时可跳过 |
+
+### 9.5 Review Gates 调度表
+
+| 阶段 | 预计日期 | 🔄 Sprint Review | 🧭 Drift Gate | 🔗 Dependency Refresh | 🎯 Strategic Alignment |
+|------|---------|----------------|-------------|---------------------|----------------------|
+| **pdk_chat_demo** | 2026-07-20 | ✅ ship (loop-agent-dsl-execution) | — | — | — |
+| **skill_interpreter** | 2026-07-22 | ✅ ship (skill-interpreter-real-loading, 18/18 tests) | ✅ ADR-0055 approved | 下一阶段启动前 | — |
+| **Phase 6 Agent OS** | TBD | 执行 | 3 changes 累计时 | PDK SDK 启动前 | ✅ Phase 5 收官后 |
+
+---
+
+## 十、Architecture Drift Log
+
+> **追踪 ADR 偏离事件。Drift Gate 触发时新增。**
+
+### 10.1 历史 Drift 事件
+
+| 日期 | Change | 偏离类型 | 偏离描述 | 响应 Change | 状态 |
+|------|--------|---------|---------|-----------|------|
+| 2026-07-22 | debt-audit | 📋 文档维护 | 审计发现 5 处 drift: (1) Master plan 缺 §9-§13 Review Gates (check_roadmap_drift.py 报 5 HIGH) (2) AGENTS.md 缺 Sprint 20-21 ship 记录 (3) skill_interpreter 无 ADR (仅有 audit doc) (4) examples/ 列表过时 (缺 pdk_chat_demo) (5) STRUTURE 缺 skill_interpreter 模块 | 本次 debt fix | ✅ **resolved (2026-07-22)** — Wave 1+2 fix 完成 |
+
+### 10.2 待填充模板
+
+```markdown
+| <YYYY-MM-DD> | <change 名> | <fix/retro/redirect> | <具体偏离描述> | <响应 change 名> | <状态> |
+```
+
+---
+
+## 十一、Change Adjustment Log
+
+> **追踪占位 change/实施内容调整。Dependency Refresh Gate 发现假设错误时记录。**
+
+### 11.1 历史调整
+
+| 日期 | 原 Change | 调整原因 | 调整内容 | 状态 |
+|------|---------|---------|---------|------|
+| 2026-07-21 | skill-interpreter-real-loading | Spike §0.4 发现 1/3 风险 FAIL: C5 posix_spawn file_actions 顺序错误 → EBADF | 修正 `tasks.md §1.3` 中 `addclosefrom_np(3)` 必须在 `adddup2(pipe_*, 0/1/2)` 之后调用 | ✅ resolved |
+| 2026-07-22 | debt-audit | 审计发现 8 项修复需求 | Wave 1 (立即文档修复) + Wave 2 (ADR-0060 + WIP commit) + Wave 3 (顺延至下 Sprint: topo_scheduler/ node_executor/ cloud_adapter 重构) | 🔧 active |
+
+### 11.2 待填充模板
+
+```markdown
+| <YYYY-MM-DD> | <change 名> | <调整原因> | <调整内容> | <状态> |
+```
+
+---
+
+## 十二、Strategic Pivots Log
+
+> **追踪重大战略转向。Strategic Alignment Gate 触发时新增。**
+
+### 12.1 当前策略
+
+| 日期 | 原方向 | 新方向 | 影响 | 决策依据 |
+|------|--------|--------|------|---------|
+| 2026-07-15 | Phase 5 PDK 独立发展 | **Phase 6 Agent-as-Plugin 服务化** | 创建 ADR-0050（Phase 6 战略评估）+ C19 spike + C20 kickoff | Oracle session 推荐 Candidate B (服务化) — 唯一匹配团队容量 + 兑现 Phase 5 路径投资 |
+
+### 12.2 待填充模板
+
+```markdown
+| <YYYY-MM-DD> | <原方向> | <新方向> | <哪些 changes 调整/取消/新增> | <决策依据> |
+```
+
+---
+
+## 十三、3 种响应 Change 类型
+
+| 类型 | 触发场景 | 估时 | 命名规范 | 示例 |
+|------|---------|------|---------|------|
+| **🔧 fix change** | 单一偏离，范围明确 | 1-3 天 | `fix-<module>-<issue>` | `fix-scheduler-fork-dead-branch` |
+| **🔁 retro change** | 多项偏离，需回归测试 | 1-2 Sprint | `<date>-<sprint>-retro` | `2026-06-23-sprint-7-tech-debt-followup` |
+| **↪️ redirect change** | 战略调整，影响后续 change | 2-5 天 | `<date>-redirect-<reason>` | `2026-07-15-redirect-phase-2-scope` |
+
+### 13.1 创建响应 change 的工作流
+
+```
+Review Gate 发现问题
+  ↓
+评估类型 (fix / retro / redirect)
+  ↓
+fix/retro → 创建新 OpenSpec change + 追加 §十 Drift Log
+  ↓
+redirect → 修改后续占位 change proposal + 追加 §十二 Pivots Log
+```
+
+---
+
+## 十四、维护规则补充
+
+7. **Review Gates 强制执行**: 每个 Sprint 收官前, 必须执行 §九 Review Gates, 不得跳过
+8. **§十/§十一/§十二 append-only**: 这 3 个 log 只追加不删除, 保持完整历史
+9. **占位 change 调整必须留痕**: 任何 proposal/design/tasks 修改, 必须在 §十一 记录一行
+10. **Master plan 与 review-tools 集成**: `tools/check_roadmap_drift.py` 应读取 §十/§十一/§十二 作为 baseline
+
+---
+
+**最后更新**: 2026-07-22 (debt audit Wave 1 fix: 追加 §9-§14 Review Gates)
+**下次更新**: 下一 Sprint plan 创建时 / Strategic Alignment Gate 触发时
+**责任人**: Sisyphus → User
