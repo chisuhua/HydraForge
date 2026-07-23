@@ -1,7 +1,7 @@
 # 应用层 SOTA 架构走向分析
 
 **日期**: 2026-07-16
-**状态**: 🟡 Proposed (架构讨论)
+**状态**: ⛔ Superseded (v1, 被 `application-layer-sota-positioning-v2.md` 替代)
 **作者**: Architecture Working Group
 
 ---
@@ -220,7 +220,7 @@ Agent 不仅被编排，还参与编排决策。
 | `docs/guides/multi-domain-agent-architecture.md` | **演进** — 本文档将 Cognitive/Domain Worker 模式提升为 Agent-as-Plugin 范式 |
 | `docs/adr/adr-0021-pdk-design.md` | **扩展** — PDK 从"工具脚手架"扩展为"Agent 脚手架" |
 | `docs/adr/adr-0051-*.md` | **落地** — Spike 发现的 awkward pattern 是本文档的实践反馈 |
-| `docs/architecture/agent-as-plugin-architecture.md` | **基础** — 本文档建立在 Plugin 架构文档之上 |
+| `docs/archive/architecture/agent-as-plugin-architecture.md` | **基础** — 本文档建立在 Plugin 架构文档之上 |
 
 ---
 

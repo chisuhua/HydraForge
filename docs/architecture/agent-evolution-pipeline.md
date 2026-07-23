@@ -425,27 +425,60 @@ TEST_CASE("code_review_agent evolution preserves semantics") {
 
 ---
 
-## 八、下一步行动
+## 八、实施路线图
 
-1. **设计 `SkillInterpreter` 隔离模型**（P1）
-   - 选择隔离技术：进程沙箱 / Wasm 解释器 / seccomp
-   - 定义 SKILL.md 的语法子集（禁止哪些构造？）
-   - 设计 capability 注入机制
+> **最后更新**: 2026-07-23 | **与 [`active-status.md`](../active-status.md) 同步**
 
-2. **设计 `SolidificationEngine` 初版**（P2）
-   - 用 LLM 将 SKILL.md 转写为 .agent.md
-   - 用 DSL Validator 检查输出
-   - 建立回归测试集
+### 8.1 已完成
 
-3. **评估 Wasm 技术栈**（P2）
-   - C++ → Wasm：Emscripten vs wasi-sdk
-   - DSL → Wasm：自定义编译器 vs 嵌入解释器
-   - Host function 设计
+| 服务 | 阶段 | 产出 | 关联 |
+|------|:----:|------|------|
+| `SkillInterpreter` V1 | 1 | `posix_spawn` + seccomp + pipe IPC | [ADR-0055](../adr/adr-0055-skill-isolation.md), [ADR-0066](../adr/adr-0066-skill-interpreter-arch.md) (� Partial) |
+| `AgenticDSLCompiler` | 2 | `DSLEngine::from_markdown()` + `ParsedGraph` | `src/core/engine.h` |
+| PDK 工具链更新 | 全阶段 | `AgentDescriptor.forms` + `pdk_manifest.json` + `requires_isolation` | [ADR-0052](../adr/adr-0052-agent-plugin-manifest.md), [ADR-0053](../adr/adr-0053-agent-descriptor-interface.md) |
 
-4. **更新 PDK 工具链**（P1）
-   - 为 `AgentDescriptor` 添加 `forms` 字段
-   - 添加 `pdk_manifest()` 导出函数
-   - 添加 `requires_isolation` 安全声明
+### 8.2 当前 Sprint (Phase A: AgentForge MVP, Sprint 24-25)
+
+| 服务 | 阶段 | 目标 | 估时 | 依赖 |
+|------|:----:|------|:---:|------|
+| `SkillInterpreter` V2 完善 | 1 | `host_read_context` + `derive_capability()` + `SkillCapability` 动态注入 | 1 Sprint | ADR-0066 V2 scope |
+| `DSLValidator` 增强 | 2 | 变量声明检查 + prompt 非空验证 + schema 合规 + 预算继承合法性 | 1 Sprint | DSLEngine (已有) |
+| Wasm 技术栈预研 | 4 | 验证 wasi-sdk 工具链 + C++→Wasm 编译通路 + host function 原型 | 1 Sprint | [ADR-0056](../adr/adr-0056-wasm-runtime.md) |
+
+### 8.3 短期 (Phase A 收尾 / Phase B 启动, Sprint 26-28)
+
+| 服务 | 阶段 | 目标 | 估时 | 依赖 |
+|------|:----:|------|:---:|------|
+| `SolidificationEngine` V1 | 1→2 | LLM 驱动 SKILL.md → .agent.md 转写 + DSLValidator 检查输出 | 2 Sprint | DSLValidator + SkillInterpreter |
+| `WasmRuntime` PoC | 4 | 加载 .wasm + capability-limited host functions (`host_call_tool`/`host_emit_event`/`host_consume_budget`) | 2 Sprint | wasi-sdk 通路验证 |
+| `RegressionSuite` | 全阶段 | N 个测试用例 + Hotelling T² 行为指纹 + Pass/Fail/Inconclusive 三值判定 | 1 Sprint | [ADR-0061-02](../adr/skill/adr-0061-02-behavioral-regression.md) + SolidificationEngine |
+
+### 8.4 中期 (Phase B: Agent Marketplace, Sprint 29+)
+
+| 服务 | 阶段 | 目标 | 估时 | 依赖 |
+|------|:----:|------|:---:|------|
+| `WasmCompiler` (DSL→Wasm) | 2→4 | .agent.md → Wasm bytecode 编译器 (嵌入轻量 DSL 解释器) | 3 Sprint | [ADR-0061-11](../adr/skill/adr-0061-11-dsl-wasm.md) + WasmRuntime |
+| `C++CodeGenerator` | 2→3 | DSL 热点节点 → C++ 实现模板生成 | 2 Sprint | SolidificationEngine |
+| `WasmCompiler` (C++→Wasm) | 3→4 | wasi-sdk 编译通路 CI 化 | 1 Sprint | [ADR-0061-05](../adr/skill/adr-0061-05-cpp-wasm-toolchain.md) |
+
+### 8.5 当前阻塞项与启动条件
+
+| 阻塞项 | 当前状态 | 启动条件 |
+|--------|---------|:--------:|
+| `SolidificationEngine` | 无代码, ADR-0061-03 已定义 | DSLValidator 可用 + SkillInterpreter V2 完成 |
+| `WasmRuntime` | 无代码, ADR-0056 已定义 | wasi-sdk 通路验证 + AgentForge MVP 完成 |
+| `RegressionSuite` | 无代码, ADR-0061-02 已定义 | SolidificationEngine V1 + 至少 1 个固化案例 |
+| `C++CodeGenerator` | 无代码, 无独立 ADR | SolidificationEngine + 至少 1 个性能瓶颈案例 |
+| `WasmCompiler` | 无代码, ADR-0061-11 已定义 | WasmRuntime + DSLValidator |
+
+> **设计原则**: 进化管线是 HydraForge 的长期差异化能力, 但不阻塞 Phase A (AgentForge MVP)。每个服务的启动条件由实际需求驱动 (如 AgentForge 需要 Wasm 部署时才启动 WasmRuntime), 而非预设 timeline。
+
+### 8.6 与 active-status.md 的同步规则
+
+- 本路线图每 Sprint 末与 [`docs/active-status.md`](../active-status.md) 同步
+- 当某个服务从"新增路径"变为"当前 Sprint 工作项"时, 在 active-status.md §六 新增对应行
+- 当服务完成时, 在 active-status.md §五 新增完成记录
+- 启动条件变化时, 在 active-status.md §四 更新对应顺延项
 
 ---
 
