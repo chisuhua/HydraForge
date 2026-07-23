@@ -84,6 +84,13 @@
       "type": "skill",
       "requires_isolation": true,
       "_comment": "SKILL.md 当前为 mock-only — 需要 SkillInterpreter (ADR-0055) 才能实际加载执行"
+    },
+    {
+      "id": "skill.code_review_run",
+      "path": "@SKILL_CODE_REVIEW_RUN_PATH@/code-review-run.skill.md",
+      "type": "skill",
+      "requires_isolation": true,
+      "_comment": "命令式 .skill.md 示例 — 通过 SkillInterpreter 真实加载执行"
     }
   ],
 

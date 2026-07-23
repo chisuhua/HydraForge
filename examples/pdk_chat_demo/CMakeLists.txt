@@ -45,6 +45,7 @@ target_link_options(pdk_chat_demo PRIVATE -Wl,--export-dynamic)
 
 # --- Configure config.json with build directory paths ---
 set(SKILL_CODE_REVIEW_PATH "${PROJECT_SOURCE_DIR}/skills/code-review")
+set(SKILL_CODE_REVIEW_RUN_PATH "${CMAKE_CURRENT_SOURCE_DIR}/skills")
 
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/config.json

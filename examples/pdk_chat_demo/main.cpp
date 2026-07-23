@@ -29,6 +29,8 @@
 #include <agenticdsl/plugin/plugin_loader.h>
 #include <modules/budget/budget_controller.h>
 
+#include <agenticdsl/skill/skill_interpreter.h>
+
 namespace fs = std::filesystem;
 
 namespace {
@@ -57,6 +59,11 @@ void signal_handler(int sig) {
 }  // namespace
 
 int main(int argc, char* argv[]) {
+    // === SkillInterpreter 子进程早期分支（在 DSLEngine 初始化之前） ===
+    if (argc > 1 && std::string(argv[1]) == "--skill-child") {
+        return agenticdsl::skill_child_main(argc, argv);
+    }
+
     bool mock_mode = (argc > 1 && std::string(argv[1]) == "--mock");
 
     // ============================================================
@@ -140,10 +147,37 @@ int main(int argc, char* argv[]) {
                           << ": " << e.what() << std::endl;
             }
         } else if (plugin_cfg.type == "skill") {
-            // SKILL.md 当前不支持实际加载执行 — 需要 SkillInterpreter (ADR-0055)
-            // 参见: docs/adr/adr-0055-skill-isolation.md
-            std::cout << "[main] Skill registered (mock-only, requires SkillInterpreter ADR-0055): "
-                      << plugin_cfg.id << std::endl;
+            // 检查文件后缀决定加载方式
+            if (plugin_cfg.path.size() > 9 &&
+                plugin_cfg.path.substr(plugin_cfg.path.size() - 9) == ".skill.md") {
+                // 命令式 .skill.md — 使用 SkillInterpreter 真实加载
+                static bool skill_interpreter_initialized = false;
+                static std::unique_ptr<agenticdsl::SkillInterpreter> si;
+                if (!skill_interpreter_initialized) {
+                    si = std::make_unique<agenticdsl::SkillInterpreter>(
+                        engine->get_tool_registry(),
+                        *bus,
+                        engine->get_llm_provider(),
+                        nullptr);
+                    skill_interpreter_initialized = true;
+                }
+                auto cap = agenticdsl::default_skill_capability();
+                auto result = si->run(plugin_cfg.path, cap);
+                if (result.success) {
+                    std::cout << "[main] Skill executed: " << plugin_cfg.id
+                              << " (output: " << result.output.dump() << ")"
+                              << std::endl;
+                } else {
+                    std::cerr << "[main] Skill FAILED: " << plugin_cfg.id
+                              << " (error=" << static_cast<int>(result.error_code)
+                              << ", stderr=" << result.stderr_content << ")"
+                              << std::endl;
+                }
+            } else {
+                // 旧式 SKILL.md LLM prompt template — 保持 mock-only
+                std::cout << "[main] Skill registered (mock-only, requires SkillInterpreter ADR-0055): "
+                          << plugin_cfg.id << std::endl;
+            }
         }
     }
 
