@@ -15,6 +15,7 @@
 #include <core/types/tool_result.h>
 #include <agenticdsl/types/layered_context.h>
 #include <agenticdsl/contract/itool_registry.h>
+#include <agenticdsl/contract/bus_event.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <common/llm/llm_config.h>
 #include <common/llm/llm_types.h>
@@ -165,9 +166,10 @@ ChatResult ChatSession::chat(const std::string& user_input) {
     impl_->messages.push_back(user_msg);
 
     // 2. emit "user.input" 事件
-    impl_->bus->emit("user.input", agenticdsl::ToolResult{
-        .ok = true,
-        .meta = {{"session_id", session_id_}, {"input", user_input}}
+    impl_->bus->emit(agenticdsl::BusEvent{
+        "user.input",
+        agenticdsl::ToolResult{.ok = true, .meta = {{"session_id", session_id_}, {"input", user_input}}},
+        std::chrono::steady_clock::now()
     });
 
     // 3. 获取 LLM 响应
@@ -247,36 +249,48 @@ ChatResult ChatSession::chat(const std::string& user_input) {
             impl_->messages.push_back(assistant_msg);
 
             // 5. emit "loop.done"
-            impl_->bus->emit("loop.done", agenticdsl::ToolResult{
-                .ok = true,
-                .meta = {
-                    {"session_id", session_id_},
-                    {"response", result.response},
-                    {"total_steps", result.total_steps},
-                    {"total_tokens", result.total_tokens}
-                }
+            impl_->bus->emit(agenticdsl::BusEvent{
+                "loop.done",
+                agenticdsl::ToolResult{
+                    .ok = true,
+                    .meta = {
+                        {"session_id", session_id_},
+                        {"response", result.response},
+                        {"total_steps", result.total_steps},
+                        {"total_tokens", result.total_tokens}
+                    }
+                },
+                std::chrono::steady_clock::now()
             });
 
             // 6. 持久化 (异步, 简化版 fire-and-forget)
             if (impl_->session_cfg.persist_dir != "") {
-                impl_->bus->emit("session.persist_request", agenticdsl::ToolResult{
-                    .ok = true,
-                    .meta = {
-                        {"session_id", session_id_},
-                        {"messages", nlohmann::json(impl_->messages)}
-                    }
+                impl_->bus->emit(agenticdsl::BusEvent{
+                    "session.persist_request",
+                    agenticdsl::ToolResult{
+                        .ok = true,
+                        .meta = {
+                            {"session_id", session_id_},
+                            {"messages", nlohmann::json(impl_->messages)}
+                        }
+                    },
+                    std::chrono::steady_clock::now()
                 });
             }
         }
     } catch (const std::exception& e) {
         result.success = false;
         result.error_message = e.what();
-        impl_->bus->emit("loop.error", agenticdsl::ToolResult{
-            .ok = false,
-            .meta = {
-                {"session_id", session_id_},
-                {"error", result.error_message}
-            }
+        impl_->bus->emit(agenticdsl::BusEvent{
+            "loop.error",
+            agenticdsl::ToolResult{
+                .ok = false,
+                .meta = {
+                    {"session_id", session_id_},
+                    {"error", result.error_message}
+                }
+            },
+            std::chrono::steady_clock::now()
         });
     }
 

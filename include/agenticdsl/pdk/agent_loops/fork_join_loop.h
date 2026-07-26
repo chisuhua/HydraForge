@@ -166,13 +166,13 @@ class ForkJoinLoop {
     // 订阅 domain.task.completed
     size_t token_completed = bus_->subscribe(
         "domain.task.completed",
-        [tracker](const agenticdsl::ToolResult& r) {
+        [tracker](const agenticdsl::BusEvent& event) {
           std::string output_key =
-              r.meta.value("output_key", std::string{});
+              event.payload.meta.value("output_key", std::string{});
           if (output_key.empty()) return;
           {
             std::lock_guard<std::mutex> lock(tracker->mtx);
-            tracker->results[output_key] = r;
+            tracker->results[output_key] = event.payload;
           }
           tracker->cv.notify_all();
         });
@@ -180,15 +180,15 @@ class ForkJoinLoop {
     // 订阅 domain.task.failed
     size_t token_failed = bus_->subscribe(
         "domain.task.failed",
-        [tracker](const agenticdsl::ToolResult& r) {
+        [tracker](const agenticdsl::BusEvent& event) {
           std::string output_key =
-              r.meta.value("output_key", std::string{});
+              event.payload.meta.value("output_key", std::string{});
           std::string err_msg =
-              r.meta.value("error_message", std::string{"unknown"});
+              event.payload.meta.value("error_message", std::string{"unknown"});
           if (output_key.empty()) return;
           {
             std::lock_guard<std::mutex> lock(tracker->mtx);
-            tracker->results[output_key] = r;
+            tracker->results[output_key] = event.payload;
             tracker->any_failed.store(true, std::memory_order_release);
             // 记录首个失败 (不覆盖已有, fail-fast 信息保留)
             bool expected = false;

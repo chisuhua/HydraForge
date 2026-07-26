@@ -10,6 +10,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <agenticdsl/contract/bus_event.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <core/types/tool_result.h>
 
@@ -100,8 +101,8 @@ EventHandler::EventHandler(
     };
 
     for (const auto& topic : topics) {
-        auto id = impl_->bus->subscribe(topic, [this, topic](const agenticdsl::ToolResult& result) {
-            impl_->print_event(topic, result.meta);
+        auto id = impl_->bus->subscribe(topic, [this, topic](const agenticdsl::BusEvent& event) {
+            impl_->print_event(topic, event.payload.meta);
         });
         impl_->sub_ids.push_back(id);
     }
