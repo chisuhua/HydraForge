@@ -17,6 +17,7 @@
 #include "catch_amalgamated.hpp"
 
 #include "agenticdsl/cognitive/domain_worker_pool.h"
+#include "agenticdsl/contract/bus_event.h"
 #include "agenticdsl/contract/iinteraction_bus.h"
 #include "agenticdsl/contract/inmemory_bus.h"
 #include "core/types/tool_result.h"
@@ -114,9 +115,9 @@ TEST_CASE("DomainWorkerPool submit dispatches to worker",
   std::vector<ToolResult> completed_events;
   size_t token = bus->subscribe(
       "domain.task.completed",
-      [&](const ToolResult& r) {
+      [&](const BusEvent& e) {
         std::lock_guard<std::mutex> lock(completed_mutex);
-        completed_events.push_back(r);
+        completed_events.push_back(e.payload);
         completed_count.fetch_add(1, std::memory_order_relaxed);
       });
 
@@ -214,12 +215,12 @@ TEST_CASE("DomainWorkerPool worker exception isolation",
   std::mutex events_mutex;
   std::vector<ToolResult> failed_events;
 
-  bus->subscribe("domain.task.failed", [&](const ToolResult& r) {
+  bus->subscribe("domain.task.failed", [&](const BusEvent& e) {
     std::lock_guard<std::mutex> lock(events_mutex);
-    failed_events.push_back(r);
+    failed_events.push_back(e.payload);
     failed_count.fetch_add(1, std::memory_order_relaxed);
   });
-  bus->subscribe("domain.task.completed", [&](const ToolResult&) {
+  bus->subscribe("domain.task.completed", [&](const BusEvent&) {
     completed_count.fetch_add(1, std::memory_order_relaxed);
   });
 
@@ -275,7 +276,7 @@ TEST_CASE("DomainWorkerPool shutdown waits for in-flight tasks",
   DomainWorkerPool pool(4, bus);
 
   std::atomic<int> completed_count{0};
-  bus->subscribe("domain.task.completed", [&](const ToolResult&) {
+  bus->subscribe("domain.task.completed", [&](const BusEvent&) {
     completed_count.fetch_add(1, std::memory_order_relaxed);
   });
 
@@ -325,7 +326,7 @@ TEST_CASE("DomainWorkerPool graceful vs forced shutdown",
   SECTION("forced shutdown via destructor (no explicit stop)") {
     auto bus = std::make_shared<InMemoryBus>();
     std::atomic<int> completed_count{0};
-    bus->subscribe("domain.task.completed", [&](const ToolResult&) {
+    bus->subscribe("domain.task.completed", [&](const BusEvent&) {
       completed_count.fetch_add(1, std::memory_order_relaxed);
     });
 
@@ -398,22 +399,22 @@ TEST_CASE("DomainWorkerPool bus integration",
   std::mutex events_mutex;
   std::vector<ToolResult> completed_events;
 
-  bus->subscribe("domain.task.started", [&](const ToolResult& r) {
-    started_ok.store(r.ok, std::memory_order_relaxed);
-    started_has_domain.store(r.meta.contains("domain"), std::memory_order_relaxed);
-    started_has_tool_name.store(r.meta.contains("tool_name"), std::memory_order_relaxed);
-    started_has_output_key.store(r.meta.contains("output_key"), std::memory_order_relaxed);
-    started_has_worker_id.store(r.meta.contains("worker_id"), std::memory_order_relaxed);
+  bus->subscribe("domain.task.started", [&](const BusEvent& e) {
+    started_ok.store(e.payload.ok, std::memory_order_relaxed);
+    started_has_domain.store(e.payload.meta.contains("domain"), std::memory_order_relaxed);
+    started_has_tool_name.store(e.payload.meta.contains("tool_name"), std::memory_order_relaxed);
+    started_has_output_key.store(e.payload.meta.contains("output_key"), std::memory_order_relaxed);
+    started_has_worker_id.store(e.payload.meta.contains("worker_id"), std::memory_order_relaxed);
     started_count.fetch_add(1, std::memory_order_relaxed);
   });
-  bus->subscribe("domain.task.completed", [&](const ToolResult& r) {
+  bus->subscribe("domain.task.completed", [&](const BusEvent& e) {
     std::lock_guard<std::mutex> lock(events_mutex);
-    completed_events.push_back(r);
+    completed_events.push_back(e.payload);
     completed_count.fetch_add(1, std::memory_order_relaxed);
   });
-  bus->subscribe("domain.task.failed", [&](const ToolResult& r) {
-    failed_not_ok.store(!r.ok, std::memory_order_relaxed);
-    failed_has_error_message.store(r.meta.contains("error_message"), std::memory_order_relaxed);
+  bus->subscribe("domain.task.failed", [&](const BusEvent& e) {
+    failed_not_ok.store(!e.payload.ok, std::memory_order_relaxed);
+    failed_has_error_message.store(e.payload.meta.contains("error_message"), std::memory_order_relaxed);
     failed_count.fetch_add(1, std::memory_order_relaxed);
   });
 

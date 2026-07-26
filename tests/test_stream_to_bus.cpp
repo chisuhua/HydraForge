@@ -5,8 +5,10 @@
 #include "common/llm/stream_to_bus.h"
 #include "common/llm/mock_provider.h"
 #include "common/llm/llm_types.h"
+#include "agenticdsl/contract/bus_event.h"
 #include "agenticdsl/contract/inmemory_bus.h"
 
+#include <chrono>
 #include <stop_token>
 #include <string>
 #include <vector>
@@ -20,11 +22,11 @@ class EventCollector {
 public:
     explicit EventCollector(InMemoryBus& bus) {
         token_ = bus.subscribe(event_type::kLlmToken,
-            [this](const ToolResult& p) { tokens_.push_back(p); });
+            [this](const BusEvent& e) { tokens_.push_back(e.payload); });
         done_token_ = bus.subscribe(event_type::kLlmTokenDone,
-            [this](const ToolResult& p) { done_.push_back(p); });
+            [this](const BusEvent& e) { done_.push_back(e.payload); });
         err_token_ = bus.subscribe(event_type::kLlmTokenError,
-            [this](const ToolResult& p) { errors_.push_back(p); });
+            [this](const BusEvent& e) { errors_.push_back(e.payload); });
     }
     const std::vector<ToolResult>& tokens() const { return tokens_; }
     const std::vector<ToolResult>& done() const { return done_; }
@@ -127,10 +129,10 @@ TEST_CASE("run_stream_to_bus preserves token order across event types",
 
     InMemoryBus bus;
     std::vector<std::string> event_order;
-    bus.subscribe(event_type::kLlmToken, [&event_order](const ToolResult& p) {
-        event_order.push_back("token:" + p.data["token"].get<std::string>());
+    bus.subscribe(event_type::kLlmToken, [&event_order](const BusEvent& e) {
+        event_order.push_back("token:" + e.payload.data["token"].get<std::string>());
     });
-    bus.subscribe(event_type::kLlmTokenDone, [&event_order](const ToolResult&) {
+    bus.subscribe(event_type::kLlmTokenDone, [&event_order](const BusEvent&) {
         event_order.push_back("done");
     });
 

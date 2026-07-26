@@ -20,6 +20,7 @@
 #include "core/types/node.h"
 
 #include <atomic>
+#include <chrono>
 #include <memory>
 #include <string>
 #include <thread>
@@ -91,7 +92,7 @@ next: ["/main/end"]
 )");
 
     std::atomic<int> calls{0};
-    auto token = engine->subscribe("topic.x", [&](const ToolResult&) { ++calls; });
+    auto token = engine->subscribe("topic.x", [&](const BusEvent&) { ++calls; });
     REQUIRE(token == 0); // 无效 token
 }
 
@@ -114,13 +115,13 @@ next: ["/main/end"]
     engine->set_interaction_bus(bus);
 
     std::atomic<int> calls{0};
-    auto token = engine->subscribe("topic.y", [&](const ToolResult&) { ++calls; });
+    auto token = engine->subscribe("topic.y", [&](const BusEvent&) { ++calls; });
     // 注：InMemoryBus 首个 token 从 0 开始（next_token_++），故不能用 !=0 判定；
     // 改用 callback 是否被触发 + unsubscribe 后是否失效来验证透传。
     REQUIRE(calls.load() == 0);
 
     // 直接通过 bus 发射，应触发透传的 callback
-    bus->emit("topic.y", ToolResult::success({{"k", "v"}}));
+    bus->emit(BusEvent{"topic.y", ToolResult::success({{"k", "v"}}), std::chrono::steady_clock::now()});
     bus->wait_for_drain();
     REQUIRE(calls.load() == 1);
 
@@ -129,7 +130,7 @@ next: ["/main/end"]
     // 重新注入并 unsubscribe 验证 token 仍由 bus 管理
     engine->set_interaction_bus(bus);
     bus->unsubscribe(token);
-    bus->emit("topic.y", ToolResult::success({}));
+    bus->emit(BusEvent{"topic.y", ToolResult::success({}), std::chrono::steady_clock::now()});
     bus->wait_for_drain();
     REQUIRE(calls.load() == 1); // 已 unsubscribe，不再触发
 }
@@ -146,9 +147,9 @@ TEST_CASE("NodeExecutor DSLNode emits started/completed to bus",
     std::atomic<int> completed_count{0};
 
     bus->subscribe("dsl.call.started",
-                   [&](const ToolResult&) { ++started_count; });
+                   [&](const BusEvent&) { ++started_count; });
     bus->subscribe("dsl.call.completed",
-                   [&](const ToolResult&) { ++completed_count; });
+                   [&](const BusEvent&) { ++completed_count; });
 
     NodeExecutor executor(registry, nullptr, bus.get());
 
@@ -193,9 +194,9 @@ TEST_CASE("NodeExecutor ToolNode emits tool.completed with envelope fields",
     ToolResult captured;
     std::atomic<bool> captured_flag{false};
 
-    bus->subscribe("tool.completed", [&](const ToolResult& payload) {
+    bus->subscribe("tool.completed", [&](const BusEvent& payload) {
         ++tool_completed_count;
-        captured = payload;
+        captured = payload.payload;
         captured_flag = true;
     });
 
@@ -237,9 +238,9 @@ TEST_CASE("NodeExecutor ToolNode Abort emits execution.failed and throws",
     ToolResult failed_payload;
     std::atomic<bool> failed_captured{false};
 
-    bus->subscribe("execution.failed", [&](const ToolResult& payload) {
+    bus->subscribe("execution.failed", [&](const BusEvent& payload) {
         ++failed_count;
-        failed_payload = payload;
+        failed_payload = payload.payload;
         failed_captured = true;
     });
 
@@ -278,7 +279,7 @@ TEST_CASE("NodeExecutor ToolNode Retry emits execution.failed and throws",
     auto bus = std::make_shared<InMemoryBus>();
     std::atomic<int> failed_count{0};
 
-    bus->subscribe("execution.failed", [&](const ToolResult&) { ++failed_count; });
+    bus->subscribe("execution.failed", [&](const BusEvent&) { ++failed_count; });
 
     NodeExecutor executor(registry, nullptr, bus.get());
 
@@ -305,8 +306,8 @@ TEST_CASE("NodeExecutor ToolNode Skip does not emit and does not throw",
     auto bus = std::make_shared<InMemoryBus>();
     std::atomic<int> any_event_count{0};
 
-    bus->subscribe("execution.failed", [&](const ToolResult&) { ++any_event_count; });
-    bus->subscribe("tool.completed", [&](const ToolResult&) { ++any_event_count; });
+    bus->subscribe("execution.failed", [&](const BusEvent&) { ++any_event_count; });
+    bus->subscribe("tool.completed", [&](const BusEvent&) { ++any_event_count; });
 
     NodeExecutor executor(registry, nullptr, bus.get());
 
@@ -354,13 +355,13 @@ next: ["/main/end"]
     engine->set_interaction_bus(bus);
 
     std::atomic<int> count{0};
-    engine->subscribe("stress.topic", [&](const ToolResult&) { ++count; });
+    engine->subscribe("stress.topic", [&](const BusEvent&) { ++count; });
 
     std::vector<std::thread> threads;
     for (int i = 0; i < 10; ++i) {
         threads.emplace_back([&] {
             for (int j = 0; j < 100; ++j) {
-                bus->emit("stress.topic", ToolResult::success({{"i", j}}));
+                bus->emit(BusEvent{"stress.topic", ToolResult::success({{"i", j}}), std::chrono::steady_clock::now()});
             }
         });
     }
