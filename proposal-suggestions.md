@@ -20,33 +20,33 @@
     "description": "## 架构依据\n- roadmap.md Phase 6a: pkm_temporal_demo PDK 骨架 (ITemporalClient + Mock + CLI + pdk_entry)\n- roadmap.md Phase 6a: Demo 项目 (main.cpp + 4 场景 + config.json)\n- roadmap.md Phase 6a: 测试 (unit + e2e mock, ≥8 test cases)\n\n## 范围\n- ITemporalClient 抽象接口 + MockTemporalClient 实现\n- 4 个演示场景 DSL (blocking/async-poll/signal/idempotent)\n- ctest -R temporal ≥8 cases\n\n## 验收标准\n- ctest -R temporal 全绿\n- ./pkm_temporal_demo --mock 4 场景全部 PASS"
   },
   {
-    "name": "adr-0002-eventbus-queue",
+    "name": "adr-0002-busevent-contract",
     "priority": "P1",
-    "source": "ADR-0002 EventBus 有界队列架构 (❌ Not Implemented)",
+    "source": "ADR-0002 EventBus + ADR-0019 IInteractionBus (Oracle 重构)",
     "status": "created",
     "phase": "phase-6a",
     "category": "架构对齐",
-    "effort": "5h",
-    "description": "## 架构依据\n- ADR-0002 §决策 2: 事件优先级与背压策略\n- 当前 InMemoryBus 为简化实现 (mutex + queue)\n- 提取 EventBus Core 有界队列组件供 InMemoryBus 内部使用\n\n## 范围\n- EventBusQueue: 有界队列 + 优先级 + 背压\n- InMemoryBus 内部 queue 替换\n- 不修改 IInteractionBus 公开接口\n\n## 验收标准\n- ctest -R test_event_bus_core 全绿\n- ctest -R test_interaction_bus 全绿 (零回归)"
+    "effort": "~1d",
+    "description": "## 架构依据\n- Oracle 评审 (2026-07-26): 一次性收敛到 BusEvent 公开契约\n- ADR-0002: EventBus 需统一 BusEvent 类型\n- 当前 InMemoryBus 使用 pair<string,ToolResult>，无统一事件信封\n\n## 范围\n- 新建 BusEvent 公开契约 (topic, payload:ToolResult, timestamp, causal_time, priority)\n- emit/subscribe 一次性迁移到 BusEvent (唯一破坏性变更)\n- 更新 4 个实现者: InMemoryBus + 3 测试 Mock\n- soak test: dispatch_thread + 10000 events\n\n## 验收标准\n- ctest 全量零回归\n- nm -C | grep emit.*BusEvent 确认 ABI"
   },
   {
-    "name": "adr-0019-iinteractionbus",
+    "name": "adr-0019-subscribe-glob",
     "priority": "P1",
-    "source": "ADR-0019 IInteractionBus (🟡 Partial, P0 review 触发)",
+    "source": "ADR-0019 IInteractionBus (Oracle 重构)",
     "status": "created",
     "phase": "phase-6a",
     "category": "架构对齐",
-    "effort": "3h",
-    "description": "## 架构依据\n- ADR-0019 §状态变更日志 (2026-07-06): ADR-0046 要求 topic-based subscribe\n- 当前接口仅 session-based, 缺 subscribe_topic / unsubscribe\n\n## 范围\n- IInteractionBus 新增 subscribe_topic(topic_pattern, callback)\n- InMemoryBus 实现 topic-based dispatch (glob 匹配)\n\n## 验收标准\n- ctest -R test_interaction_bus_topic 全绿\n- ctest -R test_interaction_bus 全绿 (零回归)"
+    "effort": "~3h",
+    "description": "## 架构依据\n- Oracle 评审: 不新增 subscribe_topic，扩展 subscribe 接受 glob\n- ADR-0046: PDK Plugin 间通信需要 topic-based subscribe\n- 依赖 Change A (BusEvent 契约已定义)\n\n## 范围\n- subscribe() 接受 glob pattern (无通配符=精确匹配, O(1))\n- InMemoryBus 双路径分发: exact map + wildcard list\n- Race test: subscribe/unsubscribe 并发 dispatch\n\n## 验收标准\n- ctest -R test_interaction_bus_glob 全绿\n- ctest 全量零回归"
   },
   {
-    "name": "adr-0037-causal-ordering",
+    "name": "adr-0037-causal-clock",
     "priority": "P2",
-    "source": "ADR-0037 因果排序 (🔍 Proposed, 2026-06-26)",
+    "source": "ADR-0037 因果排序 (Oracle 重构)",
     "status": "created",
     "phase": "phase-6a",
     "category": "架构对齐",
-    "effort": "3h",
-    "description": "## 架构依据\n- ADR-0037 §决策 1: 单进程逻辑时钟 + 因果向量 (非 Lamport)\n- 解决跨 Worker 事件 happens-before 判定\n\n## 范围\n- CausalClock: std::atomic<uint64_t> 单增\n- BusEvent 新增 causal_time 字段\n- InMemoryBus emit 时自动 tick + attach\n\n## 验收标准\n- ctest -R test_causal_clock 全绿\n- ctest -R test_interaction_bus 全绿 (零回归)"
+    "effort": "~3h",
+    "description": "## 架构依据\n- ADR-0037 §决策 1: 单进程逻辑时钟 + 因果向量\n- Oracle 评审: 纯增量变更，BusEvent.causal_time 已在 Change A 预留\n- 不跨进程 (跨进程时升级为 Lamport)\n\n## 范围\n- CausalClock: atomic<uint64_t> + tick/now/merge/happens_before\n- InMemoryBus::emit() 自动 tick + attach\n- Causal monotonicity soak: 3 producer → consumer per-producer monotonic\n\n## 验收标准\n- ctest -R test_causal_clock 5/5 PASS\n- ctest 全量零回归"
   }
 ]
