@@ -3,7 +3,6 @@
 #include "agenticdsl/contract/bus_event.h"
 #include "agenticdsl/contract/inmemory_bus.h"
 
-#include <catch2/catch_test_macros.hpp>
 #include <atomic>
 #include <thread>
 #include <vector>
