@@ -58,10 +58,17 @@ class InMemoryBus : public IInteractionBus {
   std::condition_variable cv_;
   std::queue<BusEvent> queue_;
 
+  // 精确匹配 (fast path, O(1))
   std::unordered_map<
       std::string,
       std::vector<std::pair<size_t, std::function<void(const BusEvent&)> > >
-  > subscribers_;
+  > exact_subscribers_;
+
+  // glob pattern 匹配 (slow path, O(w) — wildcard count < 50)
+  std::unordered_map<
+      std::string,
+      std::vector<std::pair<size_t, std::function<void(const BusEvent&)> > >
+  > wildcard_subscribers_;
 
   size_t next_token_ = 0;
   size_t in_flight_callbacks_ = 0;

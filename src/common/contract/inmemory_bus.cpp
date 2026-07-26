@@ -1,11 +1,45 @@
 // src/common/contract/inmemory_bus.cpp
-// Change A (2026-07-26): BusEvent queue migration — emit/subscribe/dispatch all use BusEvent.
+// Change A (2026-07-26): BusEvent queue migration.
+// Change B (2026-07-26): glob pattern subscribe — dual-path dispatch.
 #include "agenticdsl/contract/inmemory_bus.h"
 
 #include <algorithm>
 #include <utility>
 
 namespace agenticdsl {
+
+namespace {
+
+// glob_match("inference.*", "inference.lifecycle.idle") → true
+// Supports * (match any chars) and ? (match single char).
+// No regex — sufficient for PDK event naming conventions (<50 wildcard subscribers).
+bool glob_match(const std::string& pattern, const std::string& topic) {
+  size_t pi = 0, ti = 0;
+  size_t star_p = std::string::npos, star_t = 0;
+
+  while (ti < topic.size()) {
+    if (pi < pattern.size() && (pattern[pi] == '?' || pattern[pi] == topic[ti])) {
+      ++pi; ++ti;
+    } else if (pi < pattern.size() && pattern[pi] == '*') {
+      star_p = pi++;
+      star_t = ti;
+    } else if (star_p != std::string::npos) {
+      pi = star_p + 1;
+      ti = ++star_t;
+    } else {
+      return false;
+    }
+  }
+
+  while (pi < pattern.size() && pattern[pi] == '*') ++pi;
+  return pi == pattern.size();
+}
+
+bool has_wildcard(const std::string& s) {
+  return s.find('*') != std::string::npos || s.find('?') != std::string::npos;
+}
+
+}  // anonymous namespace
 
 InMemoryBus::InMemoryBus()
     : dispatch_thread_(&InMemoryBus::dispatch_loop, this) {}
@@ -41,21 +75,28 @@ size_t InMemoryBus::subscribe(const std::string& event_type,
                                std::function<void(const BusEvent&)> callback) {
   std::lock_guard<std::mutex> lock(mtx_);
   size_t token = next_token_++;
-  subscribers_[event_type].push_back({token, std::move(callback)});
+
+  if (has_wildcard(event_type)) {
+    wildcard_subscribers_[event_type].push_back({token, std::move(callback)});
+  } else {
+    exact_subscribers_[event_type].push_back({token, std::move(callback)});
+  }
   return token;
 }
 
 void InMemoryBus::unsubscribe(size_t token) {
   std::lock_guard<std::mutex> lock(mtx_);
-  for (auto& [event_type, vec] : subscribers_) {
-    (void)event_type;
-    auto it = std::remove_if(vec.begin(), vec.end(),
-                              [token](const auto& pair) {
-                                return pair.first == token;
-                              });
-    if (it != vec.end()) {
-      vec.erase(it, vec.end());
-      break;
+  for (auto* map : {&exact_subscribers_, &wildcard_subscribers_}) {
+    for (auto& [event_type, vec] : *map) {
+      (void)event_type;
+      auto it = std::remove_if(vec.begin(), vec.end(),
+                                [token](const auto& pair) {
+                                  return pair.first == token;
+                                });
+      if (it != vec.end()) {
+        vec.erase(it, vec.end());
+        return;
+      }
     }
   }
 }
@@ -97,12 +138,25 @@ void InMemoryBus::dispatch_loop() {
     std::vector<std::function<void(const BusEvent&)>> callbacks;
     {
       std::lock_guard<std::mutex> lock(mtx_);
-      auto it = subscribers_.find(event.topic);
-      if (it != subscribers_.end()) {
+
+      // Fast path: exact match (O(1))
+      auto it = exact_subscribers_.find(event.topic);
+      if (it != exact_subscribers_.end()) {
         callbacks.reserve(it->second.size());
         for (const auto& [token, cb] : it->second) {
           (void)token;
           callbacks.push_back(cb);
+        }
+      }
+
+      // Slow path: glob match (O(w), w = wildcard subscriber count < 50)
+      for (const auto& [pattern, cbs] : wildcard_subscribers_) {
+        if (glob_match(pattern, event.topic)) {
+          callbacks.reserve(callbacks.size() + cbs.size());
+          for (const auto& [token, cb] : cbs) {
+            (void)token;
+            callbacks.push_back(cb);
+          }
         }
       }
     }
