@@ -98,8 +98,9 @@ ToolCoordinatorNestingGuard::ToolCoordinatorNestingGuard(
           std::hash<std::thread::id>{}(std::this_thread::get_id());
       payload["nesting_depth"] = tls_nesting_depth;
       payload["timestamp"] = now_iso8601();
-      bus->emit("tool.coordinator.cycle_detected",
-                ToolResult::success({}, std::move(payload)));
+      bus->emit(BusEvent{"tool.coordinator.cycle_detected",
+                ToolResult::success({}, std::move(payload)),
+                std::chrono::steady_clock::now()});
     }
     throw std::runtime_error(
         "ToolCoordinator cycle detected: " + name_ +
@@ -176,12 +177,13 @@ ToolResult ToolCoordinator::execute(
     LayerProfile caller_layer = parse_layer(ctx.caller_layer);
     if (!check_layer_permission(caller_layer, meta.category)) {
       if (bus_) {
-        bus_->emit("tool.audit.denied",
+        bus_->emit(BusEvent{"tool.audit.denied",
             ToolResult::error(ErrorCode::PermissionDenied,
                 "Layer '" + ctx.caller_layer + "' cannot call category '" +
                     cat_str + "'",
                 audit_meta("tool.audit.denied", request_id, tool_name,
-                           cat_str, ctx.caller_layer, ctx.session_id)));
+                           cat_str, ctx.caller_layer, ctx.session_id)),
+            std::chrono::steady_clock::now()});
       }
       return ToolResult::error(
           ErrorCode::PermissionDenied,
@@ -200,11 +202,12 @@ ToolResult ToolCoordinator::execute(
 
   if (!approval_handler_->process_request(meta, ctx, preview)) {
     if (bus_) {
-      bus_->emit("tool.audit.denied",
+      bus_->emit(BusEvent{"tool.audit.denied",
           ToolResult::error(ErrorCode::PermissionDenied,
               "Approval denied by policy",
               audit_meta("tool.audit.denied", request_id, tool_name,
-                         cat_str, ctx.caller_layer, ctx.session_id)));
+                         cat_str, ctx.caller_layer, ctx.session_id)),
+          std::chrono::steady_clock::now()});
     }
     return ToolResult::error(ErrorCode::PermissionDenied,
                             "Approval denied by policy for tool: " + meta.name);
@@ -216,7 +219,8 @@ ToolResult ToolCoordinator::execute(
         "tool.audit.invoked", request_id, tool_name,
         cat_str, ctx.caller_layer, ctx.session_id);
     invoked_meta["args_keys_count"] = std::to_string(args.size());
-    bus_->emit("tool.audit.invoked", ToolResult::success({}, std::move(invoked_meta)));
+    bus_->emit(BusEvent{"tool.audit.invoked", ToolResult::success({}, std::move(invoked_meta)),
+              std::chrono::steady_clock::now()});
   }
 
   // ===== Step 4: 实际调用 registry (返回 nlohmann::json) =====
@@ -254,7 +258,8 @@ ToolResult ToolCoordinator::execute(
     completed_meta["duration_ms"] = std::to_string(duration_ms);
     completed_meta["ok"] = result.ok ? "true" : "false";
     completed_meta["error_code"] = result.ok ? "" : "tool.error";
-    bus_->emit("tool.audit.completed", ToolResult::success({}, std::move(completed_meta)));
+    bus_->emit(BusEvent{"tool.audit.completed", ToolResult::success({}, std::move(completed_meta)),
+              std::chrono::steady_clock::now()});
   }
 
   return result;
