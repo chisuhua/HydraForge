@@ -57,8 +57,8 @@ TEST_CASE("ComplianceDecorator hash is consistent", "[decorator][compliance]") {
   std::vector<nlohmann::json> captured_events;
   size_t sub_token = bus->subscribe(
       "compliance.log",
-      [&](const ToolResult& payload) {
-        const auto content_str = payload.meta.value("content", std::string{});
+      [&](const BusEvent& e) {
+        const auto content_str = e.payload.meta.value("content", std::string{});
         if (!content_str.empty()) {
           std::lock_guard<std::mutex> lock(events_mutex);
           captured_events.push_back(nlohmann::json::parse(content_str));
@@ -146,8 +146,8 @@ TEST_CASE("ComplianceDecorator does not leak raw prompt text",
   std::vector<std::string> captured_contents;
   size_t sub_token = bus->subscribe(
       "compliance.log",
-      [&](const ToolResult& payload) {
-        const auto content_str = payload.meta.value("content", std::string{});
+      [&](const BusEvent& e) {
+        const auto content_str = e.payload.meta.value("content", std::string{});
         if (!content_str.empty()) {
           std::lock_guard<std::mutex> lock(events_mutex);
           captured_contents.push_back(content_str);
@@ -205,7 +205,7 @@ TEST_CASE("ComplianceDecorator is opt-in default off",
   std::atomic<int> compliance_count{0};
   size_t sub_token = bus->subscribe(
       "compliance.log",
-      [&](const ToolResult&) {
+      [&](const BusEvent&) {
         compliance_count.fetch_add(1, std::memory_order_relaxed);
       });
 

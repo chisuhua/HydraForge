@@ -123,11 +123,11 @@ TEST_CASE("CognitiveWorker submit task and receive completed event",
   std::atomic<bool> completed_captured{false};
 
   bus->subscribe("cognitive.task.started",
-                 [&](const ToolResult&) { ++started_count; });
+                 [&](const BusEvent&) { ++started_count; });
   bus->subscribe("cognitive.task.completed",
-                 [&](const ToolResult& p) {
+                 [&](const BusEvent& e) {
                    ++completed_count;
-                   completed_payload = p;
+                   completed_payload = e.payload;
                    completed_captured = true;
                  });
 
@@ -184,9 +184,9 @@ TEST_CASE("CognitiveWorker propagates error with ErrorCode enum",
   std::atomic<int> completed_count{0};
   ToolResult captured;
   bus->subscribe("cognitive.task.completed",
-                 [&](const ToolResult& p) {
+                 [&](const BusEvent& e) {
                    ++completed_count;
-                   captured = p;
+                   captured = e.payload;
                  });
 
   CognitiveWorker worker(std::move(engine), bus);
@@ -218,7 +218,7 @@ TEST_CASE("CognitiveWorker concurrent submit 10x100 TSan clean",
 
   std::atomic<int> completed_count{0};
   bus->subscribe("cognitive.task.completed",
-                 [&](const ToolResult&) { ++completed_count; });
+                 [&](const BusEvent&) { ++completed_count; });
 
   CognitiveWorker worker(std::move(engine), bus);
   worker.start();
@@ -290,8 +290,8 @@ TEST_CASE("CognitiveWorker error_code bridge covers LLM error paths",
     // 保留 token 用于块退出前 unsubscribe, 防止下一 case 的 bus emit 触发
     // 本 case 已销毁的 lambda 引用 (stack-use-after-scope)
     size_t sub_a = bus->subscribe("cognitive.task.completed",
-                                  [&](const ToolResult& p) {
-                                    captured = p; ++done;
+                                  [&](const BusEvent& e) {
+                                    captured = e.payload; ++done;
                                   });
     CognitiveWorker worker(std::move(engine), bus);
     worker.start();
@@ -315,8 +315,8 @@ TEST_CASE("CognitiveWorker error_code bridge covers LLM error paths",
     std::atomic<int> done{0};
     ToolResult captured;
     size_t sub_b = bus->subscribe("cognitive.task.completed",
-                                  [&](const ToolResult& p) {
-                                    captured = p; ++done;
+                                  [&](const BusEvent& e) {
+                                    captured = e.payload; ++done;
                                   });
     CognitiveWorker worker(std::move(engine), bus);
     worker.start();
