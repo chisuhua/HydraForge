@@ -12,7 +12,7 @@
 #pragma once
 
 #include "agenticdsl/contract/iinteraction_bus.h"
-#include "src/common/contract/causal_clock.h"
+#include "agenticdsl/contract/causal_clock.h"
 
 #include <atomic>
 #include <condition_variable>

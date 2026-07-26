@@ -1,7 +1,7 @@
 // tests/test_causal_clock.cpp
 // Change C: CausalClock 单元测试 — 单调性 / 线程安全 / merge / happens-before / soak
 #include "catch_amalgamated.hpp"
-#include "src/common/contract/causal_clock.h"
+#include "agenticdsl/contract/causal_clock.h"
 
 #include <atomic>
 #include <thread>

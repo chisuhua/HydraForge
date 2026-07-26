@@ -22,7 +22,7 @@ enum class EventPriority { Critical = 0, Normal = 1, Low = 2 };
 struct BusEvent {
     std::string topic;
     ToolResult payload;                               // ADR-0023 标准载荷
-    std::chrono::steady_clock::time_point timestamp;  // wall time
+    std::chrono::steady_clock::time_point timestamp;  // monotonic clock (not wall time)
     uint64_t causal_time{0};                          // 预留，Change C 填充
     EventPriority priority{EventPriority::Normal};     // 预留，Phase 2 使用
 };
