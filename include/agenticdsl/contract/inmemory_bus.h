@@ -12,6 +12,7 @@
 #pragma once
 
 #include "agenticdsl/contract/iinteraction_bus.h"
+#include "src/common/contract/causal_clock.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -72,6 +73,9 @@ class InMemoryBus : public IInteractionBus {
 
   size_t next_token_ = 0;
   size_t in_flight_callbacks_ = 0;
+
+  // Change C: causal clock — tick on every emit()
+  event::CausalClock causal_clock_;
 
   std::atomic<bool> stop_{false};
   std::thread dispatch_thread_;

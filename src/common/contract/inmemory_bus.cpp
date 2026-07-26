@@ -58,7 +58,9 @@ InMemoryBus::~InMemoryBus() {
 void InMemoryBus::emit(const BusEvent& event) {
   {
     std::lock_guard<std::mutex> lock(mtx_);
-    queue_.push(event);
+    auto e = event;
+    e.causal_time = causal_clock_.tick();
+    queue_.push(std::move(e));
   }
   cv_.notify_all();
 }
@@ -68,7 +70,9 @@ void InMemoryBus::emit(const std::string& event_type,
   ToolResult tr = ToolResult::success(
       nlohmann::json::object(),
       nlohmann::json{{"content", content}});
-  emit(BusEvent{event_type, tr, std::chrono::steady_clock::now()});
+  BusEvent e{event_type, tr, std::chrono::steady_clock::now()};
+  e.causal_time = causal_clock_.tick();
+  emit(std::move(e));
 }
 
 size_t InMemoryBus::subscribe(const std::string& event_type,
