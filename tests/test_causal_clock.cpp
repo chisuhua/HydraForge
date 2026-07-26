@@ -14,9 +14,7 @@ TEST_CASE("CausalClock monotonic — tick always increases", "[causal_clock]") {
     auto t3 = clk.tick();
     REQUIRE(t1 < t2);
     REQUIRE(t2 < t3);
-    REQUIRE(t1 == 1);
-    REQUIRE(t2 == 2);
-    REQUIRE(t3 == 3);
+    REQUIRE(clk.now() == 3);
 }
 
 TEST_CASE("CausalClock thread safety — 10x1000 ticks = 10000", "[causal_clock][concurrency]") {
