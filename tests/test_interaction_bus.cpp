@@ -44,11 +44,10 @@ TEST_CASE("InMemoryBus concurrent emit 1000x", "[contract][thread]") {
 // === Test 2: try_pop 非阻塞 ===
 TEST_CASE("InMemoryBus try_pop non-blocking", "[contract][interaction_bus]") {
   InMemoryBus bus;
-  std::string event_type;
-  ToolResult payload;
+  BusEvent evt;
 
   // 空队列 → false
-  REQUIRE_FALSE(bus.try_pop(event_type, payload));
+  REQUIRE_FALSE(bus.try_pop(evt));
 
   // 异步 dispatch 场景: 验证 emit 后 subscriber 被调用
   std::atomic<int> count{0};
@@ -111,8 +110,8 @@ TEST_CASE("InMemoryBus emits accept std::string legacy payload",
     captured = true;
   });
 
-  // 通过 BusEvent 发射
-  bus.emit(BusEvent{"legacy_topic", ToolResult::success({{"content", "legacy content payload"}}), std::chrono::steady_clock::now()});
+  // 通过 BusEvent 发射（模拟旧 string 重载的 ToolResult 包装）
+  bus.emit(BusEvent{"legacy_topic", ToolResult::success(nlohmann::json::object(), nlohmann::json{{"content", "legacy content payload"}}), std::chrono::steady_clock::now()});
     bus.wait_for_drain();
 
   // 验证 callback 触发

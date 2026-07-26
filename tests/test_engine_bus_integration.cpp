@@ -92,7 +92,7 @@ next: ["/main/end"]
 )");
 
     std::atomic<int> calls{0};
-    auto token = engine->subscribe("topic.x", [&](const BusEvent&) { ++calls; });
+    auto token = engine->subscribe("topic.x", [&](const ToolResult&) { ++calls; });
     REQUIRE(token == 0); // 无效 token
 }
 
@@ -115,7 +115,7 @@ next: ["/main/end"]
     engine->set_interaction_bus(bus);
 
     std::atomic<int> calls{0};
-    auto token = engine->subscribe("topic.y", [&](const BusEvent&) { ++calls; });
+    auto token = engine->subscribe("topic.y", [&](const ToolResult&) { ++calls; });
     // 注：InMemoryBus 首个 token 从 0 开始（next_token_++），故不能用 !=0 判定；
     // 改用 callback 是否被触发 + unsubscribe 后是否失效来验证透传。
     REQUIRE(calls.load() == 0);
@@ -355,7 +355,7 @@ next: ["/main/end"]
     engine->set_interaction_bus(bus);
 
     std::atomic<int> count{0};
-    engine->subscribe("stress.topic", [&](const BusEvent&) { ++count; });
+    engine->subscribe("stress.topic", [&](const ToolResult&) { ++count; });
 
     std::vector<std::thread> threads;
     for (int i = 0; i < 10; ++i) {

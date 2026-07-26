@@ -13,8 +13,10 @@
 #include "agenticdsl/cognitive/cognitive_worker.h"
 
 #include "agenticdsl/cognitive/simple_orchestrator.h"
+#include "agenticdsl/contract/bus_event.h"
 #include "core/engine.h"
 
+#include <chrono>
 #include <exception>
 #include <functional>
 #include <optional>
@@ -167,7 +169,7 @@ void CognitiveWorker::worker_loop() {
     ToolResult started;
     started.ok = true;
     started.meta["task_id"] = task_id;
-    bus_->emit("cognitive.task.started", started);
+    bus_->emit(BusEvent{"cognitive.task.started", started, std::chrono::steady_clock::now()});
 
     // 3) 委托 SimpleCognitiveOrchestrator 单轮 ReAct
     //    注入 P1 抽象: engine_->get_tool_registry() (IToolRegistry&)
@@ -193,7 +195,7 @@ void CognitiveWorker::worker_loop() {
     result.trace_id = task_id;
 
     // 6) 推送 cognitive.task.completed 事件
-    bus_->emit("cognitive.task.completed", result);
+    bus_->emit(BusEvent{"cognitive.task.completed", result, std::chrono::steady_clock::now()});
   }
 }
 

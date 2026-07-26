@@ -11,9 +11,11 @@
 // 最后修改日期：2026-06-19
 
 #include "agenticdsl/cognitive/domain_worker_pool.h"
+#include "agenticdsl/contract/bus_event.h"
 
 #include <nlohmann/json.hpp>
 
+#include <chrono>
 #include <exception>
 #include <stdexcept>
 #include <utility>
@@ -198,7 +200,7 @@ void DomainWorkerPool::process_task(std::size_t worker_id, DomainTask task) {
     started.meta["tool_name"] = task.tool_name;
     started.meta["output_key"] = task.output_key;
     started.meta["worker_id"] = worker_id;
-    bus_->emit("domain.task.started", started);
+    bus_->emit(BusEvent{"domain.task.started", started, std::chrono::steady_clock::now()});
   }
 
   // 2) 查表 + 拷贝 handler (在 shared_lock 下查, 释放锁后调用)
@@ -219,7 +221,7 @@ void DomainWorkerPool::process_task(std::size_t worker_id, DomainTask task) {
       failed.meta["output_key"] = task.output_key;
       failed.meta["worker_id"] = worker_id;
       if (bus_) {
-        bus_->emit("domain.task.failed", failed);
+        bus_->emit(BusEvent{"domain.task.failed", failed, std::chrono::steady_clock::now()});
       }
       return;
     }
@@ -253,9 +255,9 @@ void DomainWorkerPool::process_task(std::size_t worker_id, DomainTask task) {
   // 4) 推 completed / failed 事件
   if (bus_) {
     if (result.ok) {
-      bus_->emit("domain.task.completed", result);
+      bus_->emit(BusEvent{"domain.task.completed", result, std::chrono::steady_clock::now()});
     } else {
-      bus_->emit("domain.task.failed", result);
+      bus_->emit(BusEvent{"domain.task.failed", result, std::chrono::steady_clock::now()});
     }
   }
 

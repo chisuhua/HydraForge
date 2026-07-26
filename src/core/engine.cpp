@@ -232,8 +232,10 @@ size_t DSLEngine::subscribe(const std::string& topic,
     if (!bus_) {
         return 0;
     }
-    // 透传 token 到 InMemoryBus::subscribe，由 bus 统一管理生命周期
-    return bus_->subscribe(topic, std::move(cb));
+    // 包装 ToolResult 回调为 BusEvent 回调，适配 IInteractionBus::subscribe 新签名
+    return bus_->subscribe(topic, [cb = std::move(cb)](const BusEvent& event) {
+        cb(event.payload);
+    });
 }
 
 // D5 (C14, decisions-2026-07-07.md Option B): 显式加载 PDK plugin

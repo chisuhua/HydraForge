@@ -13,6 +13,7 @@
 #include <thread> // For std::this_thread::sleep_for (if needed for mock)
 #include <chrono> // For std::chrono_literals + std::chrono::steady_clock
 #include <string>
+#include "agenticdsl/contract/bus_event.h" // BusEvent 统一事件信封
 
 // C4 Sprint 14 (ADR-0031 P3-P4, Oracle ses_0ed4408faffeLv8VfrC0s5PzW7): ToolCoordinator
 #include "common/tools/tool_coordinator.h"
@@ -127,11 +128,12 @@ Context NodeExecutor::execute_dsl_node(const DSLNode* node, const Context& ctx) 
 
     // Phase 1 Sprint 1b (S1b.T3): 入口推送 dsl.call.started 事件 (REQ-BUS-003 Scenario)
     if (bus_) {
-        bus_->emit("dsl.call.started",
+        bus_->emit(BusEvent{"dsl.call.started",
                    ToolResult::success(
                        {{"node_path", node->path},
                         {"llm_tool_name", node->llm_tool_name}},
-                       {{"prompt", ""}})); // 实际 prompt 在渲染后再次推送更准确；started 仅透出元信息
+                       {{"prompt", ""}}),  // 实际 prompt 在渲染后再次推送更准确；started 仅透出元信息
+                   std::chrono::steady_clock::now()});
     }
 
     std::string rendered_prompt;
@@ -151,11 +153,12 @@ Context NodeExecutor::execute_dsl_node(const DSLNode* node, const Context& ctx) 
 
         // Phase 1 Sprint 1b (S1b.T3): 成功退出时推送 dsl.call.completed 事件
         if (bus_) {
-            bus_->emit("dsl.call.completed",
+            bus_->emit(BusEvent{"dsl.call.completed",
                        ToolResult::success(
                            {{"node_path", node->path},
                             {"output_key", key}},
-                           {{"text", new_context[key]}}));
+                           {{"text", new_context[key]}}),
+                       std::chrono::steady_clock::now()});
         }
 
     } catch (const inja::RenderError& e) {
@@ -184,7 +187,8 @@ auto [tool_result, new_context] = dispatch_to_tool(node->tool_name, node->path, 
     process_output_keys(new_context, node->output_keys, tool_result.data);
 
     if (bus_) {
-        bus_->emit("tool.completed", tool_result);
+        bus_->emit(BusEvent{"tool.completed", tool_result,
+                   std::chrono::steady_clock::now()});
     }
 
     return new_context;
@@ -395,8 +399,10 @@ bool NodeExecutor::handle_tool_errors(const ToolCallNode* node, const ToolResult
 
   auto emit_failed = [&]() {
     if (bus_) {
-      bus_->emit("execution.failed", ToolResult::error(code, err_msg,
-          {{"node_path", node->path}, {"tool_name", node->tool_name}}));
+      bus_->emit(BusEvent{"execution.failed",
+                  ToolResult::error(code, err_msg,
+                      {{"node_path", node->path}, {"tool_name", node->tool_name}}),
+                  std::chrono::steady_clock::now()});
     }
   };
 
