@@ -60,11 +60,11 @@ class MockBus : public IInteractionBus {
 public:
     std::vector<std::pair<std::string, std::string>> string_emits;
 
-    void emit(const std::string& event_type, const ToolResult&) override {}
+    void emit(const BusEvent&) override {}
     void emit(const std::string& event_type, const std::string& content) override {
         string_emits.emplace_back(event_type, content);
     }
-    size_t subscribe(const std::string&, std::function<void(const ToolResult&)>) override { return 0; }
+    size_t subscribe(const std::string&, std::function<void(const BusEvent&)>) override { return 0; }
     void unsubscribe(size_t) override {}
 };
 

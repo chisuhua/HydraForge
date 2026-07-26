@@ -53,14 +53,14 @@ class MockToolRegistry : public IToolRegistry {
 // Mock IInteractionBus for testing (records emit calls)
 class MockInteractionBus : public IInteractionBus {
  public:
-  void emit(const std::string& event_type, const ToolResult&) override {
-    emit_log_.push_back(event_type);
+  void emit(const BusEvent& event) override {
+    emit_log_.push_back(event.topic);
   }
   void emit(const std::string& event_type, const std::string&) override {
     emit_log_.push_back(event_type);
   }
   size_t subscribe(const std::string&,
-                    std::function<void(const ToolResult&)>) override {
+                    std::function<void(const BusEvent&)>) override {
     return 0;
   }
   void unsubscribe(size_t) override {}

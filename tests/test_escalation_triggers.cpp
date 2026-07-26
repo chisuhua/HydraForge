@@ -24,14 +24,14 @@ namespace {
 
 class MockBusForEscalation : public IInteractionBus {
  public:
-  void emit(const std::string& event_type, const ToolResult&) override {
-    events_.push_back(event_type);
+  void emit(const BusEvent& event) override {
+    events_.push_back(event.topic);
   }
   void emit(const std::string& event_type, const std::string&) override {
     events_.push_back(event_type);
   }
   size_t subscribe(const std::string&,
-                    std::function<void(const ToolResult&)>) override { return 0; }
+                    std::function<void(const BusEvent&)>) override { return 0; }
   void unsubscribe(size_t) override {}
 
   std::vector<std::string> events_;
