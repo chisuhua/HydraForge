@@ -1,5 +1,6 @@
 // tests/test_event_bus_soak.cpp
 // BusEvent 类型验证 + InMemoryBus soak test (Change A)
+#include "catch_amalgamated.hpp"
 #include "agenticdsl/contract/bus_event.h"
 #include "agenticdsl/contract/inmemory_bus.h"
 
