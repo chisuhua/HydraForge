@@ -3,6 +3,7 @@
 #include "stream_to_bus.h"
 #include "common/log/log.h"
 #include "core/types/tool_result.h"
+#include <chrono>
 #include <stdexcept>
 
 namespace agenticdsl {
@@ -83,7 +84,7 @@ GenerationResult run_stream_to_bus(
             LLMError err;
             err.code = LLMError::Code::Cancelled;
             err.message = std::string("stream_to_bus exception: ") + e.what();
-            bus.emit(event_type::kLlmTokenError, make_error_payload(request_id, err));
+            bus.emit(BusEvent{event_type::kLlmTokenError, make_error_payload(request_id, err), std::chrono::steady_clock::now()});
             LOG_WARN("run_stream_to_bus: exception in stream.next, request_id=" << request_id);
             break;
         }
@@ -92,18 +93,18 @@ GenerationResult run_stream_to_bus(
         }
         result.text += *chunk;
         ++token_count;
-        bus.emit(event_type::kLlmToken, make_token_payload(request_id, *chunk));
+        bus.emit(BusEvent{event_type::kLlmToken, make_token_payload(request_id, *chunk), std::chrono::steady_clock::now()});
     }
 
     std::string finish_reason = cancelled ? finish_reason::kCancelled : finish_reason::kStop;
     auto stream_error = stream.error();
     if (stream_error.has_value()) {
-        bus.emit(event_type::kLlmTokenError, make_error_payload(request_id, *stream_error));
+        bus.emit(BusEvent{event_type::kLlmTokenError, make_error_payload(request_id, *stream_error), std::chrono::steady_clock::now()});
         LOG_WARN("run_stream_to_bus: stream error, request_id=" << request_id
                  << " code=" << error_code_name(stream_error->code));
     } else {
-        bus.emit(event_type::kLlmTokenDone,
-                 make_done_payload(request_id, finish_reason, token_count, result.text));
+        bus.emit(BusEvent{event_type::kLlmTokenDone,
+                 make_done_payload(request_id, finish_reason, token_count, result.text), std::chrono::steady_clock::now()});
     }
     result.finish_reason = finish_reason;
     result.completion_tokens = static_cast<int>(token_count);

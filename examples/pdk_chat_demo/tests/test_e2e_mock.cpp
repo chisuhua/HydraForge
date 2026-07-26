@@ -16,6 +16,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <agenticdsl/contract/bus_event.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <core/types/tool_result.h>
 
@@ -27,35 +28,36 @@ namespace mock {
  * @brief MockBus: 实现真实 IInteractionBus 接口 (4 virtual methods)
  *
  * IInteractionBus 规范:
- *   1. emit(topic, ToolResult)  — 主路径
- *   2. emit(topic, string)      — 向后兼容（内部包装为 ToolResult）
- *   3. subscribe(topic, callback<ToolResult>) → size_t token
+ *   1. emit(BusEvent)               — 主路径
+ *   2. emit(topic, string)          — 向后兼容
+ *   3. subscribe(topic, callback<BusEvent>) → size_t token
  *   4. unsubscribe(size_t token)
  */
 class MockBus : public agenticdsl::IInteractionBus {
 public:
-    // emit(ToolResult) — 主路径: 存入 events 并通知 subscribers
-    void emit(const std::string& topic, const agenticdsl::ToolResult& payload) override {
-        events.emplace_back(topic, payload.meta);
+    // emit(BusEvent) — 主路径: 存入 events 并通知 subscribers
+    void emit(const agenticdsl::BusEvent& event) override {
+        events.emplace_back(event.topic, event.payload.meta);
         // 通知所有 subscribers
-        auto it = subscribers_by_topic_.find(topic);
+        auto it = subscribers_by_topic_.find(event.topic);
         if (it != subscribers_by_topic_.end()) {
             for (auto& sub : it->second) {
-                sub(payload);
+                sub(event);
             }
         }
     }
 
-    // emit(string) — 向后兼容: 包装为 ToolResult
+    // emit(string) — 向后兼容: 包装为 BusEvent
     void emit(const std::string& topic, const std::string& content) override {
-        events.emplace_back(topic, nlohmann::json{{"content", content}});
         agenticdsl::ToolResult tr;
         tr.ok = true;
         tr.meta = {{"content", content}};
+        agenticdsl::BusEvent event{topic, tr};
+        events.emplace_back(topic, event.payload.meta);
         auto it = subscribers_by_topic_.find(topic);
         if (it != subscribers_by_topic_.end()) {
             for (auto& sub : it->second) {
-                sub(tr);
+                sub(event);
             }
         }
     }
@@ -63,7 +65,7 @@ public:
     // subscribe — 返回递增 token
     size_t subscribe(
         const std::string& topic,
-        std::function<void(const agenticdsl::ToolResult&)> callback
+        std::function<void(const agenticdsl::BusEvent&)> callback
     ) override {
         subscribers_by_topic_[topic].push_back(std::move(callback));
         return next_token_++;
@@ -78,7 +80,7 @@ public:
 
 private:
     size_t next_token_ = 1;
-    std::unordered_map<std::string, std::vector<std::function<void(const agenticdsl::ToolResult&)>>> subscribers_by_topic_;
+    std::unordered_map<std::string, std::vector<std::function<void(const agenticdsl::BusEvent&)>>> subscribers_by_topic_;
 };
 
 }  // namespace mock
@@ -88,15 +90,15 @@ TEST_CASE("EventHandler subscribes to expected topics", "[e2e][mock]") {
 
     EventHandler handler(bus, nullptr);
 
-    // 触发事件 — 使用 ToolResult 包装
-    bus->emit("user.input", agenticdsl::ToolResult{
+    // 触发事件 — 使用 BusEvent 包装
+    bus->emit(agenticdsl::BusEvent{"user.input", agenticdsl::ToolResult{
         .ok = true,
         .meta = {{"input", "hello"}}
-    });
-    bus->emit("loop.done", agenticdsl::ToolResult{
+    }});
+    bus->emit(agenticdsl::BusEvent{"loop.done", agenticdsl::ToolResult{
         .ok = true,
         .meta = {{"total_steps", 3}}
-    });
+    }});
 
     // 验证事件流
     bool found_user_input = false;
@@ -113,9 +115,9 @@ TEST_CASE("Mock mode -- end-to-end flow", "[e2e][mock]") {
     auto bus = std::make_shared<mock::MockBus>();
     EventHandler handler(bus, nullptr);
 
-    // 所有 emit 使用 ToolResult 包装 (C++20 designated initializers)
+    // 所有 emit 使用 BusEvent 包装 (C++20 designated initializers)
     auto emit = [&](const std::string& topic, nlohmann::json meta) {
-        bus->emit(topic, agenticdsl::ToolResult{.ok = true, .meta = std::move(meta)});
+        bus->emit(agenticdsl::BusEvent{topic, agenticdsl::ToolResult{.ok = true, .meta = std::move(meta)}});
     };
 
     emit("user.input", {{"session_id", "sess_test"}, {"input", "hello"}});
@@ -153,23 +155,23 @@ TEST_CASE("Mock mode -- end-to-end flow", "[e2e][mock]") {
 TEST_CASE("MockBus implements all 4 IInteractionBus virtual methods", "[e2e][mock]") {
     auto bus = std::make_shared<mock::MockBus>();
 
-    // 验证 subscribe callback 接收 ToolResult
+    // 验证 subscribe callback 接收 BusEvent
     int callback_count = 0;
-    agenticdsl::ToolResult received;
-    size_t token = bus->subscribe("test_topic", [&](const agenticdsl::ToolResult& tr) {
-        received = tr;
+    agenticdsl::BusEvent received{"", agenticdsl::ToolResult()};
+    size_t token = bus->subscribe("test_topic", [&](const agenticdsl::BusEvent& ev) {
+        received = ev;
         ++callback_count;
     });
     REQUIRE(token > 0);
 
-    bus->emit("test_topic", agenticdsl::ToolResult{
+    bus->emit(agenticdsl::BusEvent{"test_topic", agenticdsl::ToolResult{
         .ok = true,
         .meta = {{"key", "value"}}
-    });
+    }});
 
     REQUIRE(callback_count == 1);
-    REQUIRE(received.ok == true);
-    REQUIRE(received.meta["key"] == "value");
+    REQUIRE(received.payload.ok == true);
+    REQUIRE(received.payload.meta["key"] == "value");
 
     // 验证 string emit 也触发 callback
     bus->emit("test_topic", std::string("hello"));
