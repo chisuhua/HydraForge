@@ -8,7 +8,7 @@
 //   解决 ADR-0030 V2 §风险 "bridge 背压" (慢 subscriber 不阻塞 emit)。
 // 设计依据：ADR-0019 + plan §13、§14 + ADR-0030 V2 P2。
 // 作者：AgenticDSL Phase 0 / Track A / C2 Day 6-8
-// 最后修改日期：2026-06-27
+// 最后修改日期：2026-07-26 (Change A: BusEvent queue migration)
 #pragma once
 
 #include "agenticdsl/contract/iinteraction_bus.h"
@@ -27,44 +27,28 @@
 
 namespace agenticdsl {
 
-/**
- * @brief 基于内存的 IInteractionBus 实现（线程安全, EventBus MPMC 后端）
- *
- * P2 关键约束：
- *  - emit() 仅入队 + notify_one (O(1) 摊销), 不直接调用 subscribers
- *  - 后台 dispatch 线程从队列 pop 事件, 同步通知 subscribers
- *  - 慢 subscriber 不阻塞 emit (只阻塞 dispatch 线程)
- *  - try_pop() 仍可直接从队列取事件 (与 dispatch 线程共享 mutex)
- *  - subscribe() 返回的 token 单调递增，作为唯一标识
- *
- * 不引入 lock-free 结构（MVP 阶段复杂度收益不成正比）。
- */
 class InMemoryBus : public IInteractionBus {
  public:
   InMemoryBus();
   ~InMemoryBus() override;
 
-  // 禁止拷贝/移动（mutex + queue + thread 的移动语义复杂）
   InMemoryBus(const InMemoryBus&) = delete;
   InMemoryBus& operator=(const InMemoryBus&) = delete;
   InMemoryBus(InMemoryBus&&) = delete;
   InMemoryBus& operator=(InMemoryBus&&) = delete;
 
-  void emit(const std::string& event_type,
-            const ToolResult& payload) override;
+  void emit(const BusEvent& event) override;
 
   void emit(const std::string& event_type,
             const std::string& content) override;
 
   size_t subscribe(const std::string& event_type,
-                   std::function<void(const ToolResult&)> callback) override;
+                   std::function<void(const BusEvent&)> callback) override;
 
   void unsubscribe(size_t token) override;
 
-  bool try_pop(std::string& event_type, ToolResult& payload);
+  bool try_pop(BusEvent& event);
 
-  // C2 Day 6-8 (P2): 阻塞直到队列清空且所有 in-flight callbacks 完成
-  // 测试和需要同步语义的场景使用, 生产环境通常不需要
   void wait_for_drain();
 
  private:
@@ -72,19 +56,16 @@ class InMemoryBus : public IInteractionBus {
 
   mutable std::mutex mtx_;
   std::condition_variable cv_;
-  std::queue<std::pair<std::string, ToolResult>> queue_;
+  std::queue<BusEvent> queue_;
 
   std::unordered_map<
       std::string,
-      std::vector<std::pair<size_t, std::function<void(const ToolResult&)> > >
+      std::vector<std::pair<size_t, std::function<void(const BusEvent&)> > >
   > subscribers_;
 
   size_t next_token_ = 0;
   size_t in_flight_callbacks_ = 0;
 
-  // C2 Day 6-8: 后台 dispatch 线程 (EventBus MPMC 后端)
-  // 声明顺序: stop_ 必须在 dispatch_thread_ 之前 (C++ 成员按声明顺序初始化,
-  //          否则 dispatch_loop 启动时读取 stop_ 是数据竞争)
   std::atomic<bool> stop_{false};
   std::thread dispatch_thread_;
 };
