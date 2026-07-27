@@ -29,3 +29,35 @@ target_link_libraries(test_itemporal_client PRIVATE
 )
 
 add_test(NAME test_itemporal_client COMMAND test_itemporal_client)
+
+# ============================================================================
+# Task 2: MockTemporalClient 状态机测试
+# ============================================================================
+add_executable(test_mock_client
+    test_mock_client.cpp
+    ${CATCH_DIR}/catch_amalgamated.cpp
+    ${CATCH_DIR}/main_test_runner.cpp
+)
+
+target_include_directories(test_mock_client PRIVATE
+    ${CATCH_DIR}
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/..          # mock_client.h
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+
+target_compile_features(test_mock_client PRIVATE cxx_std_20)
+target_compile_definitions(test_mock_client PRIVATE CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1)
+
+# Task 2: 链接 mock_client.cpp (直接编译, 非 .so)
+target_link_libraries(test_mock_client PRIVATE
+    hydraforge_pdk
+)
+
+# Task 2: mock_client.cpp 直接编译进测试二进制 (避免单独 .so 依赖)
+target_sources(test_mock_client PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../mock_client.cpp
+)
+
+add_test(NAME test_mock_client COMMAND test_mock_client)
