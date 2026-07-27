@@ -1,14 +1,19 @@
 // chat_session.cpp - Chat Session 实现
 // 关联: chat_session.h, docs/adr/adr-0060-agent-composition.md
+//      openspec/changes/pdk-chat-demo-v1-recap/design.md (T1: 持久化 + Budget 告警)
 
 #include "chat_session.h"
 
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <random>
 #include <sstream>
 #include <stdexcept>
+#include <sys/stat.h>
 #include <utility>
 
 #include <core/engine.h>
@@ -19,10 +24,43 @@
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <common/llm/llm_config.h>
 #include <common/llm/llm_types.h>
+#include <modules/budget/budget_controller.h>
 
 #include <stop_token>
 
 namespace pdk_chat_demo {
+
+namespace {
+
+// T1.2: 展开 ~ 为 HOME 目录 (优先 HOME env, fallback getpwuid)
+std::string expand_home(const std::string& path) {
+    if (path.empty() || path[0] != '~') return path;
+    const char* home = std::getenv("HOME");
+    if (home && home[0] != '\0') {
+        return std::string(home) + path.substr(1);
+    }
+    return path;
+}
+
+// T1.10: 创建目录权限 0700
+bool ensure_dir_0700(const std::filesystem::path& dir) {
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    fs::create_directories(dir, ec);
+    if (ec) {
+        std::cerr << "[session] create_directories failed: " << dir
+                  << " (" << ec.message() << ")" << std::endl;
+        return false;
+    }
+    if (chmod(dir.c_str(), 0700) != 0) {
+        std::cerr << "[session] chmod 0700 failed: " << dir << std::endl;
+    }
+    return true;
+}
+
+constexpr int kSessionSchemaVersion = 1;
+
+}  // namespace
 
 // --- ChatConfig ---
 
@@ -123,7 +161,9 @@ public:
     agenticdsl::IToolRegistry* registry;
     AgentConfig agent_cfg;
     SessionConfig session_cfg;
-    std::vector<nlohmann::json> messages;  // 当前分支的历史
+    std::vector<nlohmann::json> messages;
+    std::string provider_mode;
+    std::string persist_dir_expanded;
 
     Impl(
         agenticdsl::DSLEngine* e,
@@ -131,7 +171,13 @@ public:
         agenticdsl::IToolRegistry* r,
         const AgentConfig& a,
         const SessionConfig& s
-    ) : engine(e), bus(std::move(b)), registry(r), agent_cfg(a), session_cfg(s) {}
+    ) : engine(e), bus(std::move(b)), registry(r), agent_cfg(a), session_cfg(s),
+        provider_mode(a.provider),
+        persist_dir_expanded(expand_home(s.persist_dir)) {
+        if (!persist_dir_expanded.empty()) {
+            ensure_dir_0700(persist_dir_expanded);
+        }
+    }
 };
 
 // --- ChatSession ---
@@ -150,6 +196,14 @@ ChatSession::ChatSession(
     std::ostringstream oss;
     oss << "sess_" << std::hex << dis(gen) << dis(gen);
     session_id_ = oss.str();
+
+    // T1 线程安全: budget.checked 回调仅置 atomic flag, 不触 TUI
+    if (impl_->bus) {
+        impl_->bus->subscribe("budget.checked",
+            [this](const agenticdsl::BusEvent&) {
+                budget_alert_flag_.store(true, std::memory_order_release);
+            });
+    }
 }
 
 ChatSession::~ChatSession() = default;
@@ -263,6 +317,33 @@ ChatResult ChatSession::chat(const std::string& user_input) {
                 std::chrono::steady_clock::now()
             });
 
+            // T1 Budget 告警: 每轮后轮询 engine budget controller
+            if (impl_->engine) {
+                const auto& bc = impl_->engine->get_budget_controller();
+                if (bc.exceeded()) {
+                    double used = bc.get_total_cost_usd();
+                    double limit = impl_->agent_cfg.budget_limit_usd;
+                    impl_->bus->emit(agenticdsl::BusEvent{
+                        "budget.checked",
+                        agenticdsl::ToolResult{
+                            .ok = false,
+                            .meta = {
+                                {"session_id", session_id_},
+                                {"limit", limit},
+                                {"used", used},
+                                {"unit", "llm_calls"},
+                                {"reason", "cost_limit"}
+                            }
+                        },
+                        std::chrono::steady_clock::now()
+                    });
+                    result.success = false;
+                    result.error_message = "[budget] cost_limit exceeded (used="
+                        + std::to_string(used) + ", limit="
+                        + std::to_string(limit) + ")";
+                }
+            }
+
             // 6. 持久化 (异步, 简化版 fire-and-forget)
             if (impl_->session_cfg.persist_dir != "") {
                 impl_->bus->emit(agenticdsl::BusEvent{
@@ -276,6 +357,8 @@ ChatResult ChatSession::chat(const std::string& user_input) {
                     },
                     std::chrono::steady_clock::now()
                 });
+                // T1: 同步落盘 (原子写入) - 确保跨进程可恢复
+                save_to_disk();
             }
         }
     } catch (const std::exception& e) {
@@ -299,6 +382,161 @@ ChatResult ChatSession::chat(const std::string& user_input) {
 
 std::vector<nlohmann::json> ChatSession::history() const {
     return impl_->messages;
+}
+
+// === T1: Session 持久化实现 ===
+
+namespace {
+
+std::filesystem::path session_file_path(const std::string& dir, const std::string& id) {
+    return std::filesystem::path(dir) / (id + ".json");
+}
+
+}  // namespace
+
+bool ChatSession::load_from_disk(const std::string& session_id) {
+    namespace fs = std::filesystem;
+    auto path = session_file_path(impl_->persist_dir_expanded, session_id);
+
+    std::error_code ec;
+    if (!fs::exists(path, ec)) {
+        return false;
+    }
+
+    std::ifstream f(path);
+    if (!f.is_open()) {
+        std::cerr << "[session/load] cannot open: " << path << std::endl;
+        return false;
+    }
+
+    nlohmann::json j;
+    try {
+        f >> j;
+    } catch (const nlohmann::json::parse_error& e) {
+        std::cerr << "[session/load] invalid JSON: " << path << std::endl;
+        return false;
+    } catch (const std::exception& e) {
+        std::cerr << "[session/load] error: " << path << ": " << e.what() << std::endl;
+        return false;
+    }
+
+    // schema 版本校验
+    int sv = j.value("schema_version", 0);
+    if (sv != kSessionSchemaVersion) {
+        std::cerr << "[session/load] unsupported schema_version " << sv
+                  << " (expected " << kSessionSchemaVersion << "): " << path << std::endl;
+        return false;
+    }
+
+    // T1.7 provider_mode reconcile: 恢复 history 但用本次 provider
+    session_id_ = j.value("session_id", session_id);
+    impl_->messages.clear();
+    if (j.contains("history") && j["history"].is_array()) {
+        for (const auto& msg : j["history"]) {
+            impl_->messages.push_back(msg);
+        }
+    }
+    // provider_mode 不恢复 - 保持本次构造时的 provider
+    return true;
+}
+
+bool ChatSession::save_to_disk() {
+    namespace fs = std::filesystem;
+    if (impl_->persist_dir_expanded.empty()) return false;
+
+    if (!ensure_dir_0700(impl_->persist_dir_expanded)) return false;
+
+    auto path = session_file_path(impl_->persist_dir_expanded, session_id_);
+    auto tmp = path;
+    tmp += ".tmp";
+
+    nlohmann::json j;
+    j["schema_version"] = kSessionSchemaVersion;
+    j["session_id"] = session_id_;
+    auto now = std::chrono::system_clock::now();
+    auto epoch = now.time_since_epoch().count();
+    j["created_at"] = epoch;
+    j["updated_at"] = epoch;
+    j["provider_mode"] = impl_->provider_mode;
+    j["budget"] = {
+        {"total", impl_->agent_cfg.budget_limit_usd},
+        {"used", impl_->engine ? impl_->engine->get_budget_controller().get_total_cost_usd() : 0.0}
+    };
+    j["history"] = nlohmann::json(impl_->messages);
+
+    {
+        std::ofstream f(tmp);
+        if (!f.is_open()) {
+            std::cerr << "[session/save] cannot write tmp: " << tmp << std::endl;
+            return false;
+        }
+        f << j.dump(2);
+    }
+
+    std::error_code ec;
+    fs::rename(tmp, path, ec);
+    if (ec) {
+        std::cerr << "[session/save] rename failed: " << ec.message() << std::endl;
+        std::error_code rm_ec;
+        fs::remove(tmp, rm_ec);
+        return false;
+    }
+    return true;
+}
+
+std::vector<std::string> ChatSession::list_sessions(const std::string& persist_dir) {
+    namespace fs = std::filesystem;
+    std::vector<std::string> ids;
+    auto dir = expand_home(persist_dir);
+    if (dir.empty()) return ids;
+
+    std::error_code ec;
+    if (!fs::exists(dir, ec) || !fs::is_directory(dir, ec)) return ids;
+
+    for (const auto& entry : fs::directory_iterator(dir, ec)) {
+        if (ec) break;
+        if (!entry.is_regular_file()) continue;
+        auto p = entry.path();
+        if (p.extension() == ".json") {
+            ids.push_back(p.stem().string());
+        }
+    }
+    return ids;
+}
+
+void ChatSession::cleanup_stale(const std::string& persist_dir, long long max_age_seconds) {
+    namespace fs = std::filesystem;
+    auto dir = expand_home(persist_dir);
+    if (dir.empty()) return;
+
+    std::error_code ec;
+    if (!fs::exists(dir, ec) || !fs::is_directory(dir, ec)) return;
+
+    auto now = fs::file_time_type::clock::now();
+    for (const auto& entry : fs::directory_iterator(dir, ec)) {
+        if (ec) break;
+        if (!entry.is_regular_file()) continue;
+        if (entry.path().extension() != ".json") continue;
+
+        auto lwt = entry.last_write_time(ec);
+        if (ec) {
+            std::cerr << "[session/cleanup] stat failed: " << entry.path() << std::endl;
+            continue;
+        }
+        auto age = std::chrono::duration_cast<std::chrono::seconds>(now - lwt).count();
+        if (age > max_age_seconds) {
+            std::error_code rm_ec;
+            fs::remove(entry.path(), rm_ec);
+            if (rm_ec) {
+                std::cerr << "[session/cleanup] remove failed: " << entry.path()
+                          << ": " << rm_ec.message() << std::endl;
+            }
+        }
+    }
+}
+
+bool ChatSession::consume_budget_alert() {
+    return budget_alert_flag_.exchange(false, std::memory_order_acq_rel);
 }
 
 }  // namespace pdk_chat_demo

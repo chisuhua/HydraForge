@@ -66,6 +66,17 @@ int main(int argc, char* argv[]) {
 
     bool mock_mode = (argc > 1 && std::string(argv[1]) == "--mock");
 
+    // T1.3: --session <id> CLI flag
+    std::string session_id_to_load;
+    {
+        std::vector<std::string> args(argv + 1, argv + argc);
+        for (size_t i = 0; i + 1 < args.size(); ++i) {
+            if (args[i] == "--session") {
+                session_id_to_load = args[i + 1];
+            }
+        }
+    }
+
     // ============================================================
     // 1. 解析配置
     // ============================================================
@@ -271,10 +282,25 @@ int main(int argc, char* argv[]) {
     // ============================================================
     // 7. ChatSession 初始化（使用 engine 内部 registry）
     // ============================================================
+    // T1.9: 启动时清理 >24h 的 stale session 文件
+    pdk_chat_demo::ChatSession::cleanup_stale(config.session.persist_dir);
+
     pdk_chat_demo::ChatSession session(
         engine.get(), bus, &engine->get_tool_registry(),
         config.agent, config.session
     );
+
+    // T1.4: --session <id> 从磁盘恢复
+    if (!session_id_to_load.empty()) {
+        if (session.load_from_disk(session_id_to_load)) {
+            std::cout << "[main] Session restored: " << session.session_id()
+                      << " (" << session.history().size() << " messages)" << std::endl;
+        } else {
+            std::cout << "[main] Session not found/corrupted, starting new: "
+                      << session.session_id() << std::endl;
+        }
+    }
+
     std::cout << "[main] Session started: " << session.session_id() << std::endl;
     std::cout << "[main] Type 'exit' or Ctrl-D to quit" << std::endl;
     std::cout << std::endl << "User> " << std::flush;
@@ -297,6 +323,11 @@ int main(int argc, char* argv[]) {
 
         auto result = session.chat(input);
 
+        // T1 线程安全: 检查 budget alert atomic flag (dispatch 线程置位)
+        if (session.consume_budget_alert()) {
+            std::cerr << std::endl << "[⚠ Budget exceeded] cost limit reached" << std::endl;
+        }
+
         if (result.success) {
             std::cout << std::endl << "Assistant: " << result.response << std::endl;
             std::cout << "  [steps=" << result.total_steps
@@ -308,6 +339,14 @@ int main(int argc, char* argv[]) {
 
         std::cout << std::endl << "User> " << std::flush;
     }
+
+    // T1.3.3: shutdown 前显式检查 budget alert flag (防止 dispatch 未完成)
+    if (session.consume_budget_alert()) {
+        std::cerr << std::endl << "[⚠ Budget exceeded] final check on shutdown" << std::endl;
+    }
+
+    // T1: 落盘当前 session
+    session.save_to_disk();
 
     // ============================================================
     // 9. 优雅退出 — 先销毁 ChatSession + DSLEngine（释放 ToolRegistry

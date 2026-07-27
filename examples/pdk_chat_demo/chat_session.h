@@ -1,9 +1,11 @@
 // chat_session.h - Chat Session 编排器
 // 关联: docs/adr/adr-0060-agent-composition.md
 //      docs/adr/adr-0033-session-hierarchy.md
+//      openspec/changes/pdk-chat-demo-v1-recap/design.md (T1: 持久化 + Budget 告警)
 
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -85,7 +87,8 @@ struct ChatResult {
 
 // ChatSession: 多轮对话编排器
 // - 持有 UserSession (ADR-0033)
-// - 每轮：emit user.input → call_tool("loop/run") → 收集 result
+// - 每轮：emit user.input -> call_tool("loop/run") -> 收集 result
+// - T1: 持久化 (load_from_disk/save_to_disk) + Budget 告警轮询
 class ChatSession {
 public:
     ChatSession(
@@ -98,14 +101,35 @@ public:
 
     ~ChatSession();
 
-    // 处理一轮用户输入
     ChatResult chat(const std::string& user_input);
 
-    // 获取 session ID
     const std::string& session_id() const { return session_id_; }
 
-    // 获取历史消息
     std::vector<nlohmann::json> history() const;
+
+    // === T1: Session 持久化 (design.md §Session 持久化) ===
+    // 从磁盘加载 session (persist_dir/<id>.json)
+    // 返回 true 表示成功; false 表示文件不存在/损坏/schema 版本不匹配
+    // 损坏时打印 "[session/load] invalid JSON: <path>" 到 stderr 并返回空 session
+    bool load_from_disk(const std::string& session_id);
+
+    // 保存当前 session 到磁盘 (原子写入: tmp + rename)
+    // 返回 true 表示成功
+    bool save_to_disk();
+
+    // 列出 persist_dir 下的所有 session_id (扫描 *.json)
+    static std::vector<std::string> list_sessions(const std::string& persist_dir);
+
+    // 清理 >24h 未活跃的 session 文件 (启动时调用)
+    // 删除失败不抛异常, 打印警告到 stderr
+    static void cleanup_stale(const std::string& persist_dir, long long max_age_seconds = 86400);
+
+    // === T1: Budget 告警线程安全 (design.md §线程模型) ===
+    // bus 回调置位此 flag; 主循环检查后渲染告警并重置
+    std::atomic<bool> budget_alert_flag_{false};
+
+    // 检查并消费 budget alert (主线程调用, 返回 true 表示有告警需渲染)
+    bool consume_budget_alert();
 
 private:
     class Impl;

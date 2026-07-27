@@ -7,11 +7,13 @@
 set(SOURCES
     chat_session.cpp
     event_handler.cpp
+    dsl_validator.cpp
 )
 
 set(HEADERS
     chat_session.h
     event_handler.h
+    dsl_validator.h
 )
 
 # --- OBJECT library (shared between demo and tests) ---

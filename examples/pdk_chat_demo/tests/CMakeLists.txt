@@ -10,6 +10,7 @@ add_executable(test_chat_session
 target_link_libraries(test_chat_session PRIVATE
     pdk_chat_demo_obj
     agenticdsl_includes
+    agenticdsl_core
     hydraforge_pdk
     Threads::Threads
 )
@@ -35,6 +36,7 @@ add_executable(test_e2e_mock
 target_link_libraries(test_e2e_mock PRIVATE
     pdk_chat_demo_obj
     agenticdsl_includes
+    agenticdsl_core
     hydraforge_pdk
     Threads::Threads
 )
@@ -48,6 +50,35 @@ target_compile_definitions(test_e2e_mock PRIVATE
 add_test(
     NAME test_e2e_mock
     COMMAND test_e2e_mock
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# test_dsl_validation — T2: DSL schema 校验 (≥5 scenarios)
+add_executable(test_dsl_validation
+    test_dsl_validation.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_dsl_validation PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_dsl_validation PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+target_compile_definitions(test_dsl_validation PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_dsl_validation
+    COMMAND test_dsl_validation
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
@@ -85,4 +116,62 @@ add_test(
 )
 set_tests_properties(test_loop_agent_plugin PROPERTIES
     ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk:${CMAKE_BINARY_DIR}/pdk"
+)
+
+# test_session_persistence - T1: session save/restore, corrupted JSON, stale cleanup
+add_executable(test_session_persistence
+    test_session_persistence.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_session_persistence PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_session_persistence PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+target_compile_definitions(test_session_persistence PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_session_persistence
+    COMMAND test_session_persistence
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# test_budget_alert - T1: budget exceeded emit, at-limit, thread-safe callback
+add_executable(test_budget_alert
+    test_budget_alert.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_budget_alert PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_budget_alert PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+target_compile_definitions(test_budget_alert PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_budget_alert
+    COMMAND test_budget_alert
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
