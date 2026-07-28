@@ -1,0 +1,34 @@
+{
+  "version": 4,
+  "updated_at": "2026-07-27T22:42:56.859791+00:00",
+  "current_phase": "default",
+  "changes": [
+    {
+      "added_at": "2026-07-27T08:24:15.665499+00:00",
+      "name": "pdk-chat-demo-v1-recap",
+      "status": "in_worktree",
+      "plan_path": ".rddf/plans/pdk-chat-demo-v1-recap.md",
+      "tasks_total": 0,
+      "worktree_path": ".rddf/wt/pdk-chat-demo-v1-recap"
+    },
+    {
+      "added_at": "2026-07-27T22:42:56.684780+00:00",
+      "name": "pkgm-temporal-agent",
+      "status": "in_worktree",
+      "plan_path": ".rddf/plans/pkgm-temporal-agent.md",
+      "tasks_total": 41,
+      "worktree_path": ".rddf/wt/pkgm-temporal-agent"
+    },
+    {
+      "added_at": "2026-07-27T22:42:56.853600+00:00",
+      "name": "pkm-temporal-demo-scaffold",
+      "status": "archived",
+      "plan_path": ".rddf/plans/pkm-temporal-demo-scaffold.md",
+      "tasks_total": 35,
+      "worktree_path": ".rddf/wt/pkm-temporal-demo-scaffold",
+      "archived_at": "2026-07-28T02:57:06.860108Z",
+      "completion_commits": 7,
+      "test_passes": 9
+    }
+  ]
+}

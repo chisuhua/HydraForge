@@ -1,0 +1,30 @@
+{
+  "arch_complete_at": "2026-07-24T10:17:51.886989+00:00",
+  "adr_count": 0,
+  "completed_adr_ids": [],
+  "roadmap_exists": false,
+  "current_phase": "default",
+  "plan_started_at": null,
+  "adr_dir": "",
+  "roadmap_path": "",
+  "architecture_dir": "",
+  "adr_pattern": "",
+  "discovered": {
+    "adr_dir": {
+      "found": false,
+      "created": false,
+      "candidates_tried": 0
+    },
+    "roadmap_path": {
+      "found": false,
+      "created": false,
+      "candidates_tried": 0
+    },
+    "architecture_dir": {
+      "found": false,
+      "created": false,
+      "candidates_tried": 0
+    }
+  },
+  "version": 1
+}

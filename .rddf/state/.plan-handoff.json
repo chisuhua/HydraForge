@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "completed_at": "2026-07-26T12:26:00+08:00",
+  "phase": "plan-done",
+  "deliverables": {
+    "active_changes": 6,
+    "adr_count": 46,
+    "roadmap_phase": "phase-6a"
+  },
+  "gate": "passed",
+  "changes_created": [
+    "pdk-chat-demo-v1-recap",
+    "pkm-temporal-demo-scaffold",
+    "adr-0002-eventbus-queue",
+    "adr-0019-iinteractionbus",
+    "adr-0037-causal-ordering"
+  ]
+}
