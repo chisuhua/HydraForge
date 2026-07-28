@@ -47,6 +47,10 @@ function(add_catch_test TEST_NAME)
         target_sources(${TEST_NAME} PRIVATE
             ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/pdk_entry.cpp
             ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/temporal_client.cpp
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/temporal_client_pool.cpp
+        )
+        target_include_directories(${TEST_NAME} PRIVATE
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src
         )
         target_link_libraries(${TEST_NAME} PRIVATE dl)
     endif()
