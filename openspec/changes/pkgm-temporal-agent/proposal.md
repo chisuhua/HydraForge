@@ -57,10 +57,6 @@ Temporal Agent 作为纯 C++ PDK Plugin，通过 gRPC 直连 Temporal Server，�
 | `temporal/signal` | 发送 Signal |
 | `temporal/query` | 查询 Workflow 状态 |
 
-## Capabilities
-
-- `temporal-agent-plugin`: Temporal Workflow Agent PDK Plugin (C++)
-
 ## Impact
 
 - `pdk/temporal_agent/`：新增 PDK Plugin 目录
