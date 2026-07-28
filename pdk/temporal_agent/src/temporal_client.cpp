@@ -320,6 +320,7 @@ WorkflowResult InMemoryTemporalBackend::poll(const std::string& workflow_id,
                                               long long timeout_ms) {
   std::lock_guard<std::mutex> lock(mutex_);
   auto& cur = find_or_throw(workflow_id);
+  cur.poll_count += 1;
 
   // 简单轮询 (InMemory 后端: 状态由测试手动推进)
   auto deadline = std::chrono::steady_clock::now() +
@@ -430,6 +431,68 @@ InMemoryTemporalBackend::consume_signals(const std::string& workflow_id) {
   auto result = std::move(it->second.pending_signals);
   it->second.pending_signals.clear();
   return result;
+}
+
+static WorkflowResult make_result_from_state(
+    const std::string& wf_id, const std::string& run_id,
+    WorkflowStatus status, const nlohmann::json& result,
+    const std::string& failure_reason,
+    long long history_size, int event_count) {
+  return WorkflowResult{
+    .workflow_id = wf_id,
+    .run_id = run_id,
+    .status = status,
+    .result = result,
+    .failure_reason = failure_reason,
+    .history_size_bytes = history_size,
+    .event_count = event_count
+  };
+}
+
+void InMemoryTemporalBackend::stream_workflow_events(
+    const std::string& workflow_id,
+    StreamCallback callback,
+    std::atomic<bool>& stop_flag) {
+  while (!stop_flag.load(std::memory_order_relaxed)) {
+    WorkflowResult snapshot;
+    WorkflowStatus prev_status = WorkflowStatus::Unknown;
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      auto it = workflows_.find(workflow_id);
+      if (it == workflows_.end()) {
+        return;
+      }
+      auto& s = it->second;
+      prev_status = s.last_streamed_status;
+      s.last_streamed_status = s.status;
+      snapshot = make_result_from_state(
+          s.workflow_id, s.run_id, s.status, s.result,
+          s.failure_reason, s.history_size_bytes, s.event_count);
+    }
+
+    if (snapshot.status != prev_status) {
+      callback(snapshot);
+    }
+
+    if (snapshot.status == WorkflowStatus::Completed ||
+        snapshot.status == WorkflowStatus::Failed ||
+        snapshot.status == WorkflowStatus::Cancelled ||
+        snapshot.status == WorkflowStatus::Terminated ||
+        snapshot.status == WorkflowStatus::TimedOut) {
+      return;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  }
+}
+
+int InMemoryTemporalBackend::get_poll_count(const std::string& workflow_id) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  auto it = workflows_.find(workflow_id);
+  if (it == workflows_.end()) {
+    return 0;
+  }
+  return it->second.poll_count;
 }
 
 }  // namespace pdk_temporal_agent

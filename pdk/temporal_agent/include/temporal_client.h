@@ -131,6 +131,19 @@ class ITemporalBackend {
     (void)workflow_id;
     return {};
   }
+
+  using StreamCallback = std::function<void(const WorkflowResult&)>;
+
+  virtual void stream_workflow_events(const std::string& workflow_id,
+                                      StreamCallback callback,
+                                      std::atomic<bool>& stop_flag) {
+    (void)workflow_id; (void)callback; (void)stop_flag;
+  }
+
+  virtual int get_poll_count(const std::string& workflow_id) const {
+    (void)workflow_id;
+    return 0;
+  }
 };
 
 // === 错误异常 (后端抛出, 客户端捕获并映射) ===
@@ -246,6 +259,11 @@ class InMemoryTemporalBackend : public ITemporalBackend {
                    const nlohmann::json& payload) override;
   std::vector<SignalEntry> consume_signals(const std::string& workflow_id) override;
 
+  void stream_workflow_events(const std::string& workflow_id,
+                              StreamCallback callback,
+                              std::atomic<bool>& stop_flag) override;
+  int get_poll_count(const std::string& workflow_id) const override;
+
  private:
   struct WorkflowState {
     std::string workflow_id;
@@ -260,6 +278,8 @@ class InMemoryTemporalBackend : public ITemporalBackend {
     int event_count = 0;
     std::chrono::steady_clock::time_point started_at;
     std::vector<SignalEntry> pending_signals;
+    int poll_count = 0;
+    WorkflowStatus last_streamed_status = WorkflowStatus::Unknown;
   };
 
   mutable std::mutex mutex_;
