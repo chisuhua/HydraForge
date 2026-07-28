@@ -47,3 +47,7 @@ add_subdirectory(session_agent)     # 多轮会话 + JSONL 持久化
 add_subdirectory(budget_agent)      # 预算查询 + 告警
 add_subdirectory(fs_tools)          # 文件系统 read/write/list/exists
 add_subdirectory(shell_tools)       # shell exec + 危险命令黑名单
+
+# pkgm-temporal-agent - Temporal 工作流编排插件 (5 工具: start/poll/signal/query)
+# 关联: openspec/changes/pkgm-temporal-agent/
+add_subdirectory(temporal_agent)
