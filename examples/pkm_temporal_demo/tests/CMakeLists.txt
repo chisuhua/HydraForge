@@ -27,3 +27,31 @@ target_compile_features(test_demo_main PRIVATE cxx_std_20)
 target_compile_definitions(test_demo_main PRIVATE CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1)
 
 add_test(NAME test_demo_main COMMAND test_demo_main)
+
+# ============================================================================
+# Task 5: 4 场景 DSL 文件解析测试
+# ============================================================================
+add_executable(test_scenarios
+    test_scenarios.cpp
+    ${CATCH_DIR}/catch_amalgamated.cpp
+    ${CATCH_DIR}/main_test_runner.cpp
+)
+
+target_include_directories(test_scenarios PRIVATE
+    ${CATCH_DIR}
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+
+target_compile_features(test_scenarios PRIVATE cxx_std_20)
+target_compile_definitions(test_scenarios PRIVATE CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1)
+
+target_link_libraries(test_scenarios PRIVATE
+    agenticdsl_includes
+    agenticdsl_core
+    agenticdsl_modules_parser
+)
+
+add_test(NAME test_scenarios COMMAND test_scenarios
+         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
