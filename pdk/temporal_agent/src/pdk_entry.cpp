@@ -16,12 +16,14 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
 #include <agenticdsl/contract/itool_registry.h>
 #include <agenticdsl/plugin/plugin_info.h>
 
+#include "pdk_entry.h"
 #include "temporal_client.h"
 
 namespace {
@@ -317,14 +319,33 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
 }
 
 // ============================================================================
-// 任务 3.7: pdk_register_agent
-// 注: 当前 HydraForge PluginLoader 仅识别 pdk_plugin_info + pdk_register_tools
-//     两个符号, 没有 AgentDescriptor 类型或 pdk_register_agent 符号约定。
-//     此入口遵循未来 Agent 注册契约的预留接口, Phase 2 主机端 AgentDescriptor
-//     基础设施落地后激活。当前为 deferred (tasks.md §3.7 标记 deferred)。
+// Task 7.7: pdk_register_agent - AgentDescriptor 导出
+// 注: HydraForge PluginLoader 当前仅识别 pdk_plugin_info + pdk_register_tools。
+//     pdk_register_agent 为 Phase 2 新增符号, 主机端 AgentDescriptor 消费者
+//     基础设施落地后由 PluginLoader 自动识别。
+//     当前为 code-complete (符号已导出, 数据正确), 非 host-consumed。
 // ============================================================================
-// extern "C" void pdk_register_agent(AgentDescriptor& desc) {
-//   desc.name = "temporal_agent";
-//   desc.entry_tool = "temporal/start_workflow";
-//   desc.capabilities = {"temporal", "workflow_orchestration"};
-// }
+
+namespace pdk_temporal_agent {
+
+AgentDescriptor get_agent_descriptor() {
+  return AgentDescriptor{
+    .name = "temporal_agent",
+    .capabilities = {
+      "temporal/start_workflow",
+      "temporal/start_async",
+      "temporal/poll",
+      "temporal/signal",
+      "temporal/query"
+    },
+    .version = "0.2.0"
+  };
+}
+
+}  // namespace pdk_temporal_agent
+
+extern "C" pdk_temporal_agent::AgentDescriptor* pdk_register_agent() {
+  static pdk_temporal_agent::AgentDescriptor desc =
+      pdk_temporal_agent::get_agent_descriptor();
+  return &desc;
+}

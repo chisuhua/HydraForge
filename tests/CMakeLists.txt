@@ -68,6 +68,17 @@ function(add_catch_test TEST_NAME)
         )
     endif()
 
+    if(TEST_NAME MATCHES "^test_pdk_register_agent")
+        target_sources(${TEST_NAME} PRIVATE
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/pdk_entry.cpp
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/temporal_client.cpp
+        )
+        target_include_directories(${TEST_NAME} PRIVATE
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/include
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src
+        )
+    endif()
+
     # 注册为 CTest 测试
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 
