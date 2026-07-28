@@ -125,6 +125,9 @@ add_subdirectory(include/agenticdsl/types)
 # Phase 1 Sprint 4 PDK 骨架 (K3 决策: monorepo `pdk/` 子目录, ADR-0021 §2.2)
 # hydraforge_pdk INTERFACE 库 (header-only), 静态链接到插件 (P3)
 # Phase 2 拆分至独立 hydraforge-pdk 仓库时移除此行, 改 find_package(hydraforge_pdk REQUIRED)
+# 注: enable_testing() 在 add_subdirectory(pdk) 前调用, 使 pdk 子目录中的
+# add_test() 调用可被 ctest 发现 (pkm-temporal-demo-scaffold Task 1)。
+enable_testing()
 add_subdirectory(pdk)
 
 add_library(agenticdsl_core STATIC
@@ -188,6 +191,9 @@ if(AGENTICDSL_BUILD_EXAMPLES)
     # --- pdk_chat_demo (Phase A 端到端 Agent-as-Plugin 验证) ---
     # 关联: examples/pdk_chat_demo/DESIGN.md (784 行, 15 节)
     add_subdirectory(examples/pdk_chat_demo)
+
+    # --- pkm_temporal_demo (Temporal workflow demo, Task 4-6) ---
+    add_subdirectory(examples/pkm_temporal_demo)
 endif()
 
 # Create alias for tests

@@ -47,3 +47,7 @@ add_subdirectory(session_agent)     # 多轮会话 + JSONL 持久化
 add_subdirectory(budget_agent)      # 预算查询 + 告警
 add_subdirectory(fs_tools)          # 文件系统 read/write/list/exists
 add_subdirectory(shell_tools)       # shell exec + 危险命令黑名单
+
+# pkm-temporal-demo-scaffold: Temporal Agent PDK Plugin (ITemporalClient + MockTemporalClient + 5 工具)
+# 关联: .rddf/plans/pkm-temporal-demo-scaffold.md
+add_subdirectory(temporal_agent)     # Task 1: ITemporalClient 接口 + 测试
