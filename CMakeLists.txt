@@ -191,6 +191,9 @@ if(AGENTICDSL_BUILD_EXAMPLES)
     # --- pdk_chat_demo (Phase A 端到端 Agent-as-Plugin 验证) ---
     # 关联: examples/pdk_chat_demo/DESIGN.md (784 行, 15 节)
     add_subdirectory(examples/pdk_chat_demo)
+
+    # --- pkm_temporal_demo (Temporal workflow demo, Task 4-6) ---
+    add_subdirectory(examples/pkm_temporal_demo)
 endif()
 
 # Create alias for tests
