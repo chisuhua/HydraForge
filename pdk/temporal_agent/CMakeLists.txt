@@ -40,6 +40,7 @@ add_library(TemporalAgent SHARED
     src/temporal_client_pool.cpp
     src/workflow_callback_channel.cpp
     src/namespace_manager.cpp
+    src/grpc_temporal_backend.cpp
 )
 
 target_include_directories(TemporalAgent PRIVATE
