@@ -15,7 +15,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # ============================================================================
 # Task 4: Demo 可执行文件
 # ============================================================================
-add_executable(pkm_temporal_demo main.cpp)
+add_executable(pkm_temporal_demo main.cpp demo_args.cpp)
 
 target_include_directories(pkm_temporal_demo PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}                 # demo_args.h
@@ -35,3 +35,27 @@ target_link_libraries(pkm_temporal_demo PRIVATE
 # Task 4: 测试子目录
 # ============================================================================
 add_subdirectory(tests)
+
+# ============================================================================
+# Task 6: 4 场景 ctest 注册 (端到端验证)
+# ============================================================================
+add_test(NAME pkm_temporal_demo_blocking
+         COMMAND pkm_temporal_demo --mock --scenario blocking
+         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+add_test(NAME pkm_temporal_demo_async_poll
+         COMMAND pkm_temporal_demo --mock --scenario async-poll
+         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+add_test(NAME pkm_temporal_demo_signal
+         COMMAND pkm_temporal_demo --mock --scenario signal
+         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+add_test(NAME pkm_temporal_demo_idempotent
+         COMMAND pkm_temporal_demo --mock --scenario idempotent
+         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+set_tests_properties(
+    pkm_temporal_demo_blocking
+    pkm_temporal_demo_async_poll
+    pkm_temporal_demo_signal
+    pkm_temporal_demo_idempotent
+    PROPERTIES TIMEOUT 30
+)

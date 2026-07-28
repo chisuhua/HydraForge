@@ -9,6 +9,7 @@
 #include "demo_args.h"
 
 #include "agenticdsl/contract/itool_registry.h"
+#include "agenticdsl/pdk/itemporal_client.h"
 #include "common/tools/registry.h"
 #include "core/engine.h"
 #include "mock_client.h"
@@ -17,7 +18,11 @@
 #include <memory>
 #include <string>
 
-namespace temporal_agent = agenticdsl::pdk::temporal_agent;
+namespace agenticdsl::pdk::temporal_agent {
+void set_client(std::unique_ptr<ITemporalClient> c);
+void register_tools(IToolRegistry* registry);
+}
+
 using agenticdsl::pdk::demo::DemoMode;
 using agenticdsl::pdk::demo::parse_args;
 
@@ -36,7 +41,7 @@ int main(int argc, char** argv) {
   }
 
   auto client = std::make_unique<agenticdsl::pdk::MockTemporalClient>();
-  temporal_agent::set_client(std::move(client));
+  agenticdsl::pdk::temporal_agent::set_client(std::move(client));
 
   std::string scenario_path =
       "examples/pkm_temporal_demo/scenario-" + args.scenario + ".agent.md";
@@ -48,7 +53,7 @@ int main(int argc, char** argv) {
   }
 
   // 在引擎已有的 ToolRegistry 上注册 5 个 temporal/* 工具
-  temporal_agent::register_tools(&engine->get_tool_registry());
+  agenticdsl::pdk::temporal_agent::register_tools(&engine->get_tool_registry());
 
   std::cout << "=== PKM Temporal Demo ===\n"
             << "Scenario: " << args.scenario << "\n"
