@@ -32,6 +32,7 @@ function(add_catch_test TEST_NAME)
         ${PROJECT_SOURCE_DIR}/external/inja/include
         ${PROJECT_SOURCE_DIR}/external/yaml-cpp/include
         ${PROJECT_SOURCE_DIR}/external/taskflow
+        ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/include
     )
 
     target_link_libraries(${TEST_NAME} PRIVATE agenticdsl agenticdsl_modules_parser yaml-cpp::yaml-cpp)
@@ -40,6 +41,43 @@ function(add_catch_test TEST_NAME)
     # Sprint 16 (B.5): test_system_nodes 需要 EndNode 定义 (来自 agenticdsl_modules_system)
     target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_modules_system)
     target_compile_definitions(${TEST_NAME} PRIVATE CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1)
+
+    # temporal_agent 测试需要直接链接 plugin 源码 (pdk_register_tools + pdk_plugin_info)
+    if(TEST_NAME MATCHES "^test_temporal_agent")
+        target_sources(${TEST_NAME} PRIVATE
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/pdk_entry.cpp
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/temporal_client.cpp
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/temporal_client_pool.cpp
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/workflow_callback_channel.cpp
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/namespace_manager.cpp
+        )
+        target_include_directories(${TEST_NAME} PRIVATE
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src
+        )
+        target_link_libraries(${TEST_NAME} PRIVATE dl)
+    endif()
+
+    if(TEST_NAME MATCHES "^test_grpc_temporal_backend")
+        target_sources(${TEST_NAME} PRIVATE
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/temporal_client.cpp
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/grpc_temporal_backend.cpp
+        )
+        target_include_directories(${TEST_NAME} PRIVATE
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/include
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src
+        )
+    endif()
+
+    if(TEST_NAME MATCHES "^test_pdk_register_agent")
+        target_sources(${TEST_NAME} PRIVATE
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/pdk_entry.cpp
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/temporal_client.cpp
+        )
+        target_include_directories(${TEST_NAME} PRIVATE
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/include
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src
+        )
+    endif()
 
     # 注册为 CTest 测试
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})

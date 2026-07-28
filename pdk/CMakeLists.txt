@@ -48,6 +48,7 @@ add_subdirectory(budget_agent)      # 预算查询 + 告警
 add_subdirectory(fs_tools)          # 文件系统 read/write/list/exists
 add_subdirectory(shell_tools)       # shell exec + 危险命令黑名单
 
-# pkm-temporal-demo-scaffold: Temporal Agent PDK Plugin (ITemporalClient + MockTemporalClient + 5 工具)
-# 关联: .rddf/plans/pkm-temporal-demo-scaffold.md
-add_subdirectory(temporal_agent)     # Task 1: ITemporalClient 接口 + 测试
+# pkgm-temporal-agent - Temporal 工作流编排插件 (5 工具: start/poll/signal/query)
+# 关联: openspec/changes/pkgm-temporal-agent/
+# 注: pkm-temporal-demo-scaffold 的简化版本已被此完整实现取代 (archive 副本保留)
+add_subdirectory(temporal_agent)
