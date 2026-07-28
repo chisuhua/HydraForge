@@ -61,3 +61,36 @@ target_sources(test_mock_client PRIVATE
 )
 
 add_test(NAME test_mock_client COMMAND test_mock_client)
+
+# ============================================================================
+# Task 3: PDK 5 工具注册测试
+# ============================================================================
+add_executable(test_pdk_entry
+    test_pdk_entry.cpp
+    ${CATCH_DIR}/catch_amalgamated.cpp
+    ${CATCH_DIR}/main_test_runner.cpp
+)
+
+target_include_directories(test_pdk_entry PRIVATE
+    ${CATCH_DIR}
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/..          # mock_client.h + pdk_entry symbols
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+
+target_compile_features(test_pdk_entry PRIVATE cxx_std_20)
+target_compile_definitions(test_pdk_entry PRIVATE CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1)
+
+# Task 3: 编译 pdk_entry.cpp + mock_client.cpp 进测试 (无需 .so 链接)
+target_sources(test_pdk_entry PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../pdk_entry.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../mock_client.cpp
+)
+
+target_link_libraries(test_pdk_entry PRIVATE
+    hydraforge_pdk
+    agenticdsl_common           # IToolRegistry / ToolMetadata 实现
+)
+
+add_test(NAME test_pdk_entry COMMAND test_pdk_entry)
