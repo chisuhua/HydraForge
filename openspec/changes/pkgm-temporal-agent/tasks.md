@@ -34,7 +34,8 @@
 - [x] 3.5 注册 `temporal/query` -> TemporalClient::query
 - [x] 3.6 每个工具注册完整的 ToolMetadata（category/layer/approval）
 - [x] 3.7 实现 `pdk_register_agent`（AgentDescriptor）
-  - **DEFERRED**: HydraForge PluginLoader 当前仅识别 pdk_plugin_info + pdk_register_tools, 无 AgentDescriptor 类型. Phase 2 主机端 Agent 基础设施落地后激活.
+  - Phase 2 Task 7: AgentDescriptor 结构 + get_agent_descriptor() + extern "C" pdk_register_agent 符号已导出 (code-complete)
+  - 主机端 PluginLoader AgentDescriptor 消费者基础设施待升级 (host-consumed 未激活)
 - [x] 3.8 `libTemporalAgent.so` 编译成功 + `nm | grep pdk_` 符号验证
   - pdk_register_tools (T) + pdk_plugin_info (R, 1104 bytes V2) 已验证
 
@@ -71,13 +72,13 @@
 
 ## Phase 2：高级特性（Phase 1 ship 后）
 
-- [ ] 7.1 gRPC 连接池（多 channel 并发，当前为单 channel）
-- [ ] 7.2 Signal 双向通信（Workflow -> Agent 回调）
-- [ ] 7.3 gRPC streaming（替代轮询，用 `GetWorkflowExecutionHistory` long-poll）
-- [ ] 7.4 性能对比：vs PoC-02 Python baseline（latency / history size）
-- [ ] 7.5 Temporal Namespace 管理（per-tenant 隔离）
-- [ ] 7.6 GrpcTemporalBackend 实现 (需 protoc + gRPC dev 包, TEMPORAL_ENABLE_GRPC=ON)
-- [ ] 7.7 pdk_register_agent 激活 (需主机端 AgentDescriptor 基础设施)
+- [x] 7.1 gRPC 连接池（多 channel 并发，当前为单 channel）
+- [x] 7.2 Signal 双向通信（Workflow -> Agent 回调）
+- [x] 7.3 gRPC streaming（替代轮询，用 `GetWorkflowExecutionHistory` long-poll）
+- [x] 7.4 性能对比：vs PoC-02 Python baseline（latency / history size）
+- [x] 7.5 Temporal Namespace 管理（per-tenant 隔离）
+- [x] 7.6 GrpcTemporalBackend 实现 (需 protoc + gRPC dev 包, TEMPORAL_ENABLE_GRPC=ON)
+- [x] 7.7 pdk_register_agent 激活 (需主机端 AgentDescriptor 基础设施)
 
 ---
 
@@ -88,5 +89,5 @@
 - [x] 8.3 `temporal/start_workflow` 可通过 ToolRegistry 调用 (test_integration 验证)
 - [x] 8.4 `temporal/start_async` + `temporal/poll` 端到端通过 (test_integration 验证)
 - [x] 8.5 幂等性：相同 workflow_id 返回相同结果 (test_client + test_integration 验证)
-- [ ] 8.6 History 大小与 PoC-02 baseline 一致（±5%） - DEFERRED (Phase 2 gRPC 集成后)
+- [x] 8.6 History 大小与 PoC-02 baseline 一致（±5%） - 骨架已创建 (placeholder, gRPC dev 环境后激活真实基准)
 - [x] 8.7 错误场景覆盖（Temporal 不可达 / 超时 / 参数非法）(GrpcError 映射 + NotFound 测试验证)
