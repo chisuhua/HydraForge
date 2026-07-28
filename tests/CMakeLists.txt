@@ -49,6 +49,7 @@ function(add_catch_test TEST_NAME)
             ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/temporal_client.cpp
             ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/temporal_client_pool.cpp
             ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/workflow_callback_channel.cpp
+            ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/namespace_manager.cpp
         )
         target_include_directories(${TEST_NAME} PRIVATE
             ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src
