@@ -14,10 +14,14 @@
     {
       "added_at": "2026-07-27T22:42:56.684780+00:00",
       "name": "pkgm-temporal-agent",
-      "status": "in_worktree",
+      "status": "archived",
       "plan_path": ".rddf/plans/pkgm-temporal-agent.md",
       "tasks_total": 41,
-      "worktree_path": ".rddf/wt/pkgm-temporal-agent"
+      "worktree_path": ".rddf/wt/pkgm-temporal-agent",
+      "archived_at": "2026-07-28T06:40:14.521162Z",
+      "completion_commits": 9,
+      "test_passes": 10,
+      "phase2_complete": true
     },
     {
       "added_at": "2026-07-27T22:42:56.853600+00:00",
