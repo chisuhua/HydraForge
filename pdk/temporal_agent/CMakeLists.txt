@@ -38,6 +38,7 @@ add_library(TemporalAgent SHARED
     src/pdk_entry.cpp
     src/temporal_client.cpp
     src/temporal_client_pool.cpp
+    src/workflow_callback_channel.cpp
 )
 
 target_include_directories(TemporalAgent PRIVATE

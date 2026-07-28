@@ -408,4 +408,28 @@ bool InMemoryTemporalBackend::exists(const std::string& workflow_id) const {
   return workflows_.count(workflow_id) > 0;
 }
 
+void InMemoryTemporalBackend::emit_signal(const std::string& workflow_id,
+                                          const std::string& signal_name,
+                                          const nlohmann::json& payload) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  auto it = workflows_.find(workflow_id);
+  if (it == workflows_.end()) {
+    throw TemporalError(GrpcError::NotFound,
+                        "emit_signal: workflow not found: " + workflow_id);
+  }
+  it->second.pending_signals.push_back({signal_name, payload});
+}
+
+std::vector<ITemporalBackend::SignalEntry>
+InMemoryTemporalBackend::consume_signals(const std::string& workflow_id) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  auto it = workflows_.find(workflow_id);
+  if (it == workflows_.end()) {
+    return {};
+  }
+  auto result = std::move(it->second.pending_signals);
+  it->second.pending_signals.clear();
+  return result;
+}
+
 }  // namespace pdk_temporal_agent

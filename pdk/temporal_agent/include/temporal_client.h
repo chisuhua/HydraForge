@@ -111,6 +111,26 @@ class ITemporalBackend {
 
   // 查询 (只读元数据)
   virtual WorkflowResult query(const std::string& workflow_id) = 0;
+
+  // === Phase 2: Workflow -> Agent Signal 双向通信 ===
+  // Workflow 发射信号 (后端缓存, 供 consume_signals 拉取)
+  // 默认 no-op (GrpcTemporalBackend Task 5 可覆盖)
+  virtual void emit_signal(const std::string& workflow_id,
+                           const std::string& signal_name,
+                           const nlohmann::json& payload) {
+    (void)workflow_id; (void)signal_name; (void)payload;
+  }
+
+  // 消费所有待处理的信号 (拉取后清空队列)
+  // 返回 vector<SignalEntry>, signal_name + payload
+  struct SignalEntry {
+    std::string signal_name;
+    nlohmann::json payload;
+  };
+  virtual std::vector<SignalEntry> consume_signals(const std::string& workflow_id) {
+    (void)workflow_id;
+    return {};
+  }
 };
 
 // === 错误异常 (后端抛出, 客户端捕获并映射) ===
@@ -220,6 +240,12 @@ class InMemoryTemporalBackend : public ITemporalBackend {
   // 检查是否存在
   bool exists(const std::string& workflow_id) const;
 
+  // Phase 2: Signal 双向通信
+  void emit_signal(const std::string& workflow_id,
+                   const std::string& signal_name,
+                   const nlohmann::json& payload) override;
+  std::vector<SignalEntry> consume_signals(const std::string& workflow_id) override;
+
  private:
   struct WorkflowState {
     std::string workflow_id;
@@ -233,6 +259,7 @@ class InMemoryTemporalBackend : public ITemporalBackend {
     long long history_size_bytes = 0;
     int event_count = 0;
     std::chrono::steady_clock::time_point started_at;
+    std::vector<SignalEntry> pending_signals;
   };
 
   mutable std::mutex mutex_;
