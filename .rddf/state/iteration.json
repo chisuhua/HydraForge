@@ -1,6 +1,6 @@
 {
   "version": 4,
-  "updated_at": "2026-07-29T09:05:48.718096+00:00",
+  "updated_at": "2026-07-29T12:41:32.109536+00:00",
   "current_phase": "default",
   "changes": [
     {
@@ -33,38 +33,44 @@
     {
       "added_at": "2026-07-29T09:05:48.718096+00:00",
       "name": "adr-0002-busevent-contract",
-      "status": "proposed",
+      "status": "archived",
       "priority": "P1",
       "plan_path": ".rddf/plans/adr-0002-busevent-contract.md",
-      "tasks_total": 27,
+      "tasks_total": 20,
       "blocker": null,
       "parallel_group": 0,
       "conflicts": [],
-      "last_deps_at": "2026-07-29T09:05:48.718096+00:00"
+      "last_deps_at": "2026-07-29T09:05:48.718096+00:00",
+      "worktree_path": ".rddf/wt/adr-0002-busevent-contract",
+      "archived_at": "2026-07-29T12:30:36.744615+00:00"
     },
     {
       "added_at": "2026-07-29T09:05:48.718096+00:00",
       "name": "adr-0019-subscribe-glob",
-      "status": "proposed",
+      "status": "archived",
       "priority": "P1",
       "plan_path": ".rddf/plans/adr-0019-subscribe-glob.md",
       "tasks_total": 25,
       "blocker": "adr-0002-busevent-contract",
       "parallel_group": 1,
       "conflicts": [],
-      "last_deps_at": "2026-07-29T09:05:48.718096+00:00"
+      "last_deps_at": "2026-07-29T09:05:48.718096+00:00",
+      "worktree_path": ".rddf/wt/adr-0019-subscribe-glob",
+      "archived_at": "2026-07-29T12:40:51.103167+00:00"
     },
     {
       "added_at": "2026-07-29T09:05:48.718096+00:00",
       "name": "adr-0037-causal-clock",
-      "status": "proposed",
+      "status": "archived",
       "priority": "P2",
       "plan_path": ".rddf/plans/adr-0037-causal-clock.md",
       "tasks_total": 19,
       "blocker": "adr-0002-busevent-contract",
       "parallel_group": 1,
       "conflicts": [],
-      "last_deps_at": "2026-07-29T09:05:48.718096+00:00"
+      "last_deps_at": "2026-07-29T09:05:48.718096+00:00",
+      "worktree_path": ".rddf/wt/adr-0037-causal-clock",
+      "archived_at": "2026-07-29T12:41:32.097950+00:00"
     }
   ]
 }

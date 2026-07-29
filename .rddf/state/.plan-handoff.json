@@ -1,8 +1,14 @@
 {
   "plan_complete_at": "2026-07-29T09:09:23.189769+00:00",
-  "active_changes": 3,
+  "active_changes": 0,
   "all_artifacts_committed": true,
-  "ship_started_at": null,
+  "ship_started_at": "2026-07-29T12:13:00.363482+00:00",
   "current_change": "adr-0002-busevent-contract",
-  "execution_mode_decisions": {}
+  "execution_mode_decisions": {},
+  "archived_at": "2026-07-29T12:41:32.318126+00:00",
+  "archived_changes": [
+    "adr-0002-busevent-contract",
+    "adr-0019-subscribe-glob",
+    "adr-0037-causal-clock"
+  ]
 }
