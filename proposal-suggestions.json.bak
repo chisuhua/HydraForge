@@ -1,0 +1,52 @@
+[
+  {
+    "name": "pdk-chat-demo-v1-recap",
+    "priority": "P0",
+    "source": "roadmap.md Phase 6a §任务 T1+T2",
+    "status": "created",
+    "phase": "phase-6a",
+    "category": "demo-chat-v1",
+    "effort": "8h (4h+4h)",
+    "description": "## 架构依据\n- roadmap.md Phase 6a: pdk_chat_demo v1 收尾 (Session 持久化 + Budget 告警)\n- roadmap.md Phase 6a: Schema 校验基础版 (拒绝错误格式)\n\n## 范围\n- Session 持久化: save_to_disk / load_from_disk / 过期清理\n- Budget 告警: IInteractionBus event → TUI 显示\n- Schema 校验: SchemaValidator → 拒绝非法 DSL\n\n## 关键场景\n- GIVEN mock mode, WHEN chat session starts, THEN session persisted to disk\n- GIVEN budget exceeded, WHEN LLM call attempted, THEN alert shown in TUI\n- GIVEN invalid .agent.md, WHEN parsed, THEN rejected with line-level error\n\n## 验收标准\n- ctest -R pdk_chat 全绿\n- ./pdk_chat_demo --mock Session 持久化 + Budget 告警正常工作"
+  },
+  {
+    "name": "pkm-temporal-demo-scaffold",
+    "priority": "P0",
+    "source": "roadmap.md Phase 6a 任务 T3+T4+T5",
+    "status": "created",
+    "phase": "phase-6a",
+    "category": "demo-temporal-1a",
+    "effort": "24h (10h+8h+6h)",
+    "description": "## 架构依据\n- roadmap.md Phase 6a: pkm_temporal_demo PDK 骨架 (ITemporalClient + Mock + CLI + pdk_entry)\n- roadmap.md Phase 6a: Demo 项目 (main.cpp + 4 场景 + config.json)\n- roadmap.md Phase 6a: 测试 (unit + e2e mock, ≥8 test cases)\n\n## 范围\n- ITemporalClient 抽象接口 + MockTemporalClient 实现\n- 4 个演示场景 DSL (blocking/async-poll/signal/idempotent)\n- ctest -R temporal ≥8 cases\n\n## 验收标准\n- ctest -R temporal 全绿\n- ./pkm_temporal_demo --mock 4 场景全部 PASS"
+  },
+  {
+    "name": "adr-0002-busevent-contract",
+    "priority": "P1",
+    "source": "ADR-0002 EventBus + ADR-0019 IInteractionBus (Oracle 重构)",
+    "status": "created",
+    "phase": "phase-6a",
+    "category": "架构对齐",
+    "effort": "~1d",
+    "description": "## 架构依据\n- Oracle 评审 (2026-07-26): 一次性收敛到 BusEvent 公开契约\n- ADR-0002: EventBus 需统一 BusEvent 类型\n- 当前 InMemoryBus 使用 pair<string,ToolResult>，无统一事件信封\n\n## 范围\n- 新建 BusEvent 公开契约 (topic, payload:ToolResult, timestamp, causal_time, priority)\n- emit/subscribe 一次性迁移到 BusEvent (唯一破坏性变更)\n- 更新 4 个实现者: InMemoryBus + 3 测试 Mock\n- soak test: dispatch_thread + 10000 events\n\n## 验收标准\n- ctest 全量零回归\n- nm -C | grep emit.*BusEvent 确认 ABI"
+  },
+  {
+    "name": "adr-0019-subscribe-glob",
+    "priority": "P1",
+    "source": "ADR-0019 IInteractionBus (Oracle 重构)",
+    "status": "created",
+    "phase": "phase-6a",
+    "category": "架构对齐",
+    "effort": "~3h",
+    "description": "## 架构依据\n- Oracle 评审: 不新增 subscribe_topic，扩展 subscribe 接受 glob\n- ADR-0046: PDK Plugin 间通信需要 topic-based subscribe\n- 依赖 Change A (BusEvent 契约已定义)\n\n## 范围\n- subscribe() 接受 glob pattern (无通配符=精确匹配, O(1))\n- InMemoryBus 双路径分发: exact map + wildcard list\n- Race test: subscribe/unsubscribe 并发 dispatch\n\n## 验收标准\n- ctest -R test_interaction_bus_glob 全绿\n- ctest 全量零回归"
+  },
+  {
+    "name": "adr-0037-causal-clock",
+    "priority": "P2",
+    "source": "ADR-0037 因果排序 (Oracle 重构)",
+    "status": "created",
+    "phase": "phase-6a",
+    "category": "架构对齐",
+    "effort": "~3h",
+    "description": "## 架构依据\n- ADR-0037 §决策 1: 单进程逻辑时钟 + 因果向量\n- Oracle 评审: 纯增量变更，BusEvent.causal_time 已在 Change A 预留\n- 不跨进程 (跨进程时升级为 Lamport)\n\n## 范围\n- CausalClock: atomic<uint64_t> + tick/now/merge/happens_before\n- InMemoryBus::emit() 自动 tick + attach\n- Causal monotonicity soak: 3 producer → consumer per-producer monotonic\n\n## 验收标准\n- ctest -R test_causal_clock 5/5 PASS\n- ctest 全量零回归"
+  }
+]
