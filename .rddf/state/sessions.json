@@ -173,14 +173,14 @@
         "subject": "ship-phase",
         "expected_outcome": "archive-all"
       },
-      "state": "active",
+      "state": "completed",
       "attached_changes": [],
       "context_pointer": null,
       "started_at": "2026-07-29T09:22:26.559556+00:00",
       "last_heartbeat": "2026-07-29T09:22:26.559556+00:00",
-      "ended_at": null,
-      "end_reason": null
+      "ended_at": "2026-07-29T12:50:00.000000+00:00",
+      "end_reason": "ship-done"
     }
   ],
-  "updated_at": "2026-07-29T09:22:26.559556+00:00"
+  "updated_at": "2026-07-29T12:50:00.000000+00:00"
 }
