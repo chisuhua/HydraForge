@@ -42,6 +42,7 @@ SCENARIO_NAMES = {
     2: "plan F1-F4 self-audit 误标",
     3: "engine.h includes vs 声明",
     4: "ADR 声称实现 vs 代码 grep",
+    5: "proposal-approved.md 已批准提案 vs archive 一致性",
 }
 
 # 严重级别
@@ -653,6 +654,117 @@ def scan_scenario4(root: Path) -> List[Dict[str, Any]]:
 
 
 # ============================================================================
+# 场景 5：proposal-approved.md 已批准提案 vs archive 一致性
+# ============================================================================
+
+# 匹配表格式行中的提案条目：| [name](improvements/name.md) | ... |
+TABLE_ENTRY_PATTERN = re.compile(
+    r"\|\s*\[([^\]]+)\]\(improvements/([^)]+)\)\s*\|"
+)
+
+
+def _to_base_name(dirname: str) -> str:
+    """去掉日期前缀（YYYY-MM-DD-），返回裸 name。无日期前缀则原样返回。"""
+    m = re.match(r'^\d{4}-\d{2}-\d{2}-(.+)$', dirname)
+    return m.group(1) if m else dirname
+
+
+def scan_scenario5(root: Path) -> List[Dict[str, Any]]:
+    """
+    场景 5：扫描 proposal-approved.md 中 §已批准提案 vs archive 归档目录
+
+    DRIFT 条件：entry 仍在 §已批准提案 但 archive/ 已有对应目录 → 应移入 §已实施
+    WARNING 条件：entry 在 §已实施 但 archive/ 找不到对应目录 → 声明可能有误
+    """
+    findings: List[Dict[str, Any]] = []
+    proposal_path = root / "proposal-approved.md"
+    if not proposal_path.exists():
+        return findings
+
+    text = read_text(proposal_path)
+    if text is None:
+        return findings
+
+    file_rel = rel(proposal_path, root)
+    archive_dir = root / "openspec" / "changes" / "archive"
+    if not archive_dir.exists():
+        return findings
+
+    # 收集 archive/ 下所有目录名（含日期前缀和裸名）
+    archived_bases: dict[str, str] = {}
+    for d in archive_dir.iterdir():
+        if d.is_dir():
+            base = _to_base_name(d.name)
+            archived_bases[base] = d.name
+
+    lines = text.splitlines()
+    in_approved = False
+    in_implemented = False
+
+    for idx, line in enumerate(lines, start=1):
+        stripped = line.strip()
+
+        if stripped == "## 已批准提案":
+            in_approved = True
+            in_implemented = False
+            continue
+        elif stripped.startswith("## "):
+            if stripped == "## 已实施":
+                in_implemented = True
+            else:
+                in_implemented = False
+            in_approved = False
+            continue
+
+        if not in_approved and not in_implemented:
+            continue
+
+        m = TABLE_ENTRY_PATTERN.match(line)
+        if not m:
+            continue
+
+        entry_name = m.group(1)
+        entry_md = m.group(2)
+
+        if in_approved:
+            if entry_name in archived_bases:
+                findings.append(make_finding(
+                    scenario=5,
+                    severity=SEVERITY_DRIFT,
+                    file=file_rel,
+                    line=idx,
+                    summary=(
+                        f"「{entry_name}」仍在 §已批准提案，但 "
+                        f"archive/{archived_bases[entry_name]}/ 已存在 — 应移入 §已实施"
+                    ),
+                    details={
+                        "entry_name": entry_name,
+                        "entry_line": idx,
+                        "archived_as": archived_bases[entry_name],
+                    },
+                ))
+
+        elif in_implemented:
+            # entry 在 §已实施 → 验证 archive/ 存在
+            if entry_name not in archived_bases:
+                findings.append(make_finding(
+                    scenario=5,
+                    severity=SEVERITY_WARNING,
+                    file=file_rel,
+                    line=idx,
+                    summary=(
+                        f"「{entry_name}」声明为已实施，但 archive/ 中找不到对应归档目录"
+                    ),
+                    details={
+                        "entry_name": entry_name,
+                        "entry_line": idx,
+                    },
+                ))
+
+    return findings
+
+
+# ============================================================================
 # 报告输出
 # ============================================================================
 
@@ -667,14 +779,14 @@ def format_human_report(findings: List[Dict[str, Any]], root: Path) -> str:
     lines.append("")
 
     # 按场景分组
-    by_scenario: Dict[int, List[Dict[str, Any]]] = {1: [], 2: [], 3: [], 4: []}
+    by_scenario: Dict[int, List[Dict[str, Any]]] = {1: [], 2: [], 3: [], 4: [], 5: []}
     for f in findings:
         by_scenario[f["scenario"]].append(f)
 
     drift_count = sum(1 for f in findings if f["severity"] == SEVERITY_DRIFT)
     warning_count = sum(1 for f in findings if f["severity"] == SEVERITY_WARNING)
 
-    for scenario_num in (1, 2, 3, 4):
+    for scenario_num in (1, 2, 3, 4, 5):
         scenario_findings = by_scenario[scenario_num]
         lines.append(f"[Scenario {scenario_num}] {SCENARIO_NAMES[scenario_num]}")
         if not scenario_findings:
@@ -712,7 +824,7 @@ def format_human_report(findings: List[Dict[str, Any]], root: Path) -> str:
 
     lines.append("=" * 80)
     lines.append(f"SUMMARY: {drift_count} DRIFT items, {warning_count} WARNING items detected")
-    for scenario_num in (1, 2, 3, 4):
+    for scenario_num in (1, 2, 3, 4, 5):
         s_drift = sum(1 for f in by_scenario[scenario_num] if f["severity"] == SEVERITY_DRIFT)
         s_warn = sum(1 for f in by_scenario[scenario_num] if f["severity"] == SEVERITY_WARNING)
         lines.append(f"  Scenario {scenario_num}: {s_drift} drifts, {s_warn} warnings")
@@ -722,7 +834,7 @@ def format_human_report(findings: List[Dict[str, Any]], root: Path) -> str:
 
 def format_json_report(findings: List[Dict[str, Any]], root: Path) -> str:
     """格式化为 JSON 报告"""
-    by_scenario: Dict[str, int] = {"1": 0, "2": 0, "3": 0, "4": 0}
+    by_scenario: Dict[str, int] = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0}
     drift_total = 0
     for f in findings:
         if f["severity"] == SEVERITY_DRIFT:
@@ -745,12 +857,13 @@ def format_json_report(findings: List[Dict[str, Any]], root: Path) -> str:
 # ============================================================================
 
 def run_audit(root: Path) -> List[Dict[str, Any]]:
-    """执行全部 4 个场景，返回 findings 列表"""
+    """执行全部 5 个场景，返回 findings 列表"""
     findings: List[Dict[str, Any]] = []
     findings.extend(scan_scenario1(root))
     findings.extend(scan_scenario2(root))
     findings.extend(scan_scenario3(root))
     findings.extend(scan_scenario4(root))
+    findings.extend(scan_scenario5(root))
     return findings
 
 
