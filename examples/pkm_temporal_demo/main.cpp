@@ -1,27 +1,23 @@
 // examples/pkm_temporal_demo/main.cpp
 // 功能描述：PKM Temporal Demo CLI 入口 (Task 4 Step 3)。
-//          解析 --mock/--real/--scenario 参数, 创建 MockTemporalClient,
+//          解析 --mock/--real/--scenario 参数, 配置 TemporalClient (InMemory 后端),
 //          注册 5 个 temporal/* 工具, 加载 scenario .agent.md 并执行。
 // 设计依据：.rddf/plans/pkm-temporal-demo-scaffold.md Task 4 Step 3
+//          + pdk/temporal_agent 实际 API (TemporalClient 单例 + InMemoryTemporalBackend)
 // 作者：pkm-temporal-demo-scaffold Task 4
-// 最后修改日期：2026-07-28
+// 最后修改日期：2026-07-30 (修复 mock_client.h 不存在问题, 改用 InMemoryTemporalBackend)
 
 #include "demo_args.h"
 
 #include "agenticdsl/contract/itool_registry.h"
-#include "agenticdsl/pdk/itemporal_client.h"
-#include "common/tools/registry.h"
 #include "core/engine.h"
-#include "mock_client.h"
+#include "temporal_client.h"
 
 #include <iostream>
 #include <memory>
 #include <string>
 
-namespace agenticdsl::pdk::temporal_agent {
-void set_client(std::unique_ptr<ITemporalClient> c);
-void register_tools(IToolRegistry* registry);
-}
+extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry);
 
 using agenticdsl::pdk::demo::DemoMode;
 using agenticdsl::pdk::demo::parse_args;
@@ -40,8 +36,10 @@ int main(int argc, char** argv) {
     return 2;
   }
 
-  auto client = std::make_unique<agenticdsl::pdk::MockTemporalClient>();
-  agenticdsl::pdk::temporal_agent::set_client(std::move(client));
+  // 配置 TemporalClient (单例) 使用 InMemory 后端 (零 gRPC 依赖, Mock 模式)
+  auto& client = pdk_temporal_agent::TemporalClient::instance();
+  client.set_backend(std::make_unique<pdk_temporal_agent::InMemoryTemporalBackend>());
+  client.connect("in-memory");
 
   std::string scenario_path =
       "examples/pkm_temporal_demo/scenario-" + args.scenario + ".agent.md";
@@ -53,17 +51,17 @@ int main(int argc, char** argv) {
   }
 
   // 在引擎已有的 ToolRegistry 上注册 5 个 temporal/* 工具
-  agenticdsl::pdk::temporal_agent::register_tools(&engine->get_tool_registry());
+  pdk_register_tools(engine->get_tool_registry());
 
   std::cout << "=== PKM Temporal Demo ===\n"
             << "Scenario: " << args.scenario << "\n"
             << "Mode: " << (args.mode == DemoMode::Mock ? "Mock" : "Real") << "\n"
             << "Running...\n";
 
-  agenticdsl::Context ctx;
-  ctx["user_input"] = "hello";
-  auto result = engine->run(ctx);
+  auto result = engine->run();
 
   std::cout << "Result: " << (result.success ? "SUCCESS" : "FAILED") << "\n";
+
+  client.shutdown();
   return result.success ? 0 : 4;
 }

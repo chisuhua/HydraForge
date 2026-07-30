@@ -21,14 +21,14 @@ target_include_directories(pkm_temporal_demo PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}                 # demo_args.h
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/pdk/temporal_agent    # mock_client.h
+    ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/include   # temporal_client.h
     ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
 )
 
 target_link_libraries(pkm_temporal_demo PRIVATE
     agenticdsl_includes
     agenticdsl_core
-    pdk_temporal_agent                          # mock_client.cpp + pdk_entry.cpp
+    pdk_temporal_agent                          # temporal_client.cpp + pdk_entry.cpp
 )
 
 # ============================================================================
