@@ -12,14 +12,18 @@
 # Task 3: 共享库目标 libpdk_temporal_agent.so
 # ============================================================================
 add_library(pdk_temporal_agent SHARED
-    pdk_entry.cpp
-    mock_client.cpp
+    src/pdk_entry.cpp
+    src/temporal_client.cpp
+    src/temporal_client_pool.cpp
+    src/namespace_manager.cpp
+    src/workflow_callback_channel.cpp
 )
 
 target_include_directories(pdk_temporal_agent PRIVATE
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}           # mock_client.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include   # temporal_client.h, grpc_temporal_backend.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src       # pdk_entry.h, temporal_client_pool.h
     ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
 )
 
@@ -36,7 +40,4 @@ set_target_properties(pdk_temporal_agent PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdk/temporal_agent"
 )
 
-# ============================================================================
-# 测试子目录 (Task 1/2/3 测试)
-# ============================================================================
-add_subdirectory(tests)
+# 测试在 tests/CMakeLists.txt 中托管 (test_temporal_agent_*.cpp)
