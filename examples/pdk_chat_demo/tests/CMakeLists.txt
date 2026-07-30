@@ -175,3 +175,33 @@ add_test(
     COMMAND test_budget_alert
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# test_e2e_real_llm — 真实 LLM 集成测试 (minimax)
+# 需要 MINIMAX_API_KEY 环境变量；未设置时自动跳过
+add_executable(test_e2e_real_llm
+    test_e2e_real_llm.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_e2e_real_llm PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_e2e_real_llm PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+target_compile_definitions(test_e2e_real_llm PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_e2e_real_llm
+    COMMAND test_e2e_real_llm
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

@@ -49,10 +49,10 @@ std::unique_ptr<ILLMProvider> LLMProviderFactory::create(const LLMConfig& config
     return mock_factory->create(config);
   }
 
-  // OpenAI 兼容协议: openai / anthropic / deepseek / qwen / moonshot / custom
+  // OpenAI 兼容协议: openai / anthropic / deepseek / minimax / qwen / moonshot / custom
   if (backend == "openai" || backend == "anthropic" ||
-      backend == "deepseek" || backend == "qwen" ||
-      backend == "moonshot" || backend == "custom") {
+      backend == "deepseek" || backend == "minimax" ||
+      backend == "qwen" || backend == "moonshot" || backend == "custom") {
     return cloud_factory->create(config);
   }
 
