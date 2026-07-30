@@ -4,7 +4,7 @@
 
 ## 已批准提案
 
-| [name](improvements/name.md) | priority | 批准日期 | 批准人 |
+| [name](improvements/name.md) | priority | 来源 | 批准日期 | 批准人 |
 | --- | --- | --- | --- |
 | （无 — 所有已批准提案均已 ship，见下表） | | | |
 

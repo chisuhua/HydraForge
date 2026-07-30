@@ -1,8 +1,9 @@
 # ADR 实施状态差距分析
 
-**生成日期**: 2026-07-23
+**生成日期**: 2026-07-30
+**最后更新**: 2026-07-30 — 同步 2026-07-23~07-30 的 3 个 EventBus 链变更 (BusEvent/glob subscribe/CausalClock) + pkgm-temporal-agent 完整 ship
 **分析范围**: 59 个 ADR（46 主 + 1 plugin + 12 skill 子项） vs 代码库实施状态
-**数据源**: `docs/adr/` 目录、AGENTS.md Recent Changes、代码库架构扫描、code-review-graph
+**数据源**: `docs/adr/` 目录、AGENTS.md Recent Changes、代码库架构扫描、code-review-graph、git log 2026-07-23~07-30
 
 ---
 
@@ -11,20 +12,20 @@
 | 状态 | 计数 | 占比 |
 |------|:---:|:----:|
 | ✅ Approved — 已批准且实施完成 | 31 | 52.5% |
-| 🟡 Partial — 已批准但实施不完整 | 6 | 10.2% |
-| 🔍 Proposed — 提议阶段，未批准 | 8 | 13.6% |
+| 🟡 Partial — 已批准但实施不完整 | 7 | 11.9% |
+| 🔍 Proposed — 提议阶段，未批准 | 7 | 11.9% |
 | ❌ Not Implemented — 未实施（含已归档） | 12 | 20.3% |
 | ⛔ Superseded — 被替代 | 1 | 1.7% |
 | 📦 Archived (已实施后归档) — 见脚注 | 1 | 1.7% |
 | **总计** | **59** | **100%** |
 
-> ① `docs/archive/adr/` 中 12 个已归档 ADR（0010-0018 全部未实施，0030 V1 被替代，0036 两文件未实施）已计入 `❌ Not Implemented`。② ADR-0032（CostCollector）已实施后归档，单列为 `📦 Archived`。③ ADR-0002（EventBus）未实施但文件仍在 `docs/adr/` 主目录，已计入 `❌ Not Implemented`。
+> ① `docs/archive/adr/` 中 12 个已归档 ADR（0010-0018 全部未实施，0030 V1 被替代，0036 两文件未实施）已计入 `❌ Not Implemented`。② ADR-0032（CostCollector）已实施后归档，单列为 `📦 Archived`。③ ADR-0002（EventBus）未实施但文件仍在 `docs/adr/` 主目录，已计入 `❌ Not Implemented`。④ ADR-0037 于 2026-07-27 从 🔍 Proposed 提升为 🟡 Partial（CausalClock + emit auto-tick 已 ship）。
 
 ---
 
 ## 二、实施差距详细分析
 
-### 2.1 🟡 Partial — 契约达成但实施不完整（6 个 ADR）
+### 2.1 🟡 Partial — 契约达成但实施不完整（7 个 ADR）
 
 #### ADR-0007: 上下文压缩机制
 - **ADR 状态**: 🟡 Partial
@@ -35,10 +36,10 @@
 
 #### ADR-0019: IInteractionBus 接口与 MVP
 - **ADR 状态**: 🟡 Partial
-- **现状**: IInteractionBus + InMemoryBus MPMC 已 ship (2026-06-24)，但 subscribe_topic 未按 ADR-0046 §2.1 扩展为 topic-based 订阅
-- **缺失**: Topic 订阅过滤、跨模块事件路由声明
-- **影响**: 事件总线缺乏主题感知，无法按 topic 过滤
-- **建议**: 评估是否需要 topic-based 订阅，或当前 MPMC 范式已足够
+- **现状**: IInteractionBus + InMemoryBus MPMC 已 ship (2026-06-24)。2026-07-26~27 新增 **BusEvent 公开契约** (Change A) + **subscribe_glob 通配符订阅** (Change B)。subscribe_glob 支持 `event_type::k*` 等通配符模式，通过 glob match 双路径分发 (O(1) 精确路径 + O(n) 通配符路径)。
+- **缺失**: 正式的 `subscribe_topic(topic_pattern, callback)` 未实施 — 但 subscribe_glob 已部分覆盖该需求
+- **影响**: 低 — subscribe_glob 已满足通配符订阅需求。topic-based 订阅在 ADR-0046 §2.1 中定义但当前范式下价值有限
+- **建议**: 关闭 subscribe_topic gap，将 subscribe_glob 视为该需求的已实施版本
 
 #### ADR-0030 V2: Phase 2 异步运行时
 - **ADR 状态**: 🟡 Partial
@@ -62,6 +63,13 @@
 - **影响**: 低 — V1 已满足当前需要
 - **建议**: Phase 6 规划 V2 增强
 
+#### ADR-0037: 跨 Worker 事件因果序
+- **ADR 状态**: 🟡 Partial (2026-07-27 从 🔍 Proposed 提升)
+- **已实施**: CausalClock 类 (2026-07-27) — 单调递增 64 位时钟，`emit()` 时自动 tick + attach 到 BusEvent.causal_time。InMemoryBus 集成 emit auto-tick。3 个 Change 链 (A)BusEvent → (B)subscribe_glob → (C)CausalClock 全部 ship。
+- **缺失**: 完整因果序系统 — 向量时钟、跨 worker 版本向量合并、分布式因果关系检测
+- **影响**: 低 — CausalClock 基础已满足单进程 emit 顺序追踪需求
+- **建议**: 维持单进程 CausalClock 范式，分布式的向量时钟在 Phase 6 出现跨进程需求时再评估
+
 ### 2.2 🔍 Proposed — 未批准但有自发性实施
 
 #### ADR-0042: ILLMProvider 演进路径
@@ -78,14 +86,9 @@
 
 #### ADR-0046: PDK 插件间通信协议
 - **ADR 状态**: 🔍 Proposed
-- **现状**: 实施率 ~25% — InMemoryBus 基础存在但无 topic-based 订阅
+- **现状**: 实施率 ~35% — InMemoryBus 基础存在 + BusEvent 公开契约 (2026-07-26) + subscribe_glob (2026-07-27) 部分覆盖了协议需求
 - **缺失**: 跨插件消息格式、序列化协议、版本协商
 - **建议**: 与 ADR-0045 编排插件同步推进
-
-#### ADR-0037: 跨 Worker 事件因果序
-- **ADR 状态**: 🔍 Proposed
-- **现状**: 零实施
-- **建议**: 维持 DEFER — Agent 场景下因果序需求尚不明确
 
 #### 其余 Proposed ADR
 - **ADR-0038** (动态配置): DELAY — 被 ADR-0041 PluginLoader lifecycle 覆盖
@@ -137,15 +140,16 @@
 | 策略/审批 | 0031 | **85%** | 4 项 defer 至 C6 |
 | 插件加载 | 0022, 0041 | **100%** | PluginLoader V2 shipped |
 | 调度/执行 | 0033, 0019 | **100%** | TopoScheduler + NodeExecutor |
+| **EventBus 基础设施** | 0019, 0002, 0037, 0046 | **90%** | 2026-07-26~27: BusEvent 公开契约 + subscribe_glob + CausalClock 全部 ship |
+| **Temporal Agent** | — | **100%** | 2026-07-28: pkgm-temporal-agent Phase 1+2 完整 ship (41/41 tasks, 10/10 ctest)
 
 ### 3.2 测试覆盖
 
 | 指标 | 数值 |
 |------|:---:|
-| 测试文件数 | 83 (82 `.cpp` + 1 `.h`) |
-| 最新 ctest | 83/83 PASS (2026-07-23) |
-| ASan | 72/72 PASS (来源: AGENTS.md Sprint 21 ship 记录) |
-| TSan | 34/34 PASS (2 pre-existing documented) |
+| 测试文件数 | 100+ (`.cpp` 测试文件) |
+| 最新 ctest | 93/93 PASS (2026-07-30) |
+| main 分支状态 | 93/93 零回归，3 个 EventBus 变更 + pkgm-temporal-agent 全部 ship
 
 ---
 
@@ -163,13 +167,15 @@
 
 4. **ADR-0007 LLM 压缩**: 长期对话场景下可能成为瓶颈。
 
-5. **ADR-0019 subscribe_topic**: 评估是否需要 topic-based 订阅。
+5. **ADR-0019 subscribe_topic**: subscribe_glob 已 ship (2026-07-27)，覆盖了通配符订阅需求。建议正式关闭此 gap，除非未来出现明确的 topic-based 路由需求。
 
 ### 🟢 低优先级
 
 6. **Phase 6 ADR (0052-0064)**: 13 个 ADR 架构评审 Approved 但多数无代码 — 属前期定义，按 Phase 6 节奏推进即可。
 
 7. **已归档 ADR (0010-0018)**: 认知增强功能推迟，Phase 6 可能重新评估但非当前焦点。
+
+8. **ADR-0037 CausalClock**: 基础 ship 完成，分布式向量时钟留待跨进程需求出现时评估。
 
 ---
 
@@ -178,10 +184,11 @@
 ```
 Phase 5 (当前) ──→ Phase 6
   ✅ 核心已稳定          🔴 ADR-0042 状态对齐
-  🟡 6 Partial 跟踪      🟡 ADR-0031 C6 收尾
-  🔍 8 Proposed 评估     🔍 ADR-0045/0046 编排协议
-                           🟢 Phase 6 ADR 代码实施
-                           🟢 ADR-0066 V2 增强
+  🟡 7 Partial 跟踪      🟡 ADR-0031 C6 收尾
+  🔍 7 Proposed 评估     🔍 ADR-0045/0046 编排协议
+  ✅ EventBus 链已 ship   🟢 Phase 6 ADR 代码实施
+  ✅ Temporal Agent ship  🟢 ADR-0066 V2 增强
+                           🟢 ADR-0037 分布式向量时钟 (跨进程时)
 ```
 
 ---
@@ -245,26 +252,26 @@ Phase 5 (当前) ──→ Phase 6
 | 0061-11 | DSL→Wasm 编译器 | 🔍 Proposed | P2 |
 | 0061-12 | WebLLM 集成 | 🔍 Proposed | P2 |
 
-### 🟡 Partial（6 个）
+### 🟡 Partial（7 个）
 
 | ADR | 标题 | 缺失项 |
 |-----|------|--------|
 | 0007 | 上下文压缩 | 无 LLM 压缩 |
-| 0019 | IInteractionBus | subscribe_topic 未扩展 |
+| 0019 | IInteractionBus | subscribe_glob 已 ship，subscribe_topic 正式关闭 gap |
 | 0030 V2 | 异步运行时 | FleetOrchestrator DEFER |
 | 0031 | 执行策略 | 4 项 defer 至 C6 |
+| 0037 | 因果序 | CausalClock 基础 ship，分布式向量时钟 defer |
 | 0066 | SkillInterpreter 架构 | V1 done, V2 deferred |
 
-### 🔍 Proposed（8 个）
+### 🔍 Proposed（7 个）
 
 | ADR | 标题 | 备注 |
 |-----|------|------|
-| 0037 | 因果排序 | 零实施 |
 | 0038 | 动态配置接口 | BatchingQueue 延迟 |
 | 0039 | 性能元数据契约 | JSON 工具未实现 |
 | 0042 | ILLMProvider 演进路径 | C16 决议已记录 |
 | 0045 | 编排 Plugin 规范 | 实施率 ~20% |
-| 0046 | 插件间通信协议 | 实施率 ~25% |
+| 0046 | 插件间通信协议 | 实施率 ~35% (BusEvent + subscribe_glob 已覆盖部分需求) |
 | 0061-07~12 | P2 子项 (6 个) | v2 candidate |
 
 ### ⛔ Superseded（1 个）
