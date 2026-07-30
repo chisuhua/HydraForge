@@ -2,6 +2,7 @@
 // 关联: examples/pdk_chat_demo/dsl_validator.h
 //       openspec/changes/pdk-chat-demo-v1-recap/design.md §T2
 // 作者: Sisyphus (OhMyOpenCode), 2026-07-27
+// 更新: 2026-07-30 — 接受可选 IToolRegistry*, 启用 MISSING_TOOL_DEPENDENCY 检查
 
 #include "dsl_validator.h"
 
@@ -9,6 +10,8 @@
 #include <regex>
 #include <set>
 #include <stdexcept>
+
+#include <agenticdsl/contract/itool_registry.h>
 
 namespace pdk_chat_demo {
 
@@ -76,7 +79,8 @@ std::string DslValidator::extract_nodes_json(const std::string& content) {
 // ============================================================
 // 主校验入口
 // ============================================================
-ValidationResult DslValidator::validate(const std::string& markdown_content) {
+ValidationResult DslValidator::validate(const std::string& markdown_content,
+                                       const agenticdsl::IToolRegistry* registry) {
   ValidationResult result;
 
   // ----------------------------------------------------------
@@ -152,6 +156,11 @@ ValidationResult DslValidator::validate(const std::string& markdown_content) {
           node["tool_name"].get<std::string>().empty()) {
         result.add_error("MISSING_REQUIRED_FIELD", node_path,
                          "call_tool node missing required field 'tool_name'");
+      } else if (registry != nullptr && !registry->has_tool(node["tool_name"].get<std::string>())) {
+        // registry 提供时，查 ToolRegistry 实际注册表，未注册则拒绝
+        result.add_error("MISSING_TOOL_DEPENDENCY", node_path,
+                         "call_tool references unregistered tool '" +
+                             node["tool_name"].get<std::string>() + "'");
       }
     }
   }

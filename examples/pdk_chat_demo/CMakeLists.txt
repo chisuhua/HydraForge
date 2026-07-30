@@ -45,6 +45,11 @@ target_link_libraries(pdk_chat_demo PRIVATE
 # 使 dlopen 的 .so 插件能解析宿主二进制中的 agenticdsl_core 符号
 target_link_options(pdk_chat_demo PRIVATE -Wl,--export-dynamic)
 
+# T2: DslValidator 集成需要项目源码根路径定位 lib/loop/*.agent.md
+target_compile_definitions(pdk_chat_demo PRIVATE
+    AGENTICDSL_PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
+)
+
 # --- Configure config.json with build directory paths ---
 set(SKILL_CODE_REVIEW_PATH "${PROJECT_SOURCE_DIR}/skills/code-review")
 set(SKILL_CODE_REVIEW_RUN_PATH "${CMAKE_CURRENT_SOURCE_DIR}/skills")

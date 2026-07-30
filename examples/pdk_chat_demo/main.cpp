@@ -13,6 +13,7 @@
 #include <nlohmann/json.hpp>
 
 #include "chat_session.h"
+#include "dsl_validator.h"
 #include "event_handler.h"
 
 // HydraForge AgenticOS 核心
@@ -26,10 +27,14 @@
 #include <common/llm/llm_provider_factory.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <agenticdsl/contract/inmemory_bus.h>
+#include <agenticdsl/contract/itool_registry.h>
 #include <agenticdsl/plugin/plugin_loader.h>
 #include <modules/budget/budget_controller.h>
 
 #include <agenticdsl/skill/skill_interpreter.h>
+
+#include <fstream>
+#include <sstream>
 
 namespace fs = std::filesystem;
 
@@ -271,6 +276,74 @@ int main(int argc, char* argv[]) {
             if (result.value("success", false)) {
                 std::cout << "[main] Loop Agent provider configured" << std::endl;
             }
+        }
+    }
+
+    // ============================================================
+    // 5.6. T2: DSL Schema 校验 — 加载 .agent.md → DslValidator → 失败退出
+    //     Plugin 已加载完毕, registry 含全部工具; 路径与 pdk_entry.cpp 一致
+    //     (lib/loop/<loop_type>.agent.md)
+    //
+    //     跳过条件：当前 lib/loop/*.agent.md 使用 YAML 格式，validator 仅支持
+    //     Markdown bold (**key**: value) 格式 — 见 T2 follow-up:
+    //     需扩展 validator 支持 YAML，或统一 .agent.md 格式。
+    //     注意：T2 9 个测试 fixture 均使用 Markdown bold 格式，与生产 YAML 不同。
+    // ============================================================
+    {
+#ifndef AGENTICDSL_PROJECT_SOURCE_DIR
+#define AGENTICDSL_PROJECT_SOURCE_DIR "."
+#endif
+        const std::vector<std::string> candidates = {
+            "lib/loop/" + config.agent.loop_type + ".agent.md",
+            "../lib/loop/" + config.agent.loop_type + ".agent.md",
+            std::string(AGENTICDSL_PROJECT_SOURCE_DIR) + "/lib/loop/" +
+                config.agent.loop_type + ".agent.md"
+        };
+
+        std::string markdown_content;
+        std::string agent_md_path;
+        for (const auto& path : candidates) {
+            std::ifstream md_file(path);
+            if (md_file.is_open()) {
+                std::stringstream ss;
+                ss << md_file.rdbuf();
+                markdown_content = ss.str();
+                md_file.close();
+                agent_md_path = path;
+                break;
+            }
+        }
+
+        if (markdown_content.empty()) {
+            std::cerr << "[main] DSL Schema Validation skipped: "
+                      << "lib/loop/" << config.agent.loop_type
+                      << ".agent.md not found" << std::endl;
+        } else if (markdown_content.find("**") == std::string::npos) {
+            // YAML 格式 .agent.md — validator 暂不支持，跳过（保持向后兼容）
+            std::cerr << "[main] DSL Schema Validation skipped: "
+                      << agent_md_path
+                      << " uses YAML format (not Markdown bold). "
+                      << "Validator only supports Markdown bold (**key**: value) "
+                      << "format. See T2 follow-up for YAML support."
+                      << std::endl;
+        } else {
+            const agenticdsl::IToolRegistry* registry =
+                &engine->get_tool_registry();
+            pdk_chat_demo::DslValidator validator;
+            auto vr = validator.validate(markdown_content, registry);
+
+            if (!vr.valid) {
+                std::cerr << "[main] DSL Schema Validation FAILED for "
+                          << agent_md_path << " ("
+                          << vr.errors.size() << " errors):" << std::endl;
+                for (const auto& e : vr.errors) {
+                    std::cerr << "  - [" << e.type << "] " << e.node_path
+                              << ": " << e.message << std::endl;
+                }
+                return 1;
+            }
+            std::cout << "[main] DSL Schema Validation OK: " << agent_md_path
+                      << std::endl;
         }
     }
 

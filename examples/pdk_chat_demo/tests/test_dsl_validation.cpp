@@ -2,12 +2,67 @@
 // 关联: examples/pdk_chat_demo/dsl_validator.h
 //       openspec/changes/pdk-chat-demo-v1-recap/design.md §T2
 // 作者: Sisyphus (OhMyOpenCode), 2026-07-27
+// 更新: 2026-07-30 — 添加 MISSING_TOOL_DEPENDENCY 测试 (T2 任务 6.5)
 
 #include "catch_amalgamated.hpp"
 
 #include "dsl_validator.h"
 
+#include <agenticdsl/contract/itool_registry.h>
+
+#include <memory>
+#include <unordered_map>
+#include <unordered_set>
+
 using namespace pdk_chat_demo;
+
+namespace {
+
+// Minimal IToolRegistry mock for MISSING_TOOL_DEPENDENCY tests.
+// Only has_tool() is exercised by DslValidator; the rest throw / no-op.
+class MockToolRegistry : public ::agenticdsl::IToolRegistry {
+ public:
+  explicit MockToolRegistry(std::unordered_set<std::string> registered)
+      : registered_(std::move(registered)) {}
+
+  bool has_tool(const std::string& name) const override {
+    return registered_.count(name) > 0;
+  }
+
+  nlohmann::json call_tool(
+      const std::string&,
+      const std::unordered_map<std::string, std::string>&) override {
+    return {};
+  }
+
+  std::vector<std::string> list_tools() const override {
+    return std::vector<std::string>(registered_.begin(), registered_.end());
+  }
+
+  void register_tool_function(std::string, ::agenticdsl::ToolMetadata,
+                              ToolFunc) override {}
+
+  void register_llm_tool(std::string, std::unique_ptr<::agenticdsl::ILLMTool>,
+                         const ::agenticdsl::LLMParams&) override {}
+
+  bool is_llm_tool(const std::string&) const override { return false; }
+  const ::agenticdsl::LLMParams& get_llm_params(const std::string&) const override {
+    static ::agenticdsl::LLMParams empty{};
+    return empty;
+  }
+
+  nlohmann::json call_llm_tool(const std::string&, const std::string&,
+                               const ::agenticdsl::LLMParams&) override {
+    return {};
+  }
+
+  void set_cost_callback(CostCallback) override {}
+
+ private:
+  std::unordered_set<std::string> registered_;
+};
+
+}  // namespace
 
 // ============================================================
 // 合法最小 DSL fixture
@@ -252,4 +307,41 @@ TEST_CASE("multiple errors collected (not fail-fast)", "[dsl_validator]") {
   // 应收集 name、version、agent_loop 三个缺失 + 一个非法节点类型
   REQUIRE(result.valid == false);
   REQUIRE(result.errors.size() >= 4);
+}
+
+// T2 任务 6.5: call_tool 引用未注册工具 → rejected (with ToolRegistry)
+TEST_CASE("call_tool references unregistered tool → rejected",
+          "[dsl_validator][tool_registry]") {
+  MockToolRegistry registry({});  // 空注册表
+  DslValidator validator;
+  auto result = validator.validate(DSL_WITH_CALL_TOOL, &registry);
+
+  REQUIRE(result.valid == false);
+  bool found = false;
+  for (const auto& e : result.errors) {
+    if (e.type == "MISSING_TOOL_DEPENDENCY" &&
+        e.message.find("echo") != std::string::npos) {
+      found = true;
+    }
+  }
+  REQUIRE(found == true);
+}
+
+TEST_CASE("call_tool references registered tool → passes",
+          "[dsl_validator][tool_registry]") {
+  MockToolRegistry registry({"echo", "fs/read"});
+  DslValidator validator;
+  auto result = validator.validate(DSL_WITH_CALL_TOOL, &registry);
+
+  REQUIRE(result.valid == true);
+  REQUIRE(result.errors.empty());
+}
+
+TEST_CASE("without registry, call_tool only checks string presence",
+          "[dsl_validator][tool_registry]") {
+  DslValidator validator;
+  // DSL_WITH_CALL_TOOL 中 tool_name="echo" 非空，无 registry 时应通过
+  auto result = validator.validate(DSL_WITH_CALL_TOOL);
+  REQUIRE(result.valid == true);
+  REQUIRE(result.errors.empty());
 }
