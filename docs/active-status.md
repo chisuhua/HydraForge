@@ -219,7 +219,8 @@
 | 3 | L3-3 DECLARE_COMMAND 宏 (ADR-0070) | L3 | 0.5S | 📋 待启动 |
 | 4 | X2 ToolCoordinator Hook 注入 (ADR-0069) | L1 | 1.0S | 📋 待启动 |
 
-> 启动前置: 架构组决策 D1~D6; 修复路径按 Phase 6 plan+commit 模式 (D5 已决议)。
+> 启动前置: 架构组决策 D1~D6 (✅ 2026-07-31 全部关闭); 修复路径按 Phase 6 plan+commit 模式 (D5 已决议)。
+> **提案池**: Wave 1 四项 + Wave 2/3 八项 (fix-markdown-parser-yaml / session-manager-jsonl / context-compactor / chat-streaming-slash-tui / chat-async-io-steering / cli-args-cxxopts / session-tree-tui / provider-dynamic-discovery) 已登记 [`proposal-suggestions.md`](../../proposal-suggestions.md), 待 guide-arch Phase 5.5 逐个审查。
 
 ### 进化管线服务 (中长期, 不阻塞 Phase A)
 
