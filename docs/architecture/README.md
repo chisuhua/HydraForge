@@ -58,7 +58,7 @@
 | # | 决策项 | 背景 | 建议路径 |
 |---|--------|------|---------|
 | D1 | ~~`docs/specs/architecture.md` v2.2 处置~~ | ✅ **已决议并执行 (2026-07-31)**：采用方案①低成本变体——v2.2 归档至 `archive/specs/architecture-v2.2.md`，v1.2 晋升为 `docs/specs/architecture.md`；D1b 同步宣告"第二大脑"产品愿景归档 | 见 §五 变更记录 |
-| D2 | ADR-0068 (Event Emission Contract) 立项 | X1 缺口：28 处自发 emit 无契约，8 个订阅主题零 emit | 随 Wave 1 实施时立项 |
+| D2 | ~~ADR-0068 (Event Emission Contract) 立项~~ | ✅ **已起草 (2026-07-31)**：[`adr-0068-event-emission-contract.md`](../adr/adr-0068-event-emission-contract.md) 🔍 Proposed — 管辖运行时生命周期事件，与 0019/0046 划界；含 22 主题 Registry + 7 幻影主题发射点 + EventBuilder + 测试契约 | 待架构组评审转 Approved |
 | D3 | ADR-0069 (ToolCoordinator Hook) 立项 | X2 缺口：无 before/after tool call 拦截点 | 随 Wave 1 实施时立项 |
 | D4 | ADR-0070 (DECLARE_COMMAND) 立项 | X3 缺口：slash 命令无法插件化 | 随 Wave 1 实施时立项 |
 | D5 | loop_agent bypass (L4-1) 修复路径 | 分析文档建议 OpenSpec change，但 Phase 6 已决议 plan+commit 模式 | 按 Phase 6 plan+commit 修复，后补 ADR 追溯（已写入分析文档 §十三） |
