@@ -12,7 +12,7 @@
 | 文件 | 议题 | 状态 | Last-Verified | Update-Trigger |
 |------|------|------|---------------|----------------|
 | ~~`agent-as-plugin-architecture-v1.2.md`~~ → [`../specs/architecture.md`](../specs/architecture.md) | Agent-as-Plugin 五层架构规范 (L0~L4 + R1~R5) | ✅ Approved — **已晋升为 specs 契约层** (2026-07-31, D1 决议) | 2026-07-31 | 层模型变更 / 新 ADR 影响 R1~R5 |
-| `agent-evolution-pipeline.md` | Agent 四阶段进化管线 (SKILL→DSL→C++→Wasm) | 🔍 Proposed (ADR-0061 承接管线) | 2026-07-31 | ADR-0061 子项实施推进 |
+| `agent-evolution-pipeline.md` | Agent 四阶段进化管线 (SKILL→DSL→C++→Wasm) | ✅ Approved — **ADR-0061 设计附件** (2026-07-31 D6；§八 路线图已切除, 排期归 active-status) | 2026-07-31 | ADR-0061 子项实施推进 |
 | `application-layer-sota-positioning-v2.md` | 应用层 SOTA 定位分析 v2 | 🟡 Proposed | 2026-07-16 | SOTA 调研刷新 / 应用层新插件 |
 | `adr-implementation-status-gap-analysis.md` | ADR 实施状态基线 (**ADR 状态唯一事实源**) | 🔄 滚动更新 | 2026-07-30 | 任何 ADR 状态翻转 / ship gate |
 | `layer-based-missing-capabilities-analysis.md` | 五层缺失能力分析 + Wave 1-4 执行计划 | ✅ v1.2.1 (数据修正版) | 2026-07-31 | Wave 1 完成 / 缺失能力 ship |
@@ -62,7 +62,7 @@
 | D3 | ~~ADR-0069 (ToolCoordinator Hook) 立项~~ | ✅ **已起草 (2026-07-31)**：[`adr-0069-tool-coordinator-hooks.md`](../adr/adr-0069-tool-coordinator-hooks.md) 🔍 Proposed — pre/post 双列表 + IToolHookRegistry L3 契约 + HookErrorPolicy；layer check/审批硬门不动 | 待架构组评审转 Approved |
 | D4 | ~~ADR-0070 (DECLARE_COMMAND) 立项~~ | ✅ **已起草 (2026-07-31)**：[`adr-0070-declare-command.md`](../adr/adr-0070-declare-command.md) 🔍 Proposed — Command≠Tool 概念界定 + DECLARE_COMMAND 宏 + ICommandRegistry；shortcut 契约先行实现 defer | 待架构组评审转 Approved |
 | D5 | loop_agent bypass (L4-1) 修复路径 | 分析文档建议 OpenSpec change，但 Phase 6 已决议 plan+commit 模式 | 按 Phase 6 plan+commit 修复，后补 ADR 追溯（已写入分析文档 §十三） |
-| D6 | `agent-evolution-pipeline.md` 定位 | 与 ADR-0061 (+12 子 ADR) 内容重叠，状态 🔍 Proposed | 二选一：① 保留为 ADR-0061 设计附件；② 归档。建议 ① |
+| D6 | ~~`agent-evolution-pipeline.md` 定位~~ | ✅ **已决议并执行 (2026-07-31)**：选项①——保留为 ADR-0061 设计附件（✅ Approved），§八 实施路线图切除（排期归 active-status/Master Plan），双向链接补齐 | 见 §五 变更记录 |
 
 ---
 
@@ -72,3 +72,5 @@
 |------|------|
 | 2026-07-31 | 初始化本索引（文档治理审计产出）；v1 SOTA 定位归档；元数据规范与待决策清单建立 |
 | 2026-07-31 | **D1 决议执行**：v2.2 八层规范归档（`archive/specs/architecture-v2.2.md`），v1.2 晋升为 `docs/specs/architecture.md`；D1b"第二大脑"愿景归档宣告；全库 15 处引用修正 |
+| 2026-07-31 | **D2/D3/D4 立项**：ADR-0068/0069/0070 草案创建（🔍 Proposed）+ 3 份改进提案注册 proposal-suggestions.md（待审查） |
+| 2026-07-31 | **D6 决议执行**：`agent-evolution-pipeline.md` 保留为 ADR-0061 设计附件（✅ Approved），§八 路线图切除改指针，双向链接补齐。**D1~D6 决策清单全部关闭** |

@@ -21,7 +21,7 @@ Agent-as-Plugin 架构 / Skill 演化与编译
 - `docs/proposals/skill-system/02-invoke-compose.md` — skill_invoke / skill_compose 节点
 - `docs/proposals/skill-system/03-taxonomy-mapping.md` — 39 Skills 映射
 - `docs/proposals/skill-system/04-skill-compiler-design.md` — SKILL.md → .agent.md 编译器
-- `docs/architecture/agent-evolution-pipeline.md` — 4 阶段管线主文档
+- `docs/architecture/agent-evolution-pipeline.md` — 4 阶段管线主文档 (**设计附件**, 2026-07-31 D6 决议: 概念指南 + 同例四态变换参考; 本 ADR 为决策记录, 二者互补)
 - `docs/research/skill_evolution/` — SOTA 调研
 
 ## 背景
