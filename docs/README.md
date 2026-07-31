@@ -78,6 +78,8 @@ docs/
 | `adr-0033-session-hierarchy-impl-scope.md` | ADR-0033 实施范围审计 (C9) | 📋 审计补充 |
 | `adr-0067-layered-plugin-architecture-split.md` | L2/L3/L4 分层插件架构拆分 | ✅ Approved (追溯性正式化, 2026-07-23, 源自 `docs/specs/architecture.md` §2.3) |
 | `adr-0068-event-emission-contract.md` | 事件发射契约 (Canonical Topic Registry + 7 幻影主题强制发射点 + EventBuilder) | 🔍 Proposed (2026-07-31, D2 立项, 实施排期 Wave 1) |
+| `adr-0069-tool-coordinator-hooks.md` | ToolCoordinator Hook 注入点 (pre/post 双列表 + IToolHookRegistry + HookErrorPolicy) | 🔍 Proposed (2026-07-31, D3 立项, 实施排期 Wave 1) |
+| `adr-0070-declare-command.md` | PDK Plugin 命令/快捷键注册 (Command≠Tool + DECLARE_COMMAND + ICommandRegistry) | 🔍 Proposed (2026-07-31, D4 立项, 实施排期 Wave 1) |
 
 ### adr/plugin/ - Plugin 化候选清单
 

@@ -11,3 +11,5 @@
 |------|--------|------|----------|------|
 | [fix-loop-agent-bypass](improvements/fix-loop-agent-bypass.md) | P0 | layer-based-missing-capabilities-analysis.md §三 X4 / §八 L4-1 + Wave 1 #1 | 2026-07-31 | 待审查 |
 | [adr-0068-event-emission-contract](improvements/adr-0068-event-emission-contract.md) | P0 | ADR-0068 (D2 立项) + §三 X1 + Wave 1 #2 | 2026-07-31 | 待审查 |
+| [adr-0070-declare-command](improvements/adr-0070-declare-command.md) | P0 | ADR-0070 (D4 立项) + §三 X3 + Wave 1 #3 | 2026-07-31 | 待审查 |
+| [adr-0069-tool-coordinator-hooks](improvements/adr-0069-tool-coordinator-hooks.md) | P0 | ADR-0069 (D3 立项) + §三 X2 + Wave 1 #4 | 2026-07-31 | 待审查 |

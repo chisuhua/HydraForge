@@ -2,7 +2,7 @@
 
 > **焦点**: 当前活跃的 OpenSpec changes | **更新**: 每日
 > **Master Plan**: [`docs/superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md`](superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md)
-> **架构决策**: [`docs/adr/`](adr/) — 60 ADR (47 主 + 1 plugin + 12 skill 子项), 40 Approved (主 33 + 子 7), adr_lint 零错误 (2026-07-31 实测校准, `tools/doc_metrics.py --adr`)
+> **架构决策**: [`docs/adr/`](adr/) — 62 ADR (49 主 + 1 plugin + 12 skill 子项), 40 Approved (主 33 + 子 7), adr_lint 零错误 (2026-07-31 实测校准, `tools/doc_metrics.py --adr`)
 > **Phase**: 6 — Agent-as-Plugin (2026-07-15 ~ 至今, Phase 5 ✅ 收官)
 
 ---
@@ -16,7 +16,7 @@
 | **TSan** | 超时跳过 (机器性能受限) |
 | **OpenSpec active** | **0** (Phase 6 采用 plan + commit 模式, 不创建 OpenSpec changes) |
 | **ADR Approved** | **40** (主 33: Phase 0-5 16 + Phase 6 17 [0050/0051/0052-0065/0067]; plugin 1; skill 子项 6) |
-| **ADR 🔍 Proposed** | **12** (主 6: 0038/0039/0042/0045/0046/0068; skill 子项 6: 0061-07~12) — ADR-0050 已于 2026-07-23 转 ✅ Approved, ADR-0037 已于 2026-07-27 转 🟡 Partial, ADR-0068 于 2026-07-31 立项 (D2) |
+| **ADR 🔍 Proposed** | **14** (主 8: 0038/0039/0042/0045/0046/0068/0069/0070; skill 子项 6: 0061-07~12) — ADR-0068 (D2) / ADR-0069 (D3) / ADR-0070 (D4) 于 2026-07-31 立项 |
 | **Completed Phase 0-4** | ✅ 100% |
 | **Phase 5** | ✅ 收官 (C9-C18 全部 ✅ shipped + archived) |
 | **Phase 6** | 🟡 Agent-as-Plugin: pdk_chat_demo ✅ / skill_interpreter ✅ / AgentForge MVP 设计中 |
