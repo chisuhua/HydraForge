@@ -12,7 +12,7 @@
 | 维度 | 状态 |
 |------|------|
 | **Total ctest** | **106/106 ✅** PASS (2026-07-31 实测: `cd build && ctest` → "100% tests passed, 0 tests failed out of 106"; 注: test_llm_provider_propagation 偶发 Subprocess aborted, 重跑即过, 定性 flaky) |
-| **ASan** | 83/83 (debug mode; 2026-07-31 前记录, **待复验** — ctest 总数已升至 106) |
+| **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
 | **OpenSpec active** | **0** (Phase 6 采用 plan + commit 模式, 不创建 OpenSpec changes) |
 | **ADR Approved** | **40** (主 33: Phase 0-5 16 + Phase 6 17 [0050/0051/0052-0065/0067]; plugin 1; skill 子项 6) |
