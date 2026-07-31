@@ -3,7 +3,7 @@
 **日期**: 2026-07-16
 **状态**: 🔍 Proposed (架构讨论中；4 阶段管线已由 ADR-0061 ✅ Approved 承接，见 §决策 1)
 **作者**: Architecture Working Group
-**关联**: `docs/architecture/agent-as-plugin-architecture-v1.2.md`（当前版本）, `docs/archive/architecture/agent-as-plugin-architecture.md`（v1.0/v1.1 归档）, `docs/adr/adr-0061-agent-evolution-and-solidification.md`
+**关联**: `docs/specs/architecture.md`（架构规范，当前版本）, `docs/archive/architecture/agent-as-plugin-architecture.md`（v1.0/v1.1 归档）, `docs/adr/adr-0061-agent-evolution-and-solidification.md`
 
 ---
 

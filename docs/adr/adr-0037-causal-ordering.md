@@ -43,7 +43,7 @@ CognitiveWorker-A 完成任务 ──→ 触发 CognitiveWorker-B 新任务
 | ADR-0019 | IInteractionBus 接口 | 事件总线基础设施 |
 | ADR-0020 | 多智能体线程模型 | Worker 隔离模型 |
 | ADR-0023 | ToolResult 标准化 | 事件载荷结构 |
-| [architecture.md](../specs/architecture.md#L945) | 向量时钟 (未来) | 分布式同步 (Phase 3+) |
+| [architecture-v2.2.md (已归档)](../archive/specs/architecture-v2.2.md) | 向量时钟 (未来) | 分布式同步 (Phase 3+) |
 
 ---
 
@@ -401,7 +401,7 @@ struct VectorClock {
 - [ADR-0019: IInteractionBus](./adr-0019-iinteraction-bus-mvp.md)
 - [ADR-0020: 多智能体线程模型](./adr-0020-thread-model-isolation.md)
 - [ADR-0023: ToolResult 标准化](./adr-0023-tool-result-standard.md)
-- [architecture.md §向量时钟](../specs/architecture.md#L945) (未来 Phase 3+ 场景)
+- [architecture-v2.2.md §向量时钟 (已归档)](../archive/specs/architecture-v2.2.md) (未来 Phase 3+ 场景)
 - Leslie Lamport, "Time, Clocks, and the Ordering of Events in a Distributed System", 1978
 - Fidge, "Timestamps in Message-Passing Systems That Preserve the Partial Ordering", 1988
 

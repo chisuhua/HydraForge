@@ -8,7 +8,7 @@
 
 > **2026-07-08 update**: §8 SamplerStrategy 接口被 `docs/adversarial-reviews/decisions-2026-07-07.md` D1 决策撤销 (B2 实施前对齐)。采样器 clamp 逻辑内联到 llama_engine plugin 的 `inference/decoding/configure` 工具, 不再抽取独立 PDK 接口 (1 虚接口仅 1 个实现, `supports()` 永远 true)。变更依据: `openspec/changes/fix-adr-doc-alignment-p2-cleanup-2026-07-08/`。
 
-> **2026-07-23 update (v1.2 对齐)**: 架构文档 [`agent-as-plugin-architecture-v1.2.md`](../architecture/agent-as-plugin-architecture-v1.2.md) (2026-07-22) 将 PDK 概念细化为 L2 (Plugin 工具层) 与 L3 (PDK 接口契约层) 两个层级。本 ADR 的 P1-P6 原则不受影响；`DECLARE_TOOL`/`DEFINE_AGENT` 等宏属于 L3 契约层 (`include/agenticdsl/pdk/`), 而 `shell_tools`/`fs_tools`/`provider_agent` 等原子工具属于 L2 实现层 (`pdk/`)。详见 [ADR-0067 §决策 3](./adr-0067-layered-plugin-architecture-split.md)，该 ADR 记录了 L2/L3/L4 拆分的架构决策 (A13-A16 + 依赖规则 R1-R5)。
+> **2026-07-23 update (v1.2 对齐)**: 架构文档 [`docs/specs/architecture.md`](../specs/architecture.md)（原 agent-as-plugin-architecture-v1.2，2026-07-22；2026-07-31 晋升为 specs 架构规范）将 PDK 概念细化为 L2 (Plugin 工具层) 与 L3 (PDK 接口契约层) 两个层级。本 ADR 的 P1-P6 原则不受影响；`DECLARE_TOOL`/`DEFINE_AGENT` 等宏属于 L3 契约层 (`include/agenticdsl/pdk/`), 而 `shell_tools`/`fs_tools`/`provider_agent` 等原子工具属于 L2 实现层 (`pdk/`)。详见 [ADR-0067 §决策 3](./adr-0067-layered-plugin-architecture-split.md)，该 ADR 记录了 L2/L3/L4 拆分的架构决策 (A13-A16 + 依赖规则 R1-R5)。
 
 ## 背景
 
@@ -80,7 +80,7 @@ agentic register-tool --lib ./build/libmy_app.so
 
 ### 1.1 PDK 组件的层级化映射 (v1.2 对齐)
 
-> 架构文档 v1.2 ([`agent-as-plugin-architecture-v1.2.md`](../architecture/agent-as-plugin-architecture-v1.2.md)) 将 L2 "Agent Plugin Layer" 拆分为 L4 (编排应用) + L3 (接口契约) + L2 (原子工具) 三层。以下为 PDK 核心组件在 v1.2 中的层级归属，P1-P6 原则不受影响。详见 [ADR-0067](./adr-0067-layered-plugin-architecture-split.md)。
+> 架构文档 v1.2 ([`docs/specs/architecture.md`](../specs/architecture.md)) 将 L2 "Agent Plugin Layer" 拆分为 L4 (编排应用) + L3 (接口契约) + L2 (原子工具) 三层。以下为 PDK 核心组件在 v1.2 中的层级归属，P1-P6 原则不受影响。详见 [ADR-0067](./adr-0067-layered-plugin-architecture-split.md)。
 
 | PDK 组件 | v1.2 层级 | 说明 |
 |---------|:---------:|------|

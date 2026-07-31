@@ -253,4 +253,4 @@ Phase 2 增加 ED25519 签名 + 验证。
 - [ADR-0022 — Plugin Loading](../adr-0022-plugin-loading.md)
 - MCP 2026-07-28 RC: `blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/`
 - JSON Schema 2020-12: `json-schema.org/specification-links.html`
-- [docs/architecture/agent-as-plugin-architecture-v1.2.md](../architecture/agent-as-plugin-architecture-v1.2.md)（v1.0/v1.1 已归档至 [docs/archive/architecture/agent-as-plugin-architecture.md](../archive/architecture/agent-as-plugin-architecture.md)）
+- [docs/specs/architecture.md](../specs/architecture.md)（v1.0/v1.1 已归档至 [docs/archive/architecture/agent-as-plugin-architecture.md](../archive/architecture/agent-as-plugin-architecture.md)）

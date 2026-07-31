@@ -2,7 +2,7 @@
 
 ## 状态
 
-✅ Approved (追溯性正式化, 2026-07-23) — 决策源自 [`docs/architecture/agent-as-plugin-architecture-v1.2.md`](../architecture/agent-as-plugin-architecture-v1.2.md) §2.3 (2026-07-22), 核心决策 (A13-A16) 与依赖规则 (R1-R5) 已在代码中落地 (`include/agenticdsl/pdk/` 头文件 + `IToolRegistry` 接口), 本 ADR 为正式化的决策记录, 非新提案。
+✅ Approved (追溯性正式化, 2026-07-23) — 决策源自 [`docs/specs/architecture.md`](../specs/architecture.md) §2.3 (2026-07-22), 核心决策 (A13-A16) 与依赖规则 (R1-R5) 已在代码中落地 (`include/agenticdsl/pdk/` 头文件 + `IToolRegistry` 接口), 本 ADR 为正式化的决策记录, 非新提案。
 
 ## 领域
 
@@ -17,14 +17,14 @@ Agent-as-Plugin 架构 / 插件分层 / PDK 结构细化
 - [ADR-0031 — Execution Policy](./adr-0031-execution-policy.md) — L3 IExecutionPolicy 契约
 - [ADR-0052 — Agent Plugin Manifest](./adr-0052-agent-plugin-manifest.md) — L4 manifest
 - [ADR-0053 — AgentDescriptor](./adr-0053-agent-descriptor-interface.md) — L4 Agent 元数据
-- [`docs/architecture/agent-as-plugin-architecture-v1.2.md`](../architecture/agent-as-plugin-architecture-v1.2.md) — 架构主文档 (决策源头)
+- [`docs/specs/architecture.md`](../specs/architecture.md) — 架构主文档 (决策源头)
 - [`docs/architecture/agent-evolution-pipeline.md`](../architecture/agent-evolution-pipeline.md) — 四阶段管线 (L4→L2→L1 映射)
 
 ## 背景
 
 ### 问题
 
-[架构文档 v1.1](../architecture/agent-as-plugin-architecture-v1.2.md) (前置版本) 的 L2 "Agent Plugin Layer" 将两类完全不同职责的组件混装在同一个抽象层：
+[架构文档 v1.1](../specs/architecture.md) (前置版本) 的 L2 "Agent Plugin Layer" 将两类完全不同职责的组件混装在同一个抽象层：
 
 | 类型 | v1.1 归类 | 职责 | 实例 |
 |------|----------|------|------|
@@ -166,7 +166,7 @@ L3 包含两类实体:
 
 ## 交叉引用
 
-- 层间依赖规则 R1-R5 的表格见 [架构文档 §2.4](../architecture/agent-as-plugin-architecture-v1.2.md#24-层间依赖规则-硬性约束)
-- Temporal Agent 的层归属验证见 [架构文档 §2.5](../architecture/agent-as-plugin-architecture-v1.2.md#25-temporal-agent-的层归属验证)
-- PDK 目录结构规范见 [架构文档 §3.2](../architecture/agent-as-plugin-architecture-v1.2.md#32-plugin-目录结构规范)
-- 决策 A1-A16 全表见 [架构文档 §十一](../architecture/agent-as-plugin-architecture-v1.2.md#十一关键决策记录-v12-更新)
+- 层间依赖规则 R1-R5 的表格见 [架构文档 §2.4](../specs/architecture.md#24-层间依赖规则-硬性约束)
+- Temporal Agent 的层归属验证见 [架构文档 §2.5](../specs/architecture.md#25-temporal-agent-的层归属验证)
+- PDK 目录结构规范见 [架构文档 §3.2](../specs/architecture.md#32-plugin-目录结构规范)
+- 决策 A1-A16 全表见 [架构文档 §十一](../specs/architecture.md#十一关键决策记录-v12-更新)

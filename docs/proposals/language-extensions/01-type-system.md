@@ -88,4 +88,4 @@ signature: "(device: string, gpu_layers: int) -> (engine_id: string, status: str
 | [02-module-namespace.md](02-module-namespace.md) | 类型系统的模块/命名空间上下文 — 类型在模块范围内定义 |
 | [03-standard-library.md](03-standard-library.md) | 类型系统为标准库提供输入/输出字段校验 |
 | [docs/specs/dsl.md](../../specs/dsl.md) | 当前 DSL v3.10 无类型规范 — 本文的渐进式采用确保向后兼容 |
-| [docs/specs/architecture.md](../../specs/architecture.md) | 架构的 8 层定义 — 类型信息在 parser（L0）和运行时校验 |
+| [docs/specs/architecture.md](../../specs/architecture.md) | 架构的五层定义 — 类型信息在 parser（L0）和运行时校验 |

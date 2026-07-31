@@ -5,7 +5,7 @@
 **作者**: Architecture Working Group
 **关联文档**:
 - `docs/architecture/adr-implementation-status-gap-analysis.md`（2026-07-30）— ADR 实施状态基线
-- `docs/architecture/agent-as-plugin-architecture-v1.2.md`（2026-07-22）— 五层架构规范
+- `docs/specs/architecture.md`（2026-07-31 晋升, 原 v1.2）— 五层架构规范
 - `docs/architecture/agent-evolution-pipeline.md` — Agent 进化路径
 - `docs/research/pi-agent-vs-pdk-chat-demo-analyze.md`（2026-07-31 修订版）— pi-agent 借鉴路径
 
@@ -40,7 +40,7 @@ HydraForge 已形成"五层抽象 + AgenticOS 范式 + 跨四态进化"的架构
 
 ## 二、五层模型与能力归属
 
-> 完整架构见 `agent-as-plugin-architecture-v1.2.md` §2.1，下表为各层职责 + 当前归属模块：
+> 完整架构见 `docs/specs/architecture.md` §2.1，下表为各层职责 + 当前归属模块：
 
 | 层 | 名称 | 职责 | 当前归属模块（代码位置） | 关键 ADR |
 |----|------|------|------------------------|---------|

@@ -76,7 +76,7 @@ docs/
 | `adr-0022-plugin-loading-impl-scope.md` | ADR-0022 实施范围审计 (C9) | 📋 审计补充 |
 | `adr-0023-tool-result-standard-impl-scope.md` | ADR-0023 实施范围审计 (C9) | 📋 审计补充 |
 | `adr-0033-session-hierarchy-impl-scope.md` | ADR-0033 实施范围审计 (C9) | 📋 审计补充 |
-| `adr-0067-layered-plugin-architecture-split.md` | L2/L3/L4 分层插件架构拆分 | ✅ Approved (追溯性正式化, 2026-07-23, 源自 `agent-as-plugin-architecture-v1.2.md` §2.3) |
+| `adr-0067-layered-plugin-architecture-split.md` | L2/L3/L4 分层插件架构拆分 | ✅ Approved (追溯性正式化, 2026-07-23, 源自 `docs/specs/architecture.md` §2.3) |
 
 ### adr/plugin/ - Plugin 化候选清单
 
@@ -124,7 +124,7 @@ docs/
 
 | 文件 | 议题 | 状态 |
 |------|------|------|
-| `agent-as-plugin-architecture-v1.2.md` | Agent-as-Plugin 五层架构规范 (L0~L4 + R1~R5) | ✅ Approved (2026-07-22; ADR-0067 追溯性正式化) |
+| ~~`agent-as-plugin-architecture-v1.2.md`~~ → [`specs/architecture.md`](specs/architecture.md) | Agent-as-Plugin 五层架构规范 (L0~L4 + R1~R5) | ✅ Approved — 已晋升 specs 契约层 (2026-07-31 D1) |
 | `agent-evolution-pipeline.md` | Agent 四阶段进化管线 (SKILL→DSL→C++→Wasm) | 🔍 Proposed (管线已由 ADR-0061 承接) |
 | `application-layer-sota-positioning-v2.md` | 应用层 SOTA 定位分析 v2 | 🟡 Proposed (v1 已归档至 `archive/architecture/`) |
 | `adr-implementation-status-gap-analysis.md` | ADR 实施状态基线 (**ADR 状态唯一事实源**) | 🔄 滚动更新 (2026-07-30) |
@@ -142,7 +142,7 @@ docs/
 
 | 文件 | 议题 | 说明 |
 |------|------|------|
-| `architecture.md` | AgenticOS 架构 | 8 层架构定义 |
+| `architecture.md` | AgenticOS 架构规范 | **五层架构定义 (L0~L4 + R1~R5)** — 原 `agent-as-plugin-architecture-v1.2` 晋升 (2026-07-31 D1)；前代八层规范 v2.2 已归档至 `archive/specs/architecture-v2.2.md` |
 | `layer0.md` | L0 运行时规范 | DSL 引擎核心行为 |
 | `layer0-refactor.md` | L0 重构计划 | Layer0 重构计划 |
 | `dsl.md` | DSL 规范 v3.10 | 最新 DSL 语言规范 |
@@ -210,7 +210,7 @@ docs/
 | `v3.0/` | DSL v3.0 规范 (过期) |
 | `v2.3/` | DSL v2.3 规范 (过期) |
 | `adr/` | 归档 ADR (13 个, 2026-06-12) — 见 [archive/adr/README.md](archive/adr/README.md) |
-| `specs/` | 归档 Spec (Phase 2 标准库 v1.0, 2026-06-12) — 见 [archive/specs/phase2-standard-library-v1.0.md](archive/specs/phase2-standard-library-v1.0.md) |
+| `specs/` | 归档 Spec (Phase 2 标准库 v1.0, 2026-06-12; **AgenticOS 八层架构规范 v2.2, 2026-07-31 D1 归档**) — 见 [archive/specs/](archive/specs/) |
 | `compiler/` | SKILL Compiler 预研设计 (2026-05-24,设计已决但未实施;2026-07-06 归档) — 见 [archive/compiler/README.md](archive/compiler/README.md) |
 
 **看板归档 (2026-07-07)**：

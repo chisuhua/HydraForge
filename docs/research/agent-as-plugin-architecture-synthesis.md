@@ -171,7 +171,7 @@ struct AgentDescriptor {
 
 | 现有文档 | 关系 |
 |---------|------|
-| `docs/specs/architecture.md` v2.2 | 八层规范是执行深度分层，本架构是所有权/变化频率分层 |
+| `docs/archive/specs/architecture-v2.2.md`（已归档） | 八层规范是执行深度分层，本架构是所有权/变化频率分层 |
 | `docs/guides/multi-domain-agent-architecture.md` | Cognitive/Domain Worker 提升为 Agent Plugin |
 | `docs/adr/adr-0021-pdk-design.md` | PDK 从工具脚手架扩展为 Agent 脚手架 |
 | `docs/adr/adr-0051-phase6-pdk-composition-spike.md` | Spike 已验证 PDK 插件可组合 |

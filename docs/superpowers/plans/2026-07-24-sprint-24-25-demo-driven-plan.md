@@ -5,7 +5,7 @@
 > **数据源**:
 > - `examples/pdk_chat_demo/DESIGN.md` (784 行，v1 大部分完工)
 > - `examples/pkm_temporal_demo/DESIGN.md` (716 行，v0.2 设计中)
-> - `docs/architecture/agent-as-plugin-architecture-v1.2.md` (五层架构)
+> - `docs/specs/architecture.md` (五层架构, 原 v1.2)
 > - `docs/architecture/agent-evolution-pipeline.md` (四阶段进化)
 > - `docs/architecture/application-layer-sota-positioning-v2.md` (SOTA 差距)
 > - `docs/research/agentscope-comparison.md` (18 个可借鉴模式)

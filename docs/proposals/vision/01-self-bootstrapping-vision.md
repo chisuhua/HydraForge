@@ -253,7 +253,7 @@ AgenticDSL Runtime 提供推理 API 服务
 |------|------|
 | [VN-002: 语言演进路线图](02-language-evolution-roadmap.md) | 自举目标的具体化，定义了每个阶段的能力里程碑 |
 | [docs/specs/dsl.md](../../specs/dsl.md) | 当前 DSL v3.10 规范 — 自举链路的起点 |
-| [docs/specs/architecture.md](../../specs/architecture.md) | AgenticOS 八层架构 — 自举系统的部署环境 |
+| [docs/specs/architecture.md](../../specs/architecture.md) | AgenticOS 五层架构规范 — 自举系统的部署环境 |
 | [docs/adr/adr-0003-dslengine-thread-safety.md](../../adr/adr-0003-dslengine-thread-safety.md) | 定义引擎线程模型，决定自举后服务质量 |
 | [docs/adr/adr-0001-illm-provider-streaming-interface.md](../../adr/adr-0001-illm-provider-streaming-interface.md) | 当前流式接口 — 阶段1推理标准库的基础 |
 | [ADR-001: 技能分类体系](../skill-system/01-taxonomy.md) | 技能分类是自举链路中"自进化"能力的理论框架 |

@@ -13,7 +13,7 @@
 
 回答核心问题：**基于 Agent-as-Plugin 架构，HydraForge 的应用层应该走向什么形态？**
 
-本文档不是对 `docs/specs/architecture.md` v2.2 的替代，而是从**应用层**（Layer 3 / Layer 6）视角出发的 SOTA 趋势分析和架构方向建议。
+本文档不是对 `docs/archive/specs/architecture-v2.2.md`（已归档） 的替代，而是从**应用层**（Layer 3 / Layer 6）视角出发的 SOTA 趋势分析和架构方向建议。
 
 **调研范围**：40+ 篇论文、规范、项目，覆盖 MCP 2026-07-28 RC、LangGraph、CrewAI、Microsoft Agent Framework、Google ADK、OSGi、FIPA/JADE、AIOS、AOS、Agent libOS、AgenticOS、Pipecat、NeoGraph、AgentCore、ATD、SW4RM、AgentIDL、FLUX Runtime、FLUID SDK、AgentForge SDLC 等。
 
@@ -388,7 +388,7 @@ Agent 不仅被编排，还参与编排决策。
 
 | 文档 | 关系 |
 |------|------|
-| `docs/specs/architecture.md` v2.2 | **互补** — 八层规范是"深度分层"，本文档是"应用视角" |
+| `docs/archive/specs/architecture-v2.2.md`（已归档） | **互补** — 八层规范是"深度分层"，本文档是"应用视角" |
 | `docs/guides/multi-domain-agent-architecture.md` | **演进** — 本文档将 Cognitive/Domain Worker 模式提升为 Agent-as-Plugin 范式 |
 | `docs/adr/adr-0021-pdk-design.md` | **扩展** — PDK 从"工具脚手架"扩展为"Agent 脚手架" |
 | `docs/adr/adr-0051-*.md` | **落地** — Spike 发现的 awkward pattern 是本文档的实践反馈 |

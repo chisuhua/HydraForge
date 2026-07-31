@@ -11,7 +11,7 @@
 
 | 文件 | 议题 | 状态 | Last-Verified | Update-Trigger |
 |------|------|------|---------------|----------------|
-| `agent-as-plugin-architecture-v1.2.md` | Agent-as-Plugin 五层架构规范 (L0~L4 + R1~R5) | ✅ Approved (ADR-0067 追溯性正式化) | 2026-07-22 | 层模型变更 / 新 ADR 影响 R1~R5 |
+| ~~`agent-as-plugin-architecture-v1.2.md`~~ → [`../specs/architecture.md`](../specs/architecture.md) | Agent-as-Plugin 五层架构规范 (L0~L4 + R1~R5) | ✅ Approved — **已晋升为 specs 契约层** (2026-07-31, D1 决议) | 2026-07-31 | 层模型变更 / 新 ADR 影响 R1~R5 |
 | `agent-evolution-pipeline.md` | Agent 四阶段进化管线 (SKILL→DSL→C++→Wasm) | 🔍 Proposed (ADR-0061 承接管线) | 2026-07-31 | ADR-0061 子项实施推进 |
 | `application-layer-sota-positioning-v2.md` | 应用层 SOTA 定位分析 v2 | 🟡 Proposed | 2026-07-16 | SOTA 调研刷新 / 应用层新插件 |
 | `adr-implementation-status-gap-analysis.md` | ADR 实施状态基线 (**ADR 状态唯一事实源**) | 🔄 滚动更新 | 2026-07-30 | 任何 ADR 状态翻转 / ship gate |
@@ -57,7 +57,7 @@
 
 | # | 决策项 | 背景 | 建议路径 |
 |---|--------|------|---------|
-| D1 | `docs/specs/architecture.md` v2.2 处置 | 8 层模型 (2026-02-22, 含 Python wrapper/AgenticDSL v4.0) 与 v1.2 五层模型并存且互不兼容，specs 契约地位被架空 | 三选一：① 归档 v2.2 + 五层模型重写为 spec v3；② 双轨并存加映射表；③ v2.2 就地大修。建议 ① |
+| D1 | ~~`docs/specs/architecture.md` v2.2 处置~~ | ✅ **已决议并执行 (2026-07-31)**：采用方案①低成本变体——v2.2 归档至 `archive/specs/architecture-v2.2.md`，v1.2 晋升为 `docs/specs/architecture.md`；D1b 同步宣告"第二大脑"产品愿景归档 | 见 §五 变更记录 |
 | D2 | ADR-0068 (Event Emission Contract) 立项 | X1 缺口：28 处自发 emit 无契约，8 个订阅主题零 emit | 随 Wave 1 实施时立项 |
 | D3 | ADR-0069 (ToolCoordinator Hook) 立项 | X2 缺口：无 before/after tool call 拦截点 | 随 Wave 1 实施时立项 |
 | D4 | ADR-0070 (DECLARE_COMMAND) 立项 | X3 缺口：slash 命令无法插件化 | 随 Wave 1 实施时立项 |
@@ -71,3 +71,4 @@
 | 日期 | 变更 |
 |------|------|
 | 2026-07-31 | 初始化本索引（文档治理审计产出）；v1 SOTA 定位归档；元数据规范与待决策清单建立 |
+| 2026-07-31 | **D1 决议执行**：v2.2 八层规范归档（`archive/specs/architecture-v2.2.md`），v1.2 晋升为 `docs/specs/architecture.md`；D1b"第二大脑"愿景归档宣告；全库 15 处引用修正 |
