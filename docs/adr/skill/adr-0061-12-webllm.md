@@ -1,7 +1,7 @@
 # ADR-0061-12: 浏览器端 WebLLM 集成
 
 **日期**: 2026-07-16
-**状态**: 🟡 Proposed (P2, v2 候选)
+**状态**: 🔍 Proposed (P2, v2 候选)
 **父 ADR**: [../adr-0061-agent-evolution-and-solidification.md](../adr-0061-agent-evolution-and-solidification.md)
 
 ---

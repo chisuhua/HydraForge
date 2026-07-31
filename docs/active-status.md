@@ -2,7 +2,7 @@
 
 > **焦点**: 当前活跃的 OpenSpec changes | **更新**: 每日
 > **Master Plan**: [`docs/superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md`](superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md)
-> **架构决策**: [`docs/adr/`](adr/) — 46 ADR (含 14 子节点), 32 Approved, adr_lint 零错误
+> **架构决策**: [`docs/adr/`](adr/) — 59 ADR (46 主 + 1 plugin + 12 skill 子项), 40 Approved (主 33 + 子 7), adr_lint 零错误 (2026-07-31 实测校准, `tools/doc_metrics.py --adr`)
 > **Phase**: 6 — Agent-as-Plugin (2026-07-15 ~ 至今, Phase 5 ✅ 收官)
 
 ---
@@ -11,12 +11,12 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **83/83 ✅** PASS (baseline + Sprint 1~22 累计) |
-| **ASan** | **83/83** (debug mode; 0 pre-existing failures) |
+| **Total ctest** | **106/106 ✅** PASS (2026-07-31 实测: `cd build && ctest` → "100% tests passed, 0 tests failed out of 106"; 注: test_llm_provider_propagation 偶发 Subprocess aborted, 重跑即过, 定性 flaky) |
+| **ASan** | 83/83 (debug mode; 2026-07-31 前记录, **待复验** — ctest 总数已升至 106) |
 | **TSan** | 超时跳过 (机器性能受限) |
 | **OpenSpec active** | **0** (Phase 6 采用 plan + commit 模式, 不创建 OpenSpec changes) |
-| **ADR Approved** | **33** (Phase 0-5: 18 active + Phase 6 架构评审: 14 + ADR-0067 追溯性) |
-| **ADR 🔍 Proposed** | **7** (含 ADR-0050 Phase 6 战略, ADR-0030 V2 → 🟡 Partial 2026-07-23) |
+| **ADR Approved** | **40** (主 33: Phase 0-5 16 + Phase 6 17 [0050/0051/0052-0065/0067]; plugin 1; skill 子项 6) |
+| **ADR 🔍 Proposed** | **11** (主 5: 0038/0039/0042/0045/0046; skill 子项 6: 0061-07~12) — ADR-0050 已于 2026-07-23 转 ✅ Approved, ADR-0037 已于 2026-07-27 转 🟡 Partial |
 | **Completed Phase 0-4** | ✅ 100% |
 | **Phase 5** | ✅ 收官 (C9-C18 全部 ✅ shipped + archived) |
 | **Phase 6** | 🟡 Agent-as-Plugin: pdk_chat_demo ✅ / skill_interpreter ✅ / AgentForge MVP 设计中 |

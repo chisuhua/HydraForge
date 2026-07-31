@@ -5,13 +5,21 @@
 ```
 docs/
 ├── adr/              # Architecture Decision Records (架构决策, 阶段化分类)
-│   └── plugin/       # Plugin 化实施候选 ADR (plugin-candidate, 2026-06-16+)
+│   ├── plugin/       # Plugin 化实施候选 ADR (plugin-candidate, 2026-06-16+)
+│   └── skill/        # ADR-0061 技能演化子项 (12 个)
 ├── adr-management/   # ADR 元数据: 状态词汇表 + 关联性分析 (自 2026-06-16 移出 adr/)
+├── architecture/     # 架构工作组文档 (五层模型/缺失能力分析/进化管线, ADR 的证据输入)
 ├── specs/            # 规范文档 (当前有效版本)
 ├── guides/           # 用户和开发者指南
 ├── design/           # 设计文档
+├── research/         # 调研报告 (pi-agent 对比, SOTA 调研)
+├── audits/           # 审计报告 (drift gate, sanitizer 复验, ship gate 验证)
+├── adversarial-reviews/ # 对抗性评审决议记录
+├── service-composition/ # Phase 6 服务组合 spike 产出
+├── skills/           # 文档化技能说明
 ├── archive/          # 归档 (过期版本)
 ├── proposals/        # AgenticDSL 语言演进提案 (18 docs: 14 话题子目录 + 4 根文件)
+├── GOVERNANCE.md     # 文档治理方案 (分层权限 + 任务驱动流水线)
 └── active-status.md  # [统一看板] 当前活跃变更状态追踪 (替代 roadmap-status.md + implementation-roadmap.md)
 ```
 
@@ -32,7 +40,7 @@ docs/
 | `adr-0007-context-compression.md` | 上下文压缩机制 | 🟡 Partial (快照有,无 LLM 压缩) |
 | `adr-0008-structured-context.md` | 结构化 Context | ✅ Approved (2026-06-12 LayeredContext 实现完成) |
 | `adr-0009-dsl-standard-library.md` | DSL 标准库规划 | ✅ Approved |
-| `adr-0019-iinteraction-bus-mvp.md` | IInteractionBus 接口与 TUI Chat MVP | ✅ Approved (2026-06-24, Sprint 5 ship) |
+| `adr-0019-iinteraction-bus-mvp.md` | IInteractionBus 接口与 TUI Chat MVP | 🟡 Partial (MVP ship 2026-06-24; 事件发射契约缺位, 见 layer-based-missing-capabilities-analysis.md X1) |
 | `adr-0020-thread-model-isolation.md` | 多智能体线程模型与隔离策略 | ✅ Approved (2026-06-24, Sprint 5 ship) |
 | `adr-0021-pdk-design.md` | Plugin Development Kit (PDK) 设计 | ✅ Approved (2026-06-24, Sprint 5 ship) |
 | `adr-0022-plugin-loading.md` | 插件加载机制 | ✅ Approved (2026-06-24, Sprint 5 ship) |
@@ -44,6 +52,17 @@ docs/
 | `adr-0041-pluginloader-lifecycle-extension.md` | PluginLoader 生命周期扩展 (pdk_plugin_init / fini 钩子) | ✅ Approved (2026-07-10 — C16 `phase5-illmprovider-call-chain-v2` ship) |
 | `adr-0043-pdk-tool-naming-convention.md` | PDK 工具命名约定规范 | ✅ Approved (2026-07-10 — C13/C14 D3 决策已应用) |
 | `adr-0044-inference-plugin-security-model.md` | 推理引擎 Plugin 安全模型 | ✅ Approved (2026-07-10 — C14 `phase5-llama-engine-plugin` ship, 三层安全模型应用) |
+| `adr-0030-async-runtime-v2.md` | 异步运行时 V2 | 🟡 Partial (2026-07-23 提升, C2 ship) |
+| `adr-0037-causal-ordering.md` | 因果排序 (CausalClock) | 🟡 Partial (2026-07-27 提升, CausalClock + emit auto-tick ship; 分布式向量时钟 defer) |
+| `adr-0038-dynamic-config-interface.md` | 动态配置接口 | 🔍 Proposed |
+| `adr-0039-performance-metadata-contract.md` | 性能元数据契约 | 🔍 Proposed |
+| `adr-0042-illmprovider-evolution-path.md` | ILLMProvider 演进路径 | 🔍 Proposed (C16 部分决策已 ship) |
+| `adr-0045-orchestration-plugin-spec.md` | 编排 Plugin 规范 | 🔍 Proposed |
+| `adr-0046-plugin-communication-protocol.md` | 插件间通信协议 | 🔍 Proposed (~35% 实施率) |
+| `adr-0050-phase6-strategic-evaluation.md` | Phase 6 战略评估 | ✅ Approved (2026-07-23 — Solo Dev 重估, Candidate B) |
+| `adr-0051-phase6-pdk-composition-spike.md` | Phase 6 PDK 组合 Spike | ✅ Approved (experimental, 2026-07-15 — C19 ship) |
+| `adr-0052` ~ `adr-0065` (14 个 Phase 6 ADR) | Agent Manifest / Descriptor / Capability Discovery / Skill 隔离 / Wasm 运行时 / 生命周期 / Schema 校验 / 跨进程协议 / 组合协议 / 进化固化 / Marketplace / OTel / Conformance / Python PDK | ✅ Approved (2026-07-15 架构评审; 0055/0060 已实施, 余 12 个零代码) |
+| `adr-0066-skill-interpreter-arch.md` | SkillInterpreter 架构 | 🟡 Partial (V1 ship 2026-07-22, V2 deferred) |
 | `adr-0002-impl-scope-audit.md` | ADR-0002 实施范围审计 (OpenSpec change `docs-code-drift-audit-2026-
 | `adr-0004-impl-scope-audit.md` | ADR-0004 实施范围审计 (同上) | 📋 审计补充 |
 | `adr-0001-illm-provider-streaming-interface-impl-scope.md` | ADR-0001 实施范围审计 (C9) | 📋 审计补充 |
@@ -99,6 +118,22 @@ docs/
 
 ---
 
+## architecture/ - 架构工作组文档
+
+> 架构分析、分层模型与缺失能力评估。定位：**ADR 的证据输入**（工作文档，非决策本身；数据须可用 `tools/doc_metrics.py` 等命令复现）。
+
+| 文件 | 议题 | 状态 |
+|------|------|------|
+| `agent-as-plugin-architecture-v1.2.md` | Agent-as-Plugin 五层架构规范 (L0~L4 + R1~R5) | ✅ Approved (2026-07-22; ADR-0067 追溯性正式化) |
+| `agent-evolution-pipeline.md` | Agent 四阶段进化管线 (SKILL→DSL→C++→Wasm) | 🔍 Proposed (管线已由 ADR-0061 承接) |
+| `application-layer-sota-positioning-v2.md` | 应用层 SOTA 定位分析 v2 | 🟡 Proposed (v1 已归档至 `archive/architecture/`) |
+| `adr-implementation-status-gap-analysis.md` | ADR 实施状态基线 (**ADR 状态唯一事实源**) | 🔄 滚动更新 (2026-07-30) |
+| `layer-based-missing-capabilities-analysis.md` | 五层缺失能力分析 + Wave 1-4 执行计划 | ✅ v1.2.1 (2026-07-31 数据修正版) |
+
+> 归档版本（v1.0/v1.1 架构、v1 SOTA 定位）见 [archive/architecture/](archive/architecture/)。
+
+---
+
 ## specs/ - 规范文档 (当前有效版本)
 
 > ⚠️ **DEPRECATED** ⚠️ [`../SPECS-ALIGNMENT.md`](SPECS-ALIGNMENT.md) (2026-07-06) — 该规范对齐计划文件自标半准确,不再维护。当前维护规范以下方表格为准,新增 spec 请直接添加到此目录并在 ADR 中交叉引用。
@@ -142,6 +177,19 @@ docs/
 | `design-v0.md` | 设计 v0 | 初始设计 |
 | `design-v1.md` | 设计 v1 | 设计迭代 |
 | `design-v3.1.md` | 设计 v3.1 | v3.1 版本设计 |
+
+---
+
+## 其他目录速览
+
+| 目录/文件 | 内容 |
+|------|------|
+| `GOVERNANCE.md` | 文档治理方案：分层权限 + 任务驱动流水线（每份文档要么驱动任务、要么被任务更新、要么归档） |
+| `research/` | 调研报告：`pi-agent-vs-pdk-chat-demo-analyze.md`（pi-agent 借鉴路径）、SOTA 调研、Agent 架构综合等 |
+| `audits/` | 审计报告：drift gate、sanitizer 复验、ship gate 验证、LSP false positive 等 |
+| `adversarial-reviews/` | 对抗性评审决议记录（decisions-*.md） |
+| `service-composition/` | Phase 6 服务组合 spike 产出：`spike-onboarding.md`（C20 团队入口）、`observations/` Layer 3 dual memos |
+| `skills/` | 文档化技能说明 |
 
 ---
 
@@ -245,3 +293,4 @@ docs/
 | 2026-06-12 | Stage 2 / Task 7：归档 13 个已废弃 ADR 到 `docs/archive/adr/`；移除 `phase-2-memory/`, `phase-3-reasoning/`, `phase-5-async/`, `phase-5-policy/`, `phase-7-router/`, `phase-8-kernel/` 6 个空目录 |
 | 2026-06-12 | Stage 2 / Task 8：合并 `dsl-lib.md` + `stdlib.md` 为 `stdlib-v3.10.md`；归档 `phase2-standard-library.md` 到 `docs/archive/specs/` |
 | 2026-06-12 | Stage 2 / Task 9：合并 `memory.md` (MEP-001 v3.2 Draft) + `dsl.md` §10.3 为 `memory-v3.10.md`；`memory.md` 已删除 |
+| 2026-07-31 | 文档治理修正：新增 architecture/ 章节 + 其他目录速览；ADR 表补齐 0030/0037-0039/0042/0045/0046/0050/0051/0052-0066 行；目录结构块补全 8 个缺失目录；`application-layer-sota-positioning.md` v1 归档至 `archive/architecture/` |

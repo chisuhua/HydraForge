@@ -2,7 +2,7 @@
 
 ## 状态
 
-**🔍 Proposed (2026-06-26)** — 新 ADR,解决跨 CognitiveWorker 和 DomainWorkerPool 的事件顺序问题。
+**🟡 Partial (2026-06-26 起草 → 2026-07-27 状态提升)** — 新 ADR,解决跨 CognitiveWorker 和 DomainWorkerPool 的事件顺序问题。CausalClock + emit auto-tick 已 ship（见 `adr-implementation-status-gap-analysis.md` 2026-07-30 基线）；分布式向量时钟 defer。
 
 ## 背景
 
