@@ -206,4 +206,4 @@ OS 根据部署环境自动选择最佳形态：
 - [ADR-0022 — Plugin Loading](./adr-0022-plugin-loading.md)
 - [ADR-0043 — PDK Tool Naming Convention](./adr-0043-pdk-tool-naming-convention.md)
 - [ADR-0051 — PDK Composition Spike](./adr-0051-phase6-pdk-composition-spike.md)
-- [docs/architecture/agent-as-plugin-architecture-v1.1.md](../architecture/agent-as-plugin-architecture-v1.1.md)
+- [docs/architecture/agent-as-plugin-architecture-v1.2.md](../architecture/agent-as-plugin-architecture-v1.2.md)（v1.0/v1.1 已归档至 [docs/archive/architecture/agent-as-plugin-architecture.md](../archive/architecture/agent-as-plugin-architecture.md)）

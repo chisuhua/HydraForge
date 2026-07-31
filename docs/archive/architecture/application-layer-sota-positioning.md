@@ -1,7 +1,7 @@
 # 应用层 SOTA 架构走向分析
 
 **日期**: 2026-07-16
-**状态**: ⛔ Superseded (v1, 被 `application-layer-sota-positioning-v2.md` 替代)
+**状态**: ⛔ Superseded (v1, 被 `docs/architecture/application-layer-sota-positioning-v2.md` 替代；2026-07-31 从 docs/architecture/ 归档至本目录)
 **作者**: Architecture Working Group
 
 ---

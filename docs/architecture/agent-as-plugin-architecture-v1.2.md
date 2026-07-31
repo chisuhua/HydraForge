@@ -3,7 +3,7 @@
 **日期**: 2026-07-22
 **状态**: ✅ Approved (四层服务接口架构确立，含 Temporal Agent PoC 对齐)
 **作者**: Architecture Working Group
-**关联**: ADR-0019 ~ ADR-0051, `docs/specs/architecture.md` v2.2, `docs/architecture/agent-evolution-pipeline.md`, `docs/architecture/application-layer-sota-positioning.md`, `openspec/changes/pkgm-temporal-agent/`
+**关联**: ADR-0019 ~ ADR-0051, `docs/specs/architecture.md` v2.2, `docs/architecture/agent-evolution-pipeline.md`, `docs/architecture/application-layer-sota-positioning-v2.md`, `openspec/changes/pkgm-temporal-agent/`
 
 **前置文档**: `docs/archive/architecture/agent-as-plugin-architecture.md` v1.0 → v1.1 (2026-07-16)
 
@@ -942,7 +942,8 @@ orchestration:
 | 文档 | 路径 |
 |------|------|
 | Agent 进化管线 | `docs/architecture/agent-evolution-pipeline.md` |
-| 应用层 SOTA 定位 | `docs/architecture/application-layer-sota-positioning.md` |
+| 应用层 SOTA 定位 (v2, 当前有效) | `docs/architecture/application-layer-sota-positioning-v2.md` |
+| 应用层 SOTA 定位 (v1, 已归档) | `docs/archive/architecture/application-layer-sota-positioning.md` |
 | Agent-as-Plugin v1.0 (基线) | `docs/archive/architecture/agent-as-plugin-architecture.md` |
 | AgenticOS 八层架构 (v2.2) | `docs/specs/architecture.md` |
 | 多领域智能体架构 | `docs/guides/multi-domain-agent-architecture.md` |

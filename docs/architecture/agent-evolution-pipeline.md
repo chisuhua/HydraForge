@@ -1,9 +1,9 @@
 # Agent 进化管线（Evolution Pipeline）
 
 **日期**: 2026-07-16
-**状态**: 🟡 Proposed (架构讨论中)
+**状态**: 🔍 Proposed (架构讨论中；4 阶段管线已由 ADR-0061 ✅ Approved 承接，见 §决策 1)
 **作者**: Architecture Working Group
-**关联**: `docs/architecture/agent-as-plugin-architecture-v1.1.md`
+**关联**: `docs/architecture/agent-as-plugin-architecture-v1.2.md`（当前版本）, `docs/archive/architecture/agent-as-plugin-architecture.md`（v1.0/v1.1 归档）, `docs/adr/adr-0061-agent-evolution-and-solidification.md`
 
 ---
 
@@ -419,7 +419,7 @@ TEST_CASE("code_review_agent evolution preserves semantics") {
 | 文档 | 关系 |
 |------|------|
 | `agent-as-plugin-architecture-v1.1.md` | 本管线是 L2 Plugin Layer 的核心机制 |
-| `application-layer-sota-positioning.md` | 进化管线是 Phase A→B→C 的技术基础 |
+| `application-layer-sota-positioning-v2.md`（v1 已归档至 `docs/archive/architecture/`） | 进化管线是 Phase A→B→C 的技术基础 |
 | `adr-0021-pdk-design.md` | PDK 是 C++ 形态的脚手架；未来需要 Wasm 脚手架 |
 | `adr-0051-phase6-pdk-composition-spike.md` | Spike 已验证 PDK 插件可组合；本管线扩展为形态进化 |
 
