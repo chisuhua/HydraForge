@@ -207,6 +207,19 @@
 5. **AgentForge 第 2 个领域 agent**: 验证 PDK 复用性
 6. **Sprint 24 末决策点**: 评估 Phase 6 服务化是否重新启动
 
+### 架构缺失能力治理 Wave 1 (2026-07-31 挂接, 与 Sprint 24/25 并行)
+
+> 来源: [`docs/architecture/layer-based-missing-capabilities-analysis.md`](architecture/layer-based-missing-capabilities-analysis.md) §十二 Wave 1 (P0#0 + 借鉴路径 P0 关键 4 项, ~3 Sprint 估时)。索引与待决策项见 [`docs/architecture/README.md`](architecture/README.md) §四。
+
+| 序 | 缺失项 | 层 | 估时 | 状态 |
+|---|--------|----|------|------|
+| 1 | L4-1 loop_agent bypass 修复 (`chat_session.cpp:233` 短路分支) | L4 | 0.5S | 📋 待启动 |
+| 2 | X1 事件发射契约 (8 个零 emit 主题补齐 + ADR-0068) | L1 | 1.0S | 📋 待启动 |
+| 3 | L3-3 DECLARE_COMMAND 宏 (ADR-0070) | L3 | 0.5S | 📋 待启动 |
+| 4 | X2 ToolCoordinator Hook 注入 (ADR-0069) | L1 | 1.0S | 📋 待启动 |
+
+> 启动前置: 架构组决策 D1~D6; 修复路径按 Phase 6 plan+commit 模式 (D5 已决议)。
+
 ### 进化管线服务 (中长期, 不阻塞 Phase A)
 
 > 详见 [`docs/architecture/agent-evolution-pipeline.md` §八](architecture/agent-evolution-pipeline.md)。启动条件由实际需求驱动, 不预设 timeline。

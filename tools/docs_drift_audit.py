@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 # tools/docs_drift_audit.py
 # 功能描述：文档与代码漂移审计脚本。实现 OpenSpec change
-#          `docs-code-drift-audit-2026-06` 描述的 4 类检测场景：
+#          `docs-code-drift-audit-2026-06` 描述的 4 类检测场景 + 后续扩展：
 #            1. examples/ 中 DEPRECATED 注释 vs 实际 API 状态
 #            2. .omo/plans/project-organization.md 中 F1-F4 self-audit 误标
 #            3. src/core/engine.h 注释 vs include 实际数量自相矛盾
 #            4. docs/adr/ 中 ADR 声称实现 vs 代码 grep 验证
+#            5. proposal-approved.md 已批准提案 vs archive 一致性 (2026-07 扩展)
+#            6. active-status.md 计数声明 vs doc_metrics 实测 (2026-07-31 扩展)
 # 设计依据：openspec/changes/docs-code-drift-audit-2026-06/specs/docs-code-drift-audit/spec.md
+#          Scenario 6: docs/GOVERNANCE.md §一.5 数据纪律 (计数必须可复现)
 # 作者：docs-code-drift-audit-2026-06 实施
-# 最后修改日期：2026-06-13
+# 最后修改日期：2026-07-31
 
 """
 HydraForge 文档-代码漂移审计脚本
@@ -43,6 +46,7 @@ SCENARIO_NAMES = {
     3: "engine.h includes vs 声明",
     4: "ADR 声称实现 vs 代码 grep",
     5: "proposal-approved.md 已批准提案 vs archive 一致性",
+    6: "文档计数声明 vs doc_metrics 实测",
 }
 
 # 严重级别
@@ -765,6 +769,77 @@ def scan_scenario5(root: Path) -> List[Dict[str, Any]]:
 
 
 # ============================================================================
+# 场景 6：文档计数声明 vs doc_metrics 实测
+# ============================================================================
+
+def _line_of(text: str, needle: str) -> int:
+    """返回 needle 首次出现的 1-based 行号；未找到返回 1"""
+    for idx, line in enumerate(text.splitlines(), start=1):
+        if needle in line:
+            return idx
+    return 1
+
+
+def _extract_int(pattern: "re.Pattern[str]", text: str) -> Optional[int]:
+    m = pattern.search(text)
+    return int(m.group(1)) if m else None
+
+
+def scan_scenario6(root: Path) -> List[Dict[str, Any]]:
+    """校验 active-status.md 计数声明与 tools/doc_metrics.py 实测值一致。
+
+    治理依据: docs/GOVERNANCE.md §一.5 数据纪律 — 计数类数据必须可复现。
+    2026-07-31 审计实证: 83/93/106 ctest、31/32/33 Approved 三处漂移。
+    """
+    findings: List[Dict[str, Any]] = []
+    status_file = root / "docs" / "active-status.md"
+    text = read_text(status_file)
+    if text is None:
+        return findings
+    file_rel = rel(status_file, root)
+
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import doc_metrics
+    except ImportError:
+        return findings  # 工具缺失时跳过, 不阻塞其他场景
+
+    def _check(label: str, needle: str, claimed: Optional[int],
+               actual: Optional[int]) -> None:
+        if actual is None:
+            return  # 实测不可用 (如 build/ 未配置), 跳过
+        if claimed is None:
+            findings.append(make_finding(
+                scenario=6, severity=SEVERITY_WARNING, file=file_rel,
+                line=_line_of(text, needle),
+                summary=f"{label} 声明格式未匹配 (文档结构变更?), 实测 {actual}",
+                details={"actual": actual}))
+        elif claimed != actual:
+            findings.append(make_finding(
+                scenario=6, severity=SEVERITY_DRIFT, file=file_rel,
+                line=_line_of(text, needle),
+                summary=f"{label} 声明 {claimed}, 实测 {actual}",
+                details={"claimed": claimed, "actual": actual}))
+
+    # 检查 1: ctest 总数 (| **Total ctest** | **106/106 ...)
+    ct = doc_metrics.collect_ctest_metrics()
+    _check("Total ctest", "Total ctest",
+           _extract_int(re.compile(r"Total ctest\*\*\s*\|\s*\*\*(\d+)/"), text),
+           ct["configured"])
+
+    # 检查 2/3: ADR 总数与 Approved 数 (头部 "— 59 ADR ..., 40 Approved")
+    adr = doc_metrics.collect_adr_metrics()
+    adr_total = sum(adr[ns]["total"] for ns in adr)
+    adr_approved = sum(adr[ns]["counts"].get("✅ Approved", 0) for ns in adr)
+    _check("ADR 总数", "ADR (",
+           _extract_int(re.compile(r"—\s*(\d+)\s*ADR"), text), adr_total)
+    _check("ADR Approved", "ADR Approved",
+           _extract_int(re.compile(r",\s*(\d+)\s*Approved"), text), adr_approved)
+
+    return findings
+
+
+# ============================================================================
 # 报告输出
 # ============================================================================
 
@@ -779,14 +854,14 @@ def format_human_report(findings: List[Dict[str, Any]], root: Path) -> str:
     lines.append("")
 
     # 按场景分组
-    by_scenario: Dict[int, List[Dict[str, Any]]] = {1: [], 2: [], 3: [], 4: [], 5: []}
+    by_scenario: Dict[int, List[Dict[str, Any]]] = {1: [], 2: [], 3: [], 4: [], 5: [], 6: []}
     for f in findings:
         by_scenario[f["scenario"]].append(f)
 
     drift_count = sum(1 for f in findings if f["severity"] == SEVERITY_DRIFT)
     warning_count = sum(1 for f in findings if f["severity"] == SEVERITY_WARNING)
 
-    for scenario_num in (1, 2, 3, 4, 5):
+    for scenario_num in (1, 2, 3, 4, 5, 6):
         scenario_findings = by_scenario[scenario_num]
         lines.append(f"[Scenario {scenario_num}] {SCENARIO_NAMES[scenario_num]}")
         if not scenario_findings:
@@ -824,7 +899,7 @@ def format_human_report(findings: List[Dict[str, Any]], root: Path) -> str:
 
     lines.append("=" * 80)
     lines.append(f"SUMMARY: {drift_count} DRIFT items, {warning_count} WARNING items detected")
-    for scenario_num in (1, 2, 3, 4, 5):
+    for scenario_num in (1, 2, 3, 4, 5, 6):
         s_drift = sum(1 for f in by_scenario[scenario_num] if f["severity"] == SEVERITY_DRIFT)
         s_warn = sum(1 for f in by_scenario[scenario_num] if f["severity"] == SEVERITY_WARNING)
         lines.append(f"  Scenario {scenario_num}: {s_drift} drifts, {s_warn} warnings")
@@ -834,7 +909,7 @@ def format_human_report(findings: List[Dict[str, Any]], root: Path) -> str:
 
 def format_json_report(findings: List[Dict[str, Any]], root: Path) -> str:
     """格式化为 JSON 报告"""
-    by_scenario: Dict[str, int] = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0}
+    by_scenario: Dict[str, int] = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0}
     drift_total = 0
     for f in findings:
         if f["severity"] == SEVERITY_DRIFT:
@@ -857,13 +932,14 @@ def format_json_report(findings: List[Dict[str, Any]], root: Path) -> str:
 # ============================================================================
 
 def run_audit(root: Path) -> List[Dict[str, Any]]:
-    """执行全部 5 个场景，返回 findings 列表"""
+    """执行全部 6 个场景，返回 findings 列表"""
     findings: List[Dict[str, Any]] = []
     findings.extend(scan_scenario1(root))
     findings.extend(scan_scenario2(root))
     findings.extend(scan_scenario3(root))
     findings.extend(scan_scenario4(root))
     findings.extend(scan_scenario5(root))
+    findings.extend(scan_scenario6(root))
     return findings
 
 

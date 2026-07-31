@@ -2,7 +2,7 @@
 
 > **核心原则**: 每一个 `.md` 文件要么**驱动一个任务**，要么被**一个任务更新**，要么被**归档**。
 >
-> **最后更新**: 2026-07-22
+> **最后更新**: 2026-07-31 (增补 §一.5 分析层 — docs/architecture/ 治理规则)
 > **下次审视**: 2026-09-30 (季审视)
 
 ---
@@ -50,6 +50,30 @@
 | **specs/** | 从 Approved ADR 派生 | `REQ-XXX` 编号唯一 + 每个需求有对应测试 |
 | **Master Plan** | Sprint 启动时 | `check_roadmap_drift` 零 HIGH |
 | **active-status.md** | Sprint 内随时 | 数据从实际工具输出验证 |
+
+### 1.5 分析层 (docs/architecture/) — 2026-07-31 增补
+
+五层流水线之外，设**分析层**承载架构工作组文档（分层模型、缺失能力分析、SOTA 定位、ADR 实施基线）：
+
+```
+proposals/ ──提升──▶ docs/architecture/ ──结论吸收──▶ docs/adr/
+  "如果...会怎样?"    "现状是什么样、缺什么"              "我们决定..."
+                      (ADR 的证据输入, 非决策本身)
+```
+
+| 项 | 规则 |
+|----|------|
+| 定位 | ADR 的**证据输入**。分析文档的结论必须提升为 ADR 才具备执行效力 |
+| 合并条件 | ① 头部四字段 (生成日期/最后验证/作者/状态) ② 计数类数据可用命令复现 (优先 `tools/doc_metrics.py`) ③ 不与现有 ADR 冲突 |
+| 数据纪律 | ADR 状态唯一事实源 = `adr-implementation-status-gap-analysis.md`；其他文档禁止维护状态副本表，只留指针 |
+| 生命周期 | 结论被 ADR 吸收 → 标注承接关系保留；被替代 → ⛔ Superseded → 当 Sprint 归档 `docs/archive/architecture/` |
+| 审查节奏 | 每月 1 次 (本目录月度档) + Sprint 收官检查 Last-Verified ≤ 30 天 |
+| 索引与规范 | [`architecture/README.md`](architecture/README.md) |
+
+**反模式**（2026-07-31 审计实证，禁止复发）：
+- 孤儿文档：无任何其他文档引用、未挂接 Master Plan 的分析文档（必须在上表索引登记 + 至少一个下游任务引用）
+- 手写计数：ctest/ADR/百分比等数字未附验证命令（曾造成 83/93/106、31/32/33 三处漂移）
+- 状态双写：在多份文档各自维护 ADR 状态表
 
 ---
 
