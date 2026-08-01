@@ -1,0 +1,27 @@
+{
+  "passed": false,
+  "warnings": [
+    "arch_handoff_actionable"
+  ],
+  "failed_checks": [
+    "arch_alignment",
+    "adr_no_placeholders"
+  ],
+  "detail": {
+    "arch_alignment": "check raised: Unacceptable pattern: ''",
+    "arch_debt_recorded": {
+      "passed": true,
+      "severity": null
+    },
+    "adr_no_placeholders": "check raised: Unacceptable pattern: ''",
+    "arch_handoff_actionable": {
+      "passed": false,
+      "severity": "warning"
+    },
+    "file_size_limit": {
+      "passed": true,
+      "severity": null
+    }
+  },
+  "strict_mode": false
+}

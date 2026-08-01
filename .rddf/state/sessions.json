@@ -1,5 +1,60 @@
 {
   "version": 1,
-  "sessions": [],
-  "updated_at": "2026-07-31T16:24:04.668990+00:00"
+  "sessions": [
+    {
+      "session_id": "rds_22a4650fb5fa",
+      "kind": "stage_arch",
+      "owner_opencode_session_id": "my-eci-group_2048285",
+      "parent_session_id": null,
+      "goal": {
+        "intent": "guide-arch",
+        "subject": "arch-phase",
+        "expected_outcome": "arch-done"
+      },
+      "state": "completed",
+      "attached_changes": [],
+      "context_pointer": ".rddf/state/.arch-handoff.json",
+      "started_at": "2026-08-01T12:51:39.064733+00:00",
+      "last_heartbeat": "2026-08-01T12:51:39.064733+00:00",
+      "ended_at": "2026-08-01T13:18:41.802821+00:00",
+      "end_reason": "arch-done"
+    },
+    {
+      "session_id": "rds_20339d73e924",
+      "kind": "stage_design",
+      "owner_opencode_session_id": "my-eci-group_2048285",
+      "parent_session_id": "rds_22a4650fb5fa",
+      "goal": {
+        "intent": "guide-design",
+        "subject": "design-phase",
+        "expected_outcome": "design-done"
+      },
+      "state": "completed",
+      "attached_changes": [],
+      "context_pointer": ".rddf/state/.design-handoff.json",
+      "started_at": "2026-08-01T13:56:51.302755+00:00",
+      "last_heartbeat": "2026-08-01T13:56:51.302755+00:00",
+      "ended_at": "2026-08-01T16:04:11.569744+00:00",
+      "end_reason": "design-done"
+    },
+    {
+      "session_id": "rds_cfe5126caae3",
+      "kind": "stage_plan",
+      "owner_opencode_session_id": "my-eci-group_2048285",
+      "parent_session_id": "rds_20339d73e924",
+      "goal": {
+        "intent": "guide-plan",
+        "subject": "plan-phase",
+        "expected_outcome": "plan-done"
+      },
+      "state": "active",
+      "attached_changes": [],
+      "context_pointer": ".rddf/state/.plan-handoff.json",
+      "started_at": "2026-08-01T16:06:43.535173+00:00",
+      "last_heartbeat": "2026-08-01T16:06:43.535173+00:00",
+      "ended_at": null,
+      "end_reason": null
+    }
+  ],
+  "updated_at": "2026-08-01T16:06:43.535173+00:00"
 }
