@@ -41,6 +41,8 @@ TopoScheduler::TopoScheduler(Config config, IToolRegistry& tool_registry, ILLMPr
     if (config.tool_coordinator) {
         session_.set_tool_coordinator(config.tool_coordinator);
     }
+    // tf-integration-coverage: 缓存 num_workers,execute_parallel() 读这个成员
+    config_num_workers_ = config.num_workers;
 }
 
 void TopoScheduler::register_node(std::unique_ptr<Node> node) {
@@ -244,8 +246,12 @@ ExecutionResult TopoScheduler::execute_parallel(const Context& initial_context) 
     copy_dag_state_to(state);
 
     if (!parallel_executor_) {
-        parallel_executor_ = std::make_unique<tf::Executor>(
-            std::max(1u, std::thread::hardware_concurrency()));
+        // tf-integration-coverage: Config::num_workers 注入,0 退化到 hardware_concurrency
+        size_t workers = config_num_workers_;
+        if (workers == 0) {
+            workers = std::max(1u, std::thread::hardware_concurrency());
+        }
+        parallel_executor_ = std::make_unique<tf::Executor>(workers);
     }
     if (!parallel_taskflow_) {
         parallel_taskflow_ = std::make_unique<tf::Taskflow>();

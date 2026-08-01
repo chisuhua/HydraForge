@@ -41,6 +41,10 @@ public:
         // Sprint 19: 改用 IApprovalHandler 抽象 (依赖倒置, ADR-0019 §1.4)
         IApprovalHandler* approval_handler{nullptr}; // ADR-0031 (2026-07-31): 审批处理器
         ToolCoordinator* tool_coordinator{nullptr}; // C4 Sprint 14 (ADR-0031 P3-P4): ToolCoordinator
+        // tf-integration-coverage: tf::Executor worker 数注入
+        // 0 = std::max(1u, std::thread::hardware_concurrency()) (与 Sprint 12 C2 现状一致)
+        // 非 0 时作为 tf::Executor 确切线程数,使并发度测试可确定性
+        size_t num_workers = 0;
         // Add other config options if needed
         Config() = default;
     };
@@ -60,6 +64,12 @@ public:
 
     // Method for DSLEngine to call to add new graphs dynamically
     void append_dynamic_graphs(std::vector<ParsedGraph> new_graphs) override;
+
+    // tf-integration-coverage: 测试用访问器 — 返回 parallel_executor_ 指针地址
+    // 用于验证跨调用复用契约 (2.2 多调用复用)
+    const void* get_parallel_executor_address_for_test() const {
+        return parallel_executor_.get();
+    }
 
     // C2 Day 1-2 (ADR-0030 V2): 并行 DAG 执行 — Taskflow tf::Executor 集成
     // 行为: 复用已构建的 DAG, 用 tf::Executor 并行派发无依赖节点
@@ -114,6 +124,8 @@ private:
 
     std::unique_ptr<tf::Executor> parallel_executor_;
     std::unique_ptr<tf::Taskflow> parallel_taskflow_;
+    // tf-integration-coverage: 缓存 Config::num_workers 避免构造后丢失
+    size_t config_num_workers_ = 0;
 
     // --- v3.1: Helper methods for Fork/Join ---
     void start_fork_simulation(const ForkNode* fork_node, const Context& fork_context_snapshot);
