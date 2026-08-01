@@ -32,8 +32,9 @@ pi-agent（`earendil-works/pi`）是 TypeScript 生态中最成熟的 Agent 终�
 
 | 层 | 包 | 职责 |
 |---|-----|------|
-| LLM API | `@earendil-works/pi-ai` | 30+ Provider 统一接口（OpenAI/Anthropic/Google/DeepSeek/...） |
+| LLM API | `@earendil-works/pi-ai` | ~39 个 Provider 统一接口（OpenAI/Anthropic/Google/DeepSeek/Minimax/...，实际清单见 `packages/ai/src/providers/`） |
 | Agent 运行时 | `@earendil-works/pi-agent-core` | 状态机、工具调用、事件流、steering/follow-up |
+| 终端 UI | `@earendil-works/pi-tui` | 差分渲染终端（Markdown、图片、选择框） |
 | Coding Agent CLI | `@earendil-works/pi-coding-agent` | 交互式终端、会话树、扩展系统、技能、主题 |
 
 ### 分析范围
@@ -54,7 +55,7 @@ pi-agent（`earendil-works/pi`）是 TypeScript 生态中最成熟的 Agent 终�
 | **会话** | JSONL 树（id/parentId） | ADR-0033 三层 + 线性 JSON |
 | **扩展** | TypeScript 扩展（热加载） | `.so` Plugin（`PluginLoader`） |
 | **事件模型** | 推模式（扩展订阅事件） | 拉模式（`call_tool` 主动调用） |
-| **进程模型** | 单进程（扩展在 Agent 内） | 多进程（SKILL.md seccomp 隔离） |
+| **进程模型** | 单进程（扩展在 Agent 内，TypeScript 加载运行） | **主流程单进程** + 可选子进程（SKILL.md seccomp 隔离仅在 `plugin_cfg.type=="skill"` 且文件后缀 `.skill.md` 时触发，见 `main.cpp:165-196`；常规 `.so` plugin 仍在主进程内 dlopen） |
 | **安全** | 容器化（Gondolin/Docker/OpenShell） | 内建（seccomp + ApprovalHandler） |
 | **终端** | 差分渲染 TUI（Markdown、图片、选择框） | `std::cout` 纯文本 |
 
@@ -74,7 +75,7 @@ pi-agent（`earendil-works/pi`）是 TypeScript 生态中最成熟的 Agent 终�
 
 | 能力 | pi-agent | pdk-chat-demo |
 |------|----------|---------------|
-| **存储格式** | JSONL 树，每条 entry 有 `id` + `parentId` | 线性 JSON 数组，`save_to_disk()` 覆盖写 |
+| **存储格式** | JSONL 树，每条 entry 有 `id` + `parentId` | 单文件 JSON（非 JSONL 流式追加）：每个 session 一个 `<id>.json`，含 `schema_version`/`session_id`/`created_at`/`updated_at`/`provider_mode`/`budget`/`history` 字段；写入为**原子写**（`tmp` + `rename`，非简单"覆盖写"），路径 `~/.hydraforge/sessions/<id>.json`（见 `chat_session.cpp::save_to_disk` 行 443-485） |
 | **树导航** | `/tree` 命令，原地导航，分支间切换 | ❌ |
 | **Fork** | `/fork`（从历史点创建新会话）、`/clone`（复制当前分支） | ❌ |
 | **CLI fork** | `pi --fork <id>` | ❌ |
@@ -145,7 +146,7 @@ buildSessionContext():
 
 **实现路径**：
 
-1. 重写存储层为 JSONL 树格式，每条记录 `id` + `parentId`
+1. 重写存储层为 JSONL 树格式，每条记录 `id` + `parentId`（保留 `chat_session.cpp::save_to_disk` 的 tmp+rename 原子写模式，避免半写损坏）
 2. 新增 `SessionManager` 类（C++）管理 open/fork/branch/compact
 3. 修改 `ChatSession` 使用 `SessionManager` 替代线性 `std::vector<Message>`
 4. 实现 `build_context_entries()` 和 `build_llm_context()` 从叶子到根遍历
@@ -154,7 +155,7 @@ buildSessionContext():
 
 **为什么不直接抄**：pdk_chat_demo 的 ADR-0033 已有三层会话模型（UserSession/TaskSession/SubtaskSession），但那是**执行作用域**而非**存储格式**。两者可以共存——`SessionManager` 负责持久化树，`UserSession` 保持运行时执行上下文。
 
-**估时**：2-3 Sprint（存储层 + 树导航 + 分支摘要）
+**估时**：3-4 Sprint（存储层（含原子写兼容 + 旧 JSON 文件迁移工具）+ 树导航 + 分支摘要；旧 schema_version=1 文件需提供自动升级路径或保留只读访问）
 
 ---
 
@@ -165,9 +166,9 @@ buildSessionContext():
 | 能力 | pi-agent | pdk-chat-demo |
 |------|----------|---------------|
 | **Agent 生命周期** | `agent_start`/`agent_end`/`agent_settled` | ❌ 无 |
-| **Turn 生命周期** | `turn_start`/`turn_end` | ✅ `IInteractionBus` 有 `loop.turn.*` |
+| **Turn 生命周期** | `turn_start`/`turn_end` | ⚠️ `loop.turn.*` 主题已声明 + EventHandler 已订阅，但引擎代码未实际 emit |
 | **消息流** | `message_start`/`message_update`/`message_end` | ❌ 无 |
-| **工具调用** | `tool_execution_start`/`update`/`end` | ✅ `tool.execution.*` |
+| **工具调用** | `tool_execution_start`/`update`/`end` | ⚠️ `tool.execution.*` 同上：主题已声明 + 订阅 OK，但引擎代码未实际 emit |
 | **工具拦截** | `beforeToolCall` 可 block，`afterToolCall` 可修改 | ❌ 无（`ApprovalHandler` 可拒绝但不可修改） |
 | **上下文注入** | `transformContext()` 在 LLM 调用前注入/修剪消息 | ❌ 无 |
 | **会话管理** | `session_before_switch`、`session_before_fork`、`session_before_compact` | ❌ 无 |
@@ -211,9 +212,9 @@ Agent 循环:
 5. Plugin 通过 `IInteractionBus::subscribe()` 订阅事件
 6. 后续：`transform_context` 钩子（LLM 调用前注入/修剪消息）
 
-**为什么可以借鉴**：pdk_chat_demo 已有 `IInteractionBus` 和 `InMemoryBus`，事件基础设施已经就位，只是事件粒度和钩子机制不够丰富。不需要改架构，只需要扩展 topic 枚举和钩子签名。
+**为什么可以借鉴**：pdk_chat_demo 已有 `IInteractionBus` 和 `InMemoryBus`，事件基础设施已经就位。但需注意：**当前 `loop.turn.*` / `tool.execution.*` / `llm.request` / `llm.response` / `session.persisted` 等约 8 个主题虽在 `config.json::orchestration.event_topics` 声明、`event_handler.cpp::Impl` 也已订阅并提供格式化渲染，但引擎代码并未实际 emit 这些事件**（核查：`grep -r 'bus->emit' src/ pdk/` 仅命中 `tool.coordinator.cycle_detected` / `policy.approval.requested` / `user.input` / `loop.done` / `loop.error` / `budget.checked` / `session.persist_request` / `app.shutdown` 8 个 emit 调用点）。借鉴时需先在引擎层补齐 emit，再扩展 topic 枚举和钩子签名。
 
-**估时**：1 Sprint（事件扩展 + 钩子注册 API）
+**估时**：1.5 Sprint（8 个缺失主题 emit 补齐 + 事件扩展 + 钩子注册 API）
 
 ---
 
@@ -371,12 +372,13 @@ const tool: AgentTool = {
 
 **实现路径**：
 
-1. 修改 Loop Agent DSL 的 tool_call 节点——从 `tool_calls[0]` 改为 `tool_calls[]`
-2. 使用 `DomainWorkerPool`（Sprint 3 已实现，N 个 `std::jthread`）并行执行多工具
-3. 工具结果按 assistant 原始顺序归并
-4. 通过 `IInteractionBus` 推送 `tool.execution.update` 事件
+1. **改动边界澄清**：pdk-chat-demo 的 Loop Agent plugin（`pdk/loop_agent/src/pdk_entry.cpp`）自身只有 2 个工具（`loop/set_parent_provider` / `loop/run`），**不直接处理** `tool_calls`。`tool_calls[0]` 这一限制实际位于底层 **NodeExecutor / TopoScheduler 对 `.agent.md` DSL 中 `tool_call` 节点的执行逻辑**（`src/modules/executor/node_executor.h` `execute_tool_call()`），借鉴时需在该层改造，而非 Loop Agent plugin 层。
+2. 修改 NodeExecutor 的 `execute_tool_call()` ——从"取 `tool_calls[0]` 串行执行"改为"遍历 `tool_calls[]` 派发"
+3. 使用 `DomainWorkerPool`（Sprint 3 已实现，N 个 `std::jthread`，见 `include/agenticdsl/cognitive/domain_worker_pool.h`）并行执行多工具
+4. 工具结果按 assistant 原始顺序归并（保持 OpenAI / Anthropic 响应的 tool_call 序号语义）
+5. 通过 `IInteractionBus` 推送 `tool.execution.update` 事件（注意：当前 `tool.execution.*` 主题仅声明未发射，见 §四）
 
-**估时**：1 Sprint（Loop 节点修改 + 并行执行 + 结果归并）
+**估时**：1.5 Sprint（NodeExecutor `execute_tool_call` 改造 + DomainWorkerPool 集成 + 顺序归并 + `tool.execution.update` 事件发射补齐）
 
 ---
 
@@ -418,7 +420,7 @@ const tool: AgentTool = {
 
 | 能力 | pi-agent | pdk-chat-demo |
 |------|----------|---------------|
-| **Provider 数量** | 30+ 内置，可扩展 | 4 个（deepseek/openai/anthropic/mock） |
+| **Provider 数量** | ~39 个内置（pi-ai 包 `packages/ai/src/providers/` 目录实际枚举：anthropic / openai / google / google-vertex / deepseek / groq / xai / mistral / moonshotai / moonshotai-cn / nvidia / openrouter / together / vercel-ai-gateway / minimax / minimax-cn / zai / qwen-token-plan / qwen-token-plan-cn / kimi-coding / github-copilot / amazon-bedrock / azure-openai-responses / cerebras / cloudflare-ai-gateway / cloudflare-workers-ai / fireworks / huggingface / openai-codex / opencode / opencode-go / radius / xiaomi / xiaomi-token-plan-* 等），可扩展 | **5 个**（deepseek/openai/anthropic/**minimax**/mock，见 `examples/pdk_chat_demo/config.json::providers`，`agent` 段当前默认 `provider=minimax, model=minimax-text-01`） |
 | **模型目录** | 自动拉取最新模型列表 | 静态 `config.json` |
 | **凭据管理** | env var + OAuth + 存储凭据 + 动态刷新 | env var 或 `config.json` 明文 |
 | **Provider 注册** | 扩展可 `pi.registerProvider()` | `config.json` 静态声明 |
@@ -451,7 +453,7 @@ pi.registerProvider("local-openai", {
 3. `LLMProviderFactory` 扩展支持从运行时注册的 provider 创建（已有骨架）
 4. 后续：`provider/switch` 工具支持运行时切换模型
 
-**估时**：1 Sprint（动态刷新 + 运行时注册）
+**估时**：1.5 Sprint（5 个静态 provider → 增加 refresh 工具 + 运行时注册 + provider/switch 边界用例）
 
 ---
 
@@ -462,7 +464,7 @@ pi.registerProvider("local-openai", {
 | 能力 | 不适用原因 | 替代方案 |
 |------|-----------|---------|
 | **TypeScript 扩展系统** | pdk_chat_demo 是 C++ 架构。TS 扩展运行在 Agent 进程内，无安全隔离 | 保持 `.so` Plugin 模型，增加事件钩子 API |
-| **差分渲染 TUI** | 在 C++ 中实现同等 TUI 需要 `ncurses`/`ftxui` 依赖，且 pdk_chat_demo 定位是 demo 而非产品 CLI | 保持 `std::cout`，改进格式化输出 |
+| **差分渲染 TUI** | 在 C++ 中实现同等 TUI 需要 `ncurses`/`ftxui` 依赖，且 pdk_chat_demo 定位是 demo 而非产品 CLI。pi-agent 实际依赖独立 npm 包 **`@earendil-works/pi-tui`**（差分渲染终端 UI 库，含 Markdown/图片/选择框支持） | 保持 `std::cout`，改进格式化输出 |
 | **30+ 内置 Provider** | 每个 provider 需要单独的 API 适配和 OAuth 流程 | 保持 `LLMProviderFactory` 抽象，按需扩展 |
 | **安装包管理** | `pi install/uninstall` 针对 npm 生态 | 后续可做 `pdk install`，但需包注册表基础设施 |
 | **会话分享到 Hugging Face** | 依赖 `pi-share-hf` 外部工具 | 后续可做 `/export` HTML 导出 |
@@ -499,14 +501,16 @@ P0.3 事件钩子    P1.2 消息队列   P1.3 Compaction  P2.2 CLI 丰富化
                                       └ 运行时注册
 ```
 
-### 每个 Sprint 的边界
+### 每个 Sprint 的边界（已根据 §三、四、八、十 隐藏成本上浮 30-50%）
 
-| Sprint | 工作范围 | 不做的 |
-|--------|---------|--------|
-| **N** | 会话树存储层 + SessionManager + 事件钩子骨架 | 树导航 TUI、分支摘要、Streaming |
-| **N+1** | 树导航 TUI + 分支摘要 + 消息队列 + 异步 I/O | Compaction、工具并行、CLI 丰富化 |
-| **N+2** | Streaming + Compaction | 工具并行、Provider 动态发现 |
-| **N+3** | 工具并行 + CLI 丰富化 + Provider 动态发现 | — |
+| Sprint | 工作范围 | 不做的 | 估时调整依据 |
+|--------|---------|--------|------------|
+| **N** (1.5-2 Sprint) | 会话树存储层（JSONL + 旧 JSON 迁移） + SessionManager + **8 个缺失主题 emit 补齐** + 事件钩子骨架 | 树导航 TUI、分支摘要、Streaming | §四发现：`loop.turn.*` / `tool.execution.*` 等 8 个主题需先补 emit |
+| **N+1** (1.5 Sprint) | 树导航 TUI + 分支摘要 + 消息队列 + 异步 I/O（stdin 线程 + Agent 线程） | Compaction、工具并行、CLI 丰富化 | §六：与 Budget 告警 atomic flag 模式需协调 |
+| **N+2** (1.5 Sprint) | Streaming（`llm->generate_stream()` 切换 + EventHandler 增量渲染）+ Compaction（`compact_threshold_tokens` 已有，需补触发逻辑） | 工具并行、Provider 动态发现 | §五：调用路径从 `generate()` 切换 + 终端流式渲染 |
+| **N+3** (2 Sprint) | 工具并行（NodeExecutor `execute_tool_call` 改造 + DomainWorkerPool）+ CLI 丰富化（cxxopts/argparse 引入）+ Provider 动态发现（`provider/refresh` + `provider/switch`） | — | §八/§九/§十：三层并行改动，NodeExecutor 改动风险较高 |
+
+**总估时**：原报告 4 Sprint → **修订后 6.5-7 Sprint**（含 30-50% 缓冲）
 
 ### 核心约束
 
