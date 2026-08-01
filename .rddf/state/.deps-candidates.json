@@ -1,7 +1,17 @@
 {
-  "candidates": [
-    "adr-0002-busevent-contract",
-    "adr-0019-subscribe-glob",
-    "adr-0037-causal-clock"
+  "generated_at": "2026-08-01",
+  "project_root": "/workspace/project/HydraForge",
+  "active_changes": [
+    {
+      "name": "tf-integration-coverage",
+      "path": "openspec/changes/tf-integration-coverage",
+      "schema": "spec-driven",
+      "capabilities_added": [
+        "taskflow-integration-test-coverage"
+      ],
+      "capabilities_modified": [
+        "dag-scheduler-pipeline"
+      ]
+    }
   ]
 }

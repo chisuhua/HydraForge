@@ -21,4 +21,4 @@
 | [cli-args-cxxopts](improvements/cli-args-cxxopts.md) | P2 | 同上 §八 L4-4（CLI 解析层重写, 3 天） | 2026-07-31 | 待审查 |
 | [session-tree-tui](improvements/session-tree-tui.md) | P2 | 同上 §八 L4-6（依赖 session-manager-jsonl + chat-streaming-slash-tui） | 2026-07-31 | 待审查 |
 | [provider-dynamic-discovery](improvements/provider-dynamic-discovery.md) | P2 | 同上 §五 L1-5 + §六 L2-1（provider 动态注册/refresh/switch） | 2026-07-31 | 待审查 |
-| [tf-integration-coverage](improvements/tf-integration-coverage.md) | P1 | TopoScheduler+Taskflow 集成缺口审计 (2026-08-01) | 2026-08-01 | 已创建 change → openspec/changes/tf-integration-coverage/ |
+| [tf-integration-coverage](improvements/tf-integration-coverage.md) | P1 | TopoScheduler+Taskflow 集成缺口审计 (2026-08-01) | 2026-08-01 | shipped → archive/2026-08-01-tf-integration-coverage/ |

@@ -1,14 +1,47 @@
 {
-  "plan_complete_at": "2026-07-29T09:09:23.189769+00:00",
-  "active_changes": 0,
-  "all_artifacts_committed": true,
-  "ship_started_at": "2026-07-29T12:13:00.363482+00:00",
-  "current_change": "adr-0002-busevent-contract",
-  "execution_mode_decisions": {},
-  "archived_at": "2026-07-29T12:41:32.318126+00:00",
-  "archived_changes": [
-    "adr-0002-busevent-contract",
-    "adr-0019-subscribe-glob",
-    "adr-0037-causal-clock"
+  "stage": "plan",
+  "status": "plan-done",
+  "completed_at": "2026-08-01T12:40:00Z",
+  "active_changes": [
+    {
+      "name": "tf-integration-coverage",
+      "path": "openspec/changes/tf-integration-coverage",
+      "schema": "spec-driven",
+      "priority": "P1",
+      "artifacts_committed": [
+        "proposal.md",
+        "design.md",
+        "tasks.md",
+        ".openspec.yaml",
+        "specs/taskflow-integration-test-coverage/spec.md",
+        "specs/dag-scheduler-pipeline/spec.md"
+      ],
+      "commit_sha": "6e2cfc1",
+      "openspec_validate": "passed",
+      "capabilities_added": ["taskflow-integration-test-coverage"],
+      "capabilities_modified": ["dag-scheduler-pipeline"]
+    }
+  ],
+  "deps_analysis": {
+    "candidates_file": ".rddf/state/.deps-candidates.json",
+    "output_file": ".rddf/state/.deps-output.md",
+    "internal_dependencies": 0,
+    "file_conflicts": 0,
+    "adr_violations": 0,
+    "recommended_wave": 1,
+    "execution_order": ["tf-integration-coverage"]
+  },
+  "gate_checks": {
+    "min_active_changes": {"required": 1, "actual": 1, "passed": true},
+    "all_artifacts_committed": {"required": 6, "actual": 6, "passed": true},
+    "openspec_validate": {"required": "passed", "actual": "passed", "passed": true},
+    "proposal_suggestions_updated": {"required": true, "actual": true, "passed": true}
+  },
+  "next_stage": "ship",
+  "next_skill": "guide-ship",
+  "notes": [
+    "Single change, no inter-change dependencies",
+    "Branch HEAD: 6e2cfc1 on main",
+    "Ready for ship-side worktree creation + plan generation + TDD execution"
   ]
 }
