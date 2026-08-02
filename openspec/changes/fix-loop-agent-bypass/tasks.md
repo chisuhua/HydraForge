@@ -40,25 +40,25 @@
 
 ## 4. DESIGN.md 与文档一致性核对
 
-- [ ] 4.1 读取 `examples/pdk_chat_demo/DESIGN.md:520-553` Loop Agent 触发描述
-- [ ] 4.2 核对 "Loop Agent 触发(via call_tool 'loop/run')" 与代码一致;若存在 "direct LLM" 或 "双路径" 描述则修正为统一路径
-- [ ] 4.3 核对 §八 "6 个 Agent Plugin" 列表中 Loop Agent 角色描述
-- [ ] 4.4 若 `docs/architecture/layer-based-missing-capabilities-analysis.md` §三 X4 / §八 L4-1 有相关状态表,更新其状态或标注依赖本 change
-- [ ] 4.5 验证:`python3 tools/docs_drift_audit.py` 0 DRIFT
-- [ ] 4.6 提交:`git commit -m "docs(pdk_chat_demo): align DESIGN.md with unified loop/run call path"`
+- [x] 4.1 读取 `examples/pdk_chat_demo/DESIGN.md:520-553` Loop Agent 触发描述
+- [x] 4.2 核对 "Loop Agent 触发(via call_tool 'loop/run')" 与代码一致;若存在 "direct LLM" 或 "双路径" 描述则修正为统一路径
+- [x] 4.3 核对 §八 "6 个 Agent Plugin" 列表中 Loop Agent 角色描述
+- [x] 4.4 若 `docs/architecture/layer-based-missing-capabilities-analysis.md` §三 X4 / §八 L4-1 有相关状态表,更新其状态或标注依赖本 change
+- [x] 4.5 验证:`python3 tools/docs_drift_audit.py` 0 DRIFT
+- [x] 4.6 提交:`git commit -m "docs(pdk_chat_demo): align DESIGN.md with unified loop/run call path"`
 
 ## 5. 验证与 ship gate
 
-- [ ] 5.1 运行 `cmake --build build -j$(nproc)` 全量编译零错误
-- [ ] 5.2 运行 `ctest --output-on-failure` 全量零回归
-- [ ] 5.3 运行 `grep -rn "use_direct_llm" examples/` 验证返回 0
-- [ ] 5.4 运行 `ctest -R loop_agent --output-on-failure` 验证 `test_loop_agent_plugin` 全绿(6 个 case 通过)
-- [ ] 5.5 运行新增 3 个真实发射测试(`ctest -R e2e_mock --output-on-failure` 或对应 target)
-- [ ] 5.6 运行 `python3 tools/docs_drift_audit.py` 确认 0 DRIFT
-- [ ] 5.7 运行 `python3 tools/adr_lint.py` 确认 ADR 格式通过
-- [ ] 5.8 运行 `openspec validate fix-loop-agent-bypass` 验证 change artifacts 通过
-- [ ] 5.9 更新 ADR-0068 附录 A 中 `loop.turn.start` / `loop.turn.end` / `loop.decision` 状态从 👻 到 ✅
-- [ ] 5.10 提交:`git commit -m "chore: ship fix-loop-agent-bypass (Wave 1 P0)"`
+- [x] 5.1 运行 `cmake --build build -j$(nproc)` 全量编译零错误
+- [x] 5.2 运行 `ctest --output-on-failure` 全量零回归 (106/107 通过; 唯一失败 `test_e2e_real_llm` 为真实 LLM 集成测试,需外部 API key,与本 change 无关)
+- [x] 5.3 运行 `grep -rn "use_direct_llm" examples/` 验证返回 0
+- [x] 5.4 运行 `ctest -R loop_agent --output-on-failure` 验证 `test_loop_agent_plugin` 全绿(6 个 case 通过)
+- [x] 5.5 运行新增 3 个真实发射测试(`ctest -R e2e_mock --output-on-failure` 或对应 target)
+- [x] 5.6 运行 `python3 tools/docs_drift_audit.py` 确认 0 DRIFT
+- [x] 5.7 运行 `python3 tools/adr_lint.py` 确认 ADR 格式通过
+- [x] 5.8 运行 `openspec validate fix-loop-agent-bypass` 验证 change artifacts 通过
+- [x] 5.9 更新 ADR-0068 附录 A 中 `loop.turn.start` / `loop.turn.end` / `loop.decision` 状态从 👻 到 ✅
+- [x] 5.10 提交:`git commit -m "chore: ship fix-loop-agent-bypass (Wave 1 P0)"`
 
 ---
 

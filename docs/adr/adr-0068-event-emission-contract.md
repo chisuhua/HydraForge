@@ -168,9 +168,9 @@ BusEvent ev = EventBuilder("tool.execution.start")
 |------|-----------|-----------|-----------------|------|
 | `user.input` | ChatSession | 用户输入提交后 | `session_id`, `input` | ✅ |
 | `app.shutdown` | main / 应用入口 | 退出流程开始 | — | ✅ |
-| `loop.turn.start` | loop_agent (L4) | 每轮 turn 开始 | `turn`, `step` | 👻 → 待实施 §决策 3 |
-| `loop.turn.end` | loop_agent (L4) | 每轮 turn 结束 | `turn`, `decision` | 👻 → 待实施 |
-| `loop.decision` | loop_agent (L4) | 决策点 | `decision`, `tool?` | 👻 → 待实施 |
+| `loop.turn.start` | loop_agent (L4) | 每轮 turn 开始 | `turn`, `step` | ✅ |
+| `loop.turn.end` | loop_agent (L4) | 每轮 turn 结束 | `turn`, `decision` | ✅ |
+| `loop.decision` | loop_agent (L4) | 决策点 | `decision`, `tool?` | ✅ |
 | `loop.done` | ChatSession / loop_agent | 循环完成 | `session_id` | ✅ |
 | `loop.error` | ChatSession / loop_agent | 循环异常 | `error_code`, `message` | ✅ |
 | `llm.request` | L1 Decorator 链 | generate() 前 | `model`, `prompt_hash` | 👻 → 待实施 |
