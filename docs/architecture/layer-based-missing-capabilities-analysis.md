@@ -76,15 +76,16 @@ HydraForge 已形成"五层抽象 + AgenticOS 范式 + 跨四态进化"的架构
 | `app.shutdown` | ❌ | ✅ `main.cpp:55, 429` |
 | `tool.coordinator.cycle_detected` | ❌ | ✅ `tool_coordinator.cpp:101` |
 | `policy.approval.requested` | ❌ | ✅ `approval_callbacks.cpp:57` |
-| **`loop.turn.start/end`** | ✅ | ❌ **零 emit** |
+| **`loop.turn.start`** | ✅ | ✅ `pdk/loop_agent` 真实路径 emit |
+| **`loop.turn.end`** | ✅ | ✅ `pdk/loop_agent` 真实路径 emit |
+| **`loop.decision`** | ✅ | ✅ `pdk/loop_agent` 真实路径 emit |
 | **`tool.execution.start/update/end`** | ✅ | ❌ **零 emit** |
 | **`llm.request/response`** | ✅ | ❌ **零 emit** |
-| **`loop.decision`** | ✅ | ❌ **零 emit** |
 | **`session.persisted`** | ✅ | ❌ **零 emit** |
 | **`context.compact.{before,after}`** | ❌ | ❌ **零 emit** |
 | **`temporal.*`** (5 种) | ❌ | ❌ 见 Temporal Agent 自实现 |
 
-> **注**（2026-07-31 复核）：上述"零 emit"主题（`loop.turn.*` / `llm.*` / `loop.decision` / `tool.execution.*`）仅出现在 `examples/pdk_chat_demo/tests/test_e2e_mock.cpp` 的 mock 中——**测试在模拟生产代码不存在的行为**，测试与实现脱节。
+> **注**（2026-08-03 复核）：`loop.turn.start` / `loop.turn.end` / `loop.decision` 已在 `pdk/loop_agent` 真实路径 emit（见 `fix-loop-agent-bypass` ship）；剩余"零 emit"主题（`llm.*` / `tool.execution.*`）仍仅在 `examples/pdk_chat_demo/tests/test_e2e_mock.cpp` 的 mock 中出现——**测试在模拟生产代码不存在的行为**，测试与实现脱节。
 >
 > **另注**：初稿 emit 计数仅覆盖 pdk_chat_demo + 2 个核心文件，遗漏了 `src/modules/` 与 `src/common/` 的 ~20 处 emit；本表同步补充 `tool.audit.*` / `compliance.log` / `cognitive.task.*` / `domain.task.*` / `dsl.call.*` / `execution.failed` 等"有 emit 无订阅文档化"的反向缺口。
 
@@ -135,6 +136,8 @@ if (use_direct_llm) {
 - DESIGN.md 第六章"6 个 Agent Plugin"架构承诺被违反
 
 **建议**: 列为 P0#0（最高优先级），先于其他借鉴工作修复。
+
+> **修复状态**（2026-08-03，`fix-loop-agent-bypass` ship）：`use_direct_llm` 分支已删除，ChatSession 统一调用 `loop/run`；`pdk/loop_agent` 真实路径 emit `loop.turn.start` / `loop.decision` / `loop.turn.end`。
 
 ---
 
@@ -371,7 +374,7 @@ L2 提供原子能力（不编排）。当前 8 个 PDK plugin 中，**仅 5 个
 | `session_agent` | 🟡 PoC | 4 | C++ | 复用 chat_session（L2-2） |
 | `g3_knowledge_base` | ✅ 完整 | 1 | C++ | ADR-0051 |
 | `temporal_agent` | ✅ Phase 1+2 | 5 | C++ | L4 编排（见第八节） |
-| `loop_agent` | 🟡 部分 | 2 | C++/DSL | **bypass bug**（见第八节） |
+| `loop_agent` | ✅ 已修复 | 2 | C++/DSL | bypass bug 已修复，统一 loop/run 路径（见第八节 L4-1） |
 | `g1_coding_assistant` | 🟡 部分 | 1 | C++ | ADR-0051, 编排 G3 |
 | `browser_agent` (建议新增) | ❌ 缺位 | — | C++ | L2-6 |
 | `search_agent` (建议新增) | ❌ 缺位 | — | Skill | L2-6 |
@@ -452,31 +455,18 @@ L3 是 PDK 接口契约层。当前已具备基础（IToolRegistry 9 虚函数�
 
 ## 八、L4 Application Services 缺失能力（含 pdk_chat_demo）
 
-L4 是 Agent 应用服务层。当前 4 个 L4 plugin 中，**3 个有 loop_agent bypass 等问题**。
+L4 是 Agent 应用服务层。当前 4 个 L4 plugin 中，`loop_agent` bypass bug 已修复（2026-08-03），其余 3 个仍存在异步 I/O、Steering、长期记忆等问题。
 
-### L4-1. 🔴 loop_agent 短路 bug（最高优先级）
-**位置**: `examples/pdk_chat_demo/chat_session.cpp:233-274`
+### L4-1. ✅ loop_agent 短路 bug 已修复
+**位置**: `examples/pdk_chat_demo/chat_session.cpp`
 **关联 ADR**: ADR-0051（Phase 6 Composition Spike）
-**现状**:
-- 设计文档（`DESIGN.md:530`）声明"Loop Agent 触发 via call_tool 'loop/run'"
-- 实际代码：`use_direct_llm = (llm != nullptr)` 短路，**正常 demo 流程绕过 loop_agent**
-- `loop/run` 工具仅在测试（test_loop_agent_plugin.cpp）和 llm == nullptr 时触发
-- L4 Plugin `pdk/loop_agent/` 实际是 **dead code**
-**影响**:
-- §五 Streaming 借鉴：stream 永远无法触达用户
-- §七 Compaction 借鉴：必须经 loop_agent 才能 hook
-- §八 工具并行借鉴：必须经 loop_agent 走 NodeExecutor
-- §六 Steering 借鉴：必须经 loop_agent 才能注入到 turn 中断点
-- 整个 pdk_chat_demo 与 DESIGN.md §八"Chat 应用"层标注不一致
+**修复状态**（2026-08-03，`fix-loop-agent-bypass` ship）：
+- `use_direct_llm` 短路分支已删除
+- ChatSession 统一调用 `registry->call_tool("loop/run", loop_args)`
+- `pdk/loop_agent` 内部根据 `tls_parent_provider` 决定 mock fallback vs 真实 DSL 执行
+- 真实路径 emit `loop.turn.start` / `loop.decision` / `loop.turn.end`
 
-**修复方案**:
-```cpp
-// 删除 use_direct_llm 分支，统一调用 loop/run
-nlohmann::json loop_result = impl_->registry->call_tool("loop/run", loop_args);
-// loop_agent plugin 内部根据 tls_parent_provider 决定 mock fallback vs 真实执行
-```
-
-**估时**: 0.5 Sprint（删除分支 + loop_agent 内部 mock fallback 兜底 + 测试）
+**验证**: `test_loop_agent_plugin` + `test_e2e_mock` 全量通过（见 `fix-loop-agent-bypass` ship gate）
 
 ### L4-2. pdk_chat_demo 异步 I/O 改造
 **位置**: `examples/pdk_chat_demo/main.cpp:388` + `chat_session.cpp::chat()`

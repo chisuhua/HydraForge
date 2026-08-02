@@ -217,6 +217,7 @@ skills/code_review/               # Code Review Skill（SKILL.md）
     "event_topics": [
       "user.input",
       "loop.turn.start",
+      "loop.decision",
       "loop.turn.end",
       "llm.token",
       "tool.execution.start",
@@ -325,6 +326,7 @@ int main(int argc, char* argv[]) {
 
 **形态**：DSL（首选）
 **文件**：`lib/loop/react.agent.md`
+**执行路径**：所有 ReAct 循环（含 mock fallback 与真实 DSL 执行）统一通过 `call_tool("loop/run", ...)` 进入 Loop Agent，不存在绕过 DSL 的 direct-LLM 路径或双路径分支。
 
 ```markdown
 # ReactLoop Agent
@@ -527,16 +529,16 @@ Chat Agent (main.cpp)
    ├─ emit "user.input" + span("user.input")
    │
    ▼
-Loop Agent 触发（via call_tool "loop/run"）
+Loop Agent 触发（via call_tool "loop/run"）—— 统一入口，无 direct-LLM 绕过路径
    │
-   ├─ emit "loop.turn.start" (turn=1, step=1)
+   ├─ emit "loop.turn.start" (turn=1, step=1)   # 每轮 think 开始
    ├─ emit "llm.request"
    │   └─ Provider Agent 触发 (call_tool "provider/resolve")
    │       └─ emit "llm.response" (含 tokens_used)
-   ├─ emit "loop.decision" (decide: tool_call)
+   ├─ emit "loop.decision" (decide: tool_call)  # decision 类型：tool_call / respond / error
    ├─ emit "tool.execution.start" (fs/read)
    ├─ (FS Agent 执行) emit "tool.execution.end" (ok=true, duration_ms=12)
-   ├─ emit "loop.turn.end" (decision="observe")
+   ├─ emit "loop.turn.end" (decision="observe") # 本 turn 决策结果与下一跳
    │
    ├─ (loop back to think) ... [迭代 N 步]
    │
