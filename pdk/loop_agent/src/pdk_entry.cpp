@@ -13,6 +13,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <agenticdsl/contract/bus_event.h>
+#include <agenticdsl/contract/iinteraction_bus.h>
 #include <agenticdsl/contract/itool_registry.h>
 #include <agenticdsl/plugin/plugin_info.h>
 #include <agenticdsl/types/layered_context.h>
@@ -21,6 +23,17 @@
 namespace fs = std::filesystem;
 
 namespace {
+
+// ADR-0068 附录 A 事件发射 helper (Decision 4/5): 未注入 bus 时静默跳过
+inline void emit_loop_event(::agenticdsl::IInteractionBus* bus,
+                            const std::string& session_id,
+                            const std::string& topic,
+                            nlohmann::json payload) {
+    if (!bus) return;
+    payload["session_id"] = session_id;
+    bus->emit(::agenticdsl::BusEvent{
+        topic, ::agenticdsl::ToolResult{.ok = true, .meta = std::move(payload)}});
+}
 
 inline nlohmann::json json_arg(const std::unordered_map<std::string, std::string>& args,
                                 const std::string& key) {
@@ -164,6 +177,17 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                         {"error", "Invalid loop_type: '" + loop_type +
                          "'. Must be one of: react, plan_execute, fork_join"}};
             }
+
+            // 可选 bus 注入 (Decision 5): 未传 bus_ptr 则跳过事件发射, 不影响返回
+            ::agenticdsl::IInteractionBus* bus = nullptr;
+            {
+                auto bus_it = args.find("bus_ptr");
+                if (bus_it != args.end() && !bus_it->second.empty()) {
+                    bus = reinterpret_cast<::agenticdsl::IInteractionBus*>(
+                        std::stoull(bus_it->second));
+                }
+            }
+            std::string session_id = str_arg(args, "session_id");
 
             // Mock fallback when parent provider not set (Q3/Q7)
             if (!tls_parent_provider) {
