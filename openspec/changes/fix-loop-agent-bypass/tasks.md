@@ -28,15 +28,15 @@
 
 ## 3. 测试替换与新增
 
-- [ ] 3.1 读取 `examples/pdk_chat_demo/tests/test_e2e_mock.cpp:114-153` 当前伪造 emit 段
-- [ ] 3.2 删除 `test_e2e_mock.cpp` 中 `emit("loop.turn.start", ...)`、`emit("loop.decision", ...)`、`emit("loop.turn.end", ...)` 手工伪造行
-- [ ] 3.3 改用 `ChatSession::chat()` 或 `engine->get_tool_registry().call_tool("loop/run", ...)` 触发真实 loop_agent 执行,捕获 bus 事件
-- [ ] 3.4 新增 `TEST_CASE("loop/run emits loop.turn.start with turn and step", ...)` 断言 bus 中存在 `loop.turn.start` 且 payload 含 `turn`/`step`
-- [ ] 3.5 新增 `TEST_CASE("loop/run emits loop.decision with decision and tool", ...)` 断言 `loop.decision` 存在,且 `decision="tool_call"` 时含 `tool`
-- [ ] 3.6 新增 `TEST_CASE("loop/run emits loop.turn.end with turn and decision", ...)` 断言 `loop.turn.end` 存在且 payload 含 `turn`/`decision`
-- [ ] 3.7 确认 `test_loop_agent_plugin.cpp` 零改动:6 个现有 TEST_CASE 继续 pass
-- [ ] 3.8 验证:`ctest -R loop_agent --output-on-failure` 全绿
-- [ ] 3.9 提交:`git commit -m "test(pdk_chat_demo): replace fake events with real loop_agent emission tests"`
+- [x] 3.1 读取 `examples/pdk_chat_demo/tests/test_e2e_mock.cpp:114-153` 当前伪造 emit 段
+- [x] 3.2 删除 `test_e2e_mock.cpp` 中 `emit("loop.turn.start", ...)`、`emit("loop.decision", ...)`、`emit("loop.turn.end", ...)` 手工伪造行
+- [x] 3.3 改用 `ChatSession::chat()` 或 `engine->get_tool_registry().call_tool("loop/run", ...)` 触发真实 loop_agent 执行,捕获 bus 事件
+- [x] 3.4 新增 `TEST_CASE("loop/run emits loop.turn.start with turn and step", ...)` 断言 bus 中存在 `loop.turn.start` 且 payload 含 `turn`/`step`
+- [x] 3.5 新增 `TEST_CASE("loop/run emits loop.decision with decision and tool", ...)` 断言 `loop.decision` 存在,且 `decision="tool_call"` 时含 `tool`
+- [x] 3.6 新增 `TEST_CASE("loop/run emits loop.turn.end with turn and decision", ...)` 断言 `loop.turn.end` 存在且 payload 含 `turn`/`decision`
+- [x] 3.7 确认 `test_loop_agent_plugin.cpp` 零改动:6 个现有 TEST_CASE 继续 pass
+- [x] 3.8 验证:`ctest -R loop_agent --output-on-failure` 全绿
+- [x] 3.9 提交:`git commit -m "test(pdk_chat_demo): replace fake events with real loop_agent emission tests"`
 
 ## 4. DESIGN.md 与文档一致性核对
 
