@@ -13,14 +13,46 @@
 #include <functional>
 #include <unordered_map>
 #include <vector>
+#include <filesystem>
 
 #include <nlohmann/json.hpp>
 
 #include <agenticdsl/contract/bus_event.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <core/types/tool_result.h>
+#include <core/engine.h>
+#include <common/llm/mock_provider.h>
+#include <agenticdsl/plugin/plugin_loader.h>
+#include <agenticdsl/contract/itool_registry.h>
 
 using namespace pdk_chat_demo;
+namespace fs = std::filesystem;
+
+// 从 test_loop_agent_plugin.cpp 复用: 定位 LoopAgent .so 并设置 plugin path
+static std::string find_loop_agent_so() {
+#ifdef LOOP_AGENT_SO_PATH
+  const char* p = LOOP_AGENT_SO_PATH;
+  if (fs::exists(p)) return fs::canonical(p).string();
+#endif
+  for (const char* c : {"../../pdk/loop_agent/libLoopAgent.so",
+                          "../pdk/loop_agent/libLoopAgent.so",
+                          "pdk/loop_agent/libLoopAgent.so"}) {
+    if (fs::exists(c)) return fs::canonical(c).string();
+  }
+  // 从当前目录向上搜索 pdk/loop_agent/libLoopAgent.so
+  for (auto p = fs::current_path(); p != p.root_path(); p = p.parent_path()) {
+    auto candidate = p / "pdk" / "loop_agent" / "libLoopAgent.so";
+    if (fs::exists(candidate)) return fs::canonical(candidate).string();
+  }
+  throw std::runtime_error("libLoopAgent.so not found");
+}
+
+static void ensure_plugin_path_env() {
+  if (std::getenv("HYDRAFORGE_PLUGIN_PATH")) return;
+  auto p = fs::path(find_loop_agent_so());
+  auto pdk_dir = p.parent_path().parent_path().string();
+  setenv("HYDRAFORGE_PLUGIN_PATH", pdk_dir.c_str(), 0);
+}
 
 namespace mock {
 
@@ -179,4 +211,40 @@ TEST_CASE("MockBus implements all 4 IInteractionBus virtual methods", "[e2e][moc
 
     // 验证 unsubscribe 不崩溃
     bus->unsubscribe(1);
+}
+
+TEST_CASE("ChatSession routes through loop/run even when LLM provider is set", "[e2e][mock][loop-agent]") {
+    ensure_plugin_path_env();
+
+    hydraforge::PluginLoader loader;
+    auto engine = std::make_unique<agenticdsl::DSLEngine>(std::vector<agenticdsl::ParsedGraph>{});
+    auto bus = std::make_shared<mock::MockBus>();
+    engine->set_interaction_bus(bus);
+
+    REQUIRE(loader.load_so(find_loop_agent_so(), engine->get_tool_registry()));
+
+    // 注入 MockLLMProvider: 旧代码曾直接调用 provider->generate(), 修复后必须经 loop/run
+    auto mock = std::make_unique<agenticdsl::MockLLMProvider>();
+    mock->enqueue_response(R"({"content":"direct-llm-response","tool_calls":[]})");
+    engine->set_llm_provider(std::move(mock));
+
+    AgentConfig agent;
+    agent.provider = "mock";
+    agent.model = "test";
+    agent.loop_type = "react";
+    SessionConfig sess;
+    sess.persist_dir = "";
+
+    ChatSession session(engine.get(), bus, &engine->get_tool_registry(), agent, sess);
+    auto result = session.chat("hello");
+
+    // loop/run mock fallback 的固定字段, 与直接 LLM 响应不同
+    REQUIRE(result.success);
+    REQUIRE(result.response.find("Mock fallback") != std::string::npos);
+    REQUIRE(result.total_steps == 1);
+    REQUIRE(result.total_tokens == 42);
+    REQUIRE(result.cost_usd == 0.001);
+
+    // 先释放 engine, 再让 loader dlclose (避免 plugin function pointer 悬空)
+    engine.reset();
 }

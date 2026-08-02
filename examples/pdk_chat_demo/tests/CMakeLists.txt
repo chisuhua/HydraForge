@@ -46,11 +46,18 @@ target_include_directories(test_e2e_mock PRIVATE
 )
 target_compile_definitions(test_e2e_mock PRIVATE
     CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+    LOOP_AGENT_SO_PATH="${PROJECT_BINARY_DIR}/pdk/loop_agent/libLoopAgent.so"
 )
+# dlopen 的 LoopAgent.so 需解析 agenticdsl_core 符号
+target_link_options(test_e2e_mock PRIVATE -Wl,--export-dynamic)
+add_dependencies(test_e2e_mock LoopAgent)
 add_test(
     NAME test_e2e_mock
     COMMAND test_e2e_mock
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+set_tests_properties(test_e2e_mock PROPERTIES
+    ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk:${CMAKE_BINARY_DIR}/pdk"
 )
 
 # test_dsl_validation — T2: DSL schema 校验 (≥5 scenarios)
