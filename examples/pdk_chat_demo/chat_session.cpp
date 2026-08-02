@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -28,6 +29,12 @@
 namespace pdk_chat_demo {
 
 namespace {
+
+static std::string ptr_to_str(void* p) {
+    std::ostringstream ss;
+    ss << reinterpret_cast<uintptr_t>(p);
+    return ss.str();
+}
 
 // T1.2: 展开 ~ 为 HOME 目录 (优先 HOME env, fallback getpwuid)
 std::string expand_home(const std::string& path) {
@@ -234,6 +241,9 @@ ChatResult ChatSession::chat(const std::string& user_input) {
         loop_args["history"] = nlohmann::json(impl_->messages).dump();
         loop_args["tools"] = nlohmann::json(impl_->agent_cfg.tools).dump();
         loop_args["max_steps"] = std::to_string(impl_->agent_cfg.max_steps);
+        // 将 bus 与会话 ID 透传给 loop_agent, 用于真实事件发射
+        loop_args["bus_ptr"] = ptr_to_str(impl_->bus.get());
+        loop_args["session_id"] = session_id_;
 
         nlohmann::json loop_result = impl_->registry->call_tool("loop/run", loop_args);
 

@@ -117,6 +117,21 @@ private:
 
 }  // namespace mock
 
+static std::string ptr_to_str(void* p) {
+    std::stringstream ss;
+    ss << reinterpret_cast<uintptr_t>(p);
+    return ss.str();
+}
+
+static std::string find_loop_dir() {
+    if (const char* env = std::getenv("HYDRAFORGE_LOOP_DIR")) return env;
+    for (auto p = fs::current_path(); p != p.root_path(); p = p.parent_path()) {
+        auto candidate = p / "lib" / "loop";
+        if (fs::exists(candidate)) return candidate.string();
+    }
+    throw std::runtime_error("lib/loop directory not found");
+}
+
 TEST_CASE("EventHandler subscribes to expected topics", "[e2e][mock]") {
     auto bus = std::make_shared<mock::MockBus>();
 
@@ -144,44 +159,70 @@ TEST_CASE("EventHandler subscribes to expected topics", "[e2e][mock]") {
 }
 
 TEST_CASE("Mock mode -- end-to-end flow", "[e2e][mock]") {
+    ensure_plugin_path_env();
+    setenv("HYDRAFORGE_LOOP_DIR", find_loop_dir().c_str(), 1);
+
+    hydraforge::PluginLoader loader;
+    auto engine = std::make_unique<agenticdsl::DSLEngine>(std::vector<agenticdsl::ParsedGraph>{});
     auto bus = std::make_shared<mock::MockBus>();
+    engine->set_interaction_bus(bus);
     EventHandler handler(bus, nullptr);
 
-    // 所有 emit 使用 BusEvent 包装 (C++20 designated initializers)
-    auto emit = [&](const std::string& topic, nlohmann::json meta) {
-        bus->emit(agenticdsl::BusEvent{topic, agenticdsl::ToolResult{.ok = true, .meta = std::move(meta)}});
-    };
+    REQUIRE(loader.load_so(find_loop_agent_so(), engine->get_tool_registry()));
 
-    emit("user.input", {{"session_id", "sess_test"}, {"input", "hello"}});
-    emit("loop.turn.start", {{"turn", 1}, {"step", 1}});
-    emit("llm.request", {{"model", "mock-llm-v1"}});
-    emit("llm.response", {{"tokens", 42}, {"duration_ms", 100}});
-    emit("loop.decision", {{"decision", "tool_call"}, {"tool", "shell/exec"}});
-    emit("tool.execution.start", {{"name", "shell/exec"}});
-    emit("tool.execution.end", {{"ok", true}, {"duration_ms", 50}});
-    emit("loop.turn.end", {{"decision", "observe"}});
-    emit("loop.turn.start", {{"turn", 2}, {"step", 2}});
-    emit("loop.decision", {{"decision", "respond"}});
-    emit("loop.done", {{"total_steps", 2}, {"total_tokens", 84}});
+    auto mock = std::make_unique<agenticdsl::MockLLMProvider>();
+    mock->enqueue_response(R"({"content":"hello","tool_calls":[]})");
+    auto* mock_ptr = mock.get();
+    engine->set_llm_provider(std::move(mock));
 
-    // 验证完整事件流
-    int event_count = static_cast<int>(bus->events.size());
-    REQUIRE(event_count >= 10);
+    auto setup = engine->get_tool_registry().call_tool("loop/set_parent_provider",
+        std::unordered_map<std::string, std::string>{{"provider_ptr", ptr_to_str(mock_ptr)}});
+    REQUIRE(setup.value("success", false) == true);
 
-    bool all_required_topics_found = true;
-    std::set<std::string> required_topics = {
-        "user.input", "loop.turn.start", "llm.request",
-        "llm.response", "loop.decision", "tool.execution.start",
-        "tool.execution.end", "loop.turn.end", "loop.done"
-    };
-    for (const auto& required : required_topics) {
-        bool found = false;
-        for (const auto& [topic, _] : bus->events) {
-            if (topic == required) { found = true; break; }
+    AgentConfig agent;
+    agent.provider = "mock";
+    agent.model = "test";
+    agent.loop_type = "react";
+    SessionConfig sess;
+    sess.persist_dir = "";
+
+    ChatSession session(engine.get(), bus, &engine->get_tool_registry(), agent, sess);
+    (void)session.chat("hello");
+
+    bool found_user_input = false;
+    bool found_loop_done = false;
+    bool found_turn_start = false;
+    bool found_decision = false;
+    bool found_turn_end = false;
+    for (const auto& [topic, payload] : bus->events) {
+        if (topic == "user.input") found_user_input = true;
+        if (topic == "loop.done") found_loop_done = true;
+        if (topic == "loop.turn.start") {
+            REQUIRE(payload.contains("turn"));
+            REQUIRE(payload.contains("step"));
+            found_turn_start = true;
         }
-        if (!found) all_required_topics_found = false;
+        if (topic == "loop.decision") {
+            REQUIRE(payload.contains("decision"));
+            if (payload.value("decision", "") == "tool_call") {
+                REQUIRE(payload.contains("tool"));
+            }
+            found_decision = true;
+        }
+        if (topic == "loop.turn.end") {
+            REQUIRE(payload.contains("turn"));
+            REQUIRE(payload.contains("decision"));
+            found_turn_end = true;
+        }
     }
-    REQUIRE(all_required_topics_found);
+    REQUIRE(found_user_input);
+    REQUIRE(found_loop_done);
+    REQUIRE(found_turn_start);
+    REQUIRE(found_decision);
+    REQUIRE(found_turn_end);
+
+    // 先释放 engine, 再让 loader dlclose (避免 plugin function pointer 悬空)
+    engine.reset();
 }
 
 TEST_CASE("MockBus implements all 4 IInteractionBus virtual methods", "[e2e][mock]") {
@@ -249,21 +290,6 @@ TEST_CASE("ChatSession routes through loop/run even when LLM provider is set", "
     engine.reset();
 }
 
-static std::string ptr_to_str(void* p) {
-    std::stringstream ss;
-    ss << reinterpret_cast<uintptr_t>(p);
-    return ss.str();
-}
-
-static std::string find_loop_dir() {
-    if (const char* env = std::getenv("HYDRAFORGE_LOOP_DIR")) return env;
-    for (auto p = fs::current_path(); p != p.root_path(); p = p.parent_path()) {
-        auto candidate = p / "lib" / "loop";
-        if (fs::exists(candidate)) return candidate.string();
-    }
-    throw std::runtime_error("lib/loop directory not found");
-}
-
 TEST_CASE("loop/run emits loop.turn.start with turn and step", "[e2e][mock][loop-agent]") {
     ensure_plugin_path_env();
     setenv("HYDRAFORGE_LOOP_DIR", find_loop_dir().c_str(), 1);
@@ -302,6 +328,89 @@ TEST_CASE("loop/run emits loop.turn.start with turn and step", "[e2e][mock][loop
         }
     }
     REQUIRE(found_turn_start);
+
+    engine.reset();
+}
+
+TEST_CASE("loop/run emits loop.decision with decision and tool", "[e2e][mock][loop-events]") {
+    ensure_plugin_path_env();
+    setenv("HYDRAFORGE_LOOP_DIR", find_loop_dir().c_str(), 1);
+
+    hydraforge::PluginLoader loader;
+    auto engine = std::make_unique<agenticdsl::DSLEngine>(std::vector<agenticdsl::ParsedGraph>{});
+    auto bus = std::make_shared<mock::MockBus>();
+    engine->set_interaction_bus(bus);
+
+    REQUIRE(loader.load_so(find_loop_agent_so(), engine->get_tool_registry()));
+
+    auto mock = std::make_unique<agenticdsl::MockLLMProvider>();
+    mock->enqueue_response(R"({"content":"hello","tool_calls":[]})");
+    auto* mock_ptr = mock.get();
+    engine->set_llm_provider(std::move(mock));
+
+    auto setup = engine->get_tool_registry().call_tool("loop/set_parent_provider",
+        std::unordered_map<std::string, std::string>{{"provider_ptr", ptr_to_str(mock_ptr)}});
+    REQUIRE(setup.value("success", false) == true);
+
+    (void)engine->get_tool_registry().call_tool("loop/run",
+        std::unordered_map<std::string, std::string>{
+            {"loop_type", "react"},
+            {"prompt", "hello"},
+            {"bus_ptr", ptr_to_str(bus.get())},
+            {"session_id", "sess_loop_decision"}
+        });
+
+    bool found_decision = false;
+    for (const auto& [topic, payload] : bus->events) {
+        if (topic == "loop.decision") {
+            REQUIRE(payload.contains("decision"));
+            REQUIRE(payload.value("decision", "") == "tool_call");
+            REQUIRE(payload.contains("tool"));
+            found_decision = true;
+        }
+    }
+    REQUIRE(found_decision);
+
+    engine.reset();
+}
+
+TEST_CASE("loop/run emits loop.turn.end with turn and decision", "[e2e][mock][loop-events]") {
+    ensure_plugin_path_env();
+    setenv("HYDRAFORGE_LOOP_DIR", find_loop_dir().c_str(), 1);
+
+    hydraforge::PluginLoader loader;
+    auto engine = std::make_unique<agenticdsl::DSLEngine>(std::vector<agenticdsl::ParsedGraph>{});
+    auto bus = std::make_shared<mock::MockBus>();
+    engine->set_interaction_bus(bus);
+
+    REQUIRE(loader.load_so(find_loop_agent_so(), engine->get_tool_registry()));
+
+    auto mock = std::make_unique<agenticdsl::MockLLMProvider>();
+    mock->enqueue_response(R"({"content":"hello","tool_calls":[]})");
+    auto* mock_ptr = mock.get();
+    engine->set_llm_provider(std::move(mock));
+
+    auto setup = engine->get_tool_registry().call_tool("loop/set_parent_provider",
+        std::unordered_map<std::string, std::string>{{"provider_ptr", ptr_to_str(mock_ptr)}});
+    REQUIRE(setup.value("success", false) == true);
+
+    (void)engine->get_tool_registry().call_tool("loop/run",
+        std::unordered_map<std::string, std::string>{
+            {"loop_type", "react"},
+            {"prompt", "hello"},
+            {"bus_ptr", ptr_to_str(bus.get())},
+            {"session_id", "sess_loop_turn_end"}
+        });
+
+    bool found_turn_end = false;
+    for (const auto& [topic, payload] : bus->events) {
+        if (topic == "loop.turn.end") {
+            REQUIRE(payload.contains("turn"));
+            REQUIRE(payload.contains("decision"));
+            found_turn_end = true;
+        }
+    }
+    REQUIRE(found_turn_end);
 
     engine.reset();
 }
