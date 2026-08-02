@@ -6,13 +6,13 @@
 
 ## 1. chat_session.cpp 删除 use_direct_llm 短路
 
-- [ ] 1.1 在 `examples/pdk_chat_demo/chat_session.cpp:232` 删除 `bool use_direct_llm = (llm != nullptr);` 行
-- [ ] 1.2 在 `examples/pdk_chat_demo/chat_session.cpp:235-292` 删除 `if (use_direct_llm) { ... } else { ... }` 双分支,改为统一执行 `else` 分支体
-- [ ] 1.3 保留 `loop_args` 字典构造(`loop_type`/`prompt`/`system_prompt`/`history`/`tools`/`max_steps`),确认字段名与 `pdk/loop_agent/src/pdk_entry.cpp:158-160` 一致
-- [ ] 1.4 保留 `impl_->registry->call_tool("loop/run", loop_args)` 调用
-- [ ] 1.5 删除直连 LLM 路径中临时变量 `full_prompt`、`req`、`gen_result`、`code_str` 等无用代码
-- [ ] 1.6 验证:`grep -rn "use_direct_llm" examples/` 返回 0
-- [ ] 1.7 提交:`git commit -m "fix(pdk_chat_demo): remove use_direct_llm bypass in ChatSession::chat"`
+- [x] 1.1 在 `examples/pdk_chat_demo/chat_session.cpp:232` 删除 `bool use_direct_llm = (llm != nullptr);` 行
+- [x] 1.2 在 `examples/pdk_chat_demo/chat_session.cpp:235-292` 删除 `if (use_direct_llm) { ... } else { ... }` 双分支,改为统一执行 `else` 分支体
+- [x] 1.3 保留 `loop_args` 字典构造(`loop_type`/`prompt`/`system_prompt`/`history`/`tools`/`max_steps`),确认字段名与 `pdk/loop_agent/src/pdk_entry.cpp:158-160` 一致
+- [x] 1.4 保留 `impl_->registry->call_tool("loop/run", loop_args)` 调用
+- [x] 1.5 删除直连 LLM 路径中临时变量 `full_prompt`、`req`、`gen_result`、`code_str` 等无用代码
+- [x] 1.6 验证:`grep -rn "use_direct_llm" examples/` 返回 0
+- [x] 1.7 提交:`git commit -m "fix(pdk_chat_demo): remove use_direct_llm bypass in ChatSession::chat"`
 
 ## 2. loop_agent 真实路径事件发射
 
