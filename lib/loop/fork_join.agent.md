@@ -15,7 +15,7 @@ nodes:
     next: [/main/join_results]
   - id: task_a
     type: tool_call
-    tool_name: loop/process_task
+    tool: loop/process_task
     args:
       task_id: "a"
       input: "{{user_input}}"
@@ -23,7 +23,7 @@ nodes:
     next: [/main/end]
   - id: task_b
     type: tool_call
-    tool_name: loop/process_task
+    tool: loop/process_task
     args:
       task_id: "b"
       input: "{{user_input}}"
@@ -31,7 +31,7 @@ nodes:
     next: [/main/end]
   - id: task_c
     type: tool_call
-    tool_name: loop/process_task
+    tool: loop/process_task
     args:
       task_id: "c"
       input: "{{user_input}}"

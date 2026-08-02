@@ -213,7 +213,20 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                 ::agenticdsl::LayeredContext ctx;
                 ctx.working["user_input"] = user_prompt;
 
+                // ADR-0068 附录 A: loop.turn.start {turn, step}
+                emit_loop_event(bus, session_id, "loop.turn.start",
+                                {{"turn", 1}, {"step", 1}});
+
+                // ADR-0068 附录 A: loop.decision {decision, tool?}
+                emit_loop_event(bus, session_id, "loop.decision",
+                                {{"decision", "tool_call"}, {"tool", "loop/run"}});
+
                 auto result = child->run(ctx);
+
+                // ADR-0068 附录 A: loop.turn.end {turn, decision}
+                emit_loop_event(bus, session_id, "loop.turn.end",
+                                {{"turn", 1},
+                                 {"decision", result.success ? "respond" : "give_up"}});
 
                 nlohmann::json output;
                 output["success"] = result.success;

@@ -248,3 +248,60 @@ TEST_CASE("ChatSession routes through loop/run even when LLM provider is set", "
     // 先释放 engine, 再让 loader dlclose (避免 plugin function pointer 悬空)
     engine.reset();
 }
+
+static std::string ptr_to_str(void* p) {
+    std::stringstream ss;
+    ss << reinterpret_cast<uintptr_t>(p);
+    return ss.str();
+}
+
+static std::string find_loop_dir() {
+    if (const char* env = std::getenv("HYDRAFORGE_LOOP_DIR")) return env;
+    for (auto p = fs::current_path(); p != p.root_path(); p = p.parent_path()) {
+        auto candidate = p / "lib" / "loop";
+        if (fs::exists(candidate)) return candidate.string();
+    }
+    throw std::runtime_error("lib/loop directory not found");
+}
+
+TEST_CASE("loop/run emits loop.turn.start with turn and step", "[e2e][mock][loop-agent]") {
+    ensure_plugin_path_env();
+    setenv("HYDRAFORGE_LOOP_DIR", find_loop_dir().c_str(), 1);
+
+    hydraforge::PluginLoader loader;
+    auto engine = std::make_unique<agenticdsl::DSLEngine>(std::vector<agenticdsl::ParsedGraph>{});
+    auto bus = std::make_shared<mock::MockBus>();
+    engine->set_interaction_bus(bus);
+
+    REQUIRE(loader.load_so(find_loop_agent_so(), engine->get_tool_registry()));
+
+    auto mock = std::make_unique<agenticdsl::MockLLMProvider>();
+    mock->enqueue_response(R"({"content":"hello","tool_calls":[]})");
+    auto* mock_ptr = mock.get();
+    engine->set_llm_provider(std::move(mock));
+
+    auto setup = engine->get_tool_registry().call_tool("loop/set_parent_provider",
+        std::unordered_map<std::string, std::string>{{"provider_ptr", ptr_to_str(mock_ptr)}});
+    REQUIRE(setup.value("success", false) == true);
+
+    auto run_result = engine->get_tool_registry().call_tool("loop/run",
+        std::unordered_map<std::string, std::string>{
+            {"loop_type", "react"},
+            {"prompt", "hello"},
+            {"bus_ptr", ptr_to_str(bus.get())},
+            {"session_id", "sess_loop_events"}
+        });
+    (void)run_result;
+
+    bool found_turn_start = false;
+    for (const auto& [topic, payload] : bus->events) {
+        if (topic == "loop.turn.start") {
+            REQUIRE(payload.contains("turn"));
+            REQUIRE(payload.contains("step"));
+            found_turn_start = true;
+        }
+    }
+    REQUIRE(found_turn_start);
+
+    engine.reset();
+}

@@ -17,7 +17,7 @@ nodes:
     next: [/main/execute]
   - id: execute
     type: tool_call
-    tool_name: loop/execute_plan
+    tool: loop/execute_plan
     args:
       plan: "{{plan_response}}"
     output_keys: [execution_result]
