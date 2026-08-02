@@ -16,8 +16,8 @@
 
 ## 2. loop_agent 真实路径事件发射
 
-- [ ] 2.1 在 `pdk/loop_agent/src/pdk_entry.cpp` 确定 `IInteractionBus` 访问方式:通过 `loop/run` 新增可选参数 `bus_ptr` + `session_id` 或复用 `thread_local` 存储
-- [ ] 2.2 若采用 `bus_ptr` 参数:在 `loop/run` lambda 解析 `args["bus_ptr"]` 与 `args["session_id"]`;未提供时跳过 emit 但不失败
+- [x] 2.1 在 `pdk/loop_agent/src/pdk_entry.cpp` 确定 `IInteractionBus` 访问方式:通过 `loop/run` 新增可选参数 `bus_ptr` + `session_id` 或复用 `thread_local` 存储
+- [x] 2.2 若采用 `bus_ptr` 参数:在 `loop/run` lambda 解析 `args["bus_ptr"]` 与 `args["session_id"]`;未提供时跳过 emit 但不失败
 - [ ] 2.3 在真实 DSL 执行路径(`pdk/loop_agent/src/pdk_entry.cpp:182-206`) turn 开始前发射 `loop.turn.start`,payload 含 `turn`/`step`
 - [ ] 2.4 在决策点(think 节点选择 tool_call/respond/give_up 后)发射 `loop.decision`,payload 含 `decision`,tool_call 时含 `tool`
 - [ ] 2.5 在 turn 结束(observe 后)发射 `loop.turn.end`,payload 含 `turn`/`decision`
