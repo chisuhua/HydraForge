@@ -124,9 +124,18 @@ ToolCoordinatorNestingGuard::ToolCoordinatorNestingGuard(
           std::hash<std::thread::id>{}(std::this_thread::get_id());
       payload["nesting_depth"] = tls_nesting_depth;
       payload["timestamp"] = now_iso8601();
-      bus->emit(BusEvent{"tool.coordinator.cycle_detected",
-                ToolResult::success({}, std::move(payload)),
-                std::chrono::steady_clock::now()});
+      bus->emit(agenticdsl::EventBuilder("tool.coordinator.cycle_detected")
+          .args(nlohmann::json{
+              {"caller", *it},
+              {"callee", name_},
+              {"nesting_depth", tls_nesting_depth}
+          })
+          .meta(nlohmann::json{
+              {"call_stack", std::move(stack)},
+              {"thread_id", std::hash<std::thread::id>{}(std::this_thread::get_id())},
+              {"timestamp", now_iso8601()}
+          })
+          .build());
     }
     throw std::runtime_error(
         "ToolCoordinator cycle detected: " + name_ +
@@ -250,8 +259,13 @@ ToolResult ToolCoordinator::execute(
         "tool.audit.invoked", request_id, tool_name,
         cat_str, ctx.caller_layer, ctx.session_id);
     invoked_meta["args_keys_count"] = std::to_string(args.size());
-    bus_->emit(BusEvent{"tool.audit.invoked", ToolResult::success({}, std::move(invoked_meta)),
-              std::chrono::steady_clock::now()});
+    bus_->emit(agenticdsl::EventBuilder("tool.audit.invoked")
+        .args(nlohmann::json{
+            {"tool_name", tool_name},
+            {"category", cat_str}
+        })
+        .meta(std::move(invoked_meta))
+        .build());
   }
 
   // ===== Step 4: 实际调用 registry (返回 nlohmann::json) =====
@@ -289,8 +303,16 @@ ToolResult ToolCoordinator::execute(
     completed_meta["duration_ms"] = std::to_string(duration_ms);
     completed_meta["ok"] = result.ok ? "true" : "false";
     completed_meta["error_code"] = result.ok ? "" : "tool.error";
-    bus_->emit(BusEvent{"tool.audit.completed", ToolResult::success({}, std::move(completed_meta)),
-              std::chrono::steady_clock::now()});
+    bus_->emit(agenticdsl::EventBuilder("tool.audit.completed")
+        .args(nlohmann::json{
+            {"tool_name", tool_name},
+            {"category", cat_str},
+            {"ok", result.ok ? std::string{"true"} : std::string{"false"}},
+            {"duration_ms", std::to_string(duration_ms)},
+            {"error_code", result.ok ? std::string{} : std::string{"tool.error"}}
+        })
+        .meta(std::move(completed_meta))
+        .build());
   }
 
   // 发射 tool.execution.end (ADR-0068 §决策 3, success 路径)

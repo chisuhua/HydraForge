@@ -3,6 +3,7 @@
 #include "stream_to_bus.h"
 #include "common/log/log.h"
 #include "core/types/tool_result.h"
+#include "agenticdsl/contract/event_builder.h"
 #include <chrono>
 #include <stdexcept>
 
@@ -84,7 +85,11 @@ GenerationResult run_stream_to_bus(
             LLMError err;
             err.code = LLMError::Code::Cancelled;
             err.message = std::string("stream_to_bus exception: ") + e.what();
-            bus.emit(BusEvent{event_type::kLlmTokenError, make_error_payload(request_id, err), std::chrono::steady_clock::now()});
+            auto err_tr = make_error_payload(request_id, err);
+            bus.emit(agenticdsl::EventBuilder(event_type::kLlmTokenError)
+                .args(err_tr.data)
+                .meta(err_tr.meta)
+                .build());
             LOG_WARN("run_stream_to_bus: exception in stream.next, request_id=" << request_id);
             break;
         }
@@ -93,18 +98,29 @@ GenerationResult run_stream_to_bus(
         }
         result.text += *chunk;
         ++token_count;
-        bus.emit(BusEvent{event_type::kLlmToken, make_token_payload(request_id, *chunk), std::chrono::steady_clock::now()});
+        auto tok_tr = make_token_payload(request_id, *chunk);
+        bus.emit(agenticdsl::EventBuilder(event_type::kLlmToken)
+            .args(tok_tr.data)
+            .meta(tok_tr.meta)
+            .build());
     }
 
     std::string finish_reason = cancelled ? finish_reason::kCancelled : finish_reason::kStop;
     auto stream_error = stream.error();
     if (stream_error.has_value()) {
-        bus.emit(BusEvent{event_type::kLlmTokenError, make_error_payload(request_id, *stream_error), std::chrono::steady_clock::now()});
+        auto err_tr = make_error_payload(request_id, *stream_error);
+        bus.emit(agenticdsl::EventBuilder(event_type::kLlmTokenError)
+            .args(err_tr.data)
+            .meta(err_tr.meta)
+            .build());
         LOG_WARN("run_stream_to_bus: stream error, request_id=" << request_id
                  << " code=" << error_code_name(stream_error->code));
     } else {
-        bus.emit(BusEvent{event_type::kLlmTokenDone,
-                 make_done_payload(request_id, finish_reason, token_count, result.text), std::chrono::steady_clock::now()});
+        auto done_tr = make_done_payload(request_id, finish_reason, token_count, result.text);
+        bus.emit(agenticdsl::EventBuilder(event_type::kLlmTokenDone)
+            .args(done_tr.data)
+            .meta(done_tr.meta)
+            .build());
     }
     result.finish_reason = finish_reason;
     result.completion_tokens = static_cast<int>(token_count);

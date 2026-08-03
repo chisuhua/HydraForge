@@ -61,20 +61,20 @@
 
 ## 5. NodeExecutor 与 Cognitive/Domain 迁移
 
-- [ ] 5.1 审计 `src/modules/executor/node_executor.cpp` 中 4 处现有 emit 调用点
-- [ ] 5.2 将 `dsl.call.started` 的 emit 改为 `EventBuilder` 构造
-- [ ] 5.3 将 `dsl.call.completed` 的 emit 改为 `EventBuilder` 构造
-- [ ] 5.4 将 `execution.failed` 的 emit 改为 `EventBuilder` 构造
-- [ ] 5.5 审计 `src/modules/cognitive/cognitive_worker.cpp` 中 emit 调用点
-- [ ] 5.6 将 `cognitive.task.started` / `cognitive.task.completed` 的 emit 改为 `EventBuilder` 构造
-- [ ] 5.7 审计 `src/modules/cognitive/domain_worker_pool.cpp` 中 emit 调用点
-- [ ] 5.8 将 `domain.task.started` / `domain.task.completed` / `domain.task.failed` 的 emit 改为 `EventBuilder` 构造
-- [ ] 5.9 审计 `src/common/` 与 `src/modules/` 中剩余裸 emit 点
-- [ ] 5.10 将剩余所有裸 emit 改为 `EventBuilder` 构造
-- [ ] 5.11 运行验收命令：`grep -rn "BusEvent{" src examples --include="*.cpp" | grep -v event_builder`
-- [ ] 5.12 验证上述 grep 返回 0 行
-- [ ] 5.13 运行 ctest 验证本模块相关测试通过
-- [ ] 5.14 提交 commit: `refactor(emit): migrate executor/cognitive/domain emit sites to EventBuilder`
+- [x] 5.1 审计 `src/modules/executor/node_executor.cpp` 中 4 处现有 emit 调用点
+- [x] 5.2 将 `dsl.call.started` 的 emit 改为 `EventBuilder` 构造
+- [x] 5.3 将 `dsl.call.completed` 的 emit 改为 `EventBuilder` 构造
+- [x] 5.4 将 `execution.failed` 的 emit 改为 `EventBuilder` 构造
+- [x] 5.5 审计 `src/modules/cognitive/cognitive_worker.cpp` 中 emit 调用点
+- [x] 5.6 将 `cognitive.task.started` / `cognitive.task.completed` 的 emit 改为 `EventBuilder` 构造
+- [x] 5.7 审计 `src/modules/cognitive/domain_worker_pool.cpp` 中 emit 调用点
+- [x] 5.8 将 `domain.task.started` / `domain.task.completed` / `domain.task.failed` 的 emit 改为 `EventBuilder` 构造
+- [x] 5.9 审计 `src/common/` 与 `src/modules/` 中剩余裸 emit 点
+- [x] 5.10 将剩余所有裸 emit 改为 `EventBuilder` 构造
+- [x] 5.11 运行验收命令：`grep -rn "BusEvent{" src examples --include="*.cpp" | grep -v event_builder`
+- [x] 5.12 验证上述 grep 返回 0 行
+- [x] 5.13 运行 ctest 验证本模块相关测试通过
+- [x] 5.14 提交 commit: `refactor(emit): migrate executor/cognitive/domain emit sites to EventBuilder`
 
 ## 6. 测试与 E2E Mock 重写
 

@@ -401,9 +401,10 @@ TEST_CASE("DomainWorkerPool bus integration",
 
   bus->subscribe("domain.task.started", [&](const BusEvent& e) {
     started_ok.store(e.payload.ok, std::memory_order_relaxed);
-    started_has_domain.store(e.payload.meta.contains("domain"), std::memory_order_relaxed);
-    started_has_tool_name.store(e.payload.meta.contains("tool_name"), std::memory_order_relaxed);
-    started_has_output_key.store(e.payload.meta.contains("output_key"), std::memory_order_relaxed);
+    // ADR-0068 §5.8: 业务字段在 data, trace 在 meta
+    started_has_domain.store(e.payload.data.contains("domain"), std::memory_order_relaxed);
+    started_has_tool_name.store(e.payload.data.contains("tool_name"), std::memory_order_relaxed);
+    started_has_output_key.store(e.payload.data.contains("output_key"), std::memory_order_relaxed);
     started_has_worker_id.store(e.payload.meta.contains("worker_id"), std::memory_order_relaxed);
     started_count.fetch_add(1, std::memory_order_relaxed);
   });

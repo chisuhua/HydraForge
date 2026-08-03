@@ -19,6 +19,7 @@
 #include <nlohmann/json.hpp>
 
 #include <agenticdsl/contract/bus_event.h>
+#include <agenticdsl/contract/event_builder.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <core/types/tool_result.h>
 
@@ -37,10 +38,7 @@ public:
     }
 
     void emit(const std::string& topic, const std::string& content) override {
-        agenticdsl::ToolResult tr;
-        tr.ok = true;
-        tr.meta = {{"content", content}};
-        emit(agenticdsl::BusEvent{topic, tr});
+        emit(agenticdsl::EventBuilder(topic).meta(nlohmann::json{{"content", content}}).build());
     }
 
     size_t subscribe(const std::string& topic,

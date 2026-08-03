@@ -17,6 +17,7 @@
 #include <nlohmann/json.hpp>
 
 #include <agenticdsl/contract/bus_event.h>
+#include <agenticdsl/contract/event_builder.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <core/types/tool_result.h>
 
@@ -91,14 +92,8 @@ TEST_CASE("EventHandler subscribes to expected topics", "[e2e][mock]") {
     EventHandler handler(bus, nullptr);
 
     // 触发事件 — 使用 BusEvent 包装
-    bus->emit(agenticdsl::BusEvent{"user.input", agenticdsl::ToolResult{
-        .ok = true,
-        .meta = {{"input", "hello"}}
-    }});
-    bus->emit(agenticdsl::BusEvent{"loop.done", agenticdsl::ToolResult{
-        .ok = true,
-        .meta = {{"total_steps", 3}}
-    }});
+    bus->emit(agenticdsl::EventBuilder("user.input").meta(nlohmann::json{{"input", "hello"}}).build());
+    bus->emit(agenticdsl::EventBuilder("loop.done").meta(nlohmann::json{{"total_steps", 3}}).build());
 
     // 验证事件流
     bool found_user_input = false;
@@ -117,7 +112,7 @@ TEST_CASE("Mock mode -- end-to-end flow", "[e2e][mock]") {
 
     // 所有 emit 使用 BusEvent 包装 (C++20 designated initializers)
     auto emit = [&](const std::string& topic, nlohmann::json meta) {
-        bus->emit(agenticdsl::BusEvent{topic, agenticdsl::ToolResult{.ok = true, .meta = std::move(meta)}});
+        bus->emit(agenticdsl::EventBuilder(topic).meta(std::move(meta)).build());
     };
 
     emit("user.input", {{"session_id", "sess_test"}, {"input", "hello"}});
@@ -164,10 +159,7 @@ TEST_CASE("MockBus implements all 4 IInteractionBus virtual methods", "[e2e][moc
     });
     REQUIRE(token > 0);
 
-    bus->emit(agenticdsl::BusEvent{"test_topic", agenticdsl::ToolResult{
-        .ok = true,
-        .meta = {{"key", "value"}}
-    }});
+    bus->emit(agenticdsl::EventBuilder("test_topic").meta(nlohmann::json{{"key", "value"}}).build());
 
     REQUIRE(callback_count == 1);
     REQUIRE(received.payload.ok == true);

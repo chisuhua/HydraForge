@@ -18,6 +18,7 @@
 #include <nlohmann/json.hpp>
 
 #include <agenticdsl/contract/bus_event.h>
+#include <agenticdsl/contract/event_builder.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <core/types/tool_result.h>
 #include <core/types/budget.h>
@@ -40,10 +41,7 @@ public:
     }
 
     void emit(const std::string& topic, const std::string& content) override {
-        agenticdsl::ToolResult tr;
-        tr.ok = true;
-        tr.meta = {{"content", content}};
-        emit(agenticdsl::BusEvent{topic, tr});
+        emit(agenticdsl::EventBuilder(topic).meta(nlohmann::json{{"content", content}}).build());
     }
 
     size_t subscribe(const std::string& topic,
@@ -196,20 +194,15 @@ TEST_CASE("budget alert: bus callback does not touch TUI directly", "[budget][al
     REQUIRE_FALSE(session.consume_budget_alert());
 
     // 手动 emit budget.checked (模拟 dispatch 线程触发回调)
-    bus->emit(agenticdsl::BusEvent{
-        "budget.checked",
-        agenticdsl::ToolResult{
-            .ok = false,
-            .meta = {
-                {"session_id", session.session_id()},
-                {"limit", 1.0},
-                {"used", 1.5},
-                {"unit", "llm_calls"},
-                {"reason", "cost_limit"}
-            }
-        },
-        std::chrono::steady_clock::now()
-    });
+    bus->emit(agenticdsl::EventBuilder("budget.checked")
+        .meta(nlohmann::json{
+            {"session_id", session.session_id()},
+            {"limit", 1.0},
+            {"used", 1.5},
+            {"unit", "llm_calls"},
+            {"reason", "cost_limit"}
+        })
+        .build());
 
     // 回调应仅置 atomic flag, 不触 TUI
     // consume_budget_alert 返回 true 并重置
