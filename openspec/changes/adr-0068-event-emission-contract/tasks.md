@@ -11,20 +11,20 @@
 
 ## 2. LLM Decorator 链迁移
 
-- [ ] 2.1 审计 `src/common/llm/` 中所有现有 emit 调用点并列出清单
-- [ ] 2.2 新建或复用 `TracingDecorator` 类，实现 `ILLMProvider` 包装接口
-- [ ] 2.3 在 `TracingDecorator::generate()` 调用底层 provider 前 emit `llm.request`
-- [ ] 2.4 确保 `llm.request` payload 包含 `model` 与 `prompt_hash`
-- [ ] 2.5 在 `TracingDecorator::generate()` 返回成功后 emit `llm.response`
-- [ ] 2.6 在 `generate()` 失败/异常路径中 emit 带 `error_code` 的 `llm.response`
-- [ ] 2.7 将 `CostTrackingDecorator` 中现有 emit 改为 `EventBuilder` 构造
-- [ ] 2.8 将 `ComplianceDecorator` 中现有 emit 改为 `EventBuilder` 构造
-- [ ] 2.9 将 `RateLimitDecorator` 中现有 emit 改为 `EventBuilder` 构造
-- [ ] 2.10 在 `LLMProviderFactory` 或 `DSLEngine::set_llm_provider()` 中把 Decorator 链默认挂到 `TracingDecorator`
-- [ ] 2.11 验证 Decorator 链事件顺序：request 在 response 之前
-- [ ] 2.12 新增/更新 `tests/test_llm_event_emission.cpp` 覆盖 `llm.request` / `llm.response`
-- [ ] 2.13 运行 ctest 验证 Decorator 链相关测试通过
-- [ ] 2.14 提交 commit: `feat(llm): emit llm.request/llm.response via TracingDecorator`
+- [x] 2.1 审计 `src/common/llm/` 中所有现有 emit 调用点并列出清单
+- [x] 2.2 新建或复用 `TracingDecorator` 类，实现 `ILLMProvider` 包装接口
+- [x] 2.3 在 `TracingDecorator::generate()` 调用底层 provider 前 emit `llm.request`
+- [x] 2.4 确保 `llm.request` payload 包含 `model` 与 `prompt_hash`
+- [x] 2.5 在 `TracingDecorator::generate()` 返回成功后 emit `llm.response`
+- [x] 2.6 在 `generate()` 失败/异常路径中 emit 带 `error_code` 的 `llm.response`
+- [x] 2.7 将 `CostTrackingDecorator` 中现有 emit 改为 `EventBuilder` 构造
+- [x] 2.8 将 `ComplianceDecorator` 中现有 emit 改为 `EventBuilder` 构造
+- [x] 2.9 将 `RateLimitDecorator` 中现有 emit 改为 `EventBuilder` 构造
+- [x] 2.10 在 `LLMProviderFactory` 或 `DSLEngine::set_llm_provider()` 中把 Decorator 链默认挂到 `TracingDecorator`
+- [x] 2.11 验证 Decorator 链事件顺序：request 在 response 之前
+- [x] 2.12 新增/更新 `tests/test_llm_event_emission.cpp` 覆盖 `llm.request` / `llm.response`
+- [x] 2.13 运行 ctest 验证 Decorator 链相关测试通过
+- [x] 2.14 提交 commit: `feat(llm): emit llm.request/llm.response via TracingDecorator`
 
 ## 3. ToolCoordinator 迁移
 
