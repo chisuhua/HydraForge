@@ -32,7 +32,7 @@ namespace {
 class MockBus : public agenticdsl::IInteractionBus {
 public:
     void emit(const agenticdsl::BusEvent& event) override {
-        events.emplace_back(event.topic, event.payload.meta, event.payload.ok);
+        events.emplace_back(event.topic, event.payload.data, event.payload.meta, event.payload.ok);
         auto it = subscribers_.find(event.topic);
         if (it != subscribers_.end()) {
             for (auto& cb : it->second) cb(event);
@@ -56,6 +56,7 @@ public:
 
     struct EventRecord {
         std::string topic;
+        nlohmann::json data;
         nlohmann::json meta;
         bool ok;
     };
@@ -66,7 +67,7 @@ private:
     std::unordered_map<std::string, std::vector<std::function<void(const agenticdsl::BusEvent&)>>> subscribers_;
 };
 
-// 查找 budget.checked 事件
+// 查找 budget.checked 事件 (ADR-0068 §4: 业务字段在 data, trace 在 meta)
 bool has_budget_checked(const MockBus& bus) {
     for (const auto& ev : bus.events) {
         if (ev.topic == "budget.checked") return true;
@@ -74,10 +75,10 @@ bool has_budget_checked(const MockBus& bus) {
     return false;
 }
 
-// 从 budget.checked 事件中提取 payload
+// 从 budget.checked 事件中提取 payload data (ADR-0068 §4 split)
 nlohmann::json get_budget_payload(const MockBus& bus) {
     for (const auto& ev : bus.events) {
-        if (ev.topic == "budget.checked") return ev.meta;
+        if (ev.topic == "budget.checked") return ev.data;
     }
     return {};
 }
@@ -129,12 +130,15 @@ TEST_CASE("budget alert: exceeded triggers budget.checked event", "[budget][aler
     // 应 emit budget.checked 事件
     REQUIRE(has_budget_checked(*bus));
 
+    // ADR-0068 §4: 业务字段在 data, trace 在 meta
     auto payload = get_budget_payload(*bus);
-    REQUIRE(payload["session_id"] == session.session_id());
+    const auto& ev = bus->events.front();
+    auto& meta = ev.meta;
     REQUIRE(payload["unit"] == "llm_calls");
     REQUIRE(payload["reason"] == "cost_limit");
     REQUIRE(payload.contains("limit"));
     REQUIRE(payload.contains("used"));
+    REQUIRE(meta["session_id"] == session.session_id());
 }
 
 TEST_CASE("budget alert: exactly at limit does not alert", "[budget][alert]") {
@@ -255,8 +259,10 @@ TEST_CASE("budget alert: payload includes required fields", "[budget][alert]") {
     session.chat("test");
 
     auto payload = get_budget_payload(*bus);
-    // 验证 design.md 要求的 5 个字段
-    REQUIRE(payload["session_id"].is_string());
+    const auto& ev = bus->events.front();
+    auto& meta = ev.meta;
+    // 验证 design.md 要求的 5 个字段 (session_id 在 meta, 业务字段在 data)
+    REQUIRE(meta["session_id"].is_string());
     REQUIRE(payload["limit"] == 2.5);
     REQUIRE(payload["used"].is_number());
     REQUIRE(payload["unit"] == "llm_calls");

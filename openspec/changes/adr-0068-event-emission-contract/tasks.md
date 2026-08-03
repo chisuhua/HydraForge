@@ -46,18 +46,18 @@
 
 ## 4. ChatSession 与会话持久化迁移
 
-- [ ] 4.1 审计 `src/modules/chat_session.cpp` 中 5 处现有 emit 调用点
-- [ ] 4.2 将 `user.input` 的 emit 改为 `EventBuilder` 构造
-- [ ] 4.3 将 `app.shutdown` 的 emit 改为 `EventBuilder` 构造（如存在）
-- [ ] 4.4 将 `session.persist_request` 的 emit 改为 `EventBuilder` 构造
-- [ ] 4.5 将 `budget.checked` 的 emit 改为 `EventBuilder` 构造（如存在）
-- [ ] 4.6 在会话持久化写盘成功点 emit `session.persisted`
-- [ ] 4.7 确保 `session.persisted` payload 包含 `session_id` 与 `path`
-- [ ] 4.8 确保持久化失败路径不 emit `session.persisted`
-- [ ] 4.9 验证 `session.persisted` 仅在写盘成功后发射
-- [ ] 4.10 新增/更新 `tests/test_chat_session_events.cpp` 覆盖 `session.persisted`
-- [ ] 4.11 运行 ctest 验证 ChatSession 相关测试通过
-- [ ] 4.12 提交 commit: `feat(chat_session): emit session.persisted and migrate to EventBuilder`
+- [x] 4.1 审计 `src/modules/chat_session.cpp` 中 5 处现有 emit 调用点
+- [x] 4.2 将 `user.input` 的 emit 改为 `EventBuilder` 构造
+- [x] 4.3 将 `app.shutdown` 的 emit 改为 `EventBuilder` 构造（如存在）
+- [x] 4.4 将 `session.persist_request` 的 emit 改为 `EventBuilder` 构造
+- [x] 4.5 将 `budget.checked` 的 emit 改为 `EventBuilder` 构造（如存在）
+- [x] 4.6 在会话持久化写盘成功点 emit `session.persisted`
+- [x] 4.7 确保 `session.persisted` payload 包含 `session_id` 与 `path`
+- [x] 4.8 确保持久化失败路径不 emit `session.persisted`
+- [x] 4.9 验证 `session.persisted` 仅在写盘成功后发射
+- [x] 4.10 新增/更新 `tests/test_chat_session_events.cpp` 覆盖 `session.persisted`
+- [x] 4.11 运行 ctest 验证 ChatSession 相关测试通过
+- [x] 4.12 提交 commit: `feat(chat_session): emit session.persisted and migrate to EventBuilder`
 
 ## 5. NodeExecutor 与 Cognitive/Domain 迁移
 
