@@ -47,14 +47,50 @@
         "subject": "plan-phase",
         "expected_outcome": "plan-done"
       },
-      "state": "active",
+      "state": "orphaned",
       "attached_changes": [],
       "context_pointer": ".rddf/state/.plan-handoff.json",
       "started_at": "2026-08-01T16:06:43.535173+00:00",
       "last_heartbeat": "2026-08-01T16:06:43.535173+00:00",
+      "ended_at": "2026-08-01T16:39:24.724867+00:00",
+      "end_reason": "heartbeat-timeout"
+    },
+    {
+      "session_id": "rds_7633a3759ad4",
+      "kind": "stage_ship",
+      "owner_opencode_session_id": "my-eci-group_2510934",
+      "parent_session_id": "rds_cfe5126caae3",
+      "goal": {
+        "intent": "guide-ship",
+        "subject": "ship-phase",
+        "expected_outcome": "archive-all"
+      },
+      "state": "completed",
+      "attached_changes": [],
+      "context_pointer": null,
+      "started_at": "2026-08-01T16:39:24.758681+00:00",
+      "last_heartbeat": "2026-08-01T16:39:24.758681+00:00",
+      "ended_at": "2026-08-01T16:45:26.099659+00:00",
+      "end_reason": "guide-ship"
+    },
+    {
+      "session_id": "rds_1921efc2310d",
+      "kind": "stage_ship",
+      "owner_opencode_session_id": "my-eci-group_2510934",
+      "parent_session_id": "rds_cfe5126caae3",
+      "goal": {
+        "intent": "guide-ship",
+        "subject": "ship-phase",
+        "expected_outcome": "archive-all"
+      },
+      "state": "active",
+      "attached_changes": [],
+      "context_pointer": null,
+      "started_at": "2026-08-02T13:13:00.859051+00:00",
+      "last_heartbeat": "2026-08-02T13:13:00.859051+00:00",
       "ended_at": null,
       "end_reason": null
     }
   ],
-  "updated_at": "2026-08-01T16:06:43.535173+00:00"
+  "updated_at": "2026-08-02T13:13:00.859051+00:00"
 }

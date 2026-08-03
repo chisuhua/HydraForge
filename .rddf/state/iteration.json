@@ -1,6 +1,6 @@
 {
   "version": 4,
-  "updated_at": "2026-07-29T12:41:32.109536+00:00",
+  "updated_at": "2026-08-02T18:22:52.505900+00:00",
   "current_phase": "default",
   "changes": [
     {
@@ -71,6 +71,54 @@
       "last_deps_at": "2026-07-29T09:05:48.718096+00:00",
       "worktree_path": ".rddf/wt/adr-0037-causal-clock",
       "archived_at": "2026-07-29T12:41:32.097950+00:00"
+    },
+    {
+      "added_at": "2026-08-02T14:20:39.176415+00:00",
+      "name": "adr-0068-event-emission-contract",
+      "status": "in_worktree",
+      "plan_path": ".rddf/plans/adr-0068-event-emission-contract.md",
+      "tasks_total": 64,
+      "worktree_path": ".rddf/wt/adr-0068-event-emission-contract"
+    },
+    {
+      "added_at": "2026-08-02T14:20:39.407888+00:00",
+      "name": "adr-0069-tool-coordinator-hooks",
+      "status": "in_worktree",
+      "plan_path": ".rddf/plans/adr-0069-tool-coordinator-hooks.md",
+      "tasks_total": 40,
+      "worktree_path": ".rddf/wt/adr-0069-tool-coordinator-hooks"
+    },
+    {
+      "added_at": "2026-08-02T14:20:39.659853+00:00",
+      "name": "adr-0070-declare-command",
+      "status": "in_worktree",
+      "plan_path": ".rddf/plans/adr-0070-declare-command.md",
+      "tasks_total": 53,
+      "worktree_path": ".rddf/wt/adr-0070-declare-command"
+    },
+    {
+      "added_at": "2026-08-02T14:20:39.909707+00:00",
+      "name": "fix-loop-agent-bypass",
+      "status": "completed",
+      "plan_path": ".rddf/plans/fix-loop-agent-bypass.md",
+      "tasks_total": 32,
+      "worktree_path": ".rddf/wt/fix-loop-agent-bypass"
+    },
+    {
+      "added_at": "2026-08-02T14:20:40.155546+00:00",
+      "name": "fix-markdown-parser-yaml",
+      "status": "in_worktree",
+      "plan_path": ".rddf/plans/fix-markdown-parser-yaml.md",
+      "tasks_total": 43,
+      "worktree_path": ".rddf/wt/fix-markdown-parser-yaml"
+    },
+    {
+      "added_at": "2026-08-02T14:20:40.384498+00:00",
+      "name": "session-manager-jsonl",
+      "status": "in_worktree",
+      "plan_path": ".rddf/plans/session-manager-jsonl.md",
+      "tasks_total": 52,
+      "worktree_path": ".rddf/wt/session-manager-jsonl"
     }
   ]
 }

@@ -18,8 +18,12 @@
       ],
       "commit_sha": "6e2cfc1",
       "openspec_validate": "passed",
-      "capabilities_added": ["taskflow-integration-test-coverage"],
-      "capabilities_modified": ["dag-scheduler-pipeline"]
+      "capabilities_added": [
+        "taskflow-integration-test-coverage"
+      ],
+      "capabilities_modified": [
+        "dag-scheduler-pipeline"
+      ]
     }
   ],
   "deps_analysis": {
@@ -29,13 +33,31 @@
     "file_conflicts": 0,
     "adr_violations": 0,
     "recommended_wave": 1,
-    "execution_order": ["tf-integration-coverage"]
+    "execution_order": [
+      "tf-integration-coverage"
+    ]
   },
   "gate_checks": {
-    "min_active_changes": {"required": 1, "actual": 1, "passed": true},
-    "all_artifacts_committed": {"required": 6, "actual": 6, "passed": true},
-    "openspec_validate": {"required": "passed", "actual": "passed", "passed": true},
-    "proposal_suggestions_updated": {"required": true, "actual": true, "passed": true}
+    "min_active_changes": {
+      "required": 1,
+      "actual": 1,
+      "passed": true
+    },
+    "all_artifacts_committed": {
+      "required": 6,
+      "actual": 6,
+      "passed": true
+    },
+    "openspec_validate": {
+      "required": "passed",
+      "actual": "passed",
+      "passed": true
+    },
+    "proposal_suggestions_updated": {
+      "required": true,
+      "actual": true,
+      "passed": true
+    }
   },
   "next_stage": "ship",
   "next_skill": "guide-ship",
@@ -43,5 +65,9 @@
     "Single change, no inter-change dependencies",
     "Branch HEAD: 6e2cfc1 on main",
     "Ready for ship-side worktree creation + plan generation + TDD execution"
+  ],
+  "archived_at": "2026-08-03T03:32:52.406567+00:00",
+  "archived_changes": [
+    "fix-loop-agent-bypass"
   ]
 }
