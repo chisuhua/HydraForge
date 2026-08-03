@@ -1,13 +1,13 @@
 ## 1. EventBuilder 契约头
 
-- [ ] 1.1 创建 `include/agenticdsl/contract/event_builder.h`，定义 `EventBuilder` 类（header-only）
-- [ ] 1.2 实现 `EventBuilder::topic(const std::string&)` 链式入口
-- [ ] 1.3 实现 `EventBuilder::args(json)` 设置 schema 必填业务字段
-- [ ] 1.4 实现 `EventBuilder::meta(json)` 设置 trace_id/session_id/debug 附加上下文
-- [ ] 1.5 实现 `EventBuilder::build()` 生成 `BusEvent` 并自动填充 `timestamp`
-- [ ] 1.6 验证 header-only 无外部依赖（可独立编译）
-- [ ] 1.7 验证 args/meta 字段不会互相污染
-- [ ] 1.8 提交 commit: `feat(contract): add EventBuilder header for ADR-0068`
+- [x] 1.1 创建 `include/agenticdsl/contract/event_builder.h`，定义 `EventBuilder` 类（header-only）
+- [x] 1.2 实现 `EventBuilder::topic(const std::string&)` 链式入口
+- [x] 1.3 实现 `EventBuilder::args(json)` 设置 schema 必填业务字段
+- [x] 1.4 实现 `EventBuilder::meta(json)` 设置 trace_id/session_id/debug 附加上下文
+- [x] 1.5 实现 `EventBuilder::build()` 生成 `BusEvent` 并自动填充 `timestamp`
+- [x] 1.6 验证 header-only 无外部依赖（可独立编译）
+- [x] 1.7 验证 args/meta 字段不会互相污染
+- [x] 1.8 提交 commit: `feat(contract): add EventBuilder header for ADR-0068`
 
 ## 2. LLM Decorator 链迁移
 
