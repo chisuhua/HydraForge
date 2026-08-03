@@ -2,7 +2,7 @@
 
 ## 状态
 
-🔍 Proposed (2026-07-31 — 架构缺失能力审计 D2 决议立项, 待架构组评审; 实施排期 Wave 1, 依赖 L4-1 loop_agent bypass 修复先行)
+✅ Approved (2026-08-03 — Wave 1 §1-§5 全部 ship + V2 EventBuilder 扩展覆盖 8 处 operation-result 事件. 7 个幻影主题全部真实发射, §5.11 grep 验收返回 0 行, EventBuilder 100% 覆盖生产代码 emit, `test_e2e_mock.cpp` 全面重写完成. 变更依据: `openspec/changes/archive/2026-08-03-adr-0068-event-emission-contract/` + `openspec/changes/archive/2026-08-03-promote-event-builder-fulltoolresult-support/`)
 
 ## 领域
 
@@ -116,8 +116,19 @@ BusEvent ev = EventBuilder("tool.execution.start")
 ### 6. 测试契约（消除缺口 2 的倒置）
 
 - 每个 canonical 主题必须配一个**断言真实发射**的测试：触发对应生命周期路径，断言 bus 收到该主题且 payload 含 schema 必填字段；
-- `test_e2e_mock.cpp` 伪造事件模式标记为**反模式**：Wave 1 期间将其替换为真实管线测试（loop_agent 真实执行 + 断言 7 个原幻影主题）；
+- `test_e2e_mock.cpp` 伪造事件模式标记为**反模式**：Wave 1 期间将其替换为真实管线测试（loop_agent 真实执行 + 断言 7 个原幻影主题）— **已在 main `5c5037c` 完成**（Sprint 19/20 fix-loop-agent-bypass）；
 - 新增主题无发射测试 = 契约违反，drift 审计候选检测项（`docs_drift_audit.py` 后续 Scenario 扩展）。
+
+### 7. EventBuilder Operation-Result 扩展 (V2, 2026-08-03)
+
+Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = true`, 无 `error_code`/`latency_ms`/`trace_id`/`metadata` setters), 8 处 operation-result 事件 (`tool.completed` / `execution.failed` / `cognitive.task.completed` / `domain.task.{completed,failed}` x3 / `tool.audit.denied` x2) 保留 raw `BusEvent{}` 构造, 虽不影响测试但 §5.11 grep 验收不满足。
+
+**V2 扩展** (OpenSpec change `promote-event-builder-fulltoolresult-support`):
+- 新增构造器 `EventBuilder(std::string topic, ToolResult payload)` — 接管完整 7 字段 (ok/data/meta/error_code/latency_ms/trace_id/metadata), 兼容 8 处 migration
+- 新增 5 个 setters: `.ok(bool)` / `.error_code(ErrorCode)` / `.latency_ms(uint64_t)` / `.trace_id(std::string)` / `.metadata(json)`
+- 8 处 raw `BusEvent{}` 全部迁移到 EventBuilder
+
+**变量决策**: EventBuilder V2 通过 full-payload 构造函数承载完整 `ToolResult` (含 `ok=false` + 可选字段), subscriber 依赖 `payload.ok` 字段判定业务成败语义保持完整。
 
 ## 后果
 
@@ -136,10 +147,10 @@ BusEvent ev = EventBuilder("tool.execution.start")
 
 ### 转 ✅ Approved 条件
 
-1. 7 个幻影主题全部有真实发射 + 发射测试通过；
-2. 附录 A Registry 22 个主题登记完成；
-3. EventBuilder 落地且 ≥80% 现有 emit 完成迁移；
-4. `test_e2e_mock.cpp` 伪造事件全部移除。
+1. 7 个幻影主题全部有真实发射 + 发射测试通过 — **✅ 满足** (Wave 1 §2-§4 ship 5 个 + `fix-loop-agent-bypass` ship 3 个 `loop.*` = 7/7)
+2. 附录 A Registry 22 个主题登记完成 — **✅ 满足** (附录 A 22 个主题全部登记)
+3. EventBuilder 落地且 ≥80% 现有 emit 完成迁移 — **✅ 满足** (V2 扩展后 100% 迁移, §5.11 grep 0 行)
+4. `test_e2e_mock.cpp` 伪造事件全部移除 — **✅ 满足** (Sprint 19/20 `fix-loop-agent-bypass` ship 全面重写)
 
 ## 替代方案
 
@@ -173,12 +184,12 @@ BusEvent ev = EventBuilder("tool.execution.start")
 | `loop.decision` | loop_agent (L4) | 决策点 | `decision`, `tool?` | ✅ |
 | `loop.done` | ChatSession / loop_agent | 循环完成 | `session_id` | ✅ |
 | `loop.error` | ChatSession / loop_agent | 循环异常 | `error_code`, `message` | ✅ |
-| `llm.request` | L1 Decorator 链 | generate() 前 | `model`, `prompt_hash` | 👻 → 待实施 |
-| `llm.response` | L1 Decorator 链 | generate() 后 | `tokens`, `duration_ms`, `error_code?` | 👻 → 待实施 |
-| `tool.execution.start` | ToolCoordinator | call_tool 入口 | `tool`, `layer` | 👻 → 待实施 |
-| `tool.execution.end` | ToolCoordinator | call_tool 返回 | `tool`, `ok`, `duration_ms` | 👻 → 待实施 |
+| `llm.request` | L1 Decorator 链 | generate() 前 | `model`, `prompt_hash` | ✅ |
+| `llm.response` | L1 Decorator 链 | generate() 后 | `tokens`, `duration_ms`, `error_code?` | ✅ |
+| `tool.execution.start` | ToolCoordinator | call_tool 入口 | `tool`, `layer` | ✅ |
+| `tool.execution.end` | ToolCoordinator | call_tool 返回 | `tool`, `ok`, `duration_ms` | ✅ |
 | `session.persist_request` | ChatSession | 持久化请求发出 | `session_id` | ✅ |
-| `session.persisted` | session_agent / ChatSession | 写盘成功 | `session_id`, `path` | 👻 → 待实施 |
+| `session.persisted` | session_agent / ChatSession | 写盘成功 | `session_id`, `path` | ✅ |
 | `budget.checked` | ChatSession / budget_agent | 预算检查后 | `remaining`, `exceeded` | ✅ |
 | `context.compact.before` | ContextCompactor (L0-3, 待建) | 压缩前 | `before_tokens` | 👻 → 依赖 L0-3 |
 | `context.compact.after` | ContextCompactor (L0-3, 待建) | 压缩后 | `after_tokens`, `summary_ref` | 👻 → 依赖 L0-3 |

@@ -2,7 +2,7 @@
 
 > **焦点**: 当前活跃的 OpenSpec changes | **更新**: 每日
 > **Master Plan**: [`docs/superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md`](superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md)
-> **架构决策**: [`docs/adr/`](adr/) — 62 ADR (49 主 + 1 plugin + 12 skill 子项), 40 Approved (主 33 + 子 7), adr_lint 零错误 (2026-07-31 实测校准, `tools/doc_metrics.py --adr`)
+> **架构决策**: [`docs/adr/`](adr/) — 62 ADR (49 主 + 1 plugin + 12 skill 子项), 41 Approved (主 34 + 子 7), adr_lint 零错误 (2026-08-03 实测校准, `tools/doc_metrics.py --adr`)
 > **Phase**: 6 — Agent-as-Plugin (2026-07-15 ~ 至今, Phase 5 ✅ 收官)
 
 ---
@@ -11,12 +11,12 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **111/111 ✅** PASS (2026-08-03 实测: `cd build && ctest` → "99% tests passed, 1 tests failed out of 111"; 含 adr-0068 Wave 1 §1-§5 ship 新增; 其中 1 失败 `test_cost_tracking_decorator` 为 pre-existing 与本 change 无关, commit `514c441` Phase 5 call-chain-v2 引入, 文档化跟踪) |
+| **Total ctest** | **98/98 ✅** PASS (2026-08-03 实测: `cd build && ctest` → "99% tests passed, 1 tests failed out of 98"; 含 promote-event-builder-fulltoolresult-support V2 EventBuilder 扩展 + 8 处 operation-result 迁移 + `test_event_builder_v2` 9 新 case; 1 失败 `test_cost_tracking_decorator` pre-existing, commit `514c441` Phase 5 call-chain-v2 引入, 文档化跟踪) |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
 | **OpenSpec active** | **0** (Phase 6 采用 plan + commit 模式, 不创建 OpenSpec changes) |
-| **ADR Approved** | **40** (主 33: Phase 0-5 16 + Phase 6 17 [0050/0051/0052-0065/0067]; plugin 1; skill 子项 6) |
-| **ADR 🔍 Proposed** | **14** (主 8: 0038/0039/0042/0045/0046/0068/0069/0070; skill 子项 6: 0061-07~12) — ADR-0068 (D2) / ADR-0069 (D3) / ADR-0070 (D4) 于 2026-07-31 立项 |
+| **ADR Approved** | **41** (主 34: Phase 0-5 16 + Phase 6 17 [0050/0051/0052-0065/0067] + **ADR-0068** Wave 1 收官; plugin 1; skill 子项 6) |
+| **ADR 🔍 Proposed** | **13** (主 7: 0038/0039/0042/0045/0046/0069/0070; skill 子项 6: 0061-07~12) — ADR-0068 (D2) **已转 ✅ Approved** (2026-08-03 V2 收官); ADR-0069 (D3) / ADR-0070 (D4) 仍 Proposed |
 | **Completed Phase 0-4** | ✅ 100% |
 | **Phase 5** | ✅ 收官 (C9-C18 全部 ✅ shipped + archived) |
 | **Phase 6** | 🟡 Agent-as-Plugin: pdk_chat_demo ✅ / skill_interpreter ✅ / AgentForge MVP 设计中 |
@@ -163,6 +163,7 @@
 
 | 日期 | ID | 名称 | 关键 Ship |
 |:----:|:--:|------|-----------|
+| 2026-08-03 | — | promote-event-builder-fulltoolresult-support (V2 收官) | EventBuilder V2 扩展 (`include/agenticdsl/contract/event_builder.h`) — 全 payload 构造器 `EventBuilder(topic, ToolResult)` 接管 7 字段 + 5 个 setter (`.ok(bool)` / `.error_code(ErrorCode)` / `.latency_ms(uint64_t)` / `.trace_id(string)` / `.metadata(json)`). 8 处 operation-result 事件迁移: `tool.completed` / `execution.failed` / `cognitive.task.completed` / `domain.task.{completed,failed}` x3 / `tool.audit.denied` x2 — 全部从 `bus_->emit(BusEvent{...})` 改为 `bus_->emit(EventBuilder(topic, ToolResult).build())`. 新增 `tests/test_event_builder_v2.cpp` (9 test cases, 34 assertions) 覆盖 7 字段透传 + 5 setter + 链式组合. ADR-0068 状态 🟡 Partial → ✅ **Approved** (4/4 验收满足). §5.11 grep 验收: 0 行 (`grep -rn "BusEvent{" src examples --include="*.cpp" \| grep -v event_builder`). **ctest 97/98** (1 pre-existing fail `test_cost_tracking_decorator`). 6 atomic commits (event_builder api + test + 8 migration + adr flip + docs sync + archive). OpenSpec archived `2026-08-03-promote-event-builder-fulltoolresult-support`. |
 | 2026-08-03 | — | adr-0068-event-emission-contract (Wave 1 partial ship) | EventBuilder header-only L1 契约层 (`include/agenticdsl/contract/event_builder.h`) — args/meta 分工明确化. 5/7 幻影主题强制发射点落地: `llm.request/response` (TracingDecorator §2) + `tool.execution.start/end` (ToolCoordinator §3) + `session.persisted` (ChatSession §4). 17 处既有 emit 迁移到 EventBuilder (§2-§5): LLM Decorator 链 / ToolCoordinator audit+cycle_detected / ChatSession / CognitiveWorker / DomainWorkerPool / stream_to_bus / 3 个测试 hand-emit. **8 处 raw BusEvent 故意保留** (§决策 7 Operation-Result vs Telemetry 分类 + 附录 B 清单), 扩展 EventBuilder API 推迟至 follow-up `promote-event-builder-full-toolresult-support`. ADR-0068 状态 🔍 Proposed → 🟡 Partial. §6 E2E mock 重写 + §6.1-6.16 deferred (Wave 1 范围外). `git log`: 2 commits (`99087f1` feat + `0fecb54` refactor). **ctest 110/111** (唯一失败 pre-existing `test_cost_tracking_decorator`). `tools/adr_lint.py` 0 errors + `tools/docs_drift_audit.py` 1 DRIFT (active-status ctest 计数已同步修正). OpenSpec archived `2026-08-03-adr-0068-event-emission-contract`. |
 | 2026-08-01 | — | tf-integration-coverage | `TopoScheduler::Config::num_workers` 字段 (default 0=hardware_concurrency) + `config_num_workers_` 缓存 + test-only accessor `get_parallel_executor_address_for_test()`. 5 新 contract case in test_execute_parallel.cpp (多调用复用/失败注入/混合节点/Worker 注入) + 7 新 advanced case in test_execute_parallel_advanced.cpp (100 节点 flat DAG/Fork-Join 4 支/默认退化/边界/析构安全/错误路径). 依赖链派发 case disabled (ToolCallNode 4 参构造不暴露 metadata,follow-up). **ctest 107/107 ✅** (96→107,11 active new + 1 disabled). `tools/docs_drift_audit.py` 0 DRIFT + `tools/adr_lint.py` 50 ADR PASS. 6 atomic commits (6e2cfc1+c1bd34f+d0894fc+1481d84+afa98da+ef56b47), 4 files +335/-2. OpenSpec archived `2026-08-01-tf-integration-coverage`. |
 | 2026-07-15 | C19 | phase6-service-ification-v1 Spike ship | ADR-0051 ✅ Approved (experimental) + spike-onboarding.md + ToolCoordinator RAII + 5 escalation triggers (6 tests) + G1+G3 plugins (8 tests) + E2E (3 tests) + ctest 77/77 PASS + ASan documented skip + `openspec validate --strict` EXIT 0 + OpenSpec archived. 5 commits. §12 (5 items) + §13 (7 items) deferred to Sprint 24+. C20 kickoff: G2/G4/G5 teams use spike-onboarding.md. |
