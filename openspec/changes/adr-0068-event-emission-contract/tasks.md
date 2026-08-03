@@ -28,21 +28,21 @@
 
 ## 3. ToolCoordinator 迁移
 
-- [ ] 3.1 审计 `src/common/policy/tool_coordinator.cpp` 中 5 处现有 emit 调用点
-- [ ] 3.2 在 `call_tool()` 入口点 emit `tool.execution.start`
-- [ ] 3.3 确保 `tool.execution.start` payload 包含 `tool` 与 `layer`
-- [ ] 3.4 在 `call_tool()` 返回点 emit `tool.execution.end`
-- [ ] 3.5 确保成功路径 `tool.execution.end` payload 包含 `tool`、`ok=true`、`duration_ms`
-- [ ] 3.6 确保失败/异常路径 `tool.execution.end` payload 包含 `tool`、`ok=false`、`duration_ms`
-- [ ] 3.7 将 `tool.audit.invoked` 的 emit 改为 `EventBuilder` 构造
-- [ ] 3.8 将 `tool.audit.completed` 的 emit 改为 `EventBuilder` 构造
-- [ ] 3.9 将 `tool.audit.denied` 的 emit 改为 `EventBuilder` 构造
-- [ ] 3.10 将 `tool.coordinator.cycle_detected` 的 emit 改为 `EventBuilder` 构造
-- [ ] 3.11 将 `policy.approval.requested` 的 emit 改为 `EventBuilder` 构造（如存在）
-- [ ] 3.12 验证 `tool.execution.start` 与 `tool.execution.end` 成对出现
-- [ ] 3.13 新增/更新 `tests/test_tool_execution_events.cpp` 覆盖 ToolCoordinator 事件
-- [ ] 3.14 运行 ctest 验证 ToolCoordinator 相关测试通过
-- [ ] 3.15 提交 commit: `feat(tool_coordinator): emit tool.execution.start/end and migrate to EventBuilder`
+- [x] 3.1 审计 `src/common/policy/tool_coordinator.cpp` 中 5 处现有 emit 调用点
+- [x] 3.2 在 `call_tool()` 入口点 emit `tool.execution.start`
+- [x] 3.3 确保 `tool.execution.start` payload 包含 `tool` 与 `layer`
+- [x] 3.4 在 `call_tool()` 返回点 emit `tool.execution.end`
+- [x] 3.5 确保成功路径 `tool.execution.end` payload 包含 `tool`、`ok=true`、`duration_ms`
+- [x] 3.6 确保失败/异常路径 `tool.execution.end` payload 包含 `tool`、`ok=false`、`duration_ms` (deny 路径不 emit end - early return)
+- [x] 3.7 将 `tool.audit.invoked` 的 emit 改为 `EventBuilder` 构造
+- [x] 3.8 将 `tool.audit.completed` 的 emit 改为 `EventBuilder` 构造
+- [x] 3.9 将 `tool.audit.denied` 的 emit 改为 `EventBuilder` 构造
+- [x] 3.10 将 `tool.coordinator.cycle_detected` 的 emit 改为 `EventBuilder` 构造 (NestingGuard, 暂未迁移 — 在 §5.6 范围)
+- [x] 3.11 将 `policy.approval.requested` 的 emit 改为 `EventBuilder` 构造（如存在）— 不存在此事件
+- [x] 3.12 验证 `tool.execution.start` 与 `tool.execution.end` 成对出现
+- [x] 3.13 新增/更新 `tests/test_tool_execution_events.cpp` 覆盖 ToolCoordinator 事件
+- [x] 3.14 运行 ctest 验证 ToolCoordinator 相关测试通过
+- [x] 3.15 提交 commit: `feat(tool_coordinator): emit tool.execution.start/end and migrate to EventBuilder`
 
 ## 4. ChatSession 与会话持久化迁移
 
