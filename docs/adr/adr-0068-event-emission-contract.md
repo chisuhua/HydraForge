@@ -2,7 +2,7 @@
 
 ## 状态
 
-🔍 Proposed (2026-07-31 — 架构缺失能力审计 D2 决议立项, 待架构组评审; 实施排期 Wave 1, 依赖 L4-1 loop_agent bypass 修复先行)
+🟡 Partial (2026-08-03 — Wave 1 §1-§5 ship: EventBuilder 落地 + 17 处 emit 迁移 + 5/7 幻影主题强制发射点已落地. §6 E2E mock 重写 deferred §6 §7 §8 ship gate 已实施但 §5.11 grep 保留 8 处 intentional raw BusEvent, 详见 §决策 7. Wave 2 计划: §6 E2E mock 重写 + `promote-event-builder-full-toolresult-support` follow-up change + L4-1 `fix-loop-agent-bypass` 解锁后补全 loop.* 三主题)
 
 ## 领域
 
@@ -119,6 +119,34 @@ BusEvent ev = EventBuilder("tool.execution.start")
 - `test_e2e_mock.cpp` 伪造事件模式标记为**反模式**：Wave 1 期间将其替换为真实管线测试（loop_agent 真实执行 + 断言 7 个原幻影主题）；
 - 新增主题无发射测试 = 契约违反，drift 审计候选检测项（`docs_drift_audit.py` 后续 Scenario 扩展）。
 
+### 7. Operation-Result vs Telemetry 事件分类（Wave 1 ship 经验追加）
+
+事件按"携带负载语义"划分为两类，决定构造方式：
+
+| 类别 | 语义 | 典型主题 | 推荐构造 |
+|------|------|----------|---------|
+| **Telemetry（遥测事件）** | 仅携带业务字段（args）+ 附加上下文（meta），无业务"成功/失败"语义 | `dsl.call.*` / `domain.task.started` / `tool.audit.invoked` / `tool.audit.completed` / `tool.coordinator.cycle_detected` / `llm.token` / `llm.token.done` / `llm.token.error` / `user.input` / `app.shutdown` / `session.persist_request` / `session.persisted` / `budget.checked` / `loop.done` / `loop.error` / `cognitive.task.started` | `EventBuilder(topic).args(json).meta(json).build()` |
+| **Operation-Result（操作结果事件）** | 携带完整 `ToolResult`，含 `ok` flag + 可选字段（`latency_ms` / `trace_id` / `error_code` / `cost_estimate`），订阅方依赖 `payload.ok` 判定业务成败 | `tool.completed` / `tool.audit.denied` / `execution.failed` / `cognitive.task.completed` / `domain.task.completed` / `domain.task.failed` | 保留 raw `BusEvent{...}`（EventBuilder 当前 API 会丢失 `ok` flag + 可选字段语义） |
+
+**事件清单（截至 Wave 1 ship, 2026-08-03）**：
+
+8 处保留 raw `BusEvent{...}` 构造的生产代码 site（有意保留，详见 §附录 B）：
+
+```
+src/modules/executor/node_executor.cpp:196       tool.completed
+src/modules/executor/node_executor.cpp:411       execution.failed
+src/modules/cognitive/cognitive_worker.cpp:198   cognitive.task.completed
+src/modules/cognitive/domain_worker_pool.cpp:226 domain.task.failed (no-handler path)
+src/modules/cognitive/domain_worker_pool.cpp:260 domain.task.completed
+src/modules/cognitive/domain_worker_pool.cpp:262 domain.task.failed (in-flight)
+src/common/tools/tool_coordinator.cpp:220        tool.audit.denied
+src/common/tools/tool_coordinator.cpp:245        tool.audit.denied (二次)
+```
+
+**为什么 EventBuilder 当前不能覆盖 Operation-Result**：EventBuilder 强制 `payload.ok = true`（构造通过 `ToolResult::success({}, {})`），不暴露 `ok(bool)` setter / `latency_ms` setter / `error_code` setter / `trace_id` setter。强行迁移会导致订阅方 `e.payload.ok == false` 的业务断言全部失效（已实测：`test_engine_bus_integration` 与 `test_tool_execution_events` 依赖 `payload.ok` 字段判定业务成败）。
+
+**后续**：`promote-event-builder-full-toolresult-support`（独立 change，估时 0.5-1 天）扩展 EventBuilder API（添加 `.ok(bool)` / `.latency_ms(int64)` / `.error_code(ErrorCode)` setters），将上述 8 处一并迁移到 EventBuilder，达到 §5.11 grep 验收标准。
+
 ## 后果
 
 ### 正面
@@ -168,17 +196,17 @@ BusEvent ev = EventBuilder("tool.execution.start")
 |------|-----------|-----------|-----------------|------|
 | `user.input` | ChatSession | 用户输入提交后 | `session_id`, `input` | ✅ |
 | `app.shutdown` | main / 应用入口 | 退出流程开始 | — | ✅ |
-| `loop.turn.start` | loop_agent (L4) | 每轮 turn 开始 | `turn`, `step` | 👻 → 待实施 §决策 3 |
-| `loop.turn.end` | loop_agent (L4) | 每轮 turn 结束 | `turn`, `decision` | 👻 → 待实施 |
-| `loop.decision` | loop_agent (L4) | 决策点 | `decision`, `tool?` | 👻 → 待实施 |
+| `loop.turn.start` | loop_agent (L4) | 每轮 turn 开始 | `turn`, `step` | 👻 → 依赖 L4-1 `fix-loop-agent-bypass` |
+| `loop.turn.end` | loop_agent (L4) | 每轮 turn 结束 | `turn`, `decision` | 👻 → 依赖 L4-1 |
+| `loop.decision` | loop_agent (L4) | 决策点 | `decision`, `tool?` | 👻 → 依赖 L4-1 |
 | `loop.done` | ChatSession / loop_agent | 循环完成 | `session_id` | ✅ |
 | `loop.error` | ChatSession / loop_agent | 循环异常 | `error_code`, `message` | ✅ |
-| `llm.request` | L1 Decorator 链 | generate() 前 | `model`, `prompt_hash` | 👻 → 待实施 |
-| `llm.response` | L1 Decorator 链 | generate() 后 | `tokens`, `duration_ms`, `error_code?` | 👻 → 待实施 |
-| `tool.execution.start` | ToolCoordinator | call_tool 入口 | `tool`, `layer` | 👻 → 待实施 |
-| `tool.execution.end` | ToolCoordinator | call_tool 返回 | `tool`, `ok`, `duration_ms` | 👻 → 待实施 |
+| `llm.request` | L1 Decorator 链 | generate() 前 | `model`, `prompt_hash` | ✅ Wave 1 §2 |
+| `llm.response` | L1 Decorator 链 | generate() 后 | `tokens`, `duration_ms`, `error_code?` | ✅ Wave 1 §2 |
+| `tool.execution.start` | ToolCoordinator | call_tool 入口 | `tool`, `layer` | ✅ Wave 1 §3 |
+| `tool.execution.end` | ToolCoordinator | call_tool 返回 | `tool`, `ok`, `duration_ms` | ✅ Wave 1 §3 |
 | `session.persist_request` | ChatSession | 持久化请求发出 | `session_id` | ✅ |
-| `session.persisted` | session_agent / ChatSession | 写盘成功 | `session_id`, `path` | 👻 → 待实施 |
+| `session.persisted` | session_agent / ChatSession | 写盘成功 | `session_id`, `path` | ✅ Wave 1 §4 |
 | `budget.checked` | ChatSession / budget_agent | 预算检查后 | `remaining`, `exceeded` | ✅ |
 | `context.compact.before` | ContextCompactor (L0-3, 待建) | 压缩前 | `before_tokens` | 👻 → 依赖 L0-3 |
 | `context.compact.after` | ContextCompactor (L0-3, 待建) | 压缩后 | `after_tokens`, `summary_ref` | 👻 → 依赖 L0-3 |
@@ -193,6 +221,21 @@ BusEvent ev = EventBuilder("tool.execution.start")
 | `domain.task.started` | DomainWorkerPool | 任务派发 | `domain`, `tool` | 📡 |
 | `domain.task.completed` | DomainWorkerPool | 任务完成 | `domain`, `ok` | 📡 |
 | `domain.task.failed` | DomainWorkerPool | 任务失败 | `domain`, `error_code` | 📡 |
-| `dsl.call.started` | NodeExecutor | DSL 节点进入 | `node_path`, `llm_tool_name` | 📡 |
-| `dsl.call.completed` | NodeExecutor | DSL 节点退出 | `node_path`, `output_key` | 📡 |
-| `execution.failed` | NodeExecutor | 执行失败 | `node_path`, `error_code` | 📡 |
+| `dsl.call.started` | NodeExecutor | DSL 节点进入 | `node_path`, `llm_tool_name` | ✅ Wave 1 §5 (EventBuilder) |
+| `dsl.call.completed` | NodeExecutor | DSL 节点退出 | `node_path`, `output_key` | ✅ Wave 1 §5 (EventBuilder) |
+| `execution.failed` | NodeExecutor | 执行失败 | `node_path`, `error_code` | 📡 Wave 1 §5 (raw BusEvent, Operation-Result 类) |
+
+## 附录 B：Wave 1 §5.11 Grep 保留 raw BusEvent 站点清单 (2026-08-03)
+
+| 文件:行 | 主题 | 保留原因 (operation-result 字段) | 后续 follow-up |
+|---------|------|--------------------------------|----------------|
+| `src/modules/executor/node_executor.cpp:196` | `tool.completed` | `latency_ms` + `trace_id` (subscriber 依赖) | `promote-event-builder-full-toolresult-support` |
+| `src/modules/executor/node_executor.cpp:411` | `execution.failed` | `trace_id` + `error_code` (subscriber 依赖) | 同上 |
+| `src/modules/cognitive/cognitive_worker.cpp:198` | `cognitive.task.completed` | orchestrator `result` 携带 `error_code` 可选字段 | 同上 |
+| `src/modules/cognitive/domain_worker_pool.cpp:226` | `domain.task.failed` (no-handler path) | 完整 `failed` ToolResult | 同上 |
+| `src/modules/cognitive/domain_worker_pool.cpp:260` | `domain.task.completed` | 完整 `result` ToolResult | 同上 |
+| `src/modules/cognitive/domain_worker_pool.cpp:262` | `domain.task.failed` (in-flight) | 完整 `result` ToolResult | 同上 |
+| `src/common/tools/tool_coordinator.cpp:220` | `tool.audit.denied` | `payload.ok = false` (PermissionDenied ErrorCode) | 同上 |
+| `src/common/tools/tool_coordinator.cpp:245` | `tool.audit.denied` (二次) | `payload.ok = false` (PermissionDenied ErrorCode) | 同上 |
+
+**说明**：上述 8 处全部使用 `ToolResult::error(...)` 或 `ToolResult{...}` 聚合初始化携带业务结果字段。EventBuilder 当前 API 强制 `payload.ok = true`，不能表达 operation-result 语义。详见 §决策 7。
