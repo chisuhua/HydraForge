@@ -72,7 +72,8 @@ std::unique_ptr<ILLMProvider> ILLMProviderDecorator::wrap_chain(
   // REQ-IPD-001 §Scenario "装饰器链深度限制":
   //   最大层数 ≤ 4 (含 inner_ 在内, 即最多 3 个装饰器 + 1 个 inner_ = 4 层)
   //   超出层数 MUST 抛 std::runtime_error("decorator chain too deep")
-  constexpr std::size_t MAX_CHAIN_DEPTH = 4;  // innermost + 3 decorators
+  constexpr std::size_t MAX_CHAIN_DEPTH = 5;  // innermost + 4 decorators
+  // Phase 6a (ADR-0068): 链深度从 4 提升到 5 以容纳 TracingDecorator
   if (decorators.size() > MAX_CHAIN_DEPTH - 1) {
     throw DecoratorChainTooDeep(static_cast<int>(decorators.size()));
   }
