@@ -217,13 +217,15 @@ ToolResult ToolCoordinator::execute(
     LayerProfile caller_layer = parse_layer(ctx.caller_layer);
     if (!check_layer_permission(caller_layer, meta.category)) {
       if (bus_) {
-        bus_->emit(BusEvent{"tool.audit.denied",
+        // ADR-0068 §决策 7: operation-result event (ok=false + PermissionDenied) 通过 EventBuilder
+        // (promote-event-builder-fulltoolresult-support 2026-08-03 V2 扩展)
+        bus_->emit(EventBuilder("tool.audit.denied",
             ToolResult::error(ErrorCode::PermissionDenied,
                 "Layer '" + ctx.caller_layer + "' cannot call category '" +
                     cat_str + "'",
                 audit_meta("tool.audit.denied", request_id, tool_name,
-                           cat_str, ctx.caller_layer, ctx.session_id)),
-            std::chrono::steady_clock::now()});
+                           cat_str, ctx.caller_layer, ctx.session_id)))
+            .build());
       }
       return ToolResult::error(
           ErrorCode::PermissionDenied,
@@ -242,12 +244,12 @@ ToolResult ToolCoordinator::execute(
 
   if (!approval_handler_->process_request(meta, ctx, preview)) {
     if (bus_) {
-      bus_->emit(BusEvent{"tool.audit.denied",
+      bus_->emit(EventBuilder("tool.audit.denied",
           ToolResult::error(ErrorCode::PermissionDenied,
               "Approval denied by policy",
               audit_meta("tool.audit.denied", request_id, tool_name,
-                         cat_str, ctx.caller_layer, ctx.session_id)),
-          std::chrono::steady_clock::now()});
+                         cat_str, ctx.caller_layer, ctx.session_id)))
+          .build());
     }
     return ToolResult::error(ErrorCode::PermissionDenied,
                             "Approval denied by policy for tool: " + meta.name);

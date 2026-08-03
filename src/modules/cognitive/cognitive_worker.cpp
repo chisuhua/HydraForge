@@ -195,7 +195,9 @@ void CognitiveWorker::worker_loop() {
     result.trace_id = task_id;
 
     // 6) 推送 cognitive.task.completed 事件
-    bus_->emit(BusEvent{"cognitive.task.completed", result, std::chrono::steady_clock::now()});
+    // ADR-0068 §决策 7: operation-result event 通过 EventBuilder 接管 7 字段 (含 trace_id)
+    // (promote-event-builder-fulltoolresult-support 2026-08-03 V2 扩展)
+    bus_->emit(EventBuilder("cognitive.task.completed", result).build());
   }
 }
 

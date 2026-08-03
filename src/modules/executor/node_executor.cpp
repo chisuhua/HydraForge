@@ -191,10 +191,9 @@ auto [tool_result, new_context] = dispatch_to_tool(node->tool_name, node->path, 
 
     if (bus_) {
         // tool.completed 携带 ToolResult 整包（含 latency_ms/trace_id/error_code 等 optional 字段）
-        // ADR-0068 决定 tool.completed 与 execution.failed 为「操作结果事件」而非「架构遥测事件」，
-        // 保留原始 BusEvent 形式以透传 ToolResult 全字段；§5 任务 5.x 注释
-        bus_->emit(BusEvent{"tool.completed", tool_result,
-                   std::chrono::steady_clock::now()});
+        // ADR-0068 §决策 7: operation-result event 通过 EventBuilder 接管 7 字段全透传
+        // (promote-event-builder-fulltoolresult-support 2026-08-03 V2 扩展)
+        bus_->emit(EventBuilder("tool.completed", tool_result).build());
     }
 
     return new_context;
@@ -406,12 +405,12 @@ bool NodeExecutor::handle_tool_errors(const ToolCallNode* node, const ToolResult
   auto emit_failed = [&]() {
     if (bus_) {
       // execution.failed 携带 ok=false 的 ToolResult (含 error_code/latency_ms/trace_id)
-      // ADR-0068 决定 execution.failed 为「操作结果事件」而非「架构遥测事件」，
-      // 保留原始 BusEvent 以透传 ToolResult::error 全字段；§5 任务 5.4 注释
-      bus_->emit(BusEvent{"execution.failed",
+      // ADR-0068 §决策 7: operation-result event 通过 EventBuilder 接管 7 字段全透传
+      // (promote-event-builder-fulltoolresult-support 2026-08-03 V2 扩展)
+      bus_->emit(EventBuilder("execution.failed",
                   ToolResult::error(code, err_msg,
-                      {{"node_path", node->path}, {"tool_name", node->tool_name}}),
-                  std::chrono::steady_clock::now()});
+                      {{"node_path", node->path}, {"tool_name", node->tool_name}}))
+                  .build());
     }
   };
 

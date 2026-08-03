@@ -223,7 +223,9 @@ void DomainWorkerPool::process_task(std::size_t worker_id, DomainTask task) {
       failed.meta["output_key"] = task.output_key;
       failed.meta["worker_id"] = worker_id;
       if (bus_) {
-        bus_->emit(BusEvent{"domain.task.failed", failed, std::chrono::steady_clock::now()});
+        // ADR-0068 §决策 7: operation-result event 通过 EventBuilder 接管 7 字段
+        // (promote-event-builder-fulltoolresult-support 2026-08-03 V2 扩展)
+        bus_->emit(EventBuilder("domain.task.failed", failed).build());
       }
       return;
     }
@@ -255,11 +257,13 @@ void DomainWorkerPool::process_task(std::size_t worker_id, DomainTask task) {
   }
 
   // 4) 推 completed / failed 事件
+  // ADR-0068 §决策 7: operation-result events 通过 EventBuilder 接管 7 字段
+  // (promote-event-builder-fulltoolresult-support 2026-08-03 V2 扩展)
   if (bus_) {
     if (result.ok) {
-      bus_->emit(BusEvent{"domain.task.completed", result, std::chrono::steady_clock::now()});
+      bus_->emit(EventBuilder("domain.task.completed", result).build());
     } else {
-      bus_->emit(BusEvent{"domain.task.failed", result, std::chrono::steady_clock::now()});
+      bus_->emit(EventBuilder("domain.task.failed", result).build());
     }
   }
 
