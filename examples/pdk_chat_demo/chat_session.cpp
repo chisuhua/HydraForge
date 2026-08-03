@@ -22,6 +22,7 @@
 #include <agenticdsl/types/layered_context.h>
 #include <agenticdsl/contract/itool_registry.h>
 #include <agenticdsl/contract/bus_event.h>
+#include <agenticdsl/contract/event_builder.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <modules/budget/budget_controller.h>
 
@@ -223,12 +224,11 @@ ChatResult ChatSession::chat(const std::string& user_input) {
     };
     impl_->messages.push_back(user_msg);
 
-    // 2. emit "user.input" 事件
-    impl_->bus->emit(agenticdsl::BusEvent{
-        "user.input",
-        agenticdsl::ToolResult{.ok = true, .meta = {{"session_id", session_id_}, {"input", user_input}}},
-        std::chrono::steady_clock::now()
-    });
+    // 2. emit "user.input" 事件 (ADR-0068 §4 — args=业务字段, meta=trace context)
+    impl_->bus->emit(agenticdsl::EventBuilder("user.input")
+        .args(nlohmann::json{{"input", user_input}})
+        .meta(nlohmann::json{{"session_id", session_id_}})
+        .build());
 
     // 3. 获取 LLM 响应 — 统一经 Loop Agent 工具 (loop/run) 执行
     //    loop_agent 内部决定 mock fallback (parent provider 未设置) 或真实 DSL 执行
@@ -264,20 +264,15 @@ ChatResult ChatSession::chat(const std::string& user_input) {
             };
             impl_->messages.push_back(assistant_msg);
 
-            // 5. emit "loop.done"
-            impl_->bus->emit(agenticdsl::BusEvent{
-                "loop.done",
-                agenticdsl::ToolResult{
-                    .ok = true,
-                    .meta = {
-                        {"session_id", session_id_},
-                        {"response", result.response},
-                        {"total_steps", result.total_steps},
-                        {"total_tokens", result.total_tokens}
-                    }
-                },
-                std::chrono::steady_clock::now()
-            });
+            // 5. emit "loop.done" (ADR-0068 §4 — args=业务字段, meta=trace context)
+            impl_->bus->emit(agenticdsl::EventBuilder("loop.done")
+                .args(nlohmann::json{
+                    {"response", result.response},
+                    {"total_steps", result.total_steps},
+                    {"total_tokens", result.total_tokens}
+                })
+                .meta(nlohmann::json{{"session_id", session_id_}})
+                .build());
 
             // T1 Budget 告警: 每轮后轮询 engine budget controller
             if (impl_->engine) {
@@ -285,20 +280,16 @@ ChatResult ChatSession::chat(const std::string& user_input) {
                 if (bc.exceeded()) {
                     double used = bc.get_total_cost_usd();
                     double limit = impl_->agent_cfg.budget_limit_usd;
-                    impl_->bus->emit(agenticdsl::BusEvent{
-                        "budget.checked",
-                        agenticdsl::ToolResult{
-                            .ok = false,
-                            .meta = {
-                                {"session_id", session_id_},
-                                {"limit", limit},
-                                {"used", used},
-                                {"unit", "llm_calls"},
-                                {"reason", "cost_limit"}
-                            }
-                        },
-                        std::chrono::steady_clock::now()
-                    });
+                    impl_->bus->emit(agenticdsl::EventBuilder("budget.checked")
+                        .args(nlohmann::json{
+                            {"limit", limit},
+                            {"used", used},
+                            {"unit", "llm_calls"},
+                            {"reason", "cost_limit"},
+                            {"ok", false}
+                        })
+                        .meta(nlohmann::json{{"session_id", session_id_}})
+                        .build());
                     result.success = false;
                     result.error_message = "[budget] cost_limit exceeded (used="
                         + std::to_string(used) + ", limit="
@@ -308,17 +299,10 @@ ChatResult ChatSession::chat(const std::string& user_input) {
 
             // 6. 持久化 (异步, 简化版 fire-and-forget)
             if (impl_->session_cfg.persist_dir != "") {
-                impl_->bus->emit(agenticdsl::BusEvent{
-                    "session.persist_request",
-                    agenticdsl::ToolResult{
-                        .ok = true,
-                        .meta = {
-                            {"session_id", session_id_},
-                            {"messages", nlohmann::json(impl_->messages)}
-                        }
-                    },
-                    std::chrono::steady_clock::now()
-                });
+                impl_->bus->emit(agenticdsl::EventBuilder("session.persist_request")
+                    .args(nlohmann::json{{"messages", nlohmann::json(impl_->messages)}})
+                    .meta(nlohmann::json{{"session_id", session_id_}})
+                    .build());
                 // T1: 同步落盘 (原子写入) - 确保跨进程可恢复
                 save_to_disk();
             }
@@ -326,17 +310,10 @@ ChatResult ChatSession::chat(const std::string& user_input) {
     } catch (const std::exception& e) {
         result.success = false;
         result.error_message = e.what();
-        impl_->bus->emit(agenticdsl::BusEvent{
-            "loop.error",
-            agenticdsl::ToolResult{
-                .ok = false,
-                .meta = {
-                    {"session_id", session_id_},
-                    {"error", result.error_message}
-                }
-            },
-            std::chrono::steady_clock::now()
-        });
+        impl_->bus->emit(agenticdsl::EventBuilder("loop.error")
+            .args(nlohmann::json{{"error", result.error_message}})
+            .meta(nlohmann::json{{"session_id", session_id_}})
+            .build());
     }
 
     return result;
@@ -442,6 +419,17 @@ bool ChatSession::save_to_disk() {
         std::error_code rm_ec;
         fs::remove(tmp, rm_ec);
         return false;
+    }
+
+    // ADR-0068 §4 — 仅在原子 rename 成功后 emit session.persisted
+    if (impl_->bus) {
+        impl_->bus->emit(agenticdsl::EventBuilder("session.persisted")
+            .args(nlohmann::json{
+                {"session_id", session_id_},
+                {"path", path.string()}
+            })
+            .meta(nlohmann::json{{"session_id", session_id_}})
+            .build());
     }
     return true;
 }

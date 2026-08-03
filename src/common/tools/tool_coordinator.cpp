@@ -9,11 +9,13 @@
 #include <cstdint>
 #include <ctime>
 #include <iomanip>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <thread>
 #include <vector>
 
+#include "agenticdsl/contract/event_builder.h"
 #include "common/policy/layer_profile.h"
 #include "nlohmann/json.hpp"
 
@@ -73,6 +75,30 @@ nlohmann::json audit_meta(const std::string& event,
   };
 }
 
+// 发射 tool.execution.start / tool.execution.end 生命周期事件
+// (ADR-0068 §决策 3: 5 个幻影主题中 2 个由 ToolCoordinator 真实发射)
+void emit_tool_execution_event(const std::shared_ptr<IInteractionBus>& bus,
+                               const std::string& topic,
+                               const std::string& tool_name,
+                               const std::string& layer,
+                               const std::string& request_id,
+                               const std::string& session_id,
+                               bool ok,
+                               std::int64_t duration_ms,
+                               const std::optional<std::string>& error_code = std::nullopt) {
+  if (!bus) return;
+  nlohmann::json args = {
+      {"tool", tool_name},
+      {"layer", layer},
+      {"ok", ok},
+      {"duration_ms", duration_ms}};
+  if (error_code) args["error_code"] = *error_code;
+  nlohmann::json meta = {
+      {"request_id", request_id},
+      {"session_id", session_id}};
+  bus->emit(EventBuilder(topic).args(args).meta(meta).build());
+}
+
 }  // namespace
 
 // ============================================================================
@@ -98,9 +124,18 @@ ToolCoordinatorNestingGuard::ToolCoordinatorNestingGuard(
           std::hash<std::thread::id>{}(std::this_thread::get_id());
       payload["nesting_depth"] = tls_nesting_depth;
       payload["timestamp"] = now_iso8601();
-      bus->emit(BusEvent{"tool.coordinator.cycle_detected",
-                ToolResult::success({}, std::move(payload)),
-                std::chrono::steady_clock::now()});
+      bus->emit(agenticdsl::EventBuilder("tool.coordinator.cycle_detected")
+          .args(nlohmann::json{
+              {"caller", *it},
+              {"callee", name_},
+              {"nesting_depth", tls_nesting_depth}
+          })
+          .meta(nlohmann::json{
+              {"call_stack", std::move(stack)},
+              {"thread_id", std::hash<std::thread::id>{}(std::this_thread::get_id())},
+              {"timestamp", now_iso8601()}
+          })
+          .build());
     }
     throw std::runtime_error(
         "ToolCoordinator cycle detected: " + name_ +
@@ -172,6 +207,11 @@ ToolResult ToolCoordinator::execute(
 
   const std::string cat_str = to_string(meta.category);
 
+  // 发射 tool.execution.start (ADR-0068 §决策 3, 在 layer/approval 决策前先记录意图)
+  emit_tool_execution_event(bus_, "tool.execution.start", tool_name,
+                            ctx.caller_layer, request_id, ctx.session_id,
+                            true, 0);
+
   // ===== Step 1: Layer check (ADR-0004 §8 矩阵 via layer_profile.h) =====
   try {
     LayerProfile caller_layer = parse_layer(ctx.caller_layer);
@@ -219,8 +259,13 @@ ToolResult ToolCoordinator::execute(
         "tool.audit.invoked", request_id, tool_name,
         cat_str, ctx.caller_layer, ctx.session_id);
     invoked_meta["args_keys_count"] = std::to_string(args.size());
-    bus_->emit(BusEvent{"tool.audit.invoked", ToolResult::success({}, std::move(invoked_meta)),
-              std::chrono::steady_clock::now()});
+    bus_->emit(agenticdsl::EventBuilder("tool.audit.invoked")
+        .args(nlohmann::json{
+            {"tool_name", tool_name},
+            {"category", cat_str}
+        })
+        .meta(std::move(invoked_meta))
+        .build());
   }
 
   // ===== Step 4: 实际调用 registry (返回 nlohmann::json) =====
@@ -258,9 +303,25 @@ ToolResult ToolCoordinator::execute(
     completed_meta["duration_ms"] = std::to_string(duration_ms);
     completed_meta["ok"] = result.ok ? "true" : "false";
     completed_meta["error_code"] = result.ok ? "" : "tool.error";
-    bus_->emit(BusEvent{"tool.audit.completed", ToolResult::success({}, std::move(completed_meta)),
-              std::chrono::steady_clock::now()});
+    bus_->emit(agenticdsl::EventBuilder("tool.audit.completed")
+        .args(nlohmann::json{
+            {"tool_name", tool_name},
+            {"category", cat_str},
+            {"ok", result.ok ? std::string{"true"} : std::string{"false"}},
+            {"duration_ms", std::to_string(duration_ms)},
+            {"error_code", result.ok ? std::string{} : std::string{"tool.error"}}
+        })
+        .meta(std::move(completed_meta))
+        .build());
   }
+
+  // 发射 tool.execution.end (ADR-0068 §决策 3, success 路径)
+  emit_tool_execution_event(bus_, "tool.execution.end", tool_name,
+                            ctx.caller_layer, request_id, ctx.session_id,
+                            result.ok,
+                            static_cast<std::int64_t>(duration_ms),
+                            result.ok ? std::nullopt
+                                      : std::optional<std::string>("tool.error"));
 
   return result;
 }

@@ -14,6 +14,7 @@
 
 #include "agenticdsl/cognitive/simple_orchestrator.h"
 #include "agenticdsl/contract/bus_event.h"
+#include "agenticdsl/contract/event_builder.h"
 #include "core/engine.h"
 
 #include <chrono>
@@ -163,13 +164,12 @@ void CognitiveWorker::worker_loop() {
       prompt = std::move(front.second);
     }
 
-    // 2) 推送 cognitive.task.started 事件
+    // 2) 推送 cognitive.task.started 事件 (ADR-0068 §5.6: EventBuilder 链式构造)
     //    topic 遵循 <module>.<verb> 约定 (e.g. dsl.call.started)
     //    task_id 通过 meta["task_id"] 关联 (不嵌入 topic, 与现有约定一致)
-    ToolResult started;
-    started.ok = true;
-    started.meta["task_id"] = task_id;
-    bus_->emit(BusEvent{"cognitive.task.started", started, std::chrono::steady_clock::now()});
+    bus_->emit(agenticdsl::EventBuilder("cognitive.task.started")
+        .meta(nlohmann::json{{"task_id", task_id}})
+        .build());
 
     // 3) 委托 SimpleCognitiveOrchestrator 单轮 ReAct
     //    注入 P1 抽象: engine_->get_tool_registry() (IToolRegistry&)

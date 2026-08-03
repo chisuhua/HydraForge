@@ -11,6 +11,7 @@
 
 #include "compliance_decorator.h"
 
+#include "agenticdsl/contract/event_builder.h"
 #include "agenticdsl/contract/iinteraction_bus.h"
 #include "core/types/tool_result.h"
 
@@ -71,7 +72,7 @@ Result<GenerationResult, LLMError> ComplianceDecorator::decorate_generate(
       {"tenant_id", kDefaultTenant},
       {"timestamp", timestamp}};
   // emit std::string 重载 (REQ-TR-005 兼容入口)
-  bus_->emit("compliance.log", prompt_payload.dump());
+  bus_->emit(EventBuilder("compliance.log").args(prompt_payload).build());
 
   // === 2. completion_hash 计算 + emit (调用后, 仅成功时) ===
   if (inner_result.has_value()) {
@@ -84,7 +85,7 @@ Result<GenerationResult, LLMError> ComplianceDecorator::decorate_generate(
         {"model", model},
         {"timestamp", current_timestamp_iso()}};
     // payload 不含 result.text 原始 completion
-    bus_->emit("compliance.log", completion_payload.dump());
+    bus_->emit(EventBuilder("compliance.log").args(completion_payload).build());
   }
 
   // 装饰器不修改业务返回值 (REQ-IPD-002 §Scenario "同步 generate 计费")
@@ -126,7 +127,7 @@ ComplianceDecorator::ComplianceStream::~ComplianceStream() {
         {"prompt_hash", prompt_hash_},
         {"model", model_name_},
         {"timestamp", current_timestamp_iso()}};
-    bus_->emit("compliance.log", payload.dump());
+    bus_->emit(EventBuilder("compliance.log").args(payload).build());
   }
 }
 
@@ -146,7 +147,7 @@ ComplianceDecorator::ComplianceStream::next(std::stop_token token) {
         {"prompt_hash", prompt_hash_},
         {"model", model_name_},
         {"timestamp", current_timestamp_iso()}};
-    bus_->emit("compliance.log", payload.dump());
+    bus_->emit(EventBuilder("compliance.log").args(payload).build());
   }
   return chunk;
 }

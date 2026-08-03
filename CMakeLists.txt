@@ -84,6 +84,7 @@ add_library(agenticdsl_common STATIC
     src/common/llm/cost_tracking_decorator.cpp  # Phase 5: CostTrackingDecorator 计费 (REQ-IPD-002)
     src/common/llm/compliance_decorator.cpp     # Phase 5: ComplianceDecorator 合规日志 (REQ-IPD-003)
     src/common/llm/rate_limit_decorator.cpp     # Phase 5: RateLimitDecorator 配额限制 (REQ-IPD-004)
+    src/common/llm/tracing_decorator.cpp        # Phase 6a: TracingDecorator 事件追踪 (ADR-0068 §决策 3)
     src/common/llm/orchestration_illm_provider.cpp  # Phase 5: Dual Consumer Model (REQ-ICC-001)
     src/common/tools/registry.cpp
     src/common/tools/factory.cpp              # P2.C: ToolRegistry factory (decouple engine.cpp)

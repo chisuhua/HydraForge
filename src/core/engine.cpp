@@ -4,6 +4,7 @@
 #include "common/llm/cost_tracking_decorator.h"            // Phase 5: REQ-IPD-002 budget hole fix
 #include "common/llm/compliance_decorator.h"              // Phase 5: REQ-IPD-003 opt-in
 #include "common/llm/rate_limit_decorator.h"              // Phase 5: REQ-IPD-004 opt-in
+#include "common/llm/tracing_decorator.h"                 // Phase 6a: ADR-0068 §决策 3 llm.request/llm.response 发射
 #include "common/log/log.h"  // agenticdsl::log facade
 // P2.C (2026-06-24): LLM/budget 头文件均移除
 // engine.h 已通过 common/llm/llm_types.h 提供 LLMConfig 完整类型
@@ -185,13 +186,23 @@ void DSLEngine::set_interaction_bus(std::shared_ptr<IInteractionBus> bus) {
 
 // === Phase 5 (REQ-ICC-008 / REQ-IPD-005): decorate_provider 私有 helper ===
 // 按 REQ-IPD-005 默认部署顺序包装 Decorator 链:
-//   CostTrackingDecorator(最外层, 强制) -> Compliance(opt-in) -> RateLimit(opt-in) -> inner
-// 链深度限制由 ILLMProviderDecorator::wrap_chain 强制 ≤ 4 (含 inner)
+//   TracingDecorator(opt-in, bus_) -> CostTrackingDecorator(最外层, 强制) -> Compliance(opt-in) -> RateLimit(opt-in) -> inner
+// 链深度限制由 ILLMProviderDecorator::wrap_chain 强制 ≤ 5 (含 inner) — Phase 6a (ADR-0068) 提升到 5 以容纳 TracingDecorator
 std::unique_ptr<ILLMProvider> DSLEngine::decorate_provider(std::unique_ptr<ILLMProvider> base) {
   if (!base) {
     return nullptr;  // 防御性编程, factory 保证非 nullptr, 但 wrap_chain 需要非 nullptr
   }
   std::vector<std::function<std::unique_ptr<ILLMProvider>(std::unique_ptr<ILLMProvider>)>> factories;
+
+  // 0. TracingDecorator (Phase 6a, ADR-0068) — opt-in, 仅在 bus_ 已注入时启用
+  //    发射 llm.request / llm.response 事件到 InteractionBus
+  //    链深度: 4 decorators (Tracing+CostTracking+Compliance+RateLimit) + inner = 5 ≤ MAX_CHAIN_DEPTH
+  if (bus_) {
+    std::shared_ptr<IInteractionBus> bus = bus_;
+    factories.push_back([bus](std::unique_ptr<ILLMProvider> inner) {
+      return std::make_unique<TracingDecorator>(std::move(inner), bus);
+    });
+  }
 
   // 1. CostTrackingDecorator (强制, 最外层) — 修 budget hole
   std::shared_ptr<IBudgetController> budget = std::shared_ptr<IBudgetController>(

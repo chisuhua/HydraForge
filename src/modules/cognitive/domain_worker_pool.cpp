@@ -12,6 +12,7 @@
 
 #include "agenticdsl/cognitive/domain_worker_pool.h"
 #include "agenticdsl/contract/bus_event.h"
+#include "agenticdsl/contract/event_builder.h"
 
 #include <nlohmann/json.hpp>
 
@@ -192,15 +193,16 @@ void DomainWorkerPool::worker_loop(std::stop_token st, std::size_t worker_id) {
 // 锁顺序: queue_mutex_ (出队时释放) -> handlers_mutex_ (查表, 释放) -> handler 调用
 // =====================================================================
 void DomainWorkerPool::process_task(std::size_t worker_id, DomainTask task) {
-  // 1) 推送 domain.task.started 事件
+  // 1) 推送 domain.task.started 事件 (ADR-0068 §5.8: EventBuilder 链式构造)
   if (bus_) {
-    ToolResult started;
-    started.ok = true;
-    started.meta["domain"] = task.domain;
-    started.meta["tool_name"] = task.tool_name;
-    started.meta["output_key"] = task.output_key;
-    started.meta["worker_id"] = worker_id;
-    bus_->emit(BusEvent{"domain.task.started", started, std::chrono::steady_clock::now()});
+    bus_->emit(agenticdsl::EventBuilder("domain.task.started")
+        .args(nlohmann::json{
+            {"domain", task.domain},
+            {"tool_name", task.tool_name},
+            {"output_key", task.output_key}
+        })
+        .meta(nlohmann::json{{"worker_id", worker_id}})
+        .build());
   }
 
   // 2) 查表 + 拷贝 handler (在 shared_lock 下查, 释放锁后调用)

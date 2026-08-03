@@ -28,6 +28,7 @@
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <agenticdsl/contract/inmemory_bus.h>
 #include <agenticdsl/contract/itool_registry.h>
+#include <agenticdsl/contract/event_builder.h>
 #include <agenticdsl/plugin/plugin_loader.h>
 #include <modules/budget/budget_controller.h>
 
@@ -52,10 +53,9 @@ void unload_all_plugins(hydraforge::PluginLoader& loader) {
 void signal_handler(int sig) {
     std::cerr << "\n[main] Caught signal " << sig << ", shutting down..." << std::endl;
     if (g_bus) {
-        g_bus->emit(agenticdsl::BusEvent{"app.shutdown", agenticdsl::ToolResult{
-            .ok = true,
-            .meta = {{"signal", sig}}
-        }, std::chrono::steady_clock::now()});
+        g_bus->emit(agenticdsl::EventBuilder("app.shutdown")
+            .args(nlohmann::json{{"signal", sig}})
+            .build());
     }
     if (g_loader) unload_all_plugins(*g_loader);
     std::exit(0);
@@ -426,7 +426,7 @@ int main(int argc, char* argv[]) {
     //    中的 plugin function ptr），再 unload plugin .so，避免
     //    dangling function pointer → SIGSEGV
     // ============================================================
-    bus->emit(agenticdsl::BusEvent{"app.shutdown", agenticdsl::ToolResult{.ok = true, .meta = nullptr}, std::chrono::steady_clock::now()});
+    bus->emit(agenticdsl::EventBuilder("app.shutdown").build());
     // 跳出局部 scope 以销毁 ChatSession 和 DSLEngine
     //（它们的析构函数会清理 ToolRegistry 中的 plugin 引用）
     {
