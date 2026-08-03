@@ -53,15 +53,15 @@ TEST_CASE("ComplianceDecorator hash is consistent", "[decorator][compliance]") {
   auto bus = std::make_shared<InMemoryBus>();
 
   // 订阅 compliance.log 事件以捕获 payload (异步 dispatch 后通知)
+  // ADR-0068: 读取 e.payload.data (EventBuilder args 字段), 取代旧 meta.content
   std::mutex events_mutex;
   std::vector<nlohmann::json> captured_events;
   size_t sub_token = bus->subscribe(
       "compliance.log",
       [&](const BusEvent& e) {
-        const auto content_str = e.payload.meta.value("content", std::string{});
-        if (!content_str.empty()) {
+        if (e.payload.data.is_object() && !e.payload.data.empty()) {
           std::lock_guard<std::mutex> lock(events_mutex);
-          captured_events.push_back(nlohmann::json::parse(content_str));
+          captured_events.push_back(e.payload.data);
         }
       });
 
@@ -142,15 +142,15 @@ TEST_CASE("ComplianceDecorator does not leak raw prompt text",
   auto bus = std::make_shared<InMemoryBus>();
 
   // 订阅 compliance.log 事件以捕获 payload
+  // ADR-0068: dump e.payload.data 为 string (模拟旧的 meta.content 字符串表示)
   std::mutex events_mutex;
   std::vector<std::string> captured_contents;
   size_t sub_token = bus->subscribe(
       "compliance.log",
       [&](const BusEvent& e) {
-        const auto content_str = e.payload.meta.value("content", std::string{});
-        if (!content_str.empty()) {
+        if (e.payload.data.is_object() && !e.payload.data.empty()) {
           std::lock_guard<std::mutex> lock(events_mutex);
-          captured_contents.push_back(content_str);
+          captured_contents.push_back(e.payload.data.dump());
         }
       });
 

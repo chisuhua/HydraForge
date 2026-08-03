@@ -153,9 +153,12 @@ TEST_CASE("tool_coordinator_audit_emit_order", "[tool_coordinator][stage3]") {
   auto meta = make_meta("test_tool", ToolCategory::ReadOnly);
   coordinator->execute(meta, make_ctx("workflow"), {});
 
-  REQUIRE(bus.emit_log_.size() == 2);
-  REQUIRE(bus.emit_log_[0] == "tool.audit.invoked");
-  REQUIRE(bus.emit_log_[1] == "tool.audit.completed");
+  // ADR-0068: tool.execution.start/end 包裹 audit 事件
+  REQUIRE(bus.emit_log_.size() == 4);
+  REQUIRE(bus.emit_log_[0] == "tool.execution.start");
+  REQUIRE(bus.emit_log_[1] == "tool.audit.invoked");
+  REQUIRE(bus.emit_log_[2] == "tool.audit.completed");
+  REQUIRE(bus.emit_log_[3] == "tool.execution.end");
 }
 
 TEST_CASE("tool_coordinator_audit_deny_on_layer", "[tool_coordinator][stage3]") {
@@ -169,8 +172,10 @@ TEST_CASE("tool_coordinator_audit_deny_on_layer", "[tool_coordinator][stage3]") 
   auto meta = make_meta("test_tool", ToolCategory::WriteFile);
   auto result = coordinator->execute(meta, make_ctx("cognitive"), {});
   REQUIRE_FALSE(result.ok);
-  REQUIRE(bus.emit_log_.size() == 1);
-  REQUIRE(bus.emit_log_[0] == "tool.audit.denied");
+  // ADR-0068: tool.execution.start 在 layer check 前发射, denied 后无 end (early return)
+  REQUIRE(bus.emit_log_.size() == 2);
+  REQUIRE(bus.emit_log_[0] == "tool.execution.start");
+  REQUIRE(bus.emit_log_[1] == "tool.audit.denied");
 }
 
 TEST_CASE("tool_coordinator_null_bus_skips_audit", "[tool_coordinator][stage3]") {
