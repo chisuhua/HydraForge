@@ -2,7 +2,7 @@
 
 ## 状态
 
-🔍 Proposed (2026-07-31 — 架构缺失能力审计 D3 决议立项, 待架构组评审; 实施排期 Wave 1 第 4 项, 建议紧随 ADR-0068 之后)
+🟡 Partial (2026-08-04 — middleware 改造 + budget_agent pre-hook + 5 类测试已 ship; §决策 7 Approved 条件 1-4 满足, 条件 5 ctest 零回归中 `test_cost_tracking_decorator` 为 pre-existing 失败 (commit `514c441` Phase 5 引入), 其余 95/96 PASS)
 
 ## 领域
 
@@ -139,3 +139,17 @@ public:
 5. ctest 零回归 + `adr_lint` 0 错误。
 
 **估时**: 1 Sprint (middleware 改造 + 注册 API + 测试), 与 Wave 1 分析文档一致。
+
+---
+
+## Ship Evidence (2026-08-04)
+
+- `include/agenticdsl/contract/itool_hook_registry.h` — L3 contract shipped (HookErrorPolicy / PreHookResult / PostHookResult / PreHook / PostHook / IToolHookRegistry).
+- `src/common/tools/tool_hook_registry.{h,cpp}` — storage, ADR-0043 glob matching, priority ordering, FailClosed/FailOpen handling shipped.
+- `src/common/tools/tool_coordinator.{h,cpp}` — pre/post hook injection; `tool.execution.start/end` 复用 ADR-0068 既有 EventBuilder V2 发射点（不重复发射）; Deny/FailClosed 路径 emit `tool.audit.denied`; null registry 保持原行为。
+- `pdk/budget_agent/src/hooks.cpp` — real PDK FailClosed budget pre-hook (`pdk_register_hooks`, tool_glob=`*`) shipped.
+- Tests:
+  - `tests/test_tool_coordinator_hooks.cpp` — 8 cases (contract compile / matching / Deny / post-hook redaction / null-registry compat / priority / glob / FailOpen / FailClosed) 34 assertions PASS.
+  - `tests/test_budget_agent_hooks.cpp` — plugin integration over-budget deny case (dlopen + pdk_register_hooks) PASS.
+- ctest: 95/96 PASS 零回归（+2 新测试; 1 pre-existing fail `test_cost_tracking_decorator` 与 ADR-0069 无关, commit `514c441` Phase 5 引入）。
+- Status: 🟡 Partial; §决策 7 Approved 条件 1-4 满足, 条件 5 待 `test_cost_tracking_decorator` 修复后复核。
