@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(BudgetAgent SHARED
     src/pdk_entry.cpp
     src/budget_store.cpp
+    src/hooks.cpp
 )
 
 target_include_directories(BudgetAgent PRIVATE
