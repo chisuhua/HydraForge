@@ -9,14 +9,12 @@
 | （无 — 所有已批准提案均已 ship，见下表） | | | | |
 
 
-| [adr-0070-declare-command](improvements/adr-0070-declare-command.md) | P0 | 2026-08-01 | guide-arch |
-
-
 | [fix-markdown-parser-yaml](improvements/fix-markdown-parser-yaml.md) | P1 | 2026-08-01 | guide-arch |
 
 | [session-manager-jsonl](improvements/session-manager-jsonl.md) | P1 | 2026-08-01 | guide-arch |
 
 ## 已实施
+| [adr-0070-declare-command](improvements/adr-0070-declare-command.md) | P0 | 2026-08-04 |
 | [adr-0069-tool-coordinator-hooks](improvements/adr-0069-tool-coordinator-hooks.md) | P0 | 2026-08-04 |
 | [fix-loop-agent-bypass](improvements/fix-loop-agent-bypass.md) | P0 | 2026-08-03 |
 | [adr-0002-busevent-contract](improvements/adr-0002-busevent-contract.md) | P1 | 2026-07-29 |

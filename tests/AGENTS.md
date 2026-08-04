@@ -24,4 +24,5 @@ Catch2 单元测试，15 个测试文件。
 | test_basic.cpp | 基础功能 |
 | test_prompt_builder.cpp | Prompt 构建 |
 | test_no_llm.cpp | 无 LLM 模式 |
+| test_command_registry.cpp | CommandRegistry 注册/冲突/help/保留字/委托治理路径/绕过预防 (adr-0070) |
 | main_test_runner.cpp | 测试入口 |

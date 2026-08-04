@@ -34,6 +34,12 @@
 
 #include <agenticdsl/skill/skill_interpreter.h>
 
+// adr-0070: DECLARE_COMMAND 治理路径 (L4 用户输入层入口, 区别于 L2 Tool)
+#include <common/tools/command_registry.h>
+#include <common/tools/tool_coordinator.h>
+#include <common/policy/agent_mode_policy.h>
+#include <agenticdsl/pdk/command_macros.h>
+
 #include <fstream>
 #include <sstream>
 
@@ -376,6 +382,51 @@ int main(int argc, char* argv[]) {
 
     std::cout << "[main] Session started: " << session.session_id() << std::endl;
     std::cout << "[main] Type 'exit' or Ctrl-D to quit" << std::endl;
+
+    // ============================================================
+    // 7.5 adr-0070: ToolCoordinator 注入 + CommandRegistry 治理路径
+    //     Command 层经 ToolCoordinator::execute() 调用工具, 触发 layer check /
+    //     ApprovalHandler / audit (ADR-0068) / hook (ADR-0069) 治理路径
+    // ============================================================
+    auto coordinator = std::make_unique<agenticdsl::ToolCoordinator>(
+        engine->get_tool_registry(),
+        std::make_shared<agenticdsl::AgentModePolicy>(),
+        [](const agenticdsl::ApprovalRequest& req, int /*timeout_ms*/) {
+            // demo 默认 auto-approve (用户可通过 /help 查 /compact 用法)
+            (void)req;
+            return true;
+        });
+    auto* coord_ptr = coordinator.get();
+    engine->set_tool_coordinator(std::move(coordinator));
+    if (engine->get_tool_coordinator() == nullptr) {
+        std::cerr << "fatal: ToolCoordinator injection failed" << std::endl;
+        return 1;
+    }
+    std::cout << "[main] tool_coordinator: enabled" << std::endl;
+
+    agenticdsl::CommandRegistry command_registry(coord_ptr);
+
+    // /compact — 委托 session/compact 工具 (仅经 ToolCoordinator 治理路径)
+    hydraforge::pdk::CommandSpec compact_spec;
+    compact_spec.name = "/compact";
+    compact_spec.description = "compress the current session transcript";
+    compact_spec.usage = "/compact [max_tokens]";
+    compact_spec.plugin_origin = "pdk_chat_demo";
+    compact_spec.handler = [coord_ptr](agenticdsl::ToolCallContext& tctx) -> std::string {
+        if (coord_ptr == nullptr) return "error: ToolCoordinator not injected";
+        agenticdsl::ToolMetadata meta;
+        meta.name = "session/compact";
+        meta.description = "LLM 压缩会话历史";
+        meta.domain = "plugin";
+        tctx.session_id = tctx.session_id.empty() ? "main" : tctx.session_id;
+        tctx.caller_layer = "workflow";
+        auto r = coord_ptr->execute(meta, tctx,
+            {{"session_id", tctx.session_id}, {"max_tokens", "4000"}});
+        return r.ok ? ("compacted: " + r.data.dump())
+                    : ("error: " + r.meta.dump());
+    };
+    command_registry.register_command(compact_spec);
+
     std::cout << std::endl << "User> " << std::flush;
 
     // ============================================================
@@ -386,8 +437,25 @@ int main(int argc, char* argv[]) {
 
     std::string input;
     while (std::getline(std::cin, input)) {
-        if (input == "exit" || input == "quit") {
-            break;
+        // adr-0070: `/` 前缀统一分发给 CommandRegistry; 保留字 /exit 退出
+        if (!input.empty() && input.front() == '/') {
+            if (input == "/exit" || input.rfind("/exit ", 0) == 0) break;
+            auto spec = command_registry.resolve_command(input);
+            if (spec) {
+                hydraforge::pdk::CommandContext ctx;
+                ctx.user_input = input;
+                ctx.tool_coordinator = coord_ptr;
+                try {
+                    std::cout << spec->handler(ctx.tool_ctx) << std::endl;
+                } catch (const std::exception& e) {
+                    std::cout << "[command error] " << e.what() << std::endl;
+                }
+            } else {
+                std::cout << "[unknown command] " << input
+                          << " — type /help to list commands" << std::endl;
+            }
+            std::cout << std::endl << "User> " << std::flush;
+            continue;
         }
         if (input.empty()) {
             std::cout << std::endl << "User> " << std::flush;

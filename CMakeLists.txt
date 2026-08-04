@@ -87,6 +87,7 @@ add_library(agenticdsl_common STATIC
     src/common/llm/tracing_decorator.cpp        # Phase 6a: TracingDecorator 事件追踪 (ADR-0068 §决策 3)
     src/common/llm/orchestration_illm_provider.cpp  # Phase 5: Dual Consumer Model (REQ-ICC-001)
     src/common/tools/registry.cpp
+    src/common/tools/command_registry.cpp    # adr-0070: CommandRegistry L1 (DECLARE_COMMAND 治理入口)
     src/common/tools/factory.cpp              # P2.C: ToolRegistry factory (decouple engine.cpp)
     src/common/utils/parser_utils.cpp
     src/common/utils/template_renderer.cpp

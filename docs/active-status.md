@@ -2,7 +2,7 @@
 
 > **焦点**: 当前活跃的 OpenSpec changes | **更新**: 每日
 > **Master Plan**: [`docs/superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md`](superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md)
-> **架构决策**: [`docs/adr/`](adr/) — 62 ADR (49 主 + 1 plugin + 12 skill 子项), 41 Approved (主 34 + 子 7), adr_lint 零错误 (2026-08-03 实测校准, `tools/doc_metrics.py --adr`)
+> **架构决策**: [`docs/adr/`](adr/) — 70 ADR (57 主 + 1 plugin + 12 skill 子项), 41 Approved (主 34 + 子 7), adr_lint 零错误 (2026-08-04 实测校准, `tools/doc_metrics.py --adr`)
 > **Phase**: 6 — Agent-as-Plugin (2026-07-15 ~ 至今, Phase 5 ✅ 收官)
 
 ---
@@ -11,7 +11,7 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **100/100 ✅** PASS (2026-08-04 实测: `cd build && ctest` → "99% tests passed, 1 tests failed out of 100"; 含 adr-0069-tool-coordinator-hooks 新增 `test_tool_coordinator_hooks` 8 cases + `test_budget_agent_hooks` 1 case, 合计 +2 测试; 1 失败 `test_cost_tracking_decorator` pre-existing, commit `514c441` Phase 5 call-chain-v2 引入, 文档化跟踪) |
+| **Total ctest** | **115/115** (2026-08-04 实测: `cd build && ctest` → 2 失败 / 113 PASS; 含 adr-0069 `test_tool_coordinator_hooks` 8 cases + `test_budget_agent_hooks` 1 case, adr-0070 `test_command_registry` 10 cases; 2 失败: `test_e2e_real_llm` 需真实 LLM API key (本机无 QIANFAN_API_KEY) + `test_cost_tracking_decorator` pre-existing, commit `514c441` Phase 5 call-chain-v2 引入, 文档化跟踪) |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
 | **OpenSpec active** | **0** (Phase 6 采用 plan + commit 模式, 不创建 OpenSpec changes) |

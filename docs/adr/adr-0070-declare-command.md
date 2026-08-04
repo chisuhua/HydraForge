@@ -2,7 +2,15 @@
 
 ## 状态
 
-🔍 Proposed (2026-07-31 — 架构缺失能力审计 D4 决议立项, 待架构组评审; 实施排期 Wave 1 第 3 项; 快捷键仅定义契约, 实现 defer)
+🟡 Partial (2026-08-04 — OpenSpec change `adr-0070-declare-command` 实施完成, ship Wave 1 P0; 包含: `DECLARE_COMMAND` 宏家族 + `ICommandRegistry` L3 契约 + `CommandRegistry` L1 实现 + pdk_chat_demo `/` 前缀分发改造 + ToolCoordinator 治理路径接线 + `/compact` 真实 plugin 命令)
+
+### §决策 7 转 Approved 条件
+
+- [ ] `DECLARE_SHORTCUT` 实际触发逻辑实现 (依赖终端 raw mode, 当前仅契约先行, defer 至 L4-2 异步 I/O 改造后)
+- [ ] `/tree` TUI 本体实现 (属于 L4-6, 依赖 L0-1 SessionManager)
+- [ ] `command.invoked` / `command.completed` 事件发射 (需先入 ADR-0068 Registry 再实施)
+- [ ] CLI flag 重写 (属于 L4-4 cxxopts)
+- [ ] 命令作为 ToolRegistry 工具的概念错位反例修复文档
 
 ## 领域
 
