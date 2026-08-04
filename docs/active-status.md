@@ -140,6 +140,8 @@
 | 顺延项 | 影响 | 启动条件 | 处理方式 |
 |--------|------|:--------:|---------|
 | ⏸ **Phase 6 服务化 (Candidate B)** | **结构性暂缓** — ADR-0050 §启动条件 #4 Solo Dev 容量 + #5 AgentForge 非真正"外部" 双重不满足 | (1) PDK 生产化达 Sprint 25 末里程碑; (2) AgentForge MVP 验证; (3) 服务化范围文档 ≤1 周可完成 (Solo dev 适配) | ADR-0050 Solo Dev 重新评估 (2026-07-15) + 新 plan `2026-07-15-phase6-agentforge-mvp.md` |
+| ⏸ **Phase 7 Control Plane (MCP Server)** | **结构性暂缓** — 依赖 Execution Plane 完整 ship (Phase 6c 收官), 当前 5/6 启动条件未满足 | (1) Phase 6c Evidence Gate PASS; (2) ADR-0073 完整 ship; (3) ADR-0075 EnvBackend ship; (4) AgentForge ≥ Sprint 25; (5) Solo Dev ≥2 人; (6) ADR-0068 §附录 A amendment ship | 路线图 v3 Phase 7a 启动评估 (per ADR-0076 + 路线图 v3); 拆分 7a/7b/7c descope 路径 |
+| ⏸ **Phase 8a Data Plane (gRPC)** | **结构性暂缓** — 依赖 Control Plane ship ≥3 个月 + 路由阈值实测校准需求 | (1) Phase 7 ship ≥3 个月 + 零 critical bug; (2) MCP 路由阈值实测校准需求; (3) 分布式部署需求 OR LLMDataPlane 高频需求 | 路线图 v3 Phase 8a 启动评估 (per ADR-0077 D8) |
 | ➡️ C16 §5 Cloud plugin 顺延 | 持续关注 | 外部触发 (CloudLLMProvider 实施需求) | 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` 跟踪 (受 Phase 6 暂缓影响) |
 | ➡️ C17 排除 ADR-0030 V2 顺延 | Fleet 实施需求 | FleetOrchestrator 解除延迟 (Oracle 2026-06-27 决议) | C19 或后续 ship 时迁移至 🟡 Partial |
 | ➡️ C17 排除 ADR-0037 顺延 | 因果排序机制未实施 | Phase 7+ 自进化 | 由 AgentForge 使用情况触发 |
@@ -154,8 +156,9 @@
 
 > **C17 排除原因明细**: 详见 [`docs/superpowers/plans/2026-07-10-phase5-remainder-adr-sync.md` §十一.3](superpowers/plans/2026-07-10-phase5-remainder-adr-sync.md) (Metis 审查 `ses_0b02706b7ffepKdYy3qxnmOzXy` 裁决后用户选项 A 决策 2026-07-10, 范围 12 → 5)
 >
-
 > **2026-07-15 新增**: Phase 6 服务化结构性暂缓, 由 `2026-07-15-phase6-agentforge-mvp.md` 替代. 所有原 Phase 6 顺延项 (ADR-0037/0038/0039/0042/0045/0046 + ADR-0050 #5) 启动条件统一改为 "AgentForge 使用反馈触发".
+>
+> **2026-08-03 新增** (路线图 v3 三平面架构): Phase 7 Control Plane 与 Phase 8a Data Plane 显式列入顺延项, 启动条件与依赖链与路线图 v3 严格对齐. Phase 7 启动条件 6 项 (per ADR-0076 + 路线图 v3 §Phase 7), Phase 8a 启动条件 4 项 (per ADR-0077 D8 + 路线图 v3 §Phase 8a). 6/6 + 4/4 评估决策树详见 [`roadmap.md` §Phase 7/8a](roadmap.md).
 
 ---
 

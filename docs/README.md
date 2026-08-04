@@ -80,6 +80,13 @@ docs/
 | `adr-0068-event-emission-contract.md` | 事件发射契约 (Canonical Topic Registry + 7 幻影主题强制发射点 + EventBuilder) | 🔍 Proposed (2026-07-31, D2 立项, 实施排期 Wave 1) |
 | `adr-0069-tool-coordinator-hooks.md` | ToolCoordinator Hook 注入点 (pre/post 双列表 + IToolHookRegistry + HookErrorPolicy) | 🔍 Proposed (2026-07-31, D3 立项, 实施排期 Wave 1) |
 | `adr-0070-declare-command.md` | PDK Plugin 命令/快捷键注册 (Command≠Tool + DECLARE_COMMAND + ICommandRegistry) | 🔍 Proposed (2026-07-31, D4 立项, 实施排期 Wave 1) |
+| `adr-0071-llm-native-agenticdsl-architecture.md` | LLM-native AgenticDSL 架构 (LLM 作为 DSL 作者, 3 平面 Operator/DSL/Backend, 派生 6 个子 ADR/Change) | 🔍 Proposed (2026-08-02, 顶层方向 ADR, 锚定 Phase 6+ 演化) |
+| `adr-0073-tool-json-schema-contract.md` | Tool JSON Schema 契约 (JSON Schema 2020-12, input_schema/output_schema 字段 + nlohmann validator + DECLARE_TOOL 自动生成) | 🔍 Proposed (2026-08-02, Wave 2 Phase 2.1 第一 ADR, 派生自 ADR-0071 §D4) |
+| `adr-0074-prompt-evidence-gate.md` | Prompt Engineering + Evidence Gate (D1 30+ few-shot + D2 50+ golden + D3 3 模型 baseline + D4 Evidence Gate + D5 两阶段注入 ≤8k + D6 JSONL + D7 失败事件) | 🔍 Proposed (2026-08-03, Wave 2 Phase 2.2, 派生自 ADR-0071 §D5) |
+| `adr-0075-env-backend-local-docker.md` | EnvBackend 多环境执行 (D1 IEnvBackend 接口 + D2 LocalBackend + D3 DockerBackend + D4 backend: 字段 + D5 EnvValidationHook) | 🔍 Proposed (2026-08-03, Wave 3 Phase 1+2, 派生自 ADR-0071 §D6) |
+| `adr-0076-dsl-engine-mcp-server.md` | DSL Engine as MCP Server 控制面 (D1 stdio+HTTP+SSE + D2 静态 token + D3-D7 capability 暴露 + D8 Stateless) | 🔍 Proposed (2026-08-03, Wave 3 末, **gated by active-status.md §四**, INTEGRATES WITH Phase 6 Candidate B) |
+| `adr-0077-grpc-data-plane.md` | gRPC Data Plane 高吞吐通道 (D1 4 service + D2 64KB 路由 + D3 mTLS + D4 proto + D5 grpc.* 事件 + D6 GRPCBackend + D7 路由决策 + D8 启动条件) | 🔍 Proposed (2026-08-03, Wave 4 descoped docs-only, 派生自 ADR-0071 §D8) |
+| `adr-0078-finetune-base-model.md` | Fine-tune 基模与训练管线 (D1 4 维度评分 + D2 触发条件 + D3 数据 + D4 LoRA + D5 评估 + D6 AgenticMind 回流 + D7 serving) | 🔍 Proposed (2026-08-03, Wave 5+ descoped docs-only, 派生自 ADR-0071 §D9) |
 
 ### adr/plugin/ - Plugin 化候选清单
 

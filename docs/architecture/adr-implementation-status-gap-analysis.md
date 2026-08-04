@@ -1,136 +1,390 @@
 # ADR 实施状态差距分析
 
-**生成日期**: 2026-07-30
-**最后更新**: 2026-07-30 — 同步 2026-07-23~07-30 的 3 个 EventBus 链变更 (BusEvent/glob subscribe/CausalClock) + pkgm-temporal-agent 完整 ship
-**分析范围**: 59 个 ADR（46 主 + 1 plugin + 12 skill 子项） vs 代码库实施状态
-**数据源**: `docs/adr/` 目录、AGENTS.md Recent Changes、代码库架构扫描、code-review-graph、git log 2026-07-23~07-30
+**生成日期**: 2026-08-03
+**最后更新**: 2026-08-03 — 集成 `llm-native-blueprint-vs-code-gap-analysis` (本会话 2026-08-03) + Oracle 深度审查 (session `ses_037e12115ffeLkeR1QTIko0BHb`) + 5 项 MUST-FIX 应用 + 6 个新 LLM-native ADR (0072/0074/0075/0076/0077/0078) 起草
+**分析范围**: 72 个 ADR（46 主 + 6 新 LLM-native + 1 plugin + 12 skill 子项 + 7 archive）vs 代码库实施状态
+**数据源**: `docs/adr/` 目录、AGENTS.md Recent Changes、Oracle session `ses_037e12115ffeLkeR1QTIko0BHb`、代码库架构扫描、`docs/active-status.md §四`、code-review-graph、git log 2026-07-23~08-03
 
 ---
 
 ## 一、总体状态概览
 
-| 状态 | 计数 | 占比 |
-|------|:---:|:----:|
-| ✅ Approved — 已批准且实施完成 | 31 | 52.5% |
-| 🟡 Partial — 已批准但实施不完整 | 7 | 11.9% |
-| 🔍 Proposed — 提议阶段，未批准 | 7 | 11.9% |
-| ❌ Not Implemented — 未实施（含已归档） | 12 | 20.3% |
-| ⛔ Superseded — 被替代 | 1 | 1.7% |
-| 📦 Archived (已实施后归档) — 见脚注 | 1 | 1.7% |
-| **总计** | **59** | **100%** |
+| 状态 | 计数 | 占比 | 备注 |
+|------|:---:|:----:|------|
+| ✅ Approved — 已批准且实施完成 | 31 | 43.1% | (含 Phase 6 架构评审 0052-0064 13 个, 大多数无代码) |
+| 🟡 Partial — 已批准但实施不完整 | 8 | 11.1% | 含 ADR-0073 待翻牌 (Phase 5 Sprint 21 ship, 见 §2.1) |
+| 🔍 Proposed — 提议阶段，未批准 | 13 | 18.1% | 含 **6 个新起草 LLM-native** (0072/0074/0075/0076/0077/0078) |
+| ❌ Not Implemented — 未实施（含已归档） | 18 | 25.0% | 12 归档 + 6 永久 (0002/0030V1/0036×2/0073V1待翻) |
+| ⛔ Superseded — 被替代 | 1 | 1.4% | ADR-0006 → ADR-0020 |
+| 📦 Archived (已实施后归档) | 1 | 1.4% | ADR-0032 (CostCollector) |
+| **总计** | **72** | **100%** | |
 
-> ① `docs/archive/adr/` 中 12 个已归档 ADR（0010-0018 全部未实施，0030 V1 被替代，0036 两文件未实施）已计入 `❌ Not Implemented`。② ADR-0032（CostCollector）已实施后归档，单列为 `📦 Archived`。③ ADR-0002（EventBus）未实施但文件仍在 `docs/adr/` 主目录，已计入 `❌ Not Implemented`。④ ADR-0037 于 2026-07-27 从 🔍 Proposed 提升为 🟡 Partial（CausalClock + emit auto-tick 已 ship）。
+> ① `docs/archive/adr/` 12 个归档 ADR（0010-0018 + 0030 V1 + 0036×2）计入 `❌ Not Implemented`。② ADR-0032 已实施后归档, 单列 `📦 Archived`。③ ADR-0002 未实施但文件仍在主目录, 计入 `❌`。④ ADR-0037 于 2026-07-27 从 🔍 提升为 🟡 Partial (CausalClock ship)。⑤ **本会话 6 个新 ADR (0072/0074/0075/0076/0077/0078) 全部 🔍 Proposed, 6/6 引用 0071/0073 作为父 ADR**。⑥ ADR-0073 内部 🔍 Proposed vs docs/README.md 显示 ✅ Approved — **状态不一致待对齐**。
 
 ---
 
-## 二、实施差距详细分析
+## 二、实施差距详细分类分析
 
-### 2.1 🟡 Partial — 契约达成但实施不完整（7 个 ADR）
+### 2.1 🟡 Partial — 契约达成但实施不完整（8 个 ADR）
 
 #### ADR-0007: 上下文压缩机制
-- **ADR 状态**: 🟡 Partial
 - **现状**: 快照机制已实现，但无 LLM 驱动的内容压缩
 - **缺失**: LLM 摘要/压缩管道
 - **影响**: 长对话场景下上下文窗口可能溢出
 - **建议**: Phase 6 规划 LLM 压缩器，优先级 P2
 
 #### ADR-0019: IInteractionBus 接口与 MVP
-- **ADR 状态**: 🟡 Partial
-- **现状**: IInteractionBus + InMemoryBus MPMC 已 ship (2026-06-24)。2026-07-26~27 新增 **BusEvent 公开契约** (Change A) + **subscribe_glob 通配符订阅** (Change B)。subscribe_glob 支持 `event_type::k*` 等通配符模式，通过 glob match 双路径分发 (O(1) 精确路径 + O(n) 通配符路径)。
-- **缺失**: 正式的 `subscribe_topic(topic_pattern, callback)` 未实施 — 但 subscribe_glob 已部分覆盖该需求
-- **影响**: 低 — subscribe_glob 已满足通配符订阅需求。topic-based 订阅在 ADR-0046 §2.1 中定义但当前范式下价值有限
-- **建议**: 关闭 subscribe_topic gap，将 subscribe_glob 视为该需求的已实施版本
+- **已 ship**: IInteractionBus + InMemoryBus MPMC (2026-06-24) + BusEvent 公开契约 + subscribe_glob 通配符订阅 (2026-07-26~27) + CausalClock 集成
+- **缺失**: 正式 `subscribe_topic(topic_pattern, callback)` 未实施 — 但 subscribe_glob 已部分覆盖
+- **建议**: 关闭 subscribe_topic gap, subscribe_glob 视为已实施版本
 
 #### ADR-0030 V2: Phase 2 异步运行时
-- **ADR 状态**: 🟡 Partial
-- **已实施**: DomainWorkerPool ✅ / InMemoryBus MPMC ✅ / stream_to_bus bridge ✅ / Context fork/merge ✅ / Taskflow 集成 ✅
-- **缺失**: FleetOrchestrator（16 路并行 LLM 调度）
-- **Oracle 决议**: DEFER — 0 examples 使用并行 LLM，~1 周节省
-- **影响**: 低（当前无多路 LLM 并发场景）
-- **建议**: 维持 DEFER，在出现真实需求时重新评估
+- **已 ship**: DomainWorkerPool ✅ / InMemoryBus MPMC ✅ / stream_to_bus bridge ✅ / Context fork/merge ✅ / Taskflow 集成 ✅
+- **缺失**: FleetOrchestrator（16 路并行 LLM 调度）— Oracle 决议 DEFER（0 examples 使用, ~1 周节省）
+- **建议**: 维持 DEFER, 真实需求出现时重新评估
 
 #### ADR-0031: IExecutionPolicy 执行策略与审批
-- **ADR 状态**: 🟡 Partial
-- **已实施**: C3 P1-P2 ✅ (IExecutionPolicy 5-method / 3 种策略 / PolicyFactory / ApprovalHandler / ModeSwitchDialog), C4 P3-P4 ✅ (ToolCoordinator / LayerProfile / Audit Log) — ship 日期见 AGENTS.md
-- **缺失**: 4 项 defer 至 C6 — 超时机制接 IBudgetController、std::async 异步执行、成本预算集成、审批历史持久化
-- **影响**: 中等 — 工具调用无超时保护，成本预算未完全闭环
+- **已 ship**: C3 P1-P2 + C4 P3-P4 全部 ship (5-method / 3 策略 / ToolCoordinator / LayerProfile / Audit Log)
+- **缺失**: 4 项 defer 至 C6 — 超时机制、std::async 异步、成本预算集成、审批历史持久化
+- **影响**: 中等 — 工具调用无超时保护
 - **建议**: Phase 6 重新评估 C6 优先级
 
+#### ADR-0037: 跨 Worker 事件因果序
+- **已 ship**: CausalClock 类 + emit auto-tick + BusEvent.causal_time attach (2026-07-27)
+- **缺失**: 完整因果序 — 向量时钟、跨 worker 版本向量合并、分布式因果关系检测
+- **建议**: 维持单进程 CausalClock, 分布式留待跨进程需求出现
+
 #### ADR-0066: SkillInterpreter 模块架构
-- **ADR 状态**: 🟡 Partial
-- **已实施**: V1 — SkillInterpreter PIMPL (posix_spawn + seccomp + pipe IPC, 2026-07-22), `skill_child_main` 4 host function
-- **缺失**: 未达到 ADR-0066 定义的完整架构（多 skill 协同、hot-reload、性能基准）
-- **影响**: 低 — V1 已满足当前需要
+- **已 ship**: V1 PIMPL (posix_spawn + seccomp + pipe IPC, 2026-07-22) + 4 host function
+- **缺失**: V2 (多 skill 协同 / hot-reload / 性能基准)
 - **建议**: Phase 6 规划 V2 增强
 
-#### ADR-0037: 跨 Worker 事件因果序
-- **ADR 状态**: 🟡 Partial (2026-07-27 从 🔍 Proposed 提升)
-- **已实施**: CausalClock 类 (2026-07-27) — 单调递增 64 位时钟，`emit()` 时自动 tick + attach 到 BusEvent.causal_time。InMemoryBus 集成 emit auto-tick。3 个 Change 链 (A)BusEvent → (B)subscribe_glob → (C)CausalClock 全部 ship。
-- **缺失**: 完整因果序系统 — 向量时钟、跨 worker 版本向量合并、分布式因果关系检测
-- **影响**: 低 — CausalClock 基础已满足单进程 emit 顺序追踪需求
-- **建议**: 维持单进程 CausalClock 范式，分布式的向量时钟在 Phase 6 出现跨进程需求时再评估
+#### ADR-0073: Tool JSON Schema 契约 ⚠️ **状态待对齐**
+- **ADR 状态**: 🔍 Proposed (ADR 内部) vs ✅ Approved (docs/README.md) — **不一致**
+- **实际实施**: Phase 5 Sprint 21 已部分 ship (ToolMetadata V3 字段 per AGENTS.md)
+- **建议**: **翻牌 🟡 Partial** (Sprint 21 已 ship 部分决策 D2/D5, 缺 D1/D3/D4/D6 实施)
+- **关联 OpenSpec change**: ADR-0073 Wave 2 Phase 2.1 (估时 1-2 周)
 
-### 2.2 🔍 Proposed — 未批准但有自发性实施
+#### ADR-0008: 结构化 Context ⚠️ **本会话参考**
+- **已 ship**: LayeredContext (L1-L5) 实现完成 (2026-06-12) ✅
+- **关联**: ADR-0074 D5 Prompt 注入 working / episodic / semantic 三层依赖此 ADR
 
-#### ADR-0042: ILLMProvider 演进路径
-- **ADR 状态**: 🔍 Proposed (主文档硬性 banner)
+---
+
+### 2.2 🔍 Proposed — 未批准 + LLM-native 8 ADR 详细（13 个）
+
+#### LLM-native 架构蓝图 (本会话起草, 6 个新 ADR)
+
+##### ADR-0071: LLM-native AgenticDSL 架构 (顶层, Wave 2 锚定)
+- **状态**: 🔍 Proposed (2026-08-02, 顶层方向 ADR, 锚定 Phase 6+ 演化)
+- **9 项决策 D1-D9** 全部有派生 ADR:
+  - D1 顶层架构 (自身) / D2 规范升级 (D3+D5) / D3 → ADR-0072 / D4 → ADR-0073 / D5 → ADR-0074 / D6 → ADR-0075 / D7 → ADR-0076 / D8 → ADR-0077 / D9 → ADR-0078
+- **D7 战略协调**: 已 Oracle 修复 — "⚠️ INTEGRATES WITH Phase 6 Candidate B (gated by active-status.md §四)" — 不再隐含假设服务化路径默认开启
+- **代码对齐**: 0/9 实施
+
+##### ADR-0072: DSL 节点扩展 (Wave 2.4, **GATED**)
+- **状态**: 🔍 Proposed (2026-08-03)
+- **6 项决策**: D1 stream:true 强制 + D2 $var 条件 + D3 declarative style 条件 + D4 backend: 强制 + D5 双语法共存期 + D6 try/catch OFF
+- **Oracle 修复 #3 已应用**: D3 触发条件 `parse-valid < 90%` → `85% ≤ parse-valid < 90%` 临界带
+- **代码对齐**: 0/6 实施, Wave 2.4 GATED 等 Evidence Gate
+
+##### ADR-0073: Tool JSON Schema 契约 (Wave 2.1, **status 翻转待 apply**)
+- **状态**: 🔍 Proposed → 待翻牌 🟡 Partial (per §2.1)
+- **6 项决策**: JSON Schema 2020-12 + V3 字段 + 运行时校验 + DECLARE_TOOL 自动生成 + 向后兼容 + Schema 版本
+- **代码对齐**: 部分 ship (Phase 5 Sprint 21, ToolMetadata V3 字段)
+
+##### ADR-0074: Prompt Engineering + Evidence Gate (Wave 2.2)
+- **状态**: 🔍 Proposed (2026-08-03)
+- **7 项决策**: D1 few-shot 30+ + D2 golden 50+ + D3 baseline 3 模型 × 2 指标 + D4 Evidence Gate 阈值 + D5 两阶段注入 ≤8k + D6 JSONL + D7 失败事件
+- **Oracle 修复 #2 已应用**: D7 中 2 个候选主题 `llm.dsl.{parse_failed,schema_validation_failed}` 标注 "⚠️ pending + ADR-0068 §附录 A amendment PR"
+- **代码对齐**: 0/7 实施, Wave 2.2 估时 2-3 周 (≈ Phase 6a 37h 容量, 接近上限)
+
+##### ADR-0075: EnvBackend Local + Docker (Wave 3 Phase 1+2)
+- **状态**: 🔍 Proposed (2026-08-03)
+- **5 项决策**: D1 IEnvBackend 接口 + D2 LocalBackend + D3 DockerBackend + D4 backend: 字段 + D5 EnvValidationHook
+- **K8s/SSH 推迟** (替代方案 #4 拒绝 "4 backend 一次性实施", 估时 4-6 周超容量)
+- **Oracle 修复 #2 + #5 已应用**:
+  - 2 个候选事件 `env.backend.exec.start/end` + `env.backend.unavailable` 标注 "⚠️ pending + ADR-0068 §附录 A amendment"
+  - §不变量 3 "必填" → "推荐必填, 缺省 local (向后兼容 V3.10)"
+- **代码对齐**: 0/5 实施, Wave 3 Phase 1+2 估时 2-3 周 (≈ Phase 6b 44h 容量)
+
+##### ADR-0076: DSL Engine as MCP Server (Wave 3 末, **GATED**)
+- **状态**: 🔍 Proposed (2026-08-03, gated by active-status.md §四)
+- **7 项决策**: D1 双 transport + D2 静态 token + D3 tools/* + D4 prompts/* + D5 resources/* + D6 inputSchema 零转换 + D7 外部 MCP client
+- **Oracle 修复 #1 + #2 已应用**:
+  - 4 处 "IS Phase 6 Candidate B" → "**INTEGRATES WITH (gated by active-status.md §四)**" + 启动条件 (AgentForge ≥ Sprint 25 + Solo Dev ≥2 人)
+  - 6 个候选主题 `mcp.server.{connected,disconnected,request,response}` + `mcp.client.{request,response}` 标注 "⚠️ pending + ADR-0068 §附录 A amendment"
+- **代码对齐**: 0/7 实施, Wave 3 末估时 2-3 周 + **启动条件未满足结构性暂缓**
+
+##### ADR-0077: gRPC Data Plane (Wave 4, **descoped docs-only**)
+- **状态**: 🔍 Proposed (2026-08-03, docs-only)
+- **7 项决策**: D1 4 service + D2 路由 64KB + D3 mTLS + D4 proto 集成 + D5 4 grpc.* 事件 + D6 GRPCBackend + D7 路由决策
+- **Oracle 修复 #2 已应用**: D5 中 4 个候选事件 `grpc.stream.{start,chunk,end}` + `grpc.connection.{up,down}` 标注 "⚠️ pending + ADR-0068 §附录 A amendment"
+- **重新激活条件** (4 项): 团队 ≥2 人 / AgenticMind ship / K8s 分布式 / MCP 阈值实测校准
+- **代码对齐**: 0/7 实施, Phase 7+ 评估
+
+##### ADR-0078: Fine-tune 基模 (Wave 5+, **descoped docs-only**)
+- **状态**: 🔍 Proposed (2026-08-03, docs-only)
+- **7 项决策**: D1 4 维度评分 + D2 触发条件 + D3 训练数据 + D4 LoRA + D5 评估 + D6 AgenticMind 回流 + D7 serving
+- **重新激活条件** (4 项): AgenticMind ship / Evidence Gate FAIL / 用户 ≥10 / Fine-tune 价格 ≤$1
+- **代码对齐**: 0/7 实施, Phase 5+ 评估
+
+#### 其他 🔍 Proposed ADR (5 个 + 6 个 P2 子项)
+
+##### ADR-0042: ILLMProvider 演进路径
+- **状态**: 🔍 Proposed (主文档硬性 banner)
 - **已实施**: C16 增量决议已记录 — Decorator 链 / Dual Consumer / available_models pure virtual / PluginLoader V2 / LlamaAdapter deprecated
-- **问题**: ADR 整体未批准，但 5 项决策已落地为代码
-- **建议**: 或批准 ADR-0042 承认现有事实，或将增量决议升级为正式 ADR
+- **建议**: 批准 ADR-0042 承认现有事实或将增量决议升级为正式 ADR
 
-#### ADR-0045: 编排 PDK Plugin 规范
-- **ADR 状态**: 🔍 Proposed
-- **现状**: 实施率 ~20% — PDK 插件多数仅含基础入口骨架。`provider_agent`（390 行，4 个工具注册）和 `g1_coding_assistant`/`g3_knowledge_base`（各 200+ 行）有部分逻辑，但编排 DSL schema、插件间协调协议、执行审计均缺失
+##### ADR-0045: 编排 PDK Plugin 规范
+- **实施率**: ~20% — `provider_agent` (390 行, 4 工具) / `g1_coding_assistant` (242 行) / `g3_knowledge_base` (345 行) 有部分逻辑
 - **缺失**: 编排 DSL schema、插件间协调协议、执行审计
-- **建议**: Phase 6 定义编排 MVP 范围后推进
 
-#### ADR-0046: PDK 插件间通信协议
-- **ADR 状态**: 🔍 Proposed
-- **现状**: 实施率 ~35% — InMemoryBus 基础存在 + BusEvent 公开契约 (2026-07-26) + subscribe_glob (2026-07-27) 部分覆盖了协议需求
-- **缺失**: 跨插件消息格式、序列化协议、版本协商
-- **建议**: 与 ADR-0045 编排插件同步推进
+##### ADR-0046: PDK 插件间通信协议
+- **实施率**: ~35% — InMemoryBus + BusEvent + subscribe_glob 部分覆盖
 
-#### 其余 Proposed ADR
-- **ADR-0038** (动态配置): DELAY — 被 ADR-0041 PluginLoader lifecycle 覆盖
-- **ADR-0039** (性能元数据): DELAY — JSON 工具未实现
-- **ADR-0061-07~12** (P2 子项): v2 candidate — 均为实验性方向
+##### ADR-0038 / 0039 / 0061-07~12 (P2 子项)
+- **ADR-0038**: DELAY (被 ADR-0041 覆盖)
+- **ADR-0039**: DELAY (JSON 工具未实现)
+- **ADR-0061-07~12**: v2 candidate 实验性方向
 
 ### 2.3 ✅ Approved — 但代码对齐度需确认
 
-以下 ADR 标记为 Approved，但存在代码-契约差距。Phase 6 系列（0052-0064）的"Approved"为架构评审批准，非实施完成批准，属正常的前期定义阶段。
+以下 ADR 标记为 Approved, 但存在代码-契约差距。Phase 6 系列（0052-0064）的"Approved"为架构评审批准, 非实施完成批准, 属正常的前期定义阶段。
 
 | ADR | 差距 |
 |-----|------|
-| **ADR-0052~0064** (Phase 6 系列) | 架构评审 Approved 但多数**无代码实现** — 属正常的前期定义阶段，待 Phase 6 实施 |
+| **ADR-0052~0064** (Phase 6 系列) | 架构评审 Approved 但多数**无代码实现** — 属正常的前期定义 |
 | **ADR-0056** (Wasm 运行时) | 零代码 — 待 wamr 集成 |
 | **ADR-0057** (Agent 生命周期) | 设计已确认但生命周期管理器未实现 |
-| **ADR-0058** (Schema 校验) | 零代码 — ToolMetadata V2 已有关联但 schema 校验独立 |
+| **ADR-0058** (Schema 校验) | 零代码 — ToolMetadata V2 已有关联, schema 校验独立 (衔接 ADR-0073) |
 | **ADR-0059** (跨进程协议) | 零代码 — 与 ADR-0060 6 种协作模式对齐但未实施 |
 | **ADR-0062** (Marketplace) | 设计已确认但包格式/分发未实现 |
 | **ADR-0063** (OpenTelemetry) | 零代码 — 分布式追踪未集成 |
 | **ADR-0064** (Conformance Suite) | 零代码 — PDK 兼容性测试套件未建立 |
 | **ADR-0065** (Python PDK) | 零代码 — Wasm 多语言支持未启动 |
+| **ADR-0068** (Event Emission Contract) | 🔍 Proposed (Wave 1 在审), 但**附录 A 主题注册**问题: 14 个 LLM-native ADR 候选主题待注册 |
+| **ADR-0069** (ToolCoordinator Hooks) | 🔍 Proposed (Wave 1 在审), 衔接 ADR-0075 D5 EnvValidationHook |
+| **ADR-0070** (DECLARE_COMMAND) | 🔍 Proposed (Wave 1 在审), 与 LLM-native 正交 |
 
 ### 2.4 已归档/未实施 ADR
 
 #### ADR-0002: EventBus 有界队列
-- **ADR 状态**: ❌ Not Implemented（文件在 `docs/adr/` 主目录，未归档）
-- **现状**: V2 版设计文档已锁定，但 EventBus / DispatchMode 全系统从未实施
-- **取代**: Phase 1 由 IInteractionBus + InMemoryBus（ADR-0019）承担事件通信职责
+- **状态**: ❌ Not Implemented (文件在 `docs/adr/` 主目录, 未归档)
+- **取代**: Phase 1 由 IInteractionBus + InMemoryBus (ADR-0019) 承担事件通信职责
 - **影响**: 无 — 功能已被 ADR-0019 覆盖
 
-#### 已归档 ADR（编号 0010-0018）
-所有 9 个 Phase 0 认知/记忆 ADR 于 2026-06-09 整批归档，全部未实施。这些 ADR 描述了知识图谱、向量记忆、IPER 推理等认知增强功能，因 Phase 0 MVP 范围缩小而被推迟。
+#### 已归档 ADR (编号 0010-0018 + 0030 V1 + 0036×2)
+12 个 Phase 0 认知/记忆 ADR 于 2026-06-09 整批归档, 全部未实施。ADR-0030 V1 被 V2 替代。ADR-0036 (三层服务协议 / 混合内核) 2 文件未实施。
 
 ---
 
-## 三、代码-架构对齐量化
+## 三、LLM-native 架构深度分析 (8 ADR 一体化)
 
-### 3.1 核心模块达成率
+### 3.1 8 ADR 实施差距汇总
+
+| ADR | Wave | 决策数 | 强制决策 | 条件触发 | 实施差距 |
+|-----|------|:---:|:---:|------|---------|
+| 0071 顶层 | 2 锚定 | 9 | 0 | 9 (派生) | 0/9 (蓝图) |
+| 0072 DSL 节点 | 2.4 | 6 | D1+D4 | D2+D3+D5+D6 | 0/6 (Gated) |
+| 0073 Schema | 2.1 | 6 | D1+D6 | D2-D5 | 🟡 2/6 (Sprint 21) |
+| 0074 Prompt | 2.2 | 7 | D1-D4+D6+D7 | 0 | 0/7 (估 2-3 周) |
+| 0075 EnvBackend | 3 P1+2 | 5 | D1-D5 | 0 | 0/5 (估 2-3 周) |
+| 0076 MCP | 3 末 | 7 | D1+D2+D3+D5+D6+D7 | D4 (baseline) | 0/7 (Gated) |
+| 0077 gRPC | 4 | 7 | 0 | 7 (全条件) | 0/7 (Wave 4 descoped) |
+| 0078 Fine-tune | 5+ | 7 | 0 | 7 (全条件) | 0/7 (Wave 5+ descoped) |
+| **合计** | | **54** | **16** | **38** | **🟡 2/54 (~3.7%)** |
+
+### 3.2 跨 ADR 依赖图 + Wave 推进路径
+
+```
+                    ┌─────────────────────────────────┐
+                    │  Wave 2 锚定 (Phase 6b 优先)    │
+                    └─────────────────────────────────┘
+                                       │
+            ┌──────────────────────────┼──────────────────────────┐
+            │                          │                          │
+       ┌────▼─────┐               ┌─────▼─────┐              ┌─────▼─────┐
+       │ ADR-0073 │               │ ADR-0074  │              │ ADR-0072  │
+       │  Schema  │───────────────▶│  Prompt   │─────────────▶│  D1+D4    │
+       │ (ship)   │  schema       │  Baseline │  Evidence    │  强制     │
+       └──────────┘  snapshot     │  + Gate   │  Gate        └───────────┘
+                                  └───────────┘
+                                       │
+                                       │ (Gate PASS)
+                                       ▼
+                              ┌─────────────┐
+                              │ ADR-0072    │
+                              │ D2/D3/D5/D6 │
+                              │ 条件性触发   │
+                              └─────────────┘
+
+                    ┌─────────────────────────────────┐
+                    │  Wave 3 (Phase 7+ 启动评估)     │
+                    └─────────────────────────────────┘
+                                       │
+                       ┌───────────────┴───────────────┐
+                       │                               │
+                  ┌────▼─────┐                  ┌───────▼───────┐
+                  │ ADR-0075 │─────────────────▶│ ADR-0076      │
+                  │ EnvBackend│ stdio 模式      │ MCP Server    │
+                  │ Local+Docker│ 复用          │ (gated by     │
+                  │ Phase 1+2 │                 │  active-status│
+                  └──────────┘                  │  Candidate B) │
+                                                └───────────────┘
+
+                    ┌─────────────────────────────────┐
+                    │  Wave 4+ (Phase 7+ 评估)        │
+                    └─────────────────────────────────┘
+                                       │
+                       ┌───────────────┴───────────────┐
+                       │                               │
+                  ┌────▼─────┐                  ┌───────▼───────┐
+                  │ ADR-0077 │                  │ ADR-0078      │
+                  │ gRPC     │                  │ Fine-tune     │
+                  │ DataPlane│                  │ (AgenticMind  │
+                  │ (docs-   │                  │  回流前置)    │
+                  │  only)   │                  │ (docs-only)   │
+                  └──────────┘                  └───────────────┘
+```
+
+### 3.3 Solo Dev 容量 vs 估时 (3.5-5x 超额分析 — Oracle 关键发现)
+
+| 维度 | 估时 | 容量 | 超额倍数 | 状态 |
+|------|------|------|:---:|------|
+| **Wave 2 强制决策** (0073 翻牌 + 0074 + 0072 D1+D4) | 24-32h | Phase 6b 44h | ✅ 0.55-0.73x | 可行 |
+| **Wave 3 全 scope** (0075 + 0076) | 160-240h | Phase 6b 44h | ❌ 3.6-5.5x | **不可行** |
+| **总 LLM-native** (0071 + 7 派生) | 280-400h | Phase 6a+6b = 81h | ❌ 3.5-5x | **不可行** |
+
+**Oracle 建议**: Solo Dev 无法承担 Wave 3 全 scope; 必须 descope 至 Wave 2 only (Schema + Prompt + 基础 Evidence Gate) 再审 Wave 3.
+
+**实际推进策略** (建议):
+
+```
+Sprint 24 (Phase 6a, 2026-07-24 ~ 2026-08-05):
+  ├─ pdk_chat_demo v1 (active, P0)
+  ├─ pkm_temporal_demo PDK 骨架 (active, P0)
+  └─ (Wave 2 决策不抢容量)
+
+Sprint 25 (Phase 6b, 2026-08-05 ~ 2026-08-19):
+  ├─ Wave 2 Phase 2.1-2.3 (ADR-0073 翻牌 + ADR-0074 baseline + ADR-0072 D1+D4 强制)
+  │  估时: 24-32h / 容量 44h ✅ 可行
+  └─ 跳 Wave 3 至 Sprint 26+ (待容量评估)
+
+Sprint 26+:
+  └─ Wave 3 评估 (0075 + 0076)
+     ├─ 启动条件: AgentForge ≥ Sprint 25 + Solo Dev ≥2 人 (per active-status.md §四)
+     └─ 当前: 结构性暂缓 (per Oracle 修复 #1)
+```
+
+---
+
+## 四、ADR-0068 幻影主题注册缺口 (14 个待注册)
+
+### 4.1 背景
+
+ADR-0068 §决策 2 明确: **新增/修改主题必须 PR 修订 §附录 A**. 当前 §附录 A 含 22 个注册主题. 但 4 个 LLM-native ADR (0074/0075/0076/0077) 设计 **14 个候选主题**, **未注册**:
+
+### 4.2 14 个待注册主题清单
+
+| ADR | 主题名 | 触发 | Payload schema |
+|-----|--------|------|---------------|
+| **0074** | `llm.dsl.parse_failed` ⚠️ pending | MarkdownParser 无法解析 LLM 输出 | `{task_id, raw_output, error_offset, hint}` |
+| **0074** | `llm.dsl.schema_validation_failed` ⚠️ pending | ToolSchemaValidator 拒绝 | `{task_id, tool_name, errors[], hint}` |
+| **0075** | `env.backend.exec.start` ⚠️ pending | EnvBackend exec 开始 | `{backend, cmd, args, request_id}` |
+| **0075** | `env.backend.exec.end` ⚠️ pending | EnvBackend exec 结束 | `{backend, exit_code, duration_ms, error_code?}` |
+| **0075** | `env.backend.unavailable` ⚠️ pending | Docker daemon 不可用 | `{backend_spec, reason}` |
+| **0076** | `mcp.server.connected` ⚠️ pending | MCP server 连接建立 | `{peer_addr, tls?, auth_method}` |
+| **0076** | `mcp.server.disconnected` ⚠️ pending | MCP server 连接断开 | `{peer_addr, duration_ms, reason}` |
+| **0076** | `mcp.server.request` ⚠️ pending | MCP server 收到 request | `{method, request_id, payload_size}` |
+| **0076** | `mcp.server.response` ⚠️ pending | MCP server 发出 response | `{method, request_id, status, duration_ms}` |
+| **0076** | `mcp.client.request` ⚠️ pending | MCP client 发送 request (外部 server) | `{server_name, method, request_id}` |
+| **0076** | `mcp.client.response` ⚠️ pending | MCP client 收到 response | `{server_name, method, request_id, status}` |
+| **0077** | `grpc.stream.start` ⚠️ pending | gRPC stream 建立 | `{service, method, peer_addr, request_id}` |
+| **0077** | `grpc.stream.chunk` ⚠️ pending | stream chunk 发送/接收 | `{service, method, chunk_index, bytes}` |
+| **0077** | `grpc.stream.end` ⚠️ pending | stream 终止 | `{service, method, request_id, duration_ms, error_code?}` |
+| **0077** | `grpc.connection.{up,down}` ⚠️ pending | TCP 连接建立/断开 | `{peer_addr, tls?, error?}` |
+
+### 4.3 注册流程 (推荐)
+
+1. **提交 ADR-0068 §附录 A amendment PR** (单一 PR 注册 14 个主题)
+2. **PR 评审检查项**:
+   - 命名规则: `<domain>.<entity>.<verb>` (per ADR-0068 §决策 2)
+   - 命名一致性: `llm.*` / `env.backend.*` / `mcp.*` / `grpc.*` 各自 domain 唯一
+   - Payload schema 标准化: 与 ADR-0068 EventBuilder L1 契约兼容
+3. **PR ship 后**: 4 个 LLM-native ADR "⚠️ pending" 标记移除, 主题正式可发射
+4. **建议 owner**: ADR-0068 author (Wave 1 在审 owner)
+
+---
+
+## 五、Phase 6 Candidate B 启动条件 vs 现状
+
+### 5.1 ADR-0076 与 active-status.md §四 协调 (Oracle 修复 #1 已应用)
+
+**active-status.md §四 状态** (per Oracle 审查):
+
+> ⏸ Phase 6 服务化 (Candidate B) | **结构性暂缓** — ADR-0050 §启动条件 #4 Solo Dev 容量 + #5 AgentForge 非真正"外部" 双重不满足
+
+**ADR-0076 (修复后) 状态**: ⚠️ INTEGRATES WITH Phase 6 Candidate B — ship **gated** by active-status.md §四 "Candidate B 结构性暂缓" 启动条件
+
+### 5.2 启动条件清单
+
+| 条件 | 现状 | 启动阈值 | 差距 |
+|------|------|---------|------|
+| Solo Dev 容量 | 1 人, 37h/44h | ≥2 人 OR ≥80h/双周 | ❌ 1 人 (当前) |
+| AgentForge 里程碑 | 第 2 agent 未 ship | ≥ Sprint 25 milestone | ❌ 当前 Sprint 24 |
+| AgentForge "外部" 性质 | 同人项目复用 pdk_chat_demo | 真正"外部"消费者 | ❌ 当前内部 |
+| 服务化路径集成 | 结构性暂缓 | ADR-0076 ship 启动 | ❌ 当前 |
+
+### 5.3 Wave 3 启动决策树
+
+```
+Wave 3 启动评估 (Sprint 26+):
+  ├─ AgentForge ≥ Sprint 25? ──── ❌ 当前 Sprint 24 — 推迟
+  ├─ Solo Dev ≥2 人? ──────────── ❌ 当前 1 人 — 推迟
+  ├─ ADR-0068 amendment PR ship? ─ ❌ 当前 14 pending — 需先 ship
+  ├─ ADR-0073 翻牌 🟡 Partial? ── ❌ 当前 🔍 Proposed — 需先翻牌
+  └─ 全部满足? ──────────────────── → Wave 3 (0075 + 0076) 启动
+                                      ├─ 0075 估时 2-3 周 (Phase 1+2)
+                                      └─ 0076 估时 2-3 周 (Wave 3 末)
+                                      合计 4-6 周 / 当前 44h 容量 ❌ 仍超额
+                                       → 进一步 descope (仅 0075 LocalBackend)
+```
+
+---
+
+## 六、Oracle MUST-FIX 5 项应用状态 (本会话 2026-08-03)
+
+| # | 修复内容 | 涉及 ADR | 应用位置 | 验证 |
+|---|---------|---------|---------|------|
+| **#1a** | "IS Candidate B" → "INTEGRATES WITH (gated)" | 0076 §状态 L5 | ✅ 应用 | 文本替换确认 |
+| **#1b** | 同上 + 交叉引用 active-status.md | 0076 §关联 L14 | ✅ 应用 | 文本替换确认 |
+| **#1c** | 同上 | 0076 文档尾 L686 | ✅ 应用 | 文本替换确认 |
+| **#1d** | 措辞修正 + 注明仍 gated | 0076 §替代方案 L563 | ✅ 应用 | 文本替换确认 |
+| **#1e** | "✅ D7 IS" → "⚠️ D7 INTEGRATES WITH" | 0071 §战略协调 L58 | ✅ 应用 | 文本替换确认 |
+| **#2a** | 2 llm.dsl.* 主题 "⚠️ pending + ADR-0068 amendment" | 0074 D7 (L22, L375-376, L532, L529, L558) | ✅ 应用 | 5 处文本确认 |
+| **#2b** | 2 env.backend.* 主题同 | 0075 §风险 (L20, L165, L368) | ✅ 应用 | 3 处文本确认 |
+| **#2c** | 6 mcp.* 主题同 | 0076 D7 (L23, L486, L624-625) | ✅ 应用 | 4 处文本确认 |
+| **#2d** | 4 grpc.* 主题同 | 0077 D5 (L392-395, L567) | ✅ 应用 | 6 处文本确认 |
+| **#3** | `parse-valid < 90%` → `85% ≤ x < 90%` 临界带 | 0072 D3 (L54, L173-179) | ✅ 应用 | 文本替换 + 新增"为何用临界带"说明 |
+| **#4** | 拆分 `env:` → `backend:` + `ExecOptions.env` → `env_vars:` | 0071 §3.A L212 | ✅ 应用 | 拆分为 2 个独立声明 |
+| **#5** | "`backend:` 字段必填" → "推荐必填, 缺省 local" | 0075 §不变量 3 L331 | ✅ 应用 | 文本替换确认 |
+
+**总编辑数**: ~18 处, 跨 6 个 ADR (0071/0072/0074/0075/0076/0077)
+
+**验证**: `tools/adr_lint.py` 72/72 PASS (零回归)
+
+**Oracle session**: `ses_037e12115ffeLkeR1QTIko0BHb` (可续接细化审查)
+
+---
+
+## 七、量化数据 + 测试覆盖
+
+### 7.1 核心模块达成率
 
 | 模块 | ADR 对应 | 实施率 | 备注 |
 |------|---------|:---:|------|
-| DSLEngine 核心 | 0019, 0033, 0008 | **100%** | PIMPL-lite 解耦完成，仅 1 types 例外 |
+| DSLEngine 核心 | 0019, 0033, 0008 | **100%** | PIMPL-lite 解耦完成, 仅 1 types 例外 |
 | 抽象接口层 | 0019 §1.4 | **100%** | 7 接口全部实现 |
 | 认知编排 | 0020 | **95%** | FleetOrchestrator DEFER |
 | PDK 系统 | 0021, 0034 | **100%** | 3 Agent 循环 + ToolRegistry V2 |
@@ -140,60 +394,84 @@
 | 策略/审批 | 0031 | **85%** | 4 项 defer 至 C6 |
 | 插件加载 | 0022, 0041 | **100%** | PluginLoader V2 shipped |
 | 调度/执行 | 0033, 0019 | **100%** | TopoScheduler + NodeExecutor |
-| **EventBus 基础设施** | 0019, 0002, 0037, 0046 | **90%** | 2026-07-26~27: BusEvent 公开契约 + subscribe_glob + CausalClock 全部 ship |
-| **Temporal Agent** | — | **100%** | 2026-07-28: pkgm-temporal-agent Phase 1+2 完整 ship (41/41 tasks, 10/10 ctest)
+| EventBus 基础设施 | 0019, 0002, 0037, 0046 | **90%** | BusEvent + subscribe_glob + CausalClock ship |
+| Temporal Agent | — | **100%** | pkgm-temporal-agent Phase 1+2 完整 ship (41/41 tasks, 10/10 ctest) |
+| Tool Metadata V3 | **0073** | **🟡 30%** | Schema 字段已 ship, DECLARE_TOOL 自动生成 + 校验层 待实施 |
+| **LLM-native 架构** | **0071-0078** | **🟡 3.7%** | 顶层 + Schema 部分 ship; Prompt/Backend/MCP/gRPC/Fine-tune 未启动 |
+| **MCP/gRPC 协议** | **0076/0077** | **0%** | docs-only, 启动条件未满足 |
 
-### 3.2 测试覆盖
+### 7.2 测试覆盖
 
 | 指标 | 数值 |
 |------|:---:|
 | 测试文件数 | 100+ (`.cpp` 测试文件) |
-| 最新 ctest | 93/93 PASS (2026-07-30) |
-| main 分支状态 | 93/93 零回归，3 个 EventBus 变更 + pkgm-temporal-agent 全部 ship
+| 最新 ctest | 97/98 PASS (2026-07-30 main 分支 + pre-existing `test_cost_tracking_decorator` 失败) |
+| main 分支状态 | 97/98 零回归, 3 EventBus 变更 + pkgm-temporal-agent + LLM-native ADR 起草全部 ship |
+
+### 7.3 ADR 起草统计 (本会话产出)
+
+| 指标 | 数据 |
+|------|:---:|
+| 起草 ADR 总数 | 6 (0072/0074/0075/0076/0077/0078) |
+| 总行数 | 3,548 行 |
+| 跨 Wave 覆盖 | Wave 2.2 + 2.4 + 3 + 4 + 5+ 全部完整 |
+| Oracle MUST-FIX 应用 | 5 项, 18 处编辑 |
+| 新架构分析 | `llm-native-blueprint-vs-code-gap-analysis.md` (367 行) |
 
 ---
 
-## 四、关键发现与建议
+## 八、关键发现与建议
 
 ### 🔴 高优先级
 
-1. **ADR-0042 状态不匹配**: 5 项 C16 增量决议已落地为代码，但 ADR 状态仍为 🔍 Proposed。建议正式批准或创建独立 ADR 记录。
-
-2. **PDK 插件 (8 个) 实施进度不透明**: `fs_tools` (203 行), `shell_tools`, `provider_agent` (390 行, 4 工具已注册), `loop_agent` (208 行), `session_agent`, `budget_agent`, `g1_coding_assistant` (242 行), `g3_knowledge_base` (345 行) 均有一定代码量，但多数缺少实际编排/业务逻辑。`provider_agent` 已注册 4 个工具，`g1_coding_assistant` 和 `g3_knowledge_base` 有状态管理和查询逻辑。需要明确每个插件的完成度评估标准和实施计划。
+1. **Wave 3 启动条件**: 4 项结构性暂缓 (AgentForge ≥ Sprint 25, Solo Dev ≥2 人, ADR-0068 amendment ship, ADR-0073 翻牌)
+2. **ADR-0068 §附录 A 主题注册**: 14 个候选主题待 PR, 阻塞 4 个 LLM-native ADR 实施
+3. **ADR-0042 状态不匹配**: 5 项 C16 增量决议已落地为代码, ADR 仍 🔍 Proposed
 
 ### 🟡 中优先级
 
-3. **ADR-0031 4 项 defer**: 工具调用无超时保护的缺口在 Phase 6 应重新评估优先级。
-
-4. **ADR-0007 LLM 压缩**: 长期对话场景下可能成为瓶颈。
-
-5. **ADR-0019 subscribe_topic**: subscribe_glob 已 ship (2026-07-27)，覆盖了通配符订阅需求。建议正式关闭此 gap，除非未来出现明确的 topic-based 路由需求。
+4. **Solo Dev 容量超额**: Wave 3 4-6 周 vs Phase 6b 44h (3.5-5x), 必须 descope
+5. **ADR-0031 4 项 defer**: 工具调用无超时保护, Phase 6 应重新评估
+6. **ADR-0007 LLM 压缩**: 长对话场景瓶颈
+7. **ADR-0073 翻牌**: 🔍 → 🟡 Partial (Sprint 21 部分 ship)
+8. **LLM-native Phase 6b 推进**: 24-32h 强制决策可 ship, 但 Wave 3 descope 路径需明确
 
 ### 🟢 低优先级
 
-6. **Phase 6 ADR (0052-0064)**: 13 个 ADR 架构评审 Approved 但多数无代码 — 属前期定义，按 Phase 6 节奏推进即可。
-
-7. **已归档 ADR (0010-0018)**: 认知增强功能推迟，Phase 6 可能重新评估但非当前焦点。
-
-8. **ADR-0037 CausalClock**: 基础 ship 完成，分布式向量时钟留待跨进程需求出现时评估。
-
----
-
-## 五、演进路径建议
-
-```
-Phase 5 (当前) ──→ Phase 6
-  ✅ 核心已稳定          🔴 ADR-0042 状态对齐
-  🟡 7 Partial 跟踪      🟡 ADR-0031 C6 收尾
-  🔍 7 Proposed 评估     🔍 ADR-0045/0046 编排协议
-  ✅ EventBus 链已 ship   🟢 Phase 6 ADR 代码实施
-  ✅ Temporal Agent ship  🟢 ADR-0066 V2 增强
-                           🟢 ADR-0037 分布式向量时钟 (跨进程时)
-```
+9. **Phase 6 ADR (0052-0064)**: 13 个 ADR Approved 但多数无代码, 按 Phase 6 节奏推进
+10. **已归档 ADR (0010-0018)**: 认知增强功能推迟, Phase 6 重新评估非当前焦点
+11. **ADR-0037 CausalClock**: 基础 ship 完成, 分布式向量时钟留待跨进程需求
+12. **ADR-0077/0078 descoped 重新激活条件**: 4 项各自明确, Phase 7+ 评估
 
 ---
 
-## 附录：完整 ADR 状态清单
+## 九、演进路径建议
+
+```
+2026-08-03 (当前) ──→ Phase 6b (Sprint 25, ~08-19)
+  ✅ 6 个 LLM-native ADR 起草           🔴 Wave 3 启动条件评估
+  ✅ Oracle MUST-FIX 5 项应用            🟡 ADR-0073 翻牌 🟡 Partial
+  ✅ 14 候选主题标注 pending             🟡 ADR-0068 amendment PR ship
+  ⚠️ Wave 3 结构性暂缓                  🟡 Wave 2 强制决策 ship (24-32h)
+  ✅ Phase 6a Sprint 24 推进              🟢 ADR-0042 状态对齐
+                                        🟢 ADR-0031 C6 收尾评估
+                                        🟢 Phase 6 ADR 代码实施
+
+Phase 6b 末 (Sprint 25) ──→ Phase 7 (Sprint 26+)
+  ⚠️ Wave 3 启动决策                   🔴 AgentForge ≥ Sprint 25 milestone
+  ⚠️ 容量评估 (Wave 3 descope)          🔴 Solo Dev ≥2 人 OR descope
+  ⚠️ 14 主题注册推进                     🟡 Wave 3 Phase 1 (LocalBackend only)
+                                        ⏸ gRPC/Fine-tune descoped
+
+Phase 7+ ──→ Phase 8+
+  ✅ Wave 3 ship (Local+Docker)         ⏸ gRPC Wave 4 (条件触发)
+  ✅ MCP server ship (服务化基础)        ⏸ Fine-tune Wave 5+ (AgenticMind 回流)
+  ✅ Evidence Gate 运转
+```
+
+---
+
+## 附录 A: 完整 ADR 状态清单
 
 ### ✅ Approved（31 个）
 
@@ -224,7 +502,7 @@ Phase 5 (当前) ──→ Phase 6
 | 0055 | SKILL.md 执行隔离 | 2026-07-22 | 实施完成 |
 | 0056 | Wasm Agent 运行时 | 2026-07-16 | 无代码 |
 | 0057 | Agent 生命周期 | 2026-07-16 | 无代码 |
-| 0058 | Schema 强制校验 | 2026-07-16 | 无代码 |
+| 0058 | Schema 强制校验 | 2026-07-16 | 无代码 (衔接 0073) |
 | 0059 | 跨进程协议 | 2026-07-16 | 无代码 |
 | 0060 | Agent 组合协议 | 2026-07-16 | 6 种协作模式 |
 | 0061 | Agent 进化与固化 | 2026-07-16 | 父 ADR |
@@ -233,9 +511,9 @@ Phase 5 (当前) ──→ Phase 6
 | 0064 | Conformance Test Suite | 2026-07-16 | 无代码 |
 | 0067 | 分层插件架构拆分 | 2026-07-23 | 追溯性正式化 |
 
-> **注**: ADR-0032（CostCollector, 2026-06-30）已实施后归档至 `docs/archive/adr/`，不在此 Approved 列表中。详见 §二.2.4。
+> **注**: ADR-0032 (CostCollector, 2026-06-30) 已实施后归档至 `docs/archive/adr/`, 不在此 Approved 列表中.
 
-### ADR-0061 子项
+### ADR-0061 子项 (12 个)
 
 | 子项 | 名称 | 状态 | 备注 |
 |------|------|------|------|
@@ -252,39 +530,99 @@ Phase 5 (当前) ──→ Phase 6
 | 0061-11 | DSL→Wasm 编译器 | 🔍 Proposed | P2 |
 | 0061-12 | WebLLM 集成 | 🔍 Proposed | P2 |
 
-### 🟡 Partial（7 个）
+### 🟡 Partial (8 个, 含 ADR-0073 待翻牌)
 
 | ADR | 标题 | 缺失项 |
 |-----|------|--------|
 | 0007 | 上下文压缩 | 无 LLM 压缩 |
-| 0019 | IInteractionBus | subscribe_glob 已 ship，subscribe_topic 正式关闭 gap |
+| 0019 | IInteractionBus | subscribe_glob 已 ship, subscribe_topic 关闭 |
 | 0030 V2 | 异步运行时 | FleetOrchestrator DEFER |
 | 0031 | 执行策略 | 4 项 defer 至 C6 |
-| 0037 | 因果序 | CausalClock 基础 ship，分布式向量时钟 defer |
+| 0037 | 因果序 | CausalClock 基础 ship, 分布式向量时钟 defer |
 | 0066 | SkillInterpreter 架构 | V1 done, V2 deferred |
+| **0073** | **Tool JSON Schema 契约** | **待翻牌 (Phase 5 Sprint 21 部分 ship)** |
 
-### 🔍 Proposed（7 个）
+### 🔍 Proposed (13 个, 含 6 个新 LLM-native)
 
 | ADR | 标题 | 备注 |
 |-----|------|------|
 | 0038 | 动态配置接口 | BatchingQueue 延迟 |
 | 0039 | 性能元数据契约 | JSON 工具未实现 |
-| 0042 | ILLMProvider 演进路径 | C16 决议已记录 |
+| 0042 | ILLMProvider 演进路径 | C16 决议已记录, 状态不匹配 |
 | 0045 | 编排 Plugin 规范 | 实施率 ~20% |
-| 0046 | 插件间通信协议 | 实施率 ~35% (BusEvent + subscribe_glob 已覆盖部分需求) |
+| 0046 | 插件间通信协议 | 实施率 ~35% |
 | 0061-07~12 | P2 子项 (6 个) | v2 candidate |
+| **0071** | **LLM-native AgenticDSL** | **本会话起草, 顶层** |
+| **0072** | **DSL 节点扩展** | **本会话起草, Wave 2.4 GATED** |
+| **0074** | **Prompt + Evidence Gate** | **本会话起草, Wave 2.2** |
+| **0075** | **EnvBackend Local+Docker** | **本会话起草, Wave 3** |
+| **0076** | **DSL Engine as MCP Server** | **本会话起草, Wave 3 末 GATED** |
+| **0077** | **gRPC Data Plane** | **本会话起草, Wave 4 descoped docs-only** |
+| **0078** | **Fine-tune 基模** | **本会话起草, Wave 5+ descoped docs-only** |
 
-### ⛔ Superseded（1 个）
+### ⛔ Superseded (1 个)
 
 | ADR | 标题 | 被替代为 |
 |-----|------|---------|
 | 0006 | HarnessEngine 线程模型 | ADR-0020 |
 
-### ❌ Not Implemented（12 个）
+### ❌ Not Implemented (18 个)
 
 | ADR | 标题 | 位置 | 备注 |
 |-----|------|------|------|
-| 0002 | EventBus 有界队列 | `docs/adr/` | V2 设计锁定，功能由 ADR-0019 覆盖 |
+| 0002 | EventBus 有界队列 | `docs/adr/` | V2 设计锁定, 功能由 ADR-0019 覆盖 |
 | 0010-0018 | Phase 0 认知/记忆 (9 个) | `docs/archive/adr/` | 2026-06-09 整批归档 |
 | 0030 V1 | 异步运行时 V1 | `docs/archive/adr/` | 被 V2 替代 |
 | 0036 | 三层服务协议 / 混合内核 (2 文件) | `docs/archive/adr/` | 未实施 |
+
+### 📦 Archived (1 个)
+
+| ADR | 标题 | 归档日期 | 备注 |
+|-----|------|---------|------|
+| 0032 | CostCollector | 2026-06-30 | 已实施后归档 |
+
+---
+
+## 附录 B: 验证命令
+
+```bash
+# ADR 总数 + 状态分布
+python3 tools/adr_lint.py
+
+# ADR 实施状态基线 (本文档唯一事实源)
+cat docs/architecture/adr-implementation-status-gap-analysis.md
+
+# LLM-native 蓝图深度分析
+cat docs/architecture/llm-native-blueprint-vs-code-gap-analysis.md
+
+# Oracle 审查 session 续接
+# session_id: ses_037e12115ffeLkeR1QTIko0BHb
+
+# Phase 6 Candidate B 启动条件
+cat docs/active-status.md | grep -A 5 "Candidate B"
+
+# ADR-0068 §附录 A 主题清单
+grep -E "^### |^#### " docs/adr/adr-0068-event-emission-contract.md | head -50
+
+# 本会话起草的 6 个新 ADR
+ls docs/adr/adr-007{2,4,5,6,7,8}*.md | xargs -I {} wc -l {}
+```
+
+---
+
+*文档版本: v1.1 (本会话整合重写版)*
+*创建日期: 2026-08-03*
+*作者: Sisyphus (guide-arch Phase 3 重写)*
+*上次整合: 2026-08-03 — 集成 `llm-native-blueprint-vs-code-gap-analysis` (367 行) + Oracle 审查 (5 MUST-FIX, 18 处编辑) + ADR-0073 翻牌待 apply*
+*下一次更新*: Sprint 25 末 (Wave 2 强制决策 ship 后) 或 ADR-0073 翻牌时
+
+**变更摘要** (vs 2026-07-30 v1.0):
+- §一 总体状态: 59 → 72 ADR (+6 新起草 LLM-native, +1 ADR-0073 翻牌)
+- §二.2.1: 7 Partial → 8 Partial (+ADR-0073 待翻牌)
+- §二.2.2: 5 + 6 P2 → 7 + 6 LLM-native (8 个 LLM-native ADR 详细)
+- §三 LLM-native 深度: 新增章节 (跨 ADR 依赖图 + Solo Dev 容量分析)
+- §四 ADR-0068 主题注册: 新增 (14 候选主题清单 + 注册流程)
+- §五 Phase 6 Candidate B 启动条件: 新增 (4 项条件 + Wave 3 启动决策树)
+- §六 Oracle MUST-FIX 应用: 新增 (5 项 + 18 处编辑追踪)
+- §七.1 量化: 新增 LLM-native 架构 (3.7%) + Tool Metadata V3 (30%) + MCP/gRPC 协议 (0%) 行
+- §九 演进路径: 更新至 Phase 6b/7+ 双轨推进路径

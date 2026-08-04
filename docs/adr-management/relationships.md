@@ -3,7 +3,7 @@
 > 本文件由 `tools/adr_relationships.py` 自动生成，**请勿手动编辑**。
 > 任何手动修改会在下次运行时被覆盖。
 > 最后更新: 由 `tools/adr_relationships.py` 生成（运行时刻见 git commit 时间戳）
-> ADR 总数: 60
+> ADR 总数: 72
 
 ---
 
@@ -43,7 +43,8 @@
 | adr-0033 | Session Hierarchy 执行会话层级体系 | ✅ Approved | Unknown |  |
 | adr-0034 | IModelRouter 模型路由接口 | ✅ Approved | Unknown |  |
 | adr-0035 | 推理引擎 PDK Plugin 规范 | ✅ Approved | Unknown |  |
-| adr-0037 | 跨 Worker 事件因果序与逻辑时间戳 | 🔍 Proposed | 2026-06-26 |  |
+| adr-0037 | ADR-0037 Implementation Scope Audit | 🟡 Partial | Unknown |  |
+| adr-0037 | 跨 Worker 事件因果序与逻辑时间戳 | 🟡 Partial | Unknown |  |
 | adr-0038 | 推理引擎动态配置接口 | 🔍 Proposed | Unknown |  |
 | adr-0039 | 推理引擎性能元数据契约 | 🔍 Proposed | Unknown |  |
 | adr-0040 | 推理引擎 Plugin 构建与交付策略 | ✅ Approved | Unknown |  |
@@ -71,6 +72,17 @@
 | adr-0065 | 多语言 PDK 支持（仅 Python → Wasm） | ✅ Approved | Unknown |  |
 | adr-0066 | SkillInterpreter 模块架构 | 🟡 Partial | Unknown |  |
 | adr-0067 | L2/L3/L4 分层插件架构拆分 | ✅ Approved | 2026-07-22 |  |
+| adr-0068 | 事件发射契约 (Event Emission Contract) | ✅ Approved | Unknown |  |
+| adr-0069 | ToolCoordinator Hook 注入点 (Tool Call Interception Hooks) | 🔍 Proposed | Unknown |  |
+| adr-0070 | PDK Plugin 命令/快捷键注册 (DECLARE_COMMAND) | 🔍 Proposed | Unknown |  |
+| adr-0071 | LLM-native AgenticDSL 架构 (LLM as DSL Author) | 🔍 Proposed | 2026-08-02 |  |
+| adr-0072 | DSL 节点扩展 (stream: / $var / declarative style / backend:) | 🔍 Proposed | 2026-08-03 |  |
+| adr-0073 | Tool JSON Schema 契约 (JSON Schema 2020-12) | 🔍 Proposed | 2026-08-02 |  |
+| adr-0074 | Prompt Engineering + Evidence Gate | 🔍 Proposed | 2026-08-03 |  |
+| adr-0075 | EnvBackend 多环境执行 (Local + Docker) | 🔍 Proposed | 2026-08-03 |  |
+| adr-0076 | DSL Engine as MCP Server (控制面, MCP 2025-11-25) | 🔍 Proposed | 2026-08-03 |  |
+| adr-0077 | gRPC Data Plane (High-Throughput Channels) | 🔍 Proposed | 2026-08-03 |  |
+| adr-0078 | Fine-tune 基模选型与训练管线 | 🔍 Proposed | 2026-08-03 |  |
 
 ---
 
@@ -110,6 +122,7 @@ graph TD
     adr_0033["adr-0033: Session Hierarchy 执行会话层级体系"]
     adr_0034["adr-0034: IModelRouter 模型路由接口"]
     adr_0035["adr-0035: 推理引擎 PDK Plugin 规范"]
+    adr_0037["adr-0037: ADR-0037 Implementation Scope Audit"]
     adr_0037["adr-0037: 跨 Worker 事件因果序与逻辑时间戳"]
     adr_0038["adr-0038: 推理引擎动态配置接口"]
     adr_0039["adr-0039: 推理引擎性能元数据契约"]
@@ -138,6 +151,17 @@ graph TD
     adr_0065["adr-0065: 多语言 PDK 支持（仅 Python → Wasm）"]
     adr_0066["adr-0066: SkillInterpreter 模块架构"]
     adr_0067["adr-0067: L2/L3/L4 分层插件架构拆分"]
+    adr_0068["adr-0068: 事件发射契约 (Event Emission Contract)"]
+    adr_0069["adr-0069: ToolCoordinator Hook 注入点 (Tool Call Inte"]
+    adr_0070["adr-0070: PDK Plugin 命令/快捷键注册 (DECLARE_COMMAND)"]
+    adr_0071["adr-0071: LLM-native AgenticDSL 架构 (LLM as DSL Aut"]
+    adr_0072["adr-0072: DSL 节点扩展 (stream: / $var / declarative s"]
+    adr_0073["adr-0073: Tool JSON Schema 契约 (JSON Schema 2020-12"]
+    adr_0074["adr-0074: Prompt Engineering + Evidence Gate"]
+    adr_0075["adr-0075: EnvBackend 多环境执行 (Local + Docker)"]
+    adr_0076["adr-0076: DSL Engine as MCP Server (控制面, MCP 2025-"]
+    adr_0077["adr-0077: gRPC Data Plane (High-Throughput Channel"]
+    adr_0078["adr-0078: Fine-tune 基模选型与训练管线"]
 
     adr_0031 --> adr_0002
     adr_0031 --> adr_0019
@@ -145,7 +169,7 @@ graph TD
     adr_0020 -.->|supersedes| adr_0006
 ```
 
-> 图中包含 60 个节点、2 条依赖边、2 条替代边。
+> 图中包含 72 个节点、2 条依赖边、2 条替代边。
 > 渲染说明：实线 (`-->`) 表示依赖关系；虚线带标签 (`-.->|supersedes|`) 表示替代关系。
 
 ---
@@ -164,11 +188,11 @@ graph TD
 
 | 状态 | 数量 |
 |------|------|
-| ✅ Approved | 45 |
-| 🟡 Partial | 5 |
+| ✅ Approved | 46 |
+| 🟡 Partial | 7 |
 | ❌ Not Implemented | 1 |
 | ⛔ Superseded | 1 |
-| 🔍 Proposed | 6 |
+| 🔍 Proposed | 15 |
 | 📋 Reserved | 2 |
 
 ---
