@@ -324,15 +324,8 @@ int main(int argc, char* argv[]) {
             std::cerr << "[main] DSL Schema Validation skipped: "
                       << "lib/loop/" << config.agent.loop_type
                       << ".agent.md not found" << std::endl;
-        } else if (markdown_content.find("**") == std::string::npos) {
-            // YAML 格式 .agent.md — validator 暂不支持，跳过（保持向后兼容）
-            std::cerr << "[main] DSL Schema Validation skipped: "
-                      << agent_md_path
-                      << " uses YAML format (not Markdown bold). "
-                      << "Validator only supports Markdown bold (**key**: value) "
-                      << "format. See T2 follow-up for YAML support."
-                      << std::endl;
         } else {
+            // fix-markdown-parser-yaml: 双格式自动检测 (bold + yaml fenced)
             const agenticdsl::IToolRegistry* registry =
                 &engine->get_tool_registry();
             pdk_chat_demo::DslValidator validator;

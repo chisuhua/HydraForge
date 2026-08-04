@@ -244,4 +244,60 @@ std::optional<nlohmann::json> MarkdownParser::parse_output_schema_from_signature
     return std::nullopt;
 }
 
+// fix-markdown-parser-yaml: 扫描 markdown 内容检测主导元数据格式
+// 优先级: kYamlFenced > kBold > kNone (生产 .agent.md 多用 yaml fenced 块)
+DslFormat MarkdownParser::detect_format(const std::string& content) const {
+    if (content.find("```yaml") != std::string::npos &&
+        content.find("# --- BEGIN AgenticDSL ---") != std::string::npos) {
+        return DslFormat::kYamlFenced;
+    }
+    if (content.find("**") != std::string::npos) {
+        return DslFormat::kBold;
+    }
+    return DslFormat::kNone;
+}
+
+// fix-markdown-parser-yaml: 提取 fenced yaml 代码块内含 # --- BEGIN AgenticDSL --- 标记的内容
+// 行扫描: 找 ```yaml 起, 下一行匹配标记, 截取到 ``` 止
+std::string MarkdownParser::parse_yaml_fenced_block(const std::string& content) const {
+    const std::string fence_open = "```yaml";
+    const std::string begin_marker = "# --- BEGIN AgenticDSL ---";
+    const std::string fence_close = "```";
+
+    size_t pos = 0;
+    while (pos < content.size()) {
+        size_t fence_pos = content.find(fence_open, pos);
+        if (fence_pos == std::string::npos) return "";
+
+        // 跳过 fence_open 自身
+        size_t line_start = fence_pos + fence_open.size();
+        // 跳过 fence_open 后的换行符 (若有), 定位到下一行开头
+        if (line_start < content.size() && content[line_start] == '\n') {
+            line_start += 1;
+        } else if (line_start + 1 < content.size() &&
+                   content[line_start] == '\r' && content[line_start + 1] == '\n') {
+            line_start += 2;
+        }
+
+        // 读取下一行 (BEGIN marker 所在行)
+        size_t line_end = content.find('\n', line_start);
+        if (line_end == std::string::npos) return "";
+        std::string first_line = content.substr(line_start, line_end - line_start);
+        // trim 前导空白
+        size_t first_nonspace = first_line.find_first_not_of(" \t\r");
+        std::string trimmed_first = (first_nonspace == std::string::npos)
+            ? "" : first_line.substr(first_nonspace);
+
+        if (trimmed_first == begin_marker) {
+            size_t content_start = line_end + 1;
+            size_t close_pos = content.find(fence_close, content_start);
+            if (close_pos == std::string::npos) return "";
+            return content.substr(content_start, close_pos - content_start);
+        }
+        // 未匹配: 跳到 fence_open 后的下一行继续扫描
+        pos = fence_pos + fence_open.size();
+    }
+    return "";
+}
+
 } // namespace agenticdsl
