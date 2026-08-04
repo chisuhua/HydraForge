@@ -183,3 +183,27 @@ TEST_CASE("tool_coordinator_post_hook_modifies_result_and_audit", "[tool_coordin
   // carry the final status and metadata; their data payload is not the tool result.
   REQUIRE(result.data["output"] == "[REDACTED]");
 }
+
+TEST_CASE("tool_coordinator_null_hook_registry_preserves_old_flow", "[tool_coordinator_hooks][stage5]") {
+  MockToolRegistry registry;
+  MockInteractionBus bus;
+
+  auto policy = std::make_shared<AgentModePolicy>();
+  auto coordinator = std::make_unique<ToolCoordinator>(
+      registry, policy, make_test_auto_callback(true),
+      std::shared_ptr<IInteractionBus>(&bus, [](IInteractionBus*) {}));
+  // intentionally do NOT call set_hook_registry
+
+  auto result = coordinator->execute(make_meta("test_tool", ToolCategory::ReadOnly),
+                                     make_ctx("workflow"), { {"key", "val"} });
+  REQUIRE(result.ok);
+  REQUIRE(registry.last_called_tool_ == "test_tool");
+  REQUIRE(registry.last_called_args_["key"] == "val");
+  // main 基线 (ADR-0068) 已发射 tool.execution.start/end；null hook registry
+  // 不插入额外事件，因此为 4 个生命周期事件
+  REQUIRE(bus.emit_log_.size() == 4);
+  REQUIRE(bus.emit_log_[0] == "tool.execution.start");
+  REQUIRE(bus.emit_log_[1] == "tool.audit.invoked");
+  REQUIRE(bus.emit_log_[2] == "tool.audit.completed");
+  REQUIRE(bus.emit_log_[3] == "tool.execution.end");
+}
