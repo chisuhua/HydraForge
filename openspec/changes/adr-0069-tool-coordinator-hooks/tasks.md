@@ -90,36 +90,36 @@
 
 ## 5. 测试（5 类核心 + 向后兼容）
 
-- [ ] 5.1 新建 `tests/test_tool_coordinator_hooks.cpp` 测试文件
-- [ ] 5.2 验证：`file(GLOB test_*.cpp)` 自动收录，CMake 重新配置后 `ctest -N | grep test_tool_coordinator_hooks` 命中
-- [ ] 5.3 提交：`git commit -m "test(tools): scaffold test_tool_coordinator_hooks.cpp"`
-- [ ] 5.4 编写 Deny 测试：pre-hook 返回 Deny，验证 `tool.audit.denied` 被发射且 layer/ApprovalHandler 未执行
-- [ ] 5.5 验证：`ctest -R test_tool_coordinator_hooks --output-on-failure` 中 Deny case 通过
-- [ ] 5.6 提交：`git commit -m "test(tools): add pre-hook deny test"`
-- [ ] 5.7 编写 ModifyArgs 测试：pre-hook 修改 args，验证 `call_tool` 收到修改后参数
-- [ ] 5.8 验证：ModifyArgs case 通过
-- [ ] 5.9 提交：`git commit -m "test(tools): add pre-hook modify args test"`
-- [ ] 5.10 编写 FailClosed 测试：pre-hook 抛异常 + FailClosed policy，验证结果视为 Deny
-- [ ] 5.11 验证：FailClosed case 通过
-- [ ] 5.12 提交：`git commit -m "test(tools): add pre-hook fail-closed test"`
-- [ ] 5.13 编写 FailOpen 测试：pre-hook 抛异常 + FailOpen policy，验证调用继续并记录 warning
-- [ ] 5.14 验证：FailOpen case 通过
-- [ ] 5.15 提交：`git commit -m "test(tools): add pre-hook fail-open test"`
-- [ ] 5.16 编写 post-hook 修改 result 测试：验证 `tool.execution.end` 与 `audit.completed` payload 为修改后结果
-- [ ] 5.17 验证：post-hook result modification case 通过
-- [ ] 5.18 提交：`git commit -m "test(tools): add post-hook modify result test"`
-- [ ] 5.19 编写无 hook 向后兼容测试：构造 `ToolCoordinator` 但不 set hook registry，验证行为与旧路径一致
-- [ ] 5.20 验证：向后兼容 case 通过
-- [ ] 5.21 提交：`git commit -m "test(tools): add no-hook backward compatibility test"`
-- [ ] 5.22 编写 priority 排序测试：同 priority 与不同 priority 的 hook 执行顺序
-- [ ] 5.23 验证：priority 排序 case 通过
-- [ ] 5.24 提交：`git commit -m "test(tools): add hook priority ordering test"`
-- [ ] 5.25 编写 tool_glob 匹配测试：验证 `shell/*`、`*` 等模式生效
-- [ ] 5.26 验证：tool_glob matching case 通过
-- [ ] 5.27 提交：`git commit -m "test(tools): add tool_glob matching test"`
-- [ ] 5.28 运行全量 ctest：`cmake --build build && ctest --output-on-failure`
-- [ ] 5.29 验证：全量测试零回归（baseline + 新增 cases 全部 PASS）
-- [ ] 5.30 提交：`git commit -m "test(tools): verify full ctest regression"`
+- [x] 5.1 新建 `tests/test_tool_coordinator_hooks.cpp` 测试文件
+- [x] 5.2 验证：`file(GLOB test_*.cpp)` 自动收录，CMake 重新配置后 `ctest -N | grep test_tool_coordinator_hooks` 命中
+- [x] 5.3 提交：`git commit -m "test(tools): scaffold test_tool_coordinator_hooks.cpp"`
+- [x] 5.4 编写 Deny 测试：pre-hook 返回 Deny，验证 `tool.audit.denied` 被发射且 layer/ApprovalHandler 未执行
+- [x] 5.5 验证：`ctest -R test_tool_coordinator_hooks --output-on-failure` 中 Deny case 通过
+- [x] 5.6 提交：`git commit -m "test(tools): add pre-hook deny test"`
+- [x] 5.7 编写 ModifyArgs 测试：pre-hook 修改 args，验证 `call_tool` 收到修改后参数
+- [x] 5.8 验证：ModifyArgs case 通过
+- [x] 5.9 提交：`git commit -m "test(tools): add pre-hook modify args test"`
+- [x] 5.10 编写 FailClosed 测试：pre-hook 抛异常 + FailClosed policy，验证结果视为 Deny
+- [x] 5.11 验证：FailClosed case 通过
+- [x] 5.12 提交：`git commit -m "test(tools): add pre-hook fail-closed test"`
+- [x] 5.13 编写 FailOpen 测试：pre-hook 抛异常 + FailOpen policy，验证调用继续并记录 warning
+- [x] 5.14 验证：FailOpen case 通过
+- [x] 5.15 提交：`git commit -m "test(tools): add pre-hook fail-open test"`
+- [x] 5.16 编写 post-hook 修改 result 测试：验证 `tool.execution.end` 与 `audit.completed` payload 为修改后结果
+- [x] 5.17 验证：post-hook result modification case 通过
+- [x] 5.18 提交：`git commit -m "test(tools): add post-hook modify result test"`
+- [x] 5.19 编写无 hook 向后兼容测试：构造 `ToolCoordinator` 但不 set hook registry，验证行为与旧路径一致
+- [x] 5.20 验证：向后兼容 case 通过
+- [x] 5.21 提交：`git commit -m "test(tools): add no-hook backward compatibility test"`
+- [x] 5.22 编写 priority 排序测试：同 priority 与不同 priority 的 hook 执行顺序
+- [x] 5.23 验证：priority 排序 case 通过
+- [x] 5.24 提交：`git commit -m "test(tools): add hook priority ordering test"`
+- [x] 5.25 编写 tool_glob 匹配测试：验证 `shell/*`、`*` 等模式生效
+- [x] 5.26 验证：tool_glob matching case 通过
+- [x] 5.27 提交：`git commit -m "test(tools): add tool_glob matching test"`
+- [x] 5.28 运行全量 ctest：`cmake --build build && ctest --output-on-failure`
+- [x] 5.29 验证：全量测试零回归（baseline + 新增 cases 全部 PASS）
+- [x] 5.30 提交：`git commit -m "test(tools): verify full ctest regression"`
 
 ## 6. 文档同步与 Ship Gate
 
