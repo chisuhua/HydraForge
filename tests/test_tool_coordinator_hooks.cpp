@@ -207,3 +207,84 @@ TEST_CASE("tool_coordinator_null_hook_registry_preserves_old_flow", "[tool_coord
   REQUIRE(bus.emit_log_[2] == "tool.audit.completed");
   REQUIRE(bus.emit_log_[3] == "tool.execution.end");
 }
+
+TEST_CASE("tool_hook_registry_priority_and_glob", "[tool_coordinator_hooks][stage6]") {
+  ToolHookRegistry hooks;
+  std::vector<std::string> order;
+
+  hooks.register_pre_hook(
+      "shell/*",
+      [&](const auto&, const auto&, const auto&) {
+        order.push_back("shell-10");
+        return PreHookResult{};
+      },
+      10,
+      HookErrorPolicy::FailClosed);
+
+  hooks.register_pre_hook(
+      "*",
+      [&](const auto&, const auto&, const auto&) {
+        order.push_back("all-5");
+        return PreHookResult{};
+      },
+      5,
+      HookErrorPolicy::FailClosed);
+
+  hooks.register_pre_hook(
+      "shell/*",
+      [&](const auto&, const auto&, const auto&) {
+        order.push_back("shell-5-b");
+        return PreHookResult{};
+      },
+      5,
+      HookErrorPolicy::FailClosed);
+
+  std::vector<std::string> warnings;
+  ToolMetadata meta;
+  meta.name = "shell/exec";
+  hooks.apply_pre_hooks(meta, ToolCallContext{}, {}, warnings);
+
+  REQUIRE(order.size() == 3);
+  REQUIRE(order[0] == "all-5");      // priority 5, registered first
+  REQUIRE(order[1] == "shell-5-b");  // priority 5, registered second
+  REQUIRE(order[2] == "shell-10");   // priority 10
+}
+
+TEST_CASE("tool_hook_registry_fail_open_continues_with_warning", "[tool_coordinator_hooks][stage6]") {
+  ToolHookRegistry hooks;
+  hooks.register_pre_hook(
+      "*",
+      [](const auto&, const auto&, const auto&) -> PreHookResult {
+        throw std::runtime_error("metrics unavailable");
+      },
+      0,
+      HookErrorPolicy::FailOpen);
+
+  std::vector<std::string> warnings;
+  ToolMetadata meta;
+  meta.name = "any/tool";
+  auto result = hooks.apply_pre_hooks(meta, ToolCallContext{}, {}, warnings);
+
+  REQUIRE(result.action == PreHookResult::Continue);
+  REQUIRE(warnings.size() == 1);
+  REQUIRE(warnings[0].find("metrics unavailable") != std::string::npos);
+}
+
+TEST_CASE("tool_hook_registry_fail_closed_pre_hook_exception_becomes_deny", "[tool_coordinator_hooks][stage6]") {
+  ToolHookRegistry hooks;
+  hooks.register_pre_hook(
+      "*",
+      [](const auto&, const auto&, const auto&) -> PreHookResult {
+        throw std::runtime_error("budget service down");
+      },
+      0,
+      HookErrorPolicy::FailClosed);
+
+  std::vector<std::string> warnings;
+  ToolMetadata meta;
+  meta.name = "any/tool";
+  auto result = hooks.apply_pre_hooks(meta, ToolCallContext{}, {}, warnings);
+
+  REQUIRE(result.action == PreHookResult::Deny);
+  REQUIRE(result.deny_reason.find("budget service down") != std::string::npos);
+}
