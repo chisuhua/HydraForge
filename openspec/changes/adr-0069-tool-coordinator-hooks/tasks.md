@@ -75,18 +75,18 @@
 
 ## 4. budget_agent 真实 Plugin 用例
 
-- [ ] 4.1 定位现有 `pdk/budget_agent/` 目录或新建示例目录
-- [ ] 4.2 验证：目录存在且可被 `pdk/CMakeLists.txt` 或独立 plugin 构建脚本识别
-- [ ] 4.3 提交：`git commit -m "chore(pdk): locate budget_agent plugin directory"`
-- [ ] 4.4 实现 `budget_agent` pre-hook：检查当前 `ToolCallContext` 中预算是否超限
-- [ ] 4.5 验证：预算正常时返回 `Continue`，超限时返回 `Deny`（reason="budget exceeded"）
-- [ ] 4.6 提交：`git commit -m "feat(pdk): add budget_agent budget-check pre-hook"`
-- [ ] 4.7 注册 hook 时使用 `tool_glob="*"` 与 `HookErrorPolicy::FailClosed`
-- [ ] 4.8 验证：plugin 加载后任意工具调用均触发预算检查
-- [ ] 4.9 提交：`git commit -m "feat(pdk): register budget_agent pre-hook with FailClosed policy"`
-- [ ] 4.10 为 budget_agent pre-hook 编写集成测试，验证 Deny 路径结果
-- [ ] 4.11 验证：`ctest -R budget_agent` 或对应集成测试通过
-- [ ] 4.12 提交：`git commit -m "test(pdk): add budget_agent pre-hook integration test"`
+- [x] 4.1 定位现有 `pdk/budget_agent/` 目录或新建示例目录
+- [x] 4.2 验证：目录存在且可被 `pdk/CMakeLists.txt` 或独立 plugin 构建脚本识别
+- [x] 4.3 提交：`git commit -m "chore(pdk): locate budget_agent plugin directory"`
+- [x] 4.4 实现 `budget_agent` pre-hook：检查当前 `ToolCallContext` 中预算是否超限
+- [x] 4.5 验证：预算正常时返回 `Continue`，超限时返回 `Deny`（reason="budget exceeded"）
+- [x] 4.6 提交：`git commit -m "feat(pdk): add budget_agent budget-check pre-hook"`
+- [x] 4.7 注册 hook 时使用 `tool_glob="*"` 与 `HookErrorPolicy::FailClosed`
+- [x] 4.8 验证：plugin 加载后任意工具调用均触发预算检查
+- [x] 4.9 提交：`git commit -m "feat(pdk): register budget_agent pre-hook with FailClosed policy"`
+- [x] 4.10 为 budget_agent pre-hook 编写集成测试，验证 Deny 路径结果
+- [x] 4.11 验证：`ctest -R budget_agent` 或对应集成测试通过
+- [x] 4.12 提交：`git commit -m "test(pdk): add budget_agent pre-hook integration test"`
 
 ## 5. 测试（5 类核心 + 向后兼容）
 
