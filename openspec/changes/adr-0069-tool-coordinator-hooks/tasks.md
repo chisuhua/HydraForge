@@ -21,42 +21,42 @@
 
 ## 2. ToolCoordinator Middleware 改造
 
-- [ ] 2.1 在 `src/common/tools/tool_coordinator.h` 中增加 `#include "agenticdsl/contract/itool_hook_registry.h"`
-- [ ] 2.2 验证：`clangd --check src/common/tools/tool_coordinator.h` 无 include 错误
-- [ ] 2.3 提交：`git commit -m "refactor(tools): include IToolHookRegistry in ToolCoordinator"`
-- [ ] 2.4 在 `ToolCoordinator` 类中新增 `IToolHookRegistry* hook_registry_` 成员（默认 nullptr）
-- [ ] 2.5 验证：`grep -n "hook_registry_" src/common/tools/tool_coordinator.h` 命中
-- [ ] 2.6 提交：`git commit -m "feat(tools): add nullable hook registry member"`
-- [ ] 2.7 在 `ToolCoordinator` 类中新增 `void set_hook_registry(IToolHookRegistry* registry)` setter
-- [ ] 2.8 验证：`grep -n "set_hook_registry" src/common/tools/tool_coordinator.h` 命中
-- [ ] 2.9 提交：`git commit -m "feat(tools): add set_hook_registry setter"`
-- [ ] 2.10 重构 `src/common/tools/tool_coordinator.cpp` execute 流：在 NestingGuard 之后、layer check 之前插入 pre_hooks 调用
-- [ ] 2.11 验证：pre_hooks 遍历逻辑按 priority 升序，同 priority 按注册顺序
-- [ ] 2.12 提交：`git commit -m "feat(tools): insert pre_hooks into ToolCoordinator execute flow"`
-- [ ] 2.13 实现 pre-hook 匹配逻辑：按 `tool_glob` 对当前 `meta.name` 做通配匹配
-- [ ] 2.14 验证：`tool_glob="shell/*"` 匹配 `shell/exec`，不匹配 `fs/read`
-- [ ] 2.15 提交：`git commit -m "feat(tools): add tool_glob matching for pre-hooks"`
-- [ ] 2.16 实现 pre-hook ModifyArgs 分支：用 `modified_args` 替换后续 `effective_args`
-- [ ] 2.17 验证：pre-hook 修改后的 args 进入 layer check / ApprovalHandler / call_tool
-- [ ] 2.18 提交：`git commit -m "feat(tools): support pre-hook args modification"`
-- [ ] 2.19 实现 pre-hook Deny 分支：返回 `ToolResult::error`，emit `tool.audit.denied`
-- [ ] 2.20 验证：Deny 时 layer check 与 ApprovalHandler 不执行
-- [ ] 2.21 提交：`git commit -m "feat(tools): implement pre-hook deny path"`
-- [ ] 2.22 实现 pre-hook 异常处理：FailClosed → 视为 Deny；FailOpen → 跳过并记 audit meta warning
-- [ ] 2.23 验证：两类 policy 各一个单元测试覆盖
-- [ ] 2.24 提交：`git commit -m "feat(tools): add HookErrorPolicy handling for pre-hooks"`
-- [ ] 2.25 在 call_tool 之后、audit.completed 之前插入 post_hooks 调用
-- [ ] 2.26 验证：post_hooks 按 priority 升序执行，同 priority 按注册顺序
-- [ ] 2.27 提交：`git commit -m "feat(tools): insert post_hooks into execute flow"`
-- [ ] 2.28 实现 post-hook 修改 result 分支：用 `modified_result` 替换后续 `ToolResult`
-- [ ] 2.29 验证：post-hook 修改后的 result 进入 `audit.completed` 与 `tool.execution.end`
-- [ ] 2.30 提交：`git commit -m "feat(tools): support post-hook result modification"`
-- [ ] 2.31 实现 post-hook 异常处理：FailClosed → 返回 error ToolResult；FailOpen → 返回原始 result
-- [ ] 2.32 验证：FailClosed 时 emit `tool.audit.denied`，FailOpen 时继续并记 warning
-- [ ] 2.33 提交：`git commit -m "feat(tools): add HookErrorPolicy handling for post-hooks"`
-- [ ] 2.34 空 hook registry 路径：当 `hook_registry_ == nullptr` 时，execute 行为与改造前逐字节一致
-- [ ] 2.35 验证：`ctest -R test_tool_coordinator` 在无 hook 用例上通过，且无 diff 回归
-- [ ] 2.36 提交：`git commit -m "fix(tools): preserve no-hook backward compatibility"`
+- [x] 2.1 在 `src/common/tools/tool_coordinator.h` 中增加 `#include "agenticdsl/contract/itool_hook_registry.h"`
+- [x] 2.2 验证：`clangd --check src/common/tools/tool_coordinator.h` 无 include 错误
+- [x] 2.3 提交：`git commit -m "refactor(tools): include IToolHookRegistry in ToolCoordinator"`
+- [x] 2.4 在 `ToolCoordinator` 类中新增 `IToolHookRegistry* hook_registry_` 成员（默认 nullptr）
+- [x] 2.5 验证：`grep -n "hook_registry_" src/common/tools/tool_coordinator.h` 命中
+- [x] 2.6 提交：`git commit -m "feat(tools): add nullable hook registry member"`
+- [x] 2.7 在 `ToolCoordinator` 类中新增 `void set_hook_registry(IToolHookRegistry* registry)` setter
+- [x] 2.8 验证：`grep -n "set_hook_registry" src/common/tools/tool_coordinator.h` 命中
+- [x] 2.9 提交：`git commit -m "feat(tools): add set_hook_registry setter"`
+- [x] 2.10 重构 `src/common/tools/tool_coordinator.cpp` execute 流：在 NestingGuard 之后、layer check 之前插入 pre_hooks 调用
+- [x] 2.11 验证：pre_hooks 遍历逻辑按 priority 升序，同 priority 按注册顺序
+- [x] 2.12 提交：`git commit -m "feat(tools): insert pre_hooks into ToolCoordinator execute flow"`
+- [x] 2.13 实现 pre-hook 匹配逻辑：按 `tool_glob` 对当前 `meta.name` 做通配匹配
+- [x] 2.14 验证：`tool_glob="shell/*"` 匹配 `shell/exec`，不匹配 `fs/read`
+- [x] 2.15 提交：`git commit -m "feat(tools): add tool_glob matching for pre-hooks"`
+- [x] 2.16 实现 pre-hook ModifyArgs 分支：用 `modified_args` 替换后续 `effective_args`
+- [x] 2.17 验证：pre-hook 修改后的 args 进入 layer check / ApprovalHandler / call_tool
+- [x] 2.18 提交：`git commit -m "feat(tools): support pre-hook args modification"`
+- [x] 2.19 实现 pre-hook Deny 分支：返回 `ToolResult::error`，emit `tool.audit.denied`
+- [x] 2.20 验证：Deny 时 layer check 与 ApprovalHandler 不执行
+- [x] 2.21 提交：`git commit -m "feat(tools): implement pre-hook deny path"`
+- [x] 2.22 实现 pre-hook 异常处理：FailClosed → 视为 Deny；FailOpen → 跳过并记 audit meta warning
+- [x] 2.23 验证：两类 policy 各一个单元测试覆盖
+- [x] 2.24 提交：`git commit -m "feat(tools): add HookErrorPolicy handling for pre-hooks"`
+- [x] 2.25 在 call_tool 之后、audit.completed 之前插入 post_hooks 调用
+- [x] 2.26 验证：post_hooks 按 priority 升序执行，同 priority 按注册顺序
+- [x] 2.27 提交：`git commit -m "feat(tools): insert post_hooks into execute flow"`
+- [x] 2.28 实现 post-hook 修改 result 分支：用 `modified_result` 替换后续 `ToolResult`
+- [x] 2.29 验证：post-hook 修改后的 result 进入 `audit.completed` 与 `tool.execution.end`
+- [x] 2.30 提交：`git commit -m "feat(tools): support post-hook result modification"`
+- [x] 2.31 实现 post-hook 异常处理：FailClosed → 返回 error ToolResult；FailOpen → 返回原始 result
+- [x] 2.32 验证：FailClosed 时 emit `tool.audit.denied`，FailOpen 时继续并记 warning
+- [x] 2.33 提交：`git commit -m "feat(tools): add HookErrorPolicy handling for post-hooks"`
+- [x] 2.34 空 hook registry 路径：当 `hook_registry_ == nullptr` 时，execute 行为与改造前逐字节一致
+- [x] 2.35 验证：`ctest -R test_tool_coordinator` 在无 hook 用例上通过，且无 diff 回归
+- [x] 2.36 提交：`git commit -m "fix(tools): preserve no-hook backward compatibility"`
 
 ## 3. ADR-0068 事件发射点对齐
 
