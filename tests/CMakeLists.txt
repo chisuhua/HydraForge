@@ -97,6 +97,13 @@ function(add_catch_test TEST_NAME)
     if(TEST_NAME STREQUAL "test_skill_interpreter")
         target_compile_definitions(${TEST_NAME} PRIVATE CATCH_AMALGAMATED_CUSTOM_MAIN)
     endif()
+
+    # budget_agent hook 集成测试需要 .so 路径 (dlopen)
+    if(TEST_NAME STREQUAL "test_budget_agent_hooks")
+        target_compile_definitions(${TEST_NAME} PRIVATE
+            TEST_BUDGET_AGENT_SO_PATH="${CMAKE_BINARY_DIR}/pdk/budget_agent/libBudgetAgent.so")
+        target_link_libraries(${TEST_NAME} PRIVATE dl)
+    endif()
 endfunction()
 
 # ================================
