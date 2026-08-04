@@ -1,22 +1,25 @@
 {
-  "passed": false,
+  "passed": true,
   "warnings": [
-    "arch_handoff_actionable"
+    "arch_alignment"
   ],
-  "failed_checks": [
-    "arch_alignment",
-    "adr_no_placeholders"
-  ],
+  "failed_checks": [],
   "detail": {
-    "arch_alignment": "check raised: Unacceptable pattern: ''",
+    "arch_alignment": {
+      "passed": false,
+      "severity": "warning"
+    },
     "arch_debt_recorded": {
       "passed": true,
       "severity": null
     },
-    "adr_no_placeholders": "check raised: Unacceptable pattern: ''",
+    "adr_no_placeholders": {
+      "passed": true,
+      "severity": null
+    },
     "arch_handoff_actionable": {
-      "passed": false,
-      "severity": "warning"
+      "passed": true,
+      "severity": null
     },
     "file_size_limit": {
       "passed": true,

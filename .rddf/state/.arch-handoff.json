@@ -1,6 +1,6 @@
 {
-  "arch_complete_at": "2026-08-01T13:18:04.287448+00:00",
-  "adr_count": 63,
+  "arch_complete_at": "2026-08-04T04:46:52.104491+00:00",
+  "adr_count": 71,
   "completed_adr_ids": [
     "0001",
     "0002",
@@ -50,10 +50,18 @@
     "0067",
     "0068",
     "0069",
-    "0070"
+    "0070",
+    "0071",
+    "0072",
+    "0073",
+    "0074",
+    "0075",
+    "0076",
+    "0077",
+    "0078"
   ],
   "roadmap_exists": true,
-  "current_phase": "phase-6a",
+  "current_phase": "phase-6a (2026-07-24 ~ 2026-08-05, 37h \u5bb9\u91cf)",
   "plan_started_at": null,
   "adr_dir": "docs/adr",
   "roadmap_path": "roadmap.md",
