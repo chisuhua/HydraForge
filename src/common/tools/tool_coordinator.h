@@ -12,6 +12,7 @@
 #include <unordered_map>
 
 #include "agenticdsl/contract/iinteraction_bus.h"
+#include "agenticdsl/contract/itool_hook_registry.h"
 #include "agenticdsl/policy/iexecution_policy.h"
 #include "common/policy/approval_handler.h"
 #include "common/tools/registry.h"  // IToolRegistry + ToolResult
@@ -86,11 +87,20 @@ class ToolCoordinator {
                      const ToolCallContext& ctx,
                      const std::unordered_map<std::string, std::string>& args);
 
+  /**
+   * @brief 注入 hook registry（可空；空 = 保持原 6 步行为）
+   * @param registry IToolHookRegistry 指针 (non-owning, 可为 nullptr)
+   */
+  void set_hook_registry(IToolHookRegistry* registry) {
+    hook_registry_ = registry;
+  }
+
  private:
   IToolRegistry& registry_;
   std::shared_ptr<IExecutionPolicy> policy_;
   std::unique_ptr<ApprovalHandler> approval_handler_;
   std::shared_ptr<IInteractionBus> bus_;
+  IToolHookRegistry* hook_registry_ = nullptr;
 
   // C6: ToolMetadata → JSON string for ToolPreview.metadata_json
   static std::string metadata_to_json(const ToolMetadata& meta);

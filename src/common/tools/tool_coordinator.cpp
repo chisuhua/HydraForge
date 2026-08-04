@@ -207,6 +207,34 @@ ToolResult ToolCoordinator::execute(
 
   const std::string cat_str = to_string(meta.category);
 
+  std::unordered_map<std::string, std::string> effective_args = args;
+  std::vector<std::string> hook_warnings;
+
+  // ===== Step A: pre-hooks (ADR-0069) =====
+  if (hook_registry_) {
+    PreHookResult pre = hook_registry_->apply_pre_hooks(
+        meta, ctx, effective_args, hook_warnings);
+
+    if (pre.action == PreHookResult::Deny) {
+      if (bus_) {
+        nlohmann::json denied_meta = audit_meta(
+            "tool.audit.denied", request_id, tool_name,
+            cat_str, ctx.caller_layer, ctx.session_id);
+        denied_meta["reason"] = pre.deny_reason;
+        if (!hook_warnings.empty()) denied_meta["hook_warnings"] = hook_warnings;
+        bus_->emit(EventBuilder("tool.audit.denied",
+            ToolResult::error(ErrorCode::PermissionDenied,
+                pre.deny_reason, std::move(denied_meta)))
+            .build());
+      }
+      return ToolResult::error(ErrorCode::PermissionDenied, pre.deny_reason);
+    }
+
+    if (pre.action == PreHookResult::ModifyArgs) {
+      effective_args = std::move(pre.modified_args);
+    }
+  }
+
   // 发射 tool.execution.start (ADR-0068 §决策 3, 在 layer/approval 决策前先记录意图)
   emit_tool_execution_event(bus_, "tool.execution.start", tool_name,
                             ctx.caller_layer, request_id, ctx.session_id,
@@ -238,7 +266,7 @@ ToolResult ToolCoordinator::execute(
 
   // ===== Step 2: Approval check (委托 ApprovalHandler) =====
   ToolPreview preview;
-  preview.command_line = meta.name + "(" + std::to_string(args.size()) + " args)";
+  preview.command_line = meta.name + "(" + std::to_string(effective_args.size()) + " args)";
   preview.risk_summary = "Tool category: " + cat_str;
   preview.metadata_json = metadata_to_json(meta);  // C6: Attach metadata JSON for TUI approval display
 
@@ -260,7 +288,7 @@ ToolResult ToolCoordinator::execute(
     nlohmann::json invoked_meta = audit_meta(
         "tool.audit.invoked", request_id, tool_name,
         cat_str, ctx.caller_layer, ctx.session_id);
-    invoked_meta["args_keys_count"] = std::to_string(args.size());
+    invoked_meta["args_keys_count"] = std::to_string(effective_args.size());
     bus_->emit(agenticdsl::EventBuilder("tool.audit.invoked")
         .args(nlohmann::json{
             {"tool_name", tool_name},
@@ -271,7 +299,7 @@ ToolResult ToolCoordinator::execute(
   }
 
   // ===== Step 4: 实际调用 registry (返回 nlohmann::json) =====
-  nlohmann::json raw_result = registry_.call_tool(meta.name, args);
+  nlohmann::json raw_result = registry_.call_tool(meta.name, effective_args);
 
   // 将 json 结果转换为 ToolResult 信封
   // ToolRegistry 约定: error 时返回 {"error": "..."}
