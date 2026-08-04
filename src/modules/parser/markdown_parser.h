@@ -13,6 +13,12 @@
 
 namespace agenticdsl {
 
+// DslFormat: 描述 .agent.md 文件的元数据格式 (fix-markdown-parser-yaml)
+// - kNone:  未检测到有效元数据
+// - kBold:  传统 **key**: value bold frontmatter
+// - kYamlFenced: ```yaml ... ``` 代码块内含 # --- BEGIN AgenticDSL --- 标记
+enum class DslFormat { kNone, kBold, kYamlFenced };
+
 class MarkdownParser : public IParser {
 public:
     std::vector<ParsedGraph> parse_from_string(const std::string& markdown_content);
@@ -22,6 +28,13 @@ public:
     ParsedGraph parse_file(const std::filesystem::path& p) override;
 
     std::unique_ptr<Node> create_node_from_json(const NodePath& path, const nlohmann::json& node_json);
+
+    // fix-markdown-parser-yaml: 格式检测与 yaml 块提取
+    // detect_format: 扫描 markdown 内容, 返回主导元数据格式
+    DslFormat detect_format(const std::string& content) const;
+    // parse_yaml_fenced_block: 提取 ```yaml ... ``` 块内含 # --- BEGIN AgenticDSL --- 标记的内容
+    // 返回块内文本（不含围栏标记），未找到返回空字符串
+    std::string parse_yaml_fenced_block(const std::string& content) const;
 
 private:
     void validate_nodes(const std::vector<std::unique_ptr<Node>>& nodes);
