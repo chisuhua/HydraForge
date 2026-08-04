@@ -1,23 +1,23 @@
 ## 1. IToolHookRegistry L3 契约头文件
 
-- [ ] 1.1 新建 `include/agenticdsl/contract/itool_hook_registry.h`，定义 `enum class HookErrorPolicy { FailClosed, FailOpen }`
-- [ ] 1.2 验证：`grep -n "HookErrorPolicy" include/agenticdsl/contract/itool_hook_registry.h` 显示 1 处定义
-- [ ] 1.3 提交：`git commit -m "feat(contract): add HookErrorPolicy enum"`
-- [ ] 1.4 在 `itool_hook_registry.h` 中定义 `struct PreHookResult { enum Action { Continue, Deny, ModifyArgs }; ... }`
-- [ ] 1.5 验证：头文件自包含编译通过 `g++ -std=c++20 -I include -c -x c++ /dev/null -include include/agenticdsl/contract/itool_hook_registry.h`
-- [ ] 1.6 提交：`git commit -m "feat(contract): add PreHookResult data structure"`
-- [ ] 1.7 在 `itool_hook_registry.h` 中定义 `struct PostHookResult { bool modify_result; ToolResult modified_result; }`
-- [ ] 1.8 验证：结构体字段完整，`grep -n "modify_result\|modified_result" include/agenticdsl/contract/itool_hook_registry.h` 命中
-- [ ] 1.9 提交：`git commit -m "feat(contract): add PostHookResult data structure"`
-- [ ] 1.10 在 `itool_hook_registry.h` 中定义 `PreHook` / `PostHook` 类型别名（`std::function<...>`）
-- [ ] 1.11 验证：类型别名包含 `const ToolMetadata&`、`const ToolCallContext&`、`args` 三参数
-- [ ] 1.12 提交：`git commit -m "feat(contract): add PreHook/PostHook type aliases"`
-- [ ] 1.13 在 `itool_hook_registry.h` 中定义 `class IToolHookRegistry` 纯虚接口（`register_pre_hook` / `register_post_hook` + 虚析构）
-- [ ] 1.14 验证：`grep -n "virtual void register_pre_hook\|virtual void register_post_hook" include/agenticdsl/contract/itool_hook_registry.h` 命中 2 处
-- [ ] 1.15 提交：`git commit -m "feat(contract): add IToolHookRegistry interface"`
-- [ ] 1.16 在 `IToolHookRegistry` 接口中声明 `tool_glob` / `priority` / `HookErrorPolicy` 注册参数
-- [ ] 1.17 验证：参数顺序与 ADR-0069 §决策 3 一致（tool_glob, hook, priority, policy）
-- [ ] 1.18 提交：`git commit -m "feat(contract): finalize IToolHookRegistry registration API"`
+- [x] 1.1 新建 `include/agenticdsl/contract/itool_hook_registry.h`，定义 `enum class HookErrorPolicy { FailClosed, FailOpen }`
+- [x] 1.2 验证：`grep -n "HookErrorPolicy" include/agenticdsl/contract/itool_hook_registry.h` 显示 1 处定义
+- [x] 1.3 提交：`git commit -m "feat(contract): add HookErrorPolicy enum"`
+- [x] 1.4 在 `itool_hook_registry.h` 中定义 `struct PreHookResult { enum Action { Continue, Deny, ModifyArgs }; ... }`
+- [x] 1.5 验证：头文件自包含编译通过 `g++ -std=c++20 -I include -c -x c++ /dev/null -include include/agenticdsl/contract/itool_hook_registry.h`
+- [x] 1.6 提交：`git commit -m "feat(contract): add PreHookResult data structure"`
+- [x] 1.7 在 `itool_hook_registry.h` 中定义 `struct PostHookResult { bool modify_result; ToolResult modified_result; }`
+- [x] 1.8 验证：结构体字段完整，`grep -n "modify_result\|modified_result" include/agenticdsl/contract/itool_hook_registry.h` 命中
+- [x] 1.9 提交：`git commit -m "feat(contract): add PostHookResult data structure"`
+- [x] 1.10 在 `itool_hook_registry.h` 中定义 `PreHook` / `PostHook` 类型别名（`std::function<...>`）
+- [x] 1.11 验证：类型别名包含 `const ToolMetadata&`、`const ToolCallContext&`、`args` 三参数
+- [x] 1.12 提交：`git commit -m "feat(contract): add PreHook/PostHook type aliases"`
+- [x] 1.13 在 `itool_hook_registry.h` 中定义 `class IToolHookRegistry` 纯虚接口（`register_pre_hook` / `register_post_hook` + 虚析构）
+- [x] 1.14 验证：`grep -n "virtual void register_pre_hook\|virtual void register_post_hook" include/agenticdsl/contract/itool_hook_registry.h` 命中 2 处
+- [x] 1.15 提交：`git commit -m "feat(contract): add IToolHookRegistry interface"`
+- [x] 1.16 在 `IToolHookRegistry` 接口中声明 `tool_glob` / `priority` / `HookErrorPolicy` 注册参数
+- [x] 1.17 验证：参数顺序与 ADR-0069 §决策 3 一致（tool_glob, hook, priority, policy）
+- [x] 1.18 提交：`git commit -m "feat(contract): finalize IToolHookRegistry registration API"`
 
 ## 2. ToolCoordinator Middleware 改造
 
