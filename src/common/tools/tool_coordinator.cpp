@@ -321,6 +321,30 @@ ToolResult ToolCoordinator::execute(
     result = ToolResult::success(std::move(raw_result));
   }
 
+  // ===== Step E: post-hooks (ADR-0069) =====
+  if (hook_registry_) {
+    result = hook_registry_->apply_post_hooks(
+        meta, ctx, std::move(result), hook_warnings);
+
+    if (!result.ok) {
+      if (bus_) {
+        nlohmann::json denied_meta = audit_meta(
+            "tool.audit.denied", request_id, tool_name,
+            cat_str, ctx.caller_layer, ctx.session_id);
+        std::string reason = result.meta.contains("error_message")
+            ? result.meta["error_message"].get<std::string>()
+            : "post-hook fail-closed";
+        denied_meta["reason"] = reason;
+        if (!hook_warnings.empty()) denied_meta["hook_warnings"] = hook_warnings;
+        bus_->emit(EventBuilder("tool.audit.denied",
+            ToolResult::error(result.error_code.value_or(ErrorCode::Unknown),
+                reason, std::move(denied_meta)))
+            .build());
+      }
+      return result;
+    }
+  }
+
   // ===== Step 5: emit tool.audit.completed =====
   const auto end = std::chrono::steady_clock::now();
   const auto duration_ms =
@@ -333,6 +357,7 @@ ToolResult ToolCoordinator::execute(
     completed_meta["duration_ms"] = std::to_string(duration_ms);
     completed_meta["ok"] = result.ok ? "true" : "false";
     completed_meta["error_code"] = result.ok ? "" : "tool.error";
+    if (!hook_warnings.empty()) completed_meta["hook_warnings"] = hook_warnings;
     bus_->emit(agenticdsl::EventBuilder("tool.audit.completed")
         .args(nlohmann::json{
             {"tool_name", tool_name},
