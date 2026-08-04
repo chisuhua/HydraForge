@@ -123,24 +123,24 @@
 
 ## 6. 文档同步与 Ship Gate
 
-- [ ] 6.1 更新 `docs/adr/adr-0069-tool-coordinator-hooks.md` 状态：从 🔍 Proposed 改为 🟡 Partial
-- [ ] 6.2 验证：ADR 状态行正确，且 §决策 7 Approved 条件未全部满足
-- [ ] 6.3 提交：`git commit -m "docs(adr): mark ADR-0069 as Partial after hook middleware ship"`
-- [ ] 6.4 在 ADR-0069 中追加 Ship Evidence 段：列出本 change 关键 commit 与测试覆盖
-- [ ] 6.5 验证：ship evidence 段包含 5 类测试通过记录与 ctest 结果
-- [ ] 6.6 提交：`git commit -m "docs(adr): add ADR-0069 ship evidence"`
-- [ ] 6.7 运行 `python3 tools/adr_lint.py`
-- [ ] 6.8 验证：输出 `0 errors`，所有 ADR 状态一致
-- [ ] 6.9 提交：`git commit -m "ci: adr_lint passes"`
-- [ ] 6.10 运行 `python3 tools/docs_drift_audit.py`
-- [ ] 6.11 验证：输出 `0 DRIFT`
-- [ ] 6.12 提交：`git commit -m "ci: docs_drift_audit passes"`
-- [ ] 6.13 运行 `openspec validate adr-0069-tool-coordinator-hooks`
-- [ ] 6.14 验证：输出 `valid`
-- [ ] 6.15 提交：`git commit -m "ci: openspec validate passes"`
-- [ ] 6.16 将 OpenSpec change 从 `openspec/changes/adr-0069-tool-coordinator-hooks/` 归档到 `openspec/changes/archive/2026-MM-DD-adr-0069-tool-coordinator-hooks/`
-- [ ] 6.17 验证：归档目录包含 proposal.md / design.md / tasks.md / specs/ 与 .openspec.yaml
-- [ ] 6.18 提交：`git commit -m "chore(openspec): archive adr-0069-tool-coordinator-hooks"`
+- [x] 6.1 更新 `docs/adr/adr-0069-tool-coordinator-hooks.md` 状态：从 🔍 Proposed 改为 🟡 Partial
+- [x] 6.2 验证：ADR 状态行正确，且 §决策 7 Approved 条件未全部满足
+- [x] 6.3 提交：`git commit -m "docs(adr): mark ADR-0069 as Partial after hook middleware ship"`
+- [x] 6.4 在 ADR-0069 中追加 Ship Evidence 段：列出本 change 关键 commit 与测试覆盖
+- [x] 6.5 验证：ship evidence 段包含 5 类测试通过记录与 ctest 结果
+- [x] 6.6 提交：`git commit -m "docs(adr): add ADR-0069 ship evidence"`
+- [x] 6.7 运行 `python3 tools/adr_lint.py`
+- [x] 6.8 验证：输出 `0 errors`，所有 ADR 状态一致
+- [x] 6.9 提交：`git commit -m "ci: adr_lint passes"`
+- [x] 6.10 运行 `python3 tools/docs_drift_audit.py`
+- [x] 6.11 验证：输出 `0 DRIFT`
+- [x] 6.12 提交：`git commit -m "ci: docs_drift_audit passes"`
+- [x] 6.13 运行 `openspec validate adr-0069-tool-coordinator-hooks`
+- [x] 6.14 验证：输出 `valid`
+- [x] 6.15 提交：`git commit -m "ci: openspec validate passes"`
+- [x] 6.16 将 OpenSpec change 从 `openspec/changes/adr-0069-tool-coordinator-hooks/` 归档到 `openspec/changes/archive/2026-MM-DD-adr-0069-tool-coordinator-hooks/`
+- [x] 6.17 验证：归档目录包含 proposal.md / design.md / tasks.md / specs/ 与 .openspec.yaml
+- [x] 6.18 提交：`git commit -m "chore(openspec): archive adr-0069-tool-coordinator-hooks"`
 
 ---
 
