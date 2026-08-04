@@ -8,6 +8,7 @@
 add_library(agenticdsl_secure_tools STATIC
  secure_tool_registry.cpp
  tool_coordinator.cpp
+ tool_hook_registry.cpp
 )
 
 target_include_directories(agenticdsl_secure_tools PUBLIC

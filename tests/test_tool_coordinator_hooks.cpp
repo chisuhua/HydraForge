@@ -13,3 +13,28 @@ TEST_CASE("itool_hook_registry_contract_compiles", "[tool_coordinator_hooks][sta
   REQUIRE(r.action == agenticdsl::PreHookResult::Deny);
   REQUIRE(r.deny_reason == "blocked");
 }
+
+#include "common/tools/tool_hook_registry.h"
+
+TEST_CASE("tool_hook_registry_executes_matching_pre_hook", "[tool_coordinator_hooks][stage2]") {
+  agenticdsl::ToolHookRegistry registry;
+  bool called = false;
+  registry.register_pre_hook(
+      "*",
+      [&](const auto&, const auto&, const auto&) {
+        called = true;
+        return agenticdsl::PreHookResult{};
+      },
+      0,
+      agenticdsl::HookErrorPolicy::FailClosed);
+
+  std::vector<std::string> warnings;
+  agenticdsl::ToolMetadata meta;
+  meta.name = "shell/exec";
+  agenticdsl::ToolCallContext ctx;
+  auto result = registry.apply_pre_hooks(meta, ctx, {}, warnings);
+
+  REQUIRE(called);
+  REQUIRE(result.action == agenticdsl::PreHookResult::Continue);
+  REQUIRE(warnings.empty());
+}
