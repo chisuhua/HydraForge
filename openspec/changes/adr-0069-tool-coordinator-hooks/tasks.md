@@ -60,18 +60,18 @@
 
 ## 3. ADR-0068 事件发射点对齐
 
-- [ ] 3.1 在 `ToolCoordinator::execute()` 中 pre_hooks 结束后、layer check 前发射 `tool.execution.start`
-- [ ] 3.2 验证：payload 包含最终生效 args（已应用 pre-hook ModifyArgs）
-- [ ] 3.3 提交：`git commit -m "feat(tools): emit tool.execution.start after pre-hooks"`
-- [ ] 3.4 在 `ToolCoordinator::execute()` 中 post_hooks 结束后、return 前发射 `tool.execution.end`
-- [ ] 3.5 验证：payload 包含最终生效 result（已应用 post-hook 修改）
-- [ ] 3.6 提交：`git commit -m "feat(tools): emit tool.execution.end after post-hooks"`
-- [ ] 3.7 在 pre-hook / post-hook Deny / FailClosed 路径发射 `tool.audit.denied`
-- [ ] 3.8 验证：reason 字段包含 hook 名与 deny_reason / 异常摘要
-- [ ] 3.9 提交：`git commit -m "feat(tools): emit tool.audit.denied on hook deny/failure"`
-- [ ] 3.10 与 ADR-0068 Registry 对齐事件 topic 与 payload schema（字段名/类型）
-- [ ] 3.11 验证：对比 `docs/adr/adr-0068-event-emission-contract.md` 附录 A，字段一致
-- [ ] 3.12 提交：`git commit -m "docs(tools): align event payload with ADR-0068 registry"`
+- [x] 3.1 在 `ToolCoordinator::execute()` 中 pre_hooks 结束后、layer check 前发射 `tool.execution.start`
+- [x] 3.2 验证：payload 包含最终生效 args（已应用 pre-hook ModifyArgs）
+- [x] 3.3 提交：`git commit -m "feat(tools): emit tool.execution.start after pre-hooks"`
+- [x] 3.4 在 `ToolCoordinator::execute()` 中 post_hooks 结束后、return 前发射 `tool.execution.end`
+- [x] 3.5 验证：payload 包含最终生效 result（已应用 post-hook 修改）
+- [x] 3.6 提交：`git commit -m "feat(tools): emit tool.execution.end after post-hooks"`
+- [x] 3.7 在 pre-hook / post-hook Deny / FailClosed 路径发射 `tool.audit.denied`
+- [x] 3.8 验证：reason 字段包含 hook 名与 deny_reason / 异常摘要
+- [x] 3.9 提交：`git commit -m "feat(tools): emit tool.audit.denied on hook deny/failure"`
+- [x] 3.10 与 ADR-0068 Registry 对齐事件 topic 与 payload schema（字段名/类型）
+- [x] 3.11 验证：对比 `docs/adr/adr-0068-event-emission-contract.md` 附录 A，字段一致
+- [x] 3.12 提交：`git commit -m "docs(tools): align event payload with ADR-0068 registry"`
 
 ## 4. budget_agent 真实 Plugin 用例
 
