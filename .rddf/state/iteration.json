@@ -1,6 +1,6 @@
 {
   "version": 4,
-  "updated_at": "2026-08-02T18:22:52.505900+00:00",
+  "updated_at": "2026-08-05T15:47:18.000000+00:00",
   "current_phase": "default",
   "changes": [
     {
@@ -75,50 +75,96 @@
     {
       "added_at": "2026-08-02T14:20:39.176415+00:00",
       "name": "adr-0068-event-emission-contract",
-      "status": "in_worktree",
+      "status": "archived",
       "plan_path": ".rddf/plans/adr-0068-event-emission-contract.md",
       "tasks_total": 64,
-      "worktree_path": ".rddf/wt/adr-0068-event-emission-contract"
+      "worktree_path": ".rddf/wt/adr-0068-event-emission-contract",
+      "archived_at": "2026-08-03T11:40:21.217058+00:00"
     },
     {
       "added_at": "2026-08-02T14:20:39.407888+00:00",
       "name": "adr-0069-tool-coordinator-hooks",
-      "status": "in_worktree",
+      "status": "archived",
       "plan_path": ".rddf/plans/adr-0069-tool-coordinator-hooks.md",
       "tasks_total": 40,
-      "worktree_path": ".rddf/wt/adr-0069-tool-coordinator-hooks"
+      "worktree_path": ".rddf/wt/adr-0069-tool-coordinator-hooks",
+      "archived_at": "2026-08-04T06:20:06.730027+00:00"
     },
     {
       "added_at": "2026-08-02T14:20:39.659853+00:00",
       "name": "adr-0070-declare-command",
-      "status": "in_worktree",
+      "status": "archived",
       "plan_path": ".rddf/plans/adr-0070-declare-command.md",
       "tasks_total": 53,
-      "worktree_path": ".rddf/wt/adr-0070-declare-command"
+      "worktree_path": ".rddf/wt/adr-0070-declare-command",
+      "archived_at": "2026-08-04T09:41:11.391802+00:00"
     },
     {
       "added_at": "2026-08-02T14:20:39.909707+00:00",
       "name": "fix-loop-agent-bypass",
-      "status": "completed",
+      "status": "archived",
       "plan_path": ".rddf/plans/fix-loop-agent-bypass.md",
       "tasks_total": 32,
-      "worktree_path": ".rddf/wt/fix-loop-agent-bypass"
+      "worktree_path": ".rddf/wt/fix-loop-agent-bypass",
+      "archived_at": "2026-08-03T03:32:50.833304+00:00"
     },
     {
       "added_at": "2026-08-02T14:20:40.155546+00:00",
       "name": "fix-markdown-parser-yaml",
-      "status": "in_worktree",
+      "status": "archived",
       "plan_path": ".rddf/plans/fix-markdown-parser-yaml.md",
       "tasks_total": 43,
-      "worktree_path": ".rddf/wt/fix-markdown-parser-yaml"
+      "worktree_path": ".rddf/wt/fix-markdown-parser-yaml",
+      "archived_at": "2026-08-04T16:05:16.236639+00:00"
     },
     {
       "added_at": "2026-08-02T14:20:40.384498+00:00",
       "name": "session-manager-jsonl",
-      "status": "in_worktree",
+      "status": "archived",
       "plan_path": ".rddf/plans/session-manager-jsonl.md",
       "tasks_total": 52,
-      "worktree_path": ".rddf/wt/session-manager-jsonl"
+      "worktree_path": ".rddf/wt/session-manager-jsonl",
+      "archived_at": "2026-08-01T17:56:53.808681+00:00"
+    },
+    {
+      "added_at": "2026-08-05T09:06:52.101238+00:00",
+      "name": "session-manager-jsonl-v2",
+      "status": "archived",
+      "plan_path": ".rddf/plans/session-manager-jsonl-v2.md",
+      "tasks_total": 0,
+      "archived_at": "2026-08-05T11:01:48.769109+00:00"
+    },
+    {
+      "name": "session-tree-commands",
+      "status": "proposed",
+      "phase": "wave-1",
+      "category": "demo-chat-v2",
+      "priority": "P2",
+      "added_at": "2026-08-06T01:00:18+0800",
+      "design_added_at": "2026-08-06T01:19:00+0800",
+      "tasks_added_at": "2026-08-06T01:21:00+0800",
+      "specs_added_at": "2026-08-06T01:21:30+0800",
+      "capabilities_added": ["session-tree-commands"],
+      "parallel_group": 0,
+      "blocker": null,
+      "conflicts": [],
+      "last_deps_at": null
+    },
+    {
+      "name": "chat-slash-commands-migration",
+      "status": "proposed",
+      "phase": "wave-1",
+      "category": "demo-chat-v2",
+      "priority": "P1",
+      "added_at": "2026-08-06T01:00:19+0800",
+      "design_added_at": "2026-08-06T01:23:00+0800",
+      "tasks_added_at": "2026-08-06T01:24:00+0800",
+      "specs_added_at": "2026-08-06T01:24:30+0800",
+      "capabilities_added": ["chat-slash-commands-migration"],
+      "parallel_group": 0,
+      "blocker": null,
+      "conflicts": [],
+      "last_deps_at": null
     }
   ]
 }

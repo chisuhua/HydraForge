@@ -1,17 +1,30 @@
 {
-  "generated_at": "2026-08-01",
+  "generated_at": "2026-08-06",
   "project_root": "/workspace/project/HydraForge",
   "active_changes": [
     {
-      "name": "tf-integration-coverage",
-      "path": "openspec/changes/tf-integration-coverage",
+      "name": "chat-slash-commands-migration",
+      "path": "openspec/changes/chat-slash-commands-migration",
       "schema": "spec-driven",
-      "capabilities_added": [
-        "taskflow-integration-test-coverage"
-      ],
-      "capabilities_modified": [
-        "dag-scheduler-pipeline"
-      ]
+      "priority": "P1",
+      "phase": "wave-1",
+      "category": "demo-chat-v2",
+      "capabilities_added": ["chat-slash-commands-migration"],
+      "capabilities_modified": [],
+      "tasks_total_estimate": 30
+    },
+    {
+      "name": "session-tree-commands",
+      "path": "openspec/changes/session-tree-commands",
+      "schema": "spec-driven",
+      "priority": "P2",
+      "phase": "wave-1",
+      "category": "demo-chat-v2",
+      "capabilities_added": ["session-tree-commands"],
+      "capabilities_modified": [],
+      "tasks_total_estimate": 45
     }
-  ]
+  ],
+  "iteration_source": ".rddf/state/iteration.json",
+  "rddf_session_continuation": null
 }
