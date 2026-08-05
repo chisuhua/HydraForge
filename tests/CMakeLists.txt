@@ -105,14 +105,8 @@ function(add_catch_test TEST_NAME)
         target_link_libraries(${TEST_NAME} PRIVATE dl)
     endif()
 
-    # session-manager-jsonl Task 1: 直接把 src/core/session_manager.cpp 拉入测试目标
-    # (Task 9 才会把 session_manager.cpp 接到 agenticdsl_core 生产库)
-    if(TEST_NAME STREQUAL "test_session_manager" OR
-       TEST_NAME STREQUAL "test_session_build_context")
-        target_sources(${TEST_NAME} PRIVATE
-            ${PROJECT_SOURCE_DIR}/src/core/session_manager.cpp
-        )
-    endif()
+    # session-manager-jsonl-v2 (2026-08-05): session_manager.cpp 已在 agenticdsl_core 生产库,
+    # 4 个 test target 通过 link agenticdsl_core 自动获得, 无需单独 target_sources.
 endfunction()
 
 # ================================

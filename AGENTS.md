@@ -83,6 +83,7 @@ HydraForge/
 | DEFINE_AGENT (macro) | macro | include/agenticdsl/pdk/agent_macros.h | PDK Agent 循环宏 (React MVP, PlanExecute/ForkJoin Phase 2) |
 | SafeExec | class | include/agenticdsl/pdk/safe_exec.h | PDK 沙箱执行封装 (超时+异常 MVP) |
 | SkillInterpreter | class | include/agenticdsl/skill/skill_interpreter.h | SKILL.md 隔离执行引擎 (posix_spawn + IPC, ADR-0055/0060, Sprint 22) |
+| SessionManager | class | src/core/session_manager.h | JSONL 树状会话存储 (open/fork/branch/compact/build_context/migrate) — 事件发射已 ship (v2, ADR-0068) |
 | LlamaEngine plugin | plugin | pdk/llama_engine/ | 首个 PDK 推理引擎 plugin (12 工具: engine/model/arch, C14 Phase 5) |
 
 ## CONVENTIONS
