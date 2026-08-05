@@ -210,8 +210,46 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                 auto child = ::agenticdsl::DSLEngine::from_markdown(
                     agent_content, *tls_parent_provider);
 
+                // react.agent.md 等模板使用 llm_call 节点 (默认工具名 "llama-default").
+                // 子引擎 registry 与父引擎隔离, 因此此处用 borrowed provider 包装一个 LLM 工具注入.
+                // 默认模型名沿用父 provider 注册的模型列表首位, 避免默认 "gpt-4o-mini" 在非 OpenAI 端点上失败
+                class ProviderLLMTool : public ::agenticdsl::ILLMTool {
+                 public:
+                    ProviderLLMTool(::agenticdsl::ILLMProvider& p) : provider_(p) {}
+                    ::agenticdsl::LLMResult generate(
+                        const std::string& prompt,
+                        const ::agenticdsl::LLMParams& params) override {
+                        ::agenticdsl::LLMResult out;
+                        ::agenticdsl::GenerationRequest req(prompt);
+                        req.params = params;
+                        auto avail = provider_.available_models();
+                        if (!avail.empty()) {
+                            req.params.model = avail.front().name;
+                        }
+                        auto res = provider_.generate(req, std::stop_token{});
+                        if (res.has_value()) {
+                            out.success = true;
+                            out.text = std::move(res).value().text;
+                            out.tokens_generated = res.value().completion_tokens;
+                        } else {
+                            out.success = false;
+                            out.error = res.error().message;
+                        }
+                        return out;
+                    }
+                    bool is_available() const override { return true; }
+                    std::string name() const override { return "loop-agent-provider-bridge"; }
+                 private:
+                    ::agenticdsl::ILLMProvider& provider_;
+                };
+                child->register_llm_tool(
+                    "llama-default",
+                    std::make_unique<ProviderLLMTool>(*tls_parent_provider));
+
                 ::agenticdsl::LayeredContext ctx;
                 ctx.working["user_input"] = user_prompt;
+                ctx.working["system_prompt"] = str_arg(args, "system_prompt");
+                ctx.working["history"] = str_arg(args, "history");
 
                 // ADR-0068 附录 A: loop.turn.start {turn, step}
                 emit_loop_event(bus, session_id, "loop.turn.start",
