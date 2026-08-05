@@ -99,14 +99,14 @@ TEST_CASE("CostTrackingDecorator charges on stream end", "[decorator][cost][stre
 }
 
 // === REQ-IPD-001 Scenario "装饰器链深度限制" ===
-TEST_CASE("Decorator chain depth > 3 throws DecoratorChainTooDeep",
+// MAX_CHAIN_DEPTH=5 (innermost + 4 decorators); Phase 6a ADR-0068 bumped from 4 to 5
+TEST_CASE("Decorator chain depth > 4 throws DecoratorChainTooDeep",
           "[decorator][chain][depth]") {
   auto innermost = std::make_unique<MockLLMProvider>();
   std::vector<std::function<std::unique_ptr<ILLMProvider>(std::unique_ptr<ILLMProvider>)>>
       factories;
-  // 4 层 = innermost + 3 decorators = max_depth=4 OK. 5 层 = throw.
   auto budget = std::make_shared<MockBudget>();
-  for (int i = 0; i < 4; ++i) {  // 4 个装饰器 = 超出 3 上限
+  for (int i = 0; i < 5; ++i) {
     factories.emplace_back([budget](std::unique_ptr<ILLMProvider> inner) {
       return std::make_unique<CostTrackingDecorator>(std::move(inner), budget);
     });
