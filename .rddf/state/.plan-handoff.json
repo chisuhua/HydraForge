@@ -1,29 +1,57 @@
 {
   "stage": "plan",
   "status": "plan-done",
-  "completed_at": "2026-08-01T12:40:00Z",
+  "completed_at": "2026-08-06T01:25:00+08:00",
   "active_changes": [
     {
-      "name": "tf-integration-coverage",
-      "path": "openspec/changes/tf-integration-coverage",
+      "name": "chat-slash-commands-migration",
+      "path": "openspec/changes/chat-slash-commands-migration",
       "schema": "spec-driven",
       "priority": "P1",
+      "phase": "wave-1",
+      "category": "demo-chat-v2",
       "artifacts_committed": [
         "proposal.md",
         "design.md",
         "tasks.md",
         ".openspec.yaml",
-        "specs/taskflow-integration-test-coverage/spec.md",
-        "specs/dag-scheduler-pipeline/spec.md"
+        "specs/chat-slash-commands-migration/spec.md"
       ],
-      "commit_sha": "6e2cfc1",
+      "commit_sha": "e9cb9b1",
       "openspec_validate": "passed",
       "capabilities_added": [
-        "taskflow-integration-test-coverage"
+        "chat-slash-commands-migration"
       ],
-      "capabilities_modified": [
-        "dag-scheduler-pipeline"
-      ]
+      "capabilities_modified": [],
+      "iteration_status": "proposed",
+      "parallel_group": 0,
+      "blocker": null,
+      "recommendation": "ship first (smaller scope + main.cpp audit baseline cleanup for sister change)"
+    },
+    {
+      "name": "session-tree-commands",
+      "path": "openspec/changes/session-tree-commands",
+      "schema": "spec-driven",
+      "priority": "P2",
+      "phase": "wave-1",
+      "category": "demo-chat-v2",
+      "artifacts_committed": [
+        "proposal.md",
+        "design.md",
+        "tasks.md",
+        ".openspec.yaml",
+        "specs/session-tree-commands/spec.md"
+      ],
+      "commit_sha": "c4f87cb",
+      "openspec_validate": "passed",
+      "capabilities_added": [
+        "session-tree-commands"
+      ],
+      "capabilities_modified": [],
+      "iteration_status": "proposed",
+      "parallel_group": 0,
+      "blocker": null,
+      "recommendation": "ship after chat-slash-commands-migration (depends on main.cpp audit baseline; rebase for register_default_commands() addition)"
     }
   ],
   "deps_analysis": {
@@ -34,42 +62,77 @@
     "adr_violations": 0,
     "recommended_wave": 1,
     "execution_order": [
-      "tf-integration-coverage"
+      "chat-slash-commands-migration",
+      "session-tree-commands"
+    ],
+    "rationale": "Both parallel_group=0; chat-slash smaller + main.cpp audit cleaner → ship first; session-tree extends main.cpp with register_default_commands() and benefits from clean base"
+  },
+  "drift_cleaned": {
+    "proposal_approved_md": [
+      {
+        "name": "fix-markdown-parser-yaml",
+        "action": "moved from ## 已批准提案 to ## 已实施 (already archived 2026-08-04)",
+        "commit_sha": "9b8f80e"
+      },
+      {
+        "name": "session-manager-jsonl",
+        "action": "moved from ## 已批准提案 to ## 已实施 (already archived v1 2026-08-04 + v2 2026-08-05)",
+        "commit_sha": "9b8f80e"
+      }
     ]
   },
   "gate_checks": {
     "min_active_changes": {
       "required": 1,
-      "actual": 1,
+      "actual": 2,
       "passed": true
     },
     "all_artifacts_committed": {
-      "required": 6,
-      "actual": 6,
-      "passed": true
+      "required": 5,
+      "actual": 10,
+      "passed": true,
+      "note": "5 artifacts per change × 2 changes = 10 total"
     },
     "openspec_validate": {
       "required": "passed",
-      "actual": "passed",
+      "actual": "passed (both changes validated)",
       "passed": true
     },
     "proposal_suggestions_updated": {
       "required": true,
       "actual": true,
-      "passed": true
+      "passed": true,
+      "note": "drift cleaned: 2 archived items moved to ## 已实施"
+    },
+    "iteration_json_registered": {
+      "required": true,
+      "actual": true,
+      "passed": true,
+      "note": "Both changes have status=proposed + capabilities_added tracked + parallel_group=0 + blocker=null"
+    },
+    "deps_analysis_complete": {
+      "required": true,
+      "actual": true,
+      "passed": true,
+      "note": "Mermaid graph + 3-axis static analysis + wave schedule written to .deps-output.md"
     }
   },
   "next_stage": "ship",
   "next_skill": "guide-ship",
   "notes": [
-    "Single change, no inter-change dependencies",
-    "Branch HEAD: 6e2cfc1 on main",
+    "Plan phase complete (Phase 2.5 fill + Phase 3 deps + Phase 4 plan-done)",
+    "2 active changes both parallel_group=0, no inter-change blockers",
+    "Both depend on already-shipped adr-0070-declare-command (ICommandRegistry + DECLARE_COMMAND)",
+    "session-tree-commands additionally depends on session-manager-jsonl v1+v2 (JSONL tree storage + fork API)",
+    "Branch HEAD: 8c69d9c on main",
+    "Recommended execution order (per deps analysis): chat-slash-commands-migration → session-tree-commands (大小优先 + shared main.cpp audit baseline)",
     "Ready for ship-side worktree creation + plan generation + TDD execution"
   ],
-  "archived_at": "2026-08-04T06:20:12.300628+00:00",
-  "archived_changes": [
-    "fix-loop-agent-bypass",
-    "adr-0069-tool-coordinator-hooks",
-    "adr-0069-tool-coordinator-hooks"
-  ]
+  "previous_handoff_reference": {
+    "completed_at_prev": "2026-08-01T12:40:00Z",
+    "active_changes_prev": ["tf-integration-coverage"],
+    "archived_at_prev": "2026-08-04T06:20:12.300628+00:00",
+    "ship_started_at_prev": "2026-08-05T09:06:50.245604+00:00",
+    "note": "This handoff supersedes the previous one; tf-integration-coverage archived 2026-08-01T12:40"
+  }
 }
