@@ -134,6 +134,7 @@ add_subdirectory(pdk)
 
 add_library(agenticdsl_core STATIC
  src/core/engine.cpp
+ src/core/session_manager.cpp  # session-manager-jsonl-v2: 接入生产库 (ADR-0033 存储层)
  src/core/types/session.cpp
  src/core/types/session_registry.cpp  # C11 Phase 5 Stage 1
 )

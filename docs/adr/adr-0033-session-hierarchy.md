@@ -13,6 +13,9 @@
 > 在 DSLEngine 层; (7) 54/54 ctest 零回归 (52 baseline + 2 新测试: test_session 5 unit + test_dslengine_session 2 integration);
 > (8) 不重命名 ExecutionSession (Oracle R1), 不新增 BudgetController cost_limit API (Oracle R2)。
 > 变更依据: `openspec/changes/2026-06-26-adr-0033-session-hierarchy/`。
+
+> **存储层 v2 ship 注记 (2026-08-05)**：OpenSpec change `2026-08-05-session-manager-jsonl-v2` 收尾 C5 留下的 3 项未完成事项：(1) `SessionManager::flush_append` 实际发射 `session.persisted` 事件 (v1 仅声明 `set_bus` 与 `bus_` 字段但 `flush_append` 未调 `bus_->emit`)；(2) `src/core/session_manager.cpp` 接入 `agenticdsl_core` 生产库，移除 `tests/CMakeLists.txt` 临时 bypass；(3) 从 stash 恢复 `tools/migrate_session_json.py` CLI + `tests/test_session_manager_legacy.cpp` 4 cases。`session.persisted` 事件 owner 字段从 `session_agent / ChatSession` 改为 `SessionManager`（详见 adr-0068 附录 A）。
+> 变更依据: `openspec/changes/session-manager-jsonl-v2/` + `openspec/changes/archive/2026-08-04-session-manager-jsonl/` (v1 完整 ship, 24 cases)。
 > 
 > **C1 迁移注记 (2026-06-08, commit 3f28020)**：`DagExecutionContext` 构造参数与成员变量中 `LlamaAdapter* llm_adapter` 已替换为 `ILLMProvider* llm_provider`（抽象流式接口，详见 ADR-0001）。原 `LlamaAdapter` 仍可用但需通过 `LlamaAdapterProvider` 包装后注入。
 

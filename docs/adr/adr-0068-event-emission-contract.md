@@ -189,7 +189,7 @@ Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = 
 | `tool.execution.start` | ToolCoordinator | call_tool 入口 | `tool`, `layer` | ✅ |
 | `tool.execution.end` | ToolCoordinator | call_tool 返回 | `tool`, `ok`, `duration_ms` | ✅ |
 | `session.persist_request` | ChatSession | 持久化请求发出 | `session_id` | ✅ |
-| `session.persisted` | session_agent / ChatSession | 写盘成功 | `session_id`, `path` | ✅ |
+| `session.persisted` | SessionManager | 写盘成功 | `session_id`, `node_id`, `branch_id`, `timestamp` | ✅ (v2 ship) |
 | `budget.checked` | ChatSession / budget_agent | 预算检查后 | `remaining`, `exceeded` | ✅ |
 | `context.compact.before` | ContextCompactor (L0-3, 待建) | 压缩前 | `before_tokens` | 👻 → 依赖 L0-3 |
 | `context.compact.after` | ContextCompactor (L0-3, 待建) | 压缩后 | `after_tokens`, `summary_ref` | 👻 → 依赖 L0-3 |

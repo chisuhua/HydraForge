@@ -24,6 +24,10 @@
 #include <sstream>      // std::ostringstream (id 生成)
 #include <unordered_set>  // std::unordered_set
 
+#include "agenticdsl/contract/event_builder.h"
+#include "agenticdsl/contract/iinteraction_bus.h"
+#include "core/types/tool_result.h"
+
 namespace agenticdsl {
 
 namespace {
@@ -154,6 +158,22 @@ void SessionManager::flush_append(const SessionNode& node) {
   }
 
   ::close(fd);
+
+  // v2: session.persisted 事件发射 (ADR-0068 §决策 5)
+  // emit 在 fsync+close 成功后、index 更新前, 失败路径不进入此分支
+  if (bus_) {
+    const std::string session_id = current_path_.stem().string();
+    const auto now_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch())
+            .count();
+    bus_->emit(EventBuilder("session.persisted", ToolResult{})
+                   .args({{"session_id", session_id},
+                          {"node_id", node.id},
+                          {"branch_id", node.branch_id},
+                          {"timestamp", now_ms}})
+                   .build());
+  }
 
   std::lock_guard<std::mutex> idx_lock(index_mutex_);
   nodes_[node.id] = node;
