@@ -235,9 +235,15 @@ target_include_directories(test_e2e_real_llm PRIVATE
 )
 target_compile_definitions(test_e2e_real_llm PRIVATE
     CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+    LOOP_AGENT_SO_PATH="${PROJECT_BINARY_DIR}/pdk/loop_agent/libLoopAgent.so"
 )
+target_link_options(test_e2e_real_llm PRIVATE -Wl,--export-dynamic)
+add_dependencies(test_e2e_real_llm LoopAgent)
 add_test(
     NAME test_e2e_real_llm
     COMMAND test_e2e_real_llm
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+set_tests_properties(test_e2e_real_llm PROPERTIES
+    ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk"
 )
