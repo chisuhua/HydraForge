@@ -1,6 +1,42 @@
 {
-  "design_complete_at": "2026-08-01T16:04:11.211335+00:00",
-  "proposals_reviewed": 12,
+  "design_complete_at": "2026-08-05T17:00:00.000000+00:00",
+  "proposals_reviewed": 6,
+  "proposals_approved_now": 2,
+  "proposals_drift_closed": 4,
   "all_proposals_have_decision": true,
-  "version": 1
+  "drift_close_actions": [
+    "pdk-chat-demo-v1-recap (archived 2026-07-27) → 已实施",
+    "pkm-temporal-demo-scaffold (archived 2026-07-28) → 已实施",
+    "adr-0037-causal-clock (archived 2026-07-29) → 已实施",
+    "adr-0019-subscribe-glob (archived 2026-07-29) → 已实施"
+  ],
+  "splits_created": [
+    {
+      "original": "session-tree-tui",
+      "wave_1": "session-tree-commands (approved)",
+      "wave_2": "session-tree-tui (deferred, blocked-by cli-args-cxxopts + session-tree-commands)"
+    },
+    {
+      "original": "chat-streaming-slash-tui",
+      "wave_1": "chat-slash-commands-migration (approved)",
+      "wave_2": "chat-streaming-slash-tui (deferred, blocked-by cli-args-cxxopts + chat-slash-commands-migration + provider-dynamic-discovery)"
+    }
+  ],
+  "changes_pre_created": [
+    "session-tree-commands",
+    "chat-slash-commands-migration"
+  ],
+  "adr_status_followups": [
+    "ADR-0019 🟡 Partial → ✅ Approved (subscribe-glob 全 ship)",
+    "ADR-0037 status check (causal-clock 全 ship)"
+  ],
+  "next_stage": "plan",
+  "next_skill": "guide-plan",
+  "notes": [
+    "Wave 0 全部 4 条已 ship → drift 闭环，无新工作",
+    "Wave 1 拆分：session-tree-commands + chat-slash-commands-migration 立即可 ship",
+    "Wave 2 拆分保留为延迟：依赖 cli-args-cxxopts / provider-dynamic-discovery 等",
+    "5 条仍延迟：chat-streaming-slash-tui, session-tree-tui, chat-async-io-steering, cli-args-cxxopts, provider-dynamic-discovery + 1 重新激活延迟：context-compactor（前置 adr-0070 + adr-0068 V2 已 ship）"
+  ],
+  "version": 2
 }
