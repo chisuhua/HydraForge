@@ -1,5 +1,7 @@
 #include "common/llm/llm_provider_factory.h"
 
+#include <mutex>
+
 #include "common/llm/cloud_adapter.h"        // CloudLLMAdapter (OpenAI 兼容协议)
 #include "common/llm/llama_adapter_provider.h"  // LlamaAdapterProvider (本地 llama.cpp)
 #include "common/llm/llm_config.h"          // LLMConfig
@@ -42,26 +44,66 @@ LLMProviderFactory::LLMProviderFactory()
       cloud_factory(std::make_unique<CloudProviderFactory>()),
       llama_factory(std::make_unique<LlamaProviderFactory>()) {}
 
+bool LLMProviderFactory::is_reserved_backend(const std::string& name) {
+  return name == "mock" || name == "openai" || name == "anthropic" ||
+         name == "deepseek" || name == "minimax" || name == "qwen" ||
+         name == "moonshot" || name == "custom" || name == "local" ||
+         name == "llama";
+}
+
+bool LLMProviderFactory::register_dynamic(std::string name,
+                                          DynamicFactoryFn factory_fn) {
+  if (name.empty() || !static_cast<bool>(factory_fn)) return false;
+  if (is_reserved_backend(name)) return false;
+  std::unique_lock lock(dynamic_mutex_);
+  if (dynamic_factories_.count(name)) return false;
+  dynamic_factories_.emplace(std::move(name), std::move(factory_fn));
+  return true;
+}
+
+bool LLMProviderFactory::switch_default(const std::string& name) {
+  std::unique_lock lock(dynamic_mutex_);
+  if (!dynamic_factories_.count(name)) return false;
+  default_provider_ = name;
+  return true;
+}
+
+std::string LLMProviderFactory::current_default() const {
+  std::shared_lock lock(dynamic_mutex_);
+  return default_provider_;
+}
+
+bool LLMProviderFactory::has_dynamic(const std::string& name) const {
+  std::shared_lock lock(dynamic_mutex_);
+  return dynamic_factories_.count(name) > 0;
+}
+
+std::vector<std::string> LLMProviderFactory::dynamic_names() const {
+  std::shared_lock lock(dynamic_mutex_);
+  std::vector<std::string> out;
+  out.reserve(dynamic_factories_.size());
+  for (const auto& [k, _] : dynamic_factories_) out.push_back(k);
+  return out;
+}
+
 std::unique_ptr<ILLMProvider> LLMProviderFactory::create(const LLMConfig& config) {
-  const std::string& backend = config.provider;
-
-  if (backend == "mock" || backend.empty()) {
-    return mock_factory->create(config);
+  std::string backend = config.provider;
+  DynamicFactoryFn dynamic_factory;
+  {
+    std::shared_lock<std::shared_mutex> lock(dynamic_mutex_);
+    if (backend.empty()) backend = default_provider_;
+    auto it = dynamic_factories_.find(backend);
+    if (it != dynamic_factories_.end()) dynamic_factory = it->second;
   }
+  if (dynamic_factory) return dynamic_factory(config);  // construct outside lock
 
-  // OpenAI 兼容协议: openai / anthropic / deepseek / minimax / qwen / moonshot / custom
-  if (backend == "openai" || backend == "anthropic" ||
-      backend == "deepseek" || backend == "minimax" ||
-      backend == "qwen" || backend == "moonshot" || backend == "custom") {
+  if (backend == "mock" || backend.empty()) return mock_factory->create(config);
+  if (backend == "openai" || backend == "anthropic" || backend == "deepseek" ||
+      backend == "minimax" || backend == "qwen" || backend == "moonshot" ||
+      backend == "custom") {
     return cloud_factory->create(config);
   }
-
-  // 本地 llama.cpp
-  if (backend == "local" || backend == "llama") {
-    return llama_factory->create(config);
-  }
-
-  // 兜底: 未知 provider 一律返回 Mock provider (确保 caller 永不收到 nullptr)
+  if (backend == "local" || backend == "llama") return llama_factory->create(config);
   return mock_factory->create(config);
 }
 

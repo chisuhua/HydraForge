@@ -12,6 +12,9 @@ add_library(ProviderAgent SHARED
     src/pdk_entry.cpp
     src/credential_store.cpp
     src/provider_resolve.cpp
+    src/provider_refresh.cpp
+    src/provider_register_dynamic.cpp
+    src/provider_switch.cpp
 )
 
 target_include_directories(ProviderAgent PRIVATE

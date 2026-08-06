@@ -157,4 +157,45 @@ nlohmann::json ProviderRegistry::health(const std::string& provider_id) const {
     return result;
 }
 
+bool ProviderRegistry::has_provider(const std::string& provider_id) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return providers_.find(provider_id) != providers_.end();
+}
+
+std::vector<std::string> ProviderRegistry::list_models(
+    const std::string& provider_id) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  std::vector<std::string> out;
+  auto it = providers_.find(provider_id);
+  if (it == providers_.end()) return out;
+  out.reserve(it->second.models.size());
+  for (const auto& [k, _] : it->second.models) out.push_back(k);
+  return out;
+}
+
+std::map<std::string, bool> ProviderRegistry::removed_models(
+    const std::string& provider_id) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  auto it = providers_.find(provider_id);
+  if (it == providers_.end()) return {};
+  return it->second.removed_models;
+}
+
+std::string ProviderRegistry::last_refresh_for(const std::string& provider_id) const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  auto it = providers_.find(provider_id);
+  if (it == providers_.end()) return {};
+  return it->second.last_refresh;
+}
+
+void ProviderRegistry::seed_for_test(std::map<std::string, ProviderInfo> seed) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  providers_ = std::move(seed);
+}
+
+void ProviderRegistry::set_refresh_transport_for_test(RefreshTransport t) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  refresh_transport_ = std::move(t);
+}
+
 }  // namespace pdk_provider_agent

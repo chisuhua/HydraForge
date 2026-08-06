@@ -79,6 +79,27 @@ function(add_catch_test TEST_NAME)
         )
     endif()
 
+    if(TEST_NAME MATCHES "^test_provider_(refresh|register_dynamic|switch|dynamic_lifecycle|dynamic_integration|factory_concurrent)")
+        set(PROVIDER_AGENT_TEST_SOURCES
+            ${PROJECT_SOURCE_DIR}/pdk/provider_agent/src/credential_store.cpp
+            ${PROJECT_SOURCE_DIR}/pdk/provider_agent/src/pdk_entry.cpp
+            ${PROJECT_SOURCE_DIR}/pdk/provider_agent/src/provider_resolve.cpp
+            ${PROJECT_SOURCE_DIR}/pdk/provider_agent/src/provider_refresh.cpp
+        )
+        if(EXISTS ${PROJECT_SOURCE_DIR}/pdk/provider_agent/src/provider_register_dynamic.cpp)
+            list(APPEND PROVIDER_AGENT_TEST_SOURCES ${PROJECT_SOURCE_DIR}/pdk/provider_agent/src/provider_register_dynamic.cpp)
+        endif()
+        if(EXISTS ${PROJECT_SOURCE_DIR}/pdk/provider_agent/src/provider_switch.cpp)
+            list(APPEND PROVIDER_AGENT_TEST_SOURCES ${PROJECT_SOURCE_DIR}/pdk/provider_agent/src/provider_switch.cpp)
+        endif()
+        target_sources(${TEST_NAME} PRIVATE ${PROVIDER_AGENT_TEST_SOURCES})
+        target_include_directories(${TEST_NAME} PRIVATE
+            ${PROJECT_SOURCE_DIR}/pdk/provider_agent/include
+            ${PROJECT_SOURCE_DIR}/pdk/provider_agent/src
+        )
+        target_link_libraries(${TEST_NAME} PRIVATE dl)
+    endif()
+
     # 注册为 CTest 测试
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 
