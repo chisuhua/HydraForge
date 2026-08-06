@@ -1,42 +1,66 @@
 {
-  "design_complete_at": "2026-08-05T17:00:00.000000+00:00",
-  "proposals_reviewed": 6,
-  "proposals_approved_now": 2,
-  "proposals_drift_closed": 4,
+  "design_complete_at": "2026-08-06T07:07:28.990176+00:00",
+  "proposals_reviewed": 5,
+  "proposals_approved_now": 4,
+  "proposals_kept_deferred": 1,
   "all_proposals_have_decision": true,
-  "drift_close_actions": [
+  "version": 2,
+  "changes_pre_created": [
+    "cli-args-cxxopts",
+    "provider-dynamic-discovery",
+    "session-tree-tui",
+    "chat-streaming-slash-tui"
+  ],
+  "wave_structure": {
+    "wave_2_A_infrastructure_serial": [
+      "cli-args-cxxopts (P2, ~3d, foundation — vendored cxxopts; replaces main.cpp:76-83 hand-rolled args loop)",
+      "provider-dynamic-discovery (P2, ~3-4d, foundation — LLMProviderFactory::register_dynamic + 3 new tools: provider/refresh, provider/register_dynamic, provider/switch)"
+    ],
+    "wave_2_B_features_parallel_after_A": [
+      "session-tree-tui (P2, ~2d, 2 flags --fork/--name, requires cli-args-cxxopts + session-tree-commands[shipped])",
+      "chat-streaming-slash-tui (P1, ~5-6d, EventHandler chunk-level rendering + --system-prompt/--append-system-prompt flags, requires cli-args-cxxopts + provider-dynamic-discovery + chat-slash-commands-migration[shipped])"
+    ],
+    "wave_3_after_W2_ship": [
+      "chat-async-io-steering (P2, ~5d, async I/O + double queue + interruption injection, requires chat-streaming-slash-tui ship)"
+    ]
+  },
+  "kept_deferred": [
+    {
+      "name": "chat-async-io-steering",
+      "reason": "依赖 chat-streaming-slash-tui ship 后才具备完整事件链路（loop.* + 流式）",
+      "next_review": "Wave 2 完成后下一 design cycle 重审"
+    },
+    {
+      "name": "context-compactor",
+      "reason": "前置 ADR-0007 Partial 收尾 + adr-0070 + adr-0068 V2 已 ship；本 design cycle 用户未列入重审",
+      "next_review": "保留 Wave 4 评估"
+    }
+  ],
+  "splits_resolved_from_previous_cycle": [
+    {
+      "original": "session-tree-tui",
+      "wave_1_shipped": "session-tree-commands ✅ 2026-08-06",
+      "wave_2_now_approved": "session-tree-tui ✅ 2026-08-06"
+    },
+    {
+      "original": "chat-streaming-slash-tui",
+      "wave_1_shipped": "chat-slash-commands-migration ✅ 2026-08-06",
+      "wave_2_now_approved": "chat-streaming-slash-tui ✅ 2026-08-06"
+    }
+  ],
+  "drift_close_actions_from_previous_cycle": [
     "pdk-chat-demo-v1-recap (archived 2026-07-27) → 已实施",
     "pkm-temporal-demo-scaffold (archived 2026-07-28) → 已实施",
     "adr-0037-causal-clock (archived 2026-07-29) → 已实施",
     "adr-0019-subscribe-glob (archived 2026-07-29) → 已实施"
   ],
-  "splits_created": [
-    {
-      "original": "session-tree-tui",
-      "wave_1": "session-tree-commands (approved)",
-      "wave_2": "session-tree-tui (deferred, blocked-by cli-args-cxxopts + session-tree-commands)"
-    },
-    {
-      "original": "chat-streaming-slash-tui",
-      "wave_1": "chat-slash-commands-migration (approved)",
-      "wave_2": "chat-streaming-slash-tui (deferred, blocked-by cli-args-cxxopts + chat-slash-commands-migration + provider-dynamic-discovery)"
-    }
-  ],
-  "changes_pre_created": [
-    "session-tree-commands",
-    "chat-slash-commands-migration"
-  ],
-  "adr_status_followups": [
-    "ADR-0019 🟡 Partial → ✅ Approved (subscribe-glob 全 ship)",
-    "ADR-0037 status check (causal-clock 全 ship)"
-  ],
   "next_stage": "plan",
   "next_skill": "guide-plan",
   "notes": [
-    "Wave 0 全部 4 条已 ship → drift 闭环，无新工作",
-    "Wave 1 拆分：session-tree-commands + chat-slash-commands-migration 立即可 ship",
-    "Wave 2 拆分保留为延迟：依赖 cli-args-cxxopts / provider-dynamic-discovery 等",
-    "5 条仍延迟：chat-streaming-slash-tui, session-tree-tui, chat-async-io-steering, cli-args-cxxopts, provider-dynamic-discovery + 1 重新激活延迟：context-compactor（前置 adr-0070 + adr-0068 V2 已 ship）"
-  ],
-  "version": 2
+    "Wave 2-A (cli-args-cxxopts + provider-dynamic-discovery) 是基础设施，必须先 ship",
+    "Wave 2-B (session-tree-tui + chat-streaming-slash-tui) 在 Wave 2-A ship 后可并行 ship",
+    "Wave 3 (chat-async-io-steering) 等 Wave 2-B ship 后再启 design",
+    "context-compactor 保留 Wave 4 评估，未在本 cycle 重审",
+    "总预算：4 个新 change，估时 ~13-15 工作日（含并行优化）"
+  ]
 }

@@ -1,6 +1,6 @@
 {
-  "version": 4,
-  "updated_at": "2026-08-05T15:47:18.000000+00:00",
+  "version": 5,
+  "updated_at": "2026-08-06T09:02:45.398422+00:00",
   "current_phase": "default",
   "changes": [
     {
@@ -141,10 +141,6 @@
       "category": "demo-chat-v2",
       "priority": "P2",
       "added_at": "2026-08-06T01:00:18+0800",
-      "design_added_at": "2026-08-06T01:19:00+0800",
-      "tasks_added_at": "2026-08-06T01:21:00+0800",
-      "specs_added_at": "2026-08-06T01:21:30+0800",
-      "capabilities_added": ["session-tree-commands"],
       "parallel_group": 0,
       "blocker": null,
       "conflicts": [],
@@ -157,14 +153,50 @@
       "category": "demo-chat-v2",
       "priority": "P1",
       "added_at": "2026-08-06T01:00:19+0800",
-      "design_added_at": "2026-08-06T01:23:00+0800",
-      "tasks_added_at": "2026-08-06T01:24:00+0800",
-      "specs_added_at": "2026-08-06T01:24:30+0800",
-      "capabilities_added": ["chat-slash-commands-migration"],
       "parallel_group": 0,
       "blocker": null,
       "conflicts": [],
       "last_deps_at": null
+    },
+    {
+      "name": "cli-args-cxxopts",
+      "status": "proposed",
+      "phase": "wave-3",
+      "category": "demo-chat-v2",
+      "added_at": "2026-08-06T15:00:56+0800",
+      "priority": "P2",
+      "parallel_group": 0,
+      "blocker": null
+    },
+    {
+      "name": "provider-dynamic-discovery",
+      "status": "proposed",
+      "phase": "wave-3",
+      "category": "core-impl",
+      "added_at": "2026-08-06T15:00:57+0800",
+      "priority": "P2",
+      "parallel_group": 0,
+      "blocker": null
+    },
+    {
+      "name": "session-tree-tui",
+      "status": "proposed",
+      "phase": "wave-2",
+      "category": "demo-chat-v2",
+      "added_at": "2026-08-06T15:00:57+0800",
+      "priority": "P2",
+      "parallel_group": 1,
+      "blocker": "cli-args-cxxopts"
+    },
+    {
+      "name": "chat-streaming-slash-tui",
+      "status": "proposed",
+      "phase": "wave-2",
+      "category": "demo-chat-v2",
+      "added_at": "2026-08-06T15:00:58+0800",
+      "priority": "P1",
+      "parallel_group": 1,
+      "blocker": "cli-args-cxxopts"
     }
   ]
 }

@@ -10,8 +10,4 @@
 | 提案 | 优先级 | 来源 | 添加时间 | 状态 |
 |------|--------|------|----------|------|
 | [context-compactor](improvements/context-compactor.md) | P1 | 同上 §四 L0-3 + §八 L4-5 + ADR-0007 Partial 收尾 | 2026-07-31 | 延迟 |
-| [chat-streaming-slash-tui](improvements/chat-streaming-slash-tui.md) | P1 | 原拆分 Wave 2（流式渲染 + CLI flag，blocked-by cli-args-cxxopts + chat-slash-commands-migration + provider-dynamic-discovery） | 2026-07-31 → 2026-08-05 改写 | 延迟 |
-| [session-tree-tui](improvements/session-tree-tui.md) | P2 | 原拆分 Wave 2（CLI flag 子集，blocked-by cli-args-cxxopts + session-tree-commands） | 2026-07-31 → 2026-08-05 改写 | 延迟 |
 | [chat-async-io-steering](improvements/chat-async-io-steering.md) | P2 | 同上 §八 L4-2 + §五 L1-4（steering/follow-up + /model 切换） | 2026-07-31 | 延迟 |
-| [cli-args-cxxopts](improvements/cli-args-cxxopts.md) | P2 | 同上 §八 L4-4（CLI 解析层重写, 3 天） | 2026-07-31 | 延迟 |
-| [provider-dynamic-discovery](improvements/provider-dynamic-discovery.md) | P2 | 同上 §五 L1-5 + §六 L2-1（provider 动态注册/refresh/switch） | 2026-07-31 | 延迟 |

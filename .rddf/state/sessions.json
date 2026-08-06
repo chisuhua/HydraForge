@@ -54,7 +54,45 @@
       "last_heartbeat": "2026-08-01T12:51:39.064733+00:00",
       "ended_at": "2026-08-01T13:18:41.802821+00:00",
       "end_reason": "arch-done"
+    },
+    {
+      "session_id": "rds_f3c23f5c1207",
+      "kind": "stage_design",
+      "owner_opencode_session_id": "my-eci-group-poc_316147",
+      "parent_session_id": null,
+      "goal": {
+        "intent": "guide-design"
+      },
+      "state": "completed",
+      "attached_changes": [],
+      "context_pointer": null,
+      "started_at": "2026-08-06T07:11:56.410528+00:00",
+      "last_heartbeat": "2026-08-06T07:11:56.410528+00:00",
+      "ended_at": "2026-08-06T07:11:56.438985+00:00",
+      "end_reason": "design-done",
+      "sub_phase": null,
+      "workflow_group": null
+    },
+    {
+      "session_id": "rds_690ec5f6d020",
+      "kind": "stage_plan",
+      "owner_opencode_session_id": "my-eci-group-poc_316147",
+      "parent_session_id": "rds_f3c23f5c1207",
+      "goal": {
+        "intent": "guide-plan",
+        "subject": "plan-phase",
+        "expected_outcome": "plan-done"
+      },
+      "state": "active",
+      "attached_changes": [],
+      "context_pointer": ".rddf/state/.plan-handoff.json",
+      "started_at": "2026-08-06T07:35:30.240456+00:00",
+      "last_heartbeat": "2026-08-06T07:35:30.240456+00:00",
+      "ended_at": null,
+      "end_reason": null,
+      "sub_phase": null,
+      "workflow_group": "f77df746-5f8d-4596-a36d-925b8d8c0521"
     }
   ],
-  "updated_at": "2026-08-05T11:11:31.886871+00:00"
+  "updated_at": "2026-08-06T07:35:30.240456+00:00"
 }

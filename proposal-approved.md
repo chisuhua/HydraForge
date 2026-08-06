@@ -7,6 +7,10 @@
 | [name](improvements/name.md) | priority | 来源 | 批准日期 | 批准人 |
 | --- | --- | --- | --- | --- |
 | （2 个 design-pre-created skeleton 待 fill — plan Phase 2.5 流程处理） | | | | |
+| [cli-args-cxxopts](improvements/cli-args-cxxopts.md) | P2 | 2026-08-06 | guide-arch |
+| [provider-dynamic-discovery](improvements/provider-dynamic-discovery.md) | P2 | 2026-08-06 | guide-arch |
+| [session-tree-tui](improvements/session-tree-tui.md) | P2 | 2026-08-06 | guide-arch |
+| [chat-streaming-slash-tui](improvements/chat-streaming-slash-tui.md) | P1 | 2026-08-06 | guide-arch |
 
 ## 已实施
 | [pdk-chat-demo-v1-recap](improvements/pdk-chat-demo-v1-recap.md) | P0 | 2026-07-27 | [Drift close 2026-08-05](openspec/changes/archive/2026-07-27-pdk-chat-demo-v1-recap/) — T1+T2 Session 持久化 + Budget 告警 + Schema 校验 99/99 ctest 全 PASS |
