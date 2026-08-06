@@ -305,3 +305,32 @@ add_test(
     COMMAND test_pdk_chat_unknown_command
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# test_session_tree_commands — /tree /fork /clone + session_fork/clone tools
+add_executable(test_session_tree_commands
+    test_session_tree_commands.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_session_tree_commands PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_session_tree_commands PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+target_compile_definitions(test_session_tree_commands PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_session_tree_commands
+    COMMAND test_session_tree_commands
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

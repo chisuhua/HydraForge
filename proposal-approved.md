@@ -11,8 +11,6 @@
 
 | [session-tree-commands](improvements/session-tree-commands.md) | P2 | 2026-08-05 | guide-arch |
 
-| [chat-slash-commands-migration](improvements/chat-slash-commands-migration.md) | P1 | 2026-08-05 | guide-arch |
-
 ## 已实施
 | [pdk-chat-demo-v1-recap](improvements/pdk-chat-demo-v1-recap.md) | P0 | 2026-07-27 | [Drift close 2026-08-05](openspec/changes/archive/2026-07-27-pdk-chat-demo-v1-recap/) — T1+T2 Session 持久化 + Budget 告警 + Schema 校验 99/99 ctest 全 PASS |
 | [pkm-temporal-demo-scaffold](improvements/pkm-temporal-demo-scaffold.md) | P0 | 2026-07-28 | [Drift close 2026-08-05](openspec/changes/archive/2026-07-28-pkm-temporal-demo-scaffold/) — ITemporalClient + 4 scenario + 9 test_temporal_*.cpp 全部 ship |
@@ -26,3 +24,4 @@
 | [tf-integration-coverage](improvements/tf-integration-coverage.md) | P1 | 2026-08-01 |
 | [fix-markdown-parser-yaml](improvements/fix-markdown-parser-yaml.md) | P1 | 2026-08-01 | Drift close 2026-08-06 — [archived 2026-08-04](openspec/changes/archive/2026-08-04-fix-markdown-parser-yaml/) ✅ ship |
 | [session-manager-jsonl](improvements/session-manager-jsonl.md) | P1 | 2026-08-01 | Drift close 2026-08-06 — [archived v1 2026-08-04](openspec/changes/archive/2026-08-04-session-manager-jsonl/) + [v2 2026-08-05](openspec/changes/archive/2026-08-05-session-manager-jsonl-v2/) ✅ ship |
+| [chat-slash-commands-migration](improvements/chat-slash-commands-migration.md) | P1 | 2026-08-06 | [archived 2026-08-06](openspec/changes/archive/2026-08-06-chat-slash-commands-migration/) ✅ ship — /model DECLARE_COMMAND + provider_switch_stub 工具 + main.cpp 零 hardcode + 3 新增测试 PASS; 122/123 ctest (1 expected live fail) |

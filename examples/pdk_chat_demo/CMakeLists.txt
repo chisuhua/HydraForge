@@ -12,7 +12,13 @@ set(SOURCES
     commands/help_command.cpp
     commands/compact_command.cpp
     commands/model_command.cpp
+    commands/tree_command.cpp
+    commands/fork_command.cpp
+    commands/clone_command.cpp
     tools/provider_switch_stub.cpp
+    tools/session_fork.cpp
+    tools/session_clone.cpp
+    tui/tree_renderer.cpp
 )
 
 set(HEADERS
@@ -23,7 +29,13 @@ set(HEADERS
     commands/help_command.h
     commands/compact_command.h
     commands/model_command.h
+    commands/tree_command.h
+    commands/fork_command.h
+    commands/clone_command.h
     tools/provider_switch_stub.h
+    tools/session_fork.h
+    tools/session_clone.h
+    tui/tree_renderer.h
 )
 
 # --- OBJECT library (shared between demo and tests) ---
@@ -33,6 +45,7 @@ target_include_directories(pdk_chat_demo_obj PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/commands
     ${CMAKE_CURRENT_SOURCE_DIR}/tools
+    ${CMAKE_CURRENT_SOURCE_DIR}/tui
 )
 target_link_libraries(pdk_chat_demo_obj PUBLIC
     agenticdsl_includes
@@ -47,6 +60,7 @@ target_include_directories(pdk_chat_demo PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/commands
     ${CMAKE_CURRENT_SOURCE_DIR}/tools
+    ${CMAKE_CURRENT_SOURCE_DIR}/tui
 )
 target_link_libraries(pdk_chat_demo PRIVATE
     pdk_chat_demo_obj

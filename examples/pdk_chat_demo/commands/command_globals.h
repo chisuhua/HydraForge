@@ -3,12 +3,13 @@
 #include <string>
 #include <unordered_map>
 
-namespace agenticdsl { class ToolCoordinator; class CommandRegistry; }
+namespace agenticdsl { class ToolCoordinator; class CommandRegistry; class SessionManager; }
 
 namespace pdk_chat_demo {
 
 extern agenticdsl::ToolCoordinator* g_command_coordinator;
 extern agenticdsl::CommandRegistry* g_command_registry;
+extern agenticdsl::SessionManager* g_session_manager;
 extern std::string g_current_command_input;
 
 inline constexpr const char* kCommandExitSentinel = "__CMD_EXIT__";

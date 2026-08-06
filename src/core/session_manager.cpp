@@ -273,6 +273,49 @@ std::vector<BranchMeta> SessionManager::list_branches() const {
   return out;
 }
 
+std::vector<SessionNode> SessionManager::list_all_nodes() const {
+  std::lock_guard<std::mutex> lock(index_mutex_);
+  std::vector<SessionNode> out;
+  out.reserve(nodes_.size());
+  for (const auto& kv : nodes_) out.push_back(kv.second);
+  return out;
+}
+
+std::optional<SessionNode> SessionManager::get_node_by_short_id(
+    const std::string& short_id) const {
+  if (short_id.empty()) return std::nullopt;
+  std::lock_guard<std::mutex> lock(index_mutex_);
+  std::optional<SessionNode> match;
+  for (const auto& kv : nodes_) {
+    if (kv.first.compare(0, short_id.size(), short_id) == 0) {
+      if (match.has_value()) return std::nullopt;
+      match = kv.second;
+    }
+  }
+  return match;
+}
+
+std::optional<std::pair<BranchMeta, SessionNode>> SessionManager::get_branch_leaf_node(
+    const std::string& branch_id) const {
+  if (branch_id.empty()) return std::nullopt;
+  std::lock_guard<std::mutex> lock(index_mutex_);
+  auto it = branches_.find(branch_id);
+  if (it == branches_.end()) return std::nullopt;
+  std::string leaf_id;
+  for (const auto& kv : nodes_) {
+    if (kv.second.branch_id != branch_id) continue;
+    auto child_it = children_.find(kv.first);
+    if (child_it == children_.end() || child_it->second.empty()) {
+      leaf_id = kv.first;
+      break;
+    }
+  }
+  if (leaf_id.empty()) return std::nullopt;
+  auto nit = nodes_.find(leaf_id);
+  if (nit == nodes_.end()) return std::nullopt;
+  return std::make_pair(it->second, nit->second);
+}
+
 // ==================== Task 3: fork / switch_branch / append_to_branch ====================
 std::string SessionManager::fork(const std::string& node_id, const std::string& name) {
   if (node_id.empty()) {

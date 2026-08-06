@@ -196,6 +196,16 @@ class SessionManager {
   /// @brief 从 in-memory 索引获取所有分支
   std::vector<BranchMeta> list_branches() const;
 
+  /// @brief 从 in-memory 索引获取所有节点 (O(N))
+  std::vector<SessionNode> list_all_nodes() const;
+
+  /// @brief 短前缀匹配节点 (8 字符), 歧义返回 nullopt
+  std::optional<SessionNode> get_node_by_short_id(const std::string& short_id) const;
+
+  /// @brief 返回分支元信息 + 该分支最新 leaf 节点
+  std::optional<std::pair<BranchMeta, SessionNode>> get_branch_leaf_node(
+      const std::string& branch_id) const;
+
   // ==================== Task 3: fork / switch_branch / append_to_branch ====================
   /// @brief 从指定节点 fork 新分支
   /// @param node_id fork 起始节点 (必须存在于索引)

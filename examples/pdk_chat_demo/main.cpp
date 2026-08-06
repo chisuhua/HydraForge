@@ -34,6 +34,8 @@
 
 #include <agenticdsl/skill/skill_interpreter.h>
 
+#include <core/session_manager.h>
+
 // adr-0070: DECLARE_COMMAND 治理路径 (L4 用户输入层入口, 区别于 L2 Tool)
 #include <common/tools/command_registry.h>
 #include <common/tools/tool_coordinator.h>
@@ -42,7 +44,12 @@
 #include "commands/help_command.h"
 #include "commands/compact_command.h"
 #include "commands/model_command.h"
+#include "commands/tree_command.h"
+#include "commands/fork_command.h"
+#include "commands/clone_command.h"
 #include "tools/provider_switch_stub.h"
+#include "tools/session_fork.h"
+#include "tools/session_clone.h"
 
 #include <fstream>
 #include <sstream>
@@ -404,10 +411,24 @@ int main(int argc, char* argv[]) {
     agenticdsl::CommandRegistry command_registry(coord_ptr);
     pdk_chat_demo::g_command_coordinator = coord_ptr;
     pdk_chat_demo::g_command_registry = &command_registry;
+
+    auto session_manager = std::make_unique<agenticdsl::SessionManager>(
+        fs::path(config.session.persist_dir));
+    session_manager->open(config.session.persist_dir.empty()
+                              ? std::string("default")
+                              : fs::path(config.session.persist_dir).filename().string());
+    pdk_chat_demo::g_session_manager = session_manager.get();
+
     pdk_chat_demo::register_provider_switch_stub_tool(engine->get_tool_registry());
+    pdk_chat_demo::register_session_fork_tool(engine->get_tool_registry());
+    pdk_chat_demo::register_session_clone_tool(engine->get_tool_registry());
+
     command_registry.register_command(pdk_chat_demo::make_help_command_spec());
     command_registry.register_command(pdk_chat_demo::make_compact_command_spec());
     command_registry.register_command(pdk_chat_demo::make_model_command_spec());
+    command_registry.register_command(pdk_chat_demo::make_tree_command_spec());
+    command_registry.register_command(pdk_chat_demo::make_fork_command_spec());
+    command_registry.register_command(pdk_chat_demo::make_clone_command_spec());
 
     std::cout << std::endl << "User> " << std::flush;
 

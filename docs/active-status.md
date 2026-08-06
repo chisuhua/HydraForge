@@ -11,7 +11,7 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **123/123** (2026-08-06 实测: `cd build && ctest` → 1 失败 / 122 PASS; 含 adr-0069 `test_tool_coordinator_hooks` 8 cases + `test_budget_agent_hooks` 1 case, adr-0070 `test_command_registry` 10 cases; 1 失败: `test_e2e_real_llm` 需真实 LLM API key (本机无 QIANFAN_API_KEY); `test_cost_tracking_decorator` pre-existing 已修复通过; `test_pdk_chat_model_command` + `test_pdk_chat_unknown_command` + `test_main_hardcode_audit` 新增 PASS) |
+| **Total ctest** | **125/125** (2026-08-06 实测: `cd build && ctest` → 1 失败 / 124 PASS; 含 adr-0069 `test_tool_coordinator_hooks` 8 cases + `test_budget_agent_hooks` 1 case, adr-0070 `test_command_registry` 10 cases; 1 失败: `test_e2e_real_llm` 需真实 LLM API key (本机无 QIANFAN_API_KEY); `test_cost_tracking_decorator` pre-existing 已修复通过; `test_pdk_chat_model_command` + `test_pdk_chat_unknown_command` + `test_main_hardcode_audit` + `test_session_tree_read_api` + `test_session_tree_commands` 新增 PASS) |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
 | **OpenSpec active** | **2** (`chat-slash-commands-migration` + `session-tree-commands` 已 plan, 进入 ship 阶段) |
