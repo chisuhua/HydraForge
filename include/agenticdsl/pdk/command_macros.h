@@ -34,3 +34,14 @@ struct CommandContext {
 };
 
 }  // namespace hydraforge::pdk
+
+#define DECLARE_COMMAND(cmd_name, description, ...) \
+  inline hydraforge::pdk::CommandSpec make_##cmd_name##_command_spec() { \
+    hydraforge::pdk::CommandSpec spec; \
+    spec.name = "/" #cmd_name; \
+    spec.description = description; \
+    spec.usage = "/" #cmd_name " [args]"; \
+    spec.plugin_origin = "pdk_chat_demo"; \
+    spec.handler = __VA_ARGS__; \
+    return spec; \
+  }

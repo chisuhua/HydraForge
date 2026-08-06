@@ -247,3 +247,61 @@ add_test(
 set_tests_properties(test_e2e_real_llm PROPERTIES
     ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk"
 )
+
+# test_pdk_chat_model_command — /model DECLARE_COMMAND + provider_switch_stub tool
+add_executable(test_pdk_chat_model_command
+    test_pdk_chat_model_command.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_pdk_chat_model_command PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_pdk_chat_model_command PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+target_compile_definitions(test_pdk_chat_model_command PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_pdk_chat_model_command
+    COMMAND test_pdk_chat_model_command
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# test_pdk_chat_unknown_command — unknown slash command handling + /exit sentinel
+add_executable(test_pdk_chat_unknown_command
+    test_pdk_chat_unknown_command.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_pdk_chat_unknown_command PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_pdk_chat_unknown_command PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+target_compile_definitions(test_pdk_chat_unknown_command PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_pdk_chat_unknown_command
+    COMMAND test_pdk_chat_unknown_command
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

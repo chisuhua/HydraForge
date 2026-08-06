@@ -38,7 +38,11 @@
 #include <common/tools/command_registry.h>
 #include <common/tools/tool_coordinator.h>
 #include <common/policy/agent_mode_policy.h>
-#include <agenticdsl/pdk/command_macros.h>
+#include "commands/command_globals.h"
+#include "commands/help_command.h"
+#include "commands/compact_command.h"
+#include "commands/model_command.h"
+#include "tools/provider_switch_stub.h"
 
 #include <fstream>
 #include <sstream>
@@ -398,27 +402,12 @@ int main(int argc, char* argv[]) {
     std::cout << "[main] tool_coordinator: enabled" << std::endl;
 
     agenticdsl::CommandRegistry command_registry(coord_ptr);
-
-    // /compact — 委托 session/compact 工具 (仅经 ToolCoordinator 治理路径)
-    hydraforge::pdk::CommandSpec compact_spec;
-    compact_spec.name = "/compact";
-    compact_spec.description = "compress the current session transcript";
-    compact_spec.usage = "/compact [max_tokens]";
-    compact_spec.plugin_origin = "pdk_chat_demo";
-    compact_spec.handler = [coord_ptr](agenticdsl::ToolCallContext& tctx) -> std::string {
-        if (coord_ptr == nullptr) return "error: ToolCoordinator not injected";
-        agenticdsl::ToolMetadata meta;
-        meta.name = "session/compact";
-        meta.description = "LLM 压缩会话历史";
-        meta.domain = "plugin";
-        tctx.session_id = tctx.session_id.empty() ? "main" : tctx.session_id;
-        tctx.caller_layer = "workflow";
-        auto r = coord_ptr->execute(meta, tctx,
-            {{"session_id", tctx.session_id}, {"max_tokens", "4000"}});
-        return r.ok ? ("compacted: " + r.data.dump())
-                    : ("error: " + r.meta.dump());
-    };
-    command_registry.register_command(compact_spec);
+    pdk_chat_demo::g_command_coordinator = coord_ptr;
+    pdk_chat_demo::g_command_registry = &command_registry;
+    pdk_chat_demo::register_provider_switch_stub_tool(engine->get_tool_registry());
+    command_registry.register_command(pdk_chat_demo::make_help_command_spec());
+    command_registry.register_command(pdk_chat_demo::make_compact_command_spec());
+    command_registry.register_command(pdk_chat_demo::make_model_command_spec());
 
     std::cout << std::endl << "User> " << std::flush;
 
@@ -430,22 +419,35 @@ int main(int argc, char* argv[]) {
 
     std::string input;
     while (std::getline(std::cin, input)) {
-        // adr-0070: `/` 前缀统一分发给 CommandRegistry; 保留字 /exit 退出
         if (!input.empty() && input.front() == '/') {
-            if (input == "/exit" || input.rfind("/exit ", 0) == 0) break;
+            if (input == pdk_chat_demo::kExitCommand ||
+                input.rfind(std::string(pdk_chat_demo::kExitCommand) + " ", 0) == 0) {
+                break;
+            }
             auto spec = command_registry.resolve_command(input);
             if (spec) {
                 hydraforge::pdk::CommandContext ctx;
                 ctx.user_input = input;
                 ctx.tool_coordinator = coord_ptr;
+                pdk_chat_demo::g_current_command_input = input;
+                std::string output;
                 try {
-                    std::cout << spec->handler(ctx.tool_ctx) << std::endl;
+                    output = spec->handler(ctx.tool_ctx);
                 } catch (const std::exception& e) {
-                    std::cout << "[command error] " << e.what() << std::endl;
+                    output = std::string("[command error] ") + e.what();
                 }
+                if (output == pdk_chat_demo::kCommandExitSentinel) {
+                    break;
+                }
+                std::cout << output << std::endl;
             } else {
-                std::cout << "[unknown command] " << input
-                          << " — type /help to list commands" << std::endl;
+                std::string name;
+                auto pos = input.find(' ');
+                auto part = (pos == std::string::npos) ? input.substr(1)
+                                                       : input.substr(1, pos - 1);
+                if (!part.empty()) name = part;
+                std::cout << "unknown command: /" << name
+                          << ". Type /help for list of commands." << std::endl;
             }
             std::cout << std::endl << "User> " << std::flush;
             continue;

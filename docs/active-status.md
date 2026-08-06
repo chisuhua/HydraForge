@@ -11,10 +11,10 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **115/115** (2026-08-04 实测: `cd build && ctest` → 2 失败 / 113 PASS; 含 adr-0069 `test_tool_coordinator_hooks` 8 cases + `test_budget_agent_hooks` 1 case, adr-0070 `test_command_registry` 10 cases; 2 失败: `test_e2e_real_llm` 需真实 LLM API key (本机无 QIANFAN_API_KEY) + `test_cost_tracking_decorator` pre-existing, commit `514c441` Phase 5 call-chain-v2 引入, 文档化跟踪) |
+| **Total ctest** | **123/123** (2026-08-06 实测: `cd build && ctest` → 1 失败 / 122 PASS; 含 adr-0069 `test_tool_coordinator_hooks` 8 cases + `test_budget_agent_hooks` 1 case, adr-0070 `test_command_registry` 10 cases; 1 失败: `test_e2e_real_llm` 需真实 LLM API key (本机无 QIANFAN_API_KEY); `test_cost_tracking_decorator` pre-existing 已修复通过; `test_pdk_chat_model_command` + `test_pdk_chat_unknown_command` + `test_main_hardcode_audit` 新增 PASS) |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
-| **OpenSpec active** | **0** (Phase 6 采用 plan + commit 模式, 不创建 OpenSpec changes) |
+| **OpenSpec active** | **2** (`chat-slash-commands-migration` + `session-tree-commands` 已 plan, 进入 ship 阶段) |
 | **ADR Approved** | **41** (主 34: Phase 0-5 16 + Phase 6 17 [0050/0051/0052-0065/0067] + **ADR-0068** Wave 1 收官; plugin 1; skill 子项 6) |
 | **ADR 🔍 Proposed** | **13** (主 7: 0038/0039/0042/0045/0046/0069/0070; skill 子项 6: 0061-07~12) — ADR-0068 (D2) **已转 ✅ Approved** (2026-08-03 V2 收官); ADR-0069 (D3) / ADR-0070 (D4) 仍 Proposed |
 | **Completed Phase 0-4** | ✅ 100% |
@@ -26,9 +26,14 @@
 
 ## 二、活跃变更一览
 
-### 🔵 当前活跃 (0 个)
+### 🔵 当前活跃 (2 个)
 
-> Phase 6 决定**不采用 OpenSpec change 仪式**启动 (Solo dev 管理简化), 改用 **直接 plan + 直接 commit** 模式。ADR 文档记录决策但无 openspec/ 变更目录。详见 [`docs/GOVERNANCE.md`](GOVERNANCE.md) docs→tasks 驱动流程。
+| ID | 名称 | 阶段 | 状态 | 最后更新 |
+|----|------|------|:----:|:--------:|
+| **P6-W1** | chat-slash-commands-migration (`chat-slash-commands-migration`) | 🔨 编码 | `/model` DECLARE_COMMAND + provider_switch_stub 工具 + main.cpp 零 hardcode + 3 新增测试 PASS; 待 commit + archive | 2026-08-06 |
+| **P6-W1** | session-tree-commands (`session-tree-commands`) | 📋 Plan | `.rddf/plans/session-tree-commands.md` 已生成, 待执行 | 2026-08-06 |
+
+> Phase 6 当前采用 OpenSpec change 仪式管理 2 个 Wave 1 changes, plan 已完成, 进入 ship 阶段。
 
 ### ✅ 已归档 (历史参考)
 

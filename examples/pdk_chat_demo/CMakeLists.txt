@@ -8,12 +8,22 @@ set(SOURCES
     chat_session.cpp
     event_handler.cpp
     dsl_validator.cpp
+    commands/command_globals.cpp
+    commands/help_command.cpp
+    commands/compact_command.cpp
+    commands/model_command.cpp
+    tools/provider_switch_stub.cpp
 )
 
 set(HEADERS
     chat_session.h
     event_handler.h
     dsl_validator.h
+    commands/command_globals.h
+    commands/help_command.h
+    commands/compact_command.h
+    commands/model_command.h
+    tools/provider_switch_stub.h
 )
 
 # --- OBJECT library (shared between demo and tests) ---
@@ -21,6 +31,8 @@ add_library(pdk_chat_demo_obj OBJECT ${SOURCES} ${HEADERS})
 
 target_include_directories(pdk_chat_demo_obj PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/commands
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools
 )
 target_link_libraries(pdk_chat_demo_obj PUBLIC
     agenticdsl_includes
@@ -33,6 +45,8 @@ add_executable(pdk_chat_demo main.cpp)
 
 target_include_directories(pdk_chat_demo PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/commands
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools
 )
 target_link_libraries(pdk_chat_demo PRIVATE
     pdk_chat_demo_obj

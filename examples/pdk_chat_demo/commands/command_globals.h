@@ -1,0 +1,17 @@
+#pragma once
+
+#include <string>
+#include <unordered_map>
+
+namespace agenticdsl { class ToolCoordinator; class CommandRegistry; }
+
+namespace pdk_chat_demo {
+
+extern agenticdsl::ToolCoordinator* g_command_coordinator;
+extern agenticdsl::CommandRegistry* g_command_registry;
+extern std::string g_current_command_input;
+
+inline constexpr const char* kCommandExitSentinel = "__CMD_EXIT__";
+inline constexpr const char kExitCommand[] = "/exit";
+
+}  // namespace pdk_chat_demo
