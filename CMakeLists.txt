@@ -46,6 +46,9 @@ set(TF_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(TF_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/taskflow)
 
+# cxxopts vendored target (hydraforge_cxxopts) — header-only, offline, no network
+add_subdirectory(external)
+
 # async_simple 已 deprecated (C2 Day 1-2 移除, ADR-0030 V2 决策: std::jthread 替代)
 # external/ 不再加载 (async_simple 目录保留 git 历史)
 # 原代码: add_subdirectory(external)
