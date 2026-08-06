@@ -160,23 +160,27 @@
     },
     {
       "name": "cli-args-cxxopts",
-      "status": "proposed",
+      "status": "archived",
       "phase": "wave-3",
       "category": "demo-chat-v2",
       "added_at": "2026-08-06T15:00:56+0800",
       "priority": "P2",
       "parallel_group": 0,
-      "blocker": null
+      "blocker": null,
+      "archived_at": "2026-08-06T22:00:00+00:00",
+      "tasks_total": 32
     },
     {
       "name": "provider-dynamic-discovery",
-      "status": "proposed",
+      "status": "archived",
       "phase": "wave-3",
       "category": "core-impl",
       "added_at": "2026-08-06T15:00:57+0800",
       "priority": "P2",
       "parallel_group": 0,
-      "blocker": null
+      "blocker": null,
+      "archived_at": "2026-08-06T22:00:00+00:00",
+      "tasks_total": 32
     },
     {
       "name": "session-tree-tui",
