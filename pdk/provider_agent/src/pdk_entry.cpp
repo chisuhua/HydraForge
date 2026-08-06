@@ -99,12 +99,12 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
         }
     );
 
-    // 3. provider/list
+    // 3. provider/list (extended for dynamic discovery)
     registry.register_tool_function(
         "provider/list",
         ::agenticdsl::ToolMetadata{
             .name = "provider/list",
-            .description = "List registered providers",
+            .description = "List registered providers and current default",
             .domain = "provider",
             .category = ::agenticdsl::ToolCategory::ReadOnly,
             .min_layer = ::agenticdsl::LayerProfile::Workflow,
@@ -116,8 +116,20 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
             },
             .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
         },
-        [&reg](const std::unordered_map<std::string, std::string>& /*args*/) -> nlohmann::json {
-            return {{"providers", reg.list_providers()}};
+        [&reg](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+          const auto& selected = str_arg(args, "selected_default");
+          nlohmann::json providers = nlohmann::json::array();
+          for (const auto& id : reg.list_providers()) {
+            nlohmann::json entry;
+            entry["id"] = id;
+            entry["models"] = reg.list_models(id);
+            entry["removed"] = reg.removed_models(id);
+            entry["last_refresh"] = reg.last_refresh_for(id);
+            entry["stale"] = reg.last_refresh_for(id).empty();
+            if (!selected.empty()) entry["current"] = (id == selected);
+            providers.push_back(std::move(entry));
+          }
+          return {{"providers", providers}};
         }
     );
 
@@ -144,6 +156,91 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                 throw std::runtime_error("provider_id is required");
             }
             return reg.health(provider_id);
+        }
+    );
+
+    // 5. provider/refresh (NEW)
+    registry.register_tool_function(
+        "provider/refresh",
+        ::agenticdsl::ToolMetadata{
+            .name = "provider/refresh",
+            .description = "Refresh model catalog from provider upstream API",
+            .domain = "provider",
+            .category = ::agenticdsl::ToolCategory::StateModify,
+            .min_layer = ::agenticdsl::LayerProfile::Workflow,
+            .approval = ::agenticdsl::ApprovalPolicy{
+                .requires_approval_in_plan = true,
+                .requires_approval_in_agent = true,
+                .requires_approval_in_yolo = false,
+                .force_approval_always = true
+            },
+            .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
+        },
+        [&reg](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+          const std::string id = str_arg(args, "provider_id");
+          if (id.empty()) throw std::runtime_error("provider_id is required");
+          auto r = reg.refresh(id);
+          nlohmann::json out = {
+              {"ok", r.ok}, {"provider", r.provider},
+              {"added", r.added}, {"removed", r.removed},
+              {"model_count", r.model_count}, {"last_refresh", r.last_refresh}
+          };
+          if (!r.warning.empty()) out["warning"] = r.warning;
+          if (!r.error_code.empty()) out["error_code"] = r.error_code;
+          return out;
+        }
+    );
+
+    registry.register_tool_function(
+        "provider/register_dynamic",
+        ::agenticdsl::ToolMetadata{
+            .name = "provider/register_dynamic",
+            .description = "Register a provider definition at runtime",
+            .domain = "provider",
+            .category = ::agenticdsl::ToolCategory::StateModify,
+            .min_layer = ::agenticdsl::LayerProfile::Workflow,
+            .approval = ::agenticdsl::ApprovalPolicy{
+                .requires_approval_in_plan = true,
+                .requires_approval_in_agent = true,
+                .requires_approval_in_yolo = false,
+                .force_approval_always = true
+            },
+            .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
+        },
+        [&reg](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+          nlohmann::json j = json_arg(args, "args");
+          if (j.is_null()) j = nlohmann::json::object();
+          auto& slot = pdk_provider_agent::factory_slot();
+          if (!slot) {
+            return nlohmann::json{{"ok", false}, {"error_code", "factory-not-set"}};
+          }
+          return pdk_provider_agent::invoke_register_dynamic_tool(*slot, reg, j);
+        }
+    );
+
+    registry.register_tool_function(
+        "provider/switch",
+        ::agenticdsl::ToolMetadata{
+            .name = "provider/switch",
+            .description = "Switch default provider at runtime",
+            .domain = "provider",
+            .category = ::agenticdsl::ToolCategory::StateModify,
+            .min_layer = ::agenticdsl::LayerProfile::Workflow,
+            .approval = ::agenticdsl::ApprovalPolicy{
+                .requires_approval_in_plan = true,
+                .requires_approval_in_agent = true,
+                .requires_approval_in_yolo = false,
+                .force_approval_always = true
+            },
+            .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
+        },
+        [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+          const std::string target = str_arg(args, "provider_name");
+          auto& slot = pdk_provider_agent::factory_slot();
+          if (!slot) {
+            return nlohmann::json{{"ok", false}, {"error_code", "factory-not-set"}};
+          }
+          return pdk_provider_agent::invoke_switch_tool(*slot, target);
         }
     );
 }

@@ -142,3 +142,78 @@ TEST_CASE("LLMProviderFactory concurrent create() thread-safe", "[provider_facto
   // P2.C: 兜底契约保证永不返回 nullptr
   CHECK(null_count.load() == 0);
 }
+
+// ============================================================
+// 7. LLMProviderFactory 动态注册: 运行时注册后立即创建
+// ============================================================
+TEST_CASE("LLMProviderFactory registers and creates a dynamic provider",
+          "[provider_factory][dynamic]") {
+  LLMProviderFactory factory;
+  std::atomic<int> calls{0};
+  const bool registered = factory.register_dynamic(
+      "runtime-provider",
+      [&calls](const LLMConfig& config) {
+        calls.fetch_add(1);
+        (void)config;
+        return std::make_unique<MockLLMProvider>();
+      });
+  REQUIRE(registered);
+
+  LLMConfig config;
+  config.provider = "runtime-provider";
+  auto provider = factory.create(config);
+  REQUIRE(provider != nullptr);
+  CHECK(calls.load() == 1);
+  CHECK(factory.has_dynamic("runtime-provider"));
+  CHECK(factory.dynamic_names() == std::vector<std::string>{"runtime-provider"});
+  CHECK(factory.current_default().empty());
+}
+
+// ============================================================
+// 8. LLMProviderFactory 拒绝无效和重复的动态提供者
+// ============================================================
+TEST_CASE("LLMProviderFactory rejects invalid and duplicate dynamic providers",
+          "[provider_factory][dynamic]") {
+  LLMProviderFactory factory;
+  LLMProviderFactory::DynamicFactoryFn null_fn;
+  CHECK_FALSE(factory.register_dynamic("", null_fn));
+  CHECK_FALSE(factory.register_dynamic("runtime-provider", null_fn));
+  CHECK(factory.dynamic_names().empty());
+
+  auto callback = [](const LLMConfig& config) {
+    (void)config;
+    return std::make_unique<MockLLMProvider>();
+  };
+  REQUIRE(factory.register_dynamic("runtime-provider", callback));
+  CHECK_FALSE(factory.register_dynamic("runtime-provider", callback));
+  CHECK(factory.dynamic_names().size() == 1);
+  CHECK_FALSE(factory.register_dynamic("openai", callback));  // reserved backend
+}
+
+// ============================================================
+// 9. LLMProviderFactory 动态默认仅在 provider 为空时生效
+// ============================================================
+TEST_CASE("LLMProviderFactory dynamic default applies only for empty provider",
+          "[provider_factory][dynamic]") {
+  LLMProviderFactory factory;
+  REQUIRE(factory.register_dynamic(
+      "runtime-provider",
+      [](const LLMConfig& config) {
+        (void)config;
+        return std::make_unique<MockLLMProvider>();
+      }));
+  REQUIRE(factory.switch_default("runtime-provider"));
+  CHECK(factory.current_default() == "runtime-provider");
+
+  LLMConfig empty_cfg;
+  empty_cfg.provider.clear();
+  auto a = factory.create(empty_cfg);
+  REQUIRE(a != nullptr);
+  CHECK(dynamic_cast<MockLLMProvider*>(a.get()) != nullptr);
+
+  LLMConfig explicit_cfg;
+  explicit_cfg.provider = "openai";
+  auto b = factory.create(explicit_cfg);
+  REQUIRE(b != nullptr);
+  CHECK(dynamic_cast<MockLLMProvider*>(b.get()) == nullptr);  // routes to cloud, not dynamic
+}
