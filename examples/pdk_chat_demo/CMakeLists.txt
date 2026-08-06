@@ -8,6 +8,7 @@ set(SOURCES
     chat_session.cpp
     event_handler.cpp
     dsl_validator.cpp
+    cli_args_parser.cpp
     commands/command_globals.cpp
     commands/help_command.cpp
     commands/compact_command.cpp
@@ -25,6 +26,8 @@ set(HEADERS
     chat_session.h
     event_handler.h
     dsl_validator.h
+    cli_options.h
+    cli_args_parser.h
     commands/command_globals.h
     commands/help_command.h
     commands/compact_command.h
@@ -50,6 +53,7 @@ target_include_directories(pdk_chat_demo_obj PRIVATE
 target_link_libraries(pdk_chat_demo_obj PUBLIC
     agenticdsl_includes
     hydraforge_pdk
+    hydraforge_cxxopts
     Threads::Threads
 )
 

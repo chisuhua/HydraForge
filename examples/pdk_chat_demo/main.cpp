@@ -13,6 +13,7 @@
 #include <nlohmann/json.hpp>
 
 #include "chat_session.h"
+#include "cli_args_parser.h"
 #include "dsl_validator.h"
 #include "event_handler.h"
 
@@ -86,18 +87,12 @@ int main(int argc, char* argv[]) {
         return agenticdsl::skill_child_main(argc, argv);
     }
 
-    bool mock_mode = (argc > 1 && std::string(argv[1]) == "--mock");
-
-    // T1.3: --session <id> CLI flag
-    std::string session_id_to_load;
-    {
-        std::vector<std::string> args(argv + 1, argv + argc);
-        for (size_t i = 0; i + 1 < args.size(); ++i) {
-            if (args[i] == "--session") {
-                session_id_to_load = args[i + 1];
-            }
-        }
-    }
+    const auto cli = pdk_chat_demo::parse_cli_args(argc, argv);
+    if (!cli.ok) { std::cerr << "[main] " << cli.error << std::endl; return 2; }
+    if (cli.show_help) { std::cout << cli.help << std::endl; return 0; }
+    const auto& cli_options = cli.options;
+    const bool mock_mode = cli_options.mock;
+    const std::string& session_id_to_load = cli_options.session_id;
 
     // ============================================================
     // 1. 解析配置
@@ -105,6 +100,7 @@ int main(int argc, char* argv[]) {
     pdk_chat_demo::ChatConfig config;
     try {
         config = pdk_chat_demo::ChatConfig::from_json("config.json");
+        if (!cli_options.provider.empty()) config.agent.provider = cli_options.provider;
         config.validate();
         if (mock_mode) {
             config.override_provider("mock", "test");

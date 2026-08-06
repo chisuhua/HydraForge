@@ -12,6 +12,7 @@ target_link_libraries(test_chat_session PRIVATE
     agenticdsl_includes
     agenticdsl_core
     hydraforge_pdk
+    hydraforge_cxxopts
     Threads::Threads
 )
 target_include_directories(test_chat_session PRIVATE
@@ -25,6 +26,62 @@ add_test(
     NAME test_chat_session
     COMMAND test_chat_session
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}  # config.json is here (../ relative to tests/)
+)
+
+# test_cli_args_parser - CLI parser unit tests (Task 1-2)
+add_executable(test_cli_args_parser
+    test_cli_args_parser.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_cli_args_parser PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    hydraforge_cxxopts
+    Threads::Threads
+)
+target_include_directories(test_cli_args_parser PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+target_compile_definitions(test_cli_args_parser PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_cli_args_parser
+    COMMAND test_cli_args_parser
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# test_pdk_chat_demo_cli_args - E2E CLI process tests (Task 3)
+add_executable(test_pdk_chat_demo_cli_args
+    test_pdk_chat_demo_cli_args.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_pdk_chat_demo_cli_args PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    hydraforge_cxxopts
+    Threads::Threads
+)
+target_include_directories(test_pdk_chat_demo_cli_args PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+target_compile_definitions(test_pdk_chat_demo_cli_args PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+    PDK_CHAT_DEMO_PATH="${PROJECT_BINARY_DIR}/examples/pdk_chat_demo/pdk_chat_demo"
+)
+target_link_options(test_pdk_chat_demo_cli_args PRIVATE -Wl,--export-dynamic)
+add_test(
+    NAME test_pdk_chat_demo_cli_args
+    COMMAND test_pdk_chat_demo_cli_args
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/..
 )
 
 # test_chat_session_events - ADR-0068 §4: session.persisted + EventBuilder migration
