@@ -128,6 +128,12 @@ int main(int argc, char* argv[]) {
             std::cout << "[main] Live mode: provider=" << config.agent.provider
                       << ", model=" << config.agent.model << std::endl;
         }
+        if (!cli_options.system_prompt.empty() || !cli_options.append_system_prompt.empty()) {
+            config.override_system_prompt(cli_options.system_prompt,
+                                           cli_options.append_system_prompt);
+            std::cout << "[main] System prompt overridden (len="
+                      << config.agent.system_prompt.size() << ")" << std::endl;
+        }
     } catch (const std::exception& e) {
         std::cerr << "[main] Failed to load config: " << e.what() << std::endl;
         return 1;

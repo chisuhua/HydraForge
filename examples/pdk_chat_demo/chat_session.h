@@ -72,6 +72,9 @@ struct ChatConfig {
     // 切换到 mock provider (--mock flag)
     void override_provider(const std::string& provider, const std::string& model);
 
+    void override_system_prompt(const std::string& overwrite,
+                                const std::string& append);
+
     // 校验 manifest（schema 必填字段）
     void validate() const;
 };

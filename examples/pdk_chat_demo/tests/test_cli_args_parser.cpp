@@ -22,9 +22,9 @@ TEST_CASE("parser accepts mock mode", "[cli][stage3]") {
   CHECK_FALSE(result.options.offline);
 }
 
-TEST_CASE("declaration table contains exactly the seven flags", "[cli][stage3]") {
+TEST_CASE("declaration table contains exactly the nine flags", "[cli][stage3]") {
   const auto& table = pdk_chat_demo::cli_flag_declarations();
-  REQUIRE(table.size() == 7);
+  REQUIRE(table.size() == 9);
   CHECK(table[0].long_name == "mock");
   CHECK(table[1].long_name == "session");
   CHECK(table[2].long_name == "print");
@@ -126,4 +126,45 @@ TEST_CASE("--fork missing value at end-of-args is rejected", "[cli][stage3][sess
   const auto result = pdk_chat_demo::parse_cli_args(2, argv);
   CHECK_FALSE(result.ok);
   CHECK(result.error.find("--help") != std::string::npos);
+}
+
+TEST_CASE("--system-prompt overwrites default via cli flag", "[cli_parser][system_prompt]") {
+  char a[] = "pdk_chat_demo";
+  char b[] = "--system-prompt";
+  char c[] = "Be terse.";
+  char* argv[] = {a, b, c};
+  const auto r = pdk_chat_demo::parse_cli_args(3, argv);
+  REQUIRE(r.ok);
+  REQUIRE(r.options.system_prompt == "Be terse.");
+  REQUIRE(r.options.append_system_prompt.empty());
+}
+
+TEST_CASE("--append-system-prompt sets only append field", "[cli_parser][system_prompt]") {
+  char a[] = "pdk_chat_demo";
+  char b[] = "--append-system-prompt";
+  char c[] = "Always end with a joke.";
+  char* argv[] = {a, b, c};
+  const auto r = pdk_chat_demo::parse_cli_args(3, argv);
+  REQUIRE(r.ok);
+  REQUIRE(r.options.system_prompt.empty());
+  REQUIRE(r.options.append_system_prompt == "Always end with a joke.");
+}
+
+TEST_CASE("--help mentions both system-prompt flags", "[cli_parser][system_prompt][help]") {
+  char a[] = "pdk_chat_demo";
+  char b[] = "--help";
+  char* argv[] = {a, b};
+  const auto r = pdk_chat_demo::parse_cli_args(2, argv);
+  REQUIRE(r.show_help);
+  CHECK(r.help.find("--system-prompt") != std::string::npos);
+  CHECK(r.help.find("--append-system-prompt") != std::string::npos);
+}
+
+TEST_CASE("missing value after --system-prompt returns error with help", "[cli_parser][system_prompt]") {
+  char a[] = "pdk_chat_demo";
+  char b[] = "--system-prompt";
+  char* argv[] = {a, b};
+  const auto r = pdk_chat_demo::parse_cli_args(2, argv);
+  CHECK_FALSE(r.ok);
+  CHECK(r.error.find("--help") != std::string::npos);
 }

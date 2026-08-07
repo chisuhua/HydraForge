@@ -10,6 +10,8 @@ struct CliOptions {
   std::string provider;
   std::string fork_node_id;
   std::string session_name;
+  std::string system_prompt;
+  std::string append_system_prompt;
 };
 struct CliParseResult {
   bool ok = false;
