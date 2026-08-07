@@ -190,13 +190,16 @@
     },
     {
       "name": "session-tree-tui",
-      "status": "proposed",
+      "status": "in_worktree",
       "phase": "wave-2",
       "category": "demo-chat-v2",
       "added_at": "2026-08-06T15:00:57+0800",
       "priority": "P2",
       "parallel_group": 1,
-      "blocker": null
+      "blocker": null,
+      "plan_path": ".rddf/plans/session-tree-tui.md",
+      "worktree_path": ".rddf/wt/session-tree-tui",
+      "tasks_total": 30
     },
     {
       "name": "chat-streaming-slash-tui",

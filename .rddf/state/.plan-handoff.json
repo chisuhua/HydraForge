@@ -209,5 +209,5 @@
     "ship_started_at_prev": "N/A (Wave 1 shipped via direct commit, not via guide-ship worktree)",
     "note": "This handoff supersedes the previous one; Wave 1 (chat-slash-commands-migration + session-tree-commands) archived 2026-08-06. Iteration.json had stale status=proposed for archived changes \u2014 cleaned up in plan-done drift cleanup (schema v4\u2192v5 migration stripped fields)."
   },
-  "ship_started_at": "2026-08-06T09:58:48.725822+00:00"
+  "ship_started_at": "2026-08-07T02:57:29.115701+00:00"
 }

@@ -83,16 +83,36 @@
         "subject": "plan-phase",
         "expected_outcome": "plan-done"
       },
-      "state": "active",
+      "state": "orphaned",
       "attached_changes": [],
       "context_pointer": ".rddf/state/.plan-handoff.json",
       "started_at": "2026-08-06T07:35:30.240456+00:00",
       "last_heartbeat": "2026-08-06T07:35:30.240456+00:00",
+      "ended_at": "2026-08-07T02:49:37.935473+00:00",
+      "end_reason": "heartbeat-timeout",
+      "sub_phase": null,
+      "workflow_group": "f77df746-5f8d-4596-a36d-925b8d8c0521"
+    },
+    {
+      "session_id": "rds_018c5efb8cc8",
+      "kind": "stage_ship",
+      "owner_opencode_session_id": "my-eci-group-poc_924327",
+      "parent_session_id": "rds_690ec5f6d020",
+      "goal": {
+        "intent": "guide-ship",
+        "subject": "ship-phase",
+        "expected_outcome": "archive-all"
+      },
+      "state": "active",
+      "attached_changes": [],
+      "context_pointer": null,
+      "started_at": "2026-08-07T02:49:38.079138+00:00",
+      "last_heartbeat": "2026-08-07T02:49:38.079138+00:00",
       "ended_at": null,
       "end_reason": null,
       "sub_phase": null,
-      "workflow_group": "f77df746-5f8d-4596-a36d-925b8d8c0521"
+      "workflow_group": "768fb844-d5bf-4c2c-ae25-667538baa564"
     }
   ],
-  "updated_at": "2026-08-06T07:35:30.240456+00:00"
+  "updated_at": "2026-08-07T02:49:38.079138+00:00"
 }
