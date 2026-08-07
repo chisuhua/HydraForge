@@ -1,5 +1,7 @@
 # session-tree-commands Implementation Plan
 
+> ⚠️ **HISTORICAL LEFTOVER** (2026-08-07 audit): This plan was generated for an earlier Wave 1 attempt at session tree commands. The actual production implementation is the separate OpenSpec change `session-tree-tui` (shipped + archived 2026-08-07). This file is retained for historical reference only and should NOT be executed. See `openspec/changes/archive/2026-08-07-session-tree-tui/` for the canonical implementation.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use skill_use("execute") to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在 `pdk_chat_demo` 中新增 `/tree` `/fork` `/clone` 三个 slash 命令，经 `DECLARE_COMMAND` 注册，通过 `ToolCoordinator` 治理路径操作 `SessionManager`，并提供 ANSI 会话树渲染 + 窄终端降级。
