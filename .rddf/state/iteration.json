@@ -136,7 +136,7 @@
     },
     {
       "name": "session-tree-commands",
-      "status": "proposed",
+      "status": "archived",
       "phase": "wave-1",
       "category": "demo-chat-v2",
       "priority": "P2",
@@ -144,11 +144,14 @@
       "parallel_group": 0,
       "blocker": null,
       "conflicts": [],
-      "last_deps_at": null
+      "last_deps_at": null,
+      "archived_at": "2026-08-06T10:11:00+00:00",
+      "tasks_total": 53,
+      "worktree_path": null
     },
     {
       "name": "chat-slash-commands-migration",
-      "status": "proposed",
+      "status": "archived",
       "phase": "wave-1",
       "category": "demo-chat-v2",
       "priority": "P1",
@@ -156,7 +159,10 @@
       "parallel_group": 0,
       "blocker": null,
       "conflicts": [],
-      "last_deps_at": null
+      "last_deps_at": null,
+      "archived_at": "2026-08-06T10:59:00+00:00",
+      "tasks_total": 47,
+      "worktree_path": null
     },
     {
       "name": "cli-args-cxxopts",
@@ -190,7 +196,7 @@
       "added_at": "2026-08-06T15:00:57+0800",
       "priority": "P2",
       "parallel_group": 1,
-      "blocker": "cli-args-cxxopts"
+      "blocker": null
     },
     {
       "name": "chat-streaming-slash-tui",
@@ -200,7 +206,7 @@
       "added_at": "2026-08-06T15:00:58+0800",
       "priority": "P1",
       "parallel_group": 1,
-      "blocker": "cli-args-cxxopts"
+      "blocker": null
     }
   ]
 }
