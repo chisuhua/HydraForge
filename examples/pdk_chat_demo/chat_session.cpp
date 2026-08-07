@@ -139,6 +139,19 @@ void ChatConfig::override_provider(const std::string& provider, const std::strin
     this->agent.model = model;
 }
 
+void ChatConfig::override_system_prompt(const std::string& overwrite,
+                                        const std::string& append) {
+  if (!overwrite.empty()) {
+    agent.system_prompt = overwrite;
+  }
+  if (!append.empty()) {
+    if (!agent.system_prompt.empty()) {
+      agent.system_prompt += "\n";
+    }
+    agent.system_prompt += append;
+  }
+}
+
 void ChatConfig::validate() const {
     if (schema_version != "1.0") {
         throw std::runtime_error("Unsupported schema_version: " + schema_version);

@@ -55,6 +55,34 @@ TEST_CASE("ChatConfig::override_provider switches provider and model", "[chat_se
     REQUIRE(cfg.agent.model == "test");
 }
 
+TEST_CASE("override_system_prompt: neither flag keeps default", "[chat_session][system_prompt]") {
+    ChatConfig cfg;
+    cfg.agent.system_prompt = "DEFAULT";
+    cfg.override_system_prompt("", "");
+    REQUIRE(cfg.agent.system_prompt == "DEFAULT");
+}
+
+TEST_CASE("override_system_prompt: --system-prompt replaces default", "[chat_session][system_prompt]") {
+    ChatConfig cfg;
+    cfg.agent.system_prompt = "DEFAULT";
+    cfg.override_system_prompt("OVERWRITE", "");
+    REQUIRE(cfg.agent.system_prompt == "OVERWRITE");
+}
+
+TEST_CASE("override_system_prompt: append adds newline-separated suffix to default", "[chat_session][system_prompt]") {
+    ChatConfig cfg;
+    cfg.agent.system_prompt = "DEFAULT";
+    cfg.override_system_prompt("", "be terse.");
+    REQUIRE(cfg.agent.system_prompt == "DEFAULT\nbe terse.");
+}
+
+TEST_CASE("override_system_prompt: overwrite-then-append produces overwrite\\nappend", "[chat_session][system_prompt]") {
+    ChatConfig cfg;
+    cfg.agent.system_prompt = "DEFAULT";
+    cfg.override_system_prompt("CUSTOM", "extra rule");
+    REQUIRE(cfg.agent.system_prompt == "CUSTOM\nextra rule");
+}
+
 TEST_CASE("ChatResult has success flag and default values", "[chat_session]") {
     ChatResult r;
     REQUIRE(r.success == true);
