@@ -30,6 +30,8 @@ TEST_CASE("--help shows generated usage and exits 0", "[cli][stage3][e2e]") {
   CHECK(has_print);
   CHECK(output.find("--provider") != std::string::npos);
   CHECK(output.find("--offline") != std::string::npos);
+  CHECK(output.find("--fork") != std::string::npos);
+  CHECK(output.find("--name") != std::string::npos);
 }
 
 TEST_CASE("unknown flag returns nonzero exit with diagnostic", "[cli][stage3][e2e]") {

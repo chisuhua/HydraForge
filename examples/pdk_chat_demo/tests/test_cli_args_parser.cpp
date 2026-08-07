@@ -22,15 +22,17 @@ TEST_CASE("parser accepts mock mode", "[cli][stage3]") {
   CHECK_FALSE(result.options.offline);
 }
 
-TEST_CASE("declaration table contains exactly the five flags", "[cli][stage3]") {
+TEST_CASE("declaration table contains exactly the seven flags", "[cli][stage3]") {
   const auto& table = pdk_chat_demo::cli_flag_declarations();
-  REQUIRE(table.size() == 5);
+  REQUIRE(table.size() == 7);
   CHECK(table[0].long_name == "mock");
   CHECK(table[1].long_name == "session");
   CHECK(table[2].long_name == "print");
   CHECK(table[2].short_name == "p");
   CHECK(table[3].long_name == "provider");
   CHECK(table[4].long_name == "offline");
+  CHECK(table[5].long_name == "fork");
+  CHECK(table[6].long_name == "name");
 }
 
 TEST_CASE("all declarations map to CliOptions", "[cli][stage3]") {
@@ -90,4 +92,38 @@ TEST_CASE("short and long print spellings are equivalent", "[cli][stage3]") {
   const auto long_result = pdk_chat_demo::parse_cli_args(2, long_argv);
   REQUIRE(short_result.ok); REQUIRE(long_result.ok);
   CHECK(short_result.options.print); CHECK(long_result.options.print);
+}
+
+TEST_CASE("--fork populates fork_node_id", "[cli][stage3][session-tree]") {
+  char a[] = "pdk_chat_demo"; char b[] = "--fork"; char c[] = "node_42";
+  char* argv[] = {a, b, c};
+  const auto result = pdk_chat_demo::parse_cli_args(3, argv);
+  REQUIRE(result.ok);
+  CHECK(result.options.fork_node_id == "node_42");
+}
+
+TEST_CASE("--name populates session_name", "[cli][stage3][session-tree]") {
+  char a[] = "pdk_chat_demo"; char b[] = "--name"; char c[] = "my-debug-session";
+  char* argv[] = {a, b, c};
+  const auto result = pdk_chat_demo::parse_cli_args(3, argv);
+  REQUIRE(result.ok);
+  CHECK(result.options.session_name == "my-debug-session");
+}
+
+TEST_CASE("combined --session and --fork parse both", "[cli][stage3][session-tree]") {
+  char a[] = "pdk_chat_demo"; char b[] = "--session"; char c[] = "sess_abc";
+  char d[] = "--fork";     char e[] = "node_42";
+  char* argv[] = {a, b, c, d, e};
+  const auto result = pdk_chat_demo::parse_cli_args(5, argv);
+  REQUIRE(result.ok);
+  CHECK(result.options.session_id == "sess_abc");
+  CHECK(result.options.fork_node_id == "node_42");
+}
+
+TEST_CASE("--fork missing value at end-of-args is rejected", "[cli][stage3][session-tree]") {
+  char a[] = "pdk_chat_demo"; char b[] = "--fork";
+  char* argv[] = {a, b};
+  const auto result = pdk_chat_demo::parse_cli_args(2, argv);
+  CHECK_FALSE(result.ok);
+  CHECK(result.error.find("--help") != std::string::npos);
 }

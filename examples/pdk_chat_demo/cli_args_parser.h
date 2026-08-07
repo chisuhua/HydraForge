@@ -5,7 +5,7 @@
 
 namespace pdk_chat_demo {
 enum class CliValueKind { flag, string };
-enum class CliDestination { mock, session_id, print, provider, offline };
+enum class CliDestination { mock, session_id, print, provider, offline, fork_node_id, session_name };
 struct CliFlagSpec {
   std::string long_name;
   std::string short_name;

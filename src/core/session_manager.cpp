@@ -602,6 +602,35 @@ void SessionManager::set_bus(std::shared_ptr<IInteractionBus> bus) {
   bus_ = std::move(bus);
 }
 
+// ==================== session-tree-tui Wave 2-B: rename_session ====================
+void SessionManager::rename_session(const std::string& name) {
+  if (current_path_.empty()) {
+    throw std::runtime_error("SessionManager::rename_session called before open()");
+  }
+  if (name.empty()) return;
+  std::lock_guard<std::mutex> lock(write_mutex_);
+  SessionNode meta_node;
+  meta_node.id = next_node_id();
+  meta_node.parent_id = "";
+  meta_node.branch_id = current_branch_.empty() ? "main" : current_branch_;
+  meta_node.content = nlohmann::json{{"type", "session_meta"}, {"name", name}};
+  const auto line = meta_node.to_json().dump() + "\n";
+  int fd = ::open(current_path_.c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
+  if (fd < 0) {
+    throw std::system_error(
+        errno, std::generic_category(),
+        "SessionManager::rename_session: ::open(" + current_path_.string() + ") failed");
+  }
+  const ssize_t n = ::write(fd, line.data(), line.size());
+  ::fsync(fd);
+  ::close(fd);
+  if (n != static_cast<ssize_t>(line.size())) {
+    throw std::runtime_error("SessionManager::rename_session: short write");
+  }
+  std::lock_guard<std::mutex> idx_lock(index_mutex_);
+  nodes_[meta_node.id] = meta_node;
+}
+
 // flush_append 内部版本 (用于 branch meta 写入, 不触发事件)
 void SessionManager::flush_append_internal(const BranchMeta& bm) {
   std::lock_guard<std::mutex> lock(write_mutex_);

@@ -11,6 +11,8 @@ const std::vector<CliFlagSpec>& cli_flag_declarations() {
     {"print", "p", CliValueKind::flag, "", "Enable print mode intent", CliDestination::print},
     {"provider", "", CliValueKind::string, "NAME", "Override the configured provider for this run", CliDestination::provider},
     {"offline", "", CliValueKind::flag, "", "Enable offline startup intent independently of mock", CliDestination::offline},
+    {"fork", "", CliValueKind::string, "NODE_ID", "Fork a new branch from the named session node on startup", CliDestination::fork_node_id},
+    {"name", "", CliValueKind::string, "SESSION_NAME", "Persist a human-readable name for the new session (ignored when --session loads an existing session)", CliDestination::session_name},
   };
   return table;
 }
@@ -36,6 +38,8 @@ CliParseResult parse_cli_args(int argc, char* argv[]) {
       result.options.offline = parsed["offline"].as<bool>();
       if (parsed.count("session")) result.options.session_id = parsed["session"].as<std::string>();
       if (parsed.count("provider")) result.options.provider = parsed["provider"].as<std::string>();
+      if (parsed.count("fork")) result.options.fork_node_id = parsed["fork"].as<std::string>();
+      if (parsed.count("name")) result.options.session_name = parsed["name"].as<std::string>();
     }
     result.ok = true;
   } catch (const std::exception& error) {

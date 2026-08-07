@@ -258,6 +258,12 @@ class SessionManager {
   /// @param bus IInteractionBus shared_ptr (nullptr = 禁用事件发射)
   void set_bus(std::shared_ptr<class IInteractionBus> bus);
 
+  // ==================== session-tree-tui Wave 2-B: rename_session ====================
+  /// @brief 为当前 session 持久化人类可读名称
+  /// @param name 要持久化的 session 名称 (空字符串表示无变化, 跳过写入)
+  /// @throw std::runtime_error 当前未打开任何 session (open 未调用)
+  void rename_session(const std::string& name);
+
  private:
   // flush_append 内部版本 (用于 branch meta 写入, 不触发 session.persisted 事件)
   void flush_append_internal(const BranchMeta& bm);
