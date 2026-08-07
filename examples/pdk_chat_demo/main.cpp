@@ -79,6 +79,25 @@ void signal_handler(int sig) {
     std::exit(0);
 }
 
+struct StartupCleanupGuard {
+    std::unique_ptr<agenticdsl::DSLEngine>* engine = nullptr;
+    hydraforge::PluginLoader* loader = nullptr;
+    bool active = true;
+
+    void reset_engine() {
+        if (!active || engine == nullptr || loader == nullptr) return;
+        engine->reset();
+        unload_all_plugins(*loader);
+        active = false;
+    }
+
+    ~StartupCleanupGuard() {
+        if (!active || engine == nullptr || loader == nullptr) return;
+        engine->reset();
+        unload_all_plugins(*loader);
+    }
+};
+
 }  // namespace
 
 int main(int argc, char* argv[]) {
@@ -119,6 +138,8 @@ int main(int argc, char* argv[]) {
     // ============================================================
     auto engine = std::make_unique<agenticdsl::DSLEngine>(
         std::vector<agenticdsl::ParsedGraph>{});
+    StartupCleanupGuard guard;
+    guard.engine = &engine;
     auto bus = std::make_shared<agenticdsl::InMemoryBus>();
 
     // 使用 ExecutionBudget 配置预算
@@ -154,6 +175,7 @@ int main(int argc, char* argv[]) {
 
     hydraforge::PluginLoader loader;
     g_loader = &loader;
+    guard.loader = &loader;
 
     for (const auto& plugin_cfg : config.plugins) {
         if (plugin_cfg.type == "so") {
@@ -511,7 +533,7 @@ int main(int argc, char* argv[]) {
     //（它们的析构函数会清理 ToolRegistry 中的 plugin 引用）
     {
         pdk_chat_demo::ChatSession discard(nullptr, nullptr, nullptr, {}, {});
-        engine.reset();
+        guard.reset_engine();
     }
     unload_all_plugins(loader);
     std::cout << std::endl << "[main] Goodbye!" << std::endl;

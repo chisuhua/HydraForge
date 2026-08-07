@@ -8,6 +8,8 @@ struct CliOptions {
   bool offline = false;
   std::string session_id;
   std::string provider;
+  std::string fork_node_id;
+  std::string session_name;
 };
 struct CliParseResult {
   bool ok = false;

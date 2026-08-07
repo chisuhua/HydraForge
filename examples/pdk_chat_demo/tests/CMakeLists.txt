@@ -391,3 +391,31 @@ add_test(
     COMMAND test_session_tree_commands
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# test_pdk_chat_demo_session_tree_cli_flags — session-tree-tui Wave 2-B startup wiring
+add_executable(test_pdk_chat_demo_session_tree_cli_flags
+    test_pdk_chat_demo_session_tree_cli_flags.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_pdk_chat_demo_session_tree_cli_flags PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    hydraforge_cxxopts
+    Threads::Threads
+)
+target_include_directories(test_pdk_chat_demo_session_tree_cli_flags PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+target_compile_definitions(test_pdk_chat_demo_session_tree_cli_flags PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+    PDK_CHAT_DEMO_PATH="${PROJECT_BINARY_DIR}/examples/pdk_chat_demo/pdk_chat_demo"
+)
+add_test(
+    NAME test_pdk_chat_demo_session_tree_cli_flags
+    COMMAND test_pdk_chat_demo_session_tree_cli_flags
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/..
+)
