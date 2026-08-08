@@ -62,21 +62,24 @@ namespace {
 hydraforge::PluginLoader* g_loader = nullptr;
 agenticdsl::IInteractionBus* g_bus = nullptr;
 
+// Async-signal-safe shutdown flag. Set by signal_handler, observed by main loop.
+// MUST be initialized before std::signal() is called at line 462-463.
+std::atomic<bool> g_shutdown_requested{false};
+
 void unload_all_plugins(hydraforge::PluginLoader& loader) {
     for (const auto& info : loader.list_loaded()) {
         loader.unload_plugin(std::string(info.name));
     }
 }
 
-void signal_handler(int sig) {
-    std::cerr << "\n[main] Caught signal " << sig << ", shutting down..." << std::endl;
-    if (g_bus) {
-        g_bus->emit(agenticdsl::EventBuilder("app.shutdown")
-            .args(nlohmann::json{{"signal", sig}})
-            .build());
-    }
-    if (g_loader) unload_all_plugins(*g_loader);
-    std::exit(0);
+void signal_handler(int /*sig*/) {
+    // 仅设置 shutdown flag，触发由 main 线程在循环观察点执行。
+    // 禁止调用 unload_all_plugins() / std::exit() —— 任何非 async-signal-safe
+    // 操作都会绕过 engine.h:199-205 的成员析构顺序保证（plugin_loader_ 先于
+    // tool_registry_ 声明 → 反向析构时 tool_registry_ 先析构 → ToolRegistry
+    // 隐式析构 std::function 回调目标时 plugin .so 已被 dlclose() → SIGSEGV）。
+    // 审计依据：docs/audits/2026-08-08-chat-async-io-steering-pre-approval.md
+    g_shutdown_requested.store(true, std::memory_order_release);
 }
 
 struct StartupCleanupGuard {
@@ -464,6 +467,10 @@ int main(int argc, char* argv[]) {
 
     std::string input;
     while (std::getline(std::cin, input)) {
+        // 优先检查 shutdown flag —— signal_handler 仅置位，实际清理在 main 线程执行。
+        if (g_shutdown_requested.load(std::memory_order_acquire)) {
+            break;
+        }
         if (!input.empty() && input.front() == '/') {
             if (input == pdk_chat_demo::kExitCommand ||
                 input.rfind(std::string(pdk_chat_demo::kExitCommand) + " ", 0) == 0) {

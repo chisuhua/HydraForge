@@ -448,3 +448,31 @@ add_test(
     COMMAND test_event_handler_rendering
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# test_signal_shutdown — subprocess regression tests for SIGINT/SIGTERM shutdown safety
+add_executable(test_signal_shutdown
+    test_signal_shutdown.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_signal_shutdown PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_signal_shutdown PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+target_compile_definitions(test_signal_shutdown PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+# dlopen 的 LoopAgent.so 需解析 agenticdsl_core 符号
+target_link_options(test_signal_shutdown PRIVATE -Wl,--export-dynamic)
+add_test(
+    NAME test_signal_shutdown
+    COMMAND test_signal_shutdown
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/..
+)
