@@ -4,6 +4,12 @@
 
 #include "chat_session.h"
 
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <queue>
+#include <thread>
+
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -64,6 +70,7 @@ bool ensure_dir_0700(const std::filesystem::path& dir) {
 }
 
 constexpr int kSessionSchemaVersion = 1;
+constexpr size_t kDefaultQueueCapacity = 32;
 
 }  // namespace
 
@@ -183,6 +190,17 @@ public:
     std::string provider_mode;
     std::string persist_dir_expanded;
 
+    // Async queue infrastructure (Phase A)
+    std::queue<std::string> steering_queue_;
+    std::queue<std::string> follow_up_queue_;
+    mutable std::mutex steering_mutex_;
+    mutable std::mutex follow_up_mutex_;
+    size_t capacity_ = kDefaultQueueCapacity;
+
+    // Input thread (async producer)
+    std::thread input_thread_;
+    std::atomic<bool> stop_input_thread_{false};
+
     Impl(
         agenticdsl::DSLEngine* e,
         std::shared_ptr<agenticdsl::IInteractionBus> b,
@@ -195,7 +213,19 @@ public:
         if (!persist_dir_expanded.empty()) {
             ensure_dir_0700(persist_dir_expanded);
         }
+        // Start input thread
+        input_thread_ = std::thread([this]() { input_thread_main(); });
     }
+
+    ~Impl() {
+        stop_input_thread_.store(true);
+        if (input_thread_.joinable()) {
+            input_thread_.join();
+        }
+    }
+
+private:
+    void input_thread_main();
 };
 
 // --- ChatSession ---
@@ -500,6 +530,69 @@ void ChatSession::cleanup_stale(const std::string& persist_dir, long long max_ag
 
 bool ChatSession::consume_budget_alert() {
     return budget_alert_flag_.exchange(false, std::memory_order_acq_rel);
+}
+
+// === Queue infrastructure (Phase A) ===
+
+size_t ChatSession::queue_size(QueueKind kind) const {
+    std::lock_guard<std::mutex> lock(
+        kind == QueueKind::Steering ? impl_->steering_mutex_ : impl_->follow_up_mutex_);
+    return (kind == QueueKind::Steering ? impl_->steering_queue_ : impl_->follow_up_queue_).size();
+}
+
+bool ChatSession::try_push_steering_for_test(const std::string& msg) {
+    std::lock_guard<std::mutex> lock(impl_->steering_mutex_);
+    if (impl_->steering_queue_.size() >= impl_->capacity_) {
+        std::cerr << "[chat] steering queue overflow, rejected length=" << msg.size() << std::endl;
+        return false;
+    }
+    impl_->steering_queue_.push(msg);
+    return true;
+}
+
+bool ChatSession::try_push_follow_up_for_test(const std::string& msg) {
+    std::lock_guard<std::mutex> lock(impl_->follow_up_mutex_);
+    if (impl_->follow_up_queue_.size() >= impl_->capacity_) {
+        std::cerr << "[chat] follow_up queue overflow, rejected length=" << msg.size() << std::endl;
+        return false;
+    }
+    impl_->follow_up_queue_.push(msg);
+    return true;
+}
+
+size_t ChatSession::try_clear_queue(QueueKind kind) {
+    std::lock_guard<std::mutex> lock(
+        kind == QueueKind::Steering ? impl_->steering_mutex_ : impl_->follow_up_mutex_);
+    auto& q = (kind == QueueKind::Steering ? impl_->steering_queue_ : impl_->follow_up_queue_);
+    size_t count = q.size();
+    while (!q.empty()) q.pop();
+    return count;
+}
+
+void ChatSession::Impl::input_thread_main() {
+    std::string line;
+    while (!stop_input_thread_.load()) {
+        if (!std::getline(std::cin, line)) {
+            break;  // EOF
+        }
+        if (line.empty()) continue;
+
+        if (line.front() == '/') {
+            std::lock_guard<std::mutex> lock(steering_mutex_);
+            if (steering_queue_.size() < capacity_) {
+                steering_queue_.push(line);
+            } else {
+                std::cerr << "[chat] steering queue overflow, rejected length=" << line.size() << std::endl;
+            }
+        } else {
+            std::lock_guard<std::mutex> lock(follow_up_mutex_);
+            if (follow_up_queue_.size() < capacity_) {
+                follow_up_queue_.push(line);
+            } else {
+                std::cerr << "[chat] follow_up queue overflow, rejected length=" << line.size() << std::endl;
+            }
+        }
+    }
 }
 
 }  // namespace pdk_chat_demo

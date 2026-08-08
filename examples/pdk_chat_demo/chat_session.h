@@ -92,6 +92,9 @@ struct ChatResult {
 // - 持有 UserSession (ADR-0033)
 // - 每轮：emit user.input -> call_tool("loop/run") -> 收集 result
 // - T1: 持久化 (load_from_disk/save_to_disk) + Budget 告警轮询
+// QueueKind 标识 steering vs follow-up 队列
+enum class QueueKind { Steering, FollowUp };
+
 class ChatSession {
 public:
     ChatSession(
@@ -109,6 +112,17 @@ public:
     const std::string& session_id() const { return session_id_; }
 
     std::vector<nlohmann::json> history() const;
+
+    // === Queue infrastructure (Phase A: steering + follow-up bounded queues) ===
+    // queue_size returns current entry count (thread-safe, O(1))
+    size_t queue_size(QueueKind kind) const;
+
+    // try_clear_queue atomically empties the queue, returns count cleared
+    size_t try_clear_queue(QueueKind kind);
+
+    // Test-only injection helpers (production code uses input thread)
+    bool try_push_steering_for_test(const std::string& msg);
+    bool try_push_follow_up_for_test(const std::string& msg);
 
     // === T1: Session 持久化 (design.md §Session 持久化) ===
     // 从磁盘加载 session (persist_dir/<id>.json)
