@@ -14,7 +14,7 @@
 | **Total ctest** | **125/125** (2026-08-06 实测: `cd build && ctest` → 1 失败 / 124 PASS; 含 adr-0069 `test_tool_coordinator_hooks` 8 cases + `test_budget_agent_hooks` 1 case, adr-0070 `test_command_registry` 10 cases; 1 失败: `test_e2e_real_llm` 需真实 LLM API key (本机无 QIANFAN_API_KEY); `test_cost_tracking_decorator` pre-existing 已修复通过; `test_pdk_chat_model_command` + `test_pdk_chat_unknown_command` + `test_main_hardcode_audit` + `test_session_tree_read_api` + `test_session_tree_commands` 新增 PASS) |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
-| **OpenSpec active** | **2** (`chat-slash-commands-migration` 已 ship + archived, `session-tree-commands` active; 新加入口: `chat-streaming-slash-tui` (Wave 2-B P1) 待 plan) |
+| **OpenSpec active** | **0** (Wave 3-A Phase 0 fix-tool-registry-signal-handler-shutdown 已 ship + archived 2026-08-08; Phase A queue-infra 可立即启动) |
 | **ADR Approved** | **41** (主 34: Phase 0-5 16 + Phase 6 17 [0050/0051/0052-0065/0067] + **ADR-0068** Wave 1 收官; plugin 1; skill 子项 6) |
 | **ADR 🔍 Proposed** | **13** (主 7: 0038/0039/0042/0045/0046/0069/0070; skill 子项 6: 0061-07~12) — ADR-0068 (D2) **已转 ✅ Approved** (2026-08-03 V2 收官); ADR-0069 (D3) / ADR-0070 (D4) 仍 Proposed |
 | **Completed Phase 0-4** | ✅ 100% |
@@ -26,13 +26,15 @@
 
 ## 二、活跃变更一览
 
-### 🔵 当前活跃 (1 个)
+### 🔵 当前活跃 (0 个)
+
+> Phase 6-Redirect (Wave 3-A) 当前 0 个活跃 OpenSpec change。Wave 3-A Phase 0 (fix-tool-registry-signal-handler-shutdown) 已 ship + archived 2026-08-08；Wave 3-A Phase A (chat-async-io-queue-infra) 待启动（依赖：none，可并行）。
+
+### ✅ Wave 3-A 已归档 (历史参考)
 
 | ID | 名称 | 阶段 | 状态 | 最后更新 |
 |----|------|------|:----:|:--------:|
-| **P6-W1** | chat-streaming-slash-tui (`chat-streaming-slash-tui`) | 📋 Plan | Wave 2-B P1 (待 plan 生成) | 2026-08-07 |
-
-> Phase 6 当前采用 OpenSpec change 仪式管理 1 个 Wave 2-B change (chat-streaming-slash-tui)。session-tree-tui 已 ship + archived。
+| **P6-W3A-P0** | fix-tool-registry-signal-handler-shutdown (`fix-tool-registry-signal-handler-shutdown`) | ✅ Done | **✅ shipped + archived 2026-08-08** — pre-approval 审计 (`docs/audits/2026-08-08-chat-async-io-steering-pre-approval.md`) 发现 8 stop_token 断开点 + ToolRegistry SIGSEGV 根因 (`signal_handler` 直接 `unload_all_plugins()` 绕过 `engine.h:199-205` 成员反向析构保证); 修复 `main.cpp:65-86, 467-471` (atomic flag + signal handler 单一 atomic store + main loop 观察) + 2 子进程回归测试 (YAML 校验失败 + SIGTERM mid-load, 9 assertions PASS); **ctest 135/138** (3 pre-existing 不变); commit `1ca4185` propose + `29a7a06` fix + `bc947a0` doc-sync + `4a0c994` archive + `887d660` pre-work; OpenSpec archived as `2026-08-08-fix-tool-registry-signal-handler-shutdown` (spec delta `shutdown-signal-routing`: +4 added). 留 follow-up: Wave 3-A Phase A (chat-async-io-queue-infra) + Phase B (cancellation-chain) + Phase C (model-switching) | 2026-08-08 |
 
 ### ✅ Wave 2-B 已归档 (历史参考)
 
