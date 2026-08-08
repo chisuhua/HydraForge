@@ -190,7 +190,7 @@
     },
     {
       "name": "session-tree-tui",
-      "status": "in_worktree",
+      "status": "archived",
       "phase": "wave-2",
       "category": "demo-chat-v2",
       "added_at": "2026-08-06T15:00:57+0800",
@@ -203,13 +203,21 @@
     },
     {
       "name": "chat-streaming-slash-tui",
-      "status": "proposed",
+      "status": "archived",
       "phase": "wave-2",
       "category": "demo-chat-v2",
       "added_at": "2026-08-06T15:00:58+0800",
       "priority": "P1",
       "parallel_group": 1,
       "blocker": null
+    },
+    {
+      "name": "fix-tool-registry-signal-handler-shutdown",
+      "status": "archived",
+      "tasks_done": 40,
+      "total_tasks": 40,
+      "plan_present": true,
+      "archive_path": "openspec/changes/archive/2026-08-08-fix-tool-registry-signal-handler-shutdown/"
     }
   ]
 }

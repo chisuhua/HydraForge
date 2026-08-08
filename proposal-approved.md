@@ -6,11 +6,7 @@
 
 | [name](improvements/name.md) | priority | 来源 | 批准日期 | 批准人 |
 | --- | --- | --- | --- | --- |
-| （2 个 design-pre-created skeleton 待 fill — plan Phase 2.5 流程处理） | | | | |
-| [cli-args-cxxopts](improvements/cli-args-cxxopts.md) | P2 | 2026-08-06 | guide-arch |
-| [provider-dynamic-discovery](improvements/provider-dynamic-discovery.md) | P2 | 2026-08-06 | guide-arch |
-| [session-tree-tui](improvements/session-tree-tui.md) | P2 | 2026-08-06 | guide-arch |
-| [chat-streaming-slash-tui](improvements/chat-streaming-slash-tui.md) | P1 | 2026-08-06 | guide-arch |
+| （无 — 所有已批准提案均已 ship） | | | | |
 
 ## 已实施
 | [pdk-chat-demo-v1-recap](improvements/pdk-chat-demo-v1-recap.md) | P0 | 2026-07-27 | [Drift close 2026-08-05](openspec/changes/archive/2026-07-27-pdk-chat-demo-v1-recap/) — T1+T2 Session 持久化 + Budget 告警 + Schema 校验 99/99 ctest 全 PASS |
@@ -27,3 +23,8 @@
 | [session-manager-jsonl](improvements/session-manager-jsonl.md) | P1 | 2026-08-01 | Drift close 2026-08-06 — [archived v1 2026-08-04](openspec/changes/archive/2026-08-04-session-manager-jsonl/) + [v2 2026-08-05](openspec/changes/archive/2026-08-05-session-manager-jsonl-v2/) ✅ ship |
 | [chat-slash-commands-migration](improvements/chat-slash-commands-migration.md) | P1 | 2026-08-06 | [archived 2026-08-06](openspec/changes/archive/2026-08-06-chat-slash-commands-migration/) ✅ ship — /model DECLARE_COMMAND + provider_switch_stub 工具 + main.cpp 零 hardcode + 3 新增测试 PASS; 122/123 ctest (1 expected live fail) |
 | [session-tree-commands](improvements/session-tree-commands.md) | P2 | 2026-08-06 | [archived 2026-08-06](openspec/changes/archive/2026-08-06-session-tree-commands/) ✅ ship — /tree /fork /clone DECLARE_COMMAND + session_fork/clone 工具 + SessionManager 3 个新只读 API + ANSI 树渲染; 124/125 ctest |
+| [cli-args-cxxopts](improvements/cli-args-cxxopts.md) | P2 | 2026-08-06 | [archived 2026-08-06](openspec/changes/archive/2026-08-06-cli-args-cxxopts/) ✅ ship |
+| [provider-dynamic-discovery](improvements/provider-dynamic-discovery.md) | P2 | 2026-08-06 | [archived 2026-08-06](openspec/changes/archive/2026-08-06-provider-dynamic-discovery/) ✅ ship |
+| [session-tree-tui](improvements/session-tree-tui.md) | P2 | 2026-08-06 | [archived 2026-08-07](openspec/changes/archive/2026-08-07-session-tree-tui/) ✅ ship — --fork + --name CLI flags + SessionManager::rename_session + StartupCleanupGuard RAII; 134/136 ctest |
+| [chat-streaming-slash-tui](improvements/chat-streaming-slash-tui.md) | P1 | 2026-08-06 | [archived 2026-08-07](openspec/changes/archive/2026-08-07-chat-streaming-slash-tui/) ✅ ship — EventHandler 流式渲染 + --system-prompt/--append-system-prompt CLI flags; 13/13 新测试 PASS |
+| [fix-tool-registry-signal-handler-shutdown](improvements/fix-tool-registry-signal-handler-shutdown.md) | P0 | 2026-08-08 | [archived 2026-08-08](openspec/changes/archive/2026-08-08-fix-tool-registry-signal-handler-shutdown/) ✅ ship — signal_handler 仅置 atomic flag + main 循环观察走正常有序清理路径; 2/2 新增子进程回归测试 PASS; 135/138 ctest; 解锁 chat-async-io-cancellation-chain (Phase B) E2E 测试稳定性 |
