@@ -218,6 +218,14 @@
       "total_tasks": 40,
       "plan_present": true,
       "archive_path": "openspec/changes/archive/2026-08-08-fix-tool-registry-signal-handler-shutdown/"
+    },
+    {
+      "name": "chat-async-io-queue-infra",
+      "status": "archived",
+      "tasks_done": 48,
+      "total_tasks": 48,
+      "plan_present": true,
+      "archive_path": "openspec/changes/archive/2026-08-08-chat-async-io-queue-infra/"
     }
   ]
 }

@@ -28,13 +28,14 @@
 
 ### 🔵 当前活跃 (0 个)
 
-> Phase 6-Redirect (Wave 3-A) 当前 0 个活跃 OpenSpec change。Wave 3-A Phase 0 (fix-tool-registry-signal-handler-shutdown) 已 ship + archived 2026-08-08；Wave 3-A Phase A (chat-async-io-queue-infra) 待启动（依赖：none，可并行）。
+> Phase 6-Redirect (Wave 3-A) 当前 0 个活跃 OpenSpec change。Wave 3-A Phase 0 (fix-tool-registry-signal-handler-shutdown) + Phase A (chat-async-io-queue-infra) 已 ship + archived 2026-08-08；Wave 3-A Phase B (chat-async-io-cancellation-chain) 待启动（依赖 Phase 0+Phase A 已 ship）。
 
 ### ✅ Wave 3-A 已归档 (历史参考)
 
 | ID | 名称 | 阶段 | 状态 | 最后更新 |
 |----|------|------|:----:|:--------:|
-| **P6-W3A-P0** | fix-tool-registry-signal-handler-shutdown (`fix-tool-registry-signal-handler-shutdown`) | ✅ Done | **✅ shipped + archived 2026-08-08** — pre-approval 审计 (`docs/audits/2026-08-08-chat-async-io-steering-pre-approval.md`) 发现 8 stop_token 断开点 + ToolRegistry SIGSEGV 根因 (`signal_handler` 直接 `unload_all_plugins()` 绕过 `engine.h:199-205` 成员反向析构保证); 修复 `main.cpp:65-86, 467-471` (atomic flag + signal handler 单一 atomic store + main loop 观察) + 2 子进程回归测试 (YAML 校验失败 + SIGTERM mid-load, 9 assertions PASS); **ctest 135/138** (3 pre-existing 不变); commit `1ca4185` propose + `29a7a06` fix + `bc947a0` doc-sync + `4a0c994` archive + `887d660` pre-work; OpenSpec archived as `2026-08-08-fix-tool-registry-signal-handler-shutdown` (spec delta `shutdown-signal-routing`: +4 added). 留 follow-up: Wave 3-A Phase A (chat-async-io-queue-infra) + Phase B (cancellation-chain) + Phase C (model-switching) | 2026-08-08 |
+| **P6-W3A-PA** | chat-async-io-queue-infra (`chat-async-io-queue-infra`) | ✅ Done | **✅ shipped + archived 2026-08-08** — ChatSession::Impl 新增 `steering_queue_` + `follow_up_queue_` 双有界队列 (capacity=32, 拒绝新+log warning) + 输入线程分离; 6 个 public API (enum QueueKind + queue_size + try_clear_queue + 2 test helpers) + 4 测试 (41 assertions PASS); **ctest 135/138** (3 pre-existing 不变); commit `3c7f801` propose + `d4fcca1` feat; OpenSpec archived as `2026-08-08-chat-async-io-queue-infra` (spec delta `chat-async-queue-infra`: +5 added). 留 follow-up: Wave 3-A Phase B (cancellation-chain) 依赖已 ship | 2026-08-08 |
+| **P6-W3A-P0** | fix-tool-registry-signal-handler-shutdown (`fix-tool-registry-signal-handler-shutdown`) | ✅ Done | **✅ shipped + archived 2026-08-08** — pre-approval 审计 (`docs/audits/2026-08-08-chat-async-io-steering-pre-approval.md`) 发现 8 stop_token 断开点 + ToolRegistry SIGSEGV 根因 (`signal_handler` 直接 `unload_all_plugins()` 绕过 `engine.h:199-205` 成员反向析构保证); 修复 `main.cpp:65-86, 467-471` (atomic flag + signal handler 单一 atomic store + main loop 观察) + 2 子进程回归测试 (YAML 校验失败 + SIGTERM mid-load, 9 assertions PASS); **ctest 135/138** (3 pre-existing 不变); commit `1ca4185` propose + `29a7a06` fix + `bc947a0` doc-sync + `4a0c994` archive + `887d660` pre-work; OpenSpec archived as `2026-08-08-fix-tool-registry-signal-handler-shutdown` (spec delta `shutdown-signal-routing`: +4 added). 留 follow-up: Wave 3-A Phase B (cancellation-chain) + Phase C (model-switching) | 2026-08-08 |
 
 ### ✅ Wave 2-B 已归档 (历史参考)
 
