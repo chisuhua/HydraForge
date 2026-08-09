@@ -77,12 +77,22 @@ class ReactLoop {
    *   - Observing: 将 ToolResult 包装到 final_context.working.data
    *   - Done: 返回 LoopResult
    */
-  LoopResult run(const std::string& prompt, const agenticdsl::LayeredContext& ctx) {
-    LoopResult result;
-    result.final_context = ctx;
-    result.total_steps = 1;
+LoopResult run(const std::string& prompt, const agenticdsl::LayeredContext& ctx,
+               std::stop_token token = {}) {
+     LoopResult result;
+     result.final_context = ctx;
+     result.total_steps = 1;
 
-    if (!engine_) {
+     // Phase B Step 4: 取消 token 检查 — early exit
+     if (token.stop_requested()) {
+       result.success = false;
+       result.message = "ReactLoop: cancelled before execution";
+       result.failed_phase = "Thinking";
+       state_ = State::Done;
+       return result;
+     }
+
+     if (!engine_) {
       result.success = false;
       result.message = "ReactLoop: DSLEngine is null";
       result.failed_phase = "Thinking";

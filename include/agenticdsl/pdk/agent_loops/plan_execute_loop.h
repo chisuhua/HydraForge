@@ -104,7 +104,8 @@ class PlanExecuteLoop {
    *   - Engine execute 失败 → Executing 阶段失败
    *   - Verify 失败重试 max_retries 次后仍失败 → Verifying 阶段失败
    */
-  LoopResult run(const std::string& goal, const agenticdsl::LayeredContext& ctx) {
+  LoopResult run(const std::string& goal, const agenticdsl::LayeredContext& ctx,
+               std::stop_token token = {}) {
     LoopResult result;
     result.final_context = ctx;
     // 显式初始化 working.data 为空对象, 防止后续 dump() 在 null 上失败
@@ -127,6 +128,15 @@ class PlanExecuteLoop {
       return result;
     }
 
+    // Phase B Step 4: 取消 token early-exit
+    if (token.stop_requested()) {
+      result.success = false;
+      result.message = "PlanExecuteLoop: cancelled before planning";
+      result.failed_phase = "Planning";
+      state_ = State::Done;
+      return result;
+    }
+
     // 主循环: Plan → Execute → Verify, Verify 失败时 Retry 重新 Plan
     while (true) {
       result.total_steps++;
@@ -134,7 +144,7 @@ class PlanExecuteLoop {
       // === Plan 阶段 ===
       state_ = State::Planning;
       std::optional<std::string> plan_output =
-          plan_phase(goal, ctx, llm);
+          plan_phase(goal, ctx, llm, token);
       if (!plan_output.has_value()) {
         result.success = false;
         result.message = "PlanExecuteLoop: plan phase failed (empty LLM response)";
@@ -159,7 +169,7 @@ class PlanExecuteLoop {
 
       // === Verify 阶段 ===
       state_ = State::Verifying;
-      bool verify_ok = verify_phase(goal, result, llm);
+      bool verify_ok = verify_phase(goal, result, llm, token);
 
       if (verify_ok) {
         result.success = true;
@@ -197,13 +207,14 @@ class PlanExecuteLoop {
    */
   std::optional<std::string> plan_phase(const std::string& goal,
                                         const agenticdsl::LayeredContext& ctx,
-                                        agenticdsl::ILLMProvider* llm) {
+                                        agenticdsl::ILLMProvider* llm,
+                                        std::stop_token token = {}) {
     agenticdsl::GenerationRequest req;
     req.prompt =
         "Goal: " + goal +
         "\nContext: " + ctx.dump().dump() +
         "\nGenerate AgenticDSL markdown for /main subgraph:";
-    auto gen_result = llm->generate(req, std::stop_token{});
+    auto gen_result = llm->generate(req, token);
     if (!gen_result.has_value()) {
       return std::nullopt;
     }
@@ -242,7 +253,8 @@ class PlanExecuteLoop {
    */
   bool verify_phase(const std::string& goal,
                     const LoopResult& result,
-                    agenticdsl::ILLMProvider* llm) {
+                    agenticdsl::ILLMProvider* llm,
+                    std::stop_token token = {}) {
     // 确保 working["data"] 存在, 避免 dump() 在 null/const path 上失败
     const auto& working = result.final_context.working;
     std::string data_dump = working.is_object() && working.contains("data")
@@ -253,7 +265,7 @@ class PlanExecuteLoop {
         "Goal: " + goal +
         "\nResult: " + data_dump +
         "\nVerify success: answer 'yes' or 'no':";
-    auto gen_result = llm->generate(req, std::stop_token{});
+    auto gen_result = llm->generate(req, token);
     if (!gen_result.has_value()) {
       return false;
     }

@@ -135,14 +135,24 @@ class ForkJoinLoop {
    *   - 每个 branch 的输出按 branches 输入顺序插入
    *   - 重复 key 后 branch 覆盖前 branch
    */
-  LoopResult run(const std::vector<std::string>& branches,
-                 const agenticdsl::LayeredContext& ctx) {
+LoopResult run(const std::vector<std::string>& branches,
+               const agenticdsl::LayeredContext& ctx,
+               std::stop_token token = {}) {
     LoopResult result;
     result.final_context = ctx;
 
     if (branches.empty()) {
       result.success = false;
       result.message = "ForkJoinLoop: branches list is empty";
+      result.failed_phase = "Forking";
+      state_ = State::Done;
+      return result;
+    }
+
+    // Phase B Step 4: 取消 token early-exit
+    if (token.stop_requested()) {
+      result.success = false;
+      result.message = "ForkJoinLoop: cancelled before forking";
       result.failed_phase = "Forking";
       state_ = State::Done;
       return result;
@@ -253,8 +263,25 @@ class ForkJoinLoop {
       std::unique_lock<std::mutex> lock(tracker->mtx);
       tracker->cv.wait(lock, [&] {
         return tracker->results.size() >= branches.size() ||
-               tracker->any_failed.load(std::memory_order_acquire);
+               tracker->any_failed.load(std::memory_order_acquire) ||
+               token.stop_requested();
       });
+
+      // Phase B Step 4: token cancellation → pool stop
+      if (token.stop_requested() &&
+          tracker->results.size() < branches.size()) {
+        result.success = false;
+        result.message = "ForkJoinLoop: cancelled by stop_token";
+        result.failed_phase = "Joining";
+      }
+    }
+
+    if (token.stop_requested()) {
+      pool_->stop();
+      bus_->unsubscribe(token_completed);
+      bus_->unsubscribe(token_failed);
+      state_ = State::Done;
+      return result;
     }
 
     // 清理 pool + 订阅
