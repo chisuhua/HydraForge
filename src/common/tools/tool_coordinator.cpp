@@ -195,12 +195,27 @@ ToolCoordinator::ToolCoordinator(IToolRegistry& registry,
 ToolResult ToolCoordinator::execute(
     const ToolMetadata& meta,
     const ToolCallContext& ctx,
-    const std::unordered_map<std::string, std::string>& args) {
+    const std::unordered_map<std::string, std::string>& args,
+    std::stop_token token) {
   const std::string tool_name = meta.name;
 
   // Step 0: RAII nesting guard (ADR-0051 §Decision 5)
   //         检测 depth>2 / cycle → HARD KILL (throw)
   ToolCoordinatorNestingGuard nesting_guard(tool_name, bus_);
+
+  // Phase B Step 3: 收到取消请求时提前返回并发射 audit denied 事件
+  if (token.stop_requested()) {
+    if (bus_) {
+      nlohmann::json denied_meta = audit_meta(
+          "tool.audit.denied", generate_request_id(), tool_name,
+          to_string(meta.category), ctx.caller_layer, ctx.session_id);
+      bus_->emit(EventBuilder("tool.audit.denied",
+          ToolResult::error(ErrorCode::PermissionDenied, "cancelled", std::move(denied_meta)))
+          .args(nlohmann::json{{"tool", tool_name}, {"reason", "cancelled"}})
+          .build());
+    }
+    return ToolResult::error(ErrorCode::PermissionDenied, "cancelled");
+  }
 
   const std::string request_id = generate_request_id();
   const auto start = std::chrono::steady_clock::now();

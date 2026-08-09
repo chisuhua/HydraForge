@@ -17,6 +17,7 @@
 #include "agenticdsl/policy/iapproval_handler.h" // Sprint 19: 审批处理器抽象 (ADR-0019 §1.4 解耦)
 #include <nlohmann/json.hpp>
 #include <atomic>
+#include <stop_token>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -121,7 +122,8 @@ private:
                               const nlohmann::json& data);
     std::pair<ToolResult, Context> dispatch_to_tool(
         const std::string& tool_name, const std::string& node_path,
-        const std::unordered_map<std::string, std::string>& args);
+        const std::unordered_map<std::string, std::string>& args,
+        std::stop_token token = {});
 };
 
 } // namespace agenticdsl

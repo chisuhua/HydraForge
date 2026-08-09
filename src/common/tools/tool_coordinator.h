@@ -8,6 +8,7 @@
 #pragma once
 
 #include <memory>
+#include <stop_token>
 #include <string>
 #include <unordered_map>
 
@@ -81,11 +82,13 @@ class ToolCoordinator {
    * @param meta 工具元数据 (ToolMetadata V2)
    * @param ctx 工具调用上下文 (ToolCallContext)
    * @param args 工具参数
+   * @param token stop_token for cancellation (default: empty token)
    * @return ToolResult (执行结果或错误)
    */
   ToolResult execute(const ToolMetadata& meta,
                      const ToolCallContext& ctx,
-                     const std::unordered_map<std::string, std::string>& args);
+                     const std::unordered_map<std::string, std::string>& args,
+                     std::stop_token token = {});
 
   /**
    * @brief 注入 hook registry（可空；空 = 保持原 6 步行为）

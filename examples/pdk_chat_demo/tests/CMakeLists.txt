@@ -531,3 +531,29 @@ add_test(
     COMMAND test_cancellation_registry
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# test_loop_agent_cancellation — Phase B Step 3: cancellation chain integration tests
+add_executable(test_loop_agent_cancellation
+    test_loop_agent_cancellation.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_loop_agent_cancellation PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_loop_agent_cancellation PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+target_compile_definitions(test_loop_agent_cancellation PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_loop_agent_cancellation
+    COMMAND test_loop_agent_cancellation
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

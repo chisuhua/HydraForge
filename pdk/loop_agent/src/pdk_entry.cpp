@@ -10,6 +10,9 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <chrono>
+#include <mutex>
+#include <atomic>
 
 #include <nlohmann/json.hpp>
 
@@ -19,6 +22,50 @@
 #include <agenticdsl/plugin/plugin_info.h>
 #include <agenticdsl/types/layered_context.h>
 #include <core/engine.h>
+
+// CancellationRegistry — maps cancellation_id to stop_source for cross-thread cancellation
+// Phase B Step 3: chat-async-io-cancellation-chain
+class CancellationRegistry {
+ public:
+  std::string register_source(std::shared_ptr<std::stop_source> source) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto now = std::chrono::steady_clock::now();
+    auto timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now.time_since_epoch()).count();
+    std::string id = std::to_string(timestamp_ms) + "_" +
+                     std::to_string(counter_.fetch_add(1));
+    sources_[id] = std::move(source);
+    return id;
+  }
+
+  std::stop_token resolve_token(const std::string& id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it = sources_.find(id);
+    if (it == sources_.end()) {
+      return std::stop_token{};
+    }
+    return it->second->get_token();
+  }
+
+  std::shared_ptr<std::stop_source> resolve_source(const std::string& id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it = sources_.find(id);
+    if (it == sources_.end()) {
+      return nullptr;
+    }
+    return it->second;
+  }
+
+  void unregister(const std::string& id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    sources_.erase(id);
+  }
+
+ private:
+  std::mutex mutex_;
+  std::unordered_map<std::string, std::shared_ptr<std::stop_source>> sources_;
+  std::atomic<uint64_t> counter_{0};
+};
 
 namespace fs = std::filesystem;
 
@@ -96,6 +143,9 @@ std::string load_agent_file(const std::string& loop_type) {
 // Uses thread_local for per-thread isolation (multi-engine scenarios).
 // nullptr = not set, mock fallback path.
 static thread_local ::agenticdsl::ILLMProvider* tls_parent_provider = nullptr;
+
+// Phase B Step 3: CancellationRegistry for stop_token propagation across loop_agent entry
+static CancellationRegistry g_loop_registry;
 
 // --- pdk_plugin_info ---
 extern "C" const hydraforge::PluginInfo pdk_plugin_info = {
@@ -189,6 +239,13 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
             }
             std::string session_id = str_arg(args, "session_id");
 
+            // Phase B Step 3: 解析 cancellation_id 并解析为 stop_token
+            std::string cancellation_id = str_arg(args, "cancellation_id");
+            std::stop_token cancellation_token;
+            if (!cancellation_id.empty()) {
+                cancellation_token = g_loop_registry.resolve_token(cancellation_id);
+            }
+
             // Mock fallback when parent provider not set (Q3/Q7)
             if (!tls_parent_provider) {
                 nlohmann::json output;
@@ -203,6 +260,18 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                 return output;
             }
 
+            // Phase B Step 3: 收到取消请求时提前返回
+            if (cancellation_token.stop_requested()) {
+                nlohmann::json cancelled_result;
+                cancelled_result["success"] = false;
+                cancelled_result["error"] = "cancelled";
+                cancelled_result["response"] = "";
+                cancelled_result["steps"] = 0;
+                cancelled_result["tokens_used"] = 0;
+                cancelled_result["cost_usd"] = 0.0;
+                return cancelled_result;
+            }
+
             // Real DSL execution path (Q4: errors propagate via return)
             try {
                 auto agent_content = load_agent_file(loop_type);
@@ -215,7 +284,8 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                 // 默认模型名沿用父 provider 注册的模型列表首位, 避免默认 "gpt-4o-mini" 在非 OpenAI 端点上失败
                 class ProviderLLMTool : public ::agenticdsl::ILLMTool {
                  public:
-                    ProviderLLMTool(::agenticdsl::ILLMProvider& p) : provider_(p) {}
+                    ProviderLLMTool(::agenticdsl::ILLMProvider& p, std::stop_token tok)
+                        : provider_(p), cancellation_token_(std::move(tok)) {}
                     ::agenticdsl::LLMResult generate(
                         const std::string& prompt,
                         const ::agenticdsl::LLMParams& params) override {
@@ -226,7 +296,7 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                         if (!avail.empty()) {
                             req.params.model = avail.front().name;
                         }
-                        auto res = provider_.generate(req, std::stop_token{});
+                        auto res = provider_.generate(req, cancellation_token_);
                         if (res.has_value()) {
                             out.success = true;
                             out.text = std::move(res).value().text;
@@ -241,10 +311,11 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                     std::string name() const override { return "loop-agent-provider-bridge"; }
                  private:
                     ::agenticdsl::ILLMProvider& provider_;
+                    std::stop_token cancellation_token_;
                 };
                 child->register_llm_tool(
                     "llama-default",
-                    std::make_unique<ProviderLLMTool>(*tls_parent_provider));
+                    std::make_unique<ProviderLLMTool>(*tls_parent_provider, cancellation_token));
 
                 ::agenticdsl::LayeredContext ctx;
                 ctx.working["user_input"] = user_prompt;

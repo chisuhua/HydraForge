@@ -8,6 +8,7 @@
 #include "scheduler/execution_session.h" // C12 §4 + §6.0: BudgetExceededException (executor 不调用 session_ 方法, 避免链接循环)
 #include "yield_stream_bridge.h" // C12 §6a: IGenerationStream pull-based bridge
 #include <stdexcept>
+#include <stop_token>
 #include <inja/inja.hpp> // For RenderError
 #include <algorithm> // For std::find
 #include <thread> // For std::this_thread::sleep_for (if needed for mock)
@@ -348,7 +349,8 @@ Context NodeExecutor::execute_generate_subgraph(const GenerateSubgraphNode* node
 
 std::pair<ToolResult, Context> NodeExecutor::dispatch_to_tool(
     const std::string& tool_name, const std::string& node_path,
-    const std::unordered_map<std::string, std::string>& args) {
+    const std::unordered_map<std::string, std::string>& args,
+    std::stop_token token) {
   ToolMetadata meta;
   meta.name = tool_name;
   meta.category = ToolCategory::Execute;
@@ -364,7 +366,7 @@ std::pair<ToolResult, Context> NodeExecutor::dispatch_to_tool(
     if (approval_handler_) {
       LOG_WARN("both tool_coordinator_ and approval_handler_ are set, preferring tool_coordinator_");
     }
-    tool_result = tool_coordinator_->execute(meta, tool_ctx, args);
+    tool_result = tool_coordinator_->execute(meta, tool_ctx, args, token);
   } else if (approval_handler_) {
     ToolPreview preview;
     preview.command_line = tool_name;
