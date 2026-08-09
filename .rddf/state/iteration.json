@@ -259,6 +259,14 @@
       "total_tasks": 20,
       "plan_present": false,
       "archive_path": "openspec/changes/archive/2026-08-09-cancellation-chain-step5-e2e/"
+    },
+    {
+      "name": "chat-async-io-model-switching",
+      "status": "archived",
+      "tasks_done": 25,
+      "total_tasks": 25,
+      "plan_present": false,
+      "archive_path": "openspec/changes/archive/2026-08-09-chat-async-io-model-switching/"
     }
   ]
 }
