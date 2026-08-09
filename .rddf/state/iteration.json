@@ -235,6 +235,14 @@
       "plan_present": true,
       "archive_path": "openspec/changes/archive/2026-08-09-chat-async-io-cancellation-chain/",
       "note": "Phase B 7-step wiring split into 5 focused changes. Step 1+2 ship complete (Cancellation Registry + ChatSession state). Steps 3/4/5 deferred."
+    },
+    {
+      "name": "cancellation-chain-step3-loop-agent",
+      "status": "archived",
+      "tasks_done": 17,
+      "total_tasks": 17,
+      "plan_present": false,
+      "archive_path": "openspec/changes/archive/2026-08-09-cancellation-chain-step3-loop-agent/"
     }
   ]
 }
