@@ -190,6 +190,11 @@ public:
     std::string provider_mode;
     std::string persist_dir_expanded;
 
+    // Cancellation state (Phase B: chat-async-io-cancellation-chain)
+    std::shared_ptr<CancellationRegistry> cancellation_registry_;
+    std::string current_cancellation_id_;
+    std::stop_token current_token_;  // Store the token directly
+
     // Async queue infrastructure (Phase A)
     std::queue<std::string> steering_queue_;
     std::queue<std::string> follow_up_queue_;
@@ -209,7 +214,8 @@ public:
         const SessionConfig& s
     ) : engine(e), bus(std::move(b)), registry(r), agent_cfg(a), session_cfg(s),
         provider_mode(a.provider),
-        persist_dir_expanded(expand_home(s.persist_dir)) {
+        persist_dir_expanded(expand_home(s.persist_dir)),
+        cancellation_registry_(std::make_shared<CancellationRegistry>()) {
         if (!persist_dir_expanded.empty()) {
             ensure_dir_0700(persist_dir_expanded);
         }
@@ -256,10 +262,29 @@ ChatSession::ChatSession(
 
 ChatSession::~ChatSession() = default;
 
+void ChatSession::request_stop() {
+  if (impl_->current_cancellation_id_.empty()) return;
+  auto source = impl_->cancellation_registry_->resolve_source(
+      impl_->current_cancellation_id_);
+  if (source) source->request_stop();
+}
+
 ChatResult ChatSession::chat(const std::string& user_input) {
+    return chat(user_input, std::stop_token{});
+}
+
+ChatResult ChatSession::chat(const std::string& user_input, std::stop_token token) {
     ChatResult result;
 
-    // 1. 追加用户消息到历史
+    std::string cancellation_id;
+    if (token.stop_possible()) {
+        auto source = std::make_shared<std::stop_source>();
+        cancellation_id = impl_->cancellation_registry_->register_source(source);
+        impl_->current_cancellation_id_ = cancellation_id;
+        impl_->current_token_ = token;
+    }
+
+    // 2. 追加用户消息到历史
     nlohmann::json user_msg = {
         {"role", "user"},
         {"content", user_input},
@@ -287,8 +312,16 @@ ChatResult ChatSession::chat(const std::string& user_input) {
         // 将 bus 与会话 ID 透传给 loop_agent, 用于真实事件发射
         loop_args["bus_ptr"] = ptr_to_str(impl_->bus.get());
         loop_args["session_id"] = session_id_;
+        loop_args["cancellation_id"] = cancellation_id;
 
         nlohmann::json loop_result = impl_->registry->call_tool("loop/run", loop_args);
+
+        // Cleanup cancellation state
+        if (!cancellation_id.empty()) {
+            impl_->cancellation_registry_->unregister(cancellation_id);
+            impl_->current_token_ = std::stop_token{};
+            impl_->current_cancellation_id_.clear();
+        }
 
         result.response = loop_result.value("response", "");
         result.total_steps = loop_result.value("steps", 0);

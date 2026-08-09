@@ -505,3 +505,29 @@ add_test(
     COMMAND test_signal_shutdown
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/..
 )
+
+# test_cancellation_registry — Phase B: CancellationRegistry unit tests
+add_executable(test_cancellation_registry
+    test_cancellation_registry.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_cancellation_registry PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_cancellation_registry PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+target_compile_definitions(test_cancellation_registry PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_cancellation_registry
+    COMMAND test_cancellation_registry
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

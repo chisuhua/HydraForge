@@ -1,19 +1,19 @@
 ## 1. Cancellation Registry Infrastructure
 
-- [ ] 1.1 Create `examples/pdk_chat_demo/cancellation_registry.h` with `class CancellationRegistry` (unordered_map<string, shared_ptr<stop_source>>)
-- [ ] 1.2 Implement `register_source() -> string` (generates unique id, stores source)
-- [ ] 1.3 Implement `resolve_token(string id) -> stop_token` (lookup, return empty token if not found)
+- [x] 1.1 Created `examples/pdk_chat_demo/cancellation_registry.h` with `class CancellationRegistry` (unordered_map<string, shared_ptr<stop_source>>)
+- [x] 1.2 Implemented `register_source() -> string` (generates unique id, stores source)
+- [x] 1.3 Implemented `resolve_token(string id) -> stop_token` (lookup, return empty token if not found)
 - [ ] 1.4 Implement `unregister(string id)` (cleanup)
-- [ ] 1.5 Add unit tests in `tests/test_cancellation_registry.cpp` (register, resolve, unregister, not-found)
+- [x] 1.5 Added unit tests in `tests/test_cancellation_registry.cpp` (register, resolve, unregister, not-found)
 
 ## 2. ChatSession Cancellation State (Step 1)
 
-- [ ] 2.1 Add `std::shared_ptr<CancellationRegistry> cancellation_registry_` to `ChatSession::Impl`
-- [ ] 2.2 Add `void request_stop()` public method to ChatSession (sets stop_source)
-- [ ] 2.3 Modify `ChatSession::chat(input)` signature to `chat(input, std::stop_token token = {})`
-- [ ] 2.4 In chat() entry: if token has stop_possible, register source in registry, get id
-- [ ] 2.5 Add `cancellation_id` field to loop_args JSON
-- [ ] 2.6 Pass `token` to internal `session.chat(input, token)` recursive calls
+- [x] 2.1 Added `std::shared_ptr<CancellationRegistry> cancellation_registry_` to `ChatSession::Impl`
+- [x] 2.2 Added `void request_stop()` public method to ChatSession (sets stop_source)
+- [x] 2.3 Modified `ChatSession::chat(input)` signature to `chat(input, std::stop_token token = {})`
+- [x] 2.4 In chat() entry: token has stop_possible, register source in registry, get id() entry: if token has stop_possible, register source in registry, get id
+- [x] 2.5 Added `cancellation_id` field to loop_args JSON
+- [x] 2.6 Passed `token` to internal `session.chat(input, token)` recursive calls
 
 ## 3. loop_agent Entry Point Update (Step 3 + 4)
 
@@ -100,6 +100,13 @@
 - [ ] 13.4 Create atomic commit per worktree-archive-workflow convention
 - [ ] 13.5 Archive change: `openspec archive chat-async-io-cancellation-chain --yes`
 - [ ] 13.6 Sync iteration.json status to `archived`
+
+## Status: Step 1+2 Shipped (2026-08-08)
+
+Tasks 3-13 below are **deferred to 3 focused sub-changes** (per Phase B scope > deep agent timeout budget):
+- **Step 3**: loop_agent + NodeExecutor + ToolCoordinator wiring (Tasks 3, 7, 8)
+- **Step 4**: 3 Loop API token params (Tasks 4, 5, 6) — BREAKING changes
+- **Step 5**: Mock provider + E2E mid-loop cancel test (Tasks 9, 10) + verification (Task 11)
 
 ## Out of Scope
 

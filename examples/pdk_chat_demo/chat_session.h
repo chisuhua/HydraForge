@@ -9,8 +9,11 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <stop_token>
 
 #include <nlohmann/json.hpp>
+
+#include "cancellation_registry.h"
 
 namespace agenticdsl {
     class DSLEngine;
@@ -107,7 +110,12 @@ public:
 
     ~ChatSession();
 
+    // Request cancellation of any in-flight chat operation.
+    void request_stop();
+
+    // Existing API: now with optional stop_token
     ChatResult chat(const std::string& user_input);
+    ChatResult chat(const std::string& user_input, std::stop_token token);
 
     const std::string& session_id() const { return session_id_; }
 

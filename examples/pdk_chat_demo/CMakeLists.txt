@@ -9,6 +9,7 @@ set(SOURCES
     event_handler.cpp
     dsl_validator.cpp
     cli_args_parser.cpp
+    cancellation_registry.cpp
     commands/command_globals.cpp
     commands/help_command.cpp
     commands/compact_command.cpp
