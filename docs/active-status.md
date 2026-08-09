@@ -19,7 +19,7 @@
 | **ADR 🔍 Proposed** | **13** (主 7: 0038/0039/0042/0045/0046/0069/0070; skill 子项 6: 0061-07~12) — ADR-0068 (D2) **已转 ✅ Approved** (2026-08-03 V2 收官); ADR-0069 (D3) / ADR-0070 (D4) 仍 Proposed |
 | **Completed Phase 0-4** | ✅ 100% |
 | **Phase 5** | ✅ 收官 (C9-C18 全部 ✅ shipped + archived) |
-| **Phase 6** | 🟡 Agent-as-Plugin: pdk_chat_demo ✅ / skill_interpreter ✅ / AgentForge MVP 设计中 |
+| **Phase 6** | 🟡 服务化暂缓 (Candidate B 启动条件 🔒 4/4 未满足); Phase 6a (PDK 生产化) 启动评估 ready (Wave 3-A 完成提供前置); Phase 6c 重评触发条件明确 |
 | **架构规范** | `docs/specs/architecture.md` = 五层模型 (原 v1.2 晋升, **D1 决议 2026-07-31**)；v2.2 八层规范已归档。**D1b 宣告**: "第二大脑"产品愿景 (Persona/Contract/ZK/App Market/brain-frontend) 自 2026-07-31 起正式归档, 不构成当前路线图承诺 |
 
 ---
