@@ -226,6 +226,15 @@
       "total_tasks": 48,
       "plan_present": true,
       "archive_path": "openspec/changes/archive/2026-08-08-chat-async-io-queue-infra/"
+    },
+    {
+      "name": "chat-async-io-cancellation-chain",
+      "status": "archived_partial",
+      "tasks_done": 10,
+      "total_tasks": 64,
+      "plan_present": true,
+      "archive_path": "openspec/changes/archive/2026-08-09-chat-async-io-cancellation-chain/",
+      "note": "Phase B 7-step wiring split into 5 focused changes. Step 1+2 ship complete (Cancellation Registry + ChatSession state). Steps 3/4/5 deferred."
     }
   ]
 }
