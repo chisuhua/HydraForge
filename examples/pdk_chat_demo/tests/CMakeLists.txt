@@ -557,3 +557,29 @@ add_test(
     COMMAND test_loop_agent_cancellation
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# test_chat_session_cancellation — Phase B Step 5: E2E mid-loop cancellation tests
+add_executable(test_chat_session_cancellation
+    test_chat_session_cancellation.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_chat_session_cancellation PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_chat_session_cancellation PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+target_compile_definitions(test_chat_session_cancellation PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_chat_session_cancellation
+    COMMAND test_chat_session_cancellation
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
