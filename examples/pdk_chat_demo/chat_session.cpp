@@ -195,6 +195,10 @@ public:
     std::string current_cancellation_id_;
     std::stop_token current_token_;  // Store the token directly
 
+    // Wave 3-A Phase C: pending model switch target (next turn will swap to this)
+    std::string next_model_;
+    mutable std::mutex next_model_mutex_;
+
     // Async queue infrastructure (Phase A)
     std::queue<std::string> steering_queue_;
     std::queue<std::string> follow_up_queue_;
@@ -267,6 +271,23 @@ void ChatSession::request_stop() {
   auto source = impl_->cancellation_registry_->resolve_source(
       impl_->current_cancellation_id_);
   if (source) source->request_stop();
+}
+
+bool ChatSession::request_model_switch(const std::string& provider_name) {
+  if (provider_name.empty()) return false;
+  if (impl_->provider_mode == "mock" && provider_name != "mock") {
+    std::cerr << "[chat] mock mode rejects provider: " << provider_name
+              << std::endl;
+    return false;
+  }
+  std::lock_guard<std::mutex> lock(impl_->next_model_mutex_);
+  impl_->next_model_ = provider_name;
+  return true;
+}
+
+std::string ChatSession::next_model() const {
+  std::lock_guard<std::mutex> lock(impl_->next_model_mutex_);
+  return impl_->next_model_;
 }
 
 ChatResult ChatSession::chat(const std::string& user_input) {

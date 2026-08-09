@@ -113,6 +113,13 @@ public:
     // Request cancellation of any in-flight chat operation.
     void request_stop();
 
+    // Wave 3-A Phase C: request model switch for next turn.
+    // Returns true if accepted, false if rejected (e.g., mock mode + non-mock provider).
+    bool request_model_switch(const std::string& provider_name);
+
+    // Wave 3-A Phase C: get pending model switch target (empty = no pending switch).
+    std::string next_model() const;
+
     // Existing API: now with optional stop_token
     ChatResult chat(const std::string& user_input);
     ChatResult chat(const std::string& user_input, std::stop_token token);

@@ -437,6 +437,7 @@ int main(int argc, char* argv[]) {
 
     agenticdsl::CommandRegistry command_registry(coord_ptr);
     pdk_chat_demo::g_command_coordinator = coord_ptr;
+    pdk_chat_demo::g_command_session = &session;
     pdk_chat_demo::g_command_registry = &command_registry;
 
     auto session_manager = std::make_unique<agenticdsl::SessionManager>(

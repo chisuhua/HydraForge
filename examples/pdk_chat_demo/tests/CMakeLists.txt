@@ -583,3 +583,29 @@ add_test(
     COMMAND test_chat_session_cancellation
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# test_model_switching — Wave 3-A Phase C: /model runtime switching tests
+add_executable(test_model_switching
+    test_model_switching.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_model_switching PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_model_switching PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+target_compile_definitions(test_model_switching PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_model_switching
+    COMMAND test_model_switching
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
