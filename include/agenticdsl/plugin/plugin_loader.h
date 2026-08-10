@@ -8,10 +8,16 @@
 //            - lifecycle 顺序保证 (init → register → 加载; 释放 shared_ptr → fini → dlclose)
 //            - create_llm_provider() 抽象方法 — 通过 plugin 获取 shared_ptr<ILLMProvider>
 //            - dependencies 循环检测 + 缺失依赖报错 (MVP, per proposal-v2 non-goals)
+//          Phase 6a (OpenSpec `pdk-manifest-validation` §4):
+//            - manifest-first 加载流程 (ManifestFinder → ManifestValidator → dlopen)
+//            - require_manifest 参数 (默认 false, 保留向后兼容现有 12 PDK .so)
+//            - IInteractionBus 事件发射 (plugin.manifest.invalid / plugin.manifest.missing)
+//            - PIMPL-lite: Impl 结构体含 bus_ 指针 + manifest_ 缓存
 // 设计依据：ADR-0022 §2-3 + ADR-0041 §1 PluginLoader lifecycle extension
 //          + openspec/changes/phase5-illmprovider-call-chain-v2/specs/plugin-loader/spec.md
-// 作者：AgenticDSL Phase 1 Sprint 5 → Phase 5 B2 (C14 增量)
-// 最后修改日期：2026-07-09 (Phase 5 §6: 5 符号查找 + lifecycle + create_llm_provider)
+//          + openspec/changes/pdk-manifest-validation (Phase 6a §4)
+// 作者：AgenticDSL Phase 1 Sprint 5 → Phase 5 B2 (C14 增量) → Phase 6a §4
+// 最后修改日期：2026-08-10 (Phase 6a §4: manifest-first flow)
 
 #pragma once
 
@@ -19,12 +25,16 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
+
+namespace agenticdsl { namespace pdk { struct Manifest; } }  // 前向声明 (避免引入 pdk 模块头文件)
 
 namespace agenticdsl {
 class IToolRegistry;  // contract 层抽象 (ADR-0019 §1.4)
 class ILLMProvider;   // contract 层抽象 (Phase 5: pdk_create_llm_provider 返回类型)
+class IInteractionBus;  // Phase 6a §5: 事件发射总线 (实际定义在 agenticdsl/contract/iinteraction_bus.h)
 }
 
 namespace hydraforge {
@@ -68,17 +78,31 @@ class PluginLoader {
    * @param path .so 文件路径 (绝对或相对)
    * @param registry 工具注册表
    * @param strict_version true (默认): ABI 不匹配拒绝; false: 警告但继续
+   * @param require_manifest false (默认): 无 manifest 警告但继续 (向后兼容);
+   *              true: 无 manifest 则拒绝
    * @return 是否加载成功
    */
   bool load_so(const std::string& path,
                ::agenticdsl::IToolRegistry& registry,
-               bool strict_version = true);
+               bool strict_version = true,
+               bool require_manifest = false);
 
   /**
    * @brief 列出已加载的插件
    * @return 已加载插件的 PluginInfo 列表 (按加载顺序)
    */
   std::vector<PluginInfo> list_loaded() const;
+
+  /**
+   * @brief 设置 InteractionBus (Phase 6a §4: 用于 manifest 事件发射)
+   * @param bus IInteractionBus 指针 (可为 nullptr)
+   */
+  void set_interaction_bus(::agenticdsl::IInteractionBus* bus);
+
+  /**
+   * @brief 清除 InteractionBus (Phase 6a §4)
+   */
+  void clear_interaction_bus();
 
   /**
    * @brief 卸载单个插件 (按 name 查找)
@@ -169,6 +193,15 @@ class PluginLoader {
     //     loader 不持有 caller 的引用 (per REQ-PL-IPD-001 Scenario "plugin 卸载时释放 shared_ptr")
     std::vector<std::weak_ptr<::agenticdsl::ILLMProvider>> provider_refs;
   };
+
+ private:
+  /**
+   * @brief PIMPL-lite Impl: 持有 IInteractionBus 指针 + manifest 缓存
+   * Phase 6a §4 (per Sprint 18-19 PIMPL pattern)
+   * 注: Impl 在 .cpp 中定义, 使用完整类型 (避免 header 引入 pdk 模块)
+   */
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
 
   std::vector<LoadedPlugin> loaded_;
 };
