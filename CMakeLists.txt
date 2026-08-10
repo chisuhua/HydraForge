@@ -114,6 +114,7 @@ add_subdirectory(src/modules/library)
 add_subdirectory(src/modules/system)
 add_subdirectory(src/modules/cognitive)
 add_subdirectory(src/modules/plugin)
+add_subdirectory(src/modules/pdk)
 add_subdirectory(src/modules/skill_interpreter)
 add_subdirectory(src/common/contract)
 add_subdirectory(src/common/policy)
@@ -155,6 +156,7 @@ target_link_libraries(agenticdsl_core
  agenticdsl_modules_system
  agenticdsl_modules_cognitive
  agenticdsl_modules_plugin
+ agenticdsl_modules_pdk
  agenticdsl_modules_skill_interpreter
  agenticdsl_contract
  agenticdsl_policy

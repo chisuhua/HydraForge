@@ -9,24 +9,37 @@
 //            - unload_plugin 按生命周期顺序释放 (shared_ptr → fini → erase → dlclose)
 //            - create_llm_provider() 抽象方法实现
 //            - load_all 循环依赖检测 + 缺失依赖报错 (MVP)
+//          Phase 6a (OpenSpec `pdk-manifest-validation` §4):
+//            - manifest-first 加载流程 (ManifestFinder → ManifestValidator → dlopen)
+//            - require_manifest 参数 (默认 false, 保留向后兼容现有 12 PDK .so)
+//            - IInteractionBus 事件发射 (plugin.manifest.invalid / plugin.manifest.missing)
+//            - PIMPL-lite: Impl 结构体含 bus_ 指针 + manifest_ 缓存
 // 设计依据：ADR-0022 §1.3 加载流程 + §2.1 搜索路径 + §5.1 路径白名单
 //          + ADR-0041 §1 PluginLoader lifecycle extension
 //          + openspec/changes/phase5-illmprovider-call-chain-v2/specs/plugin-loader/spec.md
-// 作者：AgenticDSL Phase 1 Sprint 5 → Phase 5 B2
-// 最后修改日期：2026-07-09 (Phase 5 §6: 5 符号查找 + lifecycle + create_llm_provider)
+//          + openspec/changes/pdk-manifest-validation (Phase 6a §4)
+// 作者：AgenticDSL Phase 1 Sprint 5 → Phase 5 B2 → Phase 6a §4
+// 最后修改日期：2026-08-10 (Phase 6a §4: manifest-first flow + PIMPL)
 
 #ifdef __linux__
 
 #include "agenticdsl/plugin/plugin_loader.h"
+#include "agenticdsl/contract/event_builder.h"
 #include "agenticdsl/contract/itool_registry.h"
+#include "agenticdsl/contract/iinteraction_bus.h"
+#include "agenticdsl/pdk/manifest_finder.h"
+#include "agenticdsl/pdk/manifest_validator.h"
 #include "common/llm/llm_types.h"
 #include "common/log/log.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cstdlib>
 #include <cstring>
 #include <dlfcn.h>
 #include <filesystem>
+#include <fstream>
+#include <map>
 #include <memory>
 #include <set>
 #include <sstream>
@@ -61,11 +74,66 @@ std::vector<std::string> split_dependencies(const char* raw) {
   return result;
 }
 
+std::string next_trace_id() {
+  static std::atomic<uint64_t> counter{0};
+  return "pl-" + std::to_string(counter.fetch_add(1, std::memory_order_relaxed));
+}
+
+void emit_invalid_manifest(::agenticdsl::IInteractionBus* bus,
+                            const std::string& path,
+                            const std::vector<::agenticdsl::pdk::ValidationError>& errors) {
+  if (!bus) return;
+  nlohmann::json err_arr = nlohmann::json::array();
+  for (const auto& e : errors) {
+    err_arr.push_back({{"field", e.field},
+                       {"reason", e.reason},
+                       {"value", e.value},
+                       {"expected", e.expected}});
+  }
+  nlohmann::json args{{"path", path}, {"errors", err_arr}};
+  nlohmann::json meta{{"phase", "manifest_validation"},
+                      {"trace_id", next_trace_id()}};
+  try {
+    bus->emit(::agenticdsl::EventBuilder("plugin.manifest.invalid")
+                  .args(args)
+                  .meta(meta)
+                  .build());
+  } catch (...) {
+    log_warn("emit plugin.manifest.invalid threw exception (ignored)");
+  }
+}
+
+void emit_missing_manifest(::agenticdsl::IInteractionBus* bus,
+                            const std::string& path,
+                            bool fallback_loaded) {
+  if (!bus) return;
+  nlohmann::json args{{"path", path}, {"fallback_loaded", fallback_loaded}};
+  nlohmann::json meta{{"phase", "manifest_lookup"},
+                      {"trace_id", next_trace_id()}};
+  try {
+    bus->emit(::agenticdsl::EventBuilder("plugin.manifest.missing")
+                  .args(args)
+                  .meta(meta)
+                  .build());
+  } catch (...) {
+    log_warn("emit plugin.manifest.missing threw exception (ignored)");
+  }
+}
+
 } // namespace
+
+// === PIMPL-lite Impl (Phase 6a §4) ===
+struct PluginLoader::Impl {
+  // weak_ptr style: 不拥有 IInteractionBus, 由外部注入
+  ::agenticdsl::IInteractionBus* bus_ = nullptr;
+
+  // manifest 缓存 (key = .so 路径, 用于 cross-validation)
+  std::map<std::string, ::agenticdsl::pdk::Manifest> manifest_cache_;
+};
 
 // === PluginLoader 实现 ===
 
-PluginLoader::PluginLoader() = default;
+PluginLoader::PluginLoader() : impl_(std::make_unique<Impl>()) {}
 
 PluginLoader::~PluginLoader() {
   // RAII: 析构时按 Phase 5 lifecycle 顺序清理所有已加载 handle
@@ -90,6 +158,15 @@ PluginLoader::~PluginLoader() {
     }
   }
   loaded_.clear();
+}
+
+void PluginLoader::set_interaction_bus(
+    ::agenticdsl::IInteractionBus* bus) {
+  impl_->bus_ = bus;
+}
+
+void PluginLoader::clear_interaction_bus() {
+  impl_->bus_ = nullptr;
 }
 
 std::vector<std::string> PluginLoader::get_search_paths() const {
@@ -234,7 +311,33 @@ bool PluginLoader::apply_path_whitelist(const std::string& path) const {
 
 bool PluginLoader::load_so(const std::string& path,
                            ::agenticdsl::IToolRegistry& registry,
-                           bool strict_version) {
+                           bool strict_version,
+                           bool require_manifest) {
+  // Phase 6a §4: manifest-first 加载流程
+  // Step A: find manifest
+  auto manifest_path = ::agenticdsl::pdk::ManifestFinder::find(path);
+  if (manifest_path) {
+    // Step B: validate manifest
+    std::ifstream f(*manifest_path);
+    std::stringstream ss;
+    ss << f.rdbuf();
+    auto validation = ::agenticdsl::pdk::ManifestValidator::validate(ss.str());
+    if (!validation.valid) {
+      log_error("manifest validation failed for " + path + ": invalid pdk_manifest.json");
+      emit_invalid_manifest(impl_->bus_, path, validation.errors);
+      return false;  // Reject before dlopen
+    }
+    // Cache manifest for cross-validation
+    impl_->manifest_cache_[path] = *validation.manifest;
+  } else if (require_manifest) {
+    log_error("manifest not found for " + path + " but require_manifest=true");
+    emit_missing_manifest(impl_->bus_, path, /*fallback_loaded=*/false);
+    return false;  // Reject - no manifest found
+  } else {
+    log_warn("manifest not found for " + path + " (legacy .so, continuing without validation)");
+    emit_missing_manifest(impl_->bus_, path, /*fallback_loaded=*/true);
+  }
+
   // 1. 路径白名单检查 (Layer 1 安全)
   if (!apply_path_whitelist(path)) {
     log_error("path rejected by whitelist: " + path);
@@ -258,6 +361,19 @@ bool PluginLoader::load_so(const std::string& path,
 
   // 3.5 Dual ABI dispatch: 读 V1/V2 统一为 PluginInfoV2
   PluginInfoV2 info = read_plugin_info_unified(info_handle);
+
+  // 3.6 Phase 6a §4: cross-validate manifest abi_version vs PluginInfo abi_version
+  auto it = impl_->manifest_cache_.find(path);
+  if (it != impl_->manifest_cache_.end()) {
+    const auto& m = it->second;
+    if (m.abi_version != info.abi_version) {
+      log_warn("abi_version mismatch: manifest=" + std::to_string(m.abi_version) +
+                " plugin=" + std::to_string(info.abi_version) +
+                " for " + path + " (PluginInfo wins per ADR-0052 §决策 4)");
+    }
+    // Erase from cache after cross-validation (not stored in LoadedPlugin)
+    impl_->manifest_cache_.erase(it);
+  }
 
   // 4. ABI 版本检查
   if (!check_compatibility(info)) {
@@ -508,14 +624,15 @@ PluginLoader::validate_dependencies(
 // 跨平台 dlopen 抽象见 ADR-0022 Phase 2
 namespace hydraforge {
 
-PluginLoader::PluginLoader() = default;
+PluginLoader::PluginLoader() : impl_(std::make_unique<Impl>()) {}
 PluginLoader::~PluginLoader() = default;
 std::vector<std::string> PluginLoader::get_search_paths() const { return {}; }
 bool PluginLoader::check_compatibility(const PluginInfo& /*info*/) const { return false; }
 bool PluginLoader::apply_path_whitelist(const std::string& /*path*/) const { return false; }
 bool PluginLoader::load_so(const std::string& /*path*/,
                            ::agenticdsl::IToolRegistry& /*registry*/,
-                           bool /*strict_version*/) { return false; }
+                           bool /*strict_version*/,
+                           bool /*require_manifest*/) { return false; }
 std::size_t PluginLoader::load_all(::agenticdsl::IToolRegistry& /*registry*/) { return 0; }
 std::vector<PluginInfo> PluginLoader::list_loaded() const { return {}; }
 bool PluginLoader::unload_plugin(const std::string& /*name*/) { return false; }
@@ -529,6 +646,8 @@ PluginLoader::validate_dependencies(
     const std::vector<std::pair<std::string, std::string>>& /*plugin_deps*/) {
   return {};
 }
+void PluginLoader::set_interaction_bus(::agenticdsl::IInteractionBus* /*bus*/) {}
+void PluginLoader::clear_interaction_bus() {}
 
 } // namespace hydraforge
 
