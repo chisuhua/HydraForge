@@ -9,12 +9,8 @@ add_library(agenticdsl_modules_pdk STATIC
   manifest_finder.cpp
 )
 
-target_include_directories(agenticdsl_modules_pdk
-  PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-  PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
+# 与 src/modules/plugin/CMakeLists.txt 同模式：链接 agenticdsl_includes 拿到全局 include 路径
+target_link_libraries(agenticdsl_modules_pdk PUBLIC agenticdsl_includes)
 
 # nlohmann::json 已在 external/nlohmann_json (single header)
 find_path(NLOHMANN_JSON_INCLUDE_DIR nlohmann/json.hpp
