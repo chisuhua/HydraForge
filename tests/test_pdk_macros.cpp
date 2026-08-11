@@ -167,7 +167,8 @@ TEST_CASE("PDK SafeExec enforces timeout",
   SECTION("Timeout error message contains timeout value") {
     try {
       exec.with_timeout(std::chrono::milliseconds(5)).run([] {
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        // sleep 远超 timeout (5ms) + grace_period (50ms) 保证 detach 路径触发
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         return 42;
       });
       FAIL("Expected timeout exception");
