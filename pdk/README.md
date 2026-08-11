@@ -66,6 +66,90 @@ cd build/tests && ctest -R temporal_agent --output-on-failure
 - gRPC streaming (替代轮询)
 - Temporal Namespace 管理
 
+## SafeExec 实战 (Phase 6a 新增)
+
+> **STATUS**: SafeExec 沙箱执行封装已升级到 `std::jthread + std::stop_source` (取代旧 `std::async`)
+> **超时立即返回**: caller 在 ≤ timeout + 50ms grace 后立即抛 `runtime_error`, 不再阻塞至 fn 完成
+> **关联 OpenSpec**: `openspec/changes/archive/2026-08-10-pdk-safe-exec-tests/`
+
+### 超时控制 (Stop Token 协同)
+
+```cpp
+#include "agenticdsl/pdk/safe_exec.h"
+using namespace hydraforge::pdk;
+
+auto result = SafeExec()
+    .with_timeout(5s)       // fn 最长执行 5s
+    .with_grace_period(50ms) // 超时后给 50ms 清理宽限
+    .run([] {
+      // 你的领域逻辑 (如 LLM 调用、文件 IO、网络请求)
+      return compute_heavy();
+    });
+// 5s 后立即抛 std::runtime_error (非阻塞至 fn 完成)
+```
+
+### 异常传播
+
+```cpp
+try {
+  SafeExec().with_timeout(1s).run([] {
+    throw std::runtime_error("disk full");
+  });
+} catch (const std::runtime_error& e) {
+  // e.what() == "disk full" (透传, 不包装)
+}
+```
+
+### 与 DECLARE_TOOL 组合 (5 行领域逻辑)
+
+```cpp
+DECLARE_TOOL(my_tool, "示例工具", ReadOnly, "agent",
+  return SafeExec()
+    .with_timeout(2s)
+    .run([&] {
+      return __pdk_args["input"].get<std::string>();
+    });
+)
+```
+
+## 3 种 Agent Loop 选择指南
+
+| Loop | 适用场景 | 状态 |
+|------|---------|:----:|
+| **React** (思考 → 行动 → 观察) | 单 agent 工具调用、ReAct 模式 | ✅ Sprint 4 ship |
+| **PlanExecute** (规划 → 执行 → 验证) | 多步骤任务、规划验证 | ✅ Sprint 20 ship |
+| **ForkJoin** (并行分支 → 合并) | 并行任务聚合 | ✅ Sprint 20 ship |
+
+```cpp
+DEFINE_AGENT(coding_assistant, AgentLoopType::React);    // 单 agent ReAct
+DEFINE_AGENT(parallel_analyzer, AgentLoopType::ForkJoin); // 多 worker 并行
+```
+
+## AgentForge 衔接
+
+AgentForge (Phase 6b MVP) 通过 PDK 调用 DSLEngine:
+
+```cpp
+#include "agenticdsl/pdk/pdk.h"
+#include "core/engine.h"
+using namespace hydraforge::pdk;
+
+DEFINE_AGENT(code_reviewer, AgentLoopType::React);
+DECLARE_TOOL(lint_file, "Linter", ReadOnly, "agent",
+  return SafeExec().with_timeout(5s).run([&] {
+    return lint(__pdk_args["file"].get<std::string>());
+  });
+)
+
+int main() {
+  auto engine = agenticdsl::DSLEngine::from_markdown("workflow.agent.md");
+  code_reviewerAgent agent(std::move(engine), std::make_shared<InMemoryBus>());
+  return agent.run("review src/main.cpp").final_context.working.empty() ? 0 : 1;
+}
+```
+
+完整 AgentForge MVP blueprint: `docs/proposals/implementation/agentforge-mvp-blueprint.md`
+
 ## 通用构建
 
 ```bash
