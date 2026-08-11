@@ -280,18 +280,15 @@ private:
 
 **MVP 实现**：`SafeExec` MVP 版本只做超时控制和异常捕获，不做进程隔离：
 
-```cpp
-template<typename F>
-auto SafeExec::run(F&& fn) -> std::invoke_result_t<F> {
-    auto future = std::async(std::launch::async, std::forward<F>(fn));
-    auto status = future.wait_for(timeout_);
-    if (status == std::future_status::timeout) {
-        throw std::runtime_error("Tool execution timed out after " +
-            std::to_string(timeout_.count()) + "ms");
-    }
-    return future.get();
-}
-```
+**Phase 6a 升级 (2026-08-10, OpenSpec `2026-08-10-pdk-safe-exec-tests`)**：旧 `std::async + wait_for` 实现有缺陷——超时后 `std::future` 析构会阻塞至 fn 完成（标准规定 `launch::async` future destructor blocks），导致 caller 实际等待 = fn 执行时间（违反超时直觉）。Phase 6a 升级到 `std::jthread + std::stop_source` + grace_period (默认 50ms)：
+
+- 超时立即抛 `std::runtime_error`（caller 在 ≤ timeout + grace 内返回）
+- 协同取消：`stop_source.request_stop()` 通知 fn 退出
+- grace detach：worker 在 grace 内未停止则 detach（避免 RAII 析构阻塞）
+- 异常透传：`std::exception_ptr` 原子保存，类型 + 消息完整保留
+- ASan 安全：promise/future + shared_ptr<SharedState> 避免 worker 持有栈变量引用
+
+BACKWARD 兼容：public API (`with_timeout` / `with_layer_profile` / `timeout` / `layer_profile` / `run`) 全部不变，仅新增 `grace_period` + `with_grace_period()` + `grace_period()` 测试 API。8 个 Catch2 test cases PASS (timeout_returns_quickly / stop_token / leak / grace / types / exception / defaults / chain)。
 
 #### 3.4 测试替身
 

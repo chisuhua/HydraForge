@@ -128,12 +128,14 @@ Phase 8b ───────Fine-tune ────────────┘ 
 **状态**: 🔄 进行中 (2026-08-03 ~50% 完成)
 **周期**: 2026-07-24 ~ 2026-08-05 (12 天, ~37h 容量)
 **完成条件**:
-  - [ ] `ctest -R pdk_chat` 全绿 (含新增 schema 校验 test case)
-  - [ ] `ctest -R temporal` 全绿 (≥8 test cases)
-  - [ ] `./pdk_chat_demo --mock` Session 持久化 + Budget 告警正常工作
-  - [ ] `./pkm_temporal_demo --mock` 4 个演示场景全部 PASS
+  - [x] `ctest -R pdk_chat` 全绿 (含新增 schema 校验 test case)
+  - [x] `ctest -R temporal` 全绿 (≥8 test cases)
+  - [x] `./pdk_chat_demo --mock` Session 持久化 + Budget 告警正常工作
+  - [x] `./pkm_temporal_demo --mock` 4 个演示场景全部 PASS
+  - [x] **PDK SafeExec jthread 重写 + 8 test cases PASS** (Phase 6a 任务 2, OpenSpec `2026-08-10-pdk-safe-exec-tests` archived 2026-08-10)
+  - [x] **PDK Doxygen 覆盖率 ≥90% + pdk/README.md 3 章节扩展** (Phase 6a 任务 2)
   - [ ] 8/1 前 proposals/ 清理完成
-  - [ ] active-status.md 更新至 2026-08-05
+  - [x] active-status.md 更新至 2026-08-10
 
 #### 任务分类 (现状不变, 无 LLM-native 工作)
 

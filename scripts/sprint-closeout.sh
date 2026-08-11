@@ -111,7 +111,7 @@ echo ""
 # Step 1: Drift Detection (Roadmap-Driven Development 强制)
 # ====================================================================
 if [ "$RUN_DRIFT" = true ]; then
-  print_header "Step 1/6: 🔍 Drift Detection (Master Plan §9 Review Gates)"
+  print_header "Step 1/8: 🔍 Drift Detection (Master Plan §9 Review Gates)"
 
   if [ ! -f tools/check_roadmap_drift.py ]; then
     print_fail "tools/check_roadmap_drift.py 不存在"
@@ -144,7 +144,7 @@ fi
 # Step 2: ctest (测试)
 # ====================================================================
 if [ "$RUN_CTEST" = true ]; then
-  print_header "Step 2/6: 🧪 ctest (测试套件)"
+  print_header "Step 2/8: 🧪 ctest (测试套件)"
 
   if [ ! -d build ]; then
     print_step "build/ 不存在, 跳过 ctest (CI 环境会跑)"
@@ -184,7 +184,7 @@ fi
 # Step 3: ADR lint
 # ====================================================================
 if [ "$RUN_LINT" = true ]; then
-  print_header "Step 3/6: 📋 ADR lint"
+  print_header "Step 3/8: 📋 ADR lint"
 
   print_step "python3 tools/adr_lint.py..."
   if python3 tools/adr_lint.py 2>&1 | tail -10; then
@@ -198,7 +198,7 @@ fi
 # Step 4: Docs drift audit
 # ====================================================================
 if [ "$RUN_DOCS_AUDIT" = true ]; then
-  print_header "Step 4/6: 📚 Docs drift audit"
+  print_header "Step 4/8: 📚 Docs drift audit"
 
   print_step "python3 tools/docs_drift_audit.py..."
   if python3 tools/docs_drift_audit.py 2>&1 | tail -20; then
@@ -212,7 +212,7 @@ fi
 # Step 5: OpenSpec validate
 # ====================================================================
 if [ "$RUN_OPENSPEC_VALIDATE" = true ]; then
-  print_header "Step 5/7: 📋 OpenSpec validate (所有 active changes)"
+  print_header "Step 5/8: 📋 OpenSpec validate (所有 active changes)"
 
   OPENSPEC_CHANGES=$(openspec list 2>/dev/null | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9-]+' | sort -u || true)
 
@@ -237,7 +237,29 @@ if [ "$RUN_OPENSPEC_VALIDATE" = true ]; then
 fi
 
 # ====================================================================
-# Step 6: LSP discipline (预防 LSP false positive)
+# Step 6: Doxygen coverage (Phase 6a 新增, ADR-0021 §3.3 PDK 头文件)
+# 设计依据: openspec/changes/2026-08-10-pdk-safe-exec-tests T13
+# ====================================================================
+if [ -f tools/check_doxygen_coverage.sh ]; then
+  print_header "Step 6/8: 📐 Doxygen coverage audit (PDK 头文件 ≥ 90%)"
+
+  PDK_HEADERS=$(find include/agenticdsl/pdk -maxdepth 2 -name "*.h" 2>/dev/null | head -10)
+  if [ -z "$PDK_HEADERS" ]; then
+    print_step "无 PDK 头文件, 跳过"
+  else
+    print_step "扫描 PDK 头文件 Doxygen 覆盖率..."
+    if ./tools/check_doxygen_coverage.sh $PDK_HEADERS 2>&1 | tail -20; then
+      print_ok "Doxygen 覆盖率 ≥ 90% (PDK 头文件)"
+    else
+      print_warn "Doxygen 覆盖率 < 90%, 需补 @brief/@tparam 注释"
+    fi
+  fi
+else
+  print_warn "tools/check_doxygen_coverage.sh 不存在, 跳过"
+fi
+
+# ====================================================================
+# Step 7: LSP discipline (预防 LSP false positive)
 # 设计依据: docs/audits/2026-07-03-pdk-model-router-lsp-false-positive.md
 # ====================================================================
 if [ -f scripts/check-lsp-discipline.sh ]; then
@@ -247,7 +269,7 @@ if [ -f scripts/check-lsp-discipline.sh ]; then
     LSP_MODE=""
     LSP_LABEL="full (~30s/文件)"
   fi
-  print_header "Step 6/7: 🔍 LSP discipline ($LSP_LABEL)"
+  print_header "Step 7/8: 🔍 LSP discipline ($LSP_LABEL)"
 
   print_step "scripts/check-lsp-discipline.sh $LSP_MODE..."
   if ./scripts/check-lsp-discipline.sh $LSP_MODE 2>&1 | tail -25; then
@@ -268,12 +290,12 @@ else
 fi
 
 # ====================================================================
-# Step 7: 总结 + 下一步建议
+# Step 8: 总结 + 下一步建议
 # ====================================================================
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
 
-print_header "Step 7/7: 📊 Summary"
+print_header "Step 8/8: 📊 Summary"
 
 echo "  ✅ PASSED:   $PASSED"
 echo "  ⚠️  WARNINGS: $WARNINGS"

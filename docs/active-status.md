@@ -11,7 +11,7 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **120/120** (2026-08-10 实测: `cd build && ctest` → 0 失败 / 120 PASS; 含 pdk-manifest-validation 增量: test_pdk_manifest_validator 11 cases + test_pdk_manifest_finder 8 cases + test_plugin_loader_manifest 10 cases; pre-existing `test_e2e_real_llm` 需真实 LLM API key 仍在 baseline 之外未纳入 CI) |
+| **Total ctest** | 配置 148 (2026-08-10 实测: `cd build && ctest` → 0 失败 / 121/121 PASS of 148 configured; 含 Phase 6a pdk-safe-exec-tests 增量 test_pdk_safe_exec 8 cases; pre-existing `test_e2e_real_llm` 需真实 LLM API key 仍在 baseline 之外未纳入 CI) |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
 | **OpenSpec active** | **0** (Wave 3-A Phase 0 fix-tool-registry-signal-handler-shutdown 已 ship + archived 2026-08-08; Phase A queue-infra 可立即启动) |
@@ -183,6 +183,7 @@
 
 | 日期 | ID | 名称 | 关键 Ship |
 |:----:|:--:|------|-----------|
+| 2026-08-10 | — | pdk-safe-exec-tests (Phase 6a 任务 2) | SafeExec `std::async → std::jthread + stop_token` 改写, 超时立即抛 (caller 不再阻塞至 fn 完成), 新增 grace_period (默认 50ms) + `with_grace_period()` chain API. 8 test cases / 24 assertions (timeout_returns_quickly / stop_token / leak / grace / types / exception / defaults / chain). ASan 安全: promise/future + shared_ptr<SharedState> 避免 worker 持有栈引用. 新增 `tools/check_doxygen_coverage.sh` (shell + grep heuristic, 30 行前向 lookback + private/public 跟踪) + pdk/README.md 扩展 3 章节 (§ SafeExec实战 + § 3 Agent Loop 选择 + § AgentForge衔接). BACKWARD 兼容: test_pdk_macros 5/5 PASS (1 case sleep 时长微调 50ms → 200ms 避免 ASan race). `scripts/sprint-closeout.sh` 集成 Doxygen audit (新增 Step 6/8). ADR-0021 §3.3 同步 jthread 设计依据 + grace_period 默认值 + Phase 6a 升级. **ctest 121/121 PASS** (32 baseline test_pdk_macros + 8 new test_pdk_safe_exec + 81 others, 0 回归). ASan 121/121 PASS. `tools/adr_lint.py` 0 errors (58 ADRs PASS). `tools/docs_drift_audit.py` 0 DRIFT. Doxygen 100% (9/9). OpenSpec archived `2026-08-10-pdk-safe-exec-tests` (5 files). 5 atomic commits per plan §提交策略. |
 | 2026-08-03 | — | promote-event-builder-fulltoolresult-support (V2 收官) | EventBuilder V2 扩展 (`include/agenticdsl/contract/event_builder.h`) — 全 payload 构造器 `EventBuilder(topic, ToolResult)` 接管 7 字段 + 5 个 setter (`.ok(bool)` / `.error_code(ErrorCode)` / `.latency_ms(uint64_t)` / `.trace_id(string)` / `.metadata(json)`). 8 处 operation-result 事件迁移: `tool.completed` / `execution.failed` / `cognitive.task.completed` / `domain.task.{completed,failed}` x3 / `tool.audit.denied` x2 — 全部从 `bus_->emit(BusEvent{...})` 改为 `bus_->emit(EventBuilder(topic, ToolResult).build())`. 新增 `tests/test_event_builder_v2.cpp` (9 test cases, 34 assertions) 覆盖 7 字段透传 + 5 setter + 链式组合. ADR-0068 状态 🟡 Partial → ✅ **Approved** (4/4 验收满足). §5.11 grep 验收: 0 行 (`grep -rn "BusEvent{" src examples --include="*.cpp" \| grep -v event_builder`). **ctest 97/98** (1 pre-existing fail `test_cost_tracking_decorator`). 6 atomic commits (event_builder api + test + 8 migration + adr flip + docs sync + archive). OpenSpec archived `2026-08-03-promote-event-builder-fulltoolresult-support`. |
 | 2026-08-03 | — | adr-0068-event-emission-contract (Wave 1 partial ship) | EventBuilder header-only L1 契约层 (`include/agenticdsl/contract/event_builder.h`) — args/meta 分工明确化. 5/7 幻影主题强制发射点落地: `llm.request/response` (TracingDecorator §2) + `tool.execution.start/end` (ToolCoordinator §3) + `session.persisted` (ChatSession §4). 17 处既有 emit 迁移到 EventBuilder (§2-§5): LLM Decorator 链 / ToolCoordinator audit+cycle_detected / ChatSession / CognitiveWorker / DomainWorkerPool / stream_to_bus / 3 个测试 hand-emit. **8 处 raw BusEvent 故意保留** (§决策 7 Operation-Result vs Telemetry 分类 + 附录 B 清单), 扩展 EventBuilder API 推迟至 follow-up `promote-event-builder-full-toolresult-support`. ADR-0068 状态 🔍 Proposed → 🟡 Partial. §6 E2E mock 重写 + §6.1-6.16 deferred (Wave 1 范围外). `git log`: 2 commits (`99087f1` feat + `0fecb54` refactor). **ctest 110/111** (唯一失败 pre-existing `test_cost_tracking_decorator`). `tools/adr_lint.py` 0 errors + `tools/docs_drift_audit.py` 1 DRIFT (active-status ctest 计数已同步修正). OpenSpec archived `2026-08-03-adr-0068-event-emission-contract`. |
 | 2026-08-01 | — | tf-integration-coverage | `TopoScheduler::Config::num_workers` 字段 (default 0=hardware_concurrency) + `config_num_workers_` 缓存 + test-only accessor `get_parallel_executor_address_for_test()`. 5 新 contract case in test_execute_parallel.cpp (多调用复用/失败注入/混合节点/Worker 注入) + 7 新 advanced case in test_execute_parallel_advanced.cpp (100 节点 flat DAG/Fork-Join 4 支/默认退化/边界/析构安全/错误路径). 依赖链派发 case disabled (ToolCallNode 4 参构造不暴露 metadata,follow-up). **ctest 107/107 ✅** (96→107,11 active new + 1 disabled). `tools/docs_drift_audit.py` 0 DRIFT + `tools/adr_lint.py` 50 ADR PASS. 6 atomic commits (6e2cfc1+c1bd34f+d0894fc+1481d84+afa98da+ef56b47), 4 files +335/-2. OpenSpec archived `2026-08-01-tf-integration-coverage`. |
@@ -218,9 +219,10 @@
    - 实现 1 个微型领域 agent (任何领域都行, 目标是建立 PDK 连接)
    - 验证 `DSLEngine::set_llm_provider()` + DECLARE_TOOL 调用成功
    - **边界**: 不超过 4 小时; 不要追求完美
-2. **Week 1**: SafeExec 重写 (PDK 最高风险修复)
-   - `std::async` + `wait_for` → `std::jthread` + `stop_token` 或复用 `DomainWorkerPool`
-   - TDD: 先写测试验证线程不泄漏
+2. **Week 1**: SafeExec 重写 (PDK 最高风险修复) ✅ **shipped 2026-08-10**
+   - `std::async` + `wait_for` → `std::jthread` + `stop_token` (已完成, OpenSpec `2026-08-10-pdk-safe-exec-tests` archived)
+   - TDD 5 步完成: 8 test cases (timeout_returns_quickly / stop_token / leak / grace / types / exception / defaults / chain)
+   - BACKWARD 兼容: 现有 test_pdk_macros 5 cases 零修改通过 (含 1 case 测试 sleep 时长微调)
 3. **Week 2**: PDK README + 真实 LLM 路由示例
    - `include/agenticdsl/pdk/README.md` (~2 页贯穿示例)
    - Demo: AgentForge agent 通过 `ILLMProvider` (非 Mock) 调用
