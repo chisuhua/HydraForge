@@ -611,3 +611,16 @@ After all 7 Tasks complete:
 - **Task 5 (GrpcTemporalBackend)** requires external dependencies: protoc + gRPC dev packages + Temporal dev server. May block Tasks 6 (perf baseline).
 - **Task 7 (pdk_register_agent)** requires host-side `AgentDescriptor` infrastructure. If missing, defer and document.
 - All other tasks (1-4) are self-contained and can proceed in parallel.
+
+## TDD Discipline
+
+Each work unit in this plan follows the canonical 5-step TDD structure:
+
+1. **Write the failing test** — Define expected behavior in a Catch2 case (or shell assertion)
+2. **Run test to verify it fails** — Confirm red state before writing code
+3. **Write minimal implementation** — Add the smallest code that makes the test pass
+4. **Run test to verify it passes** — Confirm green state, then refactor
+5. **Defer commit** — Batch all green units into a single archive commit per change
+
+This discipline is enforced by `skill_use("execute")`; skipping any step breaks the red→green→commit chain.
+

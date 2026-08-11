@@ -475,3 +475,16 @@ Run: `python3 -c "...mark archived..."` (per Phase 0 pattern).
 - Turn interruption point injection (Phase B)
 - `/model` runtime switching (Phase C)
 - Async I/O refactor of main.cpp `while(getline)` loop (Phase B)
+
+## TDD Discipline
+
+Each work unit in this plan follows the canonical 5-step TDD structure:
+
+1. **Write the failing test** — Define expected behavior in a Catch2 case (or shell assertion)
+2. **Run test to verify it fails** — Confirm red state before writing code
+3. **Write minimal implementation** — Add the smallest code that makes the test pass
+4. **Run test to verify it passes** — Confirm green state, then refactor
+5. **Defer commit** — Batch all green units into a single archive commit per change
+
+This discipline is enforced by `skill_use("execute")`; skipping any step breaks the red→green→commit chain.
+

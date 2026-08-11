@@ -621,3 +621,17 @@ When validation passes:
 - `fix-loop-agent-bypass` follow-up: add `loop.token` chunk emission in `pdk/loop_agent/src/pdk_entry.cpp` so chat-streaming-slash-tui can subscribe to per-token chunks for true incremental rendering (per-task 2 of design §Decision 1)
 - `fix-markdown-parser-yaml`: extend `DslValidator` to accept YAML fenced blocks — currently the `lib/loop/react.agent.md` uses YAML and causes mock-mode startup to crash via the early-exit `return 1` path
 - P95 chunk handling latency benchmark: deferred until per-token emission exists
+
+
+## TDD Discipline
+
+Each work unit in this plan follows the canonical 5-step TDD structure:
+
+1. **Write the failing test** — Define expected behavior in a Catch2 case (or shell assertion)
+2. **Run test to verify it fails** — Confirm red state before writing code
+3. **Write minimal implementation** — Add the smallest code that makes the test pass
+4. **Run test to verify it passes** — Confirm green state, then refactor
+5. **Defer commit** — Batch all green units into a single archive commit per change
+
+This discipline is enforced by `skill_use("execute")`; skipping any step breaks the red→green→commit chain.
+

@@ -1049,3 +1049,17 @@ git commit -m "archive: move pdk-safe-exec-tests to archive/ (Phase 6a task 2 sh
 - ❌ pdk_chat_demo v2 + 真实 LLM 集成 (Phase 6b 任务 3, 12h)
 - ❌ 完整 SafeExec (fork/cgroups/seccomp, Phase 7+, ADR-0021 §3.3 Phase 3 范围)
 - ❌ PluginLifecycle / MockSandbox (Phase 3, ADR-0021 §2.3)
+
+
+## TDD Discipline
+
+Each work unit in this plan follows the canonical 5-step TDD structure:
+
+1. **Write the failing test** — Define expected behavior in a Catch2 case (or shell assertion)
+2. **Run test to verify it fails** — Confirm red state before writing code
+3. **Write minimal implementation** — Add the smallest code that makes the test pass
+4. **Run test to verify it passes** — Confirm green state, then refactor
+5. **Defer commit** — Batch all green units into a single archive commit per change
+
+This discipline is enforced by `skill_use("execute")`; skipping any step breaks the red→green→commit chain.
+

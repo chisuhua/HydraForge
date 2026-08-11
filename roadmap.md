@@ -9,8 +9,8 @@
 - **版本**: 3 (2026-08-03 重写, 三平面架构)
 - **创建时间**: 2026-07-24T00:00:00+08:00
 - **最后更新**: 2026-08-03 — 路线图重写, 三平面重组
-- **当前阶段**: phase-6a (2026-07-24 ~ 2026-08-05, 37h 容量)
-- **下一阶段**: phase-6b (2026-08-05 ~ 2026-08-19, 44h 容量)
+- **当前阶段**: phase-6b (2026-08-05 ~ 2026-08-19, 44h 容量) — 🔄 进行中 (2026-08-11 kickoff)
+- **下一阶段**: phase-6c (2026-08-19 ~ 09-09, ~80h 容量)
 - **阶段规划**:
   - **Phase 6c** (2026-08-19 ~ 09-09, ~80h) — **Execution Plane 完整 ship**
   - **Phase 7** (2026-09+ 起, gated) — **Control Plane (MCP)**
@@ -125,7 +125,7 @@ Phase 8b ───────Fine-tune ────────────┘ 
 ### Phase 6a: Sprint 24 — Demo 收尾与 TDK 骨架 (phase-6a)
 
 **目标**: pdk_chat_demo v1 收尾 + pkm_temporal_demo PDK 骨架落地
-**状态**: 🔄 进行中 (2026-08-03 ~50% 完成)
+**状态**: ✅ 完成 (2026-08-11 收官, 拖期 6d; T1-T8 全 ship)
 **周期**: 2026-07-24 ~ 2026-08-05 (12 天, ~37h 容量)
 **完成条件**:
   - [x] `ctest -R pdk_chat` 全绿 (含新增 schema 校验 test case)
@@ -134,7 +134,8 @@ Phase 8b ───────Fine-tune ────────────┘ 
   - [x] `./pkm_temporal_demo --mock` 4 个演示场景全部 PASS
   - [x] **PDK SafeExec jthread 重写 + 8 test cases PASS** (Phase 6a 任务 2, OpenSpec `2026-08-10-pdk-safe-exec-tests` archived 2026-08-10)
   - [x] **PDK Doxygen 覆盖率 ≥90% + pdk/README.md 3 章节扩展** (Phase 6a 任务 2)
-  - [ ] 8/1 前 proposals/ 清理完成
+  - [x] **proposals/ 清理完成** (T6 — 重组为 `improvements/` + `proposal-suggestions.md`/`proposal-approved.md`; 24 entries, 0 条 >3 月)
+  - [x] **pkm_temporal_demo CI 集成** (T8 — root CMake `add_subdirectory` 接入; ctest 通过 auto-discovery 自动覆盖; DESIGN.md + README.md 完整)
   - [x] active-status.md 更新至 2026-08-10
 
 #### 任务分类 (现状不变, 无 LLM-native 工作)
@@ -162,12 +163,14 @@ Phase 8b ───────Fine-tune ────────────┘ 
 
 > **合计**: ~36h, T8 可顺延至 Sprint 25 首日
 
+> **Phase 6a 收官注记 (2026-08-11)**: 全部 T1-T8 已 ship, 完成条件 8/8 全绿. 详见 `openspec/changes/archive/` 内 6 个 Phase 6a 相关 archive 目录. 下一步: 启动 Phase 6b (Sprint 25, Execution Plane 基础 ship).
+
 ---
 
 ### Phase 6b: Sprint 25 — Demo 扩展 + Execution Plane 基础 (phase-6b)
 
 **目标**: pdk_chat_demo v2 启动 + **Execution Plane 基础 ship (Wave 2 强制决策 24-32h)**
-**状态**: ⏳ 未开始
+**状态**: 🔄 进行中 (2026-08-11 kickoff, U1-U4 + W1-W4 未 ship)
 **前置阶段**: phase-6a
 **周期**: 2026-08-05 ~ 2026-08-19 (14 天, ~44h 容量)
 **完成条件**:

@@ -13,12 +13,12 @@
 | [pkm-temporal-demo-scaffold](improvements/pkm-temporal-demo-scaffold.md) | P0 | 2026-07-28 | [Drift close 2026-08-05](openspec/changes/archive/2026-07-28-pkm-temporal-demo-scaffold/) — ITemporalClient + 4 scenario + 9 test_temporal_*.cpp 全部 ship |
 | [adr-0037-causal-clock](improvements/adr-0037-causal-clock.md) | P2 | 2026-07-29 | Drift close 2026-08-05 — [archived 2026-07-29](openspec/changes/archive/2026-07-29-adr-0037-causal-clock/) `src/common/contract/causal_clock.h` + InMemoryBus::emit 自动 tick 已 ship（ADR-0037 状态需更新） |
 | [adr-0019-subscribe-glob](improvements/adr-0019-subscribe-glob.md) | P1 | 2026-07-29 | Drift close 2026-08-05 — [archived 2026-07-29](openspec/changes/archive/2026-07-29-adr-0019-subscribe-glob/) InMemoryBus 双路径分发 + `glob_match()` + `test_interaction_bus_glob.cpp` 6 cases 全部 ship（ADR-0019 状态 🟡 → ✅ 需更新） |
-| [adr-0070-declare-command](improvements/adr-0070-declare-command.md) | P0 | 2026-08-04 |
-| [adr-0069-tool-coordinator-hooks](improvements/adr-0069-tool-coordinator-hooks.md) | P0 | 2026-08-04 |
-| [fix-loop-agent-bypass](improvements/fix-loop-agent-bypass.md) | P0 | 2026-08-03 |
-| [adr-0002-busevent-contract](improvements/adr-0002-busevent-contract.md) | P1 | 2026-07-29 |
+| [adr-0070-declare-command](improvements/adr-0070-declare-command.md) | P0 | 2026-08-04 | [archived 2026-08-04](openspec/changes/archive/2026-08-04-adr-0070-declare-command/) |
+| [adr-0069-tool-coordinator-hooks](improvements/adr-0069-tool-coordinator-hooks.md) | P0 | 2026-08-04 | [archived 2026-08-04](openspec/changes/archive/2026-08-04-adr-0069-tool-coordinator-hooks/) |
+| [fix-loop-agent-bypass](improvements/fix-loop-agent-bypass.md) | P0 | 2026-08-03 | [archived 2026-08-03](openspec/changes/archive/2026-08-03-fix-loop-agent-bypass/) |
+| [adr-0002-busevent-contract](improvements/adr-0002-busevent-contract.md) | P1 | 2026-07-29 | [archived 2026-07-29](openspec/changes/archive/2026-07-29-adr-0002-busevent-contract/) |
 | [adr-0068-event-emission-contract](improvements/adr-0068-event-emission-contract.md) | P0 | 2026-08-01 | [Wave 1 partial ship](openspec/changes/archive/2026-08-03-adr-0068-event-emission-contract/) — 110/111 ctest, ADR-0068 🟡 Partial, 留 follow-up `promote-event-builder-full-toolresult-support` + §6 E2E mock + fix-loop-agent-bypass |
-| [tf-integration-coverage](improvements/tf-integration-coverage.md) | P1 | 2026-08-01 |
+| [tf-integration-coverage](improvements/tf-integration-coverage.md) | P1 | 2026-08-01 | [archived 2026-08-01](openspec/changes/archive/2026-08-01-tf-integration-coverage/) |
 | [fix-markdown-parser-yaml](improvements/fix-markdown-parser-yaml.md) | P1 | 2026-08-01 | Drift close 2026-08-06 — [archived 2026-08-04](openspec/changes/archive/2026-08-04-fix-markdown-parser-yaml/) ✅ ship |
 | [session-manager-jsonl](improvements/session-manager-jsonl.md) | P1 | 2026-08-01 | Drift close 2026-08-06 — [archived v1 2026-08-04](openspec/changes/archive/2026-08-04-session-manager-jsonl/) + [v2 2026-08-05](openspec/changes/archive/2026-08-05-session-manager-jsonl-v2/) ✅ ship |
 | [chat-slash-commands-migration](improvements/chat-slash-commands-migration.md) | P1 | 2026-08-06 | [archived 2026-08-06](openspec/changes/archive/2026-08-06-chat-slash-commands-migration/) ✅ ship — /model DECLARE_COMMAND + provider_switch_stub 工具 + main.cpp 零 hardcode + 3 新增测试 PASS; 122/123 ctest (1 expected live fail) |

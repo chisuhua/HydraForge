@@ -61,7 +61,7 @@
     "0078"
   ],
   "roadmap_exists": true,
-  "current_phase": "phase-6a (2026-07-24 ~ 2026-08-05, 37h \u5bb9\u91cf)",
+  "current_phase": "phase-6b (2026-08-05 ~ 2026-08-19, 44h 容量)",
   "plan_started_at": null,
   "adr_dir": "docs/adr",
   "roadmap_path": "roadmap.md",

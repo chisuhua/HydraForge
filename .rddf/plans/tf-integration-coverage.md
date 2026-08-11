@@ -563,3 +563,17 @@ Then update `proposal-suggestions.md` to remove the entry (auto-cleanup per rdd-
 - Stop after WU-2 if a verification test exposes a real production contract violation (escalate to user)
 - Stop after WU-3 Step 2 if TSan reports data races in fork/join (escalate to user, since this would require production code change)
 - Stop after WU-4 if ctest < 64/64 (escalate with full output)
+
+
+## TDD Discipline
+
+Each work unit in this plan follows the canonical 5-step TDD structure:
+
+1. **Write the failing test** — Define expected behavior in a Catch2 case (or shell assertion)
+2. **Run test to verify it fails** — Confirm red state before writing code
+3. **Write minimal implementation** — Add the smallest code that makes the test pass
+4. **Run test to verify it passes** — Confirm green state, then refactor
+5. **Defer commit** — Batch all green units into a single archive commit per change
+
+This discipline is enforced by `skill_use("execute")`; skipping any step breaks the red→green→commit chain.
+
