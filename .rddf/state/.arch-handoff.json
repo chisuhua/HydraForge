@@ -1,5 +1,5 @@
 {
-  "arch_complete_at": "2026-08-04T04:46:52.104491+00:00",
+  "arch_complete_at": "2026-08-12T12:30:25.686573+00:00",
   "adr_count": 71,
   "completed_adr_ids": [
     "0001",
@@ -61,7 +61,7 @@
     "0078"
   ],
   "roadmap_exists": true,
-  "current_phase": "phase-6b (2026-08-05 ~ 2026-08-19, 44h 容量)",
+  "current_phase": "phase-6b (2026-08-05 ~ 2026-08-19, 44h \u5bb9\u91cf) \u2014 \ud83d\udd04 \u8fdb\u884c\u4e2d (2026-08-11 kickoff)",
   "plan_started_at": null,
   "adr_dir": "docs/adr",
   "roadmap_path": "roadmap.md",

@@ -95,7 +95,25 @@
       "end_reason": "guide-ship-completed-batch-wave-2-b",
       "sub_phase": null,
       "workflow_group": "768fb844-d5bf-4c2c-ae25-667538baa564"
+    },
+    {
+      "session_id": "rds_f21c7e16ace5",
+      "kind": "stage_arch",
+      "owner_opencode_session_id": "my-eci-group-poc_4934",
+      "parent_session_id": null,
+      "goal": {
+        "intent": "guide-arch"
+      },
+      "state": "completed",
+      "attached_changes": [],
+      "context_pointer": null,
+      "started_at": "2026-08-12T12:30:26.074986+00:00",
+      "last_heartbeat": "2026-08-12T12:30:26.074986+00:00",
+      "ended_at": "2026-08-12T12:30:26.102979+00:00",
+      "end_reason": "arch-done",
+      "sub_phase": null,
+      "workflow_group": null
     }
   ],
-  "updated_at": "2026-08-07T18:00:00+00:00"
+  "updated_at": "2026-08-12T12:30:26.102979+00:00"
 }

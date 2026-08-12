@@ -8,6 +8,8 @@
 | --- | --- | --- | --- | --- |
 | （无 — 所有已批准提案均已 ship） | | | | |
 
+| [context-compactor](.rddf/improvements/context-compactor.md) | P1 | 2026-08-12 | guide-arch |
+
 ## 已实施
 | [pdk-chat-demo-v1-recap](.rddf/improvements/pdk-chat-demo-v1-recap.md) | P0 | 2026-07-27 | [Drift close 2026-08-05](openspec/changes/archive/2026-07-27-pdk-chat-demo-v1-recap/) — T1+T2 Session 持久化 + Budget 告警 + Schema 校验 99/99 ctest 全 PASS |
 | [pkm-temporal-demo-scaffold](.rddf/improvements/pkm-temporal-demo-scaffold.md) | P0 | 2026-07-28 | [Drift close 2026-08-05](openspec/changes/archive/2026-07-28-pkm-temporal-demo-scaffold/) — ITemporalClient + 4 scenario + 9 test_temporal_*.cpp 全部 ship |

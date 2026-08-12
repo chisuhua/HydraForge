@@ -1,7 +1,8 @@
 {
   "passed": true,
   "warnings": [
-    "arch_alignment"
+    "arch_alignment",
+    "file_size_limit"
   ],
   "failed_checks": [],
   "detail": {
@@ -22,8 +23,8 @@
       "severity": null
     },
     "file_size_limit": {
-      "passed": true,
-      "severity": null
+      "passed": false,
+      "severity": "warning"
     }
   },
   "strict_mode": false

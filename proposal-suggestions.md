@@ -9,5 +9,12 @@
 
 | 提案 | 优先级 | 来源 | 添加时间 | 状态 |
 |------|--------|------|----------|------|
-| [context-compactor](.rddf/improvements/context-compactor.md) | P1 | 同上 §四 L0-3 + §八 L4-5 + ADR-0007 Partial 收尾 | 2026-07-31 | 延迟 |
-| [chat-async-io-steering](.rddf/improvements/chat-async-io-steering.md) | P2 | 同上 §八 L4-2 + §五 L1-4（steering/follow-up + /model 切换） | 2026-07-31 | 延迟 |
+
+## 已归档（2026-08-12 cleanup）
+
+- ✅ **chat-async-io-steering** (P2) — 2026-08-08 DECOMPOSED → 7 个子 change ship 完成 (Phase 0 + A + B×5 + C)
+  - Phase 0: [fix-tool-registry-signal-handler-shutdown](openspec/changes/archive/2026-08-08-fix-tool-registry-signal-handler-shutdown/) ✅ 2026-08-08
+  - Phase A: [chat-async-io-queue-infra](openspec/changes/archive/2026-08-08-chat-async-io-queue-infra/) ✅ 2026-08-08
+  - Phase B: [chat-async-io-cancellation-chain](openspec/changes/archive/2026-08-09-chat-async-io-cancellation-chain/) + step3/4/5 ✅ 2026-08-09
+  - Phase C: [chat-async-io-model-switching](openspec/changes/archive/2026-08-09-chat-async-io-model-switching/) ✅ 2026-08-09
+  - 原始 `.rddf/improvements/chat-async-io-steering.md` 保留作为设计意图记录（已标注 DECOMPOSED）

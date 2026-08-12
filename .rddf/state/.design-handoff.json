@@ -1,66 +1,31 @@
 {
-  "design_complete_at": "2026-08-06T07:07:28.990176+00:00",
-  "proposals_reviewed": 5,
-  "proposals_approved_now": 4,
-  "proposals_kept_deferred": 1,
+  "design_complete_at": "2026-08-12T15:30:38.148007+00:00",
+  "proposals_reviewed": 1,
   "all_proposals_have_decision": true,
   "version": 2,
   "changes_pre_created": [
-    "cli-args-cxxopts",
-    "provider-dynamic-discovery",
-    "session-tree-tui",
-    "chat-streaming-slash-tui"
+    "context-compactor"
   ],
+  "proposals_approved_now": 1,
+  "proposals_kept_deferred": 0,
+  "cycle_label": "wave-4-kickoff-2026-08-12",
+  "cycle_summary": "Wave 4 kickoff: 1 proposal (context-compactor) approved. ADR-0007 Partial 收尾：LLM 摘要压缩 + 阈值触发 + /compact 命令 + context.compact.{before,after} 事件发射。 所有前置条件已 ship (ADR-0070 DECLARE_COMMAND ✅, ADR-0068 V2 EventBuilder ✅)。",
   "wave_structure": {
-    "wave_2_A_infrastructure_serial": [
-      "cli-args-cxxopts (P2, ~3d, foundation — vendored cxxopts; replaces main.cpp:76-83 hand-rolled args loop)",
-      "provider-dynamic-discovery (P2, ~3-4d, foundation — LLMProviderFactory::register_dynamic + 3 new tools: provider/refresh, provider/register_dynamic, provider/switch)"
-    ],
-    "wave_2_B_features_parallel_after_A": [
-      "session-tree-tui (P2, ~2d, 2 flags --fork/--name, requires cli-args-cxxopts + session-tree-commands[shipped])",
-      "chat-streaming-slash-tui (P1, ~5-6d, EventHandler chunk-level rendering + --system-prompt/--append-system-prompt flags, requires cli-args-cxxopts + provider-dynamic-discovery + chat-slash-commands-migration[shipped])"
-    ],
-    "wave_3_after_W2_ship": [
-      "chat-async-io-steering (P2, ~5d, async I/O + double queue + interruption injection, requires chat-streaming-slash-tui ship)"
+    "wave_4_approved": [
+      "context-compactor (P1, wave-4, ~3-4d, LLM 摘要压缩 + /compact 命令)"
     ]
   },
-  "kept_deferred": [
-    {
-      "name": "chat-async-io-steering",
-      "reason": "依赖 chat-streaming-slash-tui ship 后才具备完整事件链路（loop.* + 流式）",
-      "next_review": "Wave 2 完成后下一 design cycle 重审"
-    },
-    {
-      "name": "context-compactor",
-      "reason": "前置 ADR-0007 Partial 收尾 + adr-0070 + adr-0068 V2 已 ship；本 design cycle 用户未列入重审",
-      "next_review": "保留 Wave 4 评估"
-    }
-  ],
-  "splits_resolved_from_previous_cycle": [
-    {
-      "original": "session-tree-tui",
-      "wave_1_shipped": "session-tree-commands ✅ 2026-08-06",
-      "wave_2_now_approved": "session-tree-tui ✅ 2026-08-06"
-    },
-    {
-      "original": "chat-streaming-slash-tui",
-      "wave_1_shipped": "chat-slash-commands-migration ✅ 2026-08-06",
-      "wave_2_now_approved": "chat-streaming-slash-tui ✅ 2026-08-06"
-    }
-  ],
-  "drift_close_actions_from_previous_cycle": [
-    "pdk-chat-demo-v1-recap (archived 2026-07-27) → 已实施",
-    "pkm-temporal-demo-scaffold (archived 2026-07-28) → 已实施",
-    "adr-0037-causal-clock (archived 2026-07-29) → 已实施",
-    "adr-0019-subscribe-glob (archived 2026-07-29) → 已实施"
+  "cleanup_from_previous_cycle": [
+    "chat-async-io-steering (parent) 已 DECOMPOSED → 7 sub-changes ship ✅",
+    "All 8 'pre-existing failures' in AGENTS.md 调查后确认全部已 ship 后自动修复：147/147 PASS"
   ],
   "next_stage": "plan",
   "next_skill": "guide-plan",
   "notes": [
-    "Wave 2-A (cli-args-cxxopts + provider-dynamic-discovery) 是基础设施，必须先 ship",
-    "Wave 2-B (session-tree-tui + chat-streaming-slash-tui) 在 Wave 2-A ship 后可并行 ship",
-    "Wave 3 (chat-async-io-steering) 等 Wave 2-B ship 后再启 design",
-    "context-compactor 保留 Wave 4 评估，未在本 cycle 重审",
-    "总预算：4 个新 change，估时 ~13-15 工作日（含并行优化）"
+    "Wave 4 kickoff — 1 change approved",
+    "context-compactor 前置条件: ADR-0070 DECLARE_COMMAND ✅ + ADR-0068 V2 EventBuilder ✅ + SessionConfig.compact_threshold_tokens ✅",
+    "目标: ADR-0007 🟡 Partial → ✅ Approved",
+    "估时: 3-4d (LLM 摘要压缩 + 阈值触发 + /compact 命令 + 事件发射)",
+    "git 工作区有 8 个未提交修改待 commit"
   ]
 }

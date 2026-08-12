@@ -269,6 +269,13 @@
       "total_tasks": 25,
       "plan_present": false,
       "archive_path": "openspec/changes/archive/2026-08-09-chat-async-io-model-switching/"
+    },
+    {
+      "name": "context-compactor",
+      "status": "planned",
+      "phase": "wave-4 (re-activated 2026-08-12\uff0c\u539f wave-2 \u5ef6\u8fdf\u81f3\u524d\u7f6e\u6761\u4ef6 ship)",
+      "category": "core-impl",
+      "added_at": "2026-08-12T23:26:25+0800"
     }
   ]
 }

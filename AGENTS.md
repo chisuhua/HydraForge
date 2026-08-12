@@ -124,6 +124,7 @@ HydraForge/
 - 构建预设: `CMakePresets.json` (cmake --preset debug|release|asan|tsan|tests)
 - `compile_commands.json` 根目录软链接 (Stage 5 / Task 23, 指向 `build/compile_commands.json`)
 - GitHub Actions CI: `.github/workflows/ci.yml` (Stage 5 / Task 25, 2 presets × 2 compilers matrix)
+- **2026-08-12 状态校正**: `Recent Changes` 区中历史 ctest 失败计数（如 `147/150` / `138/141` / `135/138` / `134/136` / `97/98` / `110/111`）为发布当日快照。Wave 2 + Wave 3-A 完整 ship 后所有遗留项已修复。当前 ground truth：`ctest --output-on-failure` = **147/147 PASS, 0 failures (27.56 sec)**。具体修复：fix-markdown-parser-yaml ✅ 2026-08-04, fix-tool-registry-signal-handler-shutdown (mock-mode SIGSEGV) ✅ 2026-08-08, adr-0069-tool-coordinator-hooks ✅ 2026-08-04, session-manager-jsonl ✅ 2026-08-04/05, adr-0070-declare-command ✅ 2026-08-04, fix-loop-agent-bypass ✅ 2026-08-03, fix-markdown-parser-yaml ✅ 2026-08-04。
 
 ## Recent Changes
 
