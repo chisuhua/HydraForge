@@ -11,7 +11,7 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | 配置 148 (2026-08-10 实测: `cd build && ctest` → 0 失败 / 121/121 PASS of 148 configured; 含 Phase 6a pdk-safe-exec-tests 增量 test_pdk_safe_exec 8 cases; pre-existing `test_e2e_real_llm` 需真实 LLM API key 仍在 baseline 之外未纳入 CI) |
+| **Total ctest** | 配置 147 (2026-08-12 实测: `cd build && ctest` → 0 失败 / 147/147 PASS of 147 configured; 含 Phase 6a pdk-safe-exec-tests 增量 test_pdk_safe_exec 8 cases; pre-existing `test_e2e_real_llm` 改为显式 opt-in `HYDRAFORGE_RUN_REAL_LLM=1` 后已通过; obsolete `test_pdk_chat_model_command` 已删除由 Phase C `test_model_switching` 替代) |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
 | **OpenSpec active** | **0** (Wave 3-A Phase 0 fix-tool-registry-signal-handler-shutdown 已 ship + archived 2026-08-08; Phase A queue-infra 可立即启动) |
