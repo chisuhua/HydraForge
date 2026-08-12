@@ -9,5 +9,5 @@
 
 | 提案 | 优先级 | 来源 | 添加时间 | 状态 |
 |------|--------|------|----------|------|
-| [context-compactor](improvements/context-compactor.md) | P1 | 同上 §四 L0-3 + §八 L4-5 + ADR-0007 Partial 收尾 | 2026-07-31 | 延迟 |
-| [chat-async-io-steering](improvements/chat-async-io-steering.md) | P2 | 同上 §八 L4-2 + §五 L1-4（steering/follow-up + /model 切换） | 2026-07-31 | 延迟 |
+| [context-compactor](.rddf/improvements/context-compactor.md) | P1 | 同上 §四 L0-3 + §八 L4-5 + ADR-0007 Partial 收尾 | 2026-07-31 | 延迟 |
+| [chat-async-io-steering](.rddf/improvements/chat-async-io-steering.md) | P2 | 同上 §八 L4-2 + §五 L1-4（steering/follow-up + /model 切换） | 2026-07-31 | 延迟 |
