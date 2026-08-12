@@ -67,6 +67,12 @@ static std::string ptr_to_str(void* p) {
 }
 
 TEST_CASE("Real LLM: minimax-text-01 responds to a simple prompt", "[e2e][realllm]") {
+    const char* run_real_llm = std::getenv("HYDRAFORGE_RUN_REAL_LLM");
+    if (!run_real_llm || std::string(run_real_llm) != "1") {
+        WARN("Set HYDRAFORGE_RUN_REAL_LLM=1 to run real LLM tests");
+        return;
+    }
+
     const char* api_key = std::getenv("MINIMAX_API_KEY");
     if (!api_key || api_key[0] == '\0') {
         WARN("MINIMAX_API_KEY not set — skipping real LLM test");
@@ -124,6 +130,12 @@ TEST_CASE("Real LLM: minimax-text-01 responds to a simple prompt", "[e2e][realll
 }
 
 TEST_CASE("Real LLM: ChatSession with minimax responds to user input", "[e2e][realllm][chat]") {
+    const char* run_real_llm = std::getenv("HYDRAFORGE_RUN_REAL_LLM");
+    if (!run_real_llm || std::string(run_real_llm) != "1") {
+        WARN("Set HYDRAFORGE_RUN_REAL_LLM=1 to run real LLM tests");
+        return;
+    }
+
     const char* api_key = std::getenv("MINIMAX_API_KEY");
     if (!api_key || api_key[0] == '\0') {
         WARN("MINIMAX_API_KEY not set — skipping real LLM ChatSession test");

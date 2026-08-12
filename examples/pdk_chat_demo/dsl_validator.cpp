@@ -93,14 +93,24 @@ static std::string extract_yaml_fenced_block(const std::string& content) {
     size_t fence_pos = content.find(fence_open, pos);
     if (fence_pos == std::string::npos) return "";
 
-    size_t after_fence = fence_pos + fence_open.size();
-    size_t line_end = content.find('\n', after_fence);
+    // 跳过 fence_open 自身, 定位到下一行开头 (支持 LF 和 CRLF)
+    size_t line_start = fence_pos + fence_open.size();
+    if (line_start < content.size() && content[line_start] == '\n') {
+      line_start += 1;
+    } else if (line_start + 1 < content.size() &&
+               content[line_start] == '\r' && content[line_start + 1] == '\n') {
+      line_start += 2;
+    }
+
+    size_t line_end = content.find('\n', line_start);
     if (line_end == std::string::npos) return "";
-    std::string first_line = content.substr(after_fence, line_end - after_fence);
-    // trim 前导空白
-    size_t first_nonspace = first_line.find_first_not_of(" \t\r");
-    std::string trimmed = (first_nonspace == std::string::npos)
-        ? "" : first_line.substr(first_nonspace);
+    std::string first_line = content.substr(line_start, line_end - line_start);
+    const size_t first_nonspace = first_line.find_first_not_of(" \t\r");
+    const size_t last_nonspace = first_line.find_last_not_of(" \t\r");
+    const std::string trimmed =
+        (first_nonspace == std::string::npos)
+            ? ""
+            : first_line.substr(first_nonspace, last_nonspace - first_nonspace + 1);
 
     if (trimmed == begin_marker) {
       size_t content_start = line_end + 1;
@@ -108,7 +118,7 @@ static std::string extract_yaml_fenced_block(const std::string& content) {
       if (close_pos == std::string::npos) return "";
       return content.substr(content_start, close_pos - content_start);
     }
-    pos = line_end + 1;
+    pos = fence_pos + fence_open.size();
   }
   return "";
 }
@@ -117,9 +127,8 @@ static std::string extract_yaml_fenced_block(const std::string& content) {
 // yaml 顶层为 key: value 格式; 返回 value 的字符串表示
 static std::string yaml_field_value(const std::string& yaml_text,
                                     const std::string& key) {
-  // 简单行扫描: 匹配 "key: value" 或 "key: value # comment"
-  std::regex pattern("^\\s*" + key + "\\s*:\\s*([^#\\n]+?)\\s*(?:#.*)?$",
-                      std::regex::multiline);
+  std::regex pattern("^\\s*" + key + "\\s*:\\s*([^#\\r\\n]+?)\\s*(?:#.*)?$",
+                     std::regex::multiline);
   std::smatch match;
   if (std::regex_search(yaml_text, match, pattern)) {
     std::string val = match[1].str();

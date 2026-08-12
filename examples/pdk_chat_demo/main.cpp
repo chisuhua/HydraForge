@@ -117,6 +117,26 @@ int main(int argc, char* argv[]) {
     const std::string& session_id_to_load = cli_options.session_id;
 
     // ============================================================
+    // 1.5. Session 选项早期校验 — 在 engine/validation 初始化之前失败快速
+    //     --fork 需要 --session 指定源 session
+    //     --name 与 --session 互斥（--name 仅用于新建 session）
+    // ============================================================
+    if (!cli_options.fork_node_id.empty()) {
+        if (cli_options.session_id.empty()) {
+            std::cerr << "[main] Error: --fork " << cli_options.fork_node_id
+                      << " requires --session to specify source session" << std::endl;
+            std::cerr << "Use --help for usage." << std::endl;
+            return 1;
+        }
+        // fork_node_id 存在性在 SessionManager open 后检查（见后续逻辑）
+    }
+    if (!cli_options.session_name.empty() && !cli_options.session_id.empty()) {
+        std::cerr << "[main] Error: --name cannot be used with --session (it only applies to new sessions)" << std::endl;
+        std::cerr << "Use --help for usage." << std::endl;
+        return 1;
+    }
+
+    // ============================================================
     // 1. 解析配置
     // ============================================================
     pdk_chat_demo::ChatConfig config;
@@ -149,6 +169,7 @@ int main(int argc, char* argv[]) {
         std::vector<agenticdsl::ParsedGraph>{});
     StartupCleanupGuard guard;
     guard.engine = &engine;
+    guard.active = false;  // 初始化为 false，在 engine 完全就绪后开启
     auto bus = std::make_shared<agenticdsl::InMemoryBus>();
 
     // 使用 ExecutionBudget 配置预算
@@ -323,6 +344,8 @@ int main(int argc, char* argv[]) {
         }
     }
 
+        guard.active = true;  // 开启 cleanup guard（后续 early return 会正确清理）
+
     // ============================================================
     // 5.6. T2: DSL Schema 校验 — 加载 .agent.md → DslValidator → 失败退出
     //     Plugin 已加载完毕, registry 含全部工具; 路径与 pdk_entry.cpp 一致
@@ -362,6 +385,9 @@ int main(int argc, char* argv[]) {
             std::cerr << "[main] DSL Schema Validation skipped: "
                       << "lib/loop/" << config.agent.loop_type
                       << ".agent.md not found" << std::endl;
+        } else if (mock_mode) {
+            // Mock mode skips DSL validation — mock provider doesn't need DSL validation
+            std::cout << "[main] DSL Schema Validation skipped (mock mode)" << std::endl;
         } else {
             // fix-markdown-parser-yaml: 双格式自动检测 (bold + yaml fenced)
             const agenticdsl::IToolRegistry* registry =
@@ -377,6 +403,11 @@ int main(int argc, char* argv[]) {
                     std::cerr << "  - [" << e.type << "] " << e.node_path
                               << ": " << e.message << std::endl;
                 }
+                // Early cleanup: reset engine (destroys ToolRegistry properly) then unload plugins.
+                // guard.active=true 确保 guard destructor 不会重复 cleanup (engine 已 reset).
+                engine.reset();
+                unload_all_plugins(loader);
+                guard.active = false;
                 return 1;
             }
             std::cout << "[main] DSL Schema Validation OK: " << agent_md_path
@@ -442,9 +473,25 @@ int main(int argc, char* argv[]) {
 
     auto session_manager = std::make_unique<agenticdsl::SessionManager>(
         fs::path(config.session.persist_dir));
-    session_manager->open(config.session.persist_dir.empty()
-                              ? std::string("default")
-                              : fs::path(config.session.persist_dir).filename().string());
+    // --session <id> 优先，否则使用 "default" session
+    const std::string resolved_session_id =
+        session_id_to_load.empty() ? std::string("default") : session_id_to_load;
+    if (!session_id_to_load.empty() &&
+        (session_id_to_load.find('/') != std::string::npos ||
+         session_id_to_load.find('\\') != std::string::npos ||
+         session_id_to_load == "." || session_id_to_load == "..")) {
+        std::cerr << "[main] Error: --session '" << session_id_to_load
+                  << "' is not a valid session id" << std::endl;
+        std::cerr << "Use --help for usage." << std::endl;
+        return 1;
+    }
+    try {
+        session_manager->open(resolved_session_id);
+    } catch (const std::exception& e) {
+        std::cerr << "[main] Failed to open session '" << resolved_session_id
+                  << "': " << e.what() << std::endl;
+        return 1;
+    }
     pdk_chat_demo::g_session_manager = session_manager.get();
 
     pdk_chat_demo::register_provider_switch_stub_tool(engine->get_tool_registry());
@@ -457,6 +504,19 @@ int main(int argc, char* argv[]) {
     command_registry.register_command(pdk_chat_demo::make_tree_command_spec());
     command_registry.register_command(pdk_chat_demo::make_fork_command_spec());
     command_registry.register_command(pdk_chat_demo::make_clone_command_spec());
+
+    // ============================================================
+    // 7.9. 验证 --fork node_id 是否存在于已加载 session
+    // ============================================================
+    if (!cli_options.fork_node_id.empty() && !session_id_to_load.empty()) {
+        auto* node = session_manager->find_node(cli_options.fork_node_id);
+        if (node == nullptr) {
+            std::cerr << "[main] Error: --fork node '" << cli_options.fork_node_id
+                      << "' not found in session '" << session_id_to_load << "'" << std::endl;
+            std::cerr << "Use --help for usage." << std::endl;
+            return 1;
+        }
+    }
 
     std::cout << std::endl << "User> " << std::flush;
 

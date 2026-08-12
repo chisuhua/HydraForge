@@ -176,6 +176,55 @@ static const std::string DSL_WITH_CALL_TOOL = R"(# tool-agent
 )";
 
 // ============================================================
+// yaml fenced block fixtures (fix-markdown-parser-yaml regression)
+// ============================================================
+
+// Production-style yaml fenced block with LF line endings
+// Format: ```yaml\n# --- BEGIN AgenticDSL ---\n...fields...\nnodes:\n...\n```
+static const std::string YAML_FENCED_DSL_LF =
+    "# yaml-agent\n"
+    "```yaml\n"
+    "# --- BEGIN AgenticDSL ---\n"
+    "name: yaml-agent\n"
+    "version: 1.0.0\n"
+    "agent_loop: react\n"
+    "nodes:\n"
+    "[\n"
+    "  {\"id\":\"start\",\"type\":\"start\"},\n"
+    "  {\"id\":\"end\",\"type\":\"end\"}\n"
+    "]\n"
+    "```\n";
+
+// Production-style yaml fenced block with CRLF line endings
+static const std::string YAML_FENCED_DSL_CRLF =
+    "# yaml-agent-crlf\r\n"
+    "```yaml\r\n"
+    "# --- BEGIN AgenticDSL ---\r\n"
+    "name: yaml-agent-crlf\r\n"
+    "version: 1.0.0\r\n"
+    "agent_loop: react\r\n"
+    "nodes:\r\n"
+    "[\r\n"
+    "  {\"id\":\"start\",\"type\":\"start\"},\r\n"
+    "  {\"id\":\"end\",\"type\":\"end\"}\r\n"
+    "]\r\n"
+    "```\r\n";
+
+// yaml fenced block with missing begin marker (should fall back to bold format)
+static const std::string YAML_FENCED_NO_MARKER =
+    "# fallback-agent\n"
+    "```yaml\n"
+    "name: fallback-agent\n"
+    "version: 1.0.0\n"
+    "agent_loop: react\n"
+    "nodes:\n"
+    "[\n"
+    "  {\"id\":\"start\",\"type\":\"start\"},\n"
+    "  {\"id\":\"end\",\"type\":\"end\"}\n"
+    "]\n"
+    "```\n";
+
+// ============================================================
 // 测试用例
 // ============================================================
 
@@ -344,4 +393,37 @@ TEST_CASE("without registry, call_tool only checks string presence",
   auto result = validator.validate(DSL_WITH_CALL_TOOL);
   REQUIRE(result.valid == true);
   REQUIRE(result.errors.empty());
+}
+
+TEST_CASE("yaml fenced block with LF (\\n) passes validation",
+          "[dsl_validator][yaml_fenced]") {
+  const auto result = DslValidator{}.validate(YAML_FENCED_DSL_LF);
+
+  REQUIRE(result.valid);
+  REQUIRE(result.errors.empty());
+}
+
+TEST_CASE("yaml fenced block with CRLF (\\r\\n) passes validation",
+          "[dsl_validator][yaml_fenced]") {
+  const auto result = DslValidator{}.validate(YAML_FENCED_DSL_CRLF);
+
+  REQUIRE(result.valid);
+  REQUIRE(result.errors.empty());
+}
+
+// fix-markdown-parser-yaml regression: yaml block without begin marker falls back
+TEST_CASE("yaml fenced block without begin marker falls back to bold format",
+          "[dsl_validator][yaml_fenced]") {
+  DslValidator validator;
+  auto result = validator.validate(YAML_FENCED_NO_MARKER);
+
+  // 缺少 name/version/agent_loop 字段，因为没有 begin_marker 无法识别为 yaml 格式
+  REQUIRE(result.valid == false);
+  bool found_field_err = false;
+  for (const auto& e : result.errors) {
+    if (e.type == "MISSING_REQUIRED_FIELD") {
+      found_field_err = true;
+    }
+  }
+  REQUIRE(found_field_err == true);
 }
