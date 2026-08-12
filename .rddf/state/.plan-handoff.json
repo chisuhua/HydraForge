@@ -1,213 +1,23 @@
 {
-  "stage": "plan",
-  "status": "plan-done",
-  "completed_at": "2026-08-06T08:30:00+00:00",
-  "active_changes": [
+  "plan_complete_at": "2026-08-12T16:10:35.822957+00:00",
+  "changes_planned": 1,
+  "changes": [
     {
-      "name": "cli-args-cxxopts",
-      "path": "openspec/changes/cli-args-cxxopts",
-      "schema": "spec-driven",
-      "priority": "P2",
-      "phase": "wave-2",
-      "category": "demo-chat-v2",
-      "artifacts_committed": [
-        "proposal.md",
-        "design.md",
-        "tasks.md",
-        ".openspec.yaml",
-        "roadmap-meta.yaml",
-        "specs/cli-flags/spec.md"
-      ],
-      "commit_sha": "40954e2",
-      "openspec_validate": "passed",
-      "capabilities_added": [
-        "cli-flags"
-      ],
-      "capabilities_modified": [],
-      "iteration_status": "proposed",
-      "parallel_group": 0,
-      "blocker": null,
-      "recommendation": "ship first in Wave 2-A (foundation, replaces main.cpp:76-83 baseline for sister changes)"
-    },
-    {
-      "name": "provider-dynamic-discovery",
-      "path": "openspec/changes/provider-dynamic-discovery",
-      "schema": "spec-driven",
-      "priority": "P2",
-      "phase": "wave-2",
-      "category": "demo-chat-v2",
-      "artifacts_committed": [
-        "proposal.md",
-        "design.md",
-        "tasks.md",
-        ".openspec.yaml",
-        "roadmap-meta.yaml",
-        "specs/provider-dynamic-discovery/spec.md"
-      ],
-      "commit_sha": "40954e2",
-      "openspec_validate": "passed",
-      "capabilities_added": [
-        "provider-dynamic-discovery"
-      ],
-      "capabilities_modified": [],
-      "iteration_status": "proposed",
-      "parallel_group": 0,
-      "blocker": null,
-      "recommendation": "ship parallel with cli-args-cxxopts in Wave 2-A (no file overlap, independent module)"
-    },
-    {
-      "name": "session-tree-tui",
-      "path": "openspec/changes/session-tree-tui",
-      "schema": "spec-driven",
-      "priority": "P2",
-      "phase": "wave-2",
-      "category": "demo-chat-v2",
-      "artifacts_committed": [
-        "proposal.md",
-        "design.md",
-        "tasks.md",
-        ".openspec.yaml",
-        "roadmap-meta.yaml",
-        "specs/session-tree-cli-flags/spec.md"
-      ],
-      "commit_sha": "40954e2",
-      "openspec_validate": "passed",
-      "capabilities_added": [
-        "session-tree-cli-flags"
-      ],
-      "capabilities_modified": [],
-      "iteration_status": "proposed",
-      "parallel_group": 1,
-      "blocker": "cli-args-cxxopts",
-      "recommendation": "ship after Wave 2-A, before chat-streaming-slash-tui (Wave 2-B size-priority, smaller scope)"
-    },
-    {
-      "name": "chat-streaming-slash-tui",
-      "path": "openspec/changes/chat-streaming-slash-tui",
-      "schema": "spec-driven",
-      "priority": "P1",
-      "phase": "wave-2",
-      "category": "demo-chat-v2",
-      "artifacts_committed": [
-        "proposal.md",
-        "design.md",
-        "tasks.md",
-        ".openspec.yaml",
-        "roadmap-meta.yaml",
-        "specs/chat-streaming-slash-tui/spec.md"
-      ],
-      "commit_sha": "40954e2",
-      "openspec_validate": "passed",
-      "capabilities_added": [
-        "chat-streaming-slash-tui"
-      ],
-      "capabilities_modified": [],
-      "iteration_status": "proposed",
-      "parallel_group": 1,
-      "blocker": "cli-args-cxxopts",
-      "recommendation": "ship last in Wave 2-B (largest scope, P1 SLA; depends on cli-args + provider-dynamic)"
+      "name": "context-compactor",
+      "proposal": "openspec/changes/context-compactor/proposal.md",
+      "design": "openspec/changes/context-compactor/design.md",
+      "tasks": "openspec/changes/context-compactor/tasks.md",
+      "specs": "openspec/changes/context-compactor/specs/",
+      "validated": true
     }
   ],
-  "deps_analysis": {
-    "candidates_file": ".rddf/state/.deps-candidates.json",
-    "output_file": ".rddf/state/.deps-output.md",
-    "internal_dependencies": 4,
-    "file_conflicts": 2,
-    "adr_violations": 0,
-    "recommended_wave": 2,
-    "execution_order": [
-      "Wave 2-A parallel: cli-args-cxxopts + provider-dynamic-discovery",
-      "Wave 2-B serial: session-tree-tui \u2192 chat-streaming-slash-tui"
-    ],
-    "rationale": "design-handoff v2 wave_structure: Wave 2-A foundation (parallel_group=0, no blockers, no file overlap); Wave 2-B parallel_group=1 blocked on Wave 2-A; session-tree-tui smaller so ships first in B (\u5927\u5c0f\u4f18\u5148); chat-streaming-slash-tui largest and only P1, ships last. File conflicts local in cli_args.{h,cpp} (4-line append, auto-mergeable) + main.cpp (\u5c40\u90e8 startup seq, auto-mergeable)."
-  },
-  "drift_cleaned": {
-    "iteration_json": [
-      {
-        "name": "8 forbidden fields stripped",
-        "fields": [
-          "capabilities_added",
-          "design_added_at",
-          "specs_added_at",
-          "tasks_added_at",
-          "artifacts_committed",
-          "commit_sha",
-          "openspec_validate",
-          "iteration_status",
-          "recommendation",
-          "capabilities_modified"
-        ],
-        "action": "stripped per schema v5 strict validation (additionalProperties: false)",
-        "commit_sha": "40954e2"
-      },
-      {
-        "name": "schema version 4 \u2192 5",
-        "action": "bumped per iteration_schema.json v5 requirement (added l2_violation_count_after)",
-        "commit_sha": "40954e2"
-      }
-    ]
-  },
-  "gate_checks": {
-    "min_active_changes": {
-      "required": 1,
-      "actual": 4,
-      "passed": true,
-      "note": "Gate 1: filesystem scan of openspec/changes/*/ (excluding archive/) returns 4"
-    },
-    "ready_for_ship": {
-      "required": 1,
-      "actual": 4,
-      "passed": true,
-      "note": "Gate 0: all 4 changes have status=proposed + blocker cleared or set to in-wave change"
-    },
-    "all_artifacts_committed": {
-      "required": 6,
-      "actual": 24,
-      "passed": true,
-      "note": "6 artifacts per change \u00d7 4 changes = 24 total"
-    },
-    "openspec_validate": {
-      "required": "passed",
-      "actual": "passed (4/4 changes validated)",
-      "passed": true,
-      "note": "All 4 changes pass openspec validate --json: valid=true, failed=0"
-    },
-    "iteration_json_registered": {
-      "required": true,
-      "actual": true,
-      "passed": true,
-      "note": "All 4 changes have status=proposed + capabilities_added + parallel_group + blocker tracked"
-    },
-    "deps_analysis_complete": {
-      "required": true,
-      "actual": true,
-      "passed": true,
-      "note": "Mermaid graph + 3-axis static analysis (file conflict / ADR reference / interface dep) + wave schedule (2-A + 2-B) written to .deps-output.md (12.6KB)"
-    }
-  },
   "next_stage": "ship",
   "next_skill": "guide-ship",
   "notes": [
-    "Plan phase complete: Phase 2.5 fill (4 changes \u00d7 4 artifacts each) + Phase 3 deps + Phase 4 plan-done",
-    "4 active changes with 2-wave topology: Wave 2-A (foundation, parallel, no blockers) + Wave 2-B (parallel after A)",
-    "Wave 2-A: cli-args-cxxopts (P2) + provider-dynamic-discovery (P2) \u2014 independent modules, recommended parallel ship",
-    "Wave 2-B: session-tree-tui (P2) + chat-streaming-slash-tui (P1) \u2014 both blocked on Wave 2-A, recommended serial (\u5927\u5c0f\u4f18\u5148)",
-    "All changes depend on already-shipped: adr-0070-declare-command, adr-0068-event-emission-contract (Wave 1 partial), fix-loop-agent-bypass, session-manager-jsonl v1+v2, adr-0004 V2, adr-0031 \u00a7\u51b3\u7b56 5 (ToolCoordinator), adr-0035 (available_models)",
-    "Branch HEAD: 40954e2 on main",
-    "Total est: 13-15 working days (with parallel optimization: Wave 2-A ~6-7d parallel, Wave 2-B ~7-8d serial)",
-    "Wave 3 (chat-async-io-steering) deferred per design-handoff v2 \u2014 next design cycle re-review",
-    "Schema drift cleanup: iteration.json v4\u2192v5 + 8 forbidden fields stripped per strict schema validation",
-    "Ready for ship-side worktree creation + plan generation + TDD execution"
-  ],
-  "previous_handoff_reference": {
-    "completed_at_prev": "2026-08-06T01:25:00+08:00",
-    "active_changes_prev": [
-      "chat-slash-commands-migration",
-      "session-tree-commands"
-    ],
-    "archived_at_prev": "2026-08-06T10:59:00 (chat-slash) + 2026-08-06T12:11:00 (session-tree-commands)",
-    "ship_started_at_prev": "N/A (Wave 1 shipped via direct commit, not via guide-ship worktree)",
-    "note": "This handoff supersedes the previous one; Wave 1 (chat-slash-commands-migration + session-tree-commands) archived 2026-08-06. Iteration.json had stale status=proposed for archived changes \u2014 cleaned up in plan-done drift cleanup (schema v4\u2192v5 migration stripped fields)."
-  },
-  "ship_started_at": "2026-08-07T02:57:29.115701+00:00"
+    "context-compactor: Wave 4 change with full artifacts committed (proposal.md/design.md/tasks.md/specs/ \u2705)",
+    "Pre-workspace ready: context-compactor is isolated feature (no conflicts, no blockers)",
+    "Validate: openspec validate context-compactor \u2705",
+    "ctest baseline: 147/147 PASS (no regression risk)",
+    "\u4f30\u65f6: ~3-4d for implementation"
+  ]
 }
