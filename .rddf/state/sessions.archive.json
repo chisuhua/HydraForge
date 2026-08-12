@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "archived_at": "2026-08-12T04:03:27.701996+00:00",
   "sessions": [
     {
       "session_id": "rds_564613677228",
@@ -294,7 +295,26 @@
       "end_reason": "heartbeat-timeout",
       "sub_phase": null,
       "workflow_group": "eaaa7f4e-0cdb-4045-97dd-1dd34f84302a"
+    },
+    {
+      "session_id": "rds_690ec5f6d020",
+      "kind": "stage_plan",
+      "owner_opencode_session_id": "my-eci-group-poc_316147",
+      "parent_session_id": "rds_f3c23f5c1207",
+      "goal": {
+        "intent": "guide-plan",
+        "subject": "plan-phase",
+        "expected_outcome": "plan-done"
+      },
+      "state": "orphaned",
+      "attached_changes": [],
+      "context_pointer": ".rddf/state/.plan-handoff.json",
+      "started_at": "2026-08-06T07:35:30.240456+00:00",
+      "last_heartbeat": "2026-08-06T07:35:30.240456+00:00",
+      "ended_at": "2026-08-07T02:49:37.935473+00:00",
+      "end_reason": "heartbeat-timeout",
+      "sub_phase": null,
+      "workflow_group": "f77df746-5f8d-4596-a36d-925b8d8c0521"
     }
-  ],
-  "updated_at": "2026-08-05T11:11:31.881368+00:00"
+  ]
 }
