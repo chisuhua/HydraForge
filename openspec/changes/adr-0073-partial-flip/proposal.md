@@ -14,7 +14,11 @@ ADR-0073（Tool JSON Schema 契约）创建于 2026-08-02，状态为 `🔍 Prop
 
 **In Scope**:
 
-- (TBD)
+- 新建 `docs/adr/adr-0073-impl-scope-audit.md`，逐项审计 ADR-0073 D1-D6。
+- 将 ADR-0073 更新为 `🟡 Partial`，追加证据段并修订复审节点。
+- 更新 `docs/README.md` 的 ADR-0073 状态行。
+- 修正 `roadmap.md` 的 W1 完成状态与证据来源。
+- 运行 ADR lint、文档漂移、OpenSpec 和 ctest 验证。
 
 ### 关键场景
 
@@ -28,9 +32,13 @@ ADR-0073（Tool JSON Schema 契约）创建于 2026-08-02，状态为 `🔍 Prop
   WHEN 本提案 ship 后
   THEN §复审节点 被修订，记录证据驱动的 Partial 翻牌且保留 `Approved` 的完整门槛
 
-**Out of Scope**:
+## Out of Scope
 
-- (TBD)
+- `include/agenticdsl/policy/execution_policy.h`（ToolMetadata V3 字段属于 Phase 6c C8）
+- `src/common/tools/tool_coordinator.cpp`（ToolCoordinator 校验层属于 C9）
+- `include/agenticdsl/pdk/tool_macros.h`（DECLARE_TOOL V3 自动生成属于 C8）
+- `docs/specs/dsl.md`（§6.2 schema 部分重写属于 C8/C9）
+- 任何 C++ 代码、测试或构建配置。
 
 ## Capabilities
 
