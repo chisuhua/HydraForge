@@ -207,7 +207,7 @@ Phase 8b ───────Fine-tune ────────────┘ 
 | U4 | AgentForge 第 2 个领域 agent: 验证 PDK 复用性 | `platform` | 8h | P1 | U3 |
 | U5 | DSLValidator 增强: `.agent.md` schema 校验 | `architecture` | 6h | P1 | — |
 | U6 | ADR-0042 状态对齐 | `architecture` | 2h | P1 | — |
-| **W1** | **🎯 ADR-0073 翻牌 🟡 Partial** (审阅 Sprint 21 ship 内容 + 修正 docs/README.md) | `execution-plane-wave2` | 2h | P0 | Phase 6a |
+| **W1** | **✅ ADR-0073 翻牌 🟡 Partial** (Phase 6a manifest schema 边界部分采纳 + 修正 docs/README.md + adr-0073-impl-scope-audit.md) | `execution-plane-wave2` | 2h | P0 | Phase 6a |
 | **W2** | **🎯 ADR-0074 D3 baseline 测量** (`tools/measure_prompt_baseline` + 50 golden tasks YAML + V0 prompt + 3 模型) | `execution-plane-wave2` | 10h | P0 | — |
 | **W3** | **🎯 ADR-0074 D6 JSONL 训练数据结构** (data/training/ + schema_snapshot_hash) | `execution-plane-wave2` | 4h | P0 | — |
 | **W4** | **🎯 ADR-0072 D1 `stream: true` 扩展** (tool_call/shell.exec/dsl_call 3 处 + IStreamHandle) | `execution-plane-wave2` | 6h | P0 | — |
@@ -394,7 +394,7 @@ Phase 8b ───────Fine-tune ────────────┘ 
 | `AgentDescriptor` + `pdk_register_agent()` | ❌ | ✅ 评估 | — | pkm_temporal Phase 2 需注册 agent |
 | `CapabilityRegistry` | ❌ | ✅ 评估 | — | ≥3 个 agent plugin 存在时需 discovery |
 | **ADR-0068 §附录 A 主题注册** | ❌ 14 pending | **✅ Phase 6b W6 ship** | — | **LLM-native 实施前置** |
-| **ADR-0073 完整 ship** | 🟡 Sprint 21 部分 | ✅ Phase 6c C8-C9 ship | — | **Execution Plane 完整前置** |
+| **ADR-0073 完整 ship** | 🟡 Phase 6a manifest 边界部分采纳 (W1, 详见 adr-0073-impl-scope-audit.md) | ✅ Phase 6c C8-C9 ship | — | **Execution Plane 完整前置** |
 | **ADR-0075 EnvBackend ship** | ❌ | ✅ Phase 6c C11-C13 ship | — | **Execution Plane 完整前置** |
 | Wasm 技术栈预研 | ❌ | — | ✅ Phase 8a 评估 | gRPC Data Plane 启动后 |
 

@@ -2,7 +2,15 @@
 
 ## 状态
 
-🔍 Proposed (2026-08-02 — 派生自 ADR-0071 §决策 D4, Wave 2 Phase 2.1 第一个 ADR; 待架构组评审; 实施 1-2 周)
+🟡 Partial (2026-08-13 — Phase 6a manifest schema 边界部分采纳，详见 `adr-0073-impl-scope-audit.md`)
+
+**证据基础**：
+- `include/agenticdsl/pdk/manifest.h:17-18` — `input_schema`/`output_schema` 作为 `std::string`（raw JSON）存在于 PDK manifest 结构
+- `src/modules/pdk/manifest_validator.cpp` — 校验字段存在且为非空字符串（非 JSON Schema 内容校验）
+- `execution_policy.h` — ToolMetadata 仍为 V2，无 `input_schema`/`output_schema`/`validation_mode` 字段
+- D2（ToolMetadata V3）、D3（ToolCoordinator 校验层）、D4（DECLARE_TOOL V3）属于 Phase 6c C8/C9
+
+本状态**不声称**已完成 ToolMetadata V3、运行时校验或 DECLARE_TOOL V3 自动生成。
 
 ## 领域
 
@@ -473,14 +481,15 @@ LLM 输出 → DSL parse → Schema validate → Layer check → Approval → Ba
 
 ## 复审节点
 
-- **Wave 2 Phase 2.1 准出时**：本 ADR 状态从 🔍 Proposed → 🟡 Partial
-- **所有 P0 工具补齐 schema 时**：本 ADR 状态从 🟡 Partial → ✅ Approved
+- **Wave 2 Phase 2.1 准出时（Phase 6b W1, 2026-08-13）**：本 ADR 状态从 🔍 Proposed → 🟡 Partial（**证据基础** — 仅 manifest schema 边界部分采纳，详见 `adr-0073-impl-scope-audit.md`）
+- **Phase 6c C8+C9 ship 时**：本 ADR 状态从 🟡 Partial → ✅ Approved（D2 ToolMetadata V3 + D3 ToolCoordinator 校验层 + D4 DECLARE_TOOL V3 全部实施）
 - **MCP server ship 时**（Wave 3）：交叉验证 schema → MCP `inputSchema` round-trip
 - **JSON IR 引入时**（Wave 3+）：交叉验证 schema → constrained-decoding round-trip
 
 ---
 
-*文档版本: v1.0*
+*文档版本: v1.1*
 *创建日期: 2026-08-02*
+*最后更新: 2026-08-13*
 *作者: HydraForge 架构组*
-*状态: 🔍 Proposed (Wave 2 Phase 2.1 第一个 ADR; 待架构组评审)*
+*状态: 🟡 Partial (Phase 6a manifest 边界部分采纳，详见 adr-0073-impl-scope-audit.md)*
