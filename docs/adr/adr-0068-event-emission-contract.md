@@ -2,7 +2,7 @@
 
 ## 状态
 
-✅ Approved (2026-08-03 — Wave 1 §1-§5 全部 ship + V2 EventBuilder 扩展覆盖 8 处 operation-result 事件. 7 个幻影主题全部真实发射, §5.11 grep 验收返回 0 行, EventBuilder 100% 覆盖生产代码 emit, `test_e2e_mock.cpp` 全面重写完成. 变更依据: `openspec/changes/archive/2026-08-03-adr-0068-event-emission-contract/` + `openspec/changes/archive/2026-08-03-promote-event-builder-fulltoolresult-support/`)
+✅ Approved (2026-08-03 — Wave 1 §1-§5 全部 ship + V2 EventBuilder 扩展覆盖 8 处 operation-result 事件. 7 个幻影主题全部真实发射, §5.11 grep 验收返回 0 行, EventBuilder 100% 覆盖生产代码 emit, `test_e2e_mock.cpp` 全面重写完成. 变更依据: `openspec/changes/archive/2026-08-03-adr-0068-event-emission-contract/` + `openspec/changes/archive/2026-08-03-promote-event-builder-fulltoolresult-support/`; **Appendix A v1.1 amendment (2026-08-13): 14 个 📡 主题注册完成, 状态更新为 ✅ registered**) 
 
 ## 领域
 
@@ -171,9 +171,9 @@ Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = 
 
 ---
 
-## 附录 A：Canonical Topic Registry (v1, 2026-07-31)
+## 附录 A：Canonical Topic Registry (v1.1, 2026-08-13)
 
-> 维护规则：新增/修改主题必须同步修订本表。状态列：✅ 已发射 / 👻 幻影 (零生产 emit) / 📡 已发射但无注册订阅方。
+> 维护规则：新增/修改主题必须同步修订本表。状态列：✅ 已注册 / 👻 幻影 (零生产 emit) / 📡 已发射但无注册订阅方 (本 amendment 后已全部注册)。
 
 | 主题 | Owner 模块 | 强制发射点 | Payload 必填字段 | 状态 |
 |------|-----------|-----------|-----------------|------|
@@ -193,17 +193,17 @@ Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = 
 | `budget.checked` | ChatSession / budget_agent | 预算检查后 | `remaining`, `exceeded` | ✅ |
 | `context.compact.before` | ContextCompactor (L0-3, 待建) | 压缩前 | `before_tokens` | 👻 → 依赖 L0-3 |
 | `context.compact.after` | ContextCompactor (L0-3, 待建) | 压缩后 | `after_tokens`, `summary_ref` | 👻 → 依赖 L0-3 |
-| `tool.audit.invoked` | ToolCoordinator | 审批通过后 | `tool`, `args_keys` | 📡 |
-| `tool.audit.completed` | ToolCoordinator | 工具返回后 | `tool`, `ok` | 📡 |
-| `tool.audit.denied` | ToolCoordinator | 拒绝时 | `tool`, `reason` | 📡 |
-| `tool.coordinator.cycle_detected` | ToolCoordinator | 循环检测 | `caller`, `callee` | 📡 |
-| `policy.approval.requested` | ApprovalHandler | 审批请求 | `tool`, `preview` | 📡 |
-| `compliance.log` | ComplianceDecorator | 合规记录点 | `kind`, `hash` | 📡 |
-| `cognitive.task.started` | CognitiveWorker | 任务开始 | `task_id` | 📡 |
-| `cognitive.task.completed` | CognitiveWorker | 任务完成 | `task_id`, `ok` | 📡 |
-| `domain.task.started` | DomainWorkerPool | 任务派发 | `domain`, `tool` | 📡 |
-| `domain.task.completed` | DomainWorkerPool | 任务完成 | `domain`, `ok` | 📡 |
-| `domain.task.failed` | DomainWorkerPool | 任务失败 | `domain`, `error_code` | 📡 |
-| `dsl.call.started` | NodeExecutor | DSL 节点进入 | `node_path`, `llm_tool_name` | 📡 |
-| `dsl.call.completed` | NodeExecutor | DSL 节点退出 | `node_path`, `output_key` | 📡 |
-| `execution.failed` | NodeExecutor | 执行失败 | `node_path`, `error_code` | 📡 |
+| `tool.audit.invoked` | ToolCoordinator | 审批通过后 | `tool`, `args_keys` | ✅ `src/common/tools/tool_coordinator.cpp:307` |
+| `tool.audit.completed` | ToolCoordinator | 工具返回后 | `tool`, `ok` | ✅ `src/common/tools/tool_coordinator.cpp:376` |
+| `tool.audit.denied` | ToolCoordinator | 拒绝时 | `tool`, `reason` | ✅ `src/common/tools/tool_coordinator.cpp:240,265,290` |
+| `tool.coordinator.cycle_detected` | ToolCoordinator | 循环检测 | `caller`, `callee` | ✅ `src/common/tools/tool_coordinator.cpp:127` |
+| `policy.approval.requested` | ApprovalHandler | 审批请求 | `tool`, `preview` | ✅ `src/common/policy/approval_callbacks.cpp:57` |
+| `compliance.log` | ComplianceDecorator | 合规记录点 | `kind`, `hash` | ✅ `src/common/llm/compliance_decorator.cpp:75,88,130,150` |
+| `cognitive.task.started` | CognitiveWorker | 任务开始 | `task_id` | ✅ `src/modules/cognitive/cognitive_worker.cpp:170` |
+| `cognitive.task.completed` | CognitiveWorker | 任务完成 | `task_id`, `ok` | ✅ `src/modules/cognitive/cognitive_worker.cpp:200` |
+| `domain.task.started` | DomainWorkerPool | 任务派发 | `domain`, `tool` | ✅ `src/modules/cognitive/domain_worker_pool.cpp:198` |
+| `domain.task.completed` | DomainWorkerPool | 任务完成 | `domain`, `ok` | ✅ `src/modules/cognitive/domain_worker_pool.cpp:264` |
+| `domain.task.failed` | DomainWorkerPool | 任务失败 | `domain`, `error_code` | ✅ `src/modules/cognitive/domain_worker_pool.cpp:228,266` |
+| `dsl.call.started` | NodeExecutor | DSL 节点进入 | `node_path`, `llm_tool_name` | ✅ `src/modules/executor/node_executor.cpp:133` |
+| `dsl.call.completed` | NodeExecutor | DSL 节点退出 | `node_path`, `output_key` | ✅ `src/modules/executor/node_executor.cpp:159` |
+| `execution.failed` | NodeExecutor | 执行失败 | `node_path`, `error_code` | ✅ `src/modules/executor/node_executor.cpp:412` |
