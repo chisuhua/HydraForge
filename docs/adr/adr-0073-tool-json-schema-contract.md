@@ -2,15 +2,17 @@
 
 ## 状态
 
-🟡 Partial (2026-08-13 — Phase 6a manifest schema 边界部分采纳，详见 `adr-0073-impl-scope-audit.md`)
+🟡 Partial (2026-08-13 — Phase 6a manifest schema 边界部分采纳；**D2/D4 部分实施**: `execution_policy.h` V3 字段 + `schema_generation.h` + DECLARE_TOOL_V3，详见 `adr-0073-impl-scope-audit.md`)
 
 **证据基础**：
 - `include/agenticdsl/pdk/manifest.h:17-18` — `input_schema`/`output_schema` 作为 `std::string`（raw JSON）存在于 PDK manifest 结构
 - `src/modules/pdk/manifest_validator.cpp` — 校验字段存在且为非空字符串（非 JSON Schema 内容校验）
-- `execution_policy.h` — ToolMetadata 仍为 V2，无 `input_schema`/`output_schema`/`validation_mode` 字段
-- D2（ToolMetadata V3）、D3（ToolCoordinator 校验层）、D4（DECLARE_TOOL V3）属于 Phase 6c C8/C9
+- `src/common/policy/execution_policy.h:82-86` — **D2 V3 字段已添加** (`input_schema`, `output_schema`, `ValidationMode`)
+- `include/agenticdsl/tools/schema_generation.h` — **D4 SchemaGenerator 类型反射已实现**
+- `include/agenticdsl/pdk/tool_macros.h` — **D4 DECLARE_TOOL_V3 宏已实现**
+- D3（ToolCoordinator 校验层）属于 Phase 6c C9 待实施
 
-本状态**不声称**已完成 ToolMetadata V3、运行时校验或 DECLARE_TOOL V3 自动生成。
+本状态**不声称**已完成 D3（运行时校验）和完整的 D5（向后兼容验证）。
 
 ## 领域
 

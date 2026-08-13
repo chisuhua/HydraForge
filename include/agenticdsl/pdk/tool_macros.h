@@ -21,6 +21,7 @@
 // C6: ToolMetadata 类型定义位于 src/common/policy/execution_policy.h,
 //     通过相同路径格式引用 (同 iexecution_policy.h 做法)。
 #include "common/policy/execution_policy.h"
+#include "agenticdsl/tools/schema_generation.h"
 
 namespace hydraforge::pdk {
 
@@ -106,6 +107,77 @@ inline nlohmann::json tool_handler_##name(const nlohmann::json& __pdk_args) { \
   } catch (const std::exception& __pdk_e) { \
     return nlohmann::json{{"error", __pdk_e.what()}}; \
   } \
+}
+
+// ---- D4 DECLARE_TOOL_V3 macro (with optional auto-schema generation) ----
+
+/** @brief DECLARE_TOOL_V3 — ADR-0073 D4 tool registration with auto-schema
+ *
+ * 展开为:
+ *  1. inline ToolSpec tool_spec_##name = { #name, description, {}, {}, ToolMetadata{...} };
+ *  2. inline nlohmann::json tool_handler_##name(const nlohmann::json& __pdk_args)
+ *     { try { __VA_ARGS__ } catch (std::exception& e) { return json{{"error", e.what()}}; } }
+ *
+ * V3 新增: input_schema / output_schema 从 C++ 类型自动生成 JSON Schema 2020-12
+ * 使用方式:
+ * DECLARE_TOOL_V3(name, description, category, approval_policy,
+ *   InputSchema, OutputSchema,
+ *   return __pdk_args;
+ * )
+ *
+ * InputSchema/OutputSchema 可以是:
+ *  - 空 (nullptr) → 不生成 schema
+ *  - C++ 类型名 (如 FsReadArgs) → 使用 SchemaGenerator 自动生成
+ *  - nlohmann::json 对象 → 直接使用该 JSON 对象
+ */
+#define DECLARE_TOOL_V3(name, description, category, approval_policy, InputSchema, OutputSchema, ...) \
+inline ::hydraforge::pdk::ToolSpec tool_spec_##name = { \
+  #name /* name */, \
+  description /* description */, \
+  {} /* params */, \
+  {} /* permissions */, \
+  ::agenticdsl::ToolMetadata{ /* metadata */ \
+    #name /* name */, \
+    description /* description */, \
+    "plugin" /* domain */, \
+    ::agenticdsl::ToolCategory::category /* category */, \
+    ::agenticdsl::LayerProfile::Workflow /* min_layer (default) */, \
+    ::hydraforge::pdk::make_approval(approval_policy) /* approval */, \
+    std::vector<::agenticdsl::LayerProfile>{} /* allowed_layers (V2) */, \
+    0.0 /* cost_estimate (V2) */, \
+    30000 /* timeout_ms (V2) */, \
+    ::hydraforge::pdk::make_schema_ptr<InputSchema>(#name ".input") /* input_schema (V3) */, \
+    ::hydraforge::pdk::make_schema_ptr<OutputSchema>(#name ".output") /* output_schema (V3) */, \
+    ::agenticdsl::ToolMetadata::ValidationMode::Strict /* validation_mode (V3) */ \
+  } \
+}; \
+inline nlohmann::json tool_handler_##name(const nlohmann::json& __pdk_args) { \
+  try { \
+    __VA_ARGS__ \
+  } catch (const std::exception& __pdk_e) { \
+    return nlohmann::json{{"error", __pdk_e.what()}}; \
+  } \
+}
+
+// Helper: make_schema_ptr<T> returns std::optional<nlohmann::json>
+// - if T is nullptr_t, returns nullopt
+// - if T is nlohmann::json, returns the json directly
+// - if T is a type, returns SchemaGenerator<T>::to_schema() wrapped in make_input_schema
+
+template<typename T>
+std::optional<nlohmann::json> make_schema_ptr(const std::string& title) {
+  if constexpr (std::is_same_v<T, std::nullptr_t>) {
+    return std::nullopt;
+  } else if constexpr (std::is_same_v<T, nlohmann::json>) {
+    return nlohmann::json::object();
+  } else {
+    return ::agenticdsl::make_input_schema(title, ::agenticdsl::SchemaGenerator<T>::to_schema());
+  }
+}
+
+template<>
+inline std::optional<nlohmann::json> make_schema_ptr<nlohmann::json>(const std::string& title) {
+  return std::nullopt;
 }
 
 } // namespace hydraforge::pdk

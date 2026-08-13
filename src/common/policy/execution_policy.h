@@ -12,6 +12,9 @@
 #include <cstddef>
 #include <string>
 #include <vector>
+#include <optional>
+
+#include <nlohmann/json.hpp>
 
 namespace agenticdsl {
 
@@ -72,12 +75,15 @@ struct ToolMetadata {
   ApprovalPolicy approval; // 三模式审批策略
 
   // ===== V2 extensions (C4 Sprint 14, Oracle 2026-06-29) =====
-  // allowed_layers: 显式 allowlist (默认空 = 全允许, 走 category 矩阵)
   std::vector<LayerProfile> allowed_layers;
-  // cost_estimate: USD 成本预估 (0.0 = 未知, 不触发预算; C4 defer 至 C6 接 IBudgetController)
   double cost_estimate = 0.0;
-  // timeout_ms: 执行超时 (ms, 默认 30s; C4 defer 至 C6 std::async 强制)
   int timeout_ms = 30000;
+
+  // ===== V3 extensions (ADR-0073 D2, Phase 6c C8) =====
+  std::optional<nlohmann::json> input_schema;
+  std::optional<nlohmann::json> output_schema;
+  enum class ValidationMode { Strict, Warn, Ignore };
+  ValidationMode validation_mode = ValidationMode::Strict;
 };
 
 /**

@@ -45,9 +45,9 @@ rg -n "input_schema|output_schema|auto.*schema" include/agenticdsl/pdk/tool_macr
 | ADR-0073 决策 | 状态 | 证据 |
 |---|---|---|
 | **D1**: JSON Schema 2020-12 adoption | 🟡 **Partial（manifest 边界）** | `manifest.h:17-18` — `input_schema`/`output_schema` 作为 `std::string`（raw JSON）存在于 PDK manifest 结构；`manifest_validator.cpp` 校验字段存在且为非空字符串；但**不做 JSON Schema 2020-12 内容校验**；这不是 ToolMetadata V3（见下） |
-| **D2**: ToolMetadata V3 结构 | ❌ **Not implemented** | `execution_policy.h:66-81` — ToolMetadata 仅含 V2 字段（name/description/domain/category/min_layer/approval/allowed_layers/cost_estimate/timeout_ms）；无 `input_schema`/`output_schema`/`validation_mode` 字段；`include/agenticdsl/tools/` 中无 schema_validator.h |
+| **D2**: ToolMetadata V3 结构 | 🟡 **Partial（已实施）** | `src/common/policy/execution_policy.h:82-86` — V3 字段已添加 (`input_schema`, `output_schema`, `validation_mode`)；`include/agenticdsl/tools/schema_generation.h` 已创建（SchemaGenerator 类型反射）；`include/agenticdsl/pdk/tool_macros.h` DECLARE_TOOL_V3 已实现；D3（ToolCoordinator 校验层）待 Phase 6c C9 |
 | **D3**: 运行时校验（ToolCoordinator） | ❌ **Not implemented** | `src/common/tools/tool_coordinator.cpp` — 无 JSON Schema 校验逻辑；无 `ERR_SCHEMA_VALIDATION` 错误码；4 步 pipeline 不含 schema 校验步骤 |
-| **D4**: DECLARE_TOOL V3 自动生成 | ❌ **Not implemented** | `include/agenticdsl/pdk/tool_macros.h` — DECLARE_TOOL 宏仍是 V2 签名（name/description/category/approval/body）；无 schema 自动生成参数或 C++ 类型反射 |
+| **D4**: DECLARE_TOOL V3 自动生成 | 🟡 **Partial（已实施）** | `include/agenticdsl/tools/schema_generation.h` — SchemaGenerator 模板特殊化（string/int/float/double/bool/vector/optional/map/enum class/struct）；`include/agenticdsl/pdk/tool_macros.h` — DECLARE_TOOL_V3 宏已实现；测试 `tests/test_declare_tool_auto_schema.cpp` 覆盖 4 类型 + V2 向后兼容 |
 | **D5**: V2 向后兼容 | ⏸ **Pending** | 依赖 D2 实施后方可验证 |
 | **D6**: Schema 版本与兼容性 | ⏸ **Pending** | 依赖 D2/D3 实施后方可验证 |
 
@@ -84,17 +84,18 @@ grep -n "input_schema\|output_schema" include/agenticdsl/pdk/manifest.h
 # 17:   std::string input_schema;                  // JSON Schema 2020-12
 # 18:   std::string output_schema;                 // JSON Schema 2020-12
 
-# D2 NOT implemented (ToolMetadata stays V2)
-grep -n "input_schema\|output_schema" src/common/policy/execution_policy.h
-# (no output — ToolMetadata has no schema fields)
+# D2 IMPLEMENTED (ToolMetadata V3 fields added)
+grep -n "input_schema\|output_schema\|validation_mode" src/common/policy/execution_policy.h
+# 82-86: V3 fields added (input_schema, output_schema, ValidationMode enum)
 
 # D3 NOT implemented (no schema validation in ToolCoordinator)
 grep -n "JSON Schema\|ToolSchemaValidator\|ERR_SCHEMA_VALIDATION" src/common/tools/tool_coordinator.cpp
 # (no output — no schema validation logic)
 
-# D4 NOT implemented (DECLARE_TOOL stays V2)
-grep -n "input_schema\|output_schema" include/agenticdsl/pdk/tool_macros.h
-# (no output — no V3 features)
+# D4 IMPLEMENTED (DECLARE_TOOL_V3 with SchemaGenerator)
+grep -n "DECLARE_TOOL_V3\|SchemaGenerator" include/agenticdsl/pdk/tool_macros.h
+# 112-157: DECLARE_TOOL_V3 macro
+# 22-149: SchemaGenerator template with specializations
 ```
 
 ---
