@@ -113,7 +113,27 @@
       "end_reason": "arch-done",
       "sub_phase": null,
       "workflow_group": null
+    },
+    {
+      "session_id": "rds_3668cbd78276",
+      "kind": "stage_ship",
+      "owner_opencode_session_id": "my-eci-group-poc_4934",
+      "parent_session_id": null,
+      "goal": {
+        "intent": "guide-ship",
+        "subject": "ship-phase",
+        "expected_outcome": "archive-all"
+      },
+      "state": "active",
+      "attached_changes": [],
+      "context_pointer": null,
+      "started_at": "2026-08-12T17:47:37.833318+00:00",
+      "last_heartbeat": "2026-08-12T17:47:37.833318+00:00",
+      "ended_at": null,
+      "end_reason": null,
+      "sub_phase": null,
+      "workflow_group": "efc4c3cd-075f-47b5-87ec-a9361b27d810"
     }
   ],
-  "updated_at": "2026-08-12T12:30:26.102979+00:00"
+  "updated_at": "2026-08-12T17:47:37.833318+00:00"
 }

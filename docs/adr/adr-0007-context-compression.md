@@ -2,9 +2,32 @@
 
 ## 状态
 
-**🟡 Partial** (2026-05-12, 2026-06-09 更新)
+**✅ Approved (Sprint 22 context-compactor ship 2026-08-13)**
 
-快照机制 (`ContextEngine::save_snapshot`) 已实现,但 LLM 驱动的语义压缩未实施。详见 OpenSpec change `tech-debt-and-doc-cleanup`。
+context-compactor Wave 4 完整实施，包含：
+- IContextCompactor 接口 + ContextCompactorImpl PIMPL 实现
+- count_tokens / should_compact / compact (LLM 摘要生成)
+- EventBuilder ADR-0068 链式 (on_compact_before/after, payload 含 compression_ratio)
+- 双层保留策略: LayeredContext.append_original + set_working_view + set_metadata
+- CompactionRecord struct + make_record (epoch timestamp)
+- DSLEngine set_context_compactor + check_and_compact 集成
+- SessionConfig.compact_threshold_tokens 配置注入
+- /compact DECLARE_COMMAND 注册 (pdk_chat_demo)
+- LLM 失败降级 (Result.has_value() false → 空串 + 不阻塞会话)
+- 14 case 单元测试 (test_context_compactor.cpp), ctest 148/148 PASS
+
+---
+## Ship 证据 (2026-08-13)
+
+| 指标 | 结果 |
+|------|------|
+| test_context_compactor | 14 cases PASS |
+| ctest 全量 | 148/148 PASS |
+| 新增文件 | include/agenticdsl/types/context_compactor.h, src/core/context_compactor.h/cpp |
+| 关键 API | IContextCompactor, create_context_compactor(), DSLEngine::set_context_compactor, DSLEngine::check_and_compact |
+| 降级保证 | compact() LLM 失败 → 空串返回, caller 不阻塞会话 |
+
+---
 
 ## 背景
 

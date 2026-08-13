@@ -37,7 +37,7 @@ docs/
 | `adr-0004-toolregistry-security.md` | ToolRegistry 安全模型 | ✅ Approved |
 | `adr-0005-llm-backend-config-factory.md` | LLM 后端配置与工厂 | ✅ Approved |
 | `adr-0006-harness-engine-thread-model.md` | HarnessEngine 后台线程 | ⛔ Superseded (被 ADR-0020 替代) |
-| `adr-0007-context-compression.md` | 上下文压缩机制 | 🟡 Partial (快照有,无 LLM 压缩) |
+| `adr-0007-context-compression.md` | 上下文压缩机制 | ✅ Approved (Sprint 22 context-compactor ship 2026-08-13) |
 | `adr-0008-structured-context.md` | 结构化 Context | ✅ Approved (2026-06-12 LayeredContext 实现完成) |
 | `adr-0009-dsl-standard-library.md` | DSL 标准库规划 | ✅ Approved |
 | `adr-0019-iinteraction-bus-mvp.md` | IInteractionBus 接口与 TUI Chat MVP | 🟡 Partial (MVP ship 2026-06-24; 事件发射契约缺位, 见 layer-based-missing-capabilities-analysis.md X1) |

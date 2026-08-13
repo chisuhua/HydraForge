@@ -31,6 +31,7 @@
 #include "agenticdsl/contract/ischeduler.h" // IScheduler 抽象接口 (Stage 4 / Task 16)
 #include "agenticdsl/contract/iparser.h"    // IParser 抽象接口 (Stage 4 / Task 16)
 #include "agenticdsl/contract/iinteraction_bus.h" // Phase 1 Sprint 1b (S1b.T1): IInteractionBus 注入契约 (ADR-0019 P2)
+#include "agenticdsl/types/context_compactor.h" // Wave 4: IContextCompactor 接口
 // P1.T1 (2026-06-18): IProviderFactory contract 抽象 (替代 common/llm/mock_provider.h 直接 include)
 // LLMProviderFactory 路由类在 src/common/llm/llm_provider_factory.h (PIMPL-lite, 完整类型仅 .cpp 可见)
 #include "agenticdsl/contract/iprovider_factory.h" // IProviderFactory 抽象 (P1.T1, 替代 mock_provider.h)
@@ -175,12 +176,17 @@ ToolCoordinator* get_tool_coordinator() { return tool_coordinator_.get(); }
 // C4 Sprint 14 (ADR-0031 P3-P4, Oracle §决策 5): 显式激活 ToolCoordinator (opt-in, 向后兼容)
 void set_tool_coordinator(std::unique_ptr<ToolCoordinator> coordinator);
 
+// Wave 4: 上下文压缩器注入 (context-compactor Task 8)
+void set_context_compactor(std::unique_ptr<IContextCompactor> compactor);
+void check_and_compact(LayeredContext& ctx);
+
     // D5 (C14, decisions-2026-07-07.md): 显式加载 PDK plugin (删除默认注入)
     // 返回 true 表示加载成功; false 表示 .so 不存在或加载失败
     // 使用示例: engine->load_plugin("pdk/llama_engine");
     bool load_plugin(const std::string& plugin_name);
 
     ~DSLEngine(); // Stage 4 / Task 19 + P1.T4: 显式声明 — 头文件外定义, 使 unique_ptr<IBudgetController> + unique_ptr<IToolRegistry> 析构在完整类型下进行
+    DSLEngine();
     DSLEngine(std::vector<ParsedGraph> initial_graphs);
 private:
     // ADR-0033 Session Hierarchy (Sprint 15 / C5): 内部执行委托
@@ -219,6 +225,9 @@ private:
 
     // C4 Sprint 14 (ADR-0031 P3-P4, Oracle §决策 5): ToolCoordinator
     std::unique_ptr<ToolCoordinator> tool_coordinator_;
+
+    // Wave 4: 上下文压缩器 (context-compactor Task 8)
+    std::unique_ptr<IContextCompactor> context_compactor_;
 };
 
 } // namespace agenticdsl

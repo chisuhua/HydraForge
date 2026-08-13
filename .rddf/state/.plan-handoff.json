@@ -19,5 +19,6 @@
     "Validate: openspec validate context-compactor \u2705",
     "ctest baseline: 147/147 PASS (no regression risk)",
     "\u4f30\u65f6: ~3-4d for implementation"
-  ]
+  ],
+  "ship_started_at": "2026-08-12T17:53:23.565288+00:00"
 }

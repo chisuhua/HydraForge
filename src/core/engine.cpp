@@ -83,6 +83,8 @@ std::unique_ptr<DSLEngine> DSLEngine::from_file(const std::string& file_path) {
     return from_markdown(buffer.str());
 }
 
+DSLEngine::DSLEngine() : DSLEngine(std::vector<ParsedGraph>{}) {}
+
 DSLEngine::DSLEngine(std::vector<ParsedGraph> initial_graphs)
     : full_graphs_(std::move(initial_graphs)),
       tool_registry_(agenticdsl::tools::create_tool_registry()),
@@ -344,6 +346,34 @@ void DSLEngine::set_execution_policy(PolicyMode mode) {
 // C4 Sprint 14 (ADR-0031 P3-P4, Oracle §决策 5): 显式激活 ToolCoordinator (opt-in)
 void DSLEngine::set_tool_coordinator(std::unique_ptr<ToolCoordinator> coordinator) {
   tool_coordinator_ = std::move(coordinator);
+}
+
+// Wave 4: 上下文压缩器注入 (context-compactor Task 8)
+void DSLEngine::set_context_compactor(std::unique_ptr<IContextCompactor> compactor) {
+  context_compactor_ = std::move(compactor);
+}
+
+void DSLEngine::check_and_compact(LayeredContext& ctx) {
+  if (!context_compactor_) return;
+  std::string json = ctx.dump();
+  size_t tokens = context_compactor_->count_tokens(json);
+  if (!context_compactor_->should_compact(tokens)) return;
+  // session_id 从 ctx.meta 读取，默认 "main"
+  std::string sid = ctx.meta.value("session_id", "main");
+  context_compactor_->on_compact_before(sid, tokens);
+  std::string summary = context_compactor_->compact(json, *get_llm_provider());
+  if (summary.empty()) return;
+  size_t tokens_after = context_compactor_->count_tokens(summary);
+  ctx.append_original(json);
+  ctx.set_working_view(summary);
+  auto record = context_compactor_->make_record(tokens, tokens_after, summary.size());
+  ctx.set_metadata("compaction_record", nlohmann::json{
+      {"tokens_before", record.tokens_before},
+      {"tokens_after", record.tokens_after},
+      {"summary_length", record.summary_length},
+      {"timestamp", record.timestamp}
+  });
+  context_compactor_->on_compact_after(sid, tokens, tokens_after);
 }
 
 // ============================================================

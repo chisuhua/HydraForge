@@ -23,6 +23,7 @@ struct SessionConfig {
   uint32_t timeout_ms = 30000;              // 操作超时（毫秒）
   PolicyMode policy_mode = PolicyMode::Agent;  // 默认执行策略
   uint32_t schema_version = 1;              // 序列化版本戳（Oracle: 未来迁移预留）
+  uint32_t compact_threshold_tokens = 4096;  // 上下文压缩阈值（0=禁用）
 };
 
 }  // namespace agenticdsl

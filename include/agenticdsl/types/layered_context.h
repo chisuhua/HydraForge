@@ -66,6 +66,16 @@ struct LayeredContext {
 
   // ===== 构造 =====
   LayeredContext() = default;
+
+  // ===== 双层保留策略 (ADR-0069) =====
+  // 追加原始消息到 meta.original_messages (只追加, 不删除)
+  void append_original(std::string message);
+  // 替换 working 视图 (供 LLM 调用读取摘要)
+  void set_working_view(std::string view);
+  // 设置 metadata 字段 (JSON 合并)
+  void set_metadata(const std::string& key, nlohmann::json value);
+  // 读取 compaction_record (返回空 object 如未设置)
+  nlohmann::json compaction_record() const;
 };
 
 // ============================================================
@@ -261,6 +271,25 @@ inline LayeredContext LayeredContext::load(const nlohmann::json& j) {
   out.archive = j["archive"];
   out.meta    = j["meta"];
   return out;
+}
+
+inline void LayeredContext::append_original(std::string message) {
+  if (!meta.contains("original_messages") || !meta["original_messages"].is_array()) {
+    meta["original_messages"] = nlohmann::json::array();
+  }
+  meta["original_messages"].push_back(std::move(message));
+}
+
+inline void LayeredContext::set_working_view(std::string view) {
+  working["view"] = std::move(view);
+}
+
+inline void LayeredContext::set_metadata(const std::string& key, nlohmann::json value) {
+  meta[key] = std::move(value);
+}
+
+inline nlohmann::json LayeredContext::compaction_record() const {
+  return meta.value("compaction_record", nlohmann::json::object());
 }
 
 }  // namespace agenticdsl
