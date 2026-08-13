@@ -1,6 +1,6 @@
 {
   "version": 6,
-  "updated_at": "2026-08-13T02:01:03.020608+00:00",
+  "updated_at": "2026-08-13T11:39:13.667610+00:00",
   "current_phase": "phase-6b",
   "changes": [
     {
@@ -307,6 +307,17 @@
       "archive_commit_sha": "246cdaf1dbdf306516c494af7eb33659795cca38",
       "tasks_done": 31,
       "plan_path": ".rddf/plans/context-compactor.md"
+    },
+    {
+      "name": "adr-0073-partial-flip",
+      "status": "archived",
+      "phase": "phase-6b",
+      "category": "execution-plane-wave2",
+      "added_at": "2026-08-13T17:31:05+0800",
+      "archived_at": "2026-08-13T11:39:13.658113+00:00",
+      "archive_commit_sha": "c9a84a35f516f6da2bc17d80b4571a081b657640",
+      "tasks_done": 8,
+      "plan_path": ".rddf/plans/adr-0073-partial-flip.md"
     }
   ]
 }

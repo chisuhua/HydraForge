@@ -1,40 +1,16 @@
 {
-  "generated_at": "2026-08-06T08:00:00+00:00",
+  "generated_at": "2026-08-13T10:01:54.852537+00:00",
   "project_root": "/workspace/project/HydraForge",
   "iteration_source": ".rddf/state/iteration.json",
   "rddf_session_continuation": null,
   "active_changes": [
     {
-      "name": "cli-args-cxxopts",
-      "path": "openspec/changes/cli-args-cxxopts",
+      "name": "adr-0073-partial-flip",
+      "path": "openspec/changes/adr-0073-partial-flip",
       "status": "proposed",
-      "priority": "P2",
+      "priority": "P0",
       "parallel_group": 0,
       "blocker": null
-    },
-    {
-      "name": "provider-dynamic-discovery",
-      "path": "openspec/changes/provider-dynamic-discovery",
-      "status": "proposed",
-      "priority": "P2",
-      "parallel_group": 0,
-      "blocker": null
-    },
-    {
-      "name": "chat-streaming-slash-tui",
-      "path": "openspec/changes/chat-streaming-slash-tui",
-      "status": "proposed",
-      "priority": "P1",
-      "parallel_group": 1,
-      "blocker": "cli-args-cxxopts"
-    },
-    {
-      "name": "session-tree-tui",
-      "path": "openspec/changes/session-tree-tui",
-      "status": "proposed",
-      "priority": "P2",
-      "parallel_group": 1,
-      "blocker": "cli-args-cxxopts"
     }
   ]
 }

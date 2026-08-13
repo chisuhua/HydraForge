@@ -1,28 +1,17 @@
 {
-  "plan_complete_at": "2026-08-12T16:10:35.822957+00:00",
-  "changes_planned": 1,
-  "changes": [
-    {
-      "name": "context-compactor",
-      "proposal": "openspec/changes/context-compactor/proposal.md",
-      "design": "openspec/changes/context-compactor/design.md",
-      "tasks": "openspec/changes/context-compactor/tasks.md",
-      "specs": "openspec/changes/context-compactor/specs/",
-      "validated": true
-    }
+  "plan_complete_at": "2026-08-13T10:18:15.733675+00:00",
+  "active_changes": [
+    "adr-0073-partial-flip"
   ],
+  "changes_committed": true,
+  "all_artifacts_ready": true,
+  "deps_analyzed": true,
+  "version": 1,
   "next_stage": "ship",
   "next_skill": "guide-ship",
-  "notes": [
-    "context-compactor: Wave 4 change with full artifacts committed (proposal.md/design.md/tasks.md/specs/ \u2705)",
-    "Pre-workspace ready: context-compactor is isolated feature (no conflicts, no blockers)",
-    "Validate: openspec validate context-compactor \u2705",
-    "ctest baseline: 147/147 PASS (no regression risk)",
-    "\u4f30\u65f6: ~3-4d for implementation"
-  ],
-  "ship_started_at": "2026-08-12T17:53:23.565288+00:00",
-  "archived_at": "2026-08-13T02:01:04.004770+00:00",
+  "ship_started_at": "2026-08-13T10:19:33.733753+00:00",
+  "archived_at": "2026-08-13T11:39:13.797808+00:00",
   "archived_changes": [
-    "context-compactor"
+    "adr-0073-partial-flip"
   ]
 }
