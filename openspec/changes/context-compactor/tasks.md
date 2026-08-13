@@ -28,15 +28,15 @@
 
 ## 5. /compact 命令注册 (DECLARE_COMMAND)
 
-- [ ] 5.1 设计 `/compact` 命令签名 (无需参数)
-- [ ] 5.2 实现命令处理函数 (调用 compact + 返回摘要)
-- [ ] 5.3 注册到 CommandRegistry (DECLARE_COMMAND 宏, 依赖 ADR-0070)
+- [x] 5.1 设计 `/compact` 命令签名 (无需参数)
+- [x] 5.2 实现命令处理函数 (调用 compact + 返回摘要)
+- [x] 5.3 注册到 CommandRegistry (DECLARE_COMMAND 宏, 依赖 ADR-0070)
 
 ## 6. DSLEngine 集成
 
-- [ ] 6.1 每轮结束 `check_and_compact()` 调用 (在 `run()` 循环尾部)
-- [ ] 6.2 `SessionConfig.compact_threshold_tokens` 配置注入
-- [ ] 6.3 验证 /compact 手动触发路径
+- [x] 6.1 每轮结束 `check_and_compact()` 调用 (在 `run()` 循环尾部)
+- [x] 6.2 `SessionConfig.compact_threshold_tokens` 配置注入
+- [x] 6.3 验证 /compact 手动触发路径
 
 ## 7. 事件契约 (ADR-0068 附录 A)
 
@@ -46,14 +46,14 @@
 
 ## 8. 单元测试
 
-- [ ] 8.1 Token 计数 + 阈值判断测试
-- [ ] 8.2 自动触发 (超阈值) 测试
-- [ ] 8.3 手动 /compact 触发测试
-- [ ] 8.4 事件 payload 验证测试
-- [ ] 8.5 LLM 错误降级测试
+- [x] 8.1 Token 计数 + 阈值判断测试
+- [x] 8.2 自动触发 (超阈值) 测试
+- [x] 8.3 手动 /compact 触发测试
+- [x] 8.4 事件 payload 验证测试
+- [x] 8.5 LLM 错误降级测试
 
 ## 9. 集成测试 + 验收
 
-- [ ] 9.1 `test_context_compactor.cpp` 全部 case PASS
-- [ ] 9.2 ctest 全量零回归
-- [ ] 9.3 ADR-0007 状态 🟡 Partial → ✅ Approved (impl-scope 审计同步)
+- [x] 9.1 `test_context_compactor.cpp` 全部 case PASS
+- [x] 9.2 ctest 全量零回归
+- [x] 9.3 ADR-0007 状态 🟡 Partial → ✅ Approved (impl-scope 审计同步)
