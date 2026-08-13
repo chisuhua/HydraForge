@@ -1,6 +1,6 @@
 {
-  "version": 5,
-  "updated_at": "2026-08-12T04:12:06.650819+00:00",
+  "version": 6,
+  "updated_at": "2026-08-13T02:01:03.020608+00:00",
   "current_phase": "phase-6b",
   "changes": [
     {
@@ -10,7 +10,8 @@
       "plan_path": ".rddf/plans/pdk-chat-demo-v1-recap.md",
       "tasks_total": 0,
       "worktree_path": ".rddf/wt/pdk-chat-demo-v1-recap",
-      "archived_at": "2026-07-27T22:42:56.859791+00:00"
+      "archived_at": "2026-07-27T22:42:56.859791+00:00",
+      "filled_at": null
     },
     {
       "added_at": "2026-07-27T22:42:56.684780+00:00",
@@ -19,7 +20,8 @@
       "plan_path": ".rddf/plans/pkgm-temporal-agent.md",
       "tasks_total": 41,
       "worktree_path": ".rddf/wt/pkgm-temporal-agent",
-      "archived_at": "2026-07-28T06:40:14.521162Z"
+      "archived_at": "2026-07-28T06:40:14.521162Z",
+      "filled_at": null
     },
     {
       "added_at": "2026-07-27T22:42:56.853600+00:00",
@@ -28,7 +30,8 @@
       "plan_path": ".rddf/plans/pkm-temporal-demo-scaffold.md",
       "tasks_total": 35,
       "worktree_path": ".rddf/wt/pkm-temporal-demo-scaffold",
-      "archived_at": "2026-07-28T02:57:06.860108Z"
+      "archived_at": "2026-07-28T02:57:06.860108Z",
+      "filled_at": null
     },
     {
       "added_at": "2026-07-29T09:05:48.718096+00:00",
@@ -42,7 +45,8 @@
       "conflicts": [],
       "last_deps_at": "2026-07-29T09:05:48.718096+00:00",
       "worktree_path": ".rddf/wt/adr-0002-busevent-contract",
-      "archived_at": "2026-07-29T12:30:36.744615+00:00"
+      "archived_at": "2026-07-29T12:30:36.744615+00:00",
+      "filled_at": null
     },
     {
       "added_at": "2026-07-29T09:05:48.718096+00:00",
@@ -56,7 +60,8 @@
       "conflicts": [],
       "last_deps_at": "2026-07-29T09:05:48.718096+00:00",
       "worktree_path": ".rddf/wt/adr-0019-subscribe-glob",
-      "archived_at": "2026-07-29T12:40:51.103167+00:00"
+      "archived_at": "2026-07-29T12:40:51.103167+00:00",
+      "filled_at": null
     },
     {
       "added_at": "2026-07-29T09:05:48.718096+00:00",
@@ -70,7 +75,8 @@
       "conflicts": [],
       "last_deps_at": "2026-07-29T09:05:48.718096+00:00",
       "worktree_path": ".rddf/wt/adr-0037-causal-clock",
-      "archived_at": "2026-07-29T12:41:32.097950+00:00"
+      "archived_at": "2026-07-29T12:41:32.097950+00:00",
+      "filled_at": null
     },
     {
       "added_at": "2026-08-02T14:20:39.176415+00:00",
@@ -79,7 +85,8 @@
       "plan_path": ".rddf/plans/adr-0068-event-emission-contract.md",
       "tasks_total": 64,
       "worktree_path": ".rddf/wt/adr-0068-event-emission-contract",
-      "archived_at": "2026-08-03T11:40:21.217058+00:00"
+      "archived_at": "2026-08-03T11:40:21.217058+00:00",
+      "filled_at": null
     },
     {
       "added_at": "2026-08-02T14:20:39.407888+00:00",
@@ -88,7 +95,8 @@
       "plan_path": ".rddf/plans/adr-0069-tool-coordinator-hooks.md",
       "tasks_total": 40,
       "worktree_path": ".rddf/wt/adr-0069-tool-coordinator-hooks",
-      "archived_at": "2026-08-04T06:20:06.730027+00:00"
+      "archived_at": "2026-08-04T06:20:06.730027+00:00",
+      "filled_at": null
     },
     {
       "added_at": "2026-08-02T14:20:39.659853+00:00",
@@ -97,7 +105,8 @@
       "plan_path": ".rddf/plans/adr-0070-declare-command.md",
       "tasks_total": 53,
       "worktree_path": ".rddf/wt/adr-0070-declare-command",
-      "archived_at": "2026-08-04T09:41:11.391802+00:00"
+      "archived_at": "2026-08-04T09:41:11.391802+00:00",
+      "filled_at": null
     },
     {
       "added_at": "2026-08-02T14:20:39.909707+00:00",
@@ -106,7 +115,8 @@
       "plan_path": ".rddf/plans/fix-loop-agent-bypass.md",
       "tasks_total": 32,
       "worktree_path": ".rddf/wt/fix-loop-agent-bypass",
-      "archived_at": "2026-08-03T03:32:50.833304+00:00"
+      "archived_at": "2026-08-03T03:32:50.833304+00:00",
+      "filled_at": null
     },
     {
       "added_at": "2026-08-02T14:20:40.155546+00:00",
@@ -115,7 +125,8 @@
       "plan_path": ".rddf/plans/fix-markdown-parser-yaml.md",
       "tasks_total": 43,
       "worktree_path": ".rddf/wt/fix-markdown-parser-yaml",
-      "archived_at": "2026-08-04T16:05:16.236639+00:00"
+      "archived_at": "2026-08-04T16:05:16.236639+00:00",
+      "filled_at": null
     },
     {
       "added_at": "2026-08-02T14:20:40.384498+00:00",
@@ -124,7 +135,8 @@
       "plan_path": ".rddf/plans/session-manager-jsonl.md",
       "tasks_total": 52,
       "worktree_path": ".rddf/wt/session-manager-jsonl",
-      "archived_at": "2026-08-01T17:56:53.808681+00:00"
+      "archived_at": "2026-08-01T17:56:53.808681+00:00",
+      "filled_at": null
     },
     {
       "added_at": "2026-08-05T09:06:52.101238+00:00",
@@ -132,7 +144,8 @@
       "status": "archived",
       "plan_path": ".rddf/plans/session-manager-jsonl-v2.md",
       "tasks_total": 0,
-      "archived_at": "2026-08-05T11:01:48.769109+00:00"
+      "archived_at": "2026-08-05T11:01:48.769109+00:00",
+      "filled_at": null
     },
     {
       "name": "session-tree-commands",
@@ -147,7 +160,8 @@
       "last_deps_at": null,
       "archived_at": "2026-08-06T10:11:00+00:00",
       "tasks_total": 53,
-      "worktree_path": null
+      "worktree_path": null,
+      "filled_at": null
     },
     {
       "name": "chat-slash-commands-migration",
@@ -162,7 +176,8 @@
       "last_deps_at": null,
       "archived_at": "2026-08-06T10:59:00+00:00",
       "tasks_total": 47,
-      "worktree_path": null
+      "worktree_path": null,
+      "filled_at": null
     },
     {
       "name": "cli-args-cxxopts",
@@ -174,7 +189,8 @@
       "parallel_group": 0,
       "blocker": null,
       "archived_at": "2026-08-06T22:00:00+00:00",
-      "tasks_total": 32
+      "tasks_total": 32,
+      "filled_at": null
     },
     {
       "name": "provider-dynamic-discovery",
@@ -186,7 +202,8 @@
       "parallel_group": 0,
       "blocker": null,
       "archived_at": "2026-08-06T22:00:00+00:00",
-      "tasks_total": 32
+      "tasks_total": 32,
+      "filled_at": null
     },
     {
       "name": "session-tree-tui",
@@ -199,7 +216,8 @@
       "blocker": null,
       "plan_path": ".rddf/plans/session-tree-tui.md",
       "worktree_path": ".rddf/wt/session-tree-tui",
-      "tasks_total": 30
+      "tasks_total": 30,
+      "filled_at": null
     },
     {
       "name": "chat-streaming-slash-tui",
@@ -209,7 +227,8 @@
       "added_at": "2026-08-06T15:00:58+0800",
       "priority": "P1",
       "parallel_group": 1,
-      "blocker": null
+      "blocker": null,
+      "filled_at": null
     },
     {
       "name": "fix-tool-registry-signal-handler-shutdown",
@@ -217,7 +236,8 @@
       "tasks_done": 40,
       "total_tasks": 40,
       "plan_present": true,
-      "archive_path": "openspec/changes/archive/2026-08-08-fix-tool-registry-signal-handler-shutdown/"
+      "archive_path": "openspec/changes/archive/2026-08-08-fix-tool-registry-signal-handler-shutdown/",
+      "filled_at": null
     },
     {
       "name": "chat-async-io-queue-infra",
@@ -225,7 +245,8 @@
       "tasks_done": 48,
       "total_tasks": 48,
       "plan_present": true,
-      "archive_path": "openspec/changes/archive/2026-08-08-chat-async-io-queue-infra/"
+      "archive_path": "openspec/changes/archive/2026-08-08-chat-async-io-queue-infra/",
+      "filled_at": null
     },
     {
       "name": "chat-async-io-cancellation-chain",
@@ -236,7 +257,8 @@
       "archive_path": "openspec/changes/archive/2026-08-09-chat-async-io-cancellation-chain/",
       "note": "Phase B 7-step wiring split into 5 focused changes. Step 1+2 ship complete (Cancellation Registry + ChatSession state). Steps 3/4/5 split into: cancellation-chain-step3-loop-agent (archived 2026-08-09), cancellation-chain-step4-loop-apis (archived 2026-08-09), cancellation-chain-step5-e2e (archived 2026-08-09). All subtasks completed via 3 separate archives.",
       "archived_at": "2026-08-12T00:00:00+00:00",
-      "tasks_total": 10
+      "tasks_total": 10,
+      "filled_at": null
     },
     {
       "name": "cancellation-chain-step3-loop-agent",
@@ -244,7 +266,8 @@
       "tasks_done": 17,
       "total_tasks": 17,
       "plan_present": false,
-      "archive_path": "openspec/changes/archive/2026-08-09-cancellation-chain-step3-loop-agent/"
+      "archive_path": "openspec/changes/archive/2026-08-09-cancellation-chain-step3-loop-agent/",
+      "filled_at": null
     },
     {
       "name": "cancellation-chain-step4-loop-apis",
@@ -252,7 +275,8 @@
       "tasks_done": 17,
       "total_tasks": 17,
       "plan_present": false,
-      "archive_path": "openspec/changes/archive/2026-08-09-cancellation-chain-step4-loop-apis/"
+      "archive_path": "openspec/changes/archive/2026-08-09-cancellation-chain-step4-loop-apis/",
+      "filled_at": null
     },
     {
       "name": "cancellation-chain-step5-e2e",
@@ -260,7 +284,8 @@
       "tasks_done": 20,
       "total_tasks": 20,
       "plan_present": false,
-      "archive_path": "openspec/changes/archive/2026-08-09-cancellation-chain-step5-e2e/"
+      "archive_path": "openspec/changes/archive/2026-08-09-cancellation-chain-step5-e2e/",
+      "filled_at": null
     },
     {
       "name": "chat-async-io-model-switching",
@@ -268,14 +293,20 @@
       "tasks_done": 25,
       "total_tasks": 25,
       "plan_present": false,
-      "archive_path": "openspec/changes/archive/2026-08-09-chat-async-io-model-switching/"
+      "archive_path": "openspec/changes/archive/2026-08-09-chat-async-io-model-switching/",
+      "filled_at": null
     },
     {
       "name": "context-compactor",
-      "status": "planned",
-      "phase": "wave-4 (re-activated 2026-08-12\uff0c\u539f wave-2 \u5ef6\u8fdf\u81f3\u524d\u7f6e\u6761\u4ef6 ship)",
+      "status": "archived",
+      "phase": "wave-4 (re-activated 2026-08-12，原 wave-2 延迟至前置条件 ship)",
       "category": "core-impl",
-      "added_at": "2026-08-12T23:26:25+0800"
+      "added_at": "2026-08-12T23:26:25+0800",
+      "filled_at": null,
+      "archived_at": "2026-08-13T02:01:02.947839+00:00",
+      "archive_commit_sha": "246cdaf1dbdf306516c494af7eb33659795cca38",
+      "tasks_done": 31,
+      "plan_path": ".rddf/plans/context-compactor.md"
     }
   ]
 }
