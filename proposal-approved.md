@@ -9,6 +9,8 @@
 | （无 — 所有已批准提案均已 ship） | | | | |
 
 
+| [adr-0073-partial-flip](.rddf/improvements/adr-0073-partial-flip.md) | P0 | 2026-08-13 | guide-arch |
+
 ## 已实施
 | [context-compactor](.rddf/improvements/context-compactor.md) | P1 | 2026-08-13 |
 | [pdk-chat-demo-v1-recap](.rddf/improvements/pdk-chat-demo-v1-recap.md) | P0 | 2026-07-27 | [Drift close 2026-08-05](openspec/changes/archive/2026-07-27-pdk-chat-demo-v1-recap/) — T1+T2 Session 持久化 + Budget 告警 + Schema 校验 99/99 ctest 全 PASS |
