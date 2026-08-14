@@ -124,13 +124,13 @@
         "subject": "ship-phase",
         "expected_outcome": "archive-all"
       },
-      "state": "active",
+      "state": "completed",
       "attached_changes": [],
       "context_pointer": null,
       "started_at": "2026-08-12T17:47:37.833318+00:00",
       "last_heartbeat": "2026-08-12T17:47:37.833318+00:00",
-      "ended_at": null,
-      "end_reason": null,
+      "ended_at": "2026-08-13T21:00:00+00:00",
+      "end_reason": "abandon-orphan",
       "sub_phase": null,
       "workflow_group": "efc4c3cd-075f-47b5-87ec-a9361b27d810"
     }

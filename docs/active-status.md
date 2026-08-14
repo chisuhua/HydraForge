@@ -2,7 +2,7 @@
 
 > **焦点**: 当前活跃的 OpenSpec changes | **更新**: 每日
 > **Master Plan**: [`docs/superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md`](superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md)
-> **架构决策**: [`docs/adr/`](adr/) — 70 ADR (57 主 + 1 plugin + 12 skill 子项), 41 Approved (主 34 + 子 7), adr_lint 零错误 (2026-08-04 实测校准, `tools/doc_metrics.py --adr`)
+> **架构决策**: [`docs/adr/`](adr/) — 70 ADR (57 主 + 1 plugin + 12 skill 子项), 42 Approved (主 35 + 子 7), adr_lint 零错误 (2026-08-13 实测校准, `tools/doc_metrics.py --adr`, Wave 5 ADR-0073 Partial)
 > **Phase**: 6 — Agent-as-Plugin (2026-07-15 ~ 至今, Phase 5 ✅ 收官)
 
 ---
@@ -11,11 +11,11 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | 配置 147 (2026-08-12 实测: `cd build && ctest` → 0 失败 / 147/147 PASS of 147 configured; 含 Phase 6a pdk-safe-exec-tests 增量 test_pdk_safe_exec 8 cases; pre-existing `test_e2e_real_llm` 改为显式 opt-in `HYDRAFORGE_RUN_REAL_LLM=1` 后已通过; obsolete `test_pdk_chat_model_command` 已删除由 Phase C `test_model_switching` 替代) |
+| **Total ctest** | **151/151 PASS** (2026-08-13 实测: `ctest --test-dir build --show-only` → Total Tests: 151; Wave 5 增量: adr-0073-d2 `test_declare_tool_auto_schema` +1, pdk-chat-demo-plan-execute-fork-join `test_plan_execute_loop_integration` + `test_fork_join_loop_integration` +2; pre-existing `test_e2e_real_llm` 改为显式 opt-in `HYDRAFORGE_RUN_REAL_LLM=1` 后已通过; obsolete `test_pdk_chat_model_command` 已删除由 Phase C `test_model_switching` 替代) |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
 | **OpenSpec active** | **0** (Wave 3-A Phase 0 fix-tool-registry-signal-handler-shutdown 已 ship + archived 2026-08-08; Phase A queue-infra 可立即启动) |
-| **ADR Approved** | **41** (主 34: Phase 0-5 16 + Phase 6 17 [0050/0051/0052-0065/0067] + **ADR-0068** Wave 1 收官; plugin 1; skill 子项 6) |
+| **ADR Approved** | **42** (主 35: Phase 0-5 16 + Phase 6 17 [0050/0051/0052-0065/0067] + **ADR-0068** Wave 1 收官 + **ADR-0073** Partial (Wave 5 翻牌), 42 Approved; plugin 1; skill 子项 6) |
 | **ADR 🔍 Proposed** | **13** (主 7: 0038/0039/0042/0045/0046/0069/0070; skill 子项 6: 0061-07~12) — ADR-0068 (D2) **已转 ✅ Approved** (2026-08-03 V2 收官); ADR-0069 (D3) / ADR-0070 (D4) 仍 Proposed |
 | **Completed Phase 0-4** | ✅ 100% |
 | **Phase 5** | ✅ 收官 (C9-C18 全部 ✅ shipped + archived) |
