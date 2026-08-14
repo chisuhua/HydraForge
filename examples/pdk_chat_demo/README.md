@@ -107,6 +107,36 @@ demo 同时输出结构化事件日志（时间戳 + topic）：
 | Shell Tools | C++ (.so) | `pdk/shell_tools/` | Shell 命令执行 |
 | Code Review | SKILL.md | `skills/code-review/` | 代码审查（mock-only, 需 ADR-0055） |
 
+## DSL 示例
+
+`examples/pdk_chat_demo/dsl/` 目录包含 PlanExecuteLoop 和 ForkJoinLoop 的示例 `.agent.md` 文件：
+
+| 文件 | 循环类型 | 说明 |
+|------|----------|------|
+| `plan_execute_example.agent.md` | PlanExecuteLoop | 研究量子计算 — 3 阶段 (Planning→Executing→Verifying) |
+| `fork_join_example.agent.md` | ForkJoinLoop | 并行多源搜索 — 4 阶段 (Forking→Executing→Joining) |
+
+### PlanExecuteLoop 示例
+
+展示 3 阶段循环: Planning (LLM 生成子图) → Executing (DSLEngine 执行) → Verifying (LLM 验证)
+
+```bash
+# 使用方式
+PlanExecuteLoop loop(std::move(engine), bus);
+LoopResult result = loop.run("研究量子计算的最新进展", ctx);
+```
+
+### ForkJoinLoop 示例
+
+展示 4 阶段循环: Forking (并发派发) → Executing (并行 branch) → Joining (结果合并)
+
+```bash
+# 使用方式
+ForkJoinLoop loop(std::move(engine), bus, /*num_threads=*/4);
+std::vector<std::string> branches = {"search_web", "search_docs", "search_code"};
+LoopResult result = loop.run(branches, ctx);
+```
+
 ## 测试
 
 ```bash
