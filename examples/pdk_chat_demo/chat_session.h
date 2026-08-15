@@ -39,6 +39,7 @@ struct SessionConfig {
     std::string persist_dir = "~/.hydraforge/sessions/";
     int compact_threshold_tokens = 8000;
     bool branch_on_user_request = true;
+    bool enable_input_thread = false;
 };
 
 struct PluginConfig {

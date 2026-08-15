@@ -223,8 +223,9 @@ public:
         if (!persist_dir_expanded.empty()) {
             ensure_dir_0700(persist_dir_expanded);
         }
-        // Start input thread
-        input_thread_ = std::thread([this]() { input_thread_main(); });
+        if (session_cfg.enable_input_thread) {
+            input_thread_ = std::thread([this]() { input_thread_main(); });
+        }
     }
 
     ~Impl() {

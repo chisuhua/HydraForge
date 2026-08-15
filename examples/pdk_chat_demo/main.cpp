@@ -423,6 +423,7 @@ int main(int argc, char* argv[]) {
     // ============================================================
     // 7. ChatSession 初始化（使用 engine 内部 registry）
     // ============================================================
+    config.session.enable_input_thread = true;
     // T1.9: 启动时清理 >24h 的 stale session 文件
     pdk_chat_demo::ChatSession::cleanup_stale(config.session.persist_dir);
 
