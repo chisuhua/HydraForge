@@ -13,6 +13,9 @@
 #include <set>
 #include <stdexcept>
 
+#include <yaml-cpp/yaml.h>
+#include "common/utils/yaml_json.h"
+
 #include <agenticdsl/contract/itool_registry.h>
 
 namespace pdk_chat_demo {
@@ -123,59 +126,6 @@ static std::string extract_yaml_fenced_block(const std::string& content) {
   return "";
 }
 
-// 从 yaml 文本提取 frontmatter 字段值 (如 name/version/agent_loop)
-// yaml 顶层为 key: value 格式; 返回 value 的字符串表示
-static std::string yaml_field_value(const std::string& yaml_text,
-                                    const std::string& key) {
-  std::regex pattern("^\\s*" + key + "\\s*:\\s*([^#\\r\\n]+?)\\s*(?:#.*)?$",
-                     std::regex::multiline);
-  std::smatch match;
-  if (std::regex_search(yaml_text, match, pattern)) {
-    std::string val = match[1].str();
-    // 去除首尾引号
-    if (val.size() >= 2 &&
-        ((val.front() == '"' && val.back() == '"') ||
-         (val.front() == '\'' && val.back() == '\''))) {
-      val = val.substr(1, val.size() - 2);
-    }
-    return val;
-  }
-  return "";
-}
-
-// 从 yaml 文本提取 Nodes 列表 JSON
-// 查找 "nodes:" 键, 后续列表项转为 nlohmann::json 数组
-static std::string yaml_nodes_json(const std::string& yaml_text) {
-  // 找 nodes: 起始位置
-  size_t nodes_pos = yaml_text.find("\nnodes:");
-  if (nodes_pos == std::string::npos) {
-    // 也尝试文件开头就是 nodes:
-    nodes_pos = yaml_text.find("nodes:");
-    if (nodes_pos == std::string::npos) return "";
-    if (nodes_pos > 0 && yaml_text[nodes_pos - 1] != '\n') {
-      // "nodes:" 不是行首, 可能是别处字符串含
-      // 重置为第一处行首
-      nodes_pos = yaml_text.find("\nnodes:");
-      if (nodes_pos == std::string::npos) return "";
-    }
-  } else {
-    nodes_pos += 1;  // 跳过 \n
-  }
-
-  // 提取从 nodes: 到文件末尾的列表部分
-  size_t list_start = yaml_text.find(':', nodes_pos);
-  if (list_start == std::string::npos) return "";
-  list_start += 1;  // 跳过 :
-
-  // 跳到下一个非空白字符（换行+缩进）
-  size_t content_start = yaml_text.find_first_not_of(" \t\r\n", list_start);
-  if (content_start == std::string::npos) return "";
-
-  // 找到 nodes 列表结束位置（下一个顶层 key，或文件末尾）
-  // 简化: 取到文件末尾 (yaml 顶层 nodes 通常是最后一个字段)
-  return yaml_text.substr(content_start);
-}
-
 // ============================================================
 // 主校验入口
 // ============================================================
@@ -183,103 +133,147 @@ ValidationResult DslValidator::validate(const std::string& markdown_content,
                                        const agenticdsl::IToolRegistry* registry) {
   ValidationResult result;
 
-  // ----------------------------------------------------------
-  // fix-markdown-parser-yaml: 双格式检测
-  // 优先 yaml fenced 块 (生产 .agent.md 格式), 回退 bold (**key**: value)
-  // ----------------------------------------------------------
   std::string yaml_block = extract_yaml_fenced_block(markdown_content);
   bool use_yaml_format = !yaml_block.empty();
 
-  // ----------------------------------------------------------
-  // 1. 必填字段检查
-  // ----------------------------------------------------------
+  nlohmann::json yaml_json;
+  bool yaml_json_ok = false;
+  std::string yaml_error_path;
+
+  if (use_yaml_format) {
+    yaml_json_ok = yaml_block_to_json(yaml_block, yaml_json, yaml_error_path);
+    if (!yaml_json_ok) {
+      result.add_error("INVALID_YAML", yaml_error_path,
+                       "yaml-cpp parse failure");
+    }
+  }
+
   for (const auto& field : REQUIRED_FIELDS) {
-    std::string value = use_yaml_format
-        ? yaml_field_value(yaml_block, field)
-        : extract_frontmatter_value(markdown_content, field);
-    if (value.empty()) {
-      result.add_error("MISSING_REQUIRED_FIELD", "frontmatter",
+    bool present = false;
+    if (use_yaml_format && yaml_json_ok) {
+      present = extract_required_string_field(yaml_json, field);
+    } else if (!use_yaml_format) {
+      present = !extract_frontmatter_value(markdown_content, field).empty();
+    }
+    if (!present) {
+      result.add_error("MISSING_REQUIRED_FIELD",
+                       "frontmatter." + field,
                        "missing required field: " + field);
     }
   }
 
-  // ----------------------------------------------------------
-  // 2. Nodes 节存在性 (双格式: yaml 路径取 yaml 块后 nodes 列表, bold 路径取 ## Nodes JSON)
-  // ----------------------------------------------------------
-  std::string nodes_json = use_yaml_format
-      ? yaml_nodes_json(yaml_block)
-      : extract_nodes_json(markdown_content);
-  if (nodes_json.empty()) {
-    result.add_error(use_yaml_format ? "MISSING_SECTION" : "MISSING_SECTION",
-                     use_yaml_format ? "yaml nodes" : "## Nodes",
-                     use_yaml_format
-                         ? "missing 'nodes:' list in yaml block"
-                         : "missing '## Nodes' section or JSON code block");
-    return result;
-  }
-
-  // ----------------------------------------------------------
-  // 3. JSON 解析
-  // ----------------------------------------------------------
   nlohmann::json nodes;
-  try {
-    nodes = nlohmann::json::parse(nodes_json);
-  } catch (const nlohmann::json::parse_error& e) {
-    result.add_error("PARSE_ERROR", "## Nodes",
-                     "invalid JSON in Nodes section: " + std::string(e.what()));
-    return result;  // 无法继续校验
+  bool nodes_ok = false;
+
+  if (use_yaml_format) {
+    if (yaml_json_ok) {
+      nodes_ok = extract_nodes_array(yaml_json, nodes);
+      if (!nodes_ok) {
+        result.add_error(
+            "INVALID_YAML", "yaml_block.nodes",
+            yaml_json.contains("nodes")
+                ? "yaml 'nodes' field must be an array"
+                : "missing 'nodes:' list in yaml block");
+      }
+    }
+  } else {
+    std::string nodes_json_text = extract_nodes_json(markdown_content);
+    if (nodes_json_text.empty()) {
+      result.add_error("MISSING_SECTION", "## Nodes",
+                       "missing '## Nodes' section or JSON code block");
+      return result;
+    }
+    try {
+      nodes = nlohmann::json::parse(nodes_json_text);
+    } catch (const nlohmann::json::parse_error& e) {
+      result.add_error("PARSE_ERROR", "## Nodes",
+                       "invalid JSON in Nodes section: " + std::string(e.what()));
+      return result;
+    }
+    if (!nodes.is_array()) {
+      result.add_error("PARSE_ERROR", "## Nodes",
+                       "Nodes section must be a JSON array, got: " +
+                           std::string(nodes.type_name()));
+      return result;
+    }
+    nodes_ok = true;
   }
 
-  // 确保是数组
-  if (!nodes.is_array()) {
-    result.add_error("PARSE_ERROR", "## Nodes",
-                     "Nodes section must be a JSON array, got: " +
-                         std::string(nodes.type_name()));
+  if (!nodes_ok) {
     return result;
   }
 
-  // ----------------------------------------------------------
-  // 4. 逐节点校验
-  // ----------------------------------------------------------
   for (size_t i = 0; i < nodes.size(); ++i) {
     const auto& node = nodes[i];
     std::string node_path = "node[" + std::to_string(i) + "]";
 
-    // 4a. 必填字段 per-node
-    if (!node.contains("id") || !node["id"].is_string() || node["id"].get<std::string>().empty()) {
-      result.add_error("MISSING_REQUIRED_FIELD", node_path,
+    if (!node.contains("id") || !node["id"].is_string() ||
+        node["id"].get<std::string>().empty()) {
+      result.add_error("MISSING_REQUIRED_FIELD", node_path + ".id",
                        "node missing required field 'id'");
     }
-    if (!node.contains("type") || !node["type"].is_string() || node["type"].get<std::string>().empty()) {
-      result.add_error("MISSING_REQUIRED_FIELD", node_path,
+    if (!node.contains("type") || !node["type"].is_string() ||
+        node["type"].get<std::string>().empty()) {
+      result.add_error("MISSING_REQUIRED_FIELD", node_path + ".type",
                        "node missing required field 'type'");
-      continue;  // 无 type 无法校验类型
+      continue;
     }
 
-    // 4b. 节点类型白名单
     std::string node_type = node["type"].get<std::string>();
     if (VALID_NODE_TYPES.find(node_type) == VALID_NODE_TYPES.end()) {
-      result.add_error("INVALID_NODE_TYPE", node_path,
+      result.add_error("INVALID_NODE_TYPE", node_path + ".type",
                        "unknown node type '" + node_type + "'");
     }
 
-    // 4c. call_tool 节点：tool_name 必须存在（if registry provided）
-    //     demo-side 不依赖 ToolRegistry, 先做字符串存在性检查
     if (node_type == "call_tool") {
       if (!node.contains("tool_name") || !node["tool_name"].is_string() ||
           node["tool_name"].get<std::string>().empty()) {
-        result.add_error("MISSING_REQUIRED_FIELD", node_path,
+        result.add_error("MISSING_REQUIRED_FIELD", node_path + ".tool_name",
                          "call_tool node missing required field 'tool_name'");
-      } else if (registry != nullptr && !registry->has_tool(node["tool_name"].get<std::string>())) {
-        // registry 提供时，查 ToolRegistry 实际注册表，未注册则拒绝
-        result.add_error("MISSING_TOOL_DEPENDENCY", node_path,
-                         "call_tool references unregistered tool '" +
-                             node["tool_name"].get<std::string>() + "'");
+      } else if (registry != nullptr &&
+                 !registry->has_tool(node["tool_name"].get<std::string>())) {
+        result.add_error(
+            "MISSING_TOOL_DEPENDENCY", node_path + ".tool_name",
+            "call_tool references unregistered tool '" +
+                node["tool_name"].get<std::string>() + "'");
       }
     }
   }
 
   return result;
+}
+
+bool DslValidator::yaml_block_to_json(const std::string& yaml_text,
+                                      nlohmann::json& out,
+                                      std::string& error_path) {
+  try {
+    YAML::Node node = YAML::Load(yaml_text);
+    out = agenticdsl::yaml_to_json(node);
+    return true;
+  } catch (const YAML::ParserException& e) {
+    error_path = "yaml_block[" + std::to_string(e.mark.line) + ":" +
+                 std::to_string(e.mark.column) + "]";
+    return false;
+  }
+}
+
+bool DslValidator::extract_required_string_field(const nlohmann::json& obj,
+                                                 const std::string& key) {
+  if (!obj.is_object()) return false;
+  if (!obj.contains(key)) return false;
+  const auto& v = obj.at(key);
+  if (!v.is_string()) return false;
+  return !v.get<std::string>().empty();
+}
+
+bool DslValidator::extract_nodes_array(const nlohmann::json& obj,
+                                       nlohmann::json& out) {
+  if (!obj.is_object()) return false;
+  if (!obj.contains("nodes")) return false;
+  const auto& nodes = obj.at("nodes");
+  if (!nodes.is_array()) return false;
+  out = nodes;
+  return true;
 }
 
 }  // namespace pdk_chat_demo

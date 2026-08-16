@@ -638,3 +638,32 @@ add_test(
     COMMAND test_fork_join_loop_integration
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+add_executable(test_dsl_validator_yaml
+    test_dsl_validator_yaml.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_dsl_validator_yaml PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    yaml-cpp::yaml-cpp
+    Threads::Threads
+)
+target_include_directories(test_dsl_validator_yaml PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+target_compile_definitions(test_dsl_validator_yaml PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_dsl_validator_yaml
+    COMMAND test_dsl_validator_yaml
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../..
+)

@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 namespace agenticdsl {
 class IToolRegistry;
 }
@@ -21,8 +23,8 @@ namespace pdk_chat_demo {
 // 校验错误结构
 // ============================================================
 struct ValidationError {
-  std::string type;       // 错误类型: MISSING_REQUIRED_FIELD / INVALID_NODE_TYPE / MISSING_TOOL_DEPENDENCY / ...
-  std::string node_path;   // 节点路径或字段名
+  std::string type;       // 错误类型: MISSING_REQUIRED_FIELD / INVALID_NODE_TYPE / MISSING_TOOL_DEPENDENCY / PARSE_ERROR / INVALID_YAML
+  std::string node_path;   // 节点路径（dot-separated: frontmatter.<field> / node[N].<field> / yaml_block[L:C]）
   std::string message;     // 人类可读描述
 };
 
@@ -83,6 +85,17 @@ class DslValidator {
 
   // 提取 ## Nodes 节的 JSON 代码块
   std::string extract_nodes_json(const std::string& content);
+
+  // YAML fenced 块 → 结构化 JSON。失败时 error_path 形如 "yaml_block[L:C]"
+  bool yaml_block_to_json(const std::string& yaml_text,
+                          nlohmann::json& out,
+                          std::string& error_path);
+
+  bool extract_required_string_field(const nlohmann::json& obj,
+                                     const std::string& key);
+
+  bool extract_nodes_array(const nlohmann::json& obj,
+                           nlohmann::json& out);
 };
 
 }  // namespace pdk_chat_demo
