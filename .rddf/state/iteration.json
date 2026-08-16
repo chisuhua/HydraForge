@@ -1,6 +1,6 @@
 {
   "version": 6,
-  "updated_at": "2026-08-13T11:39:13.667610+00:00",
+  "updated_at": "2026-08-16T16:21:09.606835+00:00",
   "current_phase": "phase-6b",
   "changes": [
     {
@@ -318,6 +318,17 @@
       "archive_commit_sha": "c9a84a35f516f6da2bc17d80b4571a081b657640",
       "tasks_done": 8,
       "plan_path": ".rddf/plans/adr-0073-partial-flip.md"
+    },
+    {
+      "name": "from-roadmap-phase-6b-platform",
+      "status": "archived",
+      "phase": "phase-6b",
+      "category": "platform",
+      "added_at": "2026-08-16T08:14:45+0800",
+      "filled_at": "2026-08-16T12:30:00+08:00",
+      "archived_at": "2026-08-16T16:21:09.606835+00:00",
+      "plan_path": ".rddf/plans/from-roadmap-phase-6b-platform.md",
+      "tasks_total": 40
     }
   ]
 }

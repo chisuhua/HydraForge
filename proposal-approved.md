@@ -8,9 +8,9 @@
 | --- | --- | --- | --- | --- |
 
 ## 已实施
-| [from-roadmap-phase-6b-platform](.rddf/improvements/from-roadmap-phase-6b-platform.md) | P1 | 2026-08-17 |
-| [adr-0073-partial-flip](.rddf/improvements/adr-0073-partial-flip.md) | P0 | 2026-08-13 |
-| [context-compactor](.rddf/improvements/context-compactor.md) | P1 | 2026-08-13 |
+| [from-roadmap-phase-6b-platform](.rddf/improvements/from-roadmap-phase-6b-platform.md) | P1 | 2026-08-16 | [archived 2026-08-16](openspec/changes/archive/2026-08-16-from-roadmap-phase-6b-platform/) ✅ ship — yaml-cpp + agenticdsl::yaml_to_json() 结构化解析 + INVALID_YAML error + dot-separated path; 删除 yaml_field_value/yaml_nodes_json regex/substring 路径; 3 LF + 3 CRLF + 1 invalid fixtures; 8 新测试 PASS; 152/152 ctest 零回归 |
+| [adr-0073-partial-flip](.rddf/improvements/adr-0073-partial-flip.md) | P0 | 2026-08-13 | [archived 2026-08-13](openspec/changes/archive/2026-08-13-adr-0073-partial-flip/) |
+| [context-compactor](.rddf/improvements/context-compactor.md) | P1 | 2026-08-13 | [archived 2026-08-13](openspec/changes/archive/2026-08-13-context-compactor/) |
 | [pdk-chat-demo-v1-recap](.rddf/improvements/pdk-chat-demo-v1-recap.md) | P0 | 2026-07-27 | [Drift close 2026-08-05](openspec/changes/archive/2026-07-27-pdk-chat-demo-v1-recap/) — T1+T2 Session 持久化 + Budget 告警 + Schema 校验 99/99 ctest 全 PASS |
 | [pkm-temporal-demo-scaffold](.rddf/improvements/pkm-temporal-demo-scaffold.md) | P0 | 2026-07-28 | [Drift close 2026-08-05](openspec/changes/archive/2026-07-28-pkm-temporal-demo-scaffold/) — ITemporalClient + 4 scenario + 9 test_temporal_*.cpp 全部 ship |
 | [adr-0037-causal-clock](.rddf/improvements/adr-0037-causal-clock.md) | P2 | 2026-07-29 | Drift close 2026-08-05 — [archived 2026-07-29](openspec/changes/archive/2026-07-29-adr-0037-causal-clock/) `src/common/contract/causal_clock.h` + InMemoryBus::emit 自动 tick 已 ship（ADR-0037 状态需更新） |
