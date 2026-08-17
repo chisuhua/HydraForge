@@ -7,6 +7,18 @@
 | [name](.rddf/improvements/name.md) | priority | 来源 | 批准日期 | 批准人 |
 | --- | --- | --- | --- | --- |
 
+| [from-roadmap-phase-6c-execution-baseline](.rddf/improvements/from-roadmap-phase-6c-execution-baseline.md) | P0 | 2026-08-17 | guide-arch |
+
+| [from-roadmap-phase-6c-evidence-gate](.rddf/improvements/from-roadmap-phase-6c-evidence-gate.md) | P0 | 2026-08-17 | guide-arch |
+
+| [from-roadmap-phase-6c-execution-dsl](.rddf/improvements/from-roadmap-phase-6c-execution-dsl.md) | P0 | 2026-08-17 | guide-arch |
+
+| [from-roadmap-phase-6c-schema-complete](.rddf/improvements/from-roadmap-phase-6c-schema-complete.md) | P0 | 2026-08-17 | guide-arch |
+
+| [from-roadmap-phase-6c-execution-envbackend](.rddf/improvements/from-roadmap-phase-6c-execution-envbackend.md) | P0 | 2026-08-17 | guide-arch |
+
+| [from-roadmap-phase-6c-control-plane-eval](.rddf/improvements/from-roadmap-phase-6c-control-plane-eval.md) | P1 | 2026-08-17 | guide-arch |
+
 ## 已实施
 | [from-roadmap-phase-6b-platform](.rddf/improvements/from-roadmap-phase-6b-platform.md) | P1 | 2026-08-16 | [archived 2026-08-16](openspec/changes/archive/2026-08-16-from-roadmap-phase-6b-platform/) ✅ ship — yaml-cpp + agenticdsl::yaml_to_json() 结构化解析 + INVALID_YAML error + dot-separated path; 删除 yaml_field_value/yaml_nodes_json regex/substring 路径; 3 LF + 3 CRLF + 1 invalid fixtures; 8 新测试 PASS; 152/152 ctest 零回归 |
 | [adr-0073-partial-flip](.rddf/improvements/adr-0073-partial-flip.md) | P0 | 2026-08-13 | [archived 2026-08-13](openspec/changes/archive/2026-08-13-adr-0073-partial-flip/) |

@@ -1,16 +1,74 @@
 {
-  "generated_at": "2026-08-13T10:01:54.852537+00:00",
+  "generated_at": "2026-08-17T17:15:30+00:00",
   "project_root": "/workspace/project/HydraForge",
   "iteration_source": ".rddf/state/iteration.json",
   "rddf_session_continuation": null,
   "active_changes": [
     {
-      "name": "adr-0073-partial-flip",
-      "path": "openspec/changes/adr-0073-partial-flip",
+      "name": "from-roadmap-phase-6c-execution-baseline",
+      "path": "openspec/changes/from-roadmap-phase-6c-execution-baseline",
       "status": "proposed",
       "priority": "P0",
       "parallel_group": 0,
-      "blocker": null
+      "blocker": null,
+      "category": "execution-baseline",
+      "adr_refs": ["adr-0074-prompt-evidence-gate.md"],
+      "summary": "C1+C2+C3 — few-shot examples + golden suite + V1/V2/V3 prompt + baseline measurement"
+    },
+    {
+      "name": "from-roadmap-phase-6c-evidence-gate",
+      "path": "openspec/changes/from-roadmap-phase-6c-evidence-gate",
+      "status": "proposed",
+      "priority": "P0",
+      "parallel_group": 2,
+      "blocker": "from-roadmap-phase-6c-execution-baseline",
+      "category": "evidence-gate",
+      "adr_refs": ["adr-0074-prompt-evidence-gate.md"],
+      "summary": "C4 Evidence Gate decision — consume baseline + emit PASS/FAIL/CONDITIONAL/ABORT"
+    },
+    {
+      "name": "from-roadmap-phase-6c-execution-dsl",
+      "path": "openspec/changes/from-roadmap-phase-6c-execution-dsl",
+      "status": "proposed",
+      "priority": "P0",
+      "parallel_group": 3,
+      "blocker": "from-roadmap-phase-6c-evidence-gate",
+      "category": "execution-dsl",
+      "adr_refs": ["adr-0072-dsl-node-extensions.md"],
+      "summary": "C5+C6+C7 — $var + declarative style + dual syntax lint (conditional ship per Evidence Gate)"
+    },
+    {
+      "name": "from-roadmap-phase-6c-schema-complete",
+      "path": "openspec/changes/from-roadmap-phase-6c-schema-complete",
+      "status": "proposed",
+      "priority": "P0",
+      "parallel_group": 0,
+      "blocker": null,
+      "category": "schema-complete",
+      "adr_refs": ["adr-0073-tool-json-schema-contract.md", "adr-0069-tool-coordinator-hooks.md", "adr-0068-event-emission-contract.md"],
+      "summary": "C9 ADR-0073 D3 — ToolCoordinator 4-step sanitization pipeline"
+    },
+    {
+      "name": "from-roadmap-phase-6c-execution-envbackend",
+      "path": "openspec/changes/from-roadmap-phase-6c-execution-envbackend",
+      "status": "proposed",
+      "priority": "P0",
+      "parallel_group": 0,
+      "blocker": null,
+      "category": "execution-envbackend",
+      "adr_refs": ["adr-0075-dsl-env-multi-execution.md (pending)", "adr-0069-tool-coordinator-hooks.md", "adr-0055-skill-execution-isolation.md"],
+      "summary": "C11+C12+C13 — IEnvBackend + LocalBackend + DockerBackend + EnvValidationHook"
+    },
+    {
+      "name": "from-roadmap-phase-6c-control-plane-eval",
+      "path": "openspec/changes/from-roadmap-phase-6c-control-plane-eval",
+      "status": "proposed",
+      "priority": "P1",
+      "parallel_group": 4,
+      "blocker": "from-roadmap-phase-6c-execution-baseline,from-roadmap-phase-6c-evidence-gate,from-roadmap-phase-6c-schema-complete,from-roadmap-phase-6c-execution-envbackend",
+      "category": "control-plane-eval",
+      "adr_refs": ["adr-0079-control-plane-launch-decision-tree.md (pending)"],
+      "summary": "C10 — scripts/control-plane-eval.py one-key eval for 6 Phase 7 launch conditions"
     }
   ]
 }

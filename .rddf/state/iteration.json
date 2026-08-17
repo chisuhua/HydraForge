@@ -1,7 +1,7 @@
 {
   "version": 6,
-  "updated_at": "2026-08-16T16:21:09.606835+00:00",
-  "current_phase": "phase-6b",
+  "updated_at": "2026-08-17T17:15:27.387237+00:00",
+  "current_phase": "phase-6c",
   "changes": [
     {
       "added_at": "2026-07-27T08:24:15.665499+00:00",
@@ -329,6 +329,60 @@
       "archived_at": "2026-08-16T16:21:09.606835+00:00",
       "plan_path": ".rddf/plans/from-roadmap-phase-6b-platform.md",
       "tasks_total": 40
+    },
+    {
+      "name": "from-roadmap-phase-6c-execution-baseline",
+      "status": "proposed",
+      "phase": "phase-6c",
+      "category": "execution-baseline",
+      "added_at": "2026-08-17T23:09:48+0800",
+      "proposed_at": "2026-08-17T17:15:27.387237+00:00",
+      "fill_completed": true
+    },
+    {
+      "name": "from-roadmap-phase-6c-evidence-gate",
+      "status": "proposed",
+      "phase": "phase-6c",
+      "category": "evidence-gate",
+      "added_at": "2026-08-17T23:10:26+0800",
+      "proposed_at": "2026-08-17T17:15:27.387237+00:00",
+      "fill_completed": true
+    },
+    {
+      "name": "from-roadmap-phase-6c-execution-dsl",
+      "status": "proposed",
+      "phase": "phase-6c",
+      "category": "execution-dsl",
+      "added_at": "2026-08-17T23:10:26+0800",
+      "proposed_at": "2026-08-17T17:15:27.387237+00:00",
+      "fill_completed": true
+    },
+    {
+      "name": "from-roadmap-phase-6c-schema-complete",
+      "status": "proposed",
+      "phase": "phase-6c",
+      "category": "schema-complete",
+      "added_at": "2026-08-17T23:10:27+0800",
+      "proposed_at": "2026-08-17T17:15:27.387237+00:00",
+      "fill_completed": true
+    },
+    {
+      "name": "from-roadmap-phase-6c-execution-envbackend",
+      "status": "proposed",
+      "phase": "phase-6c",
+      "category": "execution-envbackend",
+      "added_at": "2026-08-17T23:10:27+0800",
+      "proposed_at": "2026-08-17T17:15:27.387237+00:00",
+      "fill_completed": true
+    },
+    {
+      "name": "from-roadmap-phase-6c-control-plane-eval",
+      "status": "proposed",
+      "phase": "phase-6c",
+      "category": "control-plane-eval",
+      "added_at": "2026-08-17T23:10:28+0800",
+      "proposed_at": "2026-08-17T17:15:27.387237+00:00",
+      "fill_completed": true
     }
   ]
 }
