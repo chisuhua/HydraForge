@@ -2,7 +2,7 @@
 
 ## 状态
 
-🟡 Partial (2026-08-13 — Phase 6a manifest schema 边界部分采纳；**D2/D4 部分实施**: `execution_policy.h` V3 字段 + `schema_generation.h` + DECLARE_TOOL_V3，详见 `adr-0073-impl-scope-audit.md`)
+✅ Approved (D2 + D3 + D4 全 ship) (2026-08-18 — Phase 6c C9 `from-roadmap-phase-6c-schema-complete` ship: D3 ToolCoordinator 4 步 sanitization pipeline 落地)
 
 **证据基础**：
 - `include/agenticdsl/pdk/manifest.h:17-18` — `input_schema`/`output_schema` 作为 `std::string`（raw JSON）存在于 PDK manifest 结构
@@ -10,9 +10,20 @@
 - `src/common/policy/execution_policy.h:82-86` — **D2 V3 字段已添加** (`input_schema`, `output_schema`, `ValidationMode`)
 - `include/agenticdsl/tools/schema_generation.h` — **D4 SchemaGenerator 类型反射已实现**
 - `include/agenticdsl/pdk/tool_macros.h` — **D4 DECLARE_TOOL_V3 宏已实现**
-- D3（ToolCoordinator 校验层）属于 Phase 6c C9 待实施
+- `src/common/tools/tool_coordinator.cpp` — **D3 4 步 sanitization pipeline 已实施** (schema_validate → coercion → required_field → business_rules, 2026-08-18)
+- `include/agenticdsl/tools/tool_schema_validator.h` + `src/common/tools/tool_schema_validator.cpp` — D3 JSON Schema 2020-12 最小子集校验器 (type/properties/required/items/enum; vendor nlohmann/json 无 json-schema.hpp, 自包含实现)
+- `src/common/policy/dangerous_patterns.{h,cpp}` — D3 业务规则 OWASP 命令注入黑名单 (rm -rf / mkfs / fork bomb / dd / >/dev/sd)
+- `src/core/types/tool_result.h` — **ErrorCode::InvalidParams 新增** (JSON-RPC -32602, 4 步拒绝路径统一错误码)
+- `tests/test_tool_coordinator_validation.cpp` — 7 test cases / 26 assertions (1 happy + 4 拒绝路径 + V2 legacy + safe shell)
+- `tests/test_dangerous_patterns.cpp` — 4 test cases (rm -rf / mkfs / fork bomb / 大小写不敏感)
 
-本状态**不声称**已完成 D3（运行时校验）和完整的 D5（向后兼容验证）。
+**D3 实施偏差记录** (plan vs 项目实际, 已在代码注释同步):
+- `ValidationMode` 实际为 `Strict/Warn/Ignore` (非 plan 的 Strict/Coerce/Off): Strict=类型不匹配即拒绝; Warn=自动类型转换+stderr 警告; Ignore=跳过
+- `ToolCategory` 无 `Dangerous` 枚举值 → 业务规则锚定 `ToolCategory::Execute` (shell/exec 类工具自然分类)
+- `meta.input_schema` 为 `std::optional<nlohmann::json>`; `has_value()==false` 表示 V2 legacy 工具 → 跳过 step 1-3, step 4 业务规则仍生效
+- `args_hash` 使用 `std::hash` hex 指纹 (项目无 vendored SHA-256, change 禁止引入新外部依赖; 确定性, 仅用于审计关联)
+
+本状态**不声称**已完成完整的 D5（向后兼容验证）与 D6（output_schema 校验）。
 
 ## 领域
 
@@ -484,14 +495,14 @@ LLM 输出 → DSL parse → Schema validate → Layer check → Approval → Ba
 ## 复审节点
 
 - **Wave 2 Phase 2.1 准出时（Phase 6b W1, 2026-08-13）**：本 ADR 状态从 🔍 Proposed → 🟡 Partial（**证据基础** — 仅 manifest schema 边界部分采纳，详见 `adr-0073-impl-scope-audit.md`）
-- **Phase 6c C8+C9 ship 时**：本 ADR 状态从 🟡 Partial → ✅ Approved（D2 ToolMetadata V3 + D3 ToolCoordinator 校验层 + D4 DECLARE_TOOL V3 全部实施）
+- **Phase 6c C9 ship 时（2026-08-18）**：本 ADR 状态从 🟡 Partial → ✅ Approved（D2 ToolMetadata V3 + D3 ToolCoordinator 4 步校验层 + D4 DECLARE_TOOL V3 全部实施；OpenSpec change `from-roadmap-phase-6c-schema-complete`）
 - **MCP server ship 时**（Wave 3）：交叉验证 schema → MCP `inputSchema` round-trip
 - **JSON IR 引入时**（Wave 3+）：交叉验证 schema → constrained-decoding round-trip
 
 ---
 
-*文档版本: v1.1*
+*文档版本: v1.2*
 *创建日期: 2026-08-02*
-*最后更新: 2026-08-13*
+*最后更新: 2026-08-18*
 *作者: HydraForge 架构组*
-*状态: 🟡 Partial (Phase 6a manifest 边界部分采纳，详见 adr-0073-impl-scope-audit.md)*
+*状态: ✅ Approved (D2 + D3 + D4 全 ship; Phase 6c C9 `from-roadmap-phase-6c-schema-complete`, 2026-08-18)*

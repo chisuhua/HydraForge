@@ -95,6 +95,7 @@ add_library(agenticdsl_common STATIC
     src/common/tools/registry.cpp
     src/common/tools/command_registry.cpp    # adr-0070: CommandRegistry L1 (DECLARE_COMMAND 治理入口)
     src/common/tools/factory.cpp              # P2.C: ToolRegistry factory (decouple engine.cpp)
+    src/common/tools/tool_schema_validator.cpp  # ADR-0073 D3: JSON Schema 2020-12 校验包装层
     src/common/utils/parser_utils.cpp
     src/common/utils/template_renderer.cpp
     src/common/utils/yaml_json.cpp
