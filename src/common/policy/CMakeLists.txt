@@ -16,6 +16,7 @@ approval_handler.cpp
   mode_switch_dialog.cpp
   layer_profile.cpp
   dangerous_patterns.cpp   # ADR-0073 D3: OWASP 命令注入黑名单
+  backend_policy.cpp       # ADR-0075 D5: BackendPolicy 默认策略表 + override
 )
 
 target_include_directories(agenticdsl_policy PUBLIC

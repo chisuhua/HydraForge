@@ -92,6 +92,10 @@ add_library(agenticdsl_common STATIC
     src/common/prompts/v1.cpp                  # ADR-0074 D-3: V1 schema constraint builder
     src/common/prompts/v2.cpp                  # ADR-0074 D-3: V2 few-shot 注入 builder
     src/common/prompts/v3.cpp                  # ADR-0074 D-3+D-5: V3 two-stage 注入 builder
+    src/common/env/local_backend.cpp          # ADR-0075 D2: LocalBackend fork+execve (C11)
+    src/common/env/docker_backend.cpp         # ADR-0075 D3: DockerBackend cpp-httplib REST (C12)
+    src/common/env/backend_factory.cpp        # ADR-0075 D1: create_backend 工厂
+    src/common/hooks/env_validation_hook.cpp  # ADR-0075 D5: EnvValidationHook pre-hook (C13)
     src/common/tools/registry.cpp
     src/common/tools/command_registry.cpp    # adr-0070: CommandRegistry L1 (DECLARE_COMMAND 治理入口)
     src/common/tools/factory.cpp              # P2.C: ToolRegistry factory (decouple engine.cpp)
