@@ -11,24 +11,29 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **134/135 PASS** (2026-08-18 实测 `build/tests/` `ctest -N` → Total Tests: 135; Wave 3-A `from-roadmap-phase-6c-execution-envbackend` +6 (test_local_backend 7 + test_docker_backend 7 + test_backend_factory 4 + test_backend_policy 4 + test_env_validation_hook 7 + test_backend_security 4; **注**: total tests 实际计数低于 2026-08-13 快照 151, 系 pdk_chat_demo 子集 tests 改在独立 pdk_chat_demo build/ 注册, 与本 change 无关), 1 pre-existing flaky (`test_event_bus_soak` 偶发, 与本 change 无关); ASan 92/93 (pre-existing `test_skill_interpreter` ASan-only 失败) |
+| **Total ctest** | **164/164 PASS** (2026-08-18 `ctest -N` → Total Tests: 164; Wave 1 Phase 6c 三个 change 贡献 +39: `from-roadmap-phase-6c-execution-baseline` +4, `from-roadmap-phase-6c-schema-complete` +2, `from-roadmap-phase-6c-execution-envbackend` +33; 1 pre-existing flaky (`test_event_bus_soak` 偶发, 与本 change 无关); ASan 92/93 (pre-existing `test_skill_interpreter` ASan-only 失败) |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
-| **OpenSpec active** | **0** (Wave 3-A Phase 0 fix-tool-registry-signal-handler-shutdown 已 ship + archived 2026-08-08; Phase A queue-infra 可立即启动) |
-| **ADR Approved** | **44** (主 37: Phase 0-5 16 + Phase 6 17 [0050/0051/0052-0065/0067] + **ADR-0068** Wave 1 收官 + **ADR-0073** ✅ Approved 2026-08-18 (Phase 6c C9 D2+D3+D4 全 ship) + **ADR-0075** ✅ Approved 2026-08-18 (Phase 6c C11-C13 D1+D2+D3+D5 全 ship), 44 Approved; plugin 1; skill 子项 6) |
-| **ADR 🔍 Proposed** | **13** (主 7: 0038/0039/0042/0045/0046/0069/0070; skill 子项 6: 0061-07~12) — ADR-0068 (D2) **已转 ✅ Approved** (2026-08-03 V2 收官); ADR-0069 (D3) / ADR-0070 (D4) 仍 Proposed |
+| **OpenSpec active** | **3** (Wave 1 Phase 6c 三个 change ✅ ship + archived 2026-08-18; 剩余 3 个 Phase 6c 后续 Wave 待启动: `from-roadmap-phase-6c-evidence-gate` [Wave 2, 依赖 execution-baseline handoff] + `from-roadmap-phase-6c-execution-dsl` [Wave 3] + `from-roadmap-phase-6c-control-plane-eval` [Wave 4]) |
+| **ADR Approved** | **45** (主 38: Phase 0-5 16 + Phase 6 18 [0050/0051/0052-0065/0067] + **ADR-0068** Wave 1 收官 + **ADR-0073** ✅ Approved 2026-08-18 (Phase 6c C9 D2+D3+D4 全 ship) + **ADR-0074** ✅ Approved 2026-08-18 (Phase 6c C1+C2+C3, D1/D2/D3 ship, baseline 数据 handoff to evidence-gate) + **ADR-0075** ✅ Approved 2026-08-18 (Phase 6c C11-C13 D1+D2+D3+D5 全 ship); plugin 1; skill 子项 6) |
+| **ADR 🔍 Proposed** | **12** (主 6: 0038/0039/0042/0045/0046/0070; skill 子项 6: 0061-07~12) — ADR-0068 (D2) **已转 ✅ Approved** (2026-08-03 V2 收官); ADR-0070 (D4) 仍 Proposed; ADR-0069 已删除本轮调研后转 archive |
 | **Completed Phase 0-4** | ✅ 100% |
 | **Phase 5** | ✅ 收官 (C9-C18 全部 ✅ shipped + archived) |
-| **Phase 6** | 🟡 服务化暂缓 (Candidate B 启动条件 🔒 4/4 未满足); Phase 6a (PDK 生产化) 启动评估 ready (Wave 3-A 完成提供前置); Phase 6c 重评触发条件明确; **Phase 6c C9 `from-roadmap-phase-6c-schema-complete` ✅ ship 2026-08-18** (ADR-0073 D3 ToolCoordinator 4 步校验层落地, ADR-0073 🟡 Partial → ✅ Approved); **Phase 6c C11-C13 `from-roadmap-phase-6c-execution-envbackend` ✅ ship 2026-08-18** (ADR-0075 D1+D2+D3+D5 全 ship, ADR-0075 🔍 Proposed → ✅ Approved) |
+| **Phase 6** | 🟡 服务化暂缓 (Candidate B 启动条件 🔒 4/4 未满足); Phase 6a (PDK 生产化) 启动评估 ready (Wave 3-A 完成提供前置); Phase 6c 重评触发条件明确; **Phase 6c C1+C2+C3 `from-roadmap-phase-6c-execution-baseline` ✅ ship 2026-08-18** (ADR-0074 D1/D2/D3 V1/V2/V3 prompt builders + 32 few-shot + 51 golden + measure_prompt_baseline CLI, ADR-0074 🔍 Proposed → ✅ Approved, baseline 数据 handoff to evidence-gate); **Phase 6c C9 `from-roadmap-phase-6c-schema-complete` ✅ ship 2026-08-18** (ADR-0073 D3 ToolCoordinator 4 步校验层落地, ADR-0073 🟡 Partial → ✅ Approved); **Phase 6c C11-C13 `from-roadmap-phase-6c-execution-envbackend` ✅ ship 2026-08-18** (ADR-0075 D1+D2+D3+D5 全 ship, ADR-0075 🔍 Proposed → ✅ Approved) |
 | **架构规范** | `docs/specs/architecture.md` = 五层模型 (原 v1.2 晋升, **D1 决议 2026-07-31**)；v2.2 八层规范已归档。**D1b 宣告**: "第二大脑"产品愿景 (Persona/Contract/ZK/App Market/brain-frontend) 自 2026-07-31 起正式归档, 不构成当前路线图承诺 |
 
 ---
 
 ## 二、活跃变更一览
 
-### 🔵 当前活跃 (0 个)
+### 🔵 当前活跃 (3 个)
 
-> Phase 6-Redirect (Wave 3-A) 当前 0 个活跃 OpenSpec change。Wave 3-A Phase 0 (fix-tool-registry-signal-handler-shutdown) + Phase A (chat-async-io-queue-infra) 已 ship + archived 2026-08-08；Wave 3-A Phase B (chat-async-io-cancellation-chain) 待启动（依赖 Phase 0+Phase A 已 ship）。
+> Phase 6c 当前活跃 3 个 OpenSpec changes（Wave 2/3/4 待启动）。Wave 1 已完成 ✅ ship + archived 2026-08-18:
+> - `from-roadmap-phase-6c-execution-baseline` (C1+C2+C3 ADR-0074 D1/D2/D3, baseline 数据 handoff to evidence-gate)
+> - `from-roadmap-phase-6c-schema-complete` (C9 ADR-0073 D3, 4-step sanitization pipeline)
+> - `from-roadmap-phase-6c-execution-envbackend` (C11-C13 ADR-0075 D1+D2+D3+D5, local+docker env backends)
+>
+> 剩余 Wave 2 (`evidence-gate` 依赖 baseline) / Wave 3 (`execution-dsl`) / Wave 4 (`control-plane-eval`) 等待启动。
 
 ### ✅ Wave 3-A 已归档 (历史参考)
 
@@ -44,8 +49,8 @@
 
 | ID | 名称 | 阶段 | 状态 | 最后更新 |
 |----|------|------|:----:|:--------:|
-| **P6-W1** | chat-streaming-slash-tui (`chat-streaming-slash-tui`) | ✅ Done | **✅ shipped + archived 2026-08-07** — CliOptions 扩展 (`system_prompt`/`append_system_prompt`) + cli_args_parser 扩展 (`--system-prompt`/`--append-system-prompt` 2 新 flag) + ChatConfig::override_system_prompt API + main.cpp 启动 wiring + EventHandler 渲染增强 (completion/ok/trace_id) + EventHandler subscription 修复 (data+meta 合并) + 13 新测试 (4 parser + 4 precedence + 5 rendering); **ctest pdk_chat_demo 子集 13/13 PASS** + 0 新回归; commit `8026984` feat + `717c05a` merge + `90fb325` archive; OpenSpec archived as `2026-08-07-chat-streaming-slash-tui` (spec delta `chat-streaming-slash-tui`: +6 added). 留 follow-up: fix-markdown-parser-yaml + fix-loop-agent-bypass | 2026-08-07 |
-| **P6-W1** | session-tree-tui (`session-tree-tui`) | ✅ Done | **✅ shipped + archived 2026-08-07** — CliOptions 扩展 (`fork_node_id`/`session_name`) + cli_args_parser 扩展 (`--fork`/`--name` 2 新 flag) + SessionManager::rename_session API + main.cpp 启动顺序改造 (SessionManager fail-fast) + StartupCleanupGuard RAII (engine/loader 销毁顺序) + 6 E2E test cases (3 PASS + 3 pre-existing YAML DSL FAIL) + 2 rename API tests + 5 parser tests; **ctest 134/136** (5 pre-existing 失败: test_pdk_chat_demo_cli_args + test_e2e_real_llm + test_session_tree_commands + test_pdk_chat_demo_session_tree_cli_flags + test_cloud_llm); commit `39a4323` feat + `2ebe9bf` merge + `8461276` archive + `2df30ba` AGENTS sync; OpenSpec archived as `2026-08-07-session-tree-tui` (spec delta `session-tree-cli-flags`: +4 added). 留 follow-up: fix-markdown-parser-yaml + adr-0070-declare-command | 2026-08-07 |
+| **P6-W1** | chat-streaming-slash-tui (`chat-streaming-slash-tui`) | ✅ Done | **✅ shipped + archived 2026-08-07** — CliOptions 扩展 (`system_prompt`/`append_system_prompt`) + cli_args_parser 扩展 (`--system-prompt`/`--append-system-prompt` 2 新 flag) + ChatConfig::override_system_prompt API + main.cpp 启动 wiring + EventHandler 渲染增强 (completion/ok/trace_id) + EventHandler subscription 修复 (data+meta 合并) + 13 新测试 (4 parser + 4 precedence + 5 rendering); **ctest pdk_chat_demo 子集 13/13 PASS** + 0 新回归; commit `8026984` feat + `717c05a` merge + `90fb325` archive; OpenSpec archived as `2026-08-07-chat-streaming-slash-tui` (spec delta `chat-streaming-slash-tui`: +6 added). 留 follow-up: 无 (原 fix-markdown-parser-yaml + fix-loop-agent-bypass 已 ship 2026-08-03/04) | 2026-08-07 |
+| **P6-W1** | session-tree-tui (`session-tree-tui`) | ✅ Done | **✅ shipped + archived 2026-08-07** — CliOptions 扩展 (`fork_node_id`/`session_name`) + cli_args_parser 扩展 (`--fork`/`--name` 2 新 flag) + SessionManager::rename_session API + main.cpp 启动顺序改造 (SessionManager fail-fast) + StartupCleanupGuard RAII (engine/loader 销毁顺序) + 6 E2E test cases + 2 rename API tests + 5 parser tests; **ctest 134/136** → 现 152/152 (5 pre-existing 失败由 fix-markdown-parser-yaml/fix-loop-agent-bypass/adr-0070-declare-command 等 ship 后修复: `921d551` repair 4 pre-existing test failures); commit `39a4323` feat + `2ebe9bf` merge + `8461276` archive + `2df30ba` AGENTS sync; OpenSpec archived as `2026-08-07-session-tree-tui` (spec delta `session-tree-cli-flags`: +4 added). 留 follow-up: 无 (原 fix-markdown-parser-yaml + adr-0070-declare-command 已 ship 2026-08-04) | 2026-08-07 |
 
 ### ✅ 已归档 (历史参考)
 

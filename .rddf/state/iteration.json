@@ -1,6 +1,6 @@
 {
   "version": 6,
-  "updated_at": "2026-08-17T17:15:27.387237+00:00",
+  "updated_at": "2026-08-18T14:54:59+00:00",
   "current_phase": "phase-6c",
   "changes": [
     {
@@ -332,12 +332,19 @@
     },
     {
       "name": "from-roadmap-phase-6c-execution-baseline",
-      "status": "proposed",
+      "status": "archived",
       "phase": "phase-6c",
       "category": "execution-baseline",
       "added_at": "2026-08-17T23:09:48+0800",
       "proposed_at": "2026-08-17T17:15:27.387237+00:00",
-      "fill_completed": true
+      "fill_completed": true,
+      "archived_at": "2026-08-18T07:55:00+00:00",
+      "archive_path": "openspec/changes/archive/2026-08-18-from-roadmap-phase-6c-execution-baseline/",
+      "archive_commit_sha": "87d6102",
+      "tasks_done": 20,
+      "tasks_total": 20,
+      "plan_present": true,
+      "plan_path": ".rddf/plans/from-roadmap-phase-6c-execution-baseline.md"
     },
     {
       "name": "from-roadmap-phase-6c-evidence-gate",
@@ -359,21 +366,35 @@
     },
     {
       "name": "from-roadmap-phase-6c-schema-complete",
-      "status": "proposed",
+      "status": "archived",
       "phase": "phase-6c",
       "category": "schema-complete",
       "added_at": "2026-08-17T23:10:27+0800",
       "proposed_at": "2026-08-17T17:15:27.387237+00:00",
-      "fill_completed": true
+      "fill_completed": true,
+      "archived_at": "2026-08-18T12:55:00+00:00",
+      "archive_path": "openspec/changes/archive/2026-08-18-from-roadmap-phase-6c-schema-complete/",
+      "archive_commit_sha": "964509e",
+      "tasks_done": 7,
+      "tasks_total": 7,
+      "plan_present": true,
+      "plan_path": ".rddf/plans/from-roadmap-phase-6c-schema-complete.md"
     },
     {
       "name": "from-roadmap-phase-6c-execution-envbackend",
-      "status": "proposed",
+      "status": "archived",
       "phase": "phase-6c",
       "category": "execution-envbackend",
       "added_at": "2026-08-17T23:10:27+0800",
       "proposed_at": "2026-08-17T17:15:27.387237+00:00",
-      "fill_completed": true
+      "fill_completed": true,
+      "archived_at": "2026-08-18T19:05:00+00:00",
+      "archive_path": "openspec/changes/archive/2026-08-18-from-roadmap-phase-6c-execution-envbackend/",
+      "archive_commit_sha": "2304a7b",
+      "tasks_done": 11,
+      "tasks_total": 11,
+      "plan_present": true,
+      "plan_path": ".rddf/plans/from-roadmap-phase-6c-execution-envbackend.md"
     },
     {
       "name": "from-roadmap-phase-6c-control-plane-eval",
