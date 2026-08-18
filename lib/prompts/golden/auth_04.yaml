@@ -1,0 +1,5 @@
+task_id: golden_auth_04
+input: "Re-authenticate after expired token"
+expected_output: '{"refreshed": true, "token_id": "t_456"}'
+dimension: error_recovery
+difficulty: L1

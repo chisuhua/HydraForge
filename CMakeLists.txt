@@ -89,6 +89,9 @@ add_library(agenticdsl_common STATIC
     src/common/llm/rate_limit_decorator.cpp     # Phase 5: RateLimitDecorator 配额限制 (REQ-IPD-004)
     src/common/llm/tracing_decorator.cpp        # Phase 6a: TracingDecorator 事件追踪 (ADR-0068 §决策 3)
     src/common/llm/orchestration_illm_provider.cpp  # Phase 5: Dual Consumer Model (REQ-ICC-001)
+    src/common/prompts/v1.cpp                  # ADR-0074 D-3: V1 schema constraint builder
+    src/common/prompts/v2.cpp                  # ADR-0074 D-3: V2 few-shot 注入 builder
+    src/common/prompts/v3.cpp                  # ADR-0074 D-3+D-5: V3 two-stage 注入 builder
     src/common/tools/registry.cpp
     src/common/tools/command_registry.cpp    # adr-0070: CommandRegistry L1 (DECLARE_COMMAND 治理入口)
     src/common/tools/factory.cpp              # P2.C: ToolRegistry factory (decouple engine.cpp)
@@ -102,6 +105,12 @@ target_link_libraries(agenticdsl_common PUBLIC
     agenticdsl_policy
     OpenSSL::SSL
     OpenSSL::Crypto
+)
+
+# ADR-0074 C3 — prompts 子目录头文件可见性 (等价 src/common/CMakeLists.txt 修改,
+# agenticdsl_common 定义于根 CMakeLists, 项目无 src/common/CMakeLists.txt)
+target_include_directories(agenticdsl_common PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/common/prompts>
 )
 
 add_subdirectory(src/modules/parser)
@@ -206,6 +215,9 @@ if(AGENTICDSL_BUILD_EXAMPLES)
 endif()
 
 # Create alias for tests
+
+# --- Tools (C++ CLI, ADR-0074 C3) ---
+add_subdirectory(tools)
 
 # --- Tests (Optional) ---
 if(AGENTICDSL_BUILD_TESTS)

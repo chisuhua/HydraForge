@@ -1,0 +1,5 @@
+task_id: golden_inference_02
+input: "Name the active inference engine"
+expected_output: '{"engine": "llama.cpp"}'
+dimension: task_success
+difficulty: L1

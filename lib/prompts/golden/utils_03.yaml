@@ -1,0 +1,5 @@
+task_id: golden_utils_03
+input: "Uppercase the string 'dsl engine'"
+expected_output: '{"upper": "DSL ENGINE"}'
+dimension: task_success
+difficulty: L1

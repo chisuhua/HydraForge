@@ -1,0 +1,5 @@
+task_id: golden_mcp_01
+input: "Call mcp tool fs/read and wrap result"
+expected_output: '{"tool": "fs/read", "ok": true, "bytes": 512}'
+dimension: parse_valid
+difficulty: L2

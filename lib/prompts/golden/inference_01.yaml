@@ -1,0 +1,5 @@
+task_id: golden_inference_01
+input: "Return model load status"
+expected_output: '{"loaded": true, "model": "mock-v1"}'
+dimension: parse_valid
+difficulty: L1

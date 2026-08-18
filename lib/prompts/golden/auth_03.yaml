@@ -1,0 +1,5 @@
+task_id: golden_auth_03
+input: "List roles assigned to user u_42"
+expected_output: '{"roles": ["reader", "editor"]}'
+dimension: parse_valid
+difficulty: L1

@@ -1,0 +1,5 @@
+task_id: golden_auth_09
+input: "Recover multi-step SSO flow after IdP timeout"
+expected_output: '{"recovered": true, "retried_idp": true, "session_established": true}'
+dimension: error_recovery
+difficulty: L3

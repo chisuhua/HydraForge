@@ -1,0 +1,5 @@
+task_id: golden_human_07
+input: "Summarize long user feedback within budget"
+expected_output: '{"summary": "user wants faster startup", "tokens_used": 18}'
+dimension: budget_hit
+difficulty: L2

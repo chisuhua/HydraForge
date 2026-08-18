@@ -1,0 +1,5 @@
+task_id: golden_inference_05
+input: "Pick best model for code task from registry"
+expected_output: '{"model": "coder-7b", "reason": "tag_match"}'
+dimension: task_success
+difficulty: L2

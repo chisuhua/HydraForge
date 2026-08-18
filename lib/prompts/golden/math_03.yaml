@@ -1,0 +1,5 @@
+task_id: golden_math_03
+input: "Return gcd of 12 and 18"
+expected_output: '{"gcd": 6}'
+dimension: parse_valid
+difficulty: L1

@@ -1,0 +1,5 @@
+task_id: golden_utils_08
+input: "Repair corrupted JSON config then validate against schema"
+expected_output: '{"repaired": true, "schema_valid": true, "fixes": 2}'
+dimension: error_recovery
+difficulty: L3

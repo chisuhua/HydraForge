@@ -1,0 +1,5 @@
+task_id: golden_inference_03
+input: "Give a one-word sampling mode"
+expected_output: '{"mode": "greedy"}'
+dimension: budget_hit
+difficulty: L1

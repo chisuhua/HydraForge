@@ -1,0 +1,4 @@
+dimension: task_success
+input: "Compute 17 * 23"
+output: '{"answer": 391}'
+rationale: "该示例展示 LLM 输出在语义层面正确完成了用户请求的任务, 答案内容与实际期望一致, 代表 task_success 维度"

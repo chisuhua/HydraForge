@@ -150,6 +150,34 @@ foreach(TEST_SRC ${SINGLE_TEST_SOURCES})
     add_catch_test(${TEST_NAME} ${TEST_SRC})
 endforeach()
 
+# ADR-0074 C1 — few-shot 数据测试使用相对路径 lib/prompts/fewshot, 需以仓库根为工作目录
+if(TEST test_few_shot_examples)
+    set_tests_properties(test_few_shot_examples PROPERTIES
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+endif()
+
+# ADR-0074 C2 — golden suite 测试使用相对路径 lib/prompts/golden, 需以仓库根为工作目录
+if(TEST test_golden_suite)
+    set_tests_properties(test_golden_suite PROPERTIES
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+endif()
+
+# ADR-0074 C3 — V1/V2/V3 prompt 测试经 V2/V3 相对路径读取 lib/prompts/fewshot,
+# 需以仓库根为工作目录
+if(TEST test_prompt_v1_v2_v3)
+    set_tests_properties(test_prompt_v1_v2_v3 PROPERTIES
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+endif()
+
+# ADR-0074 C3 — measure_prompt_baseline 测试: 注入 CLI 实际路径 + 相对 golden dir
+# 需以仓库根为工作目录 (CLI 默认 --golden-dir lib/prompts/golden)
+if(TEST test_measure_prompt_baseline)
+    target_compile_definitions(test_measure_prompt_baseline PRIVATE
+        TEST_MEASURE_CLI_PATH="$<TARGET_FILE:measure_prompt_baseline>")
+    set_tests_properties(test_measure_prompt_baseline PROPERTIES
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+endif()
+
 # ─────────────────────────────────────────────────────────────
 # Sprint 7 Day 3 quick win (Oracle Top 2 - 推迟自 Day 2 spot-check):
 # 静态 grep 锁定 fork 状态契约, 防止 Day 1 fork dedup 回归。

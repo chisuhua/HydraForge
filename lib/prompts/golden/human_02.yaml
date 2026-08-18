@@ -1,0 +1,5 @@
+task_id: golden_human_02
+input: "Render approval prompt as JSON"
+expected_output: '{"prompt": "approve?", "options": ["yes", "no"]}'
+dimension: parse_valid
+difficulty: L1

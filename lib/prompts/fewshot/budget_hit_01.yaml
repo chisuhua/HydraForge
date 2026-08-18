@@ -1,0 +1,4 @@
+dimension: budget_hit
+input: "Plan a 20-step refactor within 2k tokens"
+output: '{"plan": "split into 4 phases", "steps": 4}'
+rationale: "该示例输出简短精炼, 在保证任务完成的前提下显著压缩 token 消耗, 演示 budget_hit 维度的节俭生成模式"

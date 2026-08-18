@@ -1,0 +1,5 @@
+task_id: golden_auth_07
+input: "Emit RBAC policy evaluation result"
+expected_output: '{"allow": false, "reason": "insufficient_role"}'
+dimension: parse_valid
+difficulty: L2

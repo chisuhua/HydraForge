@@ -1,0 +1,5 @@
+task_id: golden_inference_10
+input: "Recover pipeline after mid-stream cancellation and resume"
+expected_output: '{"resumed": true, "checkpoint": "tok_512", "completed": true}'
+dimension: error_recovery
+difficulty: L3

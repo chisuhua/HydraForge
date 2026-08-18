@@ -1,0 +1,4 @@
+dimension: parse_valid
+input: "Summarize tool call result"
+output: '{"result": "ok", "tool": "fs/read"}'
+rationale: "该示例输出为严格合法 JSON, 可被 JSON Schema parser 直接解析通过, 是 parse_valid 维度的典型成功路径代表"

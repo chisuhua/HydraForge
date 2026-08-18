@@ -1,0 +1,5 @@
+task_id: golden_auth_02
+input: "Check if password meets length policy (min 8)"
+expected_output: '{"compliant": true, "length": 12}'
+dimension: task_success
+difficulty: L1

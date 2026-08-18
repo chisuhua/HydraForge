@@ -1,0 +1,5 @@
+task_id: golden_utils_04
+input: "Reply with current schema version only"
+expected_output: '{"version": "v3"}'
+dimension: budget_hit
+difficulty: L1

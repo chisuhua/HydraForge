@@ -1,0 +1,5 @@
+task_id: golden_mcp_04
+input: "Batch 3 MCP calls into one envelope"
+expected_output: '{"batched": 3, "envelopes": 1}'
+dimension: budget_hit
+difficulty: L2

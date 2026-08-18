@@ -1,0 +1,5 @@
+task_id: golden_math_07
+input: "Correct off-by-one in sum 1..10"
+expected_output: '{"corrected": true, "sum": 55}'
+dimension: error_recovery
+difficulty: L2
