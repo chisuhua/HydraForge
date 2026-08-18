@@ -1,0 +1,5 @@
+task_id: golden_utils_06
+input: "Encode config map to JSON string"
+expected_output: '{"json": "{\"k1\":\"v1\",\"k2\":2}"}'
+dimension: parse_valid
+difficulty: L2

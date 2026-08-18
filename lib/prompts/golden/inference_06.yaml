@@ -1,0 +1,5 @@
+task_id: golden_inference_06
+input: "Estimate token cost then stay under 500"
+expected_output: '{"estimated": 320, "within_budget": true}'
+dimension: budget_hit
+difficulty: L2

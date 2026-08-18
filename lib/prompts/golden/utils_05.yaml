@@ -1,0 +1,5 @@
+task_id: golden_utils_05
+input: "Parse ISO date 2026-08-18 into components"
+expected_output: '{"year": 2026, "month": 8, "day": 18}'
+dimension: task_success
+difficulty: L2

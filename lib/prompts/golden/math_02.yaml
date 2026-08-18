@@ -1,0 +1,5 @@
+task_id: golden_math_02
+input: "Compute square root of 144"
+expected_output: '{"answer": 12}'
+dimension: task_success
+difficulty: L1

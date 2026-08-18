@@ -1,0 +1,5 @@
+task_id: golden_math_05
+input: "Solve 2x + 6 = 20 for x"
+expected_output: '{"x": 7}'
+dimension: task_success
+difficulty: L2

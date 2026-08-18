@@ -1,0 +1,5 @@
+task_id: golden_math_06
+input: "Return first 5 primes as JSON array"
+expected_output: '{"primes": [2, 3, 5, 7, 11]}'
+dimension: parse_valid
+difficulty: L2

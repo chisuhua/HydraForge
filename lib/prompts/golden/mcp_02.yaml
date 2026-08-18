@@ -1,0 +1,5 @@
+task_id: golden_mcp_02
+input: "Route request to correct MCP server"
+expected_output: '{"server": "fs", "matched_capability": "read"}'
+dimension: task_success
+difficulty: L2

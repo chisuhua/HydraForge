@@ -1,0 +1,5 @@
+task_id: golden_math_01
+input: "Compute 45 + 67"
+expected_output: '{"answer": 112}'
+dimension: task_success
+difficulty: L1

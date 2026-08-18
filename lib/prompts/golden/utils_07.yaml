@@ -1,0 +1,5 @@
+task_id: golden_utils_07
+input: "Handle missing env var with documented default"
+expected_output: '{"used_default": true, "var": "LOG_LEVEL", "value": "info"}'
+dimension: error_recovery
+difficulty: L2

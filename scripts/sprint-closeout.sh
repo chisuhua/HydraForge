@@ -259,6 +259,21 @@ else
 fi
 
 # ====================================================================
+# Step 6.5: Golden Suite Hold-out Verification (ADR-0074 D-2)
+# ====================================================================
+if [ -f scripts/verify_golden_holdout.sh ]; then
+  print_header "Step 6.5: 🛡️  Golden Suite Hold-out Verification (ADR-0074 D-2)"
+  if bash scripts/verify_golden_holdout.sh; then
+    print_ok "Hold-out verified"
+  else
+    print_fail "Hold-out FAILED — golden task_ids leaked into fewshot"
+    FAILED=$((FAILED + 1))
+  fi
+else
+  print_warn "scripts/verify_golden_holdout.sh not present (skipping)"
+fi
+
+# ====================================================================
 # Step 7: LSP discipline (预防 LSP false positive)
 # 设计依据: docs/audits/2026-07-03-pdk-model-router-lsp-false-positive.md
 # ====================================================================

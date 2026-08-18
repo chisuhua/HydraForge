@@ -1,0 +1,5 @@
+task_id: golden_human_06
+input: "Clarify ambiguous user answer then finalize"
+expected_output: '{"clarified": true, "final": "option_b"}'
+dimension: error_recovery
+difficulty: L2

@@ -1,0 +1,5 @@
+task_id: golden_mcp_06
+input: "Rebuild MCP session after partial handshake failure"
+expected_output: '{"rebuilt": true, "capabilities_renegotiated": true}'
+dimension: error_recovery
+difficulty: L3

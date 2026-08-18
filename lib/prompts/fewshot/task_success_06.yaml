@@ -1,0 +1,4 @@
+dimension: task_success
+input: "Classify sentiment: 'great product!'"
+output: '{"sentiment": "positive"}'
+rationale: "该示例展示 LLM 输出在语义层面正确完成了用户请求的任务, 答案内容与实际期望一致, 代表 task_success 维度"

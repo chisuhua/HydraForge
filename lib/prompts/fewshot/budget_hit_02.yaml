@@ -1,0 +1,4 @@
+dimension: budget_hit
+input: "Generate a one-line commit message"
+output: '{"message": "fix(parser): handle empty yaml block"}'
+rationale: "该示例输出简短精炼, 在保证任务完成的前提下显著压缩 token 消耗, 演示 budget_hit 维度的节俭生成模式"

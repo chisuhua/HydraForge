@@ -1,0 +1,5 @@
+task_id: golden_mcp_05
+input: "Coordinate 3 MCP servers for cross-service query"
+expected_output: '{"servers": ["fs", "db", "search"], "merged_results": 12}'
+dimension: task_success
+difficulty: L3

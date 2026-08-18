@@ -1,0 +1,5 @@
+task_id: golden_human_08
+input: "Drive multi-turn clarification to resolve conflicting requirements"
+expected_output: '{"turns": 4, "conflict_resolved": true, "final_spec": "v2"}'
+dimension: task_success
+difficulty: L3

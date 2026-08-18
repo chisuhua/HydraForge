@@ -1,0 +1,5 @@
+task_id: golden_human_03
+input: "Re-prompt after empty user input"
+expected_output: '{"reprompted": true, "answer": "yes"}'
+dimension: error_recovery
+difficulty: L1

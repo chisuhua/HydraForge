@@ -1,0 +1,5 @@
+task_id: golden_human_04
+input: "Acknowledge user message in 3 words"
+expected_output: '{"ack": "got it now"}'
+dimension: budget_hit
+difficulty: L1

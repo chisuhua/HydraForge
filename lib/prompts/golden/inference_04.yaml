@@ -1,0 +1,5 @@
+task_id: golden_inference_04
+input: "Retry generate after context overflow"
+expected_output: '{"recovered": true, "truncated_context": true}'
+dimension: error_recovery
+difficulty: L1

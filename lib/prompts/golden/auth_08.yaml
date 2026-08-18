@@ -1,0 +1,5 @@
+task_id: golden_auth_08
+input: "Orchestrate full login: verify creds, issue token, log audit"
+expected_output: '{"steps": 3, "token_issued": true, "audit_logged": true}'
+dimension: task_success
+difficulty: L3

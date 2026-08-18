@@ -1,0 +1,5 @@
+task_id: golden_inference_07
+input: "Switch model after load failure"
+expected_output: '{"switched": true, "fallback": "mock-v1"}'
+dimension: error_recovery
+difficulty: L2

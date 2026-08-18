@@ -1,0 +1,5 @@
+task_id: golden_inference_09
+input: "Plan dual-model pipeline: draft small, refine large"
+expected_output: '{"pipeline": ["draft-3b", "refine-13b"], "estimated_cost": 0.04}'
+dimension: task_success
+difficulty: L3

@@ -1,0 +1,5 @@
+task_id: golden_math_08
+input: "Compute determinant of 3x3 matrix via cofactor expansion"
+expected_output: '{"determinant": -14, "method": "cofactor"}'
+dimension: task_success
+difficulty: L3

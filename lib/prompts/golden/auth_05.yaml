@@ -1,0 +1,5 @@
+task_id: golden_auth_05
+input: "Validate OAuth scope set against required scopes"
+expected_output: '{"granted": ["read"], "missing": ["write"]}'
+dimension: task_success
+difficulty: L2

@@ -1,0 +1,5 @@
+task_id: golden_auth_01
+input: "Verify JWT token signature"
+expected_output: '{"valid": true, "user_id": "u_123"}'
+dimension: parse_valid
+difficulty: L1

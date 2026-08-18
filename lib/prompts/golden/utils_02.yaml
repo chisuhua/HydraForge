@@ -1,0 +1,5 @@
+task_id: golden_utils_02
+input: "List files in /tmp (mock)"
+expected_output: '{"files": ["a.txt", "b.log"]}'
+dimension: parse_valid
+difficulty: L1

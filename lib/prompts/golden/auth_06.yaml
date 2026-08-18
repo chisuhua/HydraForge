@@ -1,0 +1,5 @@
+task_id: golden_auth_06
+input: "Recover from invalid signature by re-fetching JWKS"
+expected_output: '{"recovered": true, "jwks_refetched": true}'
+dimension: error_recovery
+difficulty: L2

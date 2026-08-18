@@ -1,0 +1,5 @@
+task_id: golden_human_05
+input: "Collect 3 user preferences into JSON"
+expected_output: '{"preferences": {"theme": "dark", "lang": "zh", "notify": true}}'
+dimension: task_success
+difficulty: L2

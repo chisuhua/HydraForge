@@ -1,0 +1,5 @@
+task_id: golden_inference_08
+input: "Report KV cache stats as JSON"
+expected_output: '{"kv_entries": 128, "hit_rate": 0.62}'
+dimension: parse_valid
+difficulty: L2

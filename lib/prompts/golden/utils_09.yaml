@@ -1,0 +1,5 @@
+task_id: golden_utils_09
+input: "Chain transform: csv -> json -> filter adults -> count"
+expected_output: '{"count": 17, "pipeline_stages": 3}'
+dimension: task_success
+difficulty: L3

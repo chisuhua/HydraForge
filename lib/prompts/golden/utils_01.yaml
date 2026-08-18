@@ -1,0 +1,5 @@
+task_id: golden_utils_01
+input: "Convert 32 Fahrenheit to Celsius"
+expected_output: '{"celsius": 0}'
+dimension: task_success
+difficulty: L1

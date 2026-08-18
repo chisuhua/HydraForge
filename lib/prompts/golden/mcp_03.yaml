@@ -1,0 +1,5 @@
+task_id: golden_mcp_03
+input: "Retry MCP call after transport error"
+expected_output: '{"recovered": true, "attempt": 2}'
+dimension: error_recovery
+difficulty: L2

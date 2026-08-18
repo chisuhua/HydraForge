@@ -1,0 +1,5 @@
+task_id: golden_math_04
+input: "Answer with one number: 9 squared"
+expected_output: '{"answer": 81}'
+dimension: budget_hit
+difficulty: L1

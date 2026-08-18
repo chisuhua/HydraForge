@@ -1,0 +1,4 @@
+dimension: error_recovery
+input: "Retry after malformed JSON output"
+output: '{"recovered": true, "output": {"valid": "json"}}'
+rationale: "该示例展示 LLM 在前次输出错误后能够诊断问题并给出修正后的正确输出, 代表 error_recovery 维度的恢复路径"

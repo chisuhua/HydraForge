@@ -1,0 +1,5 @@
+task_id: golden_human_01
+input: "Ask user for confirmation (mock yes)"
+expected_output: '{"confirmed": true}'
+dimension: task_success
+difficulty: L1

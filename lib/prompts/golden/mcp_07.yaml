@@ -1,0 +1,5 @@
+task_id: golden_mcp_07
+input: "Complete 8-step MCP workflow under 3k token budget"
+expected_output: '{"steps": 8, "tokens_used": 2740, "within_budget": true}'
+dimension: budget_hit
+difficulty: L3
