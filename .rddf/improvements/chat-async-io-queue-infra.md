@@ -3,6 +3,7 @@
 **优先级**: P1 | **来源**: docs/audits/2026-08-08-chat-async-io-steering-pre-approval.md Phase A
 **阶段**: chat-async-io Phase A | **分类**: demo-chat-v2
 **类型**: feature
+**主题**: PlanExecute循环
 
 > **拆分说明**: 本提案是原 `chat-async-io-steering` (Wave 3) 的 Phase A 拆分。
 > 原提案按 4-phase 拆分为：Phase 0 (SIGSEGV fix) / Phase A (本提案 queue 基础设施) / Phase B (stop_token 链路) / Phase C (/model 切换)。

@@ -3,6 +3,7 @@
 **优先级**: P0 | **来源**: roadmap.md Phase 6a §任务 T1+T2
 **阶段**: phase-6a | **分类**: demo-chat-v1
 **类型**: feature
+**主题**: Session持久化；Budget告警；Schema校验基础；CI集成；根CMake更新；proposals清理；active-status同步
 
 ## 架构依据
 - roadmap.md Phase 6a: pdk_chat_demo v1 收尾 (Session 持久化 + Budget 告警)

@@ -3,6 +3,7 @@
 **优先级**: P2 | **来源**: layer-based-missing-capabilities-analysis.md §八 L4-6（Wave 2 拆分 — CLI flag 子集）
 **阶段**: wave-2 | **分类**: demo-chat-v2
 **类型**: feature
+**主题**: PlanExecute循环
 
 > **Wave 拆分说明**: 本提案是原 `session-tree-tui` 的 Wave 2 拆分（仅含 CLI flag 子集）。
 > 原提案拆分为：(Wave 1) `session-tree-commands` slash 命令主体 + (Wave 2) 本提案 CLI flag 子集。

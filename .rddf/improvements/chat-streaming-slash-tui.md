@@ -3,6 +3,7 @@
 **优先级**: P1 | **来源**: layer-based-missing-capabilities-analysis.md §八 L4-3（Wave 2 拆分 — 流式渲染子集）
 **阶段**: wave-2 | **分类**: demo-chat-v2
 **类型**: feature
+**主题**: PlanExecute循环
 
 > **Wave 拆分说明**: 本提案是原 `chat-streaming-slash-tui` 的 Wave 2 拆分（仅含流式渲染 + CLI flag 子集）。
 > 原提案拆分为：(Wave 1) `chat-slash-commands-migration` slash 命令迁移收尾 + (Wave 2) 本提案流式渲染子集。

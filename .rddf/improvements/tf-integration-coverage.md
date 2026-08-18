@@ -3,6 +3,7 @@
 **优先级**: P1 | **来源**: 评估报告 (2026-08-01, TopoScheduler + Taskflow 集成缺口审计, 用户验收)
 **阶段**: default | **分类**: core-test
 **类型**: debt
+**主题**: canonical topic registry
 
 ## 架构依据
 

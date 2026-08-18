@@ -3,6 +3,7 @@
 **优先级**: P1 | **来源**: layer-based-missing-capabilities-analysis.md §四 L0-4 + §十三 附录第 4 项（轻量级，不另开 ADR）
 **阶段**: wave-2 | **分类**: core-impl
 **类型**: debt
+**主题**: Schema校验基础；YAML frontmatter解析
 
 ## 架构依据
 - `DslValidator` 仅支持 Markdown bold (`**key**: value`) 格式，但 `lib/loop/*.agent.md` 生产文件实际使用 **YAML frontmatter**——`main.cpp:321` 检测到 YAML 时直接跳过校验（带 stderr 警告），pdk_chat_demo T2 的 DSL Schema 校验在生产路径上**实际失效**。

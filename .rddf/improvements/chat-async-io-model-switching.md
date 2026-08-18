@@ -3,6 +3,7 @@
 **优先级**: P2 | **来源**: docs/audits/2026-08-08-chat-async-io-steering-pre-approval.md Phase C
 **阶段**: chat-async-io Phase C | **分类**: demo-chat-v2
 **类型**: feature
+**主题**: PlanExecute循环
 
 > **拆分说明**: 本提案是原 `chat-async-io-steering` (Wave 3) 的 Phase C 拆分（/model 运行时切换）。
 > 拆分理由：`/model` 切换依赖 Phase B 的 stop_token 链路（确认当前 turn 不强制中断），不能与 Phase B 同 change ship。

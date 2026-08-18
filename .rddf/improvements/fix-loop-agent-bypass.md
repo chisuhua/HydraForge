@@ -3,6 +3,7 @@
 **优先级**: P0 | **来源**: layer-based-missing-capabilities-analysis.md §三 X4 / §八 L4-1 + active-status Wave 1 #1
 **阶段**: wave-1 | **分类**: core-impl
 **类型**: debt
+**主题**: canonical topic registry；Evidence Gate准备
 
 ## 架构依据
 - `examples/pdk_chat_demo/DESIGN.md:530` 声明 "Loop Agent 触发 via call_tool 'loop/run'"，但 `chat_session.cpp:233` 的 `use_direct_llm = (llm != nullptr)` 短路使正常 demo 流程绕过 loop_agent，`pdk/loop_agent/` 实为 dead code — 设计与代码脱节（X4 隐藏缺陷）。

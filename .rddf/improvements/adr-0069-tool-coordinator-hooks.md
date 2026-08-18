@@ -3,6 +3,7 @@
 **优先级**: P0 | **来源**: ADR-0069（D3 立项, 2026-07-31）+ layer-based-missing-capabilities-analysis.md §三 X2 / §五 L1-2 + active-status Wave 1 #4
 **阶段**: wave-1 | **分类**: core-impl
 **类型**: feature
+**主题**: canonical topic registry
 
 ## 架构依据
 - ADR-0069 全文：管辖边界（工具链钩子归 0069，审批语义归 ADR-0031，LLM 上下文钩子归 L1-4，会话钩子归 L1-3）、pre/post 双列表模型（否决洋葱链）、`IToolHookRegistry` L3 契约、HookErrorPolicy 失败语义、ADR-0068 发射点同源、ADR-0031 §8 defer 协调条款。

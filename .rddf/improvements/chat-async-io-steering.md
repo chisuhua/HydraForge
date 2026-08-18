@@ -4,6 +4,7 @@
 **阶段**: wave-3 | **分类**: demo-chat-v2
 **类型**: feature
 **状态**: ⛔ **DECOMPOSED 2026-08-08** — 不可直接 ship，需按 4 个子提案分别实施
+**主题**: PlanExecute循环；ForkJoin循环
 
 > **拆分说明**: 2026-08-08 预审批审计 (`docs/audits/2026-08-08-chat-async-io-steering-pre-approval.md`) 发现：
 > 1. `stop_token → loop_agent` 链路完全未连通（8 处断开点），不能 ship 为单 change。

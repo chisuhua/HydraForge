@@ -3,6 +3,7 @@
 **优先级**: P2 | **来源**: layer-based-missing-capabilities-analysis.md §八 L4-6（Wave 1 拆分 — slash 命令主体）
 **阶段**: wave-1 | **分类**: demo-chat-v2
 **类型**: feature
+**主题**: PlanExecute循环
 
 > **Wave 拆分说明**: 本提案是原 `session-tree-tui`（improvements/session-tree-tui.md）的 Wave 1 拆分。
 > 原提案拆分为：(Wave 1) 本提案 slash 命令主体 + (Wave 2) `session-tree-cli-flags` CLI flag 子集。

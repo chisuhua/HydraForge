@@ -3,6 +3,7 @@
 **优先级**: P1 | **来源**: ADR-0019 IInteractionBus (Oracle 重构)
 **阶段**: phase-6a | **分类**: 架构对齐
 **类型**: feature
+**主题**: canonical topic registry
 
 ## 架构依据
 - Oracle 评审: 不新增 subscribe_topic，扩展 subscribe 接受 glob

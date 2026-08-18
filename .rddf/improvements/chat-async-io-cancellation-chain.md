@@ -3,6 +3,7 @@
 **优先级**: P0 | **来源**: docs/audits/2026-08-08-chat-async-io-steering-pre-approval.md Phase B
 **阶段**: chat-async-io Phase B | **分类**: demo-chat-v2
 **类型**: feature
+**主题**: PlanExecute循环；ForkJoin循环；SkillInterpreter隔离
 
 > **拆分说明**: 本提案是原 `chat-async-io-steering` (Wave 3) 的 Phase B 拆分（7 步 delta）。
 > 拆分理由：审计发现 stop_token 链路完全未连通（ChatSession → loop_agent 全链路缺失），单 change 无法 ship。

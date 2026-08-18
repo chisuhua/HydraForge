@@ -3,6 +3,7 @@
 **优先级**: P1 | **来源**: layer-based-missing-capabilities-analysis.md §四 L0-3 + §八 L4-5；ADR-0007（🟡 Partial "快照有,无 LLM 压缩"）收尾
 **阶段**: wave-4 (re-activated 2026-08-12，原 wave-2 延迟至前置条件 ship) | **分类**: core-impl
 **类型**: feature
+**主题**: canonical topic registry
 
 **前置条件状态** (2026-08-12 复审):
 - ✅ ADR-0070 DECLARE_COMMAND — ship 2026-08-04 (`openspec/changes/archive/2026-08-04-adr-0070-declare-command/`)，`/compact` 命令注册基础设施就绪

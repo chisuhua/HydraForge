@@ -3,6 +3,7 @@
 **优先级**: P1 | **来源**: 原 chat-streaming-slash-tui 提案 Wave 1 拆分（slash 命令迁移收尾）
 **阶段**: wave-1 | **分类**: demo-chat-v2
 **类型**: feature
+**主题**: PlanExecute循环
 
 > **Wave 拆分说明**: 本提案是原 `chat-streaming-slash-tui`（improvements/chat-streaming-slash-tui.md）的 Wave 1 拆分。
 > 原提案拆分为：(Wave 1) 本提案 slash 命令迁移收尾 + (Wave 2) `chat-streaming-render` 流式渲染子集。

@@ -3,6 +3,7 @@
 **优先级**: P2 | **来源**: layer-based-missing-capabilities-analysis.md §八 L4-4（CLI 解析层重写）
 **阶段**: wave-3 | **分类**: demo-chat-v2
 **类型**: improvement
+**主题**: PlanExecute循环
 
 ## 架构依据
 - `main.cpp:76-83` 手撸 args 循环仅支持 `--mock` 和 `--session <id>`，pi-agent CLI flag 设计（§九）要求的 `-p` print 模式 / `--mode json|rpc` / `-c` 续最近 / `-r` 选择 / `--provider` / `--offline` 全部缺位。

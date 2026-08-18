@@ -3,6 +3,7 @@
 **优先级**: P0 | **来源**: docs/audits/2026-08-08-chat-async-io-steering-pre-approval.md Finding 2
 **阶段**: chat-async-io Phase 0 (precondition) | **分类**: bugfix-shutdown
 **类型**: bugfix
+**主题**: Schema校验基础
 
 ## 架构依据
 

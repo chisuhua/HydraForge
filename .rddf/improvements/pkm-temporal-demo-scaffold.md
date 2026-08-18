@@ -3,6 +3,7 @@
 **优先级**: P0 | **来源**: roadmap.md Phase 6a 任务 T3+T4+T5
 **阶段**: phase-6a | **分类**: demo-temporal-1a
 **类型**: feature
+**主题**: ITemporalClient接口；MockBackend；CLI入口；4场景演示；测试覆盖
 
 ## 架构依据
 - roadmap.md Phase 6a: pkm_temporal_demo PDK 骨架 (ITemporalClient + Mock + CLI + pdk_entry)

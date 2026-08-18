@@ -3,6 +3,7 @@
 **优先级**: P0 | **来源**: ADR-0070（D4 立项, 2026-07-31）+ layer-based-missing-capabilities-analysis.md §三 X3 / §七 L3-3 + active-status Wave 1 #3
 **阶段**: wave-1 | **分类**: pdk-contract
 **类型**: feature
+**主题**: PlanExecute循环；ForkJoin循环
 
 ## 架构依据
 - ADR-0070 全文：概念界定（Command = L4 用户输入层入口 ≠ Tool，不产生安全旁路）、`DECLARE_COMMAND` 宏（CommandSpec + CommandContext + 错误包装 handler，DECLARE_TOOL 同模式）、`ICommandRegistry` L3 契约（注册/解析/列举/冲突）、`DECLARE_SHORTCUT` 契约（定义 + raw mode defer）、内置 `/help` `/exit`、边界条款（ADR-0021 P1-P6 / ADR-0043 双命名空间 / ADR-0068 事件）。

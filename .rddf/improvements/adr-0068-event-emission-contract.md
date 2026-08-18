@@ -3,6 +3,7 @@
 **优先级**: P0 | **来源**: ADR-0068（D2 立项, 2026-07-31）+ layer-based-missing-capabilities-analysis.md §三 X1 + active-status Wave 1 #2
 **阶段**: wave-1 | **分类**: core-impl
 **类型**: feature
+**主题**: canonical topic registry；Evidence Gate准备
 
 ## 架构依据
 - ADR-0068 全文：管辖边界（运行时生命周期事件归 0068，插件域归 ADR-0046，总线机制归 ADR-0019）、附录 A Registry（22 主题四元组）、发射点指定、EventBuilder、测试契约、转 Approved 4 条件。

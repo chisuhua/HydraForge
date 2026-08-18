@@ -3,6 +3,7 @@
 **优先级**: P2 | **来源**: layer-based-missing-capabilities-analysis.md §五 L1-5 + §六 L2-1（工厂运行时注册 + provider_agent 动态工具）
 **阶段**: wave-3 | **分类**: core-impl
 **类型**: feature
+**主题**: PDK开发者指南；AgentForge第二领域agent
 
 ## 架构依据
 - `LLMProviderFactory` 仅支持构造时配置，无 `register_dynamic()`——pi-agent `pi.registerProvider()` 借鉴路径（§十）的前置依赖。

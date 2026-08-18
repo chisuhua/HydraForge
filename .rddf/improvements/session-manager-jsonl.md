@@ -3,6 +3,7 @@
 **优先级**: P1 | **来源**: layer-based-missing-capabilities-analysis.md §四 L0-1 + §五 L1-3 + §六 L2-2（三项捆绑，同一存储层）
 **阶段**: wave-2 | **分类**: core-impl
 **类型**: feature
+**主题**: PDK开发者指南
 
 ## 架构依据
 - ADR-0033 三层 Session 执行模型已 ship，但**存储层仍是线性 JSON**（`chat_session.cpp::save_to_disk` 单文件原子写），无 JSONL 树状持久化、无 open/fork/branch/compact API——`/tree` `/fork` `/clone` 借鉴路径（§三 P0.1）的核心阻塞。
