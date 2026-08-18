@@ -782,6 +782,72 @@ resources:
   - `speculative_decode` → `draft_model`, `max_speculative_tokens`
 - **降级机制**：若未声明所需能力，执行器应尝试使用基础三元组查询（`query_latest`），若完全不支持，返回 `ERR_UNSUPPORTED_CAPABILITY`
 
+### 6.5 `shell.exec` 节点 — `backend:` 字段（ADR-0075 D4 W5 前置提案）
+
+> **状态**：🔮 Planned — 本节为前瞻示例，DSL 解析层由独立 W5 提案交付（Phase 6c 收官前）。Backend 抽象与 `EnvValidationHook` 已 ship（Wave 3-A `from-roadmap-phase-6c-execution-envbackend`）。
+
+`shell.exec` 节点（来自 [ADR-0071 §决策 D6](./adr/adr-0071-llm-native-agenticdsl-architecture.md)）支持可选 `backend:` 字段指定执行环境，由 `IEnvBackend` 抽象统一接口（详见 [docs/specs/env-backend.md](./env-backend.md)）。
+
+#### 示例 — `local` backend
+
+```yaml
+- type: shell_exec
+  name: list_tmp
+  cmd: /bin/ls
+  args: ["-la", "/tmp"]
+  backend: local
+  working_dir: /tmp
+  env:
+    LANG: en_US.UTF-8
+  __approved: true              # local backend 默认 requires_approval=true
+```
+
+#### 示例 — `docker:<image>:<tag>` ephemeral
+
+```yaml
+- type: shell_exec
+  name: run_pytest
+  cmd: pytest
+  args: ["-v", "tests/"]
+  backend: docker:python:3.12@sha256:abc123def456...
+  env:
+    PYTHONPATH: /app
+  # ephemeral docker 默认 requires_approval=false, 无需 __approved
+```
+
+#### 示例 — `docker:prod` named container
+
+```yaml
+- type: shell_exec
+  name: prod_migration
+  cmd: /opt/migrate.sh
+  args: ["--dry-run"]
+  backend: docker:prod
+  __approved: true              # docker:prod 默认 requires_approval=true
+```
+
+#### `backend:` 字段语义
+
+| 取值 | 解析为 | 默认审批 |
+|------|--------|----------|
+| `local` | `LocalBackend` (fork+execve) | ✅ 需要 |
+| `docker:<container_id>` | `DockerBackend` mode (a) exec into existing | 视 BackendPolicy |
+| `docker:<image>:<tag>[@sha256:digest]` | `DockerBackend` mode (b) ephemeral | ❌ 不需要（ephemeral） |
+| `docker:prod` | `DockerBackend` mode (a) prod 命名容器 | ✅ 需要 |
+| 未指定 / 空 | `local`（默认 backend） | ✅ 需要 |
+
+#### 安全检查（强制经过 EnvValidationHook pre-hook）
+
+无论 `backend:` 取何值，所有 `shell.exec` 节点必经 [EnvValidationHook](./env-backend.md#六envvalidationhook-c13) 四步 policy 校验：
+
+1. backend spec 命中 `BackendPolicy::find_policy()`（未知 → `Deny: "unknown backend"`）
+2. docker 镜像在 `image_allowlist`（非空时强制）
+3. `env.<NAME>` 键在 `allowed_env_vars` 白名单（含 `"*"` 通配）
+4. `working_dir` 前缀匹配 `allowed_paths`（含 `"*"` 通配）
+5. `requires_approval=true` 需 `__approved: true` 标记
+
+详见 [docs/security/backend-policy.md §四 决策流程图](../security/backend-policy.md)。
+
 ## 七、安全与工程保障
 
 ### 7.1 标准库契约强制

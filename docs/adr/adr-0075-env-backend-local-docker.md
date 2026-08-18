@@ -2,7 +2,32 @@
 
 ## 状态
 
-🔍 Proposed (2026-08-03 — 派生自 ADR-0071 §决策 D6, Wave 3 Phase 1+2 ADR; Local + Docker 双 backend, K8s/SSH 推迟到独立 follow-up; 衔接 ADR-0069 ToolCoordinator hooks; 待架构组评审; 实施 2-3 周)
+✅ Approved (2026-08-18 — Wave 3-A `from-roadmap-phase-6c-execution-envbackend` ship: D1 IEnvBackend 接口 + D2 LocalBackend (C11, 8h) + D3 DockerBackend (C12, 8h, cpp-httplib 替代 libcurl 零新增依赖) + D5 EnvValidationHook (C13, 6h) 全部 ship。D4 `backend:` 字段 DSL 解析留 W5 独立前置提案, 不阻塞本 ADR ship。K8sBackend/SSHBackend 留 Phase 7+ follow-up)
+
+### ship 证据 (2026-08-18)
+
+- `include/agenticdsl/env/env_backend.h` — IEnvBackend + 4 个 POD 值类型 + BackendErrorCode + `create_backend` 工厂
+- `include/agenticdsl/env/local_backend.h` + `src/common/env/local_backend.cpp` — fork+execve POSIX 子进程隔离 + `waitpid` 超时升级 SIGTERM→SIGKILL + 输出截断 + `setrlimit(RLIMIT_AS/RLIMIT_CPU)` + env 白名单（per §决策 D2）
+- `include/agenticdsl/env/docker_backend.h` + `src/common/env/docker_backend.cpp` — cpp-httplib + Docker REST API + ephemeral container 生命周期 + `Privileged=false` 强制 + digest 锁定（per §决策 D3）
+- `include/agenticdsl/policy/backend_policy.h` + `src/common/policy/backend_policy.cpp` — BackendConfig 默认策略表 3 档 + override（per §决策 D5）
+- `src/common/hooks/env_validation_hook.{h,cpp}` — `make_env_validation_hook()` 工厂函数 + 4 步 policy 校验 + 三层 deny 路径
+- `src/common/env/backend_factory.cpp` — `create_backend(spec, config)` 工厂
+- 6 测试文件 33 case 全部 PASS（远超 proposal 验收 ≥27 门槛）
+  - `tests/test_local_backend.cpp` 7 case
+  - `tests/test_docker_backend.cpp` 7 case
+  - `tests/test_backend_factory.cpp` 4 case
+  - `tests/test_backend_policy.cpp` 4 case
+  - `tests/test_env_validation_hook.cpp` 7 case (含 tool_coordinator_dispatch_full_flow 端到端)
+  - `tests/test_backend_security.cpp` 4 case (OWASP shell injection × 3 + privileged 拒绝)
+- ctest 134/135 PASS（pre-existing `test_event_bus_soak` flaky 与本 change 无关）
+- 文档 ship：`docs/specs/env-backend.md` (新增) + `docs/security/backend-policy.md` (新增) + `docs/specs/dsl.md §6.5` (新增 shell.exec backend: 字段示例)
+- 实施容量：22h P0 全部在 1 天集中 ship（含代码 + 文档 + 测试验证）
+
+### 关键适配（vs proposal 字面）
+
+1. **libcurl → cpp-httplib**：proposal 假设 `external/libcurl/` 已 vendor, 实际未 vendor; 改用已 vendor 的 cpp-httplib (AF_UNIX client 支持 unix socket), 零新增外部依赖
+2. **ToolCategory::Dangerous → ToolCategory::Execute**：实际 enum 无 Dangerous 值, hook 目标改为 Execute (shell.exec 类工具对应类目)
+3. **IToolHook::pre() → PreHook std::function**：ADR-0069 hook 体系实际是 `IToolHookRegistry` + `PreHook` lambda, EnvValidationHook 以工厂函数形态产出 PreHook
 
 ## 领域
 
