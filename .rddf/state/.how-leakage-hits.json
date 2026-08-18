@@ -1,0 +1,114 @@
+[
+  {
+    "doc_hash": "b959c265b36f5906",
+    "timestamp": "2026-08-17T12:33:20.647504+00:00",
+    "warnings": [
+      {
+        "signal": "code_fence",
+        "section": "架构依据",
+        "action": "review manually (multi-signal fire)",
+        "weighted_score": 2.0,
+        "threshold_high": 2
+      },
+      {
+        "signal": "file_list",
+        "section": "范围",
+        "action": "review manually (multi-signal fire)",
+        "weighted_score": 9.0,
+        "threshold_high": 3
+      },
+      {
+        "signal": "file_list",
+        "section": "关键场景",
+        "action": "review manually (multi-signal fire)",
+        "weighted_score": 4.0,
+        "threshold_high": 3
+      },
+      {
+        "signal": "file_list",
+        "section": "验收标准",
+        "action": "review manually (multi-signal fire)",
+        "weighted_score": 3.5999999999999996,
+        "threshold_high": 3
+      }
+    ],
+    "multi_signal_threshold": 2
+  },
+  {
+    "doc_hash": "b6cbe46ca323348d",
+    "timestamp": "2026-08-17T12:33:20.762550+00:00",
+    "warnings": [
+      {
+        "signal": "code_fence",
+        "section": "架构依据",
+        "action": "review manually (multi-signal fire)",
+        "weighted_score": 2.0,
+        "threshold_high": 2
+      },
+      {
+        "signal": "file_list",
+        "section": "范围",
+        "action": "review manually (multi-signal fire)",
+        "weighted_score": 3.0,
+        "threshold_high": 3
+      }
+    ],
+    "multi_signal_threshold": 2
+  },
+  {
+    "doc_hash": "b6cbe46ca323348d",
+    "timestamp": "2026-08-17T15:10:26.802229+00:00",
+    "warnings": [
+      {
+        "signal": "code_fence",
+        "section": "架构依据",
+        "action": "review manually (multi-signal fire)",
+        "weighted_score": 2.0,
+        "threshold_high": 2
+      },
+      {
+        "signal": "file_list",
+        "section": "范围",
+        "action": "review manually (multi-signal fire)",
+        "weighted_score": 3.0,
+        "threshold_high": 3
+      }
+    ],
+    "multi_signal_threshold": 2
+  },
+  {
+    "doc_hash": "b959c265b36f5906",
+    "timestamp": "2026-08-17T15:10:27.281291+00:00",
+    "warnings": [
+      {
+        "signal": "code_fence",
+        "section": "架构依据",
+        "action": "review manually (multi-signal fire)",
+        "weighted_score": 2.0,
+        "threshold_high": 2
+      },
+      {
+        "signal": "file_list",
+        "section": "范围",
+        "action": "review manually (multi-signal fire)",
+        "weighted_score": 9.0,
+        "threshold_high": 3
+      },
+      {
+        "signal": "file_list",
+        "section": "关键场景",
+        "action": "review manually (multi-signal fire)",
+        "weighted_score": 4.0,
+        "threshold_high": 3
+      },
+      {
+        "signal": "file_list",
+        "section": "验收标准",
+        "action": "review manually (multi-signal fire)",
+        "weighted_score": 3.5999999999999996,
+        "threshold_high": 3
+      }
+    ],
+    "multi_signal_threshold": 2
+  }
+]

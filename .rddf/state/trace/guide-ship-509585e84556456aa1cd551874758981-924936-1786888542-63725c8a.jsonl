@@ -1,0 +1,2 @@
+{"type":"subprocess","cmd":["git","rev-parse","--show-toplevel"],"returncode":0,"stdout_tail":"","stderr_tail":"","duration_ms":6,"timeout":false,"stdout_capture_mode":"tee","reader_died":false,"ts":"2026-08-16T13:55:42.629463+00:00"}
+{"ts": "2026-08-16T13:55:46.515761+00:00", "type": "finalize", "subprocess_failures": 0, "checkpoints": 0, "report_written": "false"}
