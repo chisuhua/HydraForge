@@ -1,17 +1,52 @@
 {
-  "plan_complete_at": "2026-08-13T10:18:15.733675+00:00",
-  "active_changes": [
-    "adr-0073-partial-flip"
-  ],
-  "changes_committed": true,
-  "all_artifacts_ready": true,
-  "deps_analyzed": true,
-  "version": 1,
-  "next_stage": "ship",
-  "next_skill": "guide-ship",
-  "ship_started_at": "2026-08-13T10:19:33.733753+00:00",
-  "archived_at": "2026-08-13T11:39:13.797808+00:00",
-  "archived_changes": [
-    "adr-0073-partial-flip"
-  ]
+  "plan_complete_at": "2026-08-17T17:26:47.482041+00:00",
+  "active_changes": 6,
+  "all_artifacts_committed": true,
+  "ship_started_at": null,
+  "current_change": null,
+  "execution_mode_decisions": {},
+  "version": 2,
+  "phase": "phase-6c",
+  "fill_phase": {
+    "completed_at": "2026-08-17T17:26:47.482041+00:00",
+    "filled_changes": [
+      "from-roadmap-phase-6c-execution-baseline",
+      "from-roadmap-phase-6c-evidence-gate",
+      "from-roadmap-phase-6c-execution-dsl",
+      "from-roadmap-phase-6c-schema-complete",
+      "from-roadmap-phase-6c-execution-envbackend",
+      "from-roadmap-phase-6c-control-plane-eval"
+    ],
+    "all_design_md_present": true,
+    "all_tasks_md_present": true
+  },
+  "deps_analysis": {
+    "candidates_path": ".rddf/state/.deps-candidates.json",
+    "output_path": ".rddf/state/.deps-output.md",
+    "wave_count": 4,
+    "wave_1_parallel": [
+      "execution-baseline",
+      "schema-complete",
+      "execution-envbackend"
+    ],
+    "wave_2_depends_on_baseline": [
+      "evidence-gate"
+    ],
+    "wave_3_depends_on_gate": [
+      "execution-dsl"
+    ],
+    "wave_4_depends_on_all_p0_except_dsl": [
+      "control-plane-eval"
+    ]
+  },
+  "ship_recommendation": {
+    "next_change": "from-roadmap-phase-6c-execution-baseline",
+    "rationale": "Wave 1 group 0 P0 — no blockers, can ship first to unblock evidence-gate (Wave 2)",
+    "execution_mode": "ship-wave-1-parallel (if 3+ capacity) OR serialize (if 1 capacity)"
+  },
+  "gate_validation": {
+    "gate_0_artifacts_present": "PASS",
+    "gate_1_artifacts_committed": "PASS",
+    "gate_2_openspec_validate": "NON-FATAL (6 changes × 1 issue = missing specs/, expected per fill scope)"
+  }
 }

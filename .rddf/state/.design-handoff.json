@@ -1,31 +1,14 @@
 {
-  "design_complete_at": "2026-08-12T15:30:38.148007+00:00",
-  "proposals_reviewed": 1,
+  "design_complete_at": "2026-08-17T15:15:34.097946+00:00",
+  "proposals_reviewed": 6,
   "all_proposals_have_decision": true,
   "version": 2,
   "changes_pre_created": [
-    "context-compactor"
-  ],
-  "proposals_approved_now": 1,
-  "proposals_kept_deferred": 0,
-  "cycle_label": "wave-4-kickoff-2026-08-12",
-  "cycle_summary": "Wave 4 kickoff: 1 proposal (context-compactor) approved. ADR-0007 Partial 收尾：LLM 摘要压缩 + 阈值触发 + /compact 命令 + context.compact.{before,after} 事件发射。 所有前置条件已 ship (ADR-0070 DECLARE_COMMAND ✅, ADR-0068 V2 EventBuilder ✅)。",
-  "wave_structure": {
-    "wave_4_approved": [
-      "context-compactor (P1, wave-4, ~3-4d, LLM 摘要压缩 + /compact 命令)"
-    ]
-  },
-  "cleanup_from_previous_cycle": [
-    "chat-async-io-steering (parent) 已 DECOMPOSED → 7 sub-changes ship ✅",
-    "All 8 'pre-existing failures' in AGENTS.md 调查后确认全部已 ship 后自动修复：147/147 PASS"
-  ],
-  "next_stage": "plan",
-  "next_skill": "guide-plan",
-  "notes": [
-    "Wave 4 kickoff — 1 change approved",
-    "context-compactor 前置条件: ADR-0070 DECLARE_COMMAND ✅ + ADR-0068 V2 EventBuilder ✅ + SessionConfig.compact_threshold_tokens ✅",
-    "目标: ADR-0007 🟡 Partial → ✅ Approved",
-    "估时: 3-4d (LLM 摘要压缩 + 阈值触发 + /compact 命令 + 事件发射)",
-    "git 工作区有 8 个未提交修改待 commit"
+    "from-roadmap-phase-6c-execution-baseline",
+    "from-roadmap-phase-6c-evidence-gate",
+    "from-roadmap-phase-6c-execution-dsl",
+    "from-roadmap-phase-6c-schema-complete",
+    "from-roadmap-phase-6c-execution-envbackend",
+    "from-roadmap-phase-6c-control-plane-eval"
   ]
 }
