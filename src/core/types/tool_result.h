@@ -49,6 +49,12 @@ enum class ErrorCode {
   BudgetExhausted,     // Skill 内部 USD 预算耗尽 (SkillInterpreter::consume_budget)
   UnsupportedPlatform, // 在非 Linux 平台调用 SkillInterpreter::run() (编译时 #ifdef __linux__ 守卫)
   InvalidArg,          // 错误输入参数 (SKILL.md 不存在/frontmatter 缺失字段/EXIT_CHILD_PARSE_ERROR=64)
+
+  // ADR-0073 D3 新增 (from-roadmap-phase-6c-schema-complete, 2026-08-18)
+  // ToolCoordinator 4 步 sanitization pipeline 拒绝路径统一错误码
+  // (schema_validate / coercion / required_field / business_rules 全部映射到本值)
+  // 对应 JSON-RPC -32602 (Invalid params)
+  InvalidParams,       // 工具入参校验失败 (schema 类型不匹配 / 必填字段缺失 / 危险模式)
 };
 
 // 工具执行结果的标准信封 (MVP + P2-P4 扩展)

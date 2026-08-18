@@ -30,6 +30,13 @@ const char* error_code_to_string(ErrorCode code) {
     case ErrorCode::Audit:              return "Audit";
     case ErrorCode::Timeout:            return "Timeout";
     case ErrorCode::ResourceExhausted:   return "ResourceExhausted";
+    case ErrorCode::SandboxViolation:    return "SandboxViolation";
+    case ErrorCode::MaxStepsExceeded:    return "MaxStepsExceeded";
+    case ErrorCode::Crash:               return "Crash";
+    case ErrorCode::BudgetExhausted:     return "BudgetExhausted";
+    case ErrorCode::UnsupportedPlatform: return "UnsupportedPlatform";
+    case ErrorCode::InvalidArg:          return "InvalidArg";
+    case ErrorCode::InvalidParams:       return "InvalidParams";
   }
   return "Unknown";  // 编译器要求
 }
@@ -47,6 +54,13 @@ ErrorCode string_to_error_code(const std::string& s) {
   if (s == "Audit")              return ErrorCode::Audit;
   if (s == "Timeout")            return ErrorCode::Timeout;
   if (s == "ResourceExhausted")  return ErrorCode::ResourceExhausted;
+  if (s == "SandboxViolation")   return ErrorCode::SandboxViolation;
+  if (s == "MaxStepsExceeded")   return ErrorCode::MaxStepsExceeded;
+  if (s == "Crash")              return ErrorCode::Crash;
+  if (s == "BudgetExhausted")    return ErrorCode::BudgetExhausted;
+  if (s == "UnsupportedPlatform") return ErrorCode::UnsupportedPlatform;
+  if (s == "InvalidArg")         return ErrorCode::InvalidArg;
+  if (s == "InvalidParams")      return ErrorCode::InvalidParams;
   return ErrorCode::Unknown;
 }
 

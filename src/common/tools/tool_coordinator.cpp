@@ -16,6 +16,9 @@
 #include <vector>
 
 #include "agenticdsl/contract/event_builder.h"
+#include "agenticdsl/policy/path_policy.h"
+#include "agenticdsl/tools/tool_schema_validator.h"
+#include "common/policy/dangerous_patterns.h"
 #include "common/policy/layer_profile.h"
 #include "nlohmann/json.hpp"
 
@@ -97,6 +100,39 @@ void emit_tool_execution_event(const std::shared_ptr<IInteractionBus>& bus,
       {"request_id", request_id},
       {"session_id", session_id}};
   bus->emit(EventBuilder(topic).args(args).meta(meta).build());
+}
+
+// ──── ADR-0073 D3: 4 步 pipeline helpers ────────────────────────────────
+
+std::string stage_name(ToolCoordinator::ValidationStage stage) {
+  using S = ToolCoordinator::ValidationStage;
+  switch (stage) {
+    case S::SchemaValidate: return "schema_validate";
+    case S::Coercion:       return "coercion";
+    case S::RequiredField:  return "required_field";
+    case S::BusinessRules:  return "business_rules";
+  }
+  return "unknown";
+}
+
+// schema "type" 值 vs json 实例类型 (与 tool_schema_validator.cpp 同一套语义)
+bool json_type_matches(const std::string& expected, const nlohmann::json& v) {
+  if (expected == "object") return v.is_object();
+  if (expected == "array") return v.is_array();
+  if (expected == "string") return v.is_string();
+  if (expected == "integer") return v.is_number_integer() || v.is_number_unsigned();
+  if (expected == "number") return v.is_number();
+  if (expected == "boolean") return v.is_boolean();
+  if (expected == "null") return v.is_null();
+  return true;  // 未知 type 名称 → 不约束 (schema 作者责任)
+}
+
+// args 指纹: std::hash hex (确定性, 仅用于审计关联; 项目无 vendored SHA-256
+// 且本 change 禁止引入新外部依赖, 故不实现密码学哈希)
+std::string args_fingerprint(const nlohmann::json& args) {
+  std::ostringstream oss;
+  oss << std::hex << std::hash<std::string>{}(args.dump());
+  return oss.str();
 }
 
 }  // namespace
@@ -192,6 +228,116 @@ ToolCoordinator::ToolCoordinator(IToolRegistry& registry,
           policy_, std::move(callback), default_timeout_ms)),
       bus_(std::move(bus)) {}
 
+// ============================================================================
+// ADR-0073 D3: 4 步 sanitization pipeline 实现
+// ============================================================================
+//
+// 与 plan 原文的偏差 (Batch 2 实施时确认的项目实际):
+//  - ValidationMode 实际为 Strict/Warn/Ignore (非 Strict/Coerce/Off):
+//    Strict = 类型不匹配即拒绝; Warn = 自动类型转换并 stderr 警告; Ignore = 跳过.
+//  - ToolCategory 无 Dangerous 枚举值 → 业务规则锚定 ToolCategory::Execute
+//    (shell/exec 类工具的自然分类).
+//  - meta.input_schema 为 std::optional<nlohmann::json>, has_value()==false
+//    表示 V2 legacy 工具: 跳过 step 1-3, step 4 业务规则仍然生效.
+//  - ErrorCode::InvalidParams 为本 change 新增枚举值 (JSON-RPC -32602).
+
+ErrorCode ToolCoordinator::map_stage_to_error(ValidationStage stage) {
+  // 4 步全部映射到 InvalidParams 语义 (JSON-RPC -32602)
+  (void)stage;
+  return ErrorCode::InvalidParams;
+}
+
+int ToolCoordinator::map_to_jsonrpc(ErrorCode code) {
+  switch (code) {
+    case ErrorCode::InvalidParams: return -32602;
+    case ErrorCode::Unknown:
+    default:                       return -32603;
+  }
+}
+
+bool ToolCoordinator::check_type(const nlohmann::json& schema,
+                                 const std::string& key,
+                                 const nlohmann::json& val) {
+  if (!schema.is_object()) return true;
+  auto props_it = schema.find("properties");
+  if (props_it == schema.end() || !props_it->is_object()) return true;
+  auto field_it = props_it->find(key);
+  if (field_it == props_it->end() || !field_it->is_object()) return true;
+  auto type_it = field_it->find("type");
+  if (type_it == field_it->end()) return true;
+  if (type_it->is_string()) {
+    return json_type_matches(type_it->get<std::string>(), val);
+  }
+  if (type_it->is_array()) {
+    for (const auto& t : *type_it) {
+      if (t.is_string() && json_type_matches(t.get<std::string>(), val)) return true;
+    }
+    return false;
+  }
+  return true;
+}
+
+std::vector<std::string> ToolCoordinator::get_required_fields(
+    const nlohmann::json& schema) {
+  std::vector<std::string> out;
+  if (!schema.is_object()) return out;
+  auto it = schema.find("required");
+  if (it == schema.end() || !it->is_array()) return out;
+  for (const auto& f : *it) {
+    if (f.is_string()) out.push_back(f.get<std::string>());
+  }
+  return out;
+}
+
+nlohmann::json ToolCoordinator::coerce_args(const nlohmann::json& schema,
+                                            const nlohmann::json& args) {
+  nlohmann::json out = args;
+  if (!schema.is_object()) return out;
+  auto props_it = schema.find("properties");
+  if (props_it == schema.end() || !props_it->is_object()) return out;
+  for (auto& [key, val] : out.items()) {
+    auto field_it = props_it->find(key);
+    if (field_it == props_it->end() || !field_it->is_object()) continue;
+    auto type_it = field_it->find("type");
+    if (type_it == field_it->end() || !type_it->is_string()) continue;
+    const std::string expected = type_it->get<std::string>();
+    if (!val.is_string()) continue;  // 仅从 string 源做转换 (map 入参全为 string)
+    const std::string s = val.get<std::string>();
+    try {
+      if (expected == "integer") {
+        size_t pos = 0;
+        long long v = std::stoll(s, &pos);
+        if (pos == s.size()) val = v;
+      } else if (expected == "number") {
+        size_t pos = 0;
+        double v = std::stod(s, &pos);
+        if (pos == s.size()) val = v;
+      } else if (expected == "boolean") {
+        if (s == "true") val = true;
+        else if (s == "false") val = false;
+      }
+    } catch (const std::exception&) {
+      // 转换失败保持原值; Strict 模式下的拒绝由 check_type 负责
+    }
+  }
+  return out;
+}
+
+void ToolCoordinator::emit_audit_denied(ValidationStage stage,
+                                        const std::string& tool_name,
+                                        const std::string& reason) {
+  if (!bus_) return;
+  bus_->emit(EventBuilder("tool.audit.denied",
+      ToolResult::error(map_stage_to_error(stage), reason,
+          audit_meta("tool.audit.denied", generate_request_id(), tool_name,
+                     "validation", "coordinator", "")))
+      .args(nlohmann::json{
+          {"tool", tool_name},
+          {"reason", reason},
+          {"validation_stage", stage_name(stage)}})
+      .build());
+}
+
 ToolResult ToolCoordinator::execute(
     const ToolMetadata& meta,
     const ToolCallContext& ctx,
@@ -247,6 +393,133 @@ ToolResult ToolCoordinator::execute(
 
     if (pre.action == PreHookResult::ModifyArgs) {
       effective_args = std::move(pre.modified_args);
+    }
+  }
+
+  // ===== ADR-0073 D3: 4 步 sanitization pipeline =====
+  // 插入点: pre-hooks 之后, tool.execution.start 之前 —
+  // 校验拒绝的调用从未真正 "start", 不应产生 execution.start 事件.
+  // V2 legacy (input_schema 无值): 跳过 step 1-3, step 4 业务规则仍然生效.
+  {
+    nlohmann::json args_json = nlohmann::json::object();
+    for (const auto& [k, v] : effective_args) args_json[k] = v;
+
+    if (meta.input_schema.has_value()) {
+      const nlohmann::json& schema = *meta.input_schema;
+
+      // Step 1: SchemaValidate — 结构级校验 (enum/嵌套等),
+      //         type-mismatch 与 required-missing 延后到 step 2/3 归因
+      {
+        tools::ToolSchemaValidator validator(schema.dump());
+        auto vr = validator.validate(args_json);
+        if (!vr.ok) {
+          nlohmann::json deferred = nlohmann::json::array();
+          nlohmann::json fatal = nlohmann::json::array();
+          for (const auto& err : vr.errors) {
+            const std::string msg = err.value("message", "");
+            if (msg.rfind("type mismatch", 0) == 0 ||
+                msg == "required field missing") {
+              deferred.push_back(err);
+            } else {
+              fatal.push_back(err);
+            }
+          }
+          if (!fatal.empty()) {
+            nlohmann::json m;
+            m["validation_stage"] = stage_name(ValidationStage::SchemaValidate);
+            m["errors"] = std::move(fatal);
+            emit_audit_denied(ValidationStage::SchemaValidate, tool_name,
+                              "schema validation failed");
+            return ToolResult::error(ErrorCode::InvalidParams,
+                                     "schema validation failed for tool: " + tool_name,
+                                     std::move(m));
+          }
+        }
+      }
+
+      // Step 2: Coercion — Strict 拒绝类型不匹配 / Warn 自动转换 / Ignore 跳过
+      if (meta.validation_mode == ToolMetadata::ValidationMode::Strict) {
+        for (auto& [key, val] : args_json.items()) {
+          if (!check_type(schema, key, val)) {
+            nlohmann::json m;
+            m["validation_stage"] = stage_name(ValidationStage::Coercion);
+            m["field_path"] = key;
+            emit_audit_denied(ValidationStage::Coercion, tool_name,
+                              "strict type check failed on field: " + key);
+            return ToolResult::error(ErrorCode::InvalidParams,
+                                     "type mismatch on field '" + key + "' for tool: " + tool_name,
+                                     std::move(m));
+          }
+        }
+      } else if (meta.validation_mode == ToolMetadata::ValidationMode::Warn) {
+        nlohmann::json coerced = coerce_args(schema, args_json);
+        if (coerced != args_json) {
+          std::fprintf(stderr,
+              "[tool_coordinator] Warn mode: coerced args for tool '%s'\n",
+              tool_name.c_str());
+          args_json = std::move(coerced);
+        }
+      }
+      // Ignore: 跳过 step 2
+
+      // Step 3: RequiredField — schema.required[] 全部存在
+      for (const auto& field : get_required_fields(schema)) {
+        if (!args_json.contains(field)) {
+          nlohmann::json m;
+          m["validation_stage"] = stage_name(ValidationStage::RequiredField);
+          m["field_path"] = field;
+          emit_audit_denied(ValidationStage::RequiredField, tool_name,
+                            "required field missing: " + field);
+          return ToolResult::error(ErrorCode::InvalidParams,
+                                   "required field '" + field + "' missing for tool: " + tool_name,
+                                   std::move(m));
+        }
+      }
+    }
+
+    // Step 4: BusinessRules — Execute 类工具强制危险模式 + 路径策略检查
+    // (锚定 Execute: ToolCategory 无 Dangerous 枚举值, 见上方偏差说明)
+    if (meta.category == ToolCategory::Execute) {
+      if (meta.input_schema.has_value() &&
+          meta.input_schema->contains("properties") &&
+          (*meta.input_schema)["properties"].contains("path") &&
+          args_json.contains("path") && args_json["path"].is_string()) {
+        PathPolicy path_policy;
+        auto check = path_policy.check(args_json["path"].get<std::string>());
+        if (!check.allowed) {
+          nlohmann::json m;
+          m["validation_stage"] = stage_name(ValidationStage::BusinessRules);
+          m["reason"] = "path_policy_violation";
+          m["args_hash"] = args_fingerprint(args_json);
+          emit_audit_denied(ValidationStage::BusinessRules, tool_name,
+                            "path policy violation: " + check.reason);
+          return ToolResult::error(ErrorCode::InvalidParams,
+                                   "path policy violation for tool: " + tool_name,
+                                   std::move(m));
+        }
+      }
+      if (args_json.contains("cmd") && args_json["cmd"].is_string()) {
+        const std::string cmd = args_json["cmd"].get<std::string>();
+        if (policy::DangerousPatterns::contains_dangerous(cmd)) {
+          nlohmann::json m;
+          m["validation_stage"] = stage_name(ValidationStage::BusinessRules);
+          m["reason"] = "dangerous_pattern_detected";
+          m["matched_pattern"] = policy::DangerousPatterns::first_match(cmd);
+          m["args_hash"] = args_fingerprint(args_json);
+          // 不记录 raw cmd (defense-in-depth, 审计日志不落敏感命令)
+          emit_audit_denied(ValidationStage::BusinessRules, tool_name,
+                            "dangerous pattern detected: " +
+                                policy::DangerousPatterns::first_match(cmd));
+          return ToolResult::error(ErrorCode::InvalidParams,
+                                   "dangerous pattern detected for tool: " + tool_name,
+                                   std::move(m));
+        }
+      }
+    }
+
+    // 校验通过: 将 (可能被 Warn 模式转换过的) args 写回 string map
+    for (auto& [k, v] : args_json.items()) {
+      effective_args[k] = v.is_string() ? v.get<std::string>() : v.dump();
     }
   }
 

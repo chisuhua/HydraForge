@@ -11,12 +11,14 @@
 #include <stop_token>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "agenticdsl/contract/iinteraction_bus.h"
 #include "agenticdsl/contract/itool_hook_registry.h"
 #include "agenticdsl/policy/iexecution_policy.h"
 #include "common/policy/approval_handler.h"
 #include "common/tools/registry.h"  // IToolRegistry + ToolResult
+#include "core/types/tool_result.h"  // ErrorCode (ADR-0073 D3 ValidationStage 错误映射)
 
 namespace agenticdsl {
 
@@ -98,7 +100,51 @@ class ToolCoordinator {
     hook_registry_ = registry;
   }
 
+  // ===== ADR-0073 D3: 4 步 sanitization pipeline (声明; 实现在 Batch 2 Task 4) =====
+
+  /**
+   * @brief 校验阶段枚举 — pipeline 4 步顺序: SchemaValidate → Coercion →
+   *        RequiredField → BusinessRules
+   */
+  enum class ValidationStage {
+    SchemaValidate,
+    Coercion,
+    RequiredField,
+    BusinessRules,
+  };
+
+  /**
+   * @brief 校验阶段 → ErrorCode 映射 (4 步全部映射到 InvalidParams 语义)
+   */
+  static ErrorCode map_stage_to_error(ValidationStage stage);
+
+  /**
+   * @brief ErrorCode → JSON-RPC 错误码映射 (-32602 InvalidParams / -32603 InternalError 等)
+   */
+  static int map_to_jsonrpc(ErrorCode code);
+
  private:
+  // --- 4 步 pipeline 私有 helpers (声明; 实现在 Batch 2 Task 4) ---
+
+  /// strict 类型检查: schema.properties[key].type 是否匹配 val 的实际类型
+  static bool check_type(const nlohmann::json& schema,
+                         const std::string& key,
+                         const nlohmann::json& val);
+
+  /// 提取 schema.required[] 字段名列表 (无 required 返回空 vector)
+  static std::vector<std::string> get_required_fields(const nlohmann::json& schema);
+
+  /// Coerce 模式: 按 schema 声明类型对 args 做自动类型转换
+  static nlohmann::json coerce_args(const nlohmann::json& schema,
+                                    const nlohmann::json& args);
+
+  /// 拒绝路径审计: emit "tool.audit.denied" (per ADR-0068 EventBuilder)
+  /// 仅记录 stage + tool_name + reason, 不记录 raw args (defense-in-depth)
+  void emit_audit_denied(ValidationStage stage,
+                         const std::string& tool_name,
+                         const std::string& reason);
+
+
   IToolRegistry& registry_;
   std::shared_ptr<IExecutionPolicy> policy_;
   std::unique_ptr<ApprovalHandler> approval_handler_;

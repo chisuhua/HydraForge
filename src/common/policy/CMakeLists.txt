@@ -15,6 +15,7 @@ add_library(agenticdsl_policy STATIC
 approval_handler.cpp
   mode_switch_dialog.cpp
   layer_profile.cpp
+  dangerous_patterns.cpp   # ADR-0073 D3: OWASP 命令注入黑名单
 )
 
 target_include_directories(agenticdsl_policy PUBLIC
