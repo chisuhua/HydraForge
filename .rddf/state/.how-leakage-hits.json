@@ -110,5 +110,47 @@
       }
     ],
     "multi_signal_threshold": 2
+  },
+  {
+    "doc_hash": "c7206c64f67c777d",
+    "timestamp": "2026-08-19T03:02:04.935277+00:00",
+    "warnings": [
+      {
+        "signal": "step_density",
+        "section": "关键场景",
+        "action": "review manually (single-signal hard-cap)",
+        "weighted_score": 4.800000000000001,
+        "threshold_high": 3
+      }
+    ],
+    "multi_signal_threshold": 2
+  },
+  {
+    "doc_hash": "ccc845e1ac2d0630",
+    "timestamp": "2026-08-19T03:03:45.427715+00:00",
+    "warnings": [
+      {
+        "signal": "step_density",
+        "section": "关键场景",
+        "action": "review manually (single-signal hard-cap)",
+        "weighted_score": 4.800000000000001,
+        "threshold_high": 3
+      }
+    ],
+    "multi_signal_threshold": 2
+  },
+  {
+    "doc_hash": "ccc845e1ac2d0630",
+    "timestamp": "2026-08-19T03:58:05.797503+00:00",
+    "warnings": [
+      {
+        "signal": "step_density",
+        "section": "关键场景",
+        "action": "review manually (single-signal hard-cap)",
+        "weighted_score": 4.800000000000001,
+        "threshold_high": 3
+      }
+    ],
+    "multi_signal_threshold": 2
   }
 ]

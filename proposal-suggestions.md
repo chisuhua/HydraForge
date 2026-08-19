@@ -9,7 +9,6 @@
 
 | 提案 | 优先级 | 来源 | 添加时间 | 状态 |
 |------|--------|------|----------|------|
-| [from-roadmap-phase-6c-validation-refinements](.rddf/improvements/from-roadmap-phase-6c-validation-refinements.md) | P1 | Oracle review of schema-complete | 2026-08-18 | Proposed |
 
 ## 已归档（2026-08-12 cleanup）
 

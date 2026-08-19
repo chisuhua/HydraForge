@@ -299,7 +299,7 @@
     {
       "name": "context-compactor",
       "status": "archived",
-      "phase": "wave-4 (re-activated 2026-08-12，原 wave-2 延迟至前置条件 ship)",
+      "phase": "wave-4 (re-activated 2026-08-12\uff0c\u539f wave-2 \u5ef6\u8fdf\u81f3\u524d\u7f6e\u6761\u4ef6 ship)",
       "category": "core-impl",
       "added_at": "2026-08-12T23:26:25+0800",
       "filled_at": null,
@@ -404,6 +404,13 @@
       "added_at": "2026-08-17T23:10:28+0800",
       "proposed_at": "2026-08-17T17:15:27.387237+00:00",
       "fill_completed": true
+    },
+    {
+      "name": "from-roadmap-phase-6c-validation-refinements",
+      "status": "planned",
+      "phase": "wave-1-followup",
+      "category": "debt",
+      "added_at": "2026-08-19T11:58:05+0800"
     }
   ]
 }

@@ -13,6 +13,8 @@
 
 | [from-roadmap-phase-6c-control-plane-eval](.rddf/improvements/from-roadmap-phase-6c-control-plane-eval.md) | P1 | 2026-08-17 | guide-arch |
 
+| [from-roadmap-phase-6c-validation-refinements](.rddf/improvements/from-roadmap-phase-6c-validation-refinements.md) | P1 | 2026-08-19 | guide-arch |
+
 ## 已实施
 | [from-roadmap-phase-6c-execution-baseline](.rddf/improvements/from-roadmap-phase-6c-execution-baseline.md) | P0 | 2026-08-17 | [archived 2026-08-18](openspec/changes/archive/2026-08-18-from-roadmap-phase-6c-execution-baseline/) ✅ ship — ADR-0074 D1/D2/D3 V1/V2/V3 prompt builders + 32 few-shot (4 维度 × 8) + 51 held-out golden tasks (L1=20 + L2=20 + L3=11) + tools/measure_prompt_baseline CLI (D-4 YAML schema output) + 3 mock-mode baseline reports + handoff 给 evidence-gate; 11/11 tasks PASS, 164/164 ctest 零回归; ADR-0074 🔍 Proposed → ✅ Approved |
 | [from-roadmap-phase-6c-schema-complete](.rddf/improvements/from-roadmap-phase-6c-schema-complete.md) | P0 | 2026-08-17 | [archived 2026-08-18](openspec/changes/archive/2026-08-18-from-roadmap-phase-6c-schema-complete/) ✅ ship — ADR-0073 D3 ToolCoordinator 4 步 sanitization pipeline (schema validate → coercion → required field → business rules) + ErrorCode::InvalidParams / JSON-RPC -32602 映射 + Dangerous pattern blocklist (5 OWASP) + Audit redaction (SHA256 hash, no raw cmd) + V2/V3 共存 (legacy 跳过 schema 但强制 business rules); 7/7 tasks PASS, Oracle review accepted archive with P1 follow-up (Warn-mode coercion 失效 / DECLARE_TOOL_V3 默认不一致 / enum coercion 缺失) → follow-up `from-roadmap-phase-6c-validation-refinements` 提案已登记; ADR-0073 🟡 Partial → ✅ Approved |

@@ -1,6 +1,6 @@
 {
-  "design_complete_at": "2026-08-17T15:15:34.097946+00:00",
-  "proposals_reviewed": 6,
+  "design_complete_at": "2026-08-19T04:00:55.719297+00:00",
+  "proposals_reviewed": 7,
   "all_proposals_have_decision": true,
   "version": 2,
   "changes_pre_created": [
@@ -9,6 +9,7 @@
     "from-roadmap-phase-6c-execution-dsl",
     "from-roadmap-phase-6c-schema-complete",
     "from-roadmap-phase-6c-execution-envbackend",
-    "from-roadmap-phase-6c-control-plane-eval"
+    "from-roadmap-phase-6c-control-plane-eval",
+    "from-roadmap-phase-6c-validation-refinements"
   ]
 }
