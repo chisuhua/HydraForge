@@ -185,6 +185,14 @@ void check_and_compact(LayeredContext& ctx);
     // 使用示例: engine->load_plugin("pdk/llama_engine");
     bool load_plugin(const std::string& plugin_name);
 
+    // ADR-0080 v1.1 D12: opt-in 启用 AppendOnlyEventLog (默认 OFF)
+    // 调用前置: engine.set_interaction_bus(bus) 已执行
+    // agent_id 空字符串 throw (fail-closed, 多 agent 场景避免静默合并)
+    void enable_event_log(const std::string& agent_id,
+                          bool capture_prompt_bytes = false,
+                          std::size_t max_file_size = 100 * 1024 * 1024,
+                          std::size_t max_rotation_files = 3);
+
     ~DSLEngine(); // Stage 4 / Task 19 + P1.T4: 显式声明 — 头文件外定义, 使 unique_ptr<IBudgetController> + unique_ptr<IToolRegistry> 析构在完整类型下进行
     DSLEngine();
     DSLEngine(std::vector<ParsedGraph> initial_graphs);
@@ -228,6 +236,9 @@ private:
 
     // Wave 4: 上下文压缩器 (context-compactor Task 8)
     std::unique_ptr<IContextCompactor> context_compactor_;
+
+    // ADR-0080 v1.1 D12: opt-in EventLog 写入器（nullptr = 未启用）
+    std::unique_ptr<class EventLogWriter> event_log_;
 };
 
 } // namespace agenticdsl

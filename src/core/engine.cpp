@@ -24,6 +24,8 @@
 #include "common/tools/tool_coordinator.h" // C4 Sprint 14 (ADR-0031 P3-P4): ToolCoordinator 构造
 #include "common/tools/registry.h"         // C11: ToolRegistry downcast for session_registry injection
 #include "agenticdsl/plugin/plugin_loader.h" // D5 (C14): 显式 plugin 加载
+#include "core/event_log.h"                 // ADR-0080 v1.1: AppendOnlyEventLog 写入器
+#include "core/types/event_log_config.h"    // ADR-0080 v1.1 D11: EventLogConfig 结构
 
 namespace agenticdsl {
 // P2.C (2026-06-24): forward-declared factories (decouple engine.cpp from concrete headers)
@@ -184,6 +186,37 @@ const IBudgetController& DSLEngine::get_budget_controller() const { return *budg
 //           §决策 5 (subscribe 透传 token，不缓存)
 void DSLEngine::set_interaction_bus(std::shared_ptr<IInteractionBus> bus) {
     bus_ = std::move(bus);
+}
+
+// === ADR-0080 v1.1 D12: opt-in 启用 AppendOnlyEventLog ===
+// 调用前置: set_interaction_bus(bus) 必须先执行
+// agent_id 空字符串 throw (fail-closed: 多 agent 场景避免静默合并到 default)
+// 双调用 throw: 同一 engine 不允许重复启用 (析构由 unique_ptr 管理)
+void DSLEngine::enable_event_log(const std::string& agent_id,
+                                 bool capture_prompt_bytes,
+                                 std::size_t max_file_size,
+                                 std::size_t max_rotation_files) {
+    if (event_log_) {
+        throw std::logic_error(
+            "DSLEngine::enable_event_log: already enabled (idempotent call forbidden)");
+    }
+    if (agent_id.empty()) {
+        throw std::invalid_argument(
+            "DSLEngine::enable_event_log: agent_id empty (fail-closed)");
+    }
+    if (!bus_) {
+        throw std::logic_error(
+            "DSLEngine::enable_event_log: bus not injected (call set_interaction_bus first)");
+    }
+
+    EventLogConfig cfg;
+    cfg.event_log_enabled = true;
+    cfg.event_log_agent_id = agent_id;
+    cfg.capture_prompt_bytes = capture_prompt_bytes;
+    cfg.max_file_size = max_file_size;
+    cfg.max_rotation_files = max_rotation_files;
+
+    event_log_ = std::make_unique<EventLogWriter>(cfg, bus_);
 }
 
 // === Phase 5 (REQ-ICC-008 / REQ-IPD-005): decorate_provider 私有 helper ===
