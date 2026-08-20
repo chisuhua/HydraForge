@@ -48,6 +48,24 @@ class EventLogWriter {
       const std::string& agent_id,
       const std::filesystem::path& log_dir);
 
+  // Query filter (ADR-0080 P4 event-log-query-api)
+  struct QueryFilter {
+    std::string topic_glob;
+    uint64_t    start_causal_time = 0;
+    uint64_t    end_causal_time   = UINT64_MAX;
+    bool        has_time_window   = false;
+  };
+
+  std::vector<BusEvent> read(
+      const std::string& agent_id,
+      uint64_t start_causal_time,
+      uint64_t end_causal_time) const;
+
+  std::vector<BusEvent> query(
+      const std::string& agent_id,
+      const QueryFilter& filter,
+      size_t max_count) const;
+
  private:
   // 在 bus 上注册 subscribe（start）
   void subscribe_to_bus();

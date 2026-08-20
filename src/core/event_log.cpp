@@ -175,8 +175,80 @@ void EventLogWriter::rotate_if_needed() {
 std::vector<BusEvent> EventLogWriter::read(
     const std::string& agent_id,
     const std::filesystem::path& log_dir) {
-  // 占位实现：实际读取由离线分析工具负责（不在本 ADR 范围）
-  return {};
+  std::vector<BusEvent> out;
+  auto path = log_dir / (agent_id + ".v1.jsonl");
+  std::ifstream in(path);
+  if (!in.is_open()) return out;
+  std::string line;
+  while (std::getline(in, line)) {
+    if (line.empty()) continue;
+    try {
+      auto j = nlohmann::json::parse(line);
+      if (j.value("v", 0) != 1) continue;
+      BusEvent e;
+      e.topic = j.value("topic", std::string{});
+      e.causal_time = j.value("causal_time", uint64_t{0});
+      if (j.contains("payload") && j["payload"].is_object()) {
+        e.payload.data = j["payload"];
+        if (j["payload"].contains("_error_code")) {
+          e.payload.error_code = static_cast<ErrorCode>(
+              j["payload"].value("_error_code", 0));
+        }
+      }
+      out.push_back(std::move(e));
+    } catch (const nlohmann::json::exception&) {
+      // 行帧 JSONL: 损坏行跳过, 不破坏文件完整性 (P5 fsync 决策对齐)
+      continue;
+    }
+  }
+  return out;
+}
+
+std::vector<BusEvent> EventLogWriter::read(
+    const std::string& agent_id,
+    uint64_t start_causal_time,
+    uint64_t end_causal_time) const {
+  auto all = read(agent_id, config_.event_log_dir);
+  std::vector<BusEvent> filtered;
+  filtered.reserve(all.size());
+  for (auto& e : all) {
+    if (e.causal_time >= start_causal_time && e.causal_time <= end_causal_time) {
+      filtered.push_back(std::move(e));
+    }
+  }
+  return filtered;
+}
+
+namespace {
+
+bool topic_matches_glob(const std::string& topic, const std::string& glob) {
+  if (glob.empty() || glob == "*") return true;
+  auto pos = glob.find('*');
+  if (pos == std::string::npos) return topic == glob;
+  if (pos == 0) return true;
+  return topic.substr(0, pos) == glob.substr(0, pos);
+}
+
+}  // namespace
+
+std::vector<BusEvent> EventLogWriter::query(
+    const std::string& agent_id,
+    const QueryFilter& filter,
+    size_t max_count) const {
+  std::vector<BusEvent> out;
+  auto all = read(agent_id, config_.event_log_dir);
+  out.reserve(std::min(all.size(), max_count));
+  for (auto& e : all) {
+    if (filter.has_time_window &&
+        (e.causal_time < filter.start_causal_time ||
+         e.causal_time > filter.end_causal_time)) {
+      continue;
+    }
+    if (!topic_matches_glob(e.topic, filter.topic_glob)) continue;
+    out.push_back(std::move(e));
+    if (out.size() >= max_count) break;
+  }
+  return out;
 }
 
 }  // namespace agenticdsl

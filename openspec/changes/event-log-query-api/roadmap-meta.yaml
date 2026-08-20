@@ -1,0 +1,10 @@
+phase: phase-6c+
+category: eventlog
+change_type: feature
+priority: P1
+parent_feature: ""
+defect_refs:
+  - 2.1
+adr_refs:
+  - ADR-0080
+  - ADR-0068

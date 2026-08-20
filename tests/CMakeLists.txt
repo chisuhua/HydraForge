@@ -167,6 +167,9 @@ foreach(TEST_SRC ${SINGLE_TEST_SOURCES})
     add_catch_test(${TEST_NAME} ${TEST_SRC})
 endforeach()
 
+# P4 perf 基准测试子目录
+add_subdirectory(perf)
+
 # ADR-0074 C1 — few-shot 数据测试使用相对路径 lib/prompts/fewshot, 需以仓库根为工作目录
 if(TEST test_few_shot_examples)
     set_tests_properties(test_few_shot_examples PROPERTIES

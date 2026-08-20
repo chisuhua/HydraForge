@@ -51,14 +51,19 @@ class MockBus : public IInteractionBus {
 
   // --- IInteractionBus 接口实现 ---
 
-  /// emit(BusEvent) 主路径：存储 + 通知同 topic subscribers（精确匹配）
+  /// emit(BusEvent) 主路径：存储 + 通知同 topic subscribers + 通配符 "*"
   void emit(const BusEvent& event) override {
     events.push_back(event);
     topics.push_back(event.topic);
     auto it = subscribers_.find(event.topic);
     if (it != subscribers_.end()) {
-      // 迭代时即使回调内 unsubscribe 也不影响本次循环（拷贝到局部 vector）
       for (auto& cb : it->second) {
+        cb(event);
+      }
+    }
+    auto wildcard_it = subscribers_.find("*");
+    if (wildcard_it != subscribers_.end()) {
+      for (auto& cb : wildcard_it->second) {
         cb(event);
       }
     }

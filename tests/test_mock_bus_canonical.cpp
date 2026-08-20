@@ -214,3 +214,37 @@ TEST_CASE("MockBus subscribe returns incremental unique tokens", "[mock_bus][can
   REQUIRE(t1 != t3);
   REQUIRE(t1 > 0);  // token 从 1 开始（非 0，避免与 InMemoryBus default-initialized 混淆）
 }
+
+TEST_CASE("MockBus wildcard subscribe receives all events", "[mock_bus][canonical][wildcard]") {
+  MockBus bus;
+  size_t received = 0;
+  bus.subscribe("*", [&](const BusEvent&) { ++received; });
+
+  BusEvent e1, e2, e3;
+  e1.topic = "llm.request";
+  e2.topic = "tool.call";
+  e3.topic = "agent.spawned";
+  bus.emit(e1);
+  bus.emit(e2);
+  bus.emit(e3);
+
+  REQUIRE(received == 3);
+  REQUIRE(bus.events.size() == 3);
+}
+
+TEST_CASE("MockBus exact + wildcard subscribe both fire", "[mock_bus][canonical][wildcard]") {
+  MockBus bus;
+  size_t exact_count = 0;
+  size_t wildcard_count = 0;
+  bus.subscribe("llm.request", [&](const BusEvent&) { ++exact_count; });
+  bus.subscribe("*", [&](const BusEvent&) { ++wildcard_count; });
+
+  BusEvent e1, e2;
+  e1.topic = "llm.request";
+  e2.topic = "tool.call";
+  bus.emit(e1);
+  bus.emit(e2);
+
+  REQUIRE(exact_count == 1);
+  REQUIRE(wildcard_count == 2);
+}
