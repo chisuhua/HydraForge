@@ -191,8 +191,8 @@ Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = 
 | `session.persist_request` | ChatSession | 持久化请求发出 | `session_id` | ✅ |
 | `session.persisted` | SessionManager | 写盘成功 | `session_id`, `node_id`, `branch_id`, `timestamp` | ✅ (v2 ship) |
 | `budget.checked` | ChatSession / budget_agent | 预算检查后 | `remaining`, `exceeded` | ✅ |
-| `context.compact.before` | ContextCompactor (L0-3, 待建) | 压缩前 | `before_tokens` | 👻 → 依赖 L0-3 |
-| `context.compact.after` | ContextCompactor (L0-3, 待建) | 压缩后 | `after_tokens`, `summary_ref` | 👻 → 依赖 L0-3 |
+| `context.compact.before` | ContextCompactor (L0) | on_compact_before() | `session_id`, `tokens_before` | ✅ `src/core/context_compactor.cpp:45-51` |
+| `context.compact.after` | ContextCompactor (L0) | on_compact_after() | `session_id`, `tokens_before`, `tokens_after`, `compression_ratio` | ✅ `src/core/context_compactor.cpp:81-89` |
 | `tool.audit.invoked` | ToolCoordinator | 审批通过后 | `tool`, `args_keys` | ✅ `src/common/tools/tool_coordinator.cpp:307` |
 | `tool.audit.completed` | ToolCoordinator | 工具返回后 | `tool`, `ok` | ✅ `src/common/tools/tool_coordinator.cpp:376` |
 | `tool.audit.denied` | ToolCoordinator | 拒绝时 | `tool`, `reason` | ✅ `src/common/tools/tool_coordinator.cpp:240,265,290` |
