@@ -1,52 +1,73 @@
 {
-  "plan_complete_at": "2026-08-17T17:26:47.482041+00:00",
-  "active_changes": 6,
+  "plan_complete_at": "2026-08-20T01:55:37.115446+00:00",
+  "active_changes": 4,
   "all_artifacts_committed": true,
   "ship_started_at": null,
-  "current_change": null,
+  "current_change": "from-roadmap-phase-6c-validation-refinements",
   "execution_mode_decisions": {},
   "version": 2,
-  "phase": "phase-6c",
+  "phase": "phase-6c-wave-2",
   "fill_phase": {
-    "completed_at": "2026-08-17T17:26:47.482041+00:00",
+    "completed_at": "2026-08-20T01:55:37+00:00",
     "filled_changes": [
-      "from-roadmap-phase-6c-execution-baseline",
+      "from-roadmap-phase-6c-validation-refinements"
+    ],
+    "pre_created_changes": [
       "from-roadmap-phase-6c-evidence-gate",
       "from-roadmap-phase-6c-execution-dsl",
-      "from-roadmap-phase-6c-schema-complete",
-      "from-roadmap-phase-6c-execution-envbackend",
       "from-roadmap-phase-6c-control-plane-eval"
     ],
     "all_design_md_present": true,
-    "all_tasks_md_present": true
+    "all_tasks_md_present": true,
+    "all_specs_present": true,
+    "fill_scope": "design.md + tasks.md + specs/<capability>/spec.md for 4 changes; total 6 new artifacts (8 file paths including 2 derivation)"
   },
   "deps_analysis": {
     "candidates_path": ".rddf/state/.deps-candidates.json",
     "output_path": ".rddf/state/.deps-output.md",
     "wave_count": 4,
     "wave_1_parallel": [
-      "execution-baseline",
-      "schema-complete",
-      "execution-envbackend"
+      "from-roadmap-phase-6c-validation-refinements",
+      "from-roadmap-phase-6c-evidence-gate"
     ],
-    "wave_2_depends_on_baseline": [
-      "evidence-gate"
+    "wave_1_rationale": "Both no blockers. validation-refinements 依赖 ADR-0073 (已 ship,debt fix). evidence-gate 依赖 ADR-0074 C3 baseline (已 ship). 改不同 module (src/common/tools/ vs src/common/prompts/),无 file conflict. 可并行 ship.",
+    "wave_2_depends_on_evidence_gate_decision": [
+      "from-roadmap-phase-6c-execution-dsl"
     ],
-    "wave_3_depends_on_gate": [
-      "execution-dsl"
+    "wave_2_rationale": "ADR-0072 §D2/D3 + ADR-0074 §D4 三层阈值条件触发.C5+C6+C7 ship 由 evidence-gate 决议决定 (Pass → descope / Conditional → ship C6+C7 / Fail → ship C5+C6+C7). 严格阻塞.",
+    "wave_3_depends_on_wave_1_2": [
+      "from-roadmap-phase-6c-control-plane-eval"
     ],
-    "wave_4_depends_on_all_p0_except_dsl": [
-      "control-plane-eval"
-    ]
+    "wave_3_rationale": "评估脚本需收集 evidence-gate + execution-dsl + validation-refinements 的 ship 状态作为 6 项条件输入. 阻塞粒度:hard (无 ship 状态 = 无完整评估).",
+    "ai_semantic_analysis": "DISABLED (fallback) - static 3-axis only (file conflicts / ADR refs / interface deps)",
+    "file_conflict_detected": false,
+    "code_path_overlap": "None"
   },
   "ship_recommendation": {
-    "next_change": "from-roadmap-phase-6c-execution-baseline",
-    "rationale": "Wave 1 group 0 P0 — no blockers, can ship first to unblock evidence-gate (Wave 2)",
-    "execution_mode": "ship-wave-1-parallel (if 3+ capacity) OR serialize (if 1 capacity)"
+    "next_change": "from-roadmap-phase-6c-validation-refinements",
+    "next_change_priority": "P1",
+    "next_change_blocker": "ADR-0073 (已 ship)",
+    "rationale": "Wave 1 group 0 P1 — no blockers, can ship first to unblock Wave 3 control-plane-eval. ADR-0073 follow-up debt fix. Independent module (src/common/tools/) 不影响 evidence-gate parallel ship.",
+    "execution_mode": "ship-wave-1-parallel (validation-refinements + evidence-gate in parallel if 2+ capacity, OR serialize if 1 capacity)"
   },
   "gate_validation": {
-    "gate_0_artifacts_present": "PASS",
-    "gate_1_artifacts_committed": "PASS",
-    "gate_2_openspec_validate": "NON-FATAL (6 changes × 1 issue = missing specs/, expected per fill scope)"
+    "gate_0_ready_for_ship": "PASS (4 ready)",
+    "gate_1_active_changes_count": "PASS (4 active)",
+    "gate_2_artifacts_committed": "PASS (all 6 artifacts committed in 04aa7bd)",
+    "gate_3_plan_quality": "PASS (4/4 changes, 4 warnings: 'not found in roadmap.md' — known issue, non-blocking)",
+    "gate_4_contract": "WARNING (rddf contract-check error: --hub/--local args required, project is standalone, non-blocking)",
+    "gate_5_cross_repo_deps": "PASS (project standalone, no blockers)",
+    "openspec_validate": "PASS (all 4 changes: 'is valid')"
+  },
+  "external_state": {
+    "git_untracked_arch_artifacts": [
+      "docs/adr/adr-0079-unified-session-4scope.md",
+      "docs/adr/adr-0080-append-only-event-log.md",
+      "docs/adr/adr-0082-agent-first-class-registry.md"
+    ],
+    "git_modified_out_of_scope": [
+      "docs/README.md"
+    ],
+    "note": "plan-side intentionally did not commit arch artifacts (out of plan boundary per ADR-0003)"
   }
 }
