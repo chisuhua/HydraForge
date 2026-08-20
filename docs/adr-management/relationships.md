@@ -3,7 +3,7 @@
 > 本文件由 `tools/adr_relationships.py` 自动生成，**请勿手动编辑**。
 > 任何手动修改会在下次运行时被覆盖。
 > 最后更新: 由 `tools/adr_relationships.py` 生成（运行时刻见 git commit 时间戳）
-> ADR 总数: 72
+> ADR 总数: 77
 
 ---
 
@@ -24,7 +24,7 @@
 | adr-0005 | LLM 后端配置与工厂模式 | ✅ Approved | 2026-05-12 |  |
 | adr-0006 | HarnessEngine 后台线程模型 | ⛔ Superseded | 2026-05-25 |  |
 | adr-0007 | ADR-0007 Implementation Scope Audit | ✅ Approved | Unknown |  |
-| adr-0007 | 上下文压缩机制 | 🟡 Partial | Unknown |  |
+| adr-0007 | 上下文压缩机制 | ✅ Approved | Unknown |  |
 | adr-0008 | ADR-0008 Implementation Scope Audit | ✅ Approved | Unknown |  |
 | adr-0008 | 结构化 Context | ✅ Approved | Unknown |  |
 | adr-0009 | DSL 标准库规划 | ✅ Approved | 2026-05-12 |  |
@@ -72,17 +72,22 @@
 | adr-0065 | 多语言 PDK 支持（仅 Python → Wasm） | ✅ Approved | Unknown |  |
 | adr-0066 | SkillInterpreter 模块架构 | 🟡 Partial | Unknown |  |
 | adr-0067 | L2/L3/L4 分层插件架构拆分 | ✅ Approved | 2026-07-22 |  |
-| adr-0068 | 事件发射契约 (Event Emission Contract) | ✅ Approved | Unknown |  |
-| adr-0069 | ToolCoordinator Hook 注入点 (Tool Call Interception Hooks) | 🔍 Proposed | Unknown |  |
-| adr-0070 | PDK Plugin 命令/快捷键注册 (DECLARE_COMMAND) | 🔍 Proposed | Unknown |  |
+| adr-0068 | 事件发射契约 (Event Emission Contract) | ✅ Approved | 2026-08-13 |  |
+| adr-0069 | ToolCoordinator Hook 注入点 (Tool Call Interception Hooks) | 🟡 Partial | Unknown |  |
+| adr-0070 | PDK Plugin 命令/快捷键注册 (DECLARE_COMMAND) | 🟡 Partial | Unknown |  |
 | adr-0071 | LLM-native AgenticDSL 架构 (LLM as DSL Author) | 🔍 Proposed | 2026-08-02 |  |
 | adr-0072 | DSL 节点扩展 (stream: / $var / declarative style / backend:) | 🔍 Proposed | 2026-08-03 |  |
-| adr-0073 | Tool JSON Schema 契约 (JSON Schema 2020-12) | 🔍 Proposed | 2026-08-02 |  |
+| adr-0073 | ADR-0073 实现范围审计 (Implementation Scope Audit) | 🟡 Partial | 2026-08-13 |  |
+| adr-0073 | Tool JSON Schema 契约 (JSON Schema 2020-12) | ✅ Approved | 2026-08-02 |  |
 | adr-0074 | Prompt Engineering + Evidence Gate | 🔍 Proposed | 2026-08-03 |  |
-| adr-0075 | EnvBackend 多环境执行 (Local + Docker) | 🔍 Proposed | 2026-08-03 |  |
+| adr-0075 | EnvBackend 多环境执行 (Local + Docker) | ✅ Approved | 2026-08-03 |  |
 | adr-0076 | DSL Engine as MCP Server (控制面, MCP 2025-11-25) | 🔍 Proposed | 2026-08-03 |  |
 | adr-0077 | gRPC Data Plane (High-Throughput Channels) | 🔍 Proposed | 2026-08-03 |  |
 | adr-0078 | Fine-tune 基模选型与训练管线 | 🔍 Proposed | 2026-08-03 |  |
+| adr-0079 | 统一会话模型与 4-Scope 存储 | ✅ Approved | Unknown |  |
+| adr-0080 | AppendOnlyEventLog as Core Fact Source | ✅ Approved | Unknown |  |
+| adr-0081 | Pre-Step Hook Contract（Agent 级拦截点） | 🔍 Proposed | Unknown |  |
+| adr-0082 | Agent as First-Class Registry（讨论稿） | 🔍 Proposed | Unknown |  |
 
 ---
 
@@ -156,20 +161,26 @@ graph TD
     adr_0070["adr-0070: PDK Plugin 命令/快捷键注册 (DECLARE_COMMAND)"]
     adr_0071["adr-0071: LLM-native AgenticDSL 架构 (LLM as DSL Aut"]
     adr_0072["adr-0072: DSL 节点扩展 (stream: / $var / declarative s"]
+    adr_0073["adr-0073: ADR-0073 实现范围审计 (Implementation Scope Au"]
     adr_0073["adr-0073: Tool JSON Schema 契约 (JSON Schema 2020-12"]
     adr_0074["adr-0074: Prompt Engineering + Evidence Gate"]
     adr_0075["adr-0075: EnvBackend 多环境执行 (Local + Docker)"]
     adr_0076["adr-0076: DSL Engine as MCP Server (控制面, MCP 2025-"]
     adr_0077["adr-0077: gRPC Data Plane (High-Throughput Channel"]
     adr_0078["adr-0078: Fine-tune 基模选型与训练管线"]
+    adr_0079["adr-0079: 统一会话模型与 4-Scope 存储"]
+    adr_0080["adr-0080: AppendOnlyEventLog as Core Fact Source"]
+    adr_0081["adr-0081: Pre-Step Hook Contract（Agent 级拦截点）"]
+    adr_0082["adr-0082: Agent as First-Class Registry（讨论稿）"]
 
     adr_0031 --> adr_0002
     adr_0031 --> adr_0019
+    adr_0080 --> adr_0081
     adr_0019 -.->|supersedes| adr_0006
     adr_0020 -.->|supersedes| adr_0006
 ```
 
-> 图中包含 72 个节点、2 条依赖边、2 条替代边。
+> 图中包含 77 个节点、3 条依赖边、2 条替代边。
 > 渲染说明：实线 (`-->`) 表示依赖关系；虚线带标签 (`-.->|supersedes|`) 表示替代关系。
 
 ---
@@ -181,6 +192,7 @@ graph TD
 | adr-0002 | adr-0031 (depends-on) |
 | adr-0006 | adr-0019 (supersedes), adr-0020 (supersedes) |
 | adr-0019 | adr-0031 (depends-on) |
+| adr-0081 | adr-0080 (depends-on) |
 
 ---
 
@@ -188,11 +200,11 @@ graph TD
 
 | 状态 | 数量 |
 |------|------|
-| ✅ Approved | 46 |
-| 🟡 Partial | 7 |
+| ✅ Approved | 51 |
+| 🟡 Partial | 9 |
 | ❌ Not Implemented | 1 |
 | ⛔ Superseded | 1 |
-| 🔍 Proposed | 15 |
+| 🔍 Proposed | 13 |
 | 📋 Reserved | 2 |
 
 ---
