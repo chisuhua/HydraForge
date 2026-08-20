@@ -31,6 +31,7 @@ struct Session {
     std::map<std::string, std::string> meta;  // 任意元数据
     long long created_at_ms = 0;
     long long updated_at_ms = 0;
+    size_t persisted_count_ = 0;  // 已落盘游标（ADR-0079 v1.1 append-only fix）
 };
 
 // 全局 SessionStore（线程安全）

@@ -57,6 +57,16 @@ function(add_catch_test TEST_NAME)
         target_link_libraries(${TEST_NAME} PRIVATE dl)
     endif()
 
+    # session_agent 测试需要直接链接 plugin 源码 (ADR-0079 v1.1 append-only 修复验证)
+    if(TEST_NAME MATCHES "^test_session_store")
+        target_sources(${TEST_NAME} PRIVATE
+            ${PROJECT_SOURCE_DIR}/pdk/session_agent/src/session_store.cpp
+        )
+        target_include_directories(${TEST_NAME} PRIVATE
+            ${PROJECT_SOURCE_DIR}/pdk/session_agent/include
+        )
+    endif()
+
     if(TEST_NAME MATCHES "^test_grpc_temporal_backend")
         target_sources(${TEST_NAME} PRIVATE
             ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/temporal_client.cpp

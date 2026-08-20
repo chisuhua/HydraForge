@@ -156,14 +156,20 @@ bool SessionStore::persist(const std::string& session_id) {
     auto it = sessions_.find(session_id);
     if (it == sessions_.end()) return false;
 
-    const auto& s = it->second;
+    auto& s = it->second;
     fs::create_directories(persist_dir_);
 
     fs::path path = file_path(session_id);
-    std::ofstream f(path, std::ios::trunc);
+
+    const bool first_write = (s.persisted_count_ == 0) || !fs::exists(path);
+    auto mode = first_write ? std::ios::out | std::ios::trunc
+                            : std::ios::out | std::ios::app;
+    std::ofstream f(path, mode);
     if (!f.is_open()) return false;
 
-    for (const auto& m : s.messages) {
+    const size_t total = s.messages.size();
+    for (size_t i = s.persisted_count_; i < total; ++i) {
+        const auto& m = s.messages[i];
         nlohmann::json j;
         j["role"] = m.role;
         j["content"] = m.content;
@@ -171,6 +177,7 @@ bool SessionStore::persist(const std::string& session_id) {
         if (!m.meta.is_null()) j["meta"] = m.meta;
         f << j.dump() << "\n";
     }
+    s.persisted_count_ = total;
     dirty_.erase(session_id);
     return true;
 }
