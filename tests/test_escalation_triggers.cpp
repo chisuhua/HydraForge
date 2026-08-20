@@ -5,7 +5,7 @@
 // 设计依据：openspec/changes/phase6-service-ification-v1/
 //          tasks.md §6, design.md Decision 6
 // 作者：Phase 6 W1 (Sisyphus-Junior)
-// 最后修改日期：2026-07-15
+// 最后修改日期：2026-08-20 (P12: 迁移本地 test::MockBus → canonical test::MockBus)
 
 #include "catch_amalgamated.hpp"
 
@@ -13,6 +13,7 @@
 #include "common/tools/tool_coordinator.h"
 #include "core/types/tool_result.h"
 #include "pdk/g3_knowledge_base/src/g3_state.h"
+#include "test_helpers/mock_bus.h"
 
 #include <memory>
 #include <string>
@@ -22,28 +23,13 @@ using namespace agenticdsl;
 
 namespace {
 
-class MockBusForEscalation : public IInteractionBus {
- public:
-  void emit(const BusEvent& event) override {
-    events_.push_back(event.topic);
-  }
-  void emit(const std::string& event_type, const std::string&) override {
-    events_.push_back(event_type);
-  }
-  size_t subscribe(const std::string&,
-                    std::function<void(const BusEvent&)>) override { return 0; }
-  void unsubscribe(size_t) override {}
-
-  std::vector<std::string> events_;
-};
-
 } // namespace
 
 // ============================================================================
 // Test 1 (§6.1): depth > 2 → HARD KILL
 // ============================================================================
 TEST_CASE("escalation: depth>2 trigger — 3rd nesting throws", "[escalation][depth]") {
-  auto bus = std::make_shared<MockBusForEscalation>();
+  auto bus = std::make_shared<test::MockBus>();
 
   ToolCoordinatorNestingGuard g1("tool_A", bus);  // depth 1
   ToolCoordinatorNestingGuard g2("tool_B", bus);  // depth 2
@@ -64,7 +50,7 @@ TEST_CASE("escalation: depth>2 trigger — 3rd nesting throws", "[escalation][de
 // ============================================================================
 TEST_CASE("escalation: cycle trigger — same tool on stack → HARD KILL + audit",
           "[escalation][cycle]") {
-  auto bus = std::make_shared<MockBusForEscalation>();
+  auto bus = std::make_shared<test::MockBus>();
 
   ToolCoordinatorNestingGuard g1("G1/coding_assistant", bus);  // depth 1
   ToolCoordinatorNestingGuard g2("G3/knowledge_base", bus);    // depth 2
@@ -81,7 +67,7 @@ TEST_CASE("escalation: cycle trigger — same tool on stack → HARD KILL + audi
 
   // 验证 cycle_detected_log audit event 已发射
   bool has_cycle_audit = false;
-  for (auto& e : bus->events_) {
+  for (auto& e : bus->topics) {
     if (e == "tool.coordinator.cycle_detected") { has_cycle_audit = true; break; }
   }
   REQUIRE(has_cycle_audit);
@@ -168,7 +154,7 @@ TEST_CASE("escalation: design review trigger — 2+ awkward pattern categories",
 // ============================================================================
 TEST_CASE("escalation: normal 2-level nesting — NO trigger (regression R4)",
           "[escalation][regression][2level]") {
-  auto bus = std::make_shared<MockBusForEscalation>();
+  auto bus = std::make_shared<test::MockBus>();
 
   // depth=2 嵌套应正常完成, 不抛异常
   bool threw = false;
@@ -181,7 +167,7 @@ TEST_CASE("escalation: normal 2-level nesting — NO trigger (regression R4)",
   REQUIRE_FALSE(threw);
 
   // 验证: 无 escalation triggers 发射
-  for (auto& e : bus->events_) {
+  for (auto& e : bus->topics) {
     REQUIRE(e != "tool.coordinator.cycle_detected");
   }
 }

@@ -3,7 +3,7 @@
 //          TDD Step 4: 骨架验证测试
 // 设计依据：ADR-0007 (上下文压缩) + .rddf/plans/context-compactor.md
 // 作者：AgenticDSL context-compactor change
-// 最后修改日期：2026-08-13
+// 最后修改日期：2026-08-20 (P12: 迁移本地 MockBus → canonical test::MockBus)
 
 #include "catch_amalgamated.hpp"
 
@@ -12,6 +12,7 @@
 #include "agenticdsl/contract/bus_event.h"
 #include "common/llm/llm_types.h"
 #include "agenticdsl/types/layered_context.h"
+#include "test_helpers/mock_bus.h"
 
 using namespace agenticdsl;
 
@@ -118,19 +119,6 @@ TEST_CASE("compact degrades gracefully when LLM returns no text") {
   REQUIRE(result.empty());
 }
 
-// MockBus implements IInteractionBus for testing event emission
-class MockBus : public IInteractionBus {
-public:
-  std::vector<BusEvent> events;
-  void emit(const BusEvent& event) override { events.push_back(event); }
-  void emit(const std::string&, const std::string&) override {}
-  size_t subscribe(const std::string&,
-                    std::function<void(const BusEvent&)>) override {
-    return 0;
-  }
-  void unsubscribe(size_t) override {}
-};
-
 TEST_CASE("compact catches LLM exceptions and returns empty") {
   ThrowingLLMForCompact mock;
   ContextCompactorImpl compactor(4096, nullptr, nullptr);
@@ -140,7 +128,7 @@ TEST_CASE("compact catches LLM exceptions and returns empty") {
 
 // ADR-0068: EventBuilder V2 for context.compact events
 TEST_CASE("on_compact_before uses EventBuilder with args+meta (ADR-0068)") {
-  auto bus = std::make_shared<MockBus>();
+  auto bus = std::make_shared<test::MockBus>();
   ContextCompactorImpl compactor(4096, nullptr, bus);
   compactor.on_compact_before("sess_xyz", 5000);
   REQUIRE(bus->events.size() == 1);
@@ -155,7 +143,7 @@ TEST_CASE("on_compact_before uses EventBuilder with args+meta (ADR-0068)") {
 }
 
 TEST_CASE("on_compact_after includes tokens_before, tokens_after, compression_ratio") {
-  auto bus = std::make_shared<MockBus>();
+  auto bus = std::make_shared<test::MockBus>();
   ContextCompactorImpl compactor(4096, nullptr, bus);
   compactor.on_compact_after("sess_xyz", 5000, 1000);
   REQUIRE(bus->events.size() == 1);

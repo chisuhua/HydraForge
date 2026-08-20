@@ -2,7 +2,7 @@
 // 功能描述：ToolCoordinator 单元测试 (C4 Sprint 14)
 // 设计依据：ADR-0031 §决策 5 (Oracle session ses_0ed4408faffeLv8VfrC0s5PzW7)
 // 作者：AgenticDSL Phase3 / Sprint 14 C4 ship
-// 最后修改日期：2026-06-29
+// 最后修改日期：2026-08-20 (P12: 迁移本地 test::MockBus → canonical test::MockBus)
 #include "catch_amalgamated.hpp"
 
 #include <memory>
@@ -14,6 +14,7 @@
 #include "common/policy/agent_mode_policy.h"
 #include "common/policy/approval_callbacks.h"
 #include "common/tools/tool_coordinator.h"
+#include "test_helpers/mock_bus.h"
 
 using namespace agenticdsl;
 
@@ -50,24 +51,6 @@ class MockToolRegistry : public IToolRegistry {
   std::unordered_map<std::string, std::string> last_called_args_;
 };
 
-// Mock IInteractionBus for testing (records emit calls)
-class MockInteractionBus : public IInteractionBus {
- public:
-  void emit(const BusEvent& event) override {
-    emit_log_.push_back(event.topic);
-  }
-  void emit(const std::string& event_type, const std::string&) override {
-    emit_log_.push_back(event_type);
-  }
-  size_t subscribe(const std::string&,
-                    std::function<void(const BusEvent&)>) override {
-    return 0;
-  }
-  void unsubscribe(size_t) override {}
-
-  std::vector<std::string> emit_log_;
-};
-
 // Helper: create ToolMetadata V2 with defaults
 ToolMetadata make_meta(const std::string& name, ToolCategory category) {
   ToolMetadata m;
@@ -96,7 +79,7 @@ ToolCallContext make_ctx(const std::string& caller_layer) {
 
 TEST_CASE("tool_coordinator_layer_workflow_allows_all", "[tool_coordinator][stage3]") {
   MockToolRegistry registry;
-  MockInteractionBus bus;
+  test::MockBus bus;
   auto policy = std::make_shared<AgentModePolicy>();
   auto coordinator = std::make_unique<ToolCoordinator>(
       registry, policy, make_test_auto_callback(true),
@@ -114,7 +97,7 @@ TEST_CASE("tool_coordinator_layer_workflow_allows_all", "[tool_coordinator][stag
 
 TEST_CASE("tool_coordinator_layer_thinking_only_readonly", "[tool_coordinator][stage3]") {
   MockToolRegistry registry;
-  MockInteractionBus bus;
+  test::MockBus bus;
   auto policy = std::make_shared<AgentModePolicy>();
   auto coordinator = std::make_unique<ToolCoordinator>(
       registry, policy, make_test_auto_callback(true),
@@ -131,7 +114,7 @@ TEST_CASE("tool_coordinator_layer_thinking_only_readonly", "[tool_coordinator][s
 
 TEST_CASE("tool_coordinator_layer_cognitive_denies_all", "[tool_coordinator][stage3]") {
   MockToolRegistry registry;
-  MockInteractionBus bus;
+  test::MockBus bus;
   auto policy = std::make_shared<AgentModePolicy>();
   auto coordinator = std::make_unique<ToolCoordinator>(
       registry, policy, make_test_auto_callback(true),
@@ -144,7 +127,7 @@ TEST_CASE("tool_coordinator_layer_cognitive_denies_all", "[tool_coordinator][sta
 
 TEST_CASE("tool_coordinator_audit_emit_order", "[tool_coordinator][stage3]") {
   MockToolRegistry registry;
-  MockInteractionBus bus;
+  test::MockBus bus;
   auto policy = std::make_shared<AgentModePolicy>();
   auto coordinator = std::make_unique<ToolCoordinator>(
       registry, policy, make_test_auto_callback(true),
@@ -154,16 +137,16 @@ TEST_CASE("tool_coordinator_audit_emit_order", "[tool_coordinator][stage3]") {
   coordinator->execute(meta, make_ctx("workflow"), {});
 
   // ADR-0068: tool.execution.start/end 包裹 audit 事件
-  REQUIRE(bus.emit_log_.size() == 4);
-  REQUIRE(bus.emit_log_[0] == "tool.execution.start");
-  REQUIRE(bus.emit_log_[1] == "tool.audit.invoked");
-  REQUIRE(bus.emit_log_[2] == "tool.audit.completed");
-  REQUIRE(bus.emit_log_[3] == "tool.execution.end");
+  REQUIRE(bus.topics.size() == 4);
+  REQUIRE(bus.topics[0] == "tool.execution.start");
+  REQUIRE(bus.topics[1] == "tool.audit.invoked");
+  REQUIRE(bus.topics[2] == "tool.audit.completed");
+  REQUIRE(bus.topics[3] == "tool.execution.end");
 }
 
 TEST_CASE("tool_coordinator_audit_deny_on_layer", "[tool_coordinator][stage3]") {
   MockToolRegistry registry;
-  MockInteractionBus bus;
+  test::MockBus bus;
   auto policy = std::make_shared<AgentModePolicy>();
   auto coordinator = std::make_unique<ToolCoordinator>(
       registry, policy, make_test_auto_callback(true),
@@ -173,9 +156,9 @@ TEST_CASE("tool_coordinator_audit_deny_on_layer", "[tool_coordinator][stage3]") 
   auto result = coordinator->execute(meta, make_ctx("cognitive"), {});
   REQUIRE_FALSE(result.ok);
   // ADR-0068: tool.execution.start 在 layer check 前发射, denied 后无 end (early return)
-  REQUIRE(bus.emit_log_.size() == 2);
-  REQUIRE(bus.emit_log_[0] == "tool.execution.start");
-  REQUIRE(bus.emit_log_[1] == "tool.audit.denied");
+  REQUIRE(bus.topics.size() == 2);
+  REQUIRE(bus.topics[0] == "tool.execution.start");
+  REQUIRE(bus.topics[1] == "tool.audit.denied");
 }
 
 TEST_CASE("tool_coordinator_null_bus_skips_audit", "[tool_coordinator][stage3]") {

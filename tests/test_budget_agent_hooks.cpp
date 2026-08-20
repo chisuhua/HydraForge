@@ -2,7 +2,7 @@
 // 功能描述：budget_agent FailClosed pre-hook 集成测试 (ADR-0069 §决策 3)
 // 设计依据：ADR-0069 + pdk/budget_agent 预算超限降级
 // 作者：AgenticDSL Phase 6 / adr-0069-tool-coordinator-hooks change
-// 最后修改日期：2026-08-04
+// 最后修改日期：2026-08-20 (P12: 迁移本地 MockBus → canonical test::MockBus)
 #include "catch_amalgamated.hpp"
 
 #include <dlfcn.h>
@@ -18,19 +18,11 @@
 #include "common/tools/registry.h"
 #include "common/tools/tool_coordinator.h"
 #include "common/tools/tool_hook_registry.h"
+#include "test_helpers/mock_bus.h"
 
 using namespace agenticdsl;
 
 namespace {
-
-class MockBus : public IInteractionBus {
- public:
-  void emit(const BusEvent& event) override { topics_.push_back(event.topic); }
-  void emit(const std::string& type, const std::string&) override { topics_.push_back(type); }
-  size_t subscribe(const std::string&, std::function<void(const BusEvent&)>) override { return 0; }
-  void unsubscribe(size_t) override {}
-  std::vector<std::string> topics_;
-};
 
 ToolMetadata make_meta(const std::string& name, ToolCategory category) {
   ToolMetadata m;
@@ -76,7 +68,7 @@ TEST_CASE("budget_agent_pre_hook_denies_when_over_budget", "[budget_agent][stage
         });
 
     ToolHookRegistry hooks;
-    MockBus bus;
+    test::MockBus bus;
 
     register_tools(registry);
     register_hooks(hooks);
@@ -94,7 +86,7 @@ TEST_CASE("budget_agent_pre_hook_denies_when_over_budget", "[budget_agent][stage
     auto result = coordinator.execute(make_meta("test/echo", ToolCategory::ReadOnly),
                                       make_ctx(), {});
     REQUIRE_FALSE(result.ok);
-    REQUIRE(bus.topics_.back() == "tool.audit.denied");
+    REQUIRE(bus.topics.back() == "tool.audit.denied");
   }
 
   dlclose(handle);

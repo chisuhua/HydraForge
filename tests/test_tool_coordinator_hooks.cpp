@@ -40,6 +40,7 @@ TEST_CASE("tool_hook_registry_executes_matching_pre_hook", "[tool_coordinator_ho
 }
 
 #include "common/tools/tool_coordinator.h"
+#include "test_helpers/mock_bus.h"
 #include "common/policy/agent_mode_policy.h"
 #include "common/policy/approval_callbacks.h"
 #include "agenticdsl/contract/iinteraction_bus.h"
@@ -77,23 +78,6 @@ class MockToolRegistry : public IToolRegistry {
   std::unordered_map<std::string, std::string> last_called_args_;
 };
 
-class MockInteractionBus : public IInteractionBus {
- public:
-  void emit(const BusEvent& event) override {
-    emit_log_.push_back(event.topic);
-    payloads_.push_back(event.payload);
-  }
-  void emit(const std::string& event_type, const std::string&) override {
-    emit_log_.push_back(event_type);
-  }
-  size_t subscribe(const std::string&,
-                   std::function<void(const BusEvent&)>) override { return 0; }
-  void unsubscribe(size_t) override {}
-
-  std::vector<std::string> emit_log_;
-  std::vector<ToolResult> payloads_;
-};
-
 ToolMetadata make_meta(const std::string& name, ToolCategory category) {
   ToolMetadata m;
   m.name = name;
@@ -118,7 +102,7 @@ ToolCallContext make_ctx(const std::string& caller_layer) {
 
 TEST_CASE("tool_coordinator_pre_hook_deny_skips_call", "[tool_coordinator_hooks][stage3]") {
   MockToolRegistry registry;
-  MockInteractionBus bus;
+  test::MockBus bus;
   ToolHookRegistry hooks;
   hooks.register_pre_hook(
       "shell/*",
@@ -142,13 +126,13 @@ TEST_CASE("tool_coordinator_pre_hook_deny_skips_call", "[tool_coordinator_hooks]
                                      make_ctx("workflow"), {});
   REQUIRE_FALSE(result.ok);
   REQUIRE(registry.last_called_tool_.empty());
-  REQUIRE(bus.emit_log_.size() == 1);
-  REQUIRE(bus.emit_log_[0] == "tool.audit.denied");
+  REQUIRE(bus.topics.size() == 1);
+  REQUIRE(bus.topics[0] == "tool.audit.denied");
 }
 
 TEST_CASE("tool_coordinator_post_hook_modifies_result_and_audit", "[tool_coordinator_hooks][stage4]") {
   MockToolRegistry registry;
-  MockInteractionBus bus;
+  test::MockBus bus;
   ToolHookRegistry hooks;
   hooks.register_post_hook(
       "shell/*",
@@ -173,11 +157,11 @@ TEST_CASE("tool_coordinator_post_hook_modifies_result_and_audit", "[tool_coordin
   REQUIRE(result.data["output"] == "[REDACTED]");
 
   // expected: start, invoked, completed, end
-  REQUIRE(bus.emit_log_.size() == 4);
-  REQUIRE(bus.emit_log_[0] == "tool.execution.start");
-  REQUIRE(bus.emit_log_[1] == "tool.audit.invoked");
-  REQUIRE(bus.emit_log_[2] == "tool.audit.completed");
-  REQUIRE(bus.emit_log_[3] == "tool.execution.end");
+  REQUIRE(bus.topics.size() == 4);
+  REQUIRE(bus.topics[0] == "tool.execution.start");
+  REQUIRE(bus.topics[1] == "tool.audit.invoked");
+  REQUIRE(bus.topics[2] == "tool.audit.completed");
+  REQUIRE(bus.topics[3] == "tool.execution.end");
 
   // The returned result is redacted. EventBuilder V2 lifecycle/audit events
   // carry the final status and metadata; their data payload is not the tool result.
@@ -186,7 +170,7 @@ TEST_CASE("tool_coordinator_post_hook_modifies_result_and_audit", "[tool_coordin
 
 TEST_CASE("tool_coordinator_null_hook_registry_preserves_old_flow", "[tool_coordinator_hooks][stage5]") {
   MockToolRegistry registry;
-  MockInteractionBus bus;
+  test::MockBus bus;
 
   auto policy = std::make_shared<AgentModePolicy>();
   auto coordinator = std::make_unique<ToolCoordinator>(
@@ -201,11 +185,11 @@ TEST_CASE("tool_coordinator_null_hook_registry_preserves_old_flow", "[tool_coord
   REQUIRE(registry.last_called_args_["key"] == "val");
   // main 基线 (ADR-0068) 已发射 tool.execution.start/end；null hook registry
   // 不插入额外事件，因此为 4 个生命周期事件
-  REQUIRE(bus.emit_log_.size() == 4);
-  REQUIRE(bus.emit_log_[0] == "tool.execution.start");
-  REQUIRE(bus.emit_log_[1] == "tool.audit.invoked");
-  REQUIRE(bus.emit_log_[2] == "tool.audit.completed");
-  REQUIRE(bus.emit_log_[3] == "tool.execution.end");
+  REQUIRE(bus.topics.size() == 4);
+  REQUIRE(bus.topics[0] == "tool.execution.start");
+  REQUIRE(bus.topics[1] == "tool.audit.invoked");
+  REQUIRE(bus.topics[2] == "tool.audit.completed");
+  REQUIRE(bus.topics[3] == "tool.execution.end");
 }
 
 TEST_CASE("tool_hook_registry_priority_and_glob", "[tool_coordinator_hooks][stage6]") {

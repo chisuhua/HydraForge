@@ -21,6 +21,7 @@
 #include <agenticdsl/contract/bus_event.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <core/types/tool_result.h>
+#include "test_helpers/mock_bus.h"
 #include <core/engine.h>
 #include <common/llm/mock_provider.h>
 #include <agenticdsl/plugin/plugin_loader.h>
@@ -57,65 +58,6 @@ static void ensure_plugin_path_env() {
 
 namespace mock {
 
-/**
- * @brief MockBus: 实现真实 IInteractionBus 接口 (4 virtual methods)
- *
- * IInteractionBus 规范:
- *   1. emit(BusEvent)               — 主路径
- *   2. emit(topic, string)          — 向后兼容
- *   3. subscribe(topic, callback<BusEvent>) → size_t token
- *   4. unsubscribe(size_t token)
- */
-class MockBus : public agenticdsl::IInteractionBus {
-public:
-    // emit(BusEvent) — 主路径: 存入 events 并通知 subscribers
-    void emit(const agenticdsl::BusEvent& event) override {
-        events.emplace_back(event.topic, event.payload.meta);
-        // 通知所有 subscribers
-        auto it = subscribers_by_topic_.find(event.topic);
-        if (it != subscribers_by_topic_.end()) {
-            for (auto& sub : it->second) {
-                sub(event);
-            }
-        }
-    }
-
-    // emit(string) — 向后兼容: 包装为 BusEvent
-    void emit(const std::string& topic, const std::string& content) override {
-        agenticdsl::ToolResult tr;
-        tr.ok = true;
-        tr.meta = {{"content", content}};
-        agenticdsl::BusEvent event{topic, tr};
-        events.emplace_back(topic, event.payload.meta);
-        auto it = subscribers_by_topic_.find(topic);
-        if (it != subscribers_by_topic_.end()) {
-            for (auto& sub : it->second) {
-                sub(event);
-            }
-        }
-    }
-
-    // subscribe — 返回递增 token
-    size_t subscribe(
-        const std::string& topic,
-        std::function<void(const agenticdsl::BusEvent&)> callback
-    ) override {
-        subscribers_by_topic_[topic].push_back(std::move(callback));
-        return next_token_++;
-    }
-
-    // unsubscribe — no-op (mock 不追踪个别 token)
-    void unsubscribe(size_t /*token*/) override {
-        // Mock 实现：不做精确 token 追踪
-    }
-
-    std::vector<std::pair<std::string, nlohmann::json>> events;
-
-private:
-    size_t next_token_ = 1;
-    std::unordered_map<std::string, std::vector<std::function<void(const agenticdsl::BusEvent&)>>> subscribers_by_topic_;
-};
-
 }  // namespace mock
 
 static std::string ptr_to_str(void* p) {
@@ -134,7 +76,7 @@ static std::string find_loop_dir() {
 }
 
 TEST_CASE("EventHandler subscribes to expected topics", "[e2e][mock]") {
-    auto bus = std::make_shared<mock::MockBus>();
+    auto bus = std::make_shared<agenticdsl::test::MockBus>();
 
     EventHandler handler(bus, nullptr);
 
@@ -151,7 +93,9 @@ TEST_CASE("EventHandler subscribes to expected topics", "[e2e][mock]") {
     // 验证事件流
     bool found_user_input = false;
     bool found_loop_done = false;
-    for (const auto& [topic, payload] : bus->events) {
+    for (const auto& e : bus->events) {
+        const auto& topic = e.topic;
+        const auto& payload = e.payload.meta;
         if (topic == "user.input") found_user_input = true;
         if (topic == "loop.done") found_loop_done = true;
     }
@@ -165,7 +109,7 @@ TEST_CASE("Mock mode -- end-to-end flow", "[e2e][mock]") {
 
     hydraforge::PluginLoader loader;
     auto engine = std::make_unique<agenticdsl::DSLEngine>(std::vector<agenticdsl::ParsedGraph>{});
-    auto bus = std::make_shared<mock::MockBus>();
+    auto bus = std::make_shared<agenticdsl::test::MockBus>();
     engine->set_interaction_bus(bus);
     EventHandler handler(bus, nullptr);
 
@@ -195,7 +139,9 @@ TEST_CASE("Mock mode -- end-to-end flow", "[e2e][mock]") {
     bool found_turn_start = false;
     bool found_decision = false;
     bool found_turn_end = false;
-    for (const auto& [topic, payload] : bus->events) {
+    for (const auto& e : bus->events) {
+        const auto& topic = e.topic;
+        const auto& payload = e.payload.meta;
         if (topic == "user.input") found_user_input = true;
         if (topic == "loop.done") found_loop_done = true;
         if (topic == "loop.turn.start") {
@@ -227,7 +173,7 @@ TEST_CASE("Mock mode -- end-to-end flow", "[e2e][mock]") {
 }
 
 TEST_CASE("MockBus implements all 4 IInteractionBus virtual methods", "[e2e][mock]") {
-    auto bus = std::make_shared<mock::MockBus>();
+    auto bus = std::make_shared<agenticdsl::test::MockBus>();
 
     // 验证 subscribe callback 接收 BusEvent
     int callback_count = 0;
@@ -260,7 +206,7 @@ TEST_CASE("ChatSession routes through loop/run even when LLM provider is set", "
 
     hydraforge::PluginLoader loader;
     auto engine = std::make_unique<agenticdsl::DSLEngine>(std::vector<agenticdsl::ParsedGraph>{});
-    auto bus = std::make_shared<mock::MockBus>();
+    auto bus = std::make_shared<agenticdsl::test::MockBus>();
     engine->set_interaction_bus(bus);
 
     REQUIRE(loader.load_so(find_loop_agent_so(), engine->get_tool_registry()));
@@ -297,7 +243,7 @@ TEST_CASE("loop/run emits loop.turn.start with turn and step", "[e2e][mock][loop
 
     hydraforge::PluginLoader loader;
     auto engine = std::make_unique<agenticdsl::DSLEngine>(std::vector<agenticdsl::ParsedGraph>{});
-    auto bus = std::make_shared<mock::MockBus>();
+    auto bus = std::make_shared<agenticdsl::test::MockBus>();
     engine->set_interaction_bus(bus);
 
     REQUIRE(loader.load_so(find_loop_agent_so(), engine->get_tool_registry()));
@@ -321,7 +267,9 @@ TEST_CASE("loop/run emits loop.turn.start with turn and step", "[e2e][mock][loop
     (void)run_result;
 
     bool found_turn_start = false;
-    for (const auto& [topic, payload] : bus->events) {
+    for (const auto& e : bus->events) {
+        const auto& topic = e.topic;
+        const auto& payload = e.payload.meta;
         if (topic == "loop.turn.start") {
             REQUIRE(payload.contains("turn"));
             REQUIRE(payload.contains("step"));
@@ -339,7 +287,7 @@ TEST_CASE("loop/run emits loop.decision with decision and tool", "[e2e][mock][lo
 
     hydraforge::PluginLoader loader;
     auto engine = std::make_unique<agenticdsl::DSLEngine>(std::vector<agenticdsl::ParsedGraph>{});
-    auto bus = std::make_shared<mock::MockBus>();
+    auto bus = std::make_shared<agenticdsl::test::MockBus>();
     engine->set_interaction_bus(bus);
 
     REQUIRE(loader.load_so(find_loop_agent_so(), engine->get_tool_registry()));
@@ -362,7 +310,9 @@ TEST_CASE("loop/run emits loop.decision with decision and tool", "[e2e][mock][lo
         });
 
     bool found_decision = false;
-    for (const auto& [topic, payload] : bus->events) {
+    for (const auto& e : bus->events) {
+        const auto& topic = e.topic;
+        const auto& payload = e.payload.meta;
         if (topic == "loop.decision") {
             REQUIRE(payload.contains("decision"));
             REQUIRE(payload.value("decision", "") == "tool_call");
@@ -381,7 +331,7 @@ TEST_CASE("loop/run emits loop.turn.end with turn and decision", "[e2e][mock][lo
 
     hydraforge::PluginLoader loader;
     auto engine = std::make_unique<agenticdsl::DSLEngine>(std::vector<agenticdsl::ParsedGraph>{});
-    auto bus = std::make_shared<mock::MockBus>();
+    auto bus = std::make_shared<agenticdsl::test::MockBus>();
     engine->set_interaction_bus(bus);
 
     REQUIRE(loader.load_so(find_loop_agent_so(), engine->get_tool_registry()));
@@ -404,7 +354,9 @@ TEST_CASE("loop/run emits loop.turn.end with turn and decision", "[e2e][mock][lo
         });
 
     bool found_turn_end = false;
-    for (const auto& [topic, payload] : bus->events) {
+    for (const auto& e : bus->events) {
+        const auto& topic = e.topic;
+        const auto& payload = e.payload.meta;
         if (topic == "loop.turn.end") {
             REQUIRE(payload.contains("turn"));
             REQUIRE(payload.contains("decision"));

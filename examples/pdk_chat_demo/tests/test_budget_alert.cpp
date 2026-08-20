@@ -21,6 +21,7 @@
 #include <agenticdsl/contract/event_builder.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <core/types/tool_result.h>
+#include "test_helpers/mock_bus.h"
 #include <core/types/budget.h>
 #include <core/engine.h>
 #include <modules/budget/budget_controller.h>
@@ -30,43 +31,8 @@ using namespace pdk_chat_demo;
 
 namespace {
 
-class MockBus : public agenticdsl::IInteractionBus {
-public:
-    void emit(const agenticdsl::BusEvent& event) override {
-        events.emplace_back(event.topic, event.payload.data, event.payload.meta, event.payload.ok);
-        auto it = subscribers_.find(event.topic);
-        if (it != subscribers_.end()) {
-            for (auto& cb : it->second) cb(event);
-        }
-    }
-
-    void emit(const std::string& topic, const std::string& content) override {
-        emit(agenticdsl::EventBuilder(topic).meta(nlohmann::json{{"content", content}}).build());
-    }
-
-    size_t subscribe(const std::string& topic,
-                      std::function<void(const agenticdsl::BusEvent&)> cb) override {
-        subscribers_[topic].push_back(std::move(cb));
-        return next_token_++;
-    }
-
-    void unsubscribe(size_t) override {}
-
-    struct EventRecord {
-        std::string topic;
-        nlohmann::json data;
-        nlohmann::json meta;
-        bool ok;
-    };
-    std::vector<EventRecord> events;
-
-private:
-    size_t next_token_ = 1;
-    std::unordered_map<std::string, std::vector<std::function<void(const agenticdsl::BusEvent&)>>> subscribers_;
-};
-
 // 查找 budget.checked 事件 (ADR-0068 §4: 业务字段在 data, trace 在 meta)
-bool has_budget_checked(const MockBus& bus) {
+bool has_budget_checked(const agenticdsl::test::MockBus& bus) {
     for (const auto& ev : bus.events) {
         if (ev.topic == "budget.checked") return true;
     }
@@ -74,9 +40,9 @@ bool has_budget_checked(const MockBus& bus) {
 }
 
 // 从 budget.checked 事件中提取 payload data (ADR-0068 §4 split)
-nlohmann::json get_budget_payload(const MockBus& bus) {
+nlohmann::json get_budget_payload(const agenticdsl::test::MockBus& bus) {
     for (const auto& ev : bus.events) {
-        if (ev.topic == "budget.checked") return ev.data;
+        if (ev.topic == "budget.checked") return ev.payload.data;
     }
     return {};
 }
@@ -87,7 +53,7 @@ TEST_CASE("budget alert: exceeded triggers budget.checked event", "[budget][aler
     // 构造 DSLEngine + 设置预算后手动耗尽
     auto engine = std::make_unique<agenticdsl::DSLEngine>(
         std::vector<agenticdsl::ParsedGraph>{});
-    auto bus = std::make_shared<MockBus>();
+    auto bus = std::make_shared<agenticdsl::test::MockBus>();
     engine->set_interaction_bus(bus);
 
     // 设置预算 1 次 LLM 调用, 然后强制 used=2 -> 超限
@@ -131,7 +97,7 @@ TEST_CASE("budget alert: exceeded triggers budget.checked event", "[budget][aler
     // ADR-0068 §4: 业务字段在 data, trace 在 meta
     auto payload = get_budget_payload(*bus);
     const auto& ev = bus->events.front();
-    auto& meta = ev.meta;
+    auto& meta = ev.payload.meta;
     REQUIRE(payload["unit"] == "llm_calls");
     REQUIRE(payload["reason"] == "cost_limit");
     REQUIRE(payload.contains("limit"));
@@ -142,7 +108,7 @@ TEST_CASE("budget alert: exceeded triggers budget.checked event", "[budget][aler
 TEST_CASE("budget alert: exactly at limit does not alert", "[budget][alert]") {
     auto engine = std::make_unique<agenticdsl::DSLEngine>(
         std::vector<agenticdsl::ParsedGraph>{});
-    auto bus = std::make_shared<MockBus>();
+    auto bus = std::make_shared<agenticdsl::test::MockBus>();
     engine->set_interaction_bus(bus);
 
     // 设置预算 5 次 LLM 调用, 消耗 4 次 (未超限)
@@ -178,7 +144,7 @@ TEST_CASE("budget alert: exactly at limit does not alert", "[budget][alert]") {
 TEST_CASE("budget alert: bus callback does not touch TUI directly", "[budget][alert][thread-safety]") {
     auto engine = std::make_unique<agenticdsl::DSLEngine>(
         std::vector<agenticdsl::ParsedGraph>{});
-    auto bus = std::make_shared<MockBus>();
+    auto bus = std::make_shared<agenticdsl::test::MockBus>();
     engine->set_interaction_bus(bus);
 
     // 构造 ChatSession (会 subscribe budget.checked)
@@ -211,7 +177,7 @@ TEST_CASE("budget alert: bus callback does not touch TUI directly", "[budget][al
     REQUIRE_FALSE(session.consume_budget_alert());
 
     // 验证: 回调未直接向 bus 添加额外事件 (无 cout 副作用)
-    // MockBus 的 events 应仅包含我们手动 emit 的那一条 budget.checked
+    // agenticdsl::test::MockBus 的 events 应仅包含我们手动 emit 的那一条 budget.checked
     int budget_count = 0;
     for (const auto& ev : bus->events) {
         if (ev.topic == "budget.checked") ++budget_count;
@@ -222,7 +188,7 @@ TEST_CASE("budget alert: bus callback does not touch TUI directly", "[budget][al
 TEST_CASE("budget alert: payload includes required fields", "[budget][alert]") {
     auto engine = std::make_unique<agenticdsl::DSLEngine>(
         std::vector<agenticdsl::ParsedGraph>{});
-    auto bus = std::make_shared<MockBus>();
+    auto bus = std::make_shared<agenticdsl::test::MockBus>();
     engine->set_interaction_bus(bus);
 
     agenticdsl::ExecutionBudget b;
@@ -253,7 +219,7 @@ TEST_CASE("budget alert: payload includes required fields", "[budget][alert]") {
 
     auto payload = get_budget_payload(*bus);
     const auto& ev = bus->events.front();
-    auto& meta = ev.meta;
+    auto& meta = ev.payload.meta;
     // 验证 design.md 要求的 5 个字段 (session_id 在 meta, 业务字段在 data)
     REQUIRE(meta["session_id"].is_string());
     REQUIRE(payload["limit"] == 2.5);

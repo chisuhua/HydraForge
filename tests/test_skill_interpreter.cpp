@@ -10,6 +10,7 @@
 #include <agenticdsl/contract/itool_registry.h>
 #include <agenticdsl/types/layered_context.h>
 #include <core/types/tool_result.h>
+#include "test_helpers/mock_bus.h"
 
 #include <fstream>
 #include <string>
@@ -54,21 +55,6 @@ public:
 };
 
 // ============================================================
-// Mock 事件总线 — 记录 emit 调用
-// ============================================================
-class MockBus : public IInteractionBus {
-public:
-    std::vector<std::pair<std::string, std::string>> string_emits;
-
-    void emit(const BusEvent&) override {}
-    void emit(const std::string& event_type, const std::string& content) override {
-        string_emits.emplace_back(event_type, content);
-    }
-    size_t subscribe(const std::string&, std::function<void(const BusEvent&)>) override { return 0; }
-    void unsubscribe(size_t) override {}
-};
-
-// ============================================================
 // 辅助函数：创建临时 .skill.md 文件
 // ============================================================
 static std::string create_temp_skill(const std::string& content) {
@@ -91,7 +77,7 @@ static void cleanup_file(const std::string& path) {
 TEST_CASE("7.1 正常执行 — 简单 SKILL 流程", "[skill_interpreter]") {
     // 测试：call_tool → return
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     std::string skill = create_temp_skill(
@@ -124,7 +110,7 @@ TEST_CASE("7.1 正常执行 — 简单 SKILL 流程", "[skill_interpreter]") {
 TEST_CASE("7.2 max_steps 超限 — 父进程 SIGKILL", "[skill_interpreter]") {
     // 设置 max_steps=0，第一个 IPC 请求触发 MaxStepsExceeded
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     std::string skill = create_temp_skill(
@@ -151,7 +137,7 @@ TEST_CASE("7.2 max_steps 超限 — 父进程 SIGKILL", "[skill_interpreter]") {
 
 TEST_CASE("7.4 capability 越权 — shell/exec 被拒绝", "[skill_interpreter]") {
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     std::string skill = create_temp_skill(
@@ -180,7 +166,7 @@ TEST_CASE("7.4 capability 越权 — shell/exec 被拒绝", "[skill_interpreter]
 
 TEST_CASE("7.6 非 Linux 平台降级", "[skill_interpreter]") {
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     SkillCapability cap;
@@ -199,7 +185,7 @@ TEST_CASE("7.6 非 Linux 平台降级", "[skill_interpreter]") {
 
 TEST_CASE("7.8 SIGKILL 进行中", "[skill_interpreter]") {
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     std::string skill = create_temp_skill(
@@ -227,7 +213,7 @@ TEST_CASE("7.8 SIGKILL 进行中", "[skill_interpreter]") {
 
 TEST_CASE("7.12 inja 变量插值", "[skill_interpreter]") {
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     std::string skill = create_temp_skill(
@@ -256,7 +242,7 @@ TEST_CASE("7.12 inja 变量插值", "[skill_interpreter]") {
 
 TEST_CASE("7.17 consume_budget 超限", "[skill_interpreter]") {
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     std::string skill = create_temp_skill(
@@ -289,7 +275,7 @@ TEST_CASE("7.18 子进程环境变量缺失", "[skill_interpreter]") {
     // 如果父进程构造正确，子进程不会收到缺失的环境变量
     // 这是一个父进程正确性测试
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     std::string skill = create_temp_skill(
@@ -315,7 +301,7 @@ TEST_CASE("7.18 子进程环境变量缺失", "[skill_interpreter]") {
 
 TEST_CASE("7.19 SKILL.md 解析错误", "[skill_interpreter]") {
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     // 语法错误：unkown statement
@@ -342,7 +328,7 @@ TEST_CASE("7.19 SKILL.md 解析错误", "[skill_interpreter]") {
 
 TEST_CASE("7.21 emit_event JSON 桥接", "[skill_interpreter]") {
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     std::string skill = create_temp_skill(
@@ -372,7 +358,7 @@ TEST_CASE("7.13 僵尸进程防护 — 析构函数自动 waitpid", "[skill_inte
     pid_t child_pid = 0;
     {
         MockToolRegistry tools;
-        MockBus bus;
+        test::MockBus bus;
         SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
         std::string skill = create_temp_skill(
@@ -403,7 +389,7 @@ TEST_CASE("7.13 僵尸进程防护 — 析构函数自动 waitpid", "[skill_inte
 
 TEST_CASE("7.27 G5 emit_event topic whitelist", "[skill_interpreter]") {
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     std::string skill = create_temp_skill(
@@ -432,7 +418,7 @@ TEST_CASE("7.27 G5 emit_event topic whitelist", "[skill_interpreter]") {
 TEST_CASE("7.14 --skill-child 早期分支内存峰值", "[skill_interpreter]") {
     // 验证子进程不进入 DSLEngine 启动路径
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     std::string skill = create_temp_skill(
@@ -458,7 +444,7 @@ TEST_CASE("7.23 G1 child 2MB line IPC rejection", "[skill_interpreter]") {
     // 测试 IPC 消息超过 1MB 时被截断
     // 使用一个返回巨大 JSON 的工具来模拟
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     std::string skill = create_temp_skill(
@@ -486,7 +472,7 @@ TEST_CASE("7.23 G1 child 2MB line IPC rejection", "[skill_interpreter]") {
 TEST_CASE("7.29 G7 child fd table", "[skill_interpreter]") {
     // 验证 posix_spawn 后子进程 fd ≥ 3 不存在
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     std::string skill = create_temp_skill(
@@ -510,7 +496,7 @@ TEST_CASE("7.29 G7 child fd table", "[skill_interpreter]") {
 
 TEST_CASE("7.16 Capability 运行时不可变", "[skill_interpreter]") {
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     std::string skill = create_temp_skill(
@@ -537,7 +523,7 @@ TEST_CASE("7.16 Capability 运行时不可变", "[skill_interpreter]") {
 TEST_CASE("7.28 G6 child static thread (C4 invariant)", "[skill_interpreter]") {
     // 验证子进程入口检查 Threads==1
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     std::string skill = create_temp_skill(
@@ -565,7 +551,7 @@ TEST_CASE("7.3 seccomp 违规 — SIGSYS (openat 被禁)", "[skill_interceptor]"
     // 因为子进程 seccomp 在 SKILL 解释器运行前已加载
     // 本测试验证正常路径
     MockToolRegistry tools;
-    MockBus bus;
+    test::MockBus bus;
     SkillInterpreter interpreter(tools, bus, nullptr, nullptr);
 
     std::string skill = create_temp_skill(

@@ -1,0 +1,9 @@
+phase: phase-6c+
+category: test-infra
+change_type: refactor
+priority: P3
+parent_feature: ""
+defect_refs:
+  - 6.1
+adr_refs:
+  - ADR-0019

@@ -129,6 +129,10 @@ target_link_libraries(test_e2e_mock PRIVATE
 target_include_directories(test_e2e_mock PRIVATE
     ${CATCH_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/tests
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
 )
 target_compile_definitions(test_e2e_mock PRIVATE
     CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
@@ -229,6 +233,7 @@ target_include_directories(test_session_persistence PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/..
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/tests
     ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
 )
 target_compile_definitions(test_session_persistence PRIVATE
@@ -256,6 +261,7 @@ target_link_libraries(test_budget_alert PRIVATE
 target_include_directories(test_budget_alert PRIVATE
     ${CATCH_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/tests
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include

@@ -22,39 +22,11 @@
 #include <agenticdsl/contract/event_builder.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <core/types/tool_result.h>
+#include "test_helpers/mock_bus.h"
 
 using namespace pdk_chat_demo;
 
 namespace {
-
-class MockBus : public agenticdsl::IInteractionBus {
-public:
-    void emit(const agenticdsl::BusEvent& event) override {
-        events.emplace_back(event.topic, event.payload.meta);
-        auto it = subscribers_.find(event.topic);
-        if (it != subscribers_.end()) {
-            for (auto& cb : it->second) cb(event);
-        }
-    }
-
-    void emit(const std::string& topic, const std::string& content) override {
-        emit(agenticdsl::EventBuilder(topic).meta(nlohmann::json{{"content", content}}).build());
-    }
-
-    size_t subscribe(const std::string& topic,
-                      std::function<void(const agenticdsl::BusEvent&)> cb) override {
-        subscribers_[topic].push_back(std::move(cb));
-        return next_token_++;
-    }
-
-    void unsubscribe(size_t) override {}
-
-    std::vector<std::pair<std::string, nlohmann::json>> events;
-
-private:
-    size_t next_token_ = 1;
-    std::unordered_map<std::string, std::vector<std::function<void(const agenticdsl::BusEvent&)>>> subscribers_;
-};
 
 // RAII 临时目录 fixture
 class TempDir {
@@ -86,7 +58,7 @@ void write_file(const std::filesystem::path& p, const std::string& content) {
 
 TEST_CASE("session persistence: save and restore across processes", "[session][persistence]") {
     TempDir tmp;
-    auto bus = std::make_shared<MockBus>();
+    auto bus = std::make_shared<agenticdsl::test::MockBus>();
 
     AgentConfig agent;
     agent.provider = "mock";
@@ -116,7 +88,7 @@ TEST_CASE("session persistence: save and restore across processes", "[session][p
 
 TEST_CASE("session persistence: corrupted JSON degrades gracefully", "[session][persistence]") {
     TempDir tmp;
-    auto bus = std::make_shared<MockBus>();
+    auto bus = std::make_shared<agenticdsl::test::MockBus>();
 
     AgentConfig agent;
     SessionConfig sess;
@@ -135,7 +107,7 @@ TEST_CASE("session persistence: corrupted JSON degrades gracefully", "[session][
 
 TEST_CASE("session persistence: stale cleanup removes old files", "[session][persistence]") {
     TempDir tmp;
-    auto bus = std::make_shared<MockBus>();
+    auto bus = std::make_shared<agenticdsl::test::MockBus>();
 
     AgentConfig agent;
     SessionConfig sess;
@@ -172,7 +144,7 @@ TEST_CASE("session persistence: stale cleanup removes old files", "[session][per
 
 TEST_CASE("session persistence: list_sessions scans persist_dir", "[session][persistence]") {
     TempDir tmp;
-    auto bus = std::make_shared<MockBus>();
+    auto bus = std::make_shared<agenticdsl::test::MockBus>();
 
     AgentConfig agent;
     SessionConfig sess;
@@ -200,7 +172,7 @@ TEST_CASE("session persistence: list_sessions scans persist_dir", "[session][per
 
 TEST_CASE("session persistence: schema version mismatch rejected", "[session][persistence]") {
     TempDir tmp;
-    auto bus = std::make_shared<MockBus>();
+    auto bus = std::make_shared<agenticdsl::test::MockBus>();
 
     AgentConfig agent;
     SessionConfig sess;
