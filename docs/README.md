@@ -87,6 +87,9 @@ docs/
 | `adr-0076-dsl-engine-mcp-server.md` | DSL Engine as MCP Server 控制面 (D1 stdio+HTTP+SSE + D2 静态 token + D3-D7 capability 暴露 + D8 Stateless) | 🔍 Proposed (2026-08-03, Wave 3 末, **gated by active-status.md §四**, INTEGRATES WITH Phase 6 Candidate B) |
 | `adr-0077-grpc-data-plane.md` | gRPC Data Plane 高吞吐通道 (D1 4 service + D2 64KB 路由 + D3 mTLS + D4 proto + D5 grpc.* 事件 + D6 GRPCBackend + D7 路由决策 + D8 启动条件) | 🔍 Proposed (2026-08-03, Wave 4 descoped docs-only, 派生自 ADR-0071 §D8) |
 | `adr-0078-finetune-base-model.md` | Fine-tune 基模与训练管线 (D1 4 维度评分 + D2 触发条件 + D3 数据 + D4 LoRA + D5 评估 + D6 AgenticMind 回流 + D7 serving) | 🔍 Proposed (2026-08-03, Wave 5+ descoped docs-only, 派生自 ADR-0071 §D9) |
+| `adr-0079-unified-session-4scope.md` | 统一会话模型与 4-Scope 存储 (Conversation/Attempt/Step/Execution + ConvergenceEntry) | ✅ Approved (v1.1 amendment 2026-08-12; 原始 v1 文本 2026-01-19, 本会话讨论产出) |
+| `adr-0080-append-only-event-log.md` | AppendOnlyEventLog 作为核心审计日志 (Step 0: BusEvent 信封扩展 + GenerationRequest.purpose; v1.1 D10 Distillation Capture + D2 causal_time + D6 opt-in) | ✅ Approved (v1.1 amendment 2026-08-12; 原始 v1 文本 2026-01-19, 本会话讨论产出) |
+| `adr-0082-agent-first-class-registry.md` | Agent as First-Class Registry (讨论稿: AgentWorker + YAML + spawn_agent, 争议未决, 搁置至 0079/0080 实施后) | 🔍 Proposed (v1.1 状态注记 2026-08-12: 蒸馏需求加强搁置; 原始讨论稿 2026-01-19, 未定稿) |
 
 ### adr/plugin/ - Plugin 化候选清单
 
