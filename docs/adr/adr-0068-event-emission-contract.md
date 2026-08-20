@@ -207,3 +207,7 @@ Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = 
 | `dsl.call.started` | NodeExecutor | DSL 节点进入 | `node_path`, `llm_tool_name` | ✅ `src/modules/executor/node_executor.cpp:133` |
 | `dsl.call.completed` | NodeExecutor | DSL 节点退出 | `node_path`, `output_key` | ✅ `src/modules/executor/node_executor.cpp:159` |
 | `execution.failed` | NodeExecutor | 执行失败 | `node_path`, `error_code` | ✅ `src/modules/executor/node_executor.cpp:412` |
+| `agent.spawned` | PluginLoader / CognitiveWorker | LOADED→initialized 转换 | `agent_descriptor`, `timestamp`, `causal_time` | ✅ (ADR-0057 §决策 6, 2026-08-20) |
+| `agent.heartbeat` | PluginLoader (per-plugin jthread) | active 期间默认 30s | `state`, `uptime_ms` | ✅ (ADR-0057 §决策 6) |
+| `agent.terminated` | PluginLoader / CognitiveWorker | active→inactive 转换 | `reason`, `exit_code` | ✅ (ADR-0057 §决策 6) |
+| `agent.error` | PluginLoader / CognitiveWorker | 任意状态转换失败 | `error_code`, `diagnostic` | ✅ (ADR-0057 §决策 6) |

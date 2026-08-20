@@ -160,6 +160,57 @@ ADR-0051 定义了 ToolCoordinator 的嵌套深度和环检测 RAII guard。
 | ADR-0057 Lifecycle | Plugin 级别 | load/init/register/activate/deactivate/unload |
 | ADR-0033 Session | Agent 执行 | UserSession/TaskSession/SubtaskSession |
 
+### 决策 6 — 发射事件契约（v1.2 amendment，2026-08-20）
+
+定义 4 个 `agent.*` 主题，使 PluginLoader / CognitiveWorker 的状态机转换可观测。**v1 仅定义事件契约**（本 ADR 职责），**emit 调用点实施**见 [openspec/changes/emit-agent-lifecycle-events](../openspec/changes/emit-agent-lifecycle-events/)。
+
+#### 4 主题定义
+
+| 主题 | 触发时机 | 对应状态机转换 |
+|------|----------|----------------|
+| `agent.spawned` | LOADED → initialized / initialized → registered（合并，不 split） | 决策 1 转换 1+2 |
+| `agent.heartbeat` | active 期间默认 30s 一次（可通过 `PluginInfo::heartbeat_interval_ms` 覆盖） | — |
+| `agent.terminated` | active → inactive（含 reason） | 决策 1 转换 5 |
+| `agent.error` | 任意状态转换失败（含 `error_code` + 非敏感诊断） | — |
+
+**合并决策写死**：`LOADED → initialized` 与 `initialized → registered` 共用 `agent.spawned`。不引入 `agent.registered`——保证 EventLog schema 最小化（4 主题而非 5）。
+
+#### Payload Schema
+
+所有 `agent.*` 事件 payload 含 3 字段（与 EventLog v1.1 schema 对齐）：
+
+```cpp
+struct AgentLifecyclePayload {
+    std::string agent_descriptor;  // AgentDescriptor V2 引用（name@version）
+    std::string timestamp;         // ISO-8601 UTC 时间戳
+    uint64_t    causal_time;       // 与 ADR-0080 CausalClock 对齐
+};
+```
+
+**子主题特殊字段**：
+
+- `agent.heartbeat`：额外 `state`（当前状态）+ `uptime_ms`
+- `agent.terminated`：额外 `reason`（字符串：graceful_shutdown / crash / force_unload 等）+ `exit_code`
+- `agent.error`：额外 `error_code`（`tool_result.h` ErrorCode 枚举值）+ `diagnostic`（非敏感诊断字符串）
+
+#### 触发条件映射表
+
+| 状态转换 | 触发事件 | emit 位置 |
+|----------|---------|----------|
+| LOADED → initialized | `agent.spawned` | `PluginLoader::load_so()` 后 |
+| initialized → registered | （与上合并，不重复 emit）| — |
+| registered → active | （不 emit，activation 由 lazy trigger，无独立事件） | — |
+| active 期间（每 30s） | `agent.heartbeat` | `PluginLoader` per-plugin `std::jthread` |
+| active → inactive | `agent.terminated` | `pdk_plugin_fini()` 后 |
+| inactive → unloaded | （不 emit，资源回收完成无独立事件） | — |
+| 任意转换失败 | `agent.error` | 异常 catch 路径 |
+
+#### 不变量
+
+- **`agent_descriptor` forward-compatible**：AgentDescriptor V2 字段变更时，旧事件 payload 仍可解析（EventBuilder 解析原则 "未知字段忽略"）
+- **不引入新命名空间**：4 主题严格在 `agent.*` 命名空间下，与未来 Marketplace 主题保持边界
+- **emit 不阻塞状态转换**：emit 调用失败（bus 不可用）只记录 warning，不影响状态机推进（opt-in + fail-closed）
+
 ## 替代方案
 
 ### 方案 A：完整 ROS 2 Managed Node 状态机（6 状态 7 转换）
