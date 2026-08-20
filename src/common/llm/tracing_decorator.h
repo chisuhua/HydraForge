@@ -35,6 +35,12 @@ class TracingDecorator : public ILLMProviderDecorator {
   TracingDecorator(std::unique_ptr<ILLMProvider> inner,
                    std::shared_ptr<IInteractionBus> bus);
 
+  // ADR-0080 v1.1 D10: opt-in Distillation Capture
+  // 开启后 emit_request 携带 prompt_text + available_tools_schema + system_prompt_source
+  // emit_response 携带 response_text (默认关闭, 行为不变)
+  void set_capture_prompt_bytes(bool enabled) { capture_prompt_bytes_ = enabled; }
+  bool is_capture_prompt_bytes() const { return capture_prompt_bytes_; }
+
  protected:
   std::optional<LLMError> pre_check_generate(
       const GenerationRequest& req) override;
@@ -47,6 +53,8 @@ class TracingDecorator : public ILLMProviderDecorator {
   std::shared_ptr<IInteractionBus> bus_;
   std::string trace_id_;
   std::optional<std::chrono::steady_clock::time_point> request_start_;
+  // ADR-0080 v1.1 D10: opt-in Distillation Capture（默认 false, 行为不变）
+  bool capture_prompt_bytes_ = false;
 
   static std::string compute_prompt_hash(const std::string& prompt);
   static std::string make_trace_id();

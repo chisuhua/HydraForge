@@ -45,11 +45,27 @@ std::string TracingDecorator::make_trace_id() {
 void TracingDecorator::emit_request(const GenerationRequest& req) {
   if (!bus_) return;
   trace_id_ = make_trace_id();
+  // ADR-0080 v1.1 D10: params 序列化（replay 确定性 — temperature/seed/top_p）
+  nlohmann::json params_json = {
+      {"provider", req.params.provider},
+      {"model", req.params.model},
+      {"temperature", req.params.temperature},
+      {"top_p", req.params.top_p},
+      {"max_tokens", req.params.max_tokens},
+      {"n_ctx", req.params.n_ctx}};
   nlohmann::json args = {
       {"model", req.params.model},
       {"max_tokens", req.params.max_tokens},
-      {"prompt_hash", compute_prompt_hash(req.prompt)}};
+      {"prompt_hash", compute_prompt_hash(req.prompt)},
+      {"params", params_json}};
   nlohmann::json meta = {{"trace_id", trace_id_}};
+  if (capture_prompt_bytes_) {
+    // ADR-0080 v1.1 D10: opt-in prompt 字节落地（蒸馏数据源）
+    if (req.prompt.size() <= 64 * 1024) {
+      args["prompt_text"] = req.prompt;
+    }
+    args["system_prompt_source"] = "unknown";  // Phase 2: ChatSession 注入
+  }
   bus_->emit(EventBuilder("llm.request").args(args).meta(meta).build());
 }
 
@@ -69,6 +85,9 @@ void TracingDecorator::emit_response(
     args["completion_tokens"] = r.completion_tokens;
     args["tokens"] = r.prompt_tokens + r.completion_tokens;
     args["ok"] = true;
+    if (capture_prompt_bytes_ && r.text.size() <= 1024 * 1024) {
+      args["response_text"] = r.text;
+    }
   } else {
     const auto& err = inner_result.error();
     args["ok"] = false;

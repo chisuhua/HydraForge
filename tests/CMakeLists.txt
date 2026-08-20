@@ -67,6 +67,13 @@ function(add_catch_test TEST_NAME)
         )
     endif()
 
+    # EventLog 测试 (ADR-0080 v1.1)
+    if(TEST_NAME MATCHES "^test_event_log")
+        target_include_directories(${TEST_NAME} PRIVATE
+            ${PROJECT_SOURCE_DIR}/src/core
+        )
+    endif()
+
     if(TEST_NAME MATCHES "^test_grpc_temporal_backend")
         target_sources(${TEST_NAME} PRIVATE
             ${PROJECT_SOURCE_DIR}/pdk/temporal_agent/src/temporal_client.cpp

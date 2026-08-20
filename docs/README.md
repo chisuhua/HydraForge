@@ -90,6 +90,7 @@ docs/
 | `adr-0079-unified-session-4scope.md` | 统一会话模型与 4-Scope 存储 (Conversation/Attempt/Step/Execution + ConvergenceEntry) | ✅ Approved (v1.1 amendment 2026-08-12; 原始 v1 文本 2026-01-19, 本会话讨论产出) |
 | `adr-0080-append-only-event-log.md` | AppendOnlyEventLog 作为核心审计日志 (Step 0: BusEvent 信封扩展 + GenerationRequest.purpose; v1.1 D10 Distillation Capture + D2 causal_time + D6 opt-in) | ✅ Approved (v1.1 amendment 2026-08-12; 原始 v1 文本 2026-01-19, 本会话讨论产出) |
 | `adr-0082-agent-first-class-registry.md` | Agent as First-Class Registry (讨论稿: AgentWorker + YAML + spawn_agent, 争议未决, 搁置至 0079/0080 实施后) | 🔍 Proposed (v1.1 状态注记 2026-08-12: 蒸馏需求加强搁置; 原始讨论稿 2026-01-19, 未定稿) |
+| `adr-0081-pre-step-hook-contract.md` | Pre-Step Hook Contract (Agent 级拦截点, 推迟至 ADR-0082 定稿) | 🔍 Proposed (2026-08-12, v1.1 引用触发, 占位) |
 
 ### adr/plugin/ - Plugin 化候选清单
 
