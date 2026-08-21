@@ -15,6 +15,7 @@
 #include "agenticdsl/cognitive/simple_orchestrator.h"
 #include "agenticdsl/contract/bus_event.h"
 #include "agenticdsl/contract/event_builder.h"
+#include "agenticdsl/plugin/agent_lifecycle_emitter.h"
 #include "core/engine.h"
 
 #include <chrono>
@@ -107,6 +108,8 @@ void CognitiveWorker::start() {
         std::string(expected == State::running ? "running" : "stopped") + ")");
   }
   worker_thread_ = std::thread([this] { worker_loop(); });
+  emit_agent_lifecycle_event(bus_.get(), AgentLifecycleState::kSpawned,
+                             "cognitive-worker", "cognitive_worker");
 }
 
 // =====================================================================
@@ -139,6 +142,10 @@ void CognitiveWorker::stop() {
   if (worker_thread_.joinable()) {
     worker_thread_.join();
   }
+
+  emit_agent_lifecycle_event(bus_.get(), AgentLifecycleState::kTerminated,
+                             "cognitive-worker", "cognitive_worker",
+                             "", "", "stop");
 }
 
 // =====================================================================

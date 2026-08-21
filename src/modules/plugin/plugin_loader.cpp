@@ -29,6 +29,7 @@
 #include "agenticdsl/contract/iinteraction_bus.h"
 #include "agenticdsl/pdk/manifest_finder.h"
 #include "agenticdsl/pdk/manifest_validator.h"
+#include "agenticdsl/plugin/agent_lifecycle_emitter.h"
 #include "common/llm/llm_types.h"
 #include "common/log/log.h"
 
@@ -156,6 +157,9 @@ PluginLoader::~PluginLoader() {
       dlclose(lp.handle);
       lp.handle = nullptr;
     }
+    ::agenticdsl::emit_agent_lifecycle_event(impl_->bus_,
+        ::agenticdsl::AgentLifecycleState::kTerminated,
+        lp.info.name, lp.info.name, "", "", "destructor");
   }
   loaded_.clear();
 }
@@ -416,10 +420,18 @@ bool PluginLoader::load_so(const std::string& path,
   if (init_fn) {
     if (!init_fn()) {
       log_error("pdk_plugin_init failed for " + path + ": init returned false");
+      ::agenticdsl::emit_agent_lifecycle_event(impl_->bus_,
+          ::agenticdsl::AgentLifecycleState::kError, info.name, info.name,
+          "", "INIT_FAILED", "pdk_plugin_init returned false");
       dlclose(handle);
       return false;
     }
     log_info("pdk_plugin_init() called successfully for " + path);
+    ::agenticdsl::emit_agent_lifecycle_event(impl_->bus_,
+        ::agenticdsl::AgentLifecycleState::kSpawned, info.name, info.name,
+        std::to_string(info.major_version) + "." +
+        std::to_string(info.minor_version) + "." +
+        std::to_string(info.patch_version));
   }
 
   // 9. 记录到 loaded_ 列表
@@ -515,6 +527,9 @@ bool PluginLoader::unload_plugin(const std::string& name) {
           log_error("pdk_plugin_fini() threw exception for " + name + " (ignored)");
         }
       }
+      ::agenticdsl::emit_agent_lifecycle_event(impl_->bus_,
+          ::agenticdsl::AgentLifecycleState::kTerminated,
+          it->info.name, it->info.name);
 
       void* handle = it->handle;
       loaded_.erase(it);
