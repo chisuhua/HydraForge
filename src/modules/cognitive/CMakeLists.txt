@@ -13,6 +13,7 @@ add_library(agenticdsl_modules_cognitive STATIC
     simple_orchestrator.cpp
     cognitive_worker.cpp    # Sprint 2: 认知智能体工作线程
     domain_worker_pool.cpp  # Sprint 3: 领域智能体工作线程池
+    agent_composition.cpp   # Sprint 22 P8: Agent 编排模式实现
 )
 
 target_link_libraries(agenticdsl_modules_cognitive PUBLIC

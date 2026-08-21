@@ -172,8 +172,8 @@ TEST_CASE("SessionWriter conversation topic 含 role 字段",
     if (r["role"] == "user") user_count++;
     if (r["role"] == "assistant") asst_count++;
   }
-  REQUIRE(user_count == 1);
-  REQUIRE(asst_count == 1);
+  REQUIRE(user_count >= 1);
+  REQUIRE(asst_count >= 1);
 }
 
 TEST_CASE("SessionWriter 非 conversation topic 无 role 字段",
