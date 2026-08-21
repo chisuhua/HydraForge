@@ -25,6 +25,8 @@
 #include "common/tools/registry.h"         // C11: ToolRegistry downcast for session_registry injection
 #include "agenticdsl/plugin/plugin_loader.h" // D5 (C14): 显式 plugin 加载
 #include "core/event_log.h"                 // ADR-0080 v1.1: AppendOnlyEventLog 写入器
+#include "core/session_writer.h"            // ADR-0079 v1.1 + P5: SessionWriter (D5 + D6)
+#include "core/types/session_writer_config.h"  // P5: SessionWriterConfig
 #include "core/types/event_log_config.h"    // ADR-0080 v1.1 D11: EventLogConfig 结构
 
 namespace agenticdsl {
@@ -217,6 +219,35 @@ void DSLEngine::enable_event_log(const std::string& agent_id,
     cfg.max_rotation_files = max_rotation_files;
 
     event_log_ = std::make_unique<EventLogWriter>(cfg, bus_);
+}
+
+// ADR-0079 v1.1 + P5 session-writer-bridge: opt-in 启用 SessionWriter (默认 OFF)
+// 对称 enable_event_log: 独立互斥锁、独立 JSONL、过滤 D6 白名单 13 topic
+// session_id 空 throw (fail-closed, 多 session 场景避免静默合并到 default)
+// 双调用 throw: 同一 engine 不允许重复启用 (析构由 unique_ptr 管理)
+void DSLEngine::enable_session_writer(const std::string& session_id,
+                                       const std::filesystem::path& writer_dir) {
+    if (session_writer_) {
+        throw std::logic_error(
+            "DSLEngine::enable_session_writer: already enabled (idempotent call forbidden)");
+    }
+    if (session_id.empty()) {
+        throw std::invalid_argument(
+            "DSLEngine::enable_session_writer: session_id empty (fail-closed)");
+    }
+    if (!bus_) {
+        throw std::logic_error(
+            "DSLEngine::enable_session_writer: bus not injected (call set_interaction_bus first)");
+    }
+
+    SessionWriterConfig cfg;
+    cfg.session_writer_enabled = true;
+    cfg.session_id = session_id;
+    if (!writer_dir.empty()) {
+        cfg.writer_dir = writer_dir;
+    }
+
+    session_writer_ = std::make_unique<SessionWriter>(cfg, bus_);
 }
 
 // === Phase 5 (REQ-ICC-008 / REQ-IPD-005): decorate_provider 私有 helper ===

@@ -154,6 +154,7 @@ add_library(agenticdsl_core STATIC
  src/core/engine.cpp
  src/core/session_manager.cpp  # session-manager-jsonl-v2: 接入生产库 (ADR-0033 存储层)
  src/core/event_log.cpp        # ADR-0080 v1.1: AppendOnlyEventLog 写入器
+ src/core/session_writer.cpp   # ADR-0079 v1.1 + P5: SessionWriter (D5 + D6 topic filter)
  src/core/types/session.cpp
  src/core/types/session_registry.cpp  # C11 Phase 5 Stage 1
  src/core/context_compactor.cpp      # context-compactor Task 1: 上下文压缩器骨架

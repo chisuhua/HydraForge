@@ -193,6 +193,14 @@ void check_and_compact(LayeredContext& ctx);
                           std::size_t max_file_size = 100 * 1024 * 1024,
                           std::size_t max_rotation_files = 3);
 
+    // ADR-0079 v1.1 + P5 session-writer-bridge: opt-in 启用 SessionWriter (默认 OFF)
+    // 对称 enable_event_log: 独立互斥锁、独立 JSONL、过滤 D6 白名单 13 topic
+    // 调用前置: engine.set_interaction_bus(bus) 已执行
+    // session_id 空 throw (fail-closed)
+    // writer_dir 空使用默认 ~/.hydraforge/sessions/
+    void enable_session_writer(const std::string& session_id,
+                               const std::filesystem::path& writer_dir = {});
+
     ~DSLEngine(); // Stage 4 / Task 19 + P1.T4: 显式声明 — 头文件外定义, 使 unique_ptr<IBudgetController> + unique_ptr<IToolRegistry> 析构在完整类型下进行
     DSLEngine();
     DSLEngine(std::vector<ParsedGraph> initial_graphs);
@@ -239,6 +247,9 @@ private:
 
     // ADR-0080 v1.1 D12: opt-in EventLog 写入器（nullptr = 未启用）
     std::unique_ptr<class EventLogWriter> event_log_;
+
+    // P5 session-writer-bridge: opt-in SessionWriter (nullptr = 未启用)
+    std::unique_ptr<class SessionWriter> session_writer_;
 };
 
 } // namespace agenticdsl
