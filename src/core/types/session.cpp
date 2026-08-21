@@ -59,11 +59,8 @@ void TaskSession::set_policy(std::shared_ptr<IExecutionPolicy> policy) {
 }
 
 void TaskSession::record_failure(const ExecutionResult& result) {
-  // 仅在 success=false 且 error_code 为可重试类别时递增 (D10)
-  if (!result.success) {
-    // ExecutionResult 没有 error_code 字段，通过 message 判断可重试性
-    // 非可重试的错误信息不应触发递增
-    // 默认：失败总是递增（保守策略），除非未来通过 ToolResult.error_code 判断
+  // 仅在可重试错误时递增 (P9 error-taxonomy-execution-boundary)
+  if (result.is_retryable()) {
     ++failure_count_;
   }
 }

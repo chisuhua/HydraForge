@@ -2,6 +2,7 @@
 #define AGENTICDSL_TYPES_BUDGET_H
 
 #include "context.h" // 引入 Context/Value
+#include "core/types/execution_result.h"  // ExecutionResult (P9 统一类型)
 #include <chrono>
 #include <optional>
 #include <atomic> // For atomic budget counters (v3.1 requirement)
@@ -112,14 +113,6 @@ struct ExecutionBudget {
 
 };
 
-// ExecutionResult structure
-struct ExecutionResult {
-    bool success;
-    std::string message; // 错误信息或成功信息
-    Context final_context; // 执行结束时的上下文
-    std::optional<NodePath> paused_at; // set if paused at llm_call
-};
-
-} // namespace agenticdsl::types
+} // namespace agenticdsl
 
 #endif // AGENTICDSL_TYPES_BUDGET_H
