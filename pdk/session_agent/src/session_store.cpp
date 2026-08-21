@@ -30,6 +30,21 @@ std::string random_id() {
     return oss.str();
 }
 
+std::string short_suffix() {
+    static thread_local std::mt19937_64 gen{std::random_device{}()};
+    std::uniform_int_distribution<uint64_t> dis;
+    std::ostringstream oss;
+    oss << std::hex << dis(gen);
+    return oss.str();
+}
+
+// 解析 node_id = "<file_id>:<seq>"，返回 file_id 部分（不含 seq）
+std::string file_id_of(const std::string& node_id) {
+    auto pos = node_id.rfind(':');
+    if (pos == std::string::npos) return node_id;
+    return node_id.substr(0, pos);
+}
+
 }  // namespace
 
 SessionStore& SessionStore::instance() {
@@ -220,6 +235,42 @@ std::string SessionStore::branch(
     sessions_[new_id] = std::move(s);
     dirty_[new_id] = true;
     return new_id;
+}
+
+std::string SessionStore::extract(const std::string& node_id) {
+    // 解析 node_id = "<file_id>:<seq>"
+    auto pos = node_id.rfind(':');
+    if (pos == std::string::npos || pos == 0) return "";
+
+    std::string src_file_id = node_id.substr(0, pos);
+    std::string seq_str = node_id.substr(pos + 1);
+    size_t seq = 0;
+    try { seq = std::stoull(seq_str); } catch (...) { return ""; }
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    // 查找源 session
+    auto it = sessions_.find(src_file_id);
+    if (it == sessions_.end()) return "";
+    const auto& src = it->second;
+    if (seq == 0 || seq > src.messages.size()) return "";
+
+    // 创建新 file_id（sst:<uuid>）
+    std::string new_file_id = "sst:" + short_suffix();
+
+    // 构建 header parent_file_id + branch_at_node_id
+    Session s;
+    s.session_id = new_file_id;
+    // 内容 = 从起始到 seq 指向的消息
+    s.messages.assign(src.messages.begin(), src.messages.begin() + seq);
+    // header 元数据记录 lineage
+    s.meta["parent_file_id"] = src_file_id;
+    s.meta["branch_at_node_id"] = node_id;
+    s.created_at_ms = now_ms();
+    s.updated_at_ms = s.created_at_ms;
+
+    sessions_[new_file_id] = std::move(s);
+    dirty_[new_file_id] = true;
+    return new_file_id;
 }
 
 Session SessionStore::compact(const std::string& session_id, size_t keep_recent) {

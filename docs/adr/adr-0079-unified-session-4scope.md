@@ -144,6 +144,82 @@ EventLog（ADR-0080）订阅全局 bus "*"，SessionWriter 只写当前会话相
 | `dsl.call.started/completed` | `execution` | 图执行 |
 | `attempt.converged` | `convergence` | 收敛决策 |
 
+### 决策 D7：node-id 稳定寻址（v1.2 amendment, 2026-08-20）
+
+**问题**：当前 `SessionStore::branch(src, message_index)` 使用 `size_t message_index`（位置索引）—— 当 Session 经历 `append` / `compact` / `extract` 等操作后，消息位置漂移，导致旧 branch 引用错位（缺陷 1.2 / 1.5）。
+
+**决策**：引入 `node_id` 作为唯一稳定寻址符（替代 `message_index`）：
+
+```
+node_id = "<file_id>:<seq>"
+其中 file_id = "sreg:<uuid>" | "sm:<uuid>"（D10 命名空间）
+      seq      = per-file 自增序号（compact/append 后单调递增，保证稳定寻址）
+```
+
+**规则**：
+- 每次 `append()` 自动分配下一个 `seq`（从 1 开始）
+- `branch(src, node_id)` 替代 `branch(src, message_index)`
+- `extract(node_id)` 返回新 file_id（路径提取）
+- `checkout(node_id)` 回退到该 node（branch cursor 语义，决策 D8）
+
+**不变量**：`node_id` 在该 file 生命周期内**永不重用**；compact 仅影响物理行位置，不影响 seq 分配。
+
+### 决策 D8：branch cursor 持久化（v1.2 amendment）
+
+**问题**：当前 Session 无 "当前分支游标" 概念——多次 `branch()` 后无法定位 "我在哪个分支"。
+
+**决策**：在 Session 结构新增 `current_branch_node_id_` 字段（持久化字段）：
+
+| 字段 | 类型 | 含义 |
+|------|------|------|
+| `current_branch_node_id_` | `std::string` | 当前分支游标（默认 = session 创建时首个 node_id） |
+| `branch_history_` | `std::vector<std::string>` | 分支历史栈（可选，v2 引入） |
+
+**规则**：
+- `append()` 后 `current_branch_node_id_` 自动推进到新 node
+- `extract(node_id)` 后 `current_branch_node_id_` = node_id（在新 file 中）
+- `checkout(node_id)` 回退游标（不删除后续 append 的 node，仅标记 "当前位置"）
+
+### 决策 D9：path-extraction fork（v1.2 amendment）
+
+**问题**：当前 `branch(src, msg_index)` 拷贝消息前缀（部分拷贝）—— Pi 风格需要 "路径提取"（创建新 file 包含 leaf→node 路径）。
+
+**决策**：新增 `extract(node_id)` 方法，行为：
+1. 给定任意 `node_id`（不限 leaf）
+2. 创建新 file，header 含 `parent_file_id` + `branch_at_node_id`
+3. 内容 = leaf→node 路径的线性消息序列
+
+**签名**（提案）：
+```cpp
+std::string SessionStore::extract(const std::string& node_id);
+```
+
+**返回**：新 file_id（如 `sm:<uuid>`）
+
+**与 `branch()` 区别**：
+- `branch()`：拷贝消息前缀到同一 file（同一命名空间）
+- `extract()`：创建新 file（跨命名空间），header 记录 lineage
+
+### 决策 D10：4 套存储命名空间分配（v1.2 amendment）
+
+**问题**：4 套 session 子系统并存（`SessionManager` / `SessionStore` / `SessionRegistry` / `g3_state.h::SessionStore`），命名空间无明确分配 → 可能 ID 碰撞。
+
+**决策**：明确分配命名空间前缀：
+
+| 子系统 | 命名空间前缀 | 示例 |
+|--------|-------------|------|
+| `SessionRegistry`（engine 内存态） | `sreg:` | `sreg:abc-123` |
+| `SessionManager`（core JSONL 树） | `sm:` | `sm:def-456` |
+| `SessionStore`（pdk session_agent） | `sst:` | `sst:ghi-789` |
+| `g3_state.h::SessionStore` | `g3st:` | `g3st:jkl-012` |
+
+**规则**：
+- 各子系统内部生成 ID 时强制使用对应前缀
+- 跨子系统引用时（如 SessionStore 引用 SessionManager 的 file_id），通过前缀区分
+- pdk_chat_demo 同时使用 `sreg:` 和 `sm:` 路径时无冲突（实测已 ship）
+
+**收敛方案**：长期 4 套→1 套的收敛留待 Phase 2 独立 change 裁决（本 ADR 不裁决收敛，避免 6 缺陷一起处理）。
+
 ## 不变量
 
 1. **单一数据源**：每个 conversation 的真相只有一份 — `.v1.jsonl` 文件

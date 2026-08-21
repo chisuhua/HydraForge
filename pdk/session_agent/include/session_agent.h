@@ -64,7 +64,12 @@ public:
     bool remove(const std::string& session_id);
 
     // Branch: 从指定 message index fork 出新 session
+    [[deprecated("ADR-0079 v1.2: use branch(src, node_id) — position-based msg_index deprecated")]]
     std::string branch(const std::string& src_session_id, size_t message_index);
+
+    // Extract: 从指定 node_id 创建新 file（path-extraction fork, ADR-0079 D9）
+    // 返回新 file_id（如 "sst:<uuid>"），header 含 parent_file_id + branch_at_node_id
+    std::string extract(const std::string& node_id);
 
     // Compact: 用 placeholder 替换早期消息（保留最近 N 条）
     Session compact(const std::string& session_id, size_t keep_recent = 10);

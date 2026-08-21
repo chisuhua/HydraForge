@@ -58,7 +58,7 @@ function(add_catch_test TEST_NAME)
     endif()
 
     # session_agent 测试需要直接链接 plugin 源码 (ADR-0079 v1.1 append-only 修复验证)
-    if(TEST_NAME MATCHES "^test_session_store")
+    if(TEST_NAME MATCHES "^test_session_store|^test_session_node_id_addressing|^test_session_extract_fork|^test_session_branch_cursor")
         target_sources(${TEST_NAME} PRIVATE
             ${PROJECT_SOURCE_DIR}/pdk/session_agent/src/session_store.cpp
         )

@@ -16,6 +16,8 @@
 | `application-layer-sota-positioning-v2.md` | 应用层 SOTA 定位分析 v2 | 🟡 Proposed | 2026-07-16 | SOTA 调研刷新 / 应用层新插件 |
 | `adr-implementation-status-gap-analysis.md` | ADR 实施状态基线 (**ADR 状态唯一事实源**) | 🔄 滚动更新 | 2026-07-30 | 任何 ADR 状态翻转 / ship gate |
 | `layer-based-missing-capabilities-analysis.md` | 五层缺失能力分析 + Wave 1-4 执行计划 | ✅ v1.2.1 (数据修正版) | 2026-07-31 | Wave 1 完成 / 缺失能力 ship |
+| `defect-truth-table-2026-08.md` | 架构缺陷真相表（11 真实缺陷 + 3 盲点 × 代码 × ADR 真相） | ✅ Active (v1.1) | 2026-08-20 | ADR 状态翻转 / 新 Sprint ship / 缺陷复审 |
+| `defect-fix-roadmap-2026-08.md` | 架构缺陷修复路线图（12 个 rdd-workflow 提案节点 + Mermaid 依赖图） | ✅ Active (v1.0) | 2026-08-20 | 提案 ship / Sprint 收官交叉检查 |
 
 > 归档版本（v1.0/v1.1 架构、v1 SOTA 定位）见 [`../archive/architecture/`](../archive/architecture/)。
 
@@ -74,3 +76,4 @@
 | 2026-07-31 | **D1 决议执行**：v2.2 八层规范归档（`archive/specs/architecture-v2.2.md`），v1.2 晋升为 `docs/specs/architecture.md`；D1b"第二大脑"愿景归档宣告；全库 15 处引用修正 |
 | 2026-07-31 | **D2/D3/D4 立项**：ADR-0068/0069/0070 草案创建（🔍 Proposed）+ 3 份改进提案注册 proposal-suggestions.md（待审查） |
 | 2026-07-31 | **D6 决议执行**：`agent-evolution-pipeline.md` 保留为 ADR-0061 设计附件（✅ Approved），§八 路线图切除改指针，双向链接补齐。**D1~D6 决策清单全部关闭** |
+| 2026-08-20 | 新增 `defect-truth-table-2026-08.md`（架构缺陷真相表 v1.0）：14 项缺陷与已有 ADR 全文交叉审计；识别 5 项已通过 ADR-0020/0022/0069 解决，1 项属工程债；修正 4.1/5.1/6.1 状态，合并 1.2/1.3/1.5 进 ADR-0079 v1.2 修订计划 |
