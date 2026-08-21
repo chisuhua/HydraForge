@@ -743,7 +743,13 @@ ADR-0063 ✅ Approved（OpenTelemetry tracing）但**实施 0%**——可观测�
 
 **参考内容**：ADR-0063 ✅ Approved
 
-**优先级**：P2（业务需求驱动）
+**当前状态（2026-08-21 update）**：✅ **已 ship**（P11 `otel-exporter-skeleton`：
+- `src/common/observability/otel_exporter.{h,cpp}` 已 ship（订阅 bus 4 类事件 + ISpanSink 抽象 + 同步 send_span）
+- `tests/test_otel_exporter.cpp` 7 cases / 25 assertions PASS（订阅过滤 + span 转换 + 4 类事件 + agent_id/session_id/trace_id 属性 + 默认 NoopSink + 批量 emit 10 事件）
+- ADR-0063 实施率 0% → skeleton（含 ISpanSink 接口，可注入真实 OTLP 客户端）
+- Amendment (2026-08-21): 移除后台 flush_loop 线程（与 OTel SDK `BatchSpanProcessor` 工业惯例一致，传输层自带后台批量）；测试改用 MockBus 同步路径）
+
+**优先级**：P2（业务需求驱动）→ ✅ 已 ship skeleton
 
 ---
 
