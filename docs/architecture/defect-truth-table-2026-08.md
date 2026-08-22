@@ -39,11 +39,11 @@
 | 1.4 | compact 是破坏性重写 | ✅ | ADR-0079 §不变量 2 | **有意例外**（待 v1.2 决策） | P3 |
 | 1.5 | 缺 path-extraction fork | ✅ | ADR-0079 D4 | fork() 存在，实现细节未对齐 | P1 |
 | 2.1 | EventLog 不完整（query 缺失） | ✅ | ADR-0080 v1.1 ✅ Approved | ✅ **已 ship**（P4 `event-log-query-api`：member read() + query() with glob + perf 基准 10k<100ms） | **P0 → ✅** |
-| 3.1 | Agent 非 first-class | ✅ | ADR-0082 🔍 Proposed | 搁置待 ADR-0079/0080 ship | P1 |
+| 3.1 | Agent 非 first-class | ✅ | ADR-0082 ✅ Approved (2026-08-21) | ✅ **已 ship**（P7 `adr-0082-promote-to-approved`：IAgentRegistry L3 契约 + InMemory 参考实现 + 5 cases / 29 assertions PASS + §决策 7 C1-C5 final 决议）；完整 AgentWorker + spawn_agent + YAML 配置推迟 Sprint 24+ | P1 → ✅ 骨架 ship |
 | 3.2 | Agent 生命周期**事件契约**缺位 | ✅ | ADR-0057 ✅ Approved + ADR-0068 附录 A | ✅ **已 ship**（P1 `adr-0057-amend` §决策 6 + ADR-0068 附录 A 注册 4 主题：agent.spawned/heartbeat/terminated/error） | **P0 → ✅** |
 | 3.3 | Agent↔Agent 协议缺失 | ✅ | ADR-0060 ✅ Approved | 2/6 模式 ship（ADR-0060 决策 4 表格的 ✅ 列是 scope 声明而非实施声明） | P2 |
 | **4.1** | **Plugin scoped 注册（per-agent）** | **🟡 分层部分解决** | ADR-0022 ✅ ship | **engine 级已解决**（per-engine 注册）；**agent 级版本隔离未解**（同 engine 共享 ToolRegistry）；marketplace/多租户场景为 open gap | 非阻塞 open gap |
-| 4.2 | 缺 pre-step hook（Agent 级拦截） | ✅ | ADR-0069 🟡 + ADR-0081 🔍 | Tool hooks ✅ ship；Agent hooks 待 ADR-0081 → Approved | **P0**（但需 ADR-0082 → Approved 解锁） |
+| 4.2 | 缺 pre-step hook（Agent 级拦截） | ✅ | ADR-0069 🟡 + ADR-0081 ✅ Approved (2026-08-21) | Tool hooks ✅ ship；Agent hooks ✅ L3 契约 ship（IAgentHookRegistry + InMemory 参考实现，4 cases / 18 assertions PASS）；Agent loop 集成推迟 Sprint 24+ | **P0 → ✅ 骨架 ship** |
 | **5.1** | **Cancellation scope tree（per-agent）** | **🟡 分层部分解决** | ADR-0020 ✅ ship | **协作式取消 + RAII 已 ship**（jthread + stop_token）；**统一 scope tree/父子级联未 ship**；术语"structured concurrency"误用 | 非阻塞 open gap |
 | 6.1 | MockBus 重复（9 处） | ✅（工程债） | 无 ADR | ✅ **已 ship**（P12 `mock-bus-canonical-extract`：canonical fixture + 9 处迁移 + 12 cases/38 assertions PASS） | P3 → ✅ |
 
