@@ -158,8 +158,9 @@ add_library(agenticdsl_core STATIC
  src/core/event_log.cpp        # ADR-0080 v1.1: AppendOnlyEventLog 写入器
  src/core/session_writer.cpp   # ADR-0079 v1.1 + P5: SessionWriter (D5 + D6 topic filter)
  src/core/types/session.cpp
- src/core/types/session_registry.cpp  # C11 Phase 5 Stage 1
- src/core/context_compactor.cpp      # context-compactor Task 1: 上下文压缩器骨架
+src/core/types/session_registry.cpp  # C11 Phase 5 Stage 1
+src/core/context_compactor.cpp      # context-compactor Task 1: 上下文压缩器骨架
+src/core/agent_registry.cpp         # P7: IAgentRegistry InMemory 参考实现 (ADR-0082 §决策 7)
 )
 
 target_link_libraries(agenticdsl_core

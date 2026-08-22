@@ -1,7 +1,20 @@
-# ADR-0082: Agent as First-Class Registry（讨论稿）
+# ADR-0082: Agent as First-Class Registry
 
 ## 状态
-🔍 Proposed（讨论稿，未定稿） — 争议项未解决，**搁置至 ADR-0079/ADR-0080 实施后再定稿**
+✅ **Approved**（2026-08-21，Sprint 22 / adr-0082-promote-to-approved）— **实施期**（骨架 ship，完整 AgentWorker 推迟 Sprint 24+）
+
+> **定稿决议（2026-08-21）**：ADR-0079 v1.2 + ADR-0080 v1.1 均已 ship（Batch 2），
+> 搁置前提条件满足。5 个核心争议（C1-C5）已通过提案 §5.5 决议写定，详见下方 §决策 7。
+>
+> **关键路径**：本 ADR Approved 解锁 ADR-0081（pre-step hook）翻牌 Approved，
+> 解锁缺陷 3.1（Agent first-class）+缺陷 4.2（Agent hook）端到端推进。
+>
+> **V1 范围限定**：(a) `IAgentRegistry` L3 契约 + InMemory 参考实现；(b) `IAgent` 最小骨架
+> （name + id）；(c) AgentConfig V1 最小集。完整 AgentWorker（React/PlanExecute/ForkJoin 三循环
+> 分发）、spawn_agent DSL 节点、YAML 配置、subprocess 形态 — 均推迟到 Sprint 24+ 独立 change。
+>
+> **V1 不引入**：与 `IToolRegistry` 双 ID 系统（避免）、per-engine 注册粒度之外的 per-worker 隔离
+> （C2 决议 ADR-0020 worker-per-engine 提供绕行路径）。
 
 > **v1.1 状态注记**（2026-08-12）：本 ADR 搁置理由 R1-R4 在 Agent 蒸馏需求下被
 > **加强而非削弱**——蒸馏场景要求大量 agent 派生（多 trajectory 增广、A/B 模型对比），
@@ -263,19 +276,80 @@ ADR-0082 **不会在 0079/0080 实施前定稿**。理由：
 
 ---
 
-## 7. 与后续 ADR 的关系
+## 7. 决策 7（C1-C5 定稿决议，2026-08-21 Approved 写入）
+
+> **本节由 adr-0082-promote-to-approved 提案写入**，5 个核心争议全部 final 决议。
+> ADR Approved 生效，C1-C5 不再是"争议"——实施期严格按本节决议执行。
+
+### C1 决议：Agent 标识
+
+**决议**：字符串 ID（e.g. `"react-loop-v1"`），与 `PluginInfo::name` 对齐。
+
+**理由**：
+- ADR-0022 PluginLoader 已用 string-keyed 注册（`PluginInfo::name` 字段），复用命名空间避免分裂
+- DSH / Pi 对标共识：字符串 ID 是 agent-as-plugin 模式的事实标准
+- 用户视角：用 `"react-loop-v1"` 配置 agent，无需理解 C++ 类型
+
+### C2 决议：Agent 生命周期归属
+
+**决议**：per-engine 注册粒度（与 ADR-0022 对齐）+ per-worker 隔离（与 ADR-0020 对齐）。
+
+**理由**：
+- per-engine = `IAgentRegistry` 由 DSLEngine 持有实例，跨 agent 共享
+- per-worker = 每 CognitiveWorker 独占 DSLEngine（ADR-0020 §2.2.1），Agent 状态不跨 worker 共享
+- 二者结合覆盖：单 engine 内 agent 类型多版本、市场化（multi-tenant）场景
+- 缺陷 4.1 分层部分解决（per-agent 版本隔离）由 AgentRegistry 提供路径
+
+### C3 决议：Agent 状态持久化
+
+**决议**：状态持久化通过 EventLog（ADR-0080 v1.1）+ SessionWriter（ADR-0079 v1.2）双重事件流。
+
+**理由**：
+- EventLog：全量事件（包含 `agent.spawned` / `agent.terminated` / `agent.error` — P2 ship 已 ship 4 个 agent.* 事件）
+- SessionWriter：会话结构事件（Conversation/Attempt/Step 4-Scope）
+- 完整生命周期可重放（EventLog replay → SessionWriter reconstruct）
+
+### C4 决议：Agent marketplace 接口契约
+
+**决议**：plugin 形态为主（与 ADR-0022 兼容），subprocess 形态 Phase 2 考虑。
+
+**理由**：
+- subprocess 形态涉及 IPC + sandbox + lifecycle 跨进程管理（skill_interpreter 已经支持）
+- V1 plugin 形态 ship 即可获得 AgentRegistry 核心价值
+- subprocess 形态评估时间表：Sprint 24+ 独立 change，由 PDK Wasm 路线图驱动
+
+### C5 决议：与 ADR-0022/0069/0081 的集成边界
+
+**决议**：plugin hook（ADR-0022）+ tool hook（ADR-0069）+ agent hook（ADR-0081）三层正交。
+
+**理由**：
+- 粒度不同：plugin lifecycle / tool call / agent step
+- 调用顺序：agent step → tool call（hook 触发点不重叠）
+- V1 实现：IAgentRegistry 接口与 IToolRegistry 接口**正交**（无类型/字段耦合）
+- 与 ADR-0081（Pre-Step Hook Contract）协调：agent hook 注册时使用 `agent_glob`（如 `react-loop/*`），与 tool_glob 命名约定一致（ADR-0043）
+
+### 决策 7 附录：human-gate 签字
+
+本 ADR Approved 由 adr-0082-promote-to-approved 提案 (commit 链接) ship 决议，
+与提案 §5.5 C1-C5 决议一一对应。架构组签字通过本提案的 proposal.md §Acceptance 的
+"human-gate" 条款（参考 `openspec/changes/adr-0082-promote-to-approved/proposal.md`）。
+
+---
+
+## 8. 与后续 ADR 的关系
 
 - **ADR-0081（Pre-Step Hook）**：受 C2 争议影响，推迟且需 agent-scoped 重新设计。ADR-0082 定稿后，重新设计 ADR-0081。
 - **ADR-0083+（预留）**：Agent Behavior Policy（如果 C1 裁决为 Metis 方向，可能拆分出 policy ADR）
 
 ---
 
-## 8. 编辑轨迹（本讨论稿的生命周期）
+## 9. 编辑轨迹（生命周期）
 
 | 日期 | 变更 | 作者 |
 |---|---|---|
 | 2026-01-19 | 初稿创建（讨论轨迹记录） | Sisyphus + Oracle + Metis |
-| 待定 | ADR-0079/0080 实施完成后，依据实际代码重新讨论并**定稿** | 团队 |
+| 2026-08-12 | v1.1 状态注记：ADR-0079/0080 v1.1 amendment 加强搁置前提 | 架构组 |
+| 2026-08-21 | **定稿**：🔍 Proposed → ✅ Approved（Batch 2 P7 `adr-0082-promote-to-approved` ship，commit 链见 `git log --grep=adr-0082`）。§决策 7 写入 C1-C5 final 决议。ADR-0079 v1.2 + ADR-0080 v1.1 已 ship，搁置前提满足 | Sisyphus + 架构组 human-gate |
 
 ---
 
