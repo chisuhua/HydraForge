@@ -161,6 +161,7 @@ add_library(agenticdsl_core STATIC
 src/core/types/session_registry.cpp  # C11 Phase 5 Stage 1
 src/core/context_compactor.cpp      # context-compactor Task 1: 上下文压缩器骨架
 src/core/agent_registry.cpp         # P7: IAgentRegistry InMemory 参考实现 (ADR-0082 §决策 7)
+src/core/agent_hook_registry.cpp    # P3: IAgentHookRegistry InMemory 参考实现 (ADR-0081)
 )
 
 target_link_libraries(agenticdsl_core

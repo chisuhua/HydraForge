@@ -1,7 +1,17 @@
 # ADR-0081: Pre-Step Hook Contract（Agent 级拦截点）
 
 ## 状态
-🔍 Proposed（推迟 — 待 ADR-0079/ADR-0080 实施后定稿）
+✅ **Approved**（2026-08-21，Sprint 22 / adr-0081-promote-to-approved）— **实施期**（骨架 ship，Agent loop 集成推迟 Sprint 24+）
+
+> **定稿决议（2026-08-21）**：依赖 ADR-0079 v1.2 + ADR-0080 v1.1 + ADR-0082 均已 ship（Batch 2 P6/P4/P7）。
+> 本 ADR 翻牌 Approved + L3 契约 `IAgentHookRegistry` + InMemory 参考实现 ship。
+>
+> **关键路径**：本 ADR Approved 解锁缺陷 4.2（Agent pre-step hook）端到端推进。
+>
+> **V1 范围限定**：(a) `IAgentHookRegistry` L3 契约 + InMemory 参考实现；(b) `AgentPreHook` /
+> `AgentPostHook` 函数签名；(c) `AgentPreHookResult` / `AgentPostHookResult` 返回值结构。
+> 完整 Agent loop（ReactLoop / PlanExecuteLoop / ForkJoinLoop）集成、复杂 step_input 类型、
+> IInteractionBus 事件发射 — 均推迟到 Sprint 24+ 独立 change。
 
 > **注记**：本 ADR 引用由 ADR-0079/ADR-0080 v1.1 amendment 引入。
 > 实际设计待 ADR-0082（Agent First-Class Registry）定稿时联动重设计：
