@@ -1,7 +1,8 @@
 # ADR-0082: Agent as First-Class Registry
 
 ## 状态
-✅ **Approved**（2026-08-21，Sprint 22 / adr-0082-promote-to-approved）— **实施期**（骨架 ship，完整 AgentWorker 推迟 Sprint 24+）
+
+**✅ Approved** (2026-08-21, Sprint 22 / adr-0082-promote-to-approved) — **实施期**（骨架 ship，完整 AgentWorker 推迟 Sprint 24+）
 
 > **定稿决议（2026-08-21）**：ADR-0079 v1.2 + ADR-0080 v1.1 均已 ship（Batch 2），
 > 搁置前提条件满足。5 个核心争议（C1-C5）已通过提案 §5.5 决议写定，详见下方 §决策 7。

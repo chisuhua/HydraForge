@@ -2,7 +2,7 @@
 
 > **焦点**: 当前活跃的 OpenSpec changes | **更新**: 每日
 > **Master Plan**: [`docs/superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md`](superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md)
-> **架构决策**: [`docs/adr/`](adr/) — 70 ADR (57 主 + 1 plugin + 12 skill 子项), 44 Approved (主 37 + 子 7), adr_lint 零错误 (2026-08-18 校准, ADR-0073 🟡 Partial → ✅ Approved per Phase 6c C9 `from-roadmap-phase-6c-schema-complete` + ADR-0075 🔍 Proposed → ✅ Approved per Phase 6c C11-C13 `from-roadmap-phase-6c-execution-envbackend`)
+> **架构决策**: [`docs/adr/`](adr/) — 74 ADR (61 主 + 1 plugin + 12 skill 子项), 48 Approved (主 41 + 子 7), adr_lint 零错误 (2026-08-22 校准, Batch 2 收官后 ADR-0081/0082 状态格式修正; ADR-0081/0082 均 ✅ Approved per Batch 2 P3+P7 `adr-0081/0082-promote-to-approved`)
 > **Phase**: 6 — Agent-as-Plugin (2026-07-15 ~ 至今, Phase 5 ✅ 收官)
 
 ---
@@ -11,12 +11,12 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **164/164 PASS** (2026-08-18 `ctest -N` → Total Tests: 164; Wave 1 Phase 6c 三个 change 贡献 +39: `from-roadmap-phase-6c-execution-baseline` +4, `from-roadmap-phase-6c-schema-complete` +2, `from-roadmap-phase-6c-execution-envbackend` +33; 1 pre-existing flaky (`test_event_bus_soak` 偶发, 与本 change 无关); ASan 92/93 (pre-existing `test_skill_interpreter` ASan-only 失败) |
+| **Total ctest** | **182/182 PASS** (2026-08-22 `ctest -N` → Total Tests: 182; Batch 2 收官贡献 +18: P11 `test_otel_exporter` +7, P7 `test_agent_registry` +5, P3 `test_agent_hook_registry_contract` +4; 历史 + Wave 1 Phase 6c 共 164; 0 flake; ASan 92/93 (pre-existing `test_skill_interpreter` ASan-only 失败) |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
 | **OpenSpec active** | **3** (Wave 1 Phase 6c 三个 change ✅ ship + archived 2026-08-18; 剩余 3 个 Phase 6c 后续 Wave 待启动: `from-roadmap-phase-6c-evidence-gate` [Wave 2, 依赖 execution-baseline handoff] + `from-roadmap-phase-6c-execution-dsl` [Wave 3] + `from-roadmap-phase-6c-control-plane-eval` [Wave 4]) |
-| **ADR Approved** | **45** (主 38: Phase 0-5 16 + Phase 6 18 [0050/0051/0052-0065/0067] + **ADR-0068** Wave 1 收官 + **ADR-0073** ✅ Approved 2026-08-18 (Phase 6c C9 D2+D3+D4 全 ship) + **ADR-0074** ✅ Approved 2026-08-18 (Phase 6c C1+C2+C3, D1/D2/D3 ship, baseline 数据 handoff to evidence-gate) + **ADR-0075** ✅ Approved 2026-08-18 (Phase 6c C11-C13 D1+D2+D3+D5 全 ship); plugin 1; skill 子项 6) |
-| **ADR 🔍 Proposed** | **12** (主 6: 0038/0039/0042/0045/0046/0070; skill 子项 6: 0061-07~12) — ADR-0068 (D2) **已转 ✅ Approved** (2026-08-03 V2 收官); ADR-0070 (D4) 仍 Proposed; ADR-0069 已删除本轮调研后转 archive |
+| **ADR Approved** | **48** (主 41: Phase 0-5 16 + Phase 6 18 [0050/0051/0052-0065/0067] + **ADR-0068** Wave 1 收官 + **ADR-0073** ✅ Approved 2026-08-18 (Phase 6c C9 D2+D3+D4 全 ship) + **ADR-0074** ✅ Approved 2026-08-18 (Phase 6c C1+C2+C3, D1/D2/D3 ship, baseline 数据 handoff to evidence-gate) + **ADR-0075** ✅ Approved 2026-08-18 (Phase 6c C11-C13 D1+D2+D3+D5 全 ship) + **ADR-0081** ✅ Approved 2026-08-22 (Batch 2 P3) + **ADR-0082** ✅ Approved 2026-08-22 (Batch 2 P7); plugin 1; skill 子项 6) |
+| **ADR 🔍 Proposed** | **17** (主 11: 0038/0039/0042/0045/0046/0070/0071/0076/0077/0078/0083; skill 子项 6: 0061-07~12) — ADR-0068 (D2) **已转 ✅ Approved** (2026-08-03 V2 收官); ADR-0070 (D4) 仍 Proposed; ADR-0081/0082 均 已转 ✅ Approved (Batch 2 P3+P7) |
 | **Completed Phase 0-4** | ✅ 100% |
 | **Phase 5** | ✅ 收官 (C9-C18 全部 ✅ shipped + archived) |
 | **Phase 6** | 🟡 服务化暂缓 (Candidate B 启动条件 🔒 4/4 未满足); Phase 6a (PDK 生产化) 启动评估 ready (Wave 3-A 完成提供前置); Phase 6c 重评触发条件明确; **Phase 6c C1+C2+C3 `from-roadmap-phase-6c-execution-baseline` ✅ ship 2026-08-18** (ADR-0074 D1/D2/D3 V1/V2/V3 prompt builders + 32 few-shot + 51 golden + measure_prompt_baseline CLI, ADR-0074 🔍 Proposed → ✅ Approved, baseline 数据 handoff to evidence-gate); **Phase 6c C9 `from-roadmap-phase-6c-schema-complete` ✅ ship 2026-08-18** (ADR-0073 D3 ToolCoordinator 4 步校验层落地, ADR-0073 🟡 Partial → ✅ Approved); **Phase 6c C11-C13 `from-roadmap-phase-6c-execution-envbackend` ✅ ship 2026-08-18** (ADR-0075 D1+D2+D3+D5 全 ship, ADR-0075 🔍 Proposed → ✅ Approved) |

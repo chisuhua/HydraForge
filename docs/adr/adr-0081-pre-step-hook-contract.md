@@ -1,7 +1,8 @@
 # ADR-0081: Pre-Step Hook Contract（Agent 级拦截点）
 
 ## 状态
-✅ **Approved**（2026-08-21，Sprint 22 / adr-0081-promote-to-approved）— **实施期**（骨架 ship，Agent loop 集成推迟 Sprint 24+）
+
+**✅ Approved** (2026-08-21, Sprint 22 / adr-0081-promote-to-approved) — **实施期**（骨架 ship，Agent loop 集成推迟 Sprint 24+）
 
 > **定稿决议（2026-08-21）**：依赖 ADR-0079 v1.2 + ADR-0080 v1.1 + ADR-0082 均已 ship（Batch 2 P6/P4/P7）。
 > 本 ADR 翻牌 Approved + L3 契约 `IAgentHookRegistry` + InMemory 参考实现 ship。
