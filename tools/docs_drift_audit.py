@@ -47,6 +47,7 @@ SCENARIO_NAMES = {
     4: "ADR 声称实现 vs 代码 grep",
     5: "proposal-approved.md 已批准提案 vs archive 一致性",
     6: "文档计数声明 vs doc_metrics 实测",
+    7: "defect-truth-table 状态字段 vs 代码/ADR 真相 (B.2 v1.1)",
 }
 
 # 严重级别
@@ -545,9 +546,8 @@ def scan_scenario3(root: Path) -> List[Dict[str, Any]]:
 # ============================================================================
 
 ADR_PATTERN = re.compile(r"^adr-(\d{4})-.*\.md$")
-# ADR 状态行：## 状态  下方的 **✅ Approved** 或 **🟡 Partial**
 STATUS_LINE_PATTERN = re.compile(
-    r"^\s*\*\*(?:✅\s*Approved|🟡\s*Partial)(?:\s*\([^)]*\))?\s*\*\*",
+    r"(?:✅\s*Approved|🟡\s*Partial)(?:\s*\([^)]*\))?",
     re.MULTILINE,
 )
 # ADR 状态行："❌ Not Implemented" / "❌ 未实施"
@@ -840,6 +840,346 @@ def scan_scenario6(root: Path) -> List[Dict[str, Any]]:
 
 
 # ============================================================================
+# 场景 7：defect-truth-table 状态字段 vs 代码/ADR 真相 (B.2 v1.1)
+# ============================================================================
+STALE_STATUS_PATTERNS = (
+    r"实施\s*0%|实施\s*未|未启动|未完成|未定义|未.*对齐"
+    r"|未\s*ship|待\s*ship|待定|搁置|Proposed|🔍\s*Proposed"
+    r"|需要在.*.*修订.*明确|含于\s*v[\d.]+\s*计划"
+    r"|协议缺失|不含.*ship|不含.*实施"
+    r"|\d+\s*模式待\s*ship|\d+/\d+\s*模式\s*ship"
+    r"|缺\s*.*API|缺\s*.*实施|缺\s*.*query|不完全对齐"
+)
+STALE_BLINDSPOT_KEYWORDS = re.compile(
+    r"实施\s*0%|未\s*ship|未发射|零代码|无\s*ErrorCode"
+    r"|没有\s*error_code|默认失败总是递增|Phantom|幻影"
+    r"|未.*字段|未.*对齐|未.*定义"
+)
+DEFECT_CODE_SYMBOLS = {
+    "1.1": "SessionWriter",
+    "2.1": "query",
+    "3.1": "IAgentRegistry",
+    "3.2": "agent.spawned",
+    "3.3": "iagent_composition",
+    "4.2": "IAgentHookRegistry",
+    "6.1": "mock_bus.h",
+    "7.1": "execution_result.h",
+    "7.2": "context.compact.before",
+}
+DEFECT_INDEX_ROW_PATTERN = re.compile(
+    r"^\|[ \t]*\*?\*?(\d+\.\d+)\*?\*?[ \t]*\|[ \t]*([^|\n]+?)[ \t]*\|[ \t]*([^|\n]+?)[ \t]*\|[ \t]*([^|\n]+?)[ \t]*\|[ \t]*([^|\n]+?)[ \t]*\|[ \t]*([^|\n]+?)[ \t]*\|",
+    re.MULTILINE,
+)
+CURRENT_STATUS_PREFIXES = ("✅ 已 ship", "🟡 部分", "✅ Approved")
+ACKNOWLEDGED_PREFIXES = ("🟡 分层部分解决", "⚪ 有意例外", "有意例外")
+SECTION2_CURRENT_STATUS_PATTERN = re.compile(
+    r"\*\*当前状态[^*]*\*\*\s*[：:(\uff08]\s*(.+)",
+    re.MULTILINE,
+)
+SECTION9_TABLE_ROW_PATTERN = re.compile(
+    r"\|\s*ADR-(\d{4})\s*\|[^|]+\|\s*([^|]+?)\s*\|",
+    re.MULTILINE,
+)
+
+
+def _strip_markdown(text: str) -> str:
+    return text.replace("**", "").strip()
+
+
+def _is_status_acknowledged(group3_text: str) -> bool:
+    cleaned = _strip_markdown(group3_text)
+    return any(cleaned.startswith(prefix) for prefix in ACKNOWLEDGED_PREFIXES)
+
+
+def _is_status_current(group3_text: str) -> bool:
+    cleaned = _strip_markdown(group3_text)
+    return any(cleaned.startswith(prefix) for prefix in CURRENT_STATUS_PREFIXES) and \
+        not any(stale in cleaned for stale in ("0%", "未启动", "待 ship", "未 ship", "不含"))
+
+
+def _check_d1_code_exists(root: Path, defect_id: str) -> Optional[str]:
+    if defect_id not in DEFECT_CODE_SYMBOLS:
+        return None
+    symbol = DEFECT_CODE_SYMBOLS[defect_id]
+    return find_class_definition(symbol, root) or _find_file_with_name(root, symbol)
+
+
+def _check_d2_adr_approved(root: Path, adr_ref: str) -> Optional[Path]:
+    m = re.search(r"ADR-(\d{4})", adr_ref)
+    if not m:
+        return None
+    adr_num = m.group(1)
+    for p in (root / "docs" / "adr").glob(f"adr-{adr_num}-*.md"):
+        if "-impl-scope" in p.name:
+            continue
+        text = read_text(p)
+        if text and STATUS_LINE_PATTERN.search(text):
+            return p
+    return None
+
+
+def scan_scenario7(
+    root: Path,
+    fixture_path: Optional[Path] = None,
+) -> List[Dict[str, Any]]:
+    """扫描 defect-truth-table.md 状态字段 vs 代码/ADR 真相漂移 (B.2 v1.1).
+
+    B.2 v1.1 检测覆盖:
+    - D1: 缺陷标 stale 但代码符号已存在 → DRIFT
+    - D2: 缺陷标 stale 但对应 ADR 已 ✅ Approved → DRIFT
+    - D4: 盲点描述"实施 0%/未 ship"但代码已 ship → DRIFT
+    - §二 "**当前状态**:" stale text → DRIFT
+    - §九 "实施 0%/x/y 模式 ship" → DRIFT
+    - 枚举外状态值 → WARNING
+
+    12 处漂移 (v1.1.2 之前) 期望 fixture 检出:
+    1.1/1.2/1.3/1.5 + 3.3 (D1+D2) + 2.1/3.1/3.2/4.2/6.1 (D2 已 ship)
+    + 7.1/7.2 (D4) + §二 5 处 + §九 2 处
+    """
+    findings: List[Dict[str, Any]] = []
+
+    if fixture_path is not None and fixture_path.exists():
+        target_files = [fixture_path]
+    else:
+        target_files = sorted(
+            (root / "docs" / "architecture").glob("defect-truth-table-*.md"),
+            reverse=True,
+        )
+    if not target_files:
+        return findings
+
+    for dtt_path in target_files:
+        text = read_text(dtt_path)
+        if text is None:
+            continue
+        file_rel = rel(dtt_path, root)
+        findings.extend(_scan_section1_index_table(text, file_rel, root))
+        findings.extend(_scan_section2_current_status(text, file_rel, root))
+        findings.extend(_scan_section7_blindspots(text, file_rel, root))
+        findings.extend(_scan_section9_reference_table(text, file_rel, root))
+        findings.extend(_scan_warning_invalid_status(text, file_rel))
+
+    return findings
+
+
+def _scan_section1_index_table(
+    text: str, file_rel: str, root: Path,
+) -> List[Dict[str, Any]]:
+    findings: List[Dict[str, Any]] = []
+    for match in DEFECT_INDEX_ROW_PATTERN.finditer(text):
+        defect_id = match.group(1)
+        group3 = match.group(3)
+        adr_ref = match.group(4)
+        group5 = match.group(5)
+        line_no = text.count("\n", 0, match.start()) + 1
+
+        if _is_status_acknowledged(group3):
+            continue
+
+        status_clean = _strip_markdown(group5)
+        is_stale = re.search(STALE_STATUS_PATTERNS, status_clean, re.IGNORECASE)
+        if not is_stale and not _is_status_current(group3):
+            continue
+
+        evidence = _check_d1_code_exists(root, defect_id)
+        if evidence and is_stale:
+            findings.append(make_finding(
+                scenario=7, severity=SEVERITY_DRIFT, file=file_rel, line=line_no,
+                summary=f"§一 缺陷 {defect_id} 标 stale 但 `{DEFECT_CODE_SYMBOLS[defect_id]}` 已 ship",
+                details={
+                    "section": "§一",
+                    "drift_type": "D1",
+                    "defect_id": defect_id,
+                    "code_symbol": DEFECT_CODE_SYMBOLS[defect_id],
+                    "evidence": evidence,
+                },
+            ))
+            continue
+
+        adr_path = _check_d2_adr_approved(root, adr_ref)
+        if adr_path:
+            findings.append(make_finding(
+                scenario=7, severity=SEVERITY_DRIFT, file=file_rel, line=line_no,
+                summary=f"§一 缺陷 {defect_id} 标 stale 但 {adr_path.name} 已 ✅ Approved",
+                details={
+                    "section": "§一",
+                    "drift_type": "D2",
+                    "defect_id": defect_id,
+                    "adr_id": f"ADR-{adr_path.stem.split('-')[1]}",
+                    "adr_file": rel(adr_path, root),
+                },
+            ))
+    return findings
+
+
+PROGRESS_INDICATORS = ("已 ship", "大部分 ship", "已落盘", "已 Approved",
+                        "Step 0+1+2", "大部分", "✅ Approved", "已 ship)")
+
+
+def _scan_section2_current_status(
+    text: str, file_rel: str, root: Path,
+) -> List[Dict[str, Any]]:
+    findings: List[Dict[str, Any]] = []
+    for match in SECTION2_CURRENT_STATUS_PATTERN.finditer(text):
+        status_text = match.group(1)
+        cleaned = _strip_markdown(status_text)
+        if not re.search(STALE_STATUS_PATTERNS, cleaned, re.IGNORECASE):
+            continue
+        if any(ind in cleaned for ind in PROGRESS_INDICATORS):
+            continue
+        if cleaned.startswith(("✅", "🟡")) and "未 ship" not in cleaned:
+            continue
+
+        defect_id_match = re.search(r"缺陷\s+(\d+\.\d+)", text[max(0, match.start() - 200):match.start()])
+        defect_id = defect_id_match.group(1) if defect_id_match else "?"
+        line_no = text.count("\n", 0, match.start()) + 1
+
+        findings.append(make_finding(
+            scenario=7, severity=SEVERITY_DRIFT, file=file_rel, line=line_no,
+            summary=f"§二 缺陷 {defect_id} 当前状态 stale: {cleaned[:60]}...",
+            details={
+                "section": "§二",
+                "drift_type": "D2-section",
+                "defect_id": defect_id,
+                "stale_text": cleaned[:100],
+            },
+        ))
+    return findings
+
+
+def _scan_section7_blindspots(
+    text: str, file_rel: str, root: Path,
+) -> List[Dict[str, Any]]:
+    findings: List[Dict[str, Any]] = []
+    for bs_match in re.finditer(
+        r"^### 盲点\s+(\d+\.\d+).*?\n(.*?)(?=^###|\Z)",
+        text, re.MULTILINE | re.DOTALL,
+    ):
+        bs_id = bs_match.group(1)
+        bs_body = bs_match.group(2)
+        if not STALE_BLINDSPOT_KEYWORDS.search(bs_body):
+            continue
+
+        symbol_map = {
+            "7.1": "execution_result.h",
+            "7.2": "context.compact.before",
+            "7.3": "otel_exporter.h",
+        }
+        for key, symbol in symbol_map.items():
+            if key in bs_id:
+                evidence = (find_class_definition(symbol, root)
+                            if "." in symbol
+                            else _find_file_with_name(root, symbol))
+                if evidence:
+                    findings.append(make_finding(
+                        scenario=7, severity=SEVERITY_DRIFT, file=file_rel,
+                        line=text.count("\n", 0, bs_match.start()) + 1,
+                        summary=f"§七 盲点 {bs_id} 描述 stale 但 `{symbol}` 已 ship",
+                        details={
+                            "section": "§七",
+                            "drift_type": "D4",
+                            "blindspot_id": bs_id,
+                            "symbol": symbol,
+                        },
+                    ))
+                break
+    return findings
+
+
+def _scan_section9_reference_table(
+    text: str, file_rel: str, root: Path,
+) -> List[Dict[str, Any]]:
+    findings: List[Dict[str, Any]] = []
+    in_section9 = False
+    for line in text.splitlines():
+        if line.startswith("### 已批准 + 部分实施的 ADR"):
+            in_section9 = True
+            continue
+        if in_section9 and line.startswith("### ") and "部分实施的 ADR" not in line:
+            in_section9 = False
+            continue
+        if not in_section9:
+            continue
+        m = SECTION9_TABLE_ROW_PATTERN.search(line)
+        if not m:
+            continue
+        adr_num, impl_rate = m.group(1), _strip_markdown(m.group(2))
+        if not re.search(r"实施\s*0%|\d+/\d+\s*模式\s*ship", impl_rate):
+            continue
+        adr_path = next(
+            (p for p in (root / "docs" / "adr").glob(f"adr-{adr_num}-*.md")
+             if "-impl-scope" not in p.name),
+            None,
+        )
+        adr_text = read_text(adr_path) if adr_path else None
+        if adr_text is not None and STATUS_LINE_PATTERN.search(adr_text):
+            line_no = text[:text.find(line)].count("\n") + 1
+            findings.append(make_finding(
+                scenario=7, severity=SEVERITY_DRIFT, file=file_rel, line=line_no,
+                summary=f"§九 ADR-{adr_num} 实施率标 stale: {impl_rate[:40]}",
+                details={
+                    "section": "§九",
+                    "drift_type": "D2-section9",
+                    "adr_id": f"ADR-{adr_num}",
+                    "claimed_rate": impl_rate,
+                },
+            ))
+    return findings
+
+
+VALID_STATUS_INDICATORS = ("ship", "实施", "解决", "Approved", "Proposed",
+                           "入口", "ADR", "已", "✅", "🟡", "⚪", "定义",
+                           "配置", "架构", "引用", "分层", "骨架", "approve")
+
+
+def _scan_warning_invalid_status(
+    text: str, file_rel: str,
+) -> List[Dict[str, Any]]:
+    findings: List[Dict[str, Any]] = []
+    for match in DEFECT_INDEX_ROW_PATTERN.finditer(text):
+        status_col = _strip_markdown(match.group(5))
+        defect_id = match.group(1)
+        line_no = text.count("\n", 0, match.start()) + 1
+        if any(status_col.startswith(p) for p in CURRENT_STATUS_PREFIXES + ACKNOWLEDGED_PREFIXES):
+            continue
+        if re.search(STALE_STATUS_PATTERNS, status_col, re.IGNORECASE):
+            continue
+        if any(ind in status_col for ind in VALID_STATUS_INDICATORS):
+            continue
+        if len(status_col) < 5:
+            continue
+        findings.append(make_finding(
+            scenario=7, severity=SEVERITY_WARNING, file=file_rel, line=line_no,
+            summary=f"缺陷 {defect_id} 状态列取值非标准: {status_col[:40]}...",
+            details={"defect_id": defect_id, "status_value": status_col},
+        ))
+    return findings
+
+
+def _find_file_with_name(root: Path, name: str) -> Optional[str]:
+    name_lower = name.lower()
+    search_dirs = [root / "src", root / "include", root / "tests" / "test_helpers",
+                  root / "examples" / "pdk_chat_demo"]
+    for search_dir in search_dirs:
+        if not search_dir.exists():
+            continue
+        for path in search_dir.rglob("*"):
+            if not path.is_file():
+                continue
+            try:
+                if path.stat().st_size > 1_000_000:
+                    continue
+            except OSError:
+                continue
+            if name_lower in path.name.lower():
+                return rel(path, root)
+            content = read_text(path)
+            if content and name_lower in content.lower():
+                return rel(path, root)
+    return None
+
+
+# ============================================================================
 # 报告输出
 # ============================================================================
 
@@ -854,14 +1194,14 @@ def format_human_report(findings: List[Dict[str, Any]], root: Path) -> str:
     lines.append("")
 
     # 按场景分组
-    by_scenario: Dict[int, List[Dict[str, Any]]] = {1: [], 2: [], 3: [], 4: [], 5: [], 6: []}
+    by_scenario: Dict[int, List[Dict[str, Any]]] = {1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: []}
     for f in findings:
         by_scenario[f["scenario"]].append(f)
 
     drift_count = sum(1 for f in findings if f["severity"] == SEVERITY_DRIFT)
     warning_count = sum(1 for f in findings if f["severity"] == SEVERITY_WARNING)
 
-    for scenario_num in (1, 2, 3, 4, 5, 6):
+    for scenario_num in (1, 2, 3, 4, 5, 6, 7):
         scenario_findings = by_scenario[scenario_num]
         lines.append(f"[Scenario {scenario_num}] {SCENARIO_NAMES[scenario_num]}")
         if not scenario_findings:
@@ -899,7 +1239,7 @@ def format_human_report(findings: List[Dict[str, Any]], root: Path) -> str:
 
     lines.append("=" * 80)
     lines.append(f"SUMMARY: {drift_count} DRIFT items, {warning_count} WARNING items detected")
-    for scenario_num in (1, 2, 3, 4, 5, 6):
+    for scenario_num in (1, 2, 3, 4, 5, 6, 7):
         s_drift = sum(1 for f in by_scenario[scenario_num] if f["severity"] == SEVERITY_DRIFT)
         s_warn = sum(1 for f in by_scenario[scenario_num] if f["severity"] == SEVERITY_WARNING)
         lines.append(f"  Scenario {scenario_num}: {s_drift} drifts, {s_warn} warnings")
@@ -909,7 +1249,7 @@ def format_human_report(findings: List[Dict[str, Any]], root: Path) -> str:
 
 def format_json_report(findings: List[Dict[str, Any]], root: Path) -> str:
     """格式化为 JSON 报告"""
-    by_scenario: Dict[str, int] = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0}
+    by_scenario: Dict[str, int] = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0}
     drift_total = 0
     for f in findings:
         if f["severity"] == SEVERITY_DRIFT:
@@ -932,7 +1272,7 @@ def format_json_report(findings: List[Dict[str, Any]], root: Path) -> str:
 # ============================================================================
 
 def run_audit(root: Path) -> List[Dict[str, Any]]:
-    """执行全部 6 个场景，返回 findings 列表"""
+    """执行全部 7 个场景，返回 findings 列表"""
     findings: List[Dict[str, Any]] = []
     findings.extend(scan_scenario1(root))
     findings.extend(scan_scenario2(root))
@@ -940,6 +1280,7 @@ def run_audit(root: Path) -> List[Dict[str, Any]]:
     findings.extend(scan_scenario4(root))
     findings.extend(scan_scenario5(root))
     findings.extend(scan_scenario6(root))
+    findings.extend(scan_scenario7(root))
     return findings
 
 
