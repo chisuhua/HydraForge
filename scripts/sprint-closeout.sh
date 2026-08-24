@@ -31,6 +31,9 @@ RUN_DOCS_AUDIT=true
 RUN_OPENSPEC_VALIDATE=true
 DRIFT_ONLY=false
 RUN_LSP_FULL=false
+SCENARIO_7_SEVERITY=${SCENARIO_7_SEVERITY:-warn}
+SKIP_DRIFT=false
+FORCE_EXIT=false
 
 # 解析参数
 while [[ $# -gt 0 ]]; do
@@ -51,15 +54,34 @@ while [[ $# -gt 0 ]]; do
       RUN_LSP_FULL=true
       shift
       ;;
+    --skip-drift)
+      SKIP_DRIFT=true
+      shift
+      ;;
+    --force)
+      FORCE_EXIT=true
+      shift
+      ;;
+    --scenario-7-severity)
+      SCENARIO_7_SEVERITY="$2"
+      shift 2
+      ;;
+    --scenario-7-severity=*)
+      SCENARIO_7_SEVERITY="${1#*=}"
+      shift
+      ;;
     --help|-h)
       echo "用法: $0 [选项]"
       echo ""
       echo "选项:"
-      echo "  --drift-only       仅运行 Drift Detection"
-      echo "  --no-ctest         跳过 ctest"
-      echo "  --with-asan-tsan   同时运行 ASan/TSan (耗时较长)"
-      echo "  --lsp-full         LSP 完整模式 (clangd --check, ~30s/文件)"
-      echo "  --help, -h         显示帮助"
+      echo "  --drift-only             仅运行 Drift Detection"
+      echo "  --no-ctest               跳过 ctest"
+      echo "  --with-asan-tsan         同时运行 ASan/TSan (耗时较长)"
+      echo "  --lsp-full               LSP 完整模式 (clangd --check, ~30s/文件)"
+      echo "  --skip-drift             跳过所有 drift 检测 (B.2 v1.1 紧急 override)"
+      echo "  --force                  继续执行 (不 exit 1) — 紧急 ship gate override"
+      echo "  --scenario-7-severity V  设置 Scenario 7 severity (warn|fail), 默认 warn"
+      echo "  --help, -h               显示帮助"
       exit 0
       ;;
     *)
@@ -197,14 +219,40 @@ fi
 # ====================================================================
 # Step 4: Docs drift audit
 # ====================================================================
-if [ "$RUN_DOCS_AUDIT" = true ]; then
+if [ "$SKIP_DRIFT" = true ]; then
+  print_step "已通过 --skip-drift 跳过 docs drift audit (B.2 v1.1 override)"
+elif [ "$RUN_DOCS_AUDIT" = true ]; then
   print_header "Step 4/8: 📚 Docs drift audit"
 
   print_step "python3 tools/docs_drift_audit.py..."
-  if python3 tools/docs_drift_audit.py 2>&1 | tail -20; then
+  AUDIT_JSON_FILE=$(mktemp /tmp/hydraforge-audit-XXXXXX.json)
+  set +e
+  python3 tools/docs_drift_audit.py --json > "$AUDIT_JSON_FILE" 2>/dev/null
+  AUDIT_EXIT=$?
+  set -e
+
+  SCENARIO_7_DRIFTS=$(python3 -c "
+import json, sys
+try:
+    with open('$AUDIT_JSON_FILE') as f:
+        data = json.load(f)
+    print(data.get('summary', {}).get('by_scenario', {}).get('7', 0))
+except Exception:
+    print(0)
+" 2>/dev/null || echo 0)
+  rm -f "$AUDIT_JSON_FILE"
+
+  if [ "$AUDIT_EXIT" -eq 0 ]; then
     print_ok "Docs drift audit: 0 critical drift"
+  elif [ "$SCENARIO_7_SEVERITY" = "fail" ] && [ "$SCENARIO_7_DRIFTS" -gt 0 ]; then
+    print_fail "Scenario 7 漂移 $SCENARIO_7_DRIFTS 处 (defect-truth-table vs 代码/ADR) — B.2 v1.1 fail 门控生效 (Sprint 25+)"
+    if [ "$FORCE_EXIT" = false ]; then
+      SCENARIO_7_FAIL_BLOCKED=true
+    else
+      print_warn "已通过 --force 继续执行 (请在 sprint 回溯中说明原因)"
+    fi
   else
-    print_warn "Docs drift audit 有发现, 需人工 review"
+    print_warn "Docs drift audit 发现 $SCENARIO_7_DRIFTS 处 Scenario 7 漂移 (defect-truth-table), 需人工 review (severity=$SCENARIO_7_SEVERITY)"
   fi
 fi
 

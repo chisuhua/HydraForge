@@ -4,6 +4,8 @@
 
 ✅ Approved (D2 + D3 + D4 全 ship) (2026-08-18 — Phase 6c C9 `from-roadmap-phase-6c-schema-complete` ship: D3 ToolCoordinator 4 步 sanitization pipeline 落地)
 
+**Wave 1 followup 修正 (2026-08-23 — `from-roadmap-phase-6c-validation-refinements` ship)**: Oracle review 发现 D3 4 步 pipeline 4 处 P1 语义缺口（coercion 透明化 P1#1 / 不可转换静默放行 P1#2 / enum pre-coercion 误杀 P1#3 / audit session_id 硬编码 P1#4），全部 ship 修复；详见 D3 §Phase 6c Wave 1 followup 语义修正 章节。`DECLARE_TOOL_V3` 默认值由 `Strict` → `Warn`。
+
 **证据基础**：
 - `include/agenticdsl/pdk/manifest.h:17-18` — `input_schema`/`output_schema` 作为 `std::string`（raw JSON）存在于 PDK manifest 结构
 - `src/modules/pdk/manifest_validator.cpp` — 校验字段存在且为非空字符串（非 JSON Schema 内容校验）
@@ -197,6 +199,21 @@ LLM 生成 → DSL parse → Schema validate (D3) → Layer check → Approval �
 | `strict` (默认) | 抛 `SchemaValidationError`，进入 `on_error` | 抛 `SchemaValidationError`，工具调用标记为 `success=false` |
 | `warn` | 记录 warning event (`tool.schema.invalid_input`)，继续执行 | 同上 |
 | `ignore` | 跳过校验 | 跳过校验 |
+
+**Phase 6c Wave 1 followup 语义修正（2026-08-23 — `from-roadmap-phase-6c-validation-refinements` ship）**：
+
+Oracle review (`ses_fec4689a4ffeZbJNK9LDO8iWlQ`) 发现 4 处 P1 语义缺口，均已 ship 修复：
+
+| P# | 缺口 | 修复策略 | 代码位置 |
+|----|------|---------|---------|
+| **P1#1** | Warn-mode coercion 通过 `v.dump()` 重序列化后类型信息丢失（写到 string-map 时整数变成字符串"8080"） | 保持 coercion 直接修改 `nlohmann::json` 引用；语义上 type-coerced 值通过 `args_json` 流转，工具经 string-map 接收时保留 `v.dump()` 字符串表示。transport 层 BREAKING 变更（`string-map` → `nlohmann::json`）推迟 Phase 6d Option B | `tool_coordinator.cpp::coerce_args` |
+| **P1#2** | 不可转换输入（如 `"abc"` → integer）在 Warn 模式下静默放行 | Warn 模式 coerce 阶段检测失败 → emit stderr warning + `tool.audit.denied` event（`reason="coercion_failed"` + `failures[]` 数组），不调用 `call_tool`，整次调用 reject | `tool_coordinator.cpp` Step 2 (Warn) |
+| **P1#3** | enum 检查在 coercion 之前执行，误杀合法 Warn 输入（如 `"1"` + `integer enum[1,2,3]`） | Step 1 校验将 `"value not in enum"` 加入 deferred 列表（与 `"type mismatch"`/`"required field missing"` 同级）；Step 2 Warn 模式 coercion 完成后重跑 validator，若仍有失败则 reject | `tool_coordinator.cpp` Step 1 + Step 2 (Warn) retry |
+| **P1#4** | `emit_audit_denied` 硬编码 `session_id=""`，validation 拒绝事件丢失 session/trace 上下文 | `emit_audit_denied` 新增 `const ToolCallContext& ctx` 参数，从 ctx 继承 `session_id`/`trace_id`（若 ctx 缺则优雅降级为空串，trace_id 仅在非空时写入 meta）；5 处调用点同步迁移 | `tool_coordinator.{h,cpp}` |
+
+**DECLARE_TOOL_V3 默认值变更**：`Strict` → `Warn`（默认即与 ToolCoordinator Warn 模式行为匹配，新工具开发者无需显式指定即可获得合理行为）。
+
+**新增测试**：`tests/test_tool_coordinator_validation.cpp` 7 个 case（59 assertions in 14 total cases），覆盖 P1#1/#2/#3 + audit session_id/trace_id 继承 + 空 ctx graceful degradation。
 
 **错误格式**（统一给 LLM 反馈）：
 
