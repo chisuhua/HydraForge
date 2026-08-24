@@ -1,7 +1,7 @@
 # 架构缺陷真相表（2026-08 v1.1）
 
 **生成日期**: 2026-08-20
-**最后验证**: 2026-08-20（v1.1 修订——Oracle + Metis 独立评审后；验证命令见 §八）
+**最后验证**: 2026-08-23（v1.1.1 — ADR-0073 状态同步：2026-08-23 P1 闭环 ship，详见 §六.5；命令见 §八）
 **作者**: Architecture Working Group
 **状态**: ✅ Active — 架构缺陷分析的**唯一事实源**
 
@@ -33,11 +33,11 @@
 
 | # | 缺陷 | 真实? | 主参考 ADR | 现状 | 优先级 |
 |---|------|------|-----------|------|--------|
-| 1.1 | 4 套会话存储并存 | ✅ | ADR-0079 v1.1 ✅ Approved | SessionWriter 实施 0% | **P0** |
-| 1.2 | message-index 寻址（脆性） | ✅ | ADR-0079 v1.2 修订 | 含于 v1.2 计划 | P1 |
-| 1.3 | 缺 branch cursor 语义 formalization | ✅ | ADR-0079 v1.2 修订 | 含于 v1.2 计划 | P1 |
+| 1.1 | 4 套会话存储并存 | ✅ | ADR-0079 v1.1 ✅ Approved | ✅ **已 ship**（P5 `session-writer-bridge` + P6 `adr-0079-v1-2-amend`：SessionWriter 基础设施 + DSLEngine 集成 + 命名空间规则 + 4 scope schema + crash recovery） | **P0 → ✅** |
+| 1.2 | message-index 寻址（脆性） | ✅ | ADR-0079 v1.2 修订 | ✅ **已 ship**（P6：node_id = `<file_id>:<seq>` 稳定寻址 + SessionStore shim 内部 index→node_id 换算） | P1 → ✅ |
+| 1.3 | 缺 branch cursor 语义 formalization | ✅ | ADR-0079 v1.2 修订 | ✅ **已 ship**（P6：branch cursor 持久化字段 + checkout API + 持久化位置状态） | P1 → ✅ |
 | 1.4 | compact 是破坏性重写 | ✅ | ADR-0079 §不变量 2 | **有意例外**（待 v1.2 决策） | P3 |
-| 1.5 | 缺 path-extraction fork | ✅ | ADR-0079 D4 | fork() 存在，实现细节未对齐 | P1 |
+| 1.5 | 缺 path-extraction fork | ✅ | ADR-0079 D4 | ✅ **已 ship**（P6：`extract()` API + header `parent_file_id` + `branch_at_node_id` 字段） | P1 → ✅ |
 | 2.1 | EventLog 不完整（query 缺失） | ✅ | ADR-0080 v1.1 ✅ Approved | ✅ **已 ship**（P4 `event-log-query-api`：member read() + query() with glob + perf 基准 10k<100ms） | **P0 → ✅** |
 | 3.1 | Agent 非 first-class | ✅ | ADR-0082 ✅ Approved (2026-08-21) | ✅ **已 ship**（P7 `adr-0082-promote-to-approved`：IAgentRegistry L3 契约 + InMemory 参考实现 + 5 cases / 29 assertions PASS + §决策 7 C1-C5 final 决议）；完整 AgentWorker + spawn_agent + YAML 配置推迟 Sprint 24+ | P1 → ✅ 骨架 ship |
 | 3.2 | Agent 生命周期**事件契约**缺位 | ✅ | ADR-0057 ✅ Approved + ADR-0068 附录 A | ✅ **已 ship**（P1 `adr-0057-amend` §决策 6 + ADR-0068 附录 A 注册 4 主题：agent.spawned/heartbeat/terminated/error） | **P0 → ✅** |
@@ -87,7 +87,7 @@ HydraForge 当前存在 4 套独立的会话存储子系统（ADR-0079 v1.1 §�
   - §现行 defect 声明（line 207-222）：明确指出 4 套并存 + v1.1 修 trunc bug + Phase 2 裁决
 - **ADR-0033**：`docs/adr/adr-0033-session-hierarchy.md` ✅ Approved — 定义内存三层模型（UserSession/TaskSession/SubtaskSession），不涉及持久化统一
 
-**当前状态**：ADR-0079 v1.1 已批准 + SessionWriter 基础设施**未启动**（Phase 1 待 ship）
+**当前状态**（v1.1.2 更新）：✅ **已 ship**（P5 `session-writer-bridge` + P6 `adr-0079-v1-2-amend`：SessionWriter 基础设施 + DSLEngine `enable_session_writer()` opt-in + 4 scope schema + 行帧 JSONL + crash recovery + 命名空间规则 `sreg:` vs `sm:`）。`tests/test_session_writer.cpp` ≥ 8 cases + `tests/test_session_writer_eventlog_integration.cpp` ≥ 4 cases PASS。4 套存储命名空间冲突已分析。ADR-0079 v1.2 amendment §决策 D7-D10 已写定（node-id 寻址 + branch cursor + path-extraction fork + 命名空间规则）
 
 ---
 
@@ -113,7 +113,7 @@ s.messages.assign(src.messages.begin(), src.messages.begin() + message_index + 1
 - **ADR-0079 v1.1**：未明确处理 message-index 寻址机制（当前 SessionManager 实际使用 `node_id` 寻址）
 - **ADR-0080 v1.1**：EventLog 使用 `event_id` 寻址（ADR-0080 D2）— 这是正确的**范式**
 
-**当前状态**：SessionStore 单例未被 ADR-0079 显式裁决 message-index 替代方案；需要在 v1.2 修订中明确
+**当前状态**（v1.1.2 更新）：✅ **已 ship**（P6 `adr-0079-v1-2-amend` §决策 D7）：node_id 寻址方案 = `<file_id>:<seq>`（file_id 为 `sm:<uuid>` 或 `sreg:<uuid>`，seq 为 per-file 自增序号），compact/append 后 seq 单调递增保证稳定寻址。`SessionStore::branch(src, msg_index)` 标记 `[[deprecated]]` + shim 内部 index→node_id 换算（恒等映射保持向后兼容）。`tests/test_session_node_id_addressing.cpp` ≥ 6 cases PASS
 
 ---
 
@@ -136,7 +136,7 @@ s.messages.assign(src.messages.begin(), src.messages.begin() + message_index + 1
 - **ADR-0079 v1.1**：未 formalize "branch cursor" 概念
 - **ADR-0080**：EventLog 用 `(causal_time, event_id)` 做稳定排序键（ADR-0080 D2）— 类似概念但用于事件
 
-**当前状态**：SessionManager 的 `get_branch_leaf()` API 是 branch cursor 概念的雏形，但未在 ADR 层定义为位置状态
+**当前状态**（v1.1.2 更新）：✅ **已 ship**（P6 `adr-0079-v1-2-amend` §决策 D8-D9）：branch cursor 持久化字段已定义（与 D9 路径提取的 header 字段对齐），`checkout(node_id)` API 实现分支内位置回退，`extract(node_id)` 创建新 file 含 `parent_file_id` + `branch_at_node_id` header 字段。SessionManager 现有 open/fork/branch/compact API 在 v1.2 修订中追加 node_id/cursor/extract 语义测试。`tests/test_session_branch_cursor.cpp` ≥ 6 cases + `tests/test_session_extract_fork.cpp` ≥ 6 cases PASS
 
 ---
 
@@ -190,7 +190,7 @@ std::filesystem::rename(temp_path_, current_path_, ec);
 - **ADR-0079 D4**：`docs/adr/adr-0079-unified-session-4scope.md` line 109-117 — 已定义 `fork_session(parent)` 创建 `<parent>-fork-<n>.v1.jsonl`
 - **ADR-0079 v1.1 §附录 D**（line 298-307）：列出 `fork_session(parent)` 为新 API（已在 v1 实现范围内）
 
-**当前状态**：ADR-0079 v1.1 已批准 + SessionManager::fork 存在（实现细节与 ADR 不完全对齐）
+**当前状态**（v1.1.2 更新）：✅ **已 ship**（P6 `adr-0079-v1-2-amend` §决策 D9）：`extract()` API 实现路径提取到新文件（Pi 风格），返回新 file_id，header 含 `parent_file_id` + `branch_at_node_id`。SessionManager::fork 存在且与 ADR v1.2 §决策 D9 完全对齐（之前 v1.1 时期"实现细节未对齐"问题已解决）。`tests/test_session_extract_fork.cpp` ≥ 6 cases PASS
 
 ---
 
@@ -368,7 +368,7 @@ void TaskSession::archive_subtask_result(const SubtaskSession& subtask) {
     - 实际 ship：parallel + pub/sub（emit）= 2/6 模式
   - Stream 模式 defer Phase 2
 
-**当前状态**：ADR-0060 已批准 + 6 模式中 4 模式待 ship；ADR 表与代码真相之间存在 ADR 自身的"scope 标记 vs 实施标记"混淆问题
+**当前状态**（v1.1.2 更新）：🟡 **3/6 模式 ship**（P8 `adr-0060-p2-p3-patterns`：call/call_async/delegate FIFO + test-double AgentRegistry + stream throw 占位）。`include/agenticdsl/contract/iagent_composition.h` + `test_double_registry.h` + `src/modules/cognitive/agent_composition.cpp` 已 ship。`tests/test_agent_composition.cpp` ≥ 10 cases PASS（3 模式 × 3 case + stream throws 1 case）。stream 模式完整实施仍推迟（Phase 2）；call/call_async 返回 `Result<T, ErrorCode>` 复用 `tool_result.h` 17 枚举（与盲点 7.1 同步）。delegate 优先级降级为 FIFO（DomainWorkerPool 无 priority 字段）。ADR 表与代码"scope vs implemented"混淆问题已在 P8 §ADR-0060 amendment scope vs impl 标记中明确
 
 ---
 
@@ -403,7 +403,7 @@ PluginLoader 维护 `std::vector<LoadedPlugin> loaded_`（`plugin_loader.h:206`�
 
 - **ADR-0022**：`docs/adr/adr-0022-plugin-loading.md` ✅ Approved + **shipped** (2026-06-24)
 - **ADR-0041**：`docs/adr/adr-0041-pluginloader-lifecycle-extension.md` ✅ Approved + shipped (2026-07-10) — 扩展 `pdk_plugin_init`/`fini` 钩子
-- **ADR-0073**：`docs/adr/adr-0073-tool-json-schema-contract.md` 🟡 Partial — Tool JSON Schema 契约
+- **ADR-0073**：`docs/adr/adr-0073-tool-json-schema-contract.md` ✅ **Approved** (D2+D3+D4 ship + Wave 1 followup P1 闭环 2026-08-23) — Tool JSON Schema 契约
 
 ---
 
@@ -674,6 +674,52 @@ ADR-0057 amendment + ADR-0068 主题注册 (Phase A)
 - **下一修订触发**：(1) ADR-0079 v1.2 写定后；(2) ADR-0080 v1.1 Phase 3+4 ship 后；(3) ADR-0082 定稿后
 - **定期审计**：每 Sprint 收官同步（`scripts/sprint-closeout.sh` Step 8 加本表交叉检查）
 
+### 6.5 v1.1 → v1.1.1 修订（2026-08-23）
+
+| # | v1.1 措辞 | v1.1.1 措辞 | 修订原因 |
+|---|----------|-----------|---------|
+| 16 | §缺陷 4.1 reference table line 406: "ADR-0073 🟡 Partial" | "ADR-0073 ✅ Approved (D2+D3+D4 ship + Wave 1 followup P1 闭环 2026-08-23)" | 2026-08-23 `from-roadmap-phase-6c-validation-refinements` ship 后,ADR-0073 D3 4 步 sanitization pipeline P1 语义缺口全部 ship(coercion visibility P1#1 / uncoercible warning P1#2 / enum retry P1#3 / audit session/trace 继承 P1#4 + DECLARE_TOOL_V3 默认值 Strict → Warn)。ADR 头部 2026-08-18 已 Approved,本文档 line 406/862 残留 Partial 措辞属于 v1.1 修订期遗漏 |
+| 17 | §九 reference table line 862: "ADR-0073 partial，独立" | "ADR-0073 ✅ Approved (D2+D3+D4 ship + 2026-08-23 Wave 1 followup P1 闭环:ToolCoordinator 4 步 sanitization pipeline 语义修正 + DECLARE_TOOL_V3 默认 Warn + emit_audit_denied session/trace 继承),独立" | 同上 |
+
+**修订范围限定声明**: 本次 v1.1.1 修订**仅做 ADR-0073 状态同步**(2 处),**不涉及 14 项跟踪缺陷的状态变更**。`from-roadmap-phase-6c-validation-refinements` 是 ADR-0073 D3 内部 P1 修复(Phase 6c Wave 1 followup),不在本表 14 项跟踪缺陷范围内(那些是 session/event/agent/plugin/concurrency/test 领域缺陷)。Batch 2 ship gate 文档 `docs/architecture/batch-2-ship-gate-2026-08.md` 跟踪的是 Batch 1+2 changes (P12/P1/P10/P4/P6/P5/P2/P9/P8/P11/P7/P3) 与本 P0 closure change **无重叠**——无需在 batch-2-ship-gate 追加。
+
+### 6.6 v1.1.1 → v1.1.2 修订（2026-08-24）
+
+**触发事件**：Batch 1 + Batch 2 全部 12 个 proposals + ADR-0073 Wave 1 followup 闭环 ship 后，文档 §一/§二/§九状态字段未同步更新，导致 14 项跟踪缺陷中 7 处仍显示 ship 前的旧状态。
+
+**修订范围限定声明**：本次 v1.1.2 修订**仅做 11 项跟踪缺陷 + 1 项盲点的文档状态同步**（12 处更新），**不引入新修订、不重新编号、不改动核心结论**。
+
+| # | 位置 | v1.1.1 措辞 | v1.1.2 措辞 | 修订原因 |
+|---|------|------------|------------|---------|
+| 1 | §一 line 36（缺陷 1.1） | "SessionWriter 实施 0%" | "✅ 已 ship（P5 + P6）" | P5 `session-writer-bridge` + P6 `adr-0079-v1-2-amend` 全部 ship |
+| 2 | §一 line 37（缺陷 1.2） | "含于 v1.2 计划" | "✅ 已 ship（P6）" | P6 ship（node_id 寻址 + shim index→node_id） |
+| 3 | §一 line 38（缺陷 1.3） | "含于 v1.2 计划" | "✅ 已 ship（P6）" | P6 ship（branch cursor 持久化字段 + checkout） |
+| 4 | §一 line 40（缺陷 1.5） | "实现细节未对齐" | "✅ 已 ship（P6）" | P6 ship（extract() API + header 字段） |
+| 5 | §二 line 90（缺陷 1.1 当前状态） | "未启动（Phase 1 待 ship）" | "已 ship（SessionWriter + DSLEngine opt-in + 4 scope schema）" | 同 #1 |
+| 6 | §二 line 116（缺陷 1.2 当前状态） | "需在 v1.2 修订中明确" | "已 ship（node_id = `<file_id>:<seq>` 稳定寻址）" | 同 #2 |
+| 7 | §二 line 139（缺陷 1.3 当前状态） | "雏形，未在 ADR 层定义" | "已 ship（branch cursor 持久化字段 + checkout API）" | 同 #3 |
+| 8 | §二 line 193（缺陷 1.5 当前状态） | "实现细节与 ADR 不完全对齐" | "已 ship（extract() API + header parent_file_id）" | 同 #4 |
+| 9 | §二 line 371（缺陷 3.3 当前状态） | "4 模式待 ship" | "**3/6 模式 ship**（call/call_async/delegate FIFO + stream throw）；stream 完整实现仍推迟" | P8 `adr-0060-p2-p3-patterns` ship |
+| 10 | §七 line 692-714（盲点 7.1） | "未 ship" + 旧 9 类 ErrorCode 表（v1.0 虚构）+ 目标文件错误（"session.h"） | "✅ 已 ship（P9）：`src/core/types/execution_result.h` 统一类型 + `tool_result.h` 17 枚举对齐 + is_retryable() + 第三处 icognitive_orchestrator.h 前向声明处理" | P9 `error-taxonomy-execution-boundary` ship |
+| 11 | §九 line 860（ADR-0079 实施率） | "v1.1 ✅ / 实施 0%" | "v1.2 ✅ / 实施 100%（v1.1.2 更新）" | P5 + P6 ship + ADR v1.2 修订 |
+| 12 | §九 line 862（ADR-0060 实施率） | "2/6 模式 ship" | "**3/6 模式 ship**（call/call_async/delegate FIFO；stream 占位 throw）" | P8 ship |
+
+**修订影响**：
+- **零代码变更影响**（文档修订，无新功能）
+- **零 ADR 结论冲突**（仅同步 ship 状态，不修订 ADR 自身）
+- **零 ctest 影响**（仅文档字段更新）
+- **总修订条目**：12 处状态同步 + 1 处章节标题（§六.6 追加）
+
+**修订触发器**（本次）：
+- `scripts/sprint-closeout.sh` Step 8 检测到 Batch 1+2 ship 后 defect-truth-table 漂移
+- 路径 A P0 closure（ADR-0073 Wave 1 followup ship + `defect-fix-roadmap` ship gate 验证通过）
+- 12 个 OpenSpec proposals 全部 archive 后
+
+**后续追踪**：
+- 防止下次漂移：B.2 计划（`scripts/docs-drift-detect.sh` 自动校验）
+
+---
+
 ---
 
 ## 七、新发现盲点（v1.1 追加）
@@ -682,16 +728,17 @@ ADR-0057 amendment + ADR-0068 主题注册 (Phase A)
 
 ### 盲点 7.1：错误传播断层（ExecutionResult 错误分类不连续）
 
-**背景**
+**背景**（v1.1.2 更新——已 ship）
 
-代码中存在**两个同名 `ExecutionResult` 结构体**：
+代码中曾存在**两个同名 `ExecutionResult` 结构体 + 一处前向声明**：
 
-- `src/core/types/budget.h:116`
-- `src/core/types/session.h`（或 `execution_session.h:89`）
+- `src/core/types/budget.h:116-121` ✅ 完整定义（已删除）
+- `src/modules/scheduler/execution_session.h:89-95` ✅ 完整定义（已删除）
+- `include/agenticdsl/cognitive/icognitive_orchestrator.h:17` 前向声明 `struct ExecutionResult;`（已改 `#include`）
 
-两者都使用 `std::string message` 承载错误，**无 ErrorCode 枚举字段**。
+两者曾使用 `std::string message` 承载错误，无 ErrorCode 枚举字段。
 
-设计意图（ADR-0033 §D10 + ADR-0023）：执行层使用 ErrorCode 体系（强类型），编排层应自动转换。但 `record_failure`（`session.cpp:62-67`）注释自承"ExecutionResult 没有 error_code 字段…默认失败总是递增（保守策略）"——设计是"仅可重试错误递增"，实现是"全部递增"。
+设计意图（ADR-0033 §D10 + ADR-0023）：执行层使用 ErrorCode 体系（强类型），编排层自动转换。但 `record_failure`（`session.cpp:62-67`）注释自承"ExecutionResult 没有 error_code 字段…默认失败总是递增（保守策略）"——设计是"仅可重试错误递增"，实现是"全部递增"。
 
 **为什么是缺陷**
 
@@ -702,6 +749,18 @@ ADR-0057 amendment + ADR-0068 主题注册 (Phase A)
 **参考内容**：ADR-0023（ToolResult 标准化）+ ADR-0033 §D10（失败模式判定）
 
 **优先级**：P1（与缺陷 1.1/2.1 同步推进）
+
+**当前状态**（v1.1.2 更新）：✅ **已 ship**（P9 `error-taxonomy-execution-boundary`）：
+
+- 新建 `src/core/types/execution_result.h`：统一 `ExecutionResult<T>` 模板，含 `ErrorCode` 字段（源自 `tool_result.h:27-58` 真实 17 枚举，**不新建、不冲突**）+ `is_retryable()` 成员函数
+- `is_retryable()` 分流：`Retry/Timeout/ResourceExhausted/MaxStepsExceeded/Crash` → true；其余（PermissionDenied/PathViolation/DangerousCommand/SandboxBlock/Unknown 等）→ false
+- `src/core/types/budget.h:116` + `src/modules/scheduler/execution_session.h:89` 两处重复定义删除，改为 `#include "agenticdsl/types/execution_result.h"`
+- `include/agenticdsl/cognitive/icognitive_orchestrator.h:17` 前向声明改为 `#include`
+- `record_failure(error_code)` 按 `is_retryable()` 分流：可重试 → `failure_count_++`；不可重试 → 直接 `NewSession`
+- `tests/test_execution_result_error_taxonomy.cpp` ≥ 9 cases PASS
+- 编译期 fail-fast（统一类型字段名与旧定义不同，旧引用方全部编译报错，编译器本身就是验证器）
+- 已知引用点全部迁移：budget.h / execution_session.h / icognitive_orchestrator.h / session.cpp / engine.cpp
+- 解决 retry 策略保守问题，与提案 8 `call_async` 返回 `Result<T, ErrorCode>` 复用 `tool_result.h` 17 枚举
 
 ---
 
@@ -848,9 +907,9 @@ ctest --output-on-failure -R "event_log\|test_tool_coordinator"
 | ADR-0057 | Agent 生命周期管理 | 0%（**无事件契约**——v1.1 校正） | state machine 实施 + **事件定义 amendment** + emit 实现 |
 | ADR-0068 | 事件发射契约 | Wave 1 ✅ + 28 主题注册 | agent.* 主题注册（盲点 7.2）+ context.compact.* 注册 |
 | ADR-0069 | ToolCoordinator Hook 注入点 | partial (2026-08-04) | §决策 7 条件 5 ctest 零回归 |
-| ADR-0079 | 统一会话模型与 4-Scope 存储 | v1.1 ✅ / 实施 0% | SessionWriter Phase 1-5 |
-| ADR-0080 | AppendOnlyEventLog as Core | v1.1 ✅ / 实施 ~70%（v1.1 校正） | query API（Phase 3）+ SessionWriter 集成（Phase 4） |
-| ADR-0060 | Agent 协作协议 | 2/6 模式 ship（**ADR 表 ✅ 列是 scope 声明**，不是实施声明——v1.1 校正） | call/call_async/delegate/stream |
+| ADR-0079 | 统一会话模型与 4-Scope 存储 | v1.2 ✅ / 实施 100%（**v1.1.2 更新**） | （已闭环） |
+| ADR-0080 | AppendOnlyEventLog as Core | v1.1 ✅ / 实施 100%（**v1.1.2 更新**：query API P4 + SessionWriter 集成 P5） | （已闭环） |
+| ADR-0060 | Agent 协作协议 | **3/6 模式 ship**（**v1.1.2 更新**：call/call_async/delegate FIFO + test-double registry；stream 占位 throw）（**ADR 表 ✅ 列是 scope 声明**，不是实施声明——v1.1 校正） | stream 模式完整实现 |
 | ADR-0063 | OTel tracing | 0%（盲点 7.3） | exporter skeleton |
 
 ### 🔍 提案状态 ADR（待定稿/解锁）
@@ -859,7 +918,7 @@ ctest --output-on-failure -R "event_log\|test_tool_coordinator"
 |-----|----|------------|
 | ADR-0070 | PDK Plugin 命令注册 | 独立立项，与本表无直接关联 |
 | ADR-0071 | LLM-native AgenticDSL 架构 | 顶层方向 ADR，本表缺陷均可受益 |
-| ADR-0073 | Tool JSON Schema 契约 | partial，独立 |
+| ADR-0073 | Tool JSON Schema 契约 | ✅ Approved（D2+D3+D4 ship + 2026-08-23 Wave 1 followup P1 闭环:ToolCoordinator 4 步 sanitization pipeline 语义修正 + DECLARE_TOOL_V3 默认 Warn + emit_audit_denied session/trace 继承），独立 |
 | ADR-0074 | Prompt Evidence Gate | Wave 2 Phase 2.2，独立 |
 | ADR-0075 | EnvBackend 多环境执行 | ✅ 已 ship (Wave 3-A) |
 | ADR-0076 | DSL Engine as MCP Server | Wave 3 末，独立 |
