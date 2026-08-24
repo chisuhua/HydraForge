@@ -99,6 +99,7 @@ struct ToolCallContext {
  std::string target_path; //目标文件 /目录路径
  bool is_in_fleet_mode = false; // 是否在舰队模式中
  size_t call_count_this_session =0; // 本 Session 第几次调用
+ std::string trace_id; // 可选 trace ID (audit 关联, 空=不写入 meta)
 };
 
 } // namespace agenticdsl

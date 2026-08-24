@@ -135,14 +135,26 @@ class ToolCoordinator {
   static std::vector<std::string> get_required_fields(const nlohmann::json& schema);
 
   /// Coerce 模式: 按 schema 声明类型对 args 做自动类型转换
-  static nlohmann::json coerce_args(const nlohmann::json& schema,
-                                    const nlohmann::json& args);
+  /// 返回 failures 供 Step 2 (Warn) 触发 stderr+audit 拒绝
+  struct CoerceFailure {
+    std::string field_path;
+    std::string original_value;
+    std::string target_type;
+  };
+  struct CoerceResult {
+    nlohmann::json coerced;
+    std::vector<CoerceFailure> failures;
+  };
+  static CoerceResult coerce_args(const nlohmann::json& schema,
+                                  const nlohmann::json& args);
 
   /// 拒绝路径审计: emit "tool.audit.denied" (per ADR-0068 EventBuilder)
   /// 仅记录 stage + tool_name + reason, 不记录 raw args (defense-in-depth)
+  /// @param ctx 用于把 session_id 继承进 audit meta（避免硬编码空串）
   void emit_audit_denied(ValidationStage stage,
                          const std::string& tool_name,
-                         const std::string& reason);
+                         const std::string& reason,
+                         const ToolCallContext& ctx);
 
 
   IToolRegistry& registry_;

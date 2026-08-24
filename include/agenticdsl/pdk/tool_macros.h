@@ -148,7 +148,7 @@ inline ::hydraforge::pdk::ToolSpec tool_spec_##name = { \
     30000 /* timeout_ms (V2) */, \
     ::hydraforge::pdk::make_schema_ptr<InputSchema>(#name ".input") /* input_schema (V3) */, \
     ::hydraforge::pdk::make_schema_ptr<OutputSchema>(#name ".output") /* output_schema (V3) */, \
-    ::agenticdsl::ToolMetadata::ValidationMode::Strict /* validation_mode (V3) */ \
+    ::agenticdsl::ToolMetadata::ValidationMode::Warn /* validation_mode (V3) */ \
   } \
 }; \
 inline nlohmann::json tool_handler_##name(const nlohmann::json& __pdk_args) { \

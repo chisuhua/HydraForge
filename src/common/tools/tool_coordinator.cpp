@@ -289,13 +289,14 @@ std::vector<std::string> ToolCoordinator::get_required_fields(
   return out;
 }
 
-nlohmann::json ToolCoordinator::coerce_args(const nlohmann::json& schema,
-                                            const nlohmann::json& args) {
-  nlohmann::json out = args;
+ToolCoordinator::CoerceResult ToolCoordinator::coerce_args(const nlohmann::json& schema,
+                                                        const nlohmann::json& args) {
+  CoerceResult out;
+  out.coerced = args;
   if (!schema.is_object()) return out;
   auto props_it = schema.find("properties");
   if (props_it == schema.end() || !props_it->is_object()) return out;
-  for (auto& [key, val] : out.items()) {
+  for (auto& [key, val] : out.coerced.items()) {
     auto field_it = props_it->find(key);
     if (field_it == props_it->end() || !field_it->is_object()) continue;
     auto type_it = field_it->find("type");
@@ -308,16 +309,19 @@ nlohmann::json ToolCoordinator::coerce_args(const nlohmann::json& schema,
         size_t pos = 0;
         long long v = std::stoll(s, &pos);
         if (pos == s.size()) val = v;
+        else out.failures.push_back({key, s, expected});
       } else if (expected == "number") {
         size_t pos = 0;
         double v = std::stod(s, &pos);
         if (pos == s.size()) val = v;
+        else out.failures.push_back({key, s, expected});
       } else if (expected == "boolean") {
         if (s == "true") val = true;
         else if (s == "false") val = false;
+        else out.failures.push_back({key, s, expected});
       }
     } catch (const std::exception&) {
-      // 转换失败保持原值; Strict 模式下的拒绝由 check_type 负责
+      out.failures.push_back({key, s, expected});
     }
   }
   return out;
@@ -325,12 +329,16 @@ nlohmann::json ToolCoordinator::coerce_args(const nlohmann::json& schema,
 
 void ToolCoordinator::emit_audit_denied(ValidationStage stage,
                                         const std::string& tool_name,
-                                        const std::string& reason) {
+                                        const std::string& reason,
+                                        const ToolCallContext& ctx) {
   if (!bus_) return;
+  const std::string request_id = generate_request_id();
+  nlohmann::json meta = audit_meta(
+      "tool.audit.denied", request_id, tool_name,
+      "validation", "coordinator", ctx.session_id);
+  if (!ctx.trace_id.empty()) meta["trace_id"] = ctx.trace_id;
   bus_->emit(EventBuilder("tool.audit.denied",
-      ToolResult::error(map_stage_to_error(stage), reason,
-          audit_meta("tool.audit.denied", generate_request_id(), tool_name,
-                     "validation", "coordinator", "")))
+      ToolResult::error(map_stage_to_error(stage), reason, std::move(meta)))
       .args(nlohmann::json{
           {"tool", tool_name},
           {"reason", reason},
@@ -407,18 +415,19 @@ ToolResult ToolCoordinator::execute(
     if (meta.input_schema.has_value()) {
       const nlohmann::json& schema = *meta.input_schema;
 
-      // Step 1: SchemaValidate — 结构级校验 (enum/嵌套等),
-      //         type-mismatch 与 required-missing 延后到 step 2/3 归因
+      // Step 1: SchemaValidate — 结构级校验.
+      // 延后类包含 "value not in enum" 让 Warn 模式 coercion 后重试 enum 校验
+      nlohmann::json deferred = nlohmann::json::array();
       {
         tools::ToolSchemaValidator validator(schema.dump());
         auto vr = validator.validate(args_json);
         if (!vr.ok) {
-          nlohmann::json deferred = nlohmann::json::array();
           nlohmann::json fatal = nlohmann::json::array();
           for (const auto& err : vr.errors) {
             const std::string msg = err.value("message", "");
             if (msg.rfind("type mismatch", 0) == 0 ||
-                msg == "required field missing") {
+                msg == "required field missing" ||
+                msg == "value not in enum") {
               deferred.push_back(err);
             } else {
               fatal.push_back(err);
@@ -429,7 +438,7 @@ ToolResult ToolCoordinator::execute(
             m["validation_stage"] = stage_name(ValidationStage::SchemaValidate);
             m["errors"] = std::move(fatal);
             emit_audit_denied(ValidationStage::SchemaValidate, tool_name,
-                              "schema validation failed");
+                              "schema validation failed", ctx);
             return ToolResult::error(ErrorCode::InvalidParams,
                                      "schema validation failed for tool: " + tool_name,
                                      std::move(m));
@@ -445,22 +454,59 @@ ToolResult ToolCoordinator::execute(
             m["validation_stage"] = stage_name(ValidationStage::Coercion);
             m["field_path"] = key;
             emit_audit_denied(ValidationStage::Coercion, tool_name,
-                              "strict type check failed on field: " + key);
+                              "strict type check failed on field: " + key, ctx);
             return ToolResult::error(ErrorCode::InvalidParams,
                                      "type mismatch on field '" + key + "' for tool: " + tool_name,
                                      std::move(m));
           }
         }
       } else if (meta.validation_mode == ToolMetadata::ValidationMode::Warn) {
-        nlohmann::json coerced = coerce_args(schema, args_json);
-        if (coerced != args_json) {
+        CoerceResult cr = coerce_args(schema, args_json);
+        if (!cr.failures.empty()) {
+          nlohmann::json failures_arr = nlohmann::json::array();
+          for (const auto& f : cr.failures) {
+            std::fprintf(stderr,
+                "[ToolCoordinator] coercion failed for field '%s': cannot convert \"%s\" to %s (tool='%s')\n",
+                f.field_path.c_str(), f.original_value.c_str(),
+                f.target_type.c_str(), tool_name.c_str());
+            failures_arr.push_back({
+                {"field_path", f.field_path},
+                {"target_type", f.target_type}});
+          }
+          nlohmann::json m;
+          m["validation_stage"] = stage_name(ValidationStage::Coercion);
+          m["reason"] = "coercion_failed";
+          m["failures"] = std::move(failures_arr);
+          emit_audit_denied(ValidationStage::Coercion, tool_name,
+                            "coercion_failed", ctx);
+          return ToolResult::error(ErrorCode::InvalidParams,
+                                   "coercion failed for tool: " + tool_name,
+                                   std::move(m));
+        }
+        if (cr.coerced != args_json) {
           std::fprintf(stderr,
               "[tool_coordinator] Warn mode: coerced args for tool '%s'\n",
               tool_name.c_str());
-          args_json = std::move(coerced);
+          args_json = std::move(cr.coerced);
+        }
+        // P1#3 fix: coercion 后重跑 schema 校验,避免 strict 模式误杀合法 enum
+        if (!deferred.empty()) {
+          tools::ToolSchemaValidator validator(schema.dump());
+          auto post_vr = validator.validate(args_json);
+          if (!post_vr.ok) {
+            nlohmann::json m;
+            m["validation_stage"] = stage_name(ValidationStage::SchemaValidate);
+            m["post_coercion"] = true;
+            m["errors"] = std::move(post_vr.errors);
+            emit_audit_denied(ValidationStage::SchemaValidate, tool_name,
+                              "schema validation failed after coercion", ctx);
+            return ToolResult::error(ErrorCode::InvalidParams,
+                                     "schema validation failed after coercion for tool: " + tool_name,
+                                     std::move(m));
+          }
         }
       }
-      // Ignore: 跳过 step 2
+      // Ignore: 跳过 step 2 (deferred 仍然有效,后续 step 3 required + step 4 business rules 继续跑)
 
       // Step 3: RequiredField — schema.required[] 全部存在
       for (const auto& field : get_required_fields(schema)) {
@@ -469,7 +515,7 @@ ToolResult ToolCoordinator::execute(
           m["validation_stage"] = stage_name(ValidationStage::RequiredField);
           m["field_path"] = field;
           emit_audit_denied(ValidationStage::RequiredField, tool_name,
-                            "required field missing: " + field);
+                            "required field missing: " + field, ctx);
           return ToolResult::error(ErrorCode::InvalidParams,
                                    "required field '" + field + "' missing for tool: " + tool_name,
                                    std::move(m));
@@ -492,7 +538,7 @@ ToolResult ToolCoordinator::execute(
           m["reason"] = "path_policy_violation";
           m["args_hash"] = args_fingerprint(args_json);
           emit_audit_denied(ValidationStage::BusinessRules, tool_name,
-                            "path policy violation: " + check.reason);
+                            "path policy violation: " + check.reason, ctx);
           return ToolResult::error(ErrorCode::InvalidParams,
                                    "path policy violation for tool: " + tool_name,
                                    std::move(m));
@@ -509,7 +555,8 @@ ToolResult ToolCoordinator::execute(
           // 不记录 raw cmd (defense-in-depth, 审计日志不落敏感命令)
           emit_audit_denied(ValidationStage::BusinessRules, tool_name,
                             "dangerous pattern detected: " +
-                                policy::DangerousPatterns::first_match(cmd));
+                                policy::DangerousPatterns::first_match(cmd),
+                            ctx);
           return ToolResult::error(ErrorCode::InvalidParams,
                                    "dangerous pattern detected for tool: " + tool_name,
                                    std::move(m));
