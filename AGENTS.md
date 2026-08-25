@@ -38,7 +38,7 @@ AgenticDSL 是一个 DSL 执行引擎，通过 Markdown DSL 定义工作流图�
 
 ### 关联文档
 
-- `docs/architecture/sprint-24-pre-launch.md` — Sprint 24 启动前任务安排 (基于 single-developer mode)
+- `openspec/changes/2026-08-25-sprint-24-pre-launch-self-review/` — Sprint 24 启动前任务安排 (基于 single-developer mode)
 - `docs/architecture/capability-application-map-2026-08.md` — 能力/应用地图 (single dev 视角)
 - 旧评审材料归档: `docs/architecture/adr-review-minutes/` (251 行议程 + 邮件模板 — 保留作历史参考, 不再用作实际流程)
 
@@ -58,7 +58,7 @@ AgenticDSL 是一个 DSL 执行引擎，通过 Markdown DSL 定义工作流图�
 | **4** | 创建 Sprint 24 kickoff issue (T17 + 4 ADR 启动序列) | 30 min | 1 issue |
 | **5** | Sprint 24 启动周执行 T17 骨架 | (Sprint 24) | code |
 
-### 详细任务 (参见 `docs/architecture/sprint-24-pre-launch.md`)
+### 详细任务 (参见 `openspec/changes/2026-08-25-sprint-24-pre-launch-self-review/`)
 
 ## STRUCTURE
 ```
@@ -181,7 +181,7 @@ HydraForge/
 
 ## Recent Changes
 
-- **2026-08-25 (governance/single-dev-mode):** 正式确立 **Single-Developer Mode** 治理范式, 取代临时启用的"5 议程 + 4 文件 + 邮件/Slack"议会式流程. AGENTS.md 加 "Single-Developer Mode" + "Sprint 24 Pre-Launch" 章节. 新增 4 文件: `docs/architecture/sprint-24-pre-launch.md` (Sprint 24 启动前 5 步任务安排) + `docs/architecture/adr-self-review-checklist.md` (12 项通用 + 4 类专用清单) + `.github/ISSUE_TEMPLATE/adr-review.md` + `.github/ISSUE_TEMPLATE/sprint-kickoff.md` (2 GitHub Issue 模板). 3 个过度设计文件加 ⛛ Superseded 横幅: `adr-review-minutes/adr-0071-0074-distillation-review-2026-08-24.md` (9 议程 + 251 行) + `meeting-notification-template.md` (邮件/Slack 召集) + `meeting-minutes-form.md` (主席填报表 + 表决规则 + 异议角色). **流程转换**: 邮件召集 → GitHub Issue / 召集信 → issue body 模板 / 主席填报表 → Self-Review Checklist / 9 议程会议 → 1 issue self-review + 24h cooling-off. **Oracle session** `ses_fc93a2994ffeyGbFyDJYtP1MhZ` S4 全部 5 项修正应用 + 4 commits 落库 (93ebc8d + c5fb833 + d803158 + 1ca9a32).
+- **2026-08-25 (governance/single-dev-mode):** 正式确立 **Single-Developer Mode** 治理范式, 取代临时启用的"5 议程 + 4 文件 + 邮件/Slack"议会式流程. AGENTS.md 加 "Single-Developer Mode" + "Sprint 24 Pre-Launch" 章节. 新增 4 文件: `openspec/changes/2026-08-25-sprint-24-pre-launch-self-review/` (Sprint 24 启动前 5 步任务安排) + `docs/architecture/adr-self-review-checklist.md` (12 项通用 + 4 类专用清单) + `.github/ISSUE_TEMPLATE/adr-review.md` + `.github/ISSUE_TEMPLATE/sprint-kickoff.md` (2 GitHub Issue 模板). 3 个过度设计文件加 ⛛ Superseded 横幅: `adr-review-minutes/adr-0071-0074-distillation-review-2026-08-24.md` (9 议程 + 251 行) + `meeting-notification-template.md` (邮件/Slack 召集) + `meeting-minutes-form.md` (主席填报表 + 表决规则 + 异议角色). **流程转换**: 邮件召集 → GitHub Issue / 召集信 → issue body 模板 / 主席填报表 → Self-Review Checklist / 9 议程会议 → 1 issue self-review + 24h cooling-off. **Oracle session** `ses_fc93a2994ffeyGbFyDJYtP1MhZ` S4 全部 5 项修正应用 + 4 commits 落库 (93ebc8d + c5fb833 + d803158 + 1ca9a32).
 - 2026-08-09 (Wave 3-A / chat-async-io-model-switching, ship FINAL): OpenSpec change `chat-async-io-model-switching` 实施完成 — Wave 3-A Phase C FINAL, `/model <name>` DECLARE_COMMAND for runtime LLM provider/model switching. **Wave 3-A chat-async-io-steering 4-phase 拆分完整 ship**. 关键 ship: (1) **ChatSession API** (`examples/pdk_chat_demo/chat_session.h/.cpp`) — 新 public API `bool request_model_switch(const std::string& provider_name)` + `std::string next_model() const`; `Impl` 新增 `next_model_` + `next_model_mutex_` (std::mutex + std::string, 因 std::atomic<std::string> 不可 trivially copyable); mock-mode guard `if (impl_->provider_mode == "mock" && provider_name != "mock")` 硬编码拒绝 + stderr warning; (2) **command_globals 全局注入** (`commands/command_globals.h/.cpp`) — 新 `ChatSession* g_command_session` 全局 (前向声明 class ChatSession); (3) **main.cpp wiring** (`examples/pdk_chat_demo/main.cpp:440`) — `pdk_chat_demo::g_command_session = &session;` 在 ChatSession 构造后; (4) **model_command.cpp 替换 Wave 1 stub** (`commands/model_command.cpp`) — 移除 `provider_switch_stub` tool 调用, 直接 `g_command_session->request_model_switch(provider_name)`; 处理空参数 → Usage 提示; 处理拒绝 → error 消息; (5) **4 E2E tests** (`examples/pdk_chat_demo/tests/test_model_switching.cpp`) — request_model_switch stores in next_model / request_model_switch rejects non-mock in mock mode (openai/deepseek 拒绝, mock 允许) / request_model_switch rejects empty / next_model returns pending or empty (4 cases, 13 assertions PASS, 含 mock-mode guard stderr 验证); (6) **5 Requirements** in `openspec/specs/chat-async-io-model-switching/spec.md` — /model command via DECLARE_COMMAND / ChatSession request_model_switch API / per-turn model switch at chat() entry / session JSONL persistence / mock-mode hard-rejection (5 added); (7) **1 commit** (`feat(pdk-chat-demo): Wave 3-A Phase C - /model runtime switching`, 9 files +200/-58); (8) **ctest 147/150 PASS** (3 pre-existing 不变: test_pdk_chat_demo_cli_args + test_e2e_real_llm + test_pdk_chat_demo_session_tree_cli_flags, 4 新增 Phase C 测试 PASS, 0 新增回归). **Wave 3-A 完整 ship**:
   - **Phase 0** (fix-tool-registry-signal-handler-shutdown): SIGSEGV fix
   - **Phase A** (chat-async-io-queue-infra): 双队列 + 输入线程

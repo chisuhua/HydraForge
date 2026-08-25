@@ -1,7 +1,7 @@
 # ADR Self-Review Checklist (标准化清单)
 
 > **用途**: 每个 ADR 自审时引用此清单 (单一作者,自审 = 自决)
-> **关联**: AGENTS.md "Single-Developer Mode" + `sprint-24-pre-launch.md` Step 2
+> **关联**: AGENTS.md "Single-Developer Mode" + `openspec/changes/2026-08-25-sprint-24-pre-launch-self-review/` Step 2
 > **创建日期**: 2026-08-25
 > **状态**: ✅ Active
 
@@ -116,7 +116,7 @@ Oracle 输出写入 ADR `## Oracle 评审` 节或 `## 风险评估` 节, 作为�
 ## 六、关联文档
 
 - **使用入口**: `.github/ISSUE_TEMPLATE/adr-review.md` (issue body 模板)
-- **使用流程**: `docs/architecture/sprint-24-pre-launch.md` Step 2
+- **使用流程**: `openspec/changes/2026-08-25-sprint-24-pre-launch-self-review/` Step 2
 - **治理范式**: AGENTS.md "Single-Developer Mode"
 - **能力地图**: `docs/architecture/capability-application-map-2026-08.md` §X (引用 §二/§三/§四/§八)
 

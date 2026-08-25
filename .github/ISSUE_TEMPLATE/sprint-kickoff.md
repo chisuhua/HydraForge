@@ -69,7 +69,7 @@ milestone: "Sprint XX"
 ## 关联文档
 
 - **Capability Map**: `docs/architecture/capability-application-map-2026-08.md`
-- **Sprint Pre-Launch Plan**: `docs/architecture/sprint-24-pre-launch.md` (或当前 Sprint)
+- **Sprint Pre-Launch Plan**: `openspec/changes/2026-08-25-sprint-24-pre-launch-self-review/` (或当前 Sprint)
 - **Master Plan**: `docs/superpowers/plans/<current>-*.md`
 - **相关 ADRs**: `docs/adr/<path>/adr-XXXX-*.md`
 

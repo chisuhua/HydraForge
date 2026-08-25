@@ -12,7 +12,7 @@
 >
 > **保留用途**: 历史参考 + 治理范式对比
 >
-> **继任文档**: `docs/architecture/sprint-24-pre-launch.md` + AGENTS.md "Single-Developer Mode"
+> **继任文档**: `openspec/changes/2026-08-25-sprint-24-pre-launch-self-review/` + AGENTS.md "Single-Developer Mode"
 
 > **会议类型**: Phase 6 自进化方向架构评审会
 > **召集人**: Architecture Working Group

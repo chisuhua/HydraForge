@@ -7,10 +7,10 @@
 > Single-Developer Mode 使用 GitHub Issue 作为单一审查入口(无需邮件/Slack 多渠道同步):
 > - 创建 issue: `.github/ISSUE_TEMPLATE/adr-review.md` 模板粘贴 body
 > - 自审清单: `docs/architecture/adr-self-review-checklist.md`
-> - 流程: `docs/architecture/sprint-24-pre-launch.md` Step 1-2
+> - 流程: `openspec/changes/2026-08-25-sprint-24-pre-launch-self-review/` Step 1-2
 >
 > **保留用途**: 历史参考 + 治理范式对比
-> **继任文档**: AGENTS.md "Single-Developer Mode" + `sprint-24-pre-launch.md`
+> **继任文档**: AGENTS.md "Single-Developer Mode" + `openspec/changes/2026-08-25-sprint-24-pre-launch-self-review/`
 
 > **文件位置**: `docs/architecture/adr-review-minutes/meeting-notification-template.md`
 > **用途**: 召集 Phase 6 自进化方向架构评审会时复用

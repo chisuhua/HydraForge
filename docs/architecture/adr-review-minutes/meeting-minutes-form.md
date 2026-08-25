@@ -7,7 +7,7 @@
 > Single-Developer Mode 不需要"主席/秘书"角色, 自审 = 自决:
 > - 自审清单: `docs/architecture/adr-self-review-checklist.md` (12 项 + 4 类专用)
 > - 决策记录: GitHub Issue comment (`.github/ISSUE_TEMPLATE/adr-review.md` 模板)
-> - 流程: `docs/architecture/sprint-24-pre-launch.md` Step 2
+> - 流程: `openspec/changes/2026-08-25-sprint-24-pre-launch-self-review/` Step 2
 >
 > **保留用途**: 历史参考 + 治理范式对比
 > **继任文档**: AGENTS.md "Single-Developer Mode" + `adr-self-review-checklist.md`
