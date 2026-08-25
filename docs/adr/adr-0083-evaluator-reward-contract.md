@@ -4,6 +4,10 @@
 **状态**: 🔍 **Proposed** (Oracle 评审识别为架构层缺口, v1.1 capability-application-map §八 G10)
 **父主题**: Phase 6 Agent 自进化方向
 
+## 状态
+
+🔍 Proposed — 见上方 `**状态**` 字段 (Oracle 评审识别为架构层缺口, v1.1 capability-application-map §八 G10)
+
 **前置文档**:
 - `docs/architecture/capability-application-map-2026-08.md` §八 Oracle 评审
 - Oracle session `ses_fcba5e477ffeG9wEBHVhU64J0o`
