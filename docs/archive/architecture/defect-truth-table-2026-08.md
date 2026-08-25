@@ -1,9 +1,20 @@
-# 架构缺陷真相表（2026-08 v1.1）
+# 架构缺陷真相表（2026-08 v1.1.2）
+
+> ⛛ **Superseded** (2026-08-24) — 已归档至 `docs/archive/architecture/`。
+>
+> **继任文档**: [`docs/architecture/capability-application-map-2026-08.md`](../../architecture/capability-application-map-2026-08.md)
+>
+> 本表已完成其历史使命：14 项跟踪缺陷中 11 项已 ship，2 项分层部分解决，1 项有意例外（仍开放）。新文档 `capability-application-map-2026-08.md` 接管追踪职能，**视角从"缺陷清单"转向"能力-应用地图"**——重点说明 22 项已 ship 能力、9 项 open gap、3 类应用场景矩阵、13 个工程任务解锁映射。
+>
+> 保留本归档用于：(1) 历史审计追溯；(2) 方法论参考（grep + ctest + ADR 头部三方实证）；(3) Phase 5 → Phase 6 治理范本。
+>
+> **不再维护** — 后续修订请到继任文档。**验证命令**: 见 §八，所有计数类数据保持原样可复现。
 
 **生成日期**: 2026-08-20
 **最后验证**: 2026-08-23（v1.1.1 — ADR-0073 状态同步：2026-08-23 P1 闭环 ship，详见 §六.5；命令见 §八）
+**归档日期**: 2026-08-24（v1.1.2 superseded）
 **作者**: Architecture Working Group
-**状态**: ✅ Active — 架构缺陷分析的**唯一事实源**
+**历史状态**: ✅ Active（2026-08-20 至 2026-08-24）— 架构缺陷分析的**唯一事实源**
 
 **关联文档**:
 - `docs/architecture/adr-implementation-status-gap-analysis.md` — ADR 实施状态基线（ADR 状态引用必须以此为准）
