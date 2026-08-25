@@ -40,6 +40,10 @@ function(add_catch_test TEST_NAME)
     target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_modules_plugin)
     # Sprint 16 (B.5): test_system_nodes 需要 EndNode 定义 (来自 agenticdsl_modules_system)
     target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_modules_system)
+    # Sprint 23 (T14): 行为回归测试套件需要 testing 模块
+    if(TEST_NAME MATCHES "^test_behavioral_regression")
+        target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_modules_testing)
+    endif()
     target_compile_definitions(${TEST_NAME} PRIVATE CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1)
 
     # temporal_agent 测试需要直接链接 plugin 源码 (pdk_register_tools + pdk_plugin_info)
