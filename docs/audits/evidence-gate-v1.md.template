@@ -1,0 +1,121 @@
+<!--
+ADR-0074 D-4 Evidence Gate 决议文档模板 (MOMUS REJECT X 路线)
+
+本模板仅在 X 路线 ship 时使用 — 实际决议数据消费 (PASS/FAIL/CONDITIONAL/ABORT 数值)
+由独立 OpenSpec change (Sprint 25+ 真实 LLM baseline) 填入。
+
+## 决议数据消费前请删除本占位区块并填入实际数据。
+-->
+
+# Evidence Gate v1 Decision Document Template
+
+> **Date**: <YYYY-MM-DD>
+> **ADR**: [ADR-0074 — Prompt Engineering + Evidence Gate](../adr/adr-0074-prompt-evidence-gate.md)
+> **OpenSpec change**: `from-roadmap-phase-6c-evidence-gate`
+> **Author**: Solo Dev (Single-Developer Mode)
+> **Status**: ⏳ Pending real-LLM baseline data (Sprint 25+)
+
+---
+
+## §数据 plan (Data Plan)
+
+| Source | path:line evidence |
+|--------|-------------------|
+| baseline 报告 | `docs/audits/<date>-execution-baseline-v<ver>.yaml:<line>` |
+| golden suite | `lib/prompts/golden/<domain>_<NN>.yaml` (51 tasks, L1=20 / L2=20 / L3=11) |
+| few-shot examples | `lib/prompts/fewshot/<dimension>_<NN>.yaml` (32 examples, 4 维度 × 8) |
+| prompt 版本 | V1 / V2 / V3 from `src/common/prompts/v{1,2,3}.cpp` |
+
+---
+
+## §测量方法 (Measurement Method)
+
+```yaml
+baseline_id: <YYYY-MM-DD-V3>
+prompt_version: V3
+models:
+  - gpt-4-turbo
+  - claude-3-5-sonnet
+  - deepseek-v2
+golden_tasks_total: <N>
+parse_valid_rate: <PLACEHOLDER>    # 3 模型平均, [0, 1]
+task_success_rate:
+  L1: <PLACEHOLDER>                # 简单任务 ≤ 3 步
+  L2: <PLACEHOLDER>                # 中等任务 4-8 步
+  L3: <PLACEHOLDER>                # 复杂任务 ≥ 9 步
+mock_mode: false                   # ⚠️ 必须 false (决议需真实数据)
+timestamp: <ISO-8601>
+run_command: ./build/tools/measure_prompt_baseline --prompt V3 --golden-dir lib/prompts/golden/ --output ...
+holdout_verify: scripts/verify_golden_holdout.sh exit 0
+```
+
+---
+
+## §决策树 (Decision Tree)
+
+```text
+parse_valid < 0 OR > 1           → Abort (D-3 数据完整性 check)
+0 ≤ parse_valid < 0.85           → Fail   (触发 ADR-0072 D2 `$var`, C5 估时 8h P0*)
+0.85 ≤ parse_valid < 0.90        → Conditional (触发 ADR-0072 D3 declarative, C6 估时 4h P0*)
+0.90 ≤ parse_valid ≤ 1.00        → Pass   (Wave 2 → Wave 3 推进, C5/C6 跳过)
+```
+
+D-3 数据完整性 sentinel: `parse_valid < 0` 或 `> 1` 视为数据缺失/异常,立即 Abort 不进入阈值比较。
+D-4 临界带: `>= 0.85` 与 `< 0.90` 左闭右开,避免浮点边界歧义。
+
+---
+
+## §行动项 (Action Items)
+
+> 决议触发后,§行动项 列出后续 OpenSpec change + 估时 + 优先级。
+
+- [ ] (Pass 决议) 跳过 C5/C6,Wave 3 (execution-dsl) 启动周 ship
+- [ ] (Fail 决议) 触发 ADR-0072 D2 `$var` 实施 (C5, 8h P0*, 必须先于 Wave 3)
+- [ ] (Conditional 决议) 触发 ADR-0072 D3 declarative style (C6, 4h P0*)
+- [ ] (Abort 决议) 重新测量 baseline, 由真实 3 模型替换 mock (Sprint 25+)
+
+---
+
+## §决议 (Verdict)
+
+**Decision**: `<Pass | Fail | Conditional | Abort>`
+
+| Input | Value | ADR-0074 §决策 D4 threshold | Result |
+|-------|-------|---------------------------|--------|
+| parse_valid | `<value>` | ≥ 0.85 | <Pass/Conditional/Fail> |
+| task_success L1 | `<value>` | ≥ 0.70 | (informational; not gating v1) |
+| task_success L2 | `<value>` | ≥ 0.50 | (informational; not gating v1) |
+| task_success L3 | `<value>` | ≥ 0.30 | (informational; not gating v1) |
+| Prompt prefix tokens | `<value>` | ≤ 8000 | (deferred to Sprint 28+) |
+| Few-shot coverage | `<%>` | 100% (≥ 32) | (deferred) |
+| Golden suite | `<count>` | ≥ 50 | ✅ 51 |
+| Failure events | `<topics>` | 2 topics | (deferred to ADR-0068 amendment) |
+
+> **📋 8-condition Go check (ADR-0074 D-4)**: 当前 evaluate_gate v1 仅主决策在 parse_valid; L1/L2/L3 及 4 个附加条件 (tokens, coverage, golden, failure events) 留 v2 amendment (Sprint 25+)。本 v1 决议依据为 parse_valid 单维度 + 数据完整性 check。
+
+---
+
+## §决议签名 (Sign-off)
+
+- **决议人**: Solo Dev (`<github-handle>`)
+- **决议日期**: <YYYY-MM-DD>
+- **决议 commit**: `<git-sha>`
+- **决议同期 baseline 报告**: `<baseline-report-path>`
+- **数据完整性检查**: ✅ / ❌ (per D-3)
+- **ADR-0074 §决策 D5 实证字段追加位置**: `docs/adr/adr-0074-prompt-evidence-gate.md#决策:D5`
+
+---
+
+## 附录 A — 决议文档 5 章节固定结构 (per design D-2)
+
+1. §数据 plan — baseline 数据来源
+2. §测量方法 — 如何得到 parse_valid 数字
+3. §决策树 — 阈值 + 触发逻辑
+4. §行动项 — C5/C6 触发说明
+5. §决议 — Pass/Fail/Conditional/Abort 单选 + file:line 数据
+
+---
+
+*文档版本: v1 (MOMUS REJECT 后修正, 2026-08-25)*
+*基线 ADR-0074 D-4 阈值 (parse_valid 85%/L1 70%/L2 50%/L3 30% 临界带 90%)*
+*占位块填入规则: 真实 LLM 数据 ship 后由 Sprint 25+ 独立 OpenSpec change 填入; 本模板 ship 不锁 verdict*
