@@ -43,15 +43,18 @@
 
 ## 7. ADR 状态同步
 
-- [ ] 7.1 若决议 Pass：ADR-0074 状态字段 🔍 Proposed → 🟡 Partial，state amendment PR
-- [ ] 7.2 若任一阈值 Fail：保持 ADR-0074 🔍 Proposed 状态，但 §决策 D4 实证字段追加决议记录
-- [ ] 7.3 更新 `docs/active-status.md` §一 ADR-0074 状态行
+- [ ] 7.1 **事实修正 (2026-08-25 Momus REJECT 触发)**: ADR-0074 当前已 ✅ Approved (file: `docs/adr/adr-0074-prompt-evidence-gate.md:5` 顶部状态行 + docs/README.md 表行 + active-status.md §一行记录 2026-08-18 Approved)。本 change **不实施** "🔍 Proposed → 🟡 Partial" 翻牌;改为在 ADR-0074 §决策 D5 实证字段追加本次决议 (PASS / FAIL / CONDITIONAL / ABORT) 记录 (file:line 形式,引用决议文档)
+- [ ] 7.2 **事实修正**: ADR-0074 保持 ✅ Approved 状态不变 (与 plan-done 提案的 7.2 "保持 Proposed" 假设不一致);§决策 D5 实证字段追加决议记录 (不论决议结果)
+- [ ] 7.3 active-status.md §一 ADR-0074 状态行 **无变更**(文字保持 "✅ Approved (2026-08-18, Promotion, Wave 2 Phase 2.2)");§四 Phase 7 启动条件项 #1 状态根据本 change 决议更新
 
 ## 8. 架构合规性验证 + ctest 回归
 
 - [ ] 8.1 grep 验证 `src/common/prompts/evidence_gate.h` 仅含纯函数（无 IO 依赖、无全局 state）
-- [ ] 8.2 `ctest --output-on-failure` 全量零回归（baseline 147/147 不变；新增 `test_evidence_gate` ≥4 case 全 PASS）
+- [ ] 8.2 `ctest --output-on-failure` 全量零回归 (baseline **184/184** 不变 — per AGENTS.md 2026-08-25 ground truth T14+T16 ship;新增 `test_evidence_gate` **≥5 case** 全 PASS — 4 boundary parse-valid 用例 + 1 Abort 数据完整性用例)
 - [ ] 8.3 决议文档 ship 后 24h 内 active-status.md 更新验证（`grep -A 1 "Evidence Gate" docs/active-status.md` 输出决议状态）
+- [ ] 8.4 `python3 tools/adr_lint.py` → exit 0 / 0 errors (强制;本 change 修改 ADR-0074 §决策 D5 实证字段 + active-status.md §一 §四)
+- [ ] 8.5 `python3 tools/docs_drift_audit.py` → 0 DRIFT items (强制;new 决议文档 + active-status 同步)
+- [ ] 8.6 `openspec validate openspec/changes/from-roadmap-phase-6c-evidence-gate --strict` → exit 0
 
 ## 9. 元数据 + 文档同步
 
