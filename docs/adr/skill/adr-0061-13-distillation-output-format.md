@@ -1,7 +1,7 @@
 # ADR-0061-13: 蒸馏输出格式 (Distillation Output Format & Behavior Cloner Contract)
 
 **日期**: 2026-08-24
-**状态**: 🔍 **Proposed** (Oracle 评审识别为架构层缺口, capability-application-map §八 G15)
+**状态**: ✅ **Approved (评审通过 2026-08-25)** (Oracle 评审识别为架构层缺口, capability-application-map §八 G15)
 **父 ADR**: [../adr-0061-agent-evolution-and-solidification.md](../adr-0061-agent-evolution-and-solidification.md)
 **父 ADR 兄弟**: adr-0061-02 (T14 行为回归已 ship), adr-0061-06 (Trajectory IR), adr-0061-09 (GEPA)
 
