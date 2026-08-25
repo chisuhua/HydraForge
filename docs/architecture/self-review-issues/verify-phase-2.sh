@@ -237,21 +237,34 @@ else
   check_fail "ledger" "未找到 $LEDGER"
 fi
 
-# --- 3 镜像同步 ---
 echo ""
-echo "[3 Mirrors] gap-analysis + README + relationships 同步"
-mirror_ok=0
-for f in "$GAP_ANALYSIS" "$README" "$RELATIONSHIPS"; do
-  if [ -f "$f" ]; then
-    if grep -qE "ADR-0083|ADR-0080 v1.2|ADR-0061-13|ADR-0061-06 v1.1|ADR-0071|ADR-0074" "$f"; then
-      mirror_ok=$((mirror_ok + 1))
+echo "[3 Mirrors] gap-analysis + README + relationships 并集检查"
+declare -a MIRROR_ADRS=(
+  "adr-0083-evaluator-reward-contract"
+  "adr-0080-v1-2-amendment-d10-decouple"
+  "adr-0061-13-distillation-output-format"
+  "adr-0061-06-v1-1-amendment-trajectory-ir-decouple"
+  "adr-0071-llm-native-agenticdsl-architecture"
+  "adr-0074-prompt-evidence-gate"
+)
+missing_adr=0
+for adr in "${MIRROR_ADRS[@]}"; do
+  found=0
+  for f in "$GAP_ANALYSIS" "$README" "$RELATIONSHIPS"; do
+    if [ -f "$f" ] && grep -qF "$adr" "$f"; then
+      found=1
+      break
     fi
+  done
+  if [ $found -eq 0 ]; then
+    FAILED_CHECKS+=("$adr missing from all mirrors")
+    missing_adr=$((missing_adr + 1))
   fi
 done
-if [ "$mirror_ok" -eq 3 ]; then
-  check_pass "3/3 mirrors 同步"
+if [ $missing_adr -eq 0 ]; then
+  check_pass "6/6 ADRs 在镜像并集中存在"
 else
-  check_fail "mirrors" "仅 $mirror_ok/3"
+  check_fail "mirrors" "$missing_adr/6 ADR 缺失"
 fi
 
 # --- summary ---

@@ -91,6 +91,8 @@ docs/
 | `adr-0080-append-only-event-log.md` | AppendOnlyEventLog 作为核心审计日志 (Step 0: BusEvent 信封扩展 + GenerationRequest.purpose; v1.1 D10 Distillation Capture + D2 causal_time + D6 opt-in) | ✅ Approved (v1.1 amendment 2026-08-12; 原始 v1 文本 2026-01-19, 本会话讨论产出) |
 | `adr-0082-agent-first-class-registry.md` | Agent as First-Class Registry (讨论稿: AgentWorker + YAML + spawn_agent, 争议未决, 搁置至 0079/0080 实施后) | 🔍 Proposed (v1.1 状态注记 2026-08-12: 蒸馏需求加强搁置; 原始讨论稿 2026-01-19, 未定稿) |
 | `adr-0081-pre-step-hook-contract.md` | Pre-Step Hook Contract (Agent 级拦截点, 推迟至 ADR-0082 定稿) | 🔍 Proposed (2026-08-12, v1.1 引用触发, 占位) |
+| `adr-0080-v1-2-amendment-d10-decouple.md` | D10 Capture 与 Scrub Hook 解耦 (CaptureMode 三态 + Training fail-open 三重保护) | 🔍 Proposed (2026-08-24, Oracle G12 解锁 ADR-0081/0082 死锁) |
+| `adr-0083-evaluator-reward-contract.md` | IEvaluator/RewardSignal 评估契约 (双层契约 + 3 内置评估器 + V1 简化避免 ADR-0057 零实施) | 🔍 Proposed (2026-08-24, Oracle G10 关键缺口, 6 个下游 ADR 硬前置) |
 
 ### adr/plugin/ - Plugin 化候选清单
 
@@ -118,6 +120,8 @@ docs/
 | `adr-0061-10-formal-lint.md` | λ_A-style Config 结构完整性检查 | P2 | 🔍 Proposed |
 | `adr-0061-11-dsl-wasm.md` | DSL→Wasm Bytecode 编译器 | P2 | 🔍 Proposed |
 | `adr-0061-12-webllm.md` | 浏览器端 WebLLM 集成 | P2 | 🔍 Proposed |
+| `adr-0061-13-distillation-output-format.md` | 蒸馏输出格式 (IDistillationWriter + DistillationRecord + trajectory/policy/meta 三文件分离) | P0 | 🔍 Proposed (2026-08-24, Oracle G15, 7 环闭环最后 1 环) |
+| `adr-0061-06-v1-1-amendment-trajectory-ir-decouple.md` | Trajectory IR 独立序列化视图 (不改 ParsedGraph, v1 标题耦合修正) | P1 | 🔍 Proposed (2026-08-24, Oracle G14 解耦风险) |
 
 ### adr-management/ - ADR 元数据
 

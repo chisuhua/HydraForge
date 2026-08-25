@@ -3,7 +3,7 @@
 > 本文件由 `tools/adr_relationships.py` 自动生成，**请勿手动编辑**。
 > 任何手动修改会在下次运行时被覆盖。
 > 最后更新: 由 `tools/adr_relationships.py` 生成（运行时刻见 git commit 时间戳）
-> ADR 总数: 77
+> ADR 总数: 80
 
 ---
 
@@ -86,8 +86,11 @@
 | adr-0078 | Fine-tune 基模选型与训练管线 | 🔍 Proposed | 2026-08-03 |  |
 | adr-0079 | 统一会话模型与 4-Scope 存储 | ✅ Approved | Unknown |  |
 | adr-0080 | AppendOnlyEventLog as Core Fact Source | ✅ Approved | Unknown |  |
-| adr-0081 | Pre-Step Hook Contract（Agent 级拦截点） | 🔍 Proposed | Unknown |  |
-| adr-0082 | Agent as First-Class Registry（讨论稿） | 🔍 Proposed | Unknown |  |
+| adr-0080 | ADR-0080 v1.2 amendment: D10 Capture 与 Scrub Hook 解耦 | 🔍 Proposed | Unknown |  |
+| adr-0081 | Pre-Step Hook Contract（Agent 级拦截点） | ✅ Approved | Unknown |  |
+| adr-0082 | ADR-0082 实现范围审计 (Implementation Scope Audit) | Unknown | Unknown |  |
+| adr-0082 | Agent as First-Class Registry | ✅ Approved | Unknown |  |
+| adr-0083 | 评估/奖励信号契约 (IEvaluator & RewardSignal) | 🔍 Proposed | Unknown |  |
 
 ---
 
@@ -170,17 +173,22 @@ graph TD
     adr_0078["adr-0078: Fine-tune 基模选型与训练管线"]
     adr_0079["adr-0079: 统一会话模型与 4-Scope 存储"]
     adr_0080["adr-0080: AppendOnlyEventLog as Core Fact Source"]
+    adr_0080["adr-0080: ADR-0080 v1.2 amendment: D10 Capture 与 S"]
     adr_0081["adr-0081: Pre-Step Hook Contract（Agent 级拦截点）"]
-    adr_0082["adr-0082: Agent as First-Class Registry（讨论稿）"]
+    adr_0082["adr-0082: ADR-0082 实现范围审计 (Implementation Scope Au"]
+    adr_0082["adr-0082: Agent as First-Class Registry"]
+    adr_0083["adr-0083: 评估/奖励信号契约 (IEvaluator & RewardSignal)"]
 
     adr_0031 --> adr_0002
     adr_0031 --> adr_0019
     adr_0080 --> adr_0081
+    adr_0080 --> adr_0081
+    adr_0081 --> adr_0079
     adr_0019 -.->|supersedes| adr_0006
     adr_0020 -.->|supersedes| adr_0006
 ```
 
-> 图中包含 77 个节点、3 条依赖边、2 条替代边。
+> 图中包含 80 个节点、5 条依赖边、2 条替代边。
 > 渲染说明：实线 (`-->`) 表示依赖关系；虚线带标签 (`-.->|supersedes|`) 表示替代关系。
 
 ---
@@ -192,7 +200,8 @@ graph TD
 | adr-0002 | adr-0031 (depends-on) |
 | adr-0006 | adr-0019 (supersedes), adr-0020 (supersedes) |
 | adr-0019 | adr-0031 (depends-on) |
-| adr-0081 | adr-0080 (depends-on) |
+| adr-0079 | adr-0081 (depends-on) |
+| adr-0081 | adr-0080 (depends-on), adr-0080 (depends-on) |
 
 ---
 
@@ -200,12 +209,13 @@ graph TD
 
 | 状态 | 数量 |
 |------|------|
-| ✅ Approved | 51 |
+| ✅ Approved | 53 |
 | 🟡 Partial | 9 |
 | ❌ Not Implemented | 1 |
 | ⛔ Superseded | 1 |
 | 🔍 Proposed | 13 |
 | 📋 Reserved | 2 |
+| ❓ Unknown | 1 |
 
 ---
 
