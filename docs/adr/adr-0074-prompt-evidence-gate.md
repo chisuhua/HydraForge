@@ -2,7 +2,7 @@
 
 ## 状态
 
-🔍 Proposed (2026-08-03 — 派生自 ADR-0071 §决策 D5, Wave 2 Phase 2.2 ADR; 衔接 ADR-0073 (Tool JSON Schema); 待架构组评审; 实施 2-3 周)
+✅ Approved (2026-08-03 — 派生自 ADR-0071 §决策 D5, Wave 2 Phase 2.2 ADR; 衔接 ADR-0073 (Tool JSON Schema); 待架构组评审; 实施 2-3 周)
 
 ## 领域
 
@@ -592,4 +592,4 @@ Stage 2 必须含至少 1 个 few-shot example (从 D1)
 *文档版本: v1.0*
 *创建日期: 2026-08-03*
 *作者: HydraForge 架构组*
-*状态: 🔍 Proposed (Wave 2 Phase 2.2 ADR; 衔接 ADR-0073; 待架构组评审)*
+*状态: ✅ Approved (Wave 2 Phase 2.2 ADR; 衔接 ADR-0073; 待架构组评审)*
