@@ -1,7 +1,7 @@
 # ADR-0083: 评估/奖励信号契约 (IEvaluator & RewardSignal)
 
 **日期**: 2026-08-24
-**状态**: 🔍 **Proposed** (Oracle 评审识别为架构层缺口, v1.1 capability-application-map §八 G10)
+**状态**: ✅ **Approved (评审通过 2026-08-25)** (Oracle 评审识别为架构层缺口, v1.1 capability-application-map §八 G10)
 **父主题**: Phase 6 Agent 自进化方向
 
 ## 状态
