@@ -1,5 +1,19 @@
 # 架构评审会议纪要: ADR-0071 + ADR-0074 + 3 个新 ADR (Oracle 评审输入)
 
+> **⛛ SUPERSEDED (2026-08-25) — 治理范式转型**
+>
+> 本文件设计的"5 议程 + 4 文件 + 邮件/Slack 召集"议会式流程**已废弃**, 取代为 Single-Developer Mode + GitHub Issue Self-Review 流程。
+>
+> **不再使用**:
+> - 邮件召集 → 用 GitHub Issue (`.github/ISSUE_TEMPLATE/adr-review.md`)
+> - 召集信 (本目录 `meeting-notification-template.md`) → 不需要
+> - 主席填报表 (本目录 `meeting-minutes-form.md`) → 改为 `adr-self-review-checklist.md`
+> - 法定人数 ≥4 + 表决规则 → 单人模式不需要
+>
+> **保留用途**: 历史参考 + 治理范式对比
+>
+> **继任文档**: `docs/architecture/sprint-24-pre-launch.md` + AGENTS.md "Single-Developer Mode"
+
 > **会议类型**: Phase 6 自进化方向架构评审会
 > **召集人**: Architecture Working Group
 > **日期**: 2026-08-24 (会前材料准备就绪, 待架构组会议召集)

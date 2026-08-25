@@ -1,5 +1,17 @@
 # ADR-0071/0074 评审会议纪要 (填报表)
 
+> **⛛ SUPERSEDED (2026-08-25) — 治理范式转型**
+>
+> 本会议主席填报表为 Single-Developer Mode 前的议会式流程设计,**已废弃**。
+>
+> Single-Developer Mode 不需要"主席/秘书"角色, 自审 = 自决:
+> - 自审清单: `docs/architecture/adr-self-review-checklist.md` (12 项 + 4 类专用)
+> - 决策记录: GitHub Issue comment (`.github/ISSUE_TEMPLATE/adr-review.md` 模板)
+> - 流程: `docs/architecture/sprint-24-pre-launch.md` Step 2
+>
+> **保留用途**: 历史参考 + 治理范式对比
+> **继任文档**: AGENTS.md "Single-Developer Mode" + `adr-self-review-checklist.md`
+
 > **文件位置**: `docs/architecture/adr-review-minutes/meeting-minutes-form.md`
 > **用途**: 会议主席/秘书在会议中/后填写 — 结构化记录决议与行动项
 > **关联**:

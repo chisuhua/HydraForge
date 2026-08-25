@@ -1,5 +1,17 @@
 # ADR-0071/0074 评审会议召集通知模板
 
+> **⛛ SUPERSEDED (2026-08-25) — 治理范式转型**
+>
+> 本邮件/Slack 召集模板为 Single-Developer Mode 前的议会式流程设计,**已废弃**。
+>
+> Single-Developer Mode 使用 GitHub Issue 作为单一审查入口(无需邮件/Slack 多渠道同步):
+> - 创建 issue: `.github/ISSUE_TEMPLATE/adr-review.md` 模板粘贴 body
+> - 自审清单: `docs/architecture/adr-self-review-checklist.md`
+> - 流程: `docs/architecture/sprint-24-pre-launch.md` Step 1-2
+>
+> **保留用途**: 历史参考 + 治理范式对比
+> **继任文档**: AGENTS.md "Single-Developer Mode" + `sprint-24-pre-launch.md`
+
 > **文件位置**: `docs/architecture/adr-review-minutes/meeting-notification-template.md`
 > **用途**: 召集 Phase 6 自进化方向架构评审会时复用
 > **创建日期**: 2026-08-25
