@@ -64,11 +64,34 @@ ADR-0074 §决策 D4 定义 Evidence Gate 为 Phase 6c → Phase 7 推进的唯�
 
 **理由**: 浮点等值比较易出错（baseline YAML 报告含 84.999999 vs 85.0 实际语义不同），闭区间 + 边界测试是行业惯例。
 
-### D-5. 决议 → ADR-0074 状态字段同步
+### D-5. 决议 → ADR-0074 状态字段同步 (2026-08-25 MOMUS REJECT 修正)
 
-**决策**: 若决议 `Pass` → ADR-0074 状态 🔍 Proposed → 🟡 Partial（D2 baseline ship + C4 Evidence Gate ship），state amendment PR 路径：`docs/adr/adr-0074-prompt-evidence-gate.md` 顶部状态行 + §复审节点追加新行。若任一阈值 FAIL → 保持 🔍 Proposed，决议录入 §决策 D4 实证字段（不翻牌）。
+**修正后决策**: ADR-0074 当前已 ✅ Approved (file: `docs/adr/adr-0074-prompt-evidence-gate.md:5` + docs/README.md 表行 + active-status.md §一行)。本 change 不实施 "🔍 Proposed → 🟡 Partial" 翻牌 (该目标状态不存在)。
 
-**理由**: ADR-0074 是 Layer 0/1 架构 ADR，C4 是 D4 决策的首次实测验证，但 C5/C6 触发后 ADR-0074 才完整生效，故翻牌时机精确为 Gate Pass。
+**简化后规则**: 不论决议 (Pass/Fail/Conditional/Abort) 结果,均在 ADR-0074 §决策 D5 实证字段追加决议记录 (file:line 形式引用本决议文档 + baseline 数据)。active-status.md §四 Phase 7 启动条件项 #1 状态根据本决议翻牌 (`Pass → ✅ / Fail → ❌ / Conditional → 🟡 / Abort → ⏳`)。
+
+**理由**: ADR-0074 为 Layer 0/1 架构 ADR, 已 Approved 状态保留; Evidence Gate 是 ADR-0074 D4 决策的首次实测验证, 但 ADR 状态翻牌时机属 v2 amendment (Sprint 25+ 真实数据决议后), 不属本 v1 ship 范围.
+
+---
+
+## ⚠️ Errata (2026-08-25 MOMUS REJECT 触发)
+
+### D-3 数据完整性 check 修正
+
+**修正**: D-3 决议函数入口先验证 baseline 数据完整性, 替换原 sentinel `-1.0` 为范围检查 `parse_valid < 0.0 || > 1.0`。任一缺失 → 立即 `GateStatus::Abort`, 不进入阈值比较。
+
+**理由**: 原 sentinel 仅支持单一缺失情形; 范围检查覆盖 (a) -1.0 sentinel (mock_mode 显式标记) + (b) > 1.0 异常值 + (c) NaN (通过 isfinite 三重覆盖,本 v1 仅 sentinel + range)。
+
+### D-4 临界带判定 vs L1/L2/L3 阈值
+
+**决策**: v1 决议主决策仅在 `parse_valid` 单维度 (per design D-4 spec scenarios)。task_success L1/L2/L3 接受函数签名参数 (per design D-1 4 参函数) 但本 v1 不参与裁决。完整 D-4 "全部满足" (parse-valid AND task-success L1/L2/L3) 由 ADR-0074 §决策 D5 v2 amendment (Sprint 25+) 实施。
+
+**理由**: v1 ship 阶段仅依赖 parse_valid 唯一 strict 阈值 (85% / 90% 临界带); L1/L2/L3 的 task-success "全部满足" 语义需要真实 3 模型 baseline (X 路线 ship 后由独立 OpenSpec change 实施)。
+
+### 真实数据消费 scope 锁定
+
+> **scope 决策待 user 回复 X/Y/Z/W** (见 `docs/audits/2026-08-25-evidence-gate-momus-decision-summary.md`)
+> 本 v1 ship 不实施决议数据消费 (基于 mock baseline 88.24% + 0 模型报告 → Abort 路径)
 
 ## Risks / Trade-offs
 
