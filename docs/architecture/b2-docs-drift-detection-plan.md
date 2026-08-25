@@ -1,10 +1,10 @@
-# B.2 计划：Sprint 收官文档自动校验（v1.1 descope）
+# B.2 计划：Sprint 收官文档自动校验（v1.2 descope）
 
 > **生成日期**: 2026-08-24（v1.0）
-> **修订日期**: 2026-08-24（v1.1 — descope：Metis + Oracle 评审后重定向）
-> **触发事件**: defect-truth-table-2026-08.md v1.1.1 → v1.1.2 修订（12 处状态同步）暴露"文档滞后于代码"问题
-> **目标**: 防止下次 Sprint 收官时 defect-truth-table 出现同等规模的漂移
-> **状态**: 🔍 Proposed（v1.1 descope，待 Sprint 24 启动评审）
+> **修订日期**: 2026-08-24（v1.2 — descope 范围重新定向：原 v1.1 聚焦 `defect-truth-table`，v1.2 改聚焦 `capability-application-map-2026-08.md` 替代）
+> **触发事件**: defect-truth-table-2026-08.md 已归档（v1.1.2 superseded 2026-08-24），继任文档 `capability-application-map-2026-08.md` 承担 22 项能力 + 9 项 gap + 13 个工程任务的追踪
+> **目标**: 防止下次 Sprint 收官时 capability-application-map 出现同等规模的漂移（22 项 ship 能力 / 9 项 gap / T1-T13 任务状态）
+> **状态**: 🔍 Proposed（v1.2 descope，待 Sprint 24 启动评审）
 
 ---
 

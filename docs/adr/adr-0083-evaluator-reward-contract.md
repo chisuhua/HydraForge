@@ -1,0 +1,162 @@
+# ADR-0083: 评估/奖励信号契约 (IEvaluator & RewardSignal)
+
+**日期**: 2026-08-24
+**状态**: 🔍 **Proposed** (Oracle 评审识别为架构层缺口, v1.1 capability-application-map §八 G10)
+**父主题**: Phase 6 Agent 自进化方向
+
+**前置文档**:
+- `docs/architecture/capability-application-map-2026-08.md` §八 Oracle 评审
+- Oracle session `ses_fcba5e477ffeG9wEBHVhU64J0o`
+- ADR-0061 Agent Evolution Pipeline (12 子项)
+- ADR-0061-02 Behavioral Regression (已 ship, T14)
+- ADR-0074 Prompt Evidence Gate (依赖本 ADR)
+- ADR-0078 Fine-tune Pipeline (依赖本 ADR)
+
+---
+
+## 背景
+
+**Oracle 评审关键发现**（2026-08-24, session `ses_fcba5e477ffeG9wEBHVhU64J0o`）：
+
+> 22 项已 ship 能力中**没有任何一项能回答"这次执行好不好"**。
+> GEPA/AFlow/fine-tune/行为克隆全部依赖评估信号。
+> 这是**未识别的架构层缺口**——9 项缺失子能力中没有任何一项覆盖它。
+
+**与现有 ADR 的关系**:
+
+| ADR | 是否依赖本 ADR |
+|---|---|
+| ADR-0061-02 (行为回归, 已 ship T14) | 否（回归是"等价性"判定, 非"质量"评估）|
+| ADR-0061-09 GEPA 反思循环 (Proposed) | **是** (需要 failure-aware 评估) |
+| ADR-0061-08 AFlow MCTS (Proposed) | **是** (需要 comparative 评估) |
+| ADR-0061-07 PASTE 推测 (Proposed) | **是** (需要 partial-result 评估) |
+| ADR-0074 Prompt Evidence Gate (Proposed) | **是** (prompt 质量评估) |
+| ADR-0078 Fine-tune Pipeline (Proposed) | **是** (RLHF/DPO reward signal) |
+| ADR-0061-03 SkillCompiler (Proposed) | **是** (skill 改进信号) |
+
+**结论**: 本 ADR 是**至少 6 个下游 ADR 的硬前置**——无 IEvaluator 契约则自进化方向无法启动。
+
+---
+
+## 决策
+
+### 决策 1 — 双层契约: `IEvaluator` + `RewardSignal`
+
+```cpp
+// 抽象评估器: 单次执行的标量评估
+class IEvaluator {
+ public:
+  virtual ~IEvaluator() = default;
+  
+  // 输入: 一次完整执行的结果 (含 trajectory)
+  // 输出: 标量 reward [-1.0, 1.0] 或 Verdict 三值
+  virtual RewardSignal evaluate(const ExecutionTrace& trace) = 0;
+  
+  // 输入: 两个轨迹, 输出比较 (A vs B 谁更好)
+  //   - 返回 +1 表示 A 更好, -1 表示 B 更好, 0 表示平局
+  virtual int compare(const ExecutionTrace& a, const ExecutionTrace& b) = 0;
+};
+
+// 奖励信号值类型 (V1: 三态, V2: 连续)
+struct RewardSignal {
+  enum class Quality { Excellent, Acceptable, Poor } quality;
+  double scalar;  // [-1.0, 1.0], 用于 RLHF/DPO
+  
+  // 工厂方法
+  static RewardSignal excellent(double confidence = 1.0);
+  static RewardSignal acceptable(double confidence = 0.5);
+  static RewardSignal poor(double confidence = 1.0);
+};
+```
+
+### 决策 2 — 三种内置评估器
+
+| 评估器 | 输入 | 输出 | 适用 |
+|---|---|---|---|
+| `TaskSuccessEvaluator` | ToolResult.ok + error_code | RewardSignal | 大多数任务（默认）|
+| `BehavioralEquivalenceEvaluator` | 两个 BehaviorFingerprint | Verdict (Pass/Fail/Inconclusive) | 演化前后对比 |
+| `CompositeEvaluator` | 多个 `IEvaluator*` 加权聚合 | RewardSignal 加权和 | 复杂场景（GEPA/AFlow）|
+
+### 决策 3 — 与 ToolResult / ErrorCode 的关系
+
+- `IEvaluator::evaluate()` **不修改** `ToolResult`（评估是 side-effect-free）
+- `RewardSignal.quality` 与 `ErrorCode` 正交: 一个任务可能 `ok=true` 但 quality=Poor（成功但低效）
+- V2: `ErrorCode::Retryable` 与 `RewardSignal.quality::Poor` 联合判定是否触发 retry
+
+### 决策 4 — 集成点
+
+| 集成对象 | 集成方式 |
+|---|---|
+| `CognitiveWorker` | 构造时注入 `IEvaluator*`; 任务完成后调用 `evaluate()` |
+| `DomainWorkerPool` | 同上（per-domain evaluator）|
+| `IAgentHookRegistry` (ADR-0081) | post-step hook 调用 `evaluate()` 写 metric |
+| `EventLog` (ADR-0080) | 新增 `evaluation.result` 主题 |
+| `CostTrackingDecorator` (P16) | 评估代价计入 budget |
+
+### 决策 5 — V1 简化 (避免 V0 重蹈 ADR-0057 覆辙)
+
+V1 仅实现 `TaskSuccessEvaluator`（基于 ToolResult.ok 的 3 行实现）:
+
+```cpp
+class TaskSuccessEvaluator : public IEvaluator {
+  RewardSignal evaluate(const ExecutionTrace& trace) override {
+    if (trace.final_result.ok) return RewardSignal::excellent();
+    return RewardSignal::poor();
+  }
+  int compare(const ExecutionTrace& a, const ExecutionTrace& b) override {
+    return (a.final_result.ok ? 1 : 0) - (b.final_result.ok ? 1 : 0);
+  }
+};
+```
+
+`BehavioralEquivalenceEvaluator` 与 `CompositeEvaluator` 推迟到 V2。
+
+---
+
+## 不变量
+
+1. `IEvaluator` 接口纯虚函数, 必须 override 全部
+2. `RewardSignal.scalar` 必须在 `[-1.0, 1.0]` 区间（违反抛异常）
+3. 评估器无状态或仅 readonly 状态（线程安全）
+4. 评估器**不修改**输入 trace（避免 double-evaluation 副作用）
+
+---
+
+## 风险
+
+| 风险 | 影响 | 缓解 |
+|---|---|---|
+| V1 `TaskSuccessEvaluator` 过于简单, GEPA 无法区分"成功但低效" | GEPA 反思效果差 | V2 增加 latency/tokens/cost 维度评估 |
+| `CompositeEvaluator` 加权策略难定义 | 复杂场景无标准做法 | V2 推迟, 提供 heuristic 实现 |
+| 评估器 vs 回归门职责重叠 (与 ADR-0061-02) | API 混淆 | 本 ADR 评估"质量", T14 评估"等价性", 文档明确区分 |
+
+---
+
+## 实施
+
+- **文件**:
+  - `include/agenticdsl/contract/ievaluator.h` (L1 契约层)
+  - `include/agenticdsl/types/reward_signal.h` (值类型)
+  - `src/modules/cognitive/evaluator.cpp` (V1 TaskSuccessEvaluator)
+  - `tests/test_evaluator.cpp` (≥ 4 cases)
+- **估时**: 1 sprint
+- **优先级**: P0 (Oracle 评审: "本周最高杠杆"之一)
+
+---
+
+## 关联变更
+
+- `docs/architecture/capability-application-map-2026-08.md` §八 新增 G10
+- 解锁后续: A2 (IEvaluator) → T15 (Trajectory IR 集成评估) → T19 (GEPA MVP) → T21 (Prompt Evidence Gate) → T22 (Fine-tune)
+- 与 `tests/test_evaluator.cpp` 联合 ship gate 验证
+
+---
+
+## 参考
+
+- Oracle 评审: session `ses_fcba5e477ffeG9wEBHVhU64J0o`
+- AgentAssay: arXiv:2603.02601 (Token-efficient verdict)
+- RLHF reward modeling: Christiano et al. 2017
+- Process Reward Model (PRM): UCB 2023
+- ADR-0061-02 (行为回归已 ship, T14) - 同族但不同职责
+- ADR-0057 (Agent 生命周期) - amendment 教训: V1 需避免"零实施无需新设计"误判

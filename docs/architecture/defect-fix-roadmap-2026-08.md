@@ -1,13 +1,14 @@
-# 架构缺陷修复路线图（2026-08 v1.1）
+# 架构缺陷修复路线图（2026-08 v1.2）
 
 **生成日期**: 2026-08-20
-**最后验证**: 2026-08-20（基于 `defect-truth-table-2026-08.md` v1.1）
+**最后验证**: 2026-08-24（v1.2 — 12 提案 9/12 ship 已 archive 闭环，剩余 3 项进入 `capability-application-map-2026-08.md` §四 T1-T8 继续追踪）
 **作者**: Architecture Working Group
-**状态**: ✅ Active — 修复执行路径
+**状态**: ✅ Active（已 ship 9 提案 + 3 提案移交至新文档）— 历史执行路径
 
 **关联文档**:
-- `docs/architecture/defect-truth-table-2026-08.md` — 本路线图的依据（11 真实缺陷 + 3 盲点）
-- `openspec/changes/` — 本路线图的 12 个提案落地位置
+- ⛛ `docs/archive/architecture/defect-truth-table-2026-08.md` — 已归档（11 真实缺陷 + 3 盲点 ship 闭环）
+- ➡️ `docs/architecture/capability-application-map-2026-08.md` — **本表后续追踪由本表 §四 T1-T8 工程任务映射接管**
+- `openspec/changes/archive/` — 12 提案落地位置（9/12 已 archive）
 - `docs/architecture/adr-implementation-status-gap-analysis.md` — ADR 实施状态基线
 
 ---
