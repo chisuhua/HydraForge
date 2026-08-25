@@ -118,9 +118,9 @@ The system MUST require GitHub labels (adr-review, self-review, sprint-23, sprin
 
 ---
 
-### Requirement: Offline / Blocked Recovery
+### Requirement: Offline Decision Ledger
 
-The system MUST support offline decision recording via local ledger (`docs/architecture/adr-status-ledger-2026-08.md`) when GitHub is unavailable, AND MUST allow cooling-off period to be shortened to 8h (with explicit annotation) when solo-dev opts out of the default 24h window.
+The system MUST support offline decision recording via local ledger (`docs/architecture/adr-status-ledger-2026-08.md`) when GitHub is unavailable.
 
 #### Scenario: Local Decision Ledger
 
@@ -128,6 +128,11 @@ The system MUST support offline decision recording via local ledger (`docs/archi
 - **WHEN** solo-dev 在本地 `docs/architecture/adr-status-ledger-2026-08.md` 记录决策 (date + ADR + 决策 + 备注)
 - **THEN** 决策信息不丢失
 - **AND** 恢复后手动同步到 issue 评论
+- **AND** 台账记录不构成状态翻转授权; ADR 状态翻转触发器仍为 issue 决策 comment 发布 (见 "ADR Status Flip")
+
+### Requirement: Configurable Cooling-Off Period
+
+The system MUST allow cooling-off period to be shortened to 8h (with explicit annotation) when solo-dev opts out of the default 24h window.
 
 #### Scenario: Shorter Cooling-Off
 

@@ -31,12 +31,12 @@
 - **Step 0 (NEW, 原计划缺失)**: 创建 gh labels + milestone "Sprint 24" 前置基建
 - **Step 1**: 创建 6 个 per-ADR 定制 body 的 GitHub Issue (占位符 ADR-XXXX/GXX/TXX 全部替换; 决策点引用 `capability-application-map §8.4` + `resolution-draft-2026-08-25.md`)
 - **Step 2**: 6 个 Issue Self-Review (≤20 min/issue, **决策 comment 推迟到 24h 冷却期结束后发布**; ADR-0083 的 ExecutionTrace v0 最小结构定义纳入 ADR 本文)
-- **Step 3**: 冷却期结束后
-  - Step 3a: 修复 `scripts/apply-meeting-resolutions.py` (G14 正则兼容 🔓 Open + 支持 `--resolutions` 条件路径 + dry-run 匹配检查表)
-  - Step 3b: 6 个 issue 发布决策 comment + 本地台账 `adr-status-ledger-2026-08.md` 记录
-  - Step 3c: per-ADR 定制 sed 翻转状态 + `apply-meeting-resolutions.py` 实跑 + capability-map v1.3 + 3 个状态镜像同步 (原子 commit, ≥9 commits)
+- **Step 3a (冷却期前)**: 修复 `scripts/apply-meeting-resolutions.py` (G14 正则兼容 🔓 Open + 支持 `--resolutions` 条件路径 + dry-run 匹配检查表 + 退出码 docstring 同步)
+- **Step 3b**: 冷却期 (24h, 可缩短至 8h 并注明)
+- **Step 3c (冷却期结束后)**: 6 个 issue 发布决策 comment + 本地台账 `adr-status-ledger-2026-08.md` 记录
+- **Step 3d (冷却期结束后)**: per-ADR 定制 sed 翻转状态 + `apply-meeting-resolutions.py` 实跑 + capability-map v1.3 + 3 个状态镜像同步 (原子 commit, ≥9 commits)
 - **Step 4**: 创建 Sprint 24 kickoff issue (body 用 Sprint 24 已填好的内容, 非占位模板; 挂 milestone "Sprint 24")
-- **Step 5**: 删除 `docs/architecture/sprint-24-pre-launch.md` + 更新 AGENTS.md 引用 + 更新 sprint-kickoff.md 模板引用
+- **Step 5**: 已在 HEAD commit `b220222` ship — 本 change 仅核对 (见 tasks.md Phase 0)
 
 ### 2.3 Sprint 24 排期修正 (排期过载收敛)
 
@@ -110,11 +110,11 @@
 1. `gh issue list --label adr-review` 返回 6 个 issue, body 无 `ADR-XXXX`/`GXX`/`TXX` 占位符残留 (`grep` 检出 = 0 行)
 2. 6 个 issue 均含冷却期结束后的 ✅/❌/⏸ 决策 comment
 3. `grep -m1 "状态"` 6 个 ADR 文件含目标状态 (或 ❌/⏸ 在台账注明)
-4. `grep -c "Closed"` capability-application-map 中 G10/G12/G13/G14/G15 闭合数 = 自审通过数 (含 G14, 验证脚本修复生效)
+4. `grep -c "✅ Closed"` capability-application-map 中 G10/G12/G13/G14/G15 闭合数 ≥ 自审通过数 (≥5, 含 G14, 验证脚本修复生效)
 5. `docs/architecture/adr-implementation-status-gap-analysis.md` 含 6 个目标 ADR 的当前状态行
 6. `gh api repos/chisuhua/HydraForge/milestones --jq '.[].title'` 含 `Sprint 24`; kickoff issue 挂载该 milestone
 7. `git log --oneline -12` 显示 ≥8 个原子 commit (6 ADR + cap-map + 脚本/台账)
-8. `ls docs/architecture/sprint-24-pre-launch.md` → No such file (已删除); AGENTS.md 无悬空引用
+8. `ls docs/architecture/sprint-24-pre-launch.md` → No such file (已删除); `grep -rn "sprint-24-pre-launch\.md" --include="*.md" .` → 0 行 (无悬空引用)
 9. `openspec validate 2026-08-25-sprint-24-pre-launch-self-review --strict` → EXIT 0
 10. `tools/adr_lint.py` → 0 errors (64 ADR 基线 + 6 新状态合法)
 11. `tools/docs_drift_audit.py` → 0 DRIFT (Scenario 7 校验 ADR↔状态镜像一致)

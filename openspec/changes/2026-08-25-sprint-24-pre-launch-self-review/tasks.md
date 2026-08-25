@@ -47,7 +47,7 @@
   for adr in 0083 0080-v1-2 0061-13 0061-06-v1-1 0071 0074; do
     gh issue create \
       --title "[${adr^^}] Self-Review: <title>" \
-      --label "adr-review,oracle-p0,sprint-23" \
+      --label "adr-review,self-review,oracle-p0,sprint-23" \
       --body-file docs/architecture/self-review-issues/${adr}.md \
       --assignee @me
   done
@@ -71,24 +71,27 @@
 
 ### Step 3a: 修复 `apply-meeting-resolutions.py` [40 min, 含测试]
 
-- [ ] **T3.1** `update_section_two` 正则兼容 `**🔓 Open**` (G14 行) 与 `**🔒 Blocked**`:
+- [ ] **T3.1** `update_section_two` 正则兼容 `**🔓 Open**` (G14 行) 与 `**🔒 Blocked**` (其余 4 行):
   ```python
-  pattern = rf"\| \*\*{gap}\*\* \| [^|]*\| [^|]*\| \*\*🔴 架构层\*\* \| \*\*[^ ]+\*\* \|"
+  pattern = rf"\| \*\*{gap}\*\* \| \*\*([^*]+)\*\* \| ([^|]+?)\| \*\*🔴 架构层\*\* \| \*\*[^*]+\*\* \|"
   ```
-- [ ] **T3.2** `--resolutions` 条件路径已存在, 默认 `--all-approved` 改为显式 flag (移除 `default=True` 隐式行为, 防 G14 静默 no-op)
-- [ ] **T3.3** dry-run 输出"匹配检查表": 哪些 gap/td 匹配、哪些未匹配, 未匹配则退出码 2 (让"4 Gaps + 5 TD 全匹配"期望可观测)
-- [ ] **T3.4** 测试:
+  - 状态列 `\*\*[^*]+\*\*` 可匹配 `**🔓 Open**` (含空格) 与 `**🔒 Blocked**` (对照现 L126 硬编码 `🔒 Blocked` 仅匹配后者)
+  - 保留双捕获组 `group(1)=title` / `group(2)=source` 供 `replace_status()` 使用 (对照现 L126 pattern)
+- [ ] **T3.2** `--resolutions` 条件路径已存在, 默认 `--all-approved` 改为显式 flag (移除 `default=True` 隐式行为, 防 G14 静默 no-op; ⚠️ **BREAKING**: 裸调用将 exit 1, 全仓唯一调用方为已 Superseded 的 `docs/architecture/adr-review-minutes/meeting-minutes-form.md`, commit message 须标注 BREAKING)
+- [ ] **T3.3** dry-run 输出"匹配检查表": 哪些 gap/td 匹配、哪些未匹配, 未匹配则退出码 2 (让"4 Gaps + 5 TD 全匹配"期望可观测); 覆盖范围: G10/G12/G13/G14/G15 + T15/T17/T19/T20/T21 + §8.5 块 + §七 v1.2 行各自匹配状态; 同步更新脚本 L135 print 从 `🔒 Blocked →` 为 `{current_status} → ✅ Closed`
+- [ ] **T3.4** 同步脚本 docstring 退出码表 (当前 `2=capability-application-map 文件未找到` 与代码实际退出码 3 不符; 新增 exit 2=未匹配 → 更新 docstring 为 `2=gap/td 未匹配, 3=文件未找到`)
+- [ ] **T3.5** 测试:
   ```bash
   python3 scripts/apply-meeting-resolutions.py --dry-run
   ```
-  期望输出: G10/G12/G13/G14/G15 全部 `[§二] Gx 状态: ... → ✅ Closed` (含 G14, 验证修复生效)
-- **验收**: dry-run 输出 G10-15 全部 `状态已匹配`; exit 0
+  期望输出: G10/G12/G13/G14/G15 全部 `[§二] Gx 状态: ... → ✅ Closed` (含 G14, 验证修复生效); 匹配检查表含 T15/T17/T19/T20/T21 + §8.5 + §七 v1.2 行
+- **验收**: dry-run 输出 G10-15 全部 `状态已匹配`; 匹配检查表 5 gaps + 5 TD + §8.5 + §七 全部 ✅; exit 0
 
 ### Step 3b: 24h 冷却期 (冷却结束 = 2026-08-26 或 ≥8h 注明后)
 
 - [ ] **T3b.1** 冷却期内重新阅读 6 个 issue; 如有新增反对意见在 issue 回复 + 台账更新
 - [ ] **T3b.2** 冷却期结束后: 逐 issue 发布决策 comment (✅ Approved / ❌ / ⏸, 附风险接受声明 + 签发 solo-dev)
-- [ ] **T3b.3** 若任一 ❌/⏸: 按 proposal.md §3.5 失败路径, cap-map 实跑改用 `--resolutions partial.yaml`; 未通过 ADR 不翻转
+- [ ] **T3b.3** 若任一 ❌/⏸: 按 proposal.md §3.5 失败路径, 手写仅含通过项的 YAML (按脚本 `parse_resolutions_from_yaml` docstring schema 构造, 存 `openspec/changes/2026-08-25-sprint-24-pre-launch-self-review/partial-resolutions.yaml`), cap-map 实跑改用 `--resolutions openspec/changes/2026-08-25-sprint-24-pre-launch-self-review/partial-resolutions.yaml`; 未通过 ADR 不翻转; partial-resolutions.yaml 提交 git 并随 change 归档 (决策证据)
 - **验收**:
   - 6 个 issue 各含 1 个 `## Self-Review 决策` comment (冷却期后发布)
   - 台账 `adr-status-ledger-2026-08.md` 6 行最终决策 = issue 评论一致
@@ -108,9 +111,10 @@
   - `python3 tools/adr_relationships.py` 重跑 → 生成 `docs/adr-management/relationships.md`
 - [ ] **T3c.6** 原子提交 (Metis S3 — 取代原"1 commit"):
   ```bash
+  git add docs/architecture/self-review-issues/ docs/architecture/adr-status-ledger-2026-08.md && git commit --no-verify -m "docs(governance): self-review issue bodies + decision ledger"
   git add docs/adr/adr-0083-evaluator-reward-contract.md && git commit --no-verify -m "docs(adr-0083): mark Approved (self-review 2026-08-XX)"
   # ... ×6 (每个 ADR 1 commit)
-  git add scripts/apply-meeting-resolutions.py && git commit --no-verify -m "fix(scripts): G14 Open/Blocked regex + dry-run match check"
+  git add scripts/apply-meeting-resolutions.py && git commit --no-verify -m "fix(scripts): G14 Open/Blocked regex + dry-run match check + exit code docstring"
   git add docs/architecture/capability-application-map-2026-08.md && git commit --no-verify -m "docs(arch): capability-map v1.3 (5 Gaps closed + 6 TD fate)"
   git add docs/README.md docs/architecture/adr-implementation-status-gap-analysis.md docs/adr-management/relationships.md && git commit --no-verify -m "docs(status): 3 mirrors sync (ADR status + README + relationships)"
   ```
@@ -136,12 +140,12 @@
   - `gh api repos/chisuhua/HydraForge/issues/<num>` 含 milestone=Sprint 24
   - body `grep -E "Sprint XX"` = 0 行 (占位符全替换)
 
-### Step 5: 删除原文档 + 收尾 [20 min]
+### Step 5: 删除原文档 + 收尾 (已在 HEAD `b220222` ship, 仅核对)
 
-- [ ] **T5.1** `git rm docs/architecture/sprint-24-pre-launch.md`
-- [ ] **T5.2** AGENTS.md "Sprint 24 Pre-Launch" 章节引用改指向本 change (openspec/changes/2026-08-25-sprint-24-pre-launch-self-review/)
-- [ ] **T5.3** `.github/ISSUE_TEMPLATE/sprint-kickoff.md` L72 引用 `sprint-24-pre-launch.md` 同步更新为 `openspec/changes/2026-08-25-sprint-24-pre-launch-self-review/`
-- [ ] **T5.4** 本 change commit (含 sprint-24-pre-launch.md 删除 + AGENTS.md + sprint-kickoff.md 更新)
+- [x] **T5.1** `git rm docs/architecture/sprint-24-pre-launch.md` — ✅ 已删除 (b220222, -364 行)
+- [x] **T5.2** AGENTS.md 引用改指向本 change — ✅ 已更新 (b220222, 6 行)
+- [x] **T5.3** `.github/ISSUE_TEMPLATE/sprint-kickoff.md` L72 引用同步 — ✅ 已更新 (b220222)
+- [x] **T5.4** 本 change commit — ✅ 已包含在 b220222 (含 3 文件 + 删除 + 引用更新)
 
 ## Phase 2: 验证 (Verification)
 
@@ -150,7 +154,7 @@
 - [ ] `tools/docs_drift_audit.py` → 0 DRIFT (Scenario 7 校验 ADR↔状态镜像一致)
 - [ ] `cd build && ctest --output-on-failure` → 184/184 PASS (确认 0 代码回归)
 - [ ] `gh issue list --label adr-review --json number,title,labels` → 6 条; kickoff issue 挂 Sprint 24 milestone
-- [ ] `grep -rn "sprint-24-pre-launch" --include="*.md" .` → 0 行 (无悬空引用)
+- [ ] `grep -rn "sprint-24-pre-launch\.md" --include="*.md" .` → 0 行 (无悬空引用; 注意: 带 `.md` 后缀, 避免 change 目录名自身子串误匹配)
 - [ ] 台账 `adr-status-ledger-2026-08.md` 闭合: 6 行最终决策 + 各 gap 状态与 cap-map §二一致
 - [ ] 若无 ❌/⏸: cap-map v1.3 §七 变更记录含 v1.3 行; 若有: 记录部分闭合 + kickoff 阻塞标注
 
