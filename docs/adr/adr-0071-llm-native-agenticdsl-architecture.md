@@ -2,7 +2,7 @@
 
 ## 状态
 
-✅ Approved (2026-08-02 — 顶层架构方向 ADR, 锚定 Phase 6+ 演化路径; 待架构组评审; 实施分 4 Wave 派生子 ADR/Change)
+✅ Approved (2026-08-02 — 顶层架构方向 ADR, 锚定 Phase 6+ 演化路径; Promotion 评审通过 2026-08-25; 实施分 4 Wave 派生子 ADR/Change)
 
 ## 领域
 
@@ -686,4 +686,4 @@ adr-0070 (commands) ──┘                                  │            GA
 *文档版本: v1.0*
 *创建日期: 2026-08-02*
 *作者: HydraForge 架构组*
-*状态: ✅ Approved (待架构组评审)*
+*状态: ✅ Approved (Promotion 评审通过 2026-08-25)*
