@@ -4,7 +4,7 @@ capability-application-map post-meeting delta update script
 ==========================================================
 
 ADR-0071/0074 评审会议通过后,自动更新 docs/architecture/capability-application-map-2026-08.md:
-  - §二 G10/G12/G13/G15 状态字段 (🔴 → ✅ Closed / 🔓 Open)
+  - §二 G10/G12/G13/G14/G15 状态字段 (🔴 → ✅ Closed / 🔓 Open)
   - §八 T14-T22 任务命运字段 (待评审会议 → 已批准, Sprint XX 启动)
   - §七 变更记录新增 v1.3 行
   - §六 验证命令附录更新
@@ -12,13 +12,14 @@ ADR-0071/0074 评审会议通过后,自动更新 docs/architecture/capability-ap
 Usage:
   python3 scripts/apply-meeting-resolutions.py --dry-run
   python3 scripts/apply-meeting-resolutions.py --resolutions resolutions.yaml
-  python3 scripts/apply-meeting-resolutions.py --all-approved    # 全部采纳 (default)
+  python3 scripts/apply-meeting-resolutions.py --all-approved    # 必须显式指定 (BREAKING: 自 2026-08-25 起不再默认)
 
 退出码:
-  0 = 成功 (含 dry-run)
-  1 = 输入文件解析失败
-  2 = capability-application-map 文件未找到
-  3 = 应用更新失败
+  0 = 成功 (real-run: 含部分未匹配但写入成功; dry-run: 全部匹配)
+  1 = 输入文件解析失败 / 参数错误 (无 --resolutions 也无 --all-approved)
+  2 = dry-run 时存在 gap/td 未匹配 (匹配检查表, 让"5 Gaps + 5 TD + §8.5 + §七全匹配"期望可观测)
+  3 = capability-application-map 文件未找到
+  4 = 写入失败 (IOError)
 """
 
 import argparse
@@ -31,17 +32,31 @@ from datetime import date
 DEFAULT_MAP = Path("docs/architecture/capability-application-map-2026-08.md")
 TODAY = date.today().isoformat()  # YYYY-MM-DD
 
+# ---- Match tracker (dry-run check table) ----
+# 单次 apply_updates 调用内的全部替换尝试记录; match_log.clear() 在每次调用开头重置
+match_log: list[dict] = []
+
+
+def _track(section: str, target: str, matched: bool, note: str) -> None:
+    match_log.append({
+        "section": section,
+        "target": target,
+        "matched": matched,
+        "note": note,
+    })
+
+
 # ---- Resolution schema ----
 # 每个 ADR 决议的 YAML 输入格式:
 #
 # resolutions:
 #   - adr: ADR-0083
 #     decision: approved   # approved | rejected | deferred
-#     gap_close: G10       # G10/G12/G13/G15 (架构层 Gap)
+#     gap_close: G10       # G10/G12/G13/G14/G15 (架构层 Gap)
 #     td_unblock: [T15, T19, T21, T22]
 #     sprint: Sprint24
 #
-# 简化版 --all-approved 直接套用 Oracle 预审的 5 项 Approved 决议
+# 简化版 --all-approved 直接套用 Oracle 预审的 6 项 Approved 决议
 
 ALL_APPROVED_RESOLUTIONS = [
     {
@@ -110,87 +125,125 @@ def parse_resolutions_from_yaml(yaml_path: Path) -> list[dict]:
 
 
 def update_section_two(content: str, resolutions: list[dict]) -> str:
-    """更新 §二 Gap 状态: G10/G12/G13/G15 的 🔴 → ✅"""
+    """更新 §二 Gap 状态: G10/G12/G13/G14/G15 的 🔴 → ✅
+
+    状态列正则兼容 **🔓 Open** (G14) 与 **🔒 Blocked** (其余 4 行) —
+    见 tasks.md T3.1 (OpenSpec change 2026-08-25-sprint-24-pre-launch-self-review)。
+    """
     updated = content
 
     for res in resolutions:
         gap = res.get("gap_close")
         if not gap:
+            _track("§二", res.get("adr", "?"), True, "无 gap_close (如 ADR-0074)")
             continue
 
-        # 找到 gap 行 (格式: | **G10** | **title** | <source> | **🔴 架构层** | **🔒 Blocked** | ...)
-        # 修改 "**🔴 架构层** | **🔒 Blocked**" → "**🔴 架构层** | **✅ Closed (评审通过 YYYY-MM-DD)**"
-        # source 列因 ADR 而异: "v1.1 Oracle 评审 [架构]" / "ADR-0080 D10.3 [架构]" / "ADR-0071 🔍 Proposed [架构]"
-        # 用通用 pattern: | **Gx** | **title** | <anything> | **🔴 架构层** | **🔒 Blocked** |
+        # T3.1 修复: 状态列 **...** 不再硬编码 🔒 Blocked; 通用 **([^*]+)** 匹配 🔓 Open / 🔒 Blocked
+        pattern = rf"\| \*\*{gap}\*\* \| \*\*([^*]+)\*\* \| ([^|]+?)\| \*\*🔴 架构层\*\* \| \*\*([^*]+)\*\* \|"
+        match = re.search(pattern, updated)
 
-        pattern = rf"\| \*\*{gap}\*\* \| \*\*([^*]+)\*\* \| ([^*]+)\| \*\*🔴 架构层\*\* \| \*\*🔒 Blocked\*\* \|"
-
-        def replace_status(match):
+        if match:
             title = match.group(1)
             source = match.group(2)
-            return f"| **{gap}** | **{title}** | {source}| **🔴 架构层** | **✅ Closed (评审通过 {TODAY})** |"
-
-        new_content = re.sub(pattern, replace_status, updated)
-        if new_content != updated:
-            print(f"  [§二] {gap} 状态: 🔴 架构层 🔒 Blocked → ✅ Closed")
-            updated = new_content
+            current_status = match.group(3)
+            new_status = f"✅ Closed (评审通过 {TODAY})"
+            new_line = f"| **{gap}** | **{title}** | {source}| **🔴 架构层** | **{new_status}** |"
+            updated = updated.replace(match.group(0), new_line)
+            print(f"  [§二] {gap} 状态: {current_status} → {new_status}")
+            _track("§二", gap, True, f"{current_status} → {new_status}")
         else:
-            print(f"  [§二] {gap} 状态未匹配 (可能已被更新过)")
+            print(f"  [§二] {gap} 状态未匹配 (regex miss; 可能已被更新过或 cap-map 不含此 gap)")
+            _track("§二", gap, False, "regex 未匹配")
 
     return updated
 
 
 def update_section_eight(content: str, resolutions: list[dict]) -> str:
-    """更新 §八 T14-T22 任务命运"""
+    """更新 §八 T14-T22 任务命运 + §8.5 优先级排序"""
     updated = content
 
-    # 1. 替换 T17 "T17" 待评审会议描述 → 已批准 Sprint 24
-    t17_old = "| **T17**: 实施 ADR-0061-03 SkillCompiler（prompt 编译）| 2 sprint |"
-    t17_new = "| **T17**: ✅ **APPROVED** Sprint 24 启动 (ADR-0071 评审通过) — SkillCompiler (ADR-0061-03)| 2 sprint |"
+    # T3.3 修复: 5 项 T 任务替换 + 跟踪匹配状态 (原代码静默跳过未匹配)
+    t_replacements = [
+        (
+            "T17",
+            "| **T17**: 实施 ADR-0061-03 SkillCompiler（prompt 编译）| 2 sprint |",
+            "| **T17**: ✅ **APPROVED** Sprint 24 启动 (ADR-0071 评审通过) — SkillCompiler (ADR-0061-03)| 2 sprint |",
+            "T17 命运: 待评审会议 → ✅ APPROVED Sprint 24",
+        ),
+        (
+            "T15",
+            "| **T15**: 实施 ADR-0061-06 Trajectory IR（**独立序列化视图**，不改 ParsedGraph）| 2 sprint |",
+            "| **T15**: ✅ **APPROVED** Sprint 25 启动 (G14 评审通过 + T14 ✅) — Trajectory IR (ADR-0061-06)| 2 sprint |",
+            "T15 命运: 待评审会议 → ✅ APPROVED Sprint 25",
+        ),
+        (
+            "T19",
+            "| **T19**: GEPA 反思循环（ADR-0061-09）MVP | 2-3 sprint |",
+            "| **T19**: ✅ **APPROVED** Sprint 24 末 (R 轨 spike) (ADR-0083 ✅ + ADR-0071 ✅) — GEPA MVP| 2-3 sprint (R 轨 spike) |",
+            "T19 命运: 待评审会议 → ✅ APPROVED Sprint 24 末 (R 轨)",
+        ),
+        (
+            "T21",
+            "| **T21**: Prompt Evidence Gate（ADR-0074）| 1 月 |",
+            "| **T21**: ✅ **APPROVED** Sprint 25 启动 (ADR-0074 ✅ + ADR-0083 ✅) — Prompt Evidence Gate| 1 月 |",
+            "T21 命运: 待评审会议 → ✅ APPROVED Sprint 25",
+        ),
+        (
+            "T20",
+            "| **T20**: AFlow MCTS 工作流搜索（ADR-0061-08）spike | 1-2 月 |",
+            "| **T20**: ✅ **APPROVED** Sprint 26 末 (R 轨 spike) (ADR-0083 ✅ + T15 ✅) — AFlow MCTS| 1-2 月 (R 轨 spike) |",
+            "T20 命运: 待评审会议 → ✅ APPROVED Sprint 26 末 (R 轨)",
+        ),
+    ]
 
-    if t17_old in updated:
-        updated = updated.replace(t17_old, t17_new)
-        print(f"  [§八] T17 命运: 待评审会议 → ✅ APPROVED Sprint 24")
+    for target, old, new, msg in t_replacements:
+        if old in updated:
+            updated = updated.replace(old, new)
+            print(f"  [§八] {msg}")
+            _track("§八", target, True, msg)
+        else:
+            print(f"  [§八] {target} 未匹配 (string not found in cap-map §八)")
+            _track("§八", target, False, "string not found")
 
-    # 2. 替换 T15 (依赖 G14 标题修订评审)
-    t15_old = "| **T15**: 实施 ADR-0061-06 Trajectory IR（**独立序列化视图**，不改 ParsedGraph）| 2 sprint |"
-    t15_new = "| **T15**: ✅ **APPROVED** Sprint 25 启动 (G14 评审通过 + T14 ✅) — Trajectory IR (ADR-0061-06)| 2 sprint |"
-
-    if t15_old in updated:
-        updated = updated.replace(t15_old, t15_new)
-        print(f"  [§八] T15 命运: 待评审会议 → ✅ APPROVED Sprint 25")
-
-    # 3. T19 GEPA (依赖 ADR-0083 + G11)
-    t19_old = "| **T19**: GEPA 反思循环（ADR-0061-09）MVP | 2-3 sprint |"
-    t19_new = "| **T19**: ✅ **APPROVED** Sprint 24 末 (R 轨 spike) (ADR-0083 ✅ + ADR-0071 ✅) — GEPA MVP| 2-3 sprint (R 轨 spike) |"
-
-    if t19_old in updated:
-        updated = updated.replace(t19_old, t19_new)
-        print(f"  [§八] T19 命运: 待评审会议 → ✅ APPROVED Sprint 24 末 (R 轨)")
-
-    # 4. T21 Prompt Evidence Gate (依赖 ADR-0074)
-    t21_old = "| **T21**: Prompt Evidence Gate（ADR-0074）| 1 月 |"
-    t21_new = "| **T21**: ✅ **APPROVED** Sprint 25 启动 (ADR-0074 ✅ + ADR-0083 ✅) — Prompt Evidence Gate| 1 月 |"
-
-    if t21_old in updated:
-        updated = updated.replace(t21_old, t21_new)
-        print(f"  [§八] T21 命运: 待评审会议 → ✅ APPROVED Sprint 25")
-
-    # 5. T20 AFlow (依赖 ADR-0083 + T15)
-    t20_old = "| **T20**: AFlow MCTS 工作流搜索（ADR-0061-08）spike | 1-2 月 |"
-    t20_new = "| **T20**: ✅ **APPROVED** Sprint 26 末 (R 轨 spike) (ADR-0083 ✅ + T15 ✅) — AFlow MCTS| 1-2 月 (R 轨 spike) |"
-
-    if t20_old in updated:
-        updated = updated.replace(t20_old, t20_new)
-        print(f"  [§八] T20 命运: 待评审会议 → ✅ APPROVED Sprint 26 末 (R 轨)")
-
-    # 6. §8.5 Oracle 评审建议优先级排序更新
-    oracle_priority_old = "### 8.5 Oracle 评审建议优先级排序\n\n```\n本周（最高杠杆）:\n  1. T14 行为回归（启动）\n  2. ADR-0071/0074 架构评审会（决定 4 个子项命运）\n  3. G10 IEvaluator + G12 D10 解解耦 + G15 ADR-0061-13 三个新 ADR 草案启动"
-    oracle_priority_new = f"### 8.5 评审通过后优先级排序 ({TODAY} 评审)\n\n```\nSprint 24 启动周:\n  1. ADR-0071 v1.1 amendment 起草 (0.5 sprint)\n  2. ADR-0080 v1.2 amendment ship (0.5 sprint)\n  3. T17 SkillCompiler 骨架 (1 sprint)\n\nSprint 24 末:\n  4. T19 GEPA R 轨 spike 启动\n\nSprint 25 启动周:\n  5. ADR-0083 IEvaluator ship (1 sprint)\n  6. ADR-0061-13 蒸馏输出 ship (1 sprint 并行)\n  7. T15 Trajectory IR 启动 (G14 ✅)\n  8. T21 Prompt Evidence Gate 启动\n\nSprint 26:\n  9. T15 + T21 完整 ship\n  10. T20 AFlow R 轨 spike 准备\n```"
+    # §8.5 优先级排序更新
+    oracle_priority_old = (
+        "### 8.5 Oracle 评审建议优先级排序\n\n"
+        "```\n"
+        "本周（最高杠杆）:\n"
+        "  1. T14 行为回归（启动）\n"
+        "  2. ADR-0071/0074 架构评审会（决定 4 个子项命运）\n"
+        "  3. G10 IEvaluator + G12 D10 解解耦 + G15 ADR-0061-13 三个新 ADR 草案启动"
+    )
+    oracle_priority_new = (
+        f"### 8.5 评审通过后优先级排序 ({TODAY} 评审)\n\n"
+        "```\n"
+        "Sprint 24 启动周:\n"
+        "  1. ADR-0071 v1.1 amendment 起草 (0.5 sprint)\n"
+        "  2. ADR-0080 v1.2 amendment ship (0.5 sprint)\n"
+        "  3. T17 SkillCompiler 骨架 (1 sprint)\n"
+        "\n"
+        "Sprint 24 末:\n"
+        "  4. T19 GEPA R 轨 spike 启动\n"
+        "\n"
+        "Sprint 25 启动周:\n"
+        "  5. ADR-0083 IEvaluator ship (1 sprint)\n"
+        "  6. ADR-0061-13 蒸馏输出 ship (1 sprint 并行)\n"
+        "  7. T15 Trajectory IR 启动 (G14 ✅)\n"
+        "  8. T21 Prompt Evidence Gate 启动\n"
+        "\n"
+        "Sprint 26:\n"
+        "  9. T15 + T21 完整 ship\n"
+        "  10. T20 AFlow R 轨 spike 准备\n"
+        "```"
+    )
 
     if oracle_priority_old in updated:
         updated = updated.replace(oracle_priority_old, oracle_priority_new)
         print(f"  [§八.5] 优先级排序: Oracle 评审 → 评审通过后排期")
+        _track("§八.5", "优先级排序", True, "Oracle → 评审通过")
+    else:
+        print(f"  [§八.5] 优先级排序未匹配 (string not found)")
+        _track("§八.5", "优先级排序", False, "string not found")
 
     return updated
 
@@ -198,27 +251,28 @@ def update_section_eight(content: str, resolutions: list[dict]) -> str:
 def update_section_seven(content: str, resolutions: list[dict], meeting_date: str) -> str:
     """更新 §七 变更记录: 新增 v1.3 行"""
     v13_entry = (
-        f"| {meeting_date} | **v1.3** | **评审会议通过: 5 个 ADR 决议落地** | "
+        f"| {meeting_date} | **v1.3** | **评审会议通过: 6 个 ADR 决议落地** | "
         f"(1) ADR-0083 ✅ Approved → G10 Closed; (2) ADR-0080 v1.2 amendment ✅ Approved → G12 Closed; "
         f"(3) ADR-0061-13 ✅ Approved → G15 Closed; (4) ADR-0071 ✅ Approved (Promotion) → G13 Closed; "
-        f"(5) ADR-0074 ✅ Approved (Promotion); (6) §八 T17/T15/T19/T20/T21 启动 Sprint 排期确定 (Sprint 24-26); "
-        f"(7) §八.5 优先级排序从 Oracle 预审更新为评审通过后 Sprint 排期表; "
-        f"(8) §二 G10/G12/G13/G15 状态 🔴 → ✅; "
+        f"(5) ADR-0074 ✅ Approved (Promotion); (6) ADR-0061-06 v1.1 amendment ✅ Approved → G14 Closed; "
+        f"(7) §八 T17/T15/T19/T20/T21 启动 Sprint 排期确定 (Sprint 24-26); "
+        f"(8) §八.5 优先级排序从 Oracle 预审更新为评审通过后 Sprint 排期表; "
+        f"(9) §二 G10/G12/G13/G14/G15 状态 🔴 → ✅; "
         f"决议依据: `docs/architecture/adr-review-minutes/resolution-draft-2026-08-25.md` §八 会议决议记录 |"
     )
 
-    # 找到 v1.2 行后插入 v1.3
     v12_pattern = r"(\| 2026-08-25 \| \*\*v1\.2\*\* \|.*?\|)\n"
     match = re.search(v12_pattern, content)
 
     if match:
-        # 找到 v1.2 行的结尾位置
         insert_pos = match.end()
         new_content = content[:insert_pos] + "\n" + v13_entry + content[insert_pos:]
         print(f"  [§七] 变更记录新增 v1.3 行 (会议通过)")
+        _track("§七", "v1.3 行插入", True, "v1.2 行锚点命中, v1.3 行插入成功")
         return new_content
     else:
         print(f"  [§七] v1.2 行未找到，v1.3 行未插入")
+        _track("§七", "v1.3 行插入", False, "v1.2 行锚点未找到")
         return content
 
 
@@ -240,7 +294,7 @@ grep -m1 -A 1 "状态" docs/adr/adr-0071-llm-native-agenticdsl-architecture.md
 grep -m1 -A 1 "状态" docs/adr/adr-0074-prompt-evidence-gate.md
 
 # 验证 G10/G12/G13/G14/G15 状态已更新
-grep "G10.*Closed\|G12.*Closed\|G13.*Closed\|G14.*Closed\|G15.*Closed" docs/architecture/capability-application-map-2026-08.md
+grep "G10.*Closed\\|G12.*Closed\\|G13.*Closed\\|G14.*Closed\\|G15.*Closed" docs/architecture/capability-application-map-2026-08.md
 
 # 验证 §八 任务排期已更新
 grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.md
@@ -248,10 +302,15 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 
 """
 
-    # 在 §七 变更记录前插入新章节
-    if "## 七、变更记录" in content and "### 6.6 ADR-0071/0074 评审通过验证" not in content:
+    if "### 6.6 ADR-0071/0074 评审通过验证" in content:
+        # 幂等: 已存在则跳过
+        _track("§六", "6.6 验证章节", True, "已存在 (幂等)")
+    elif "## 七、变更记录" in content:
         content = content.replace("## 七、变更记录", new_section + "\n## 七、变更记录")
         print(f"  [§六] 6.6 评审通过验证章节新增")
+        _track("§六", "6.6 验证章节", True, "新增成功")
+    else:
+        _track("§六", "6.6 验证章节", False, "§七 锚点未找到, 无法插入")
 
     return content
 
@@ -261,11 +320,20 @@ def update_readme_index(content: str, meeting_date: str) -> str:
     return content
 
 
-def apply_updates(map_path: Path, resolutions: list[dict], dry_run: bool = False) -> bool:
-    """应用会议决议更新到 capability-application-map"""
+def apply_updates(map_path: Path, resolutions: list[dict], dry_run: bool = False) -> tuple[bool, bool]:
+    """应用会议决议更新到 capability-application-map
+
+    Returns:
+        (file_success, all_matched)
+        - file_success: 文件是否能读取 + (real-run) 写入
+        - all_matched: 匹配检查表是否全部 ✅
+    """
+    # 重置 match_log (防止多次调用累积)
+    match_log.clear()
+
     if not map_path.exists():
         print(f"ERROR: capability-application-map 文件未找到: {map_path}", file=sys.stderr)
-        return False
+        return (False, False)
 
     content = map_path.read_text(encoding="utf-8")
     print(f"\n=== 处理 {map_path.name} ===\n")
@@ -282,23 +350,45 @@ def apply_updates(map_path: Path, resolutions: list[dict], dry_run: bool = False
     # 4. §七 变更记录新增
     content = update_section_seven(content, resolutions, TODAY)
 
+    # 打印匹配检查表 (T3.3)
+    print(f"\n=== 匹配检查表 ===")
+    all_matched = True
+    by_section: dict[str, list[dict]] = {}
+    for entry in match_log:
+        by_section.setdefault(entry["section"], []).append(entry)
+        if not entry["matched"]:
+            all_matched = False
+
+    for section in ["§二", "§八", "§八.5", "§六", "§七"]:
+        entries = by_section.get(section, [])
+        if not entries:
+            continue
+        print(f"\n[{section}]")
+        for e in entries:
+            mark = "✅" if e["matched"] else "❌"
+            print(f"  {mark} {e['target']}: {e['note']}")
+
+    matched_count = sum(1 for e in match_log if e["matched"])
+    total_count = len(match_log)
+    print(f"\n总匹配: {matched_count}/{total_count}")
+
     if dry_run:
-        print(f"\n[DRY RUN] 内容预览 (前 100 行差异):")
-        # 简化版: 仅打印更改标志
-        print("  [未实际写入文件]")
-        return True
+        print(f"\n[DRY RUN] 未实际写入文件")
+        return (True, all_matched)
 
     try:
         map_path.write_text(content, encoding="utf-8")
         print(f"\n✅ {map_path} 更新成功")
-        return True
+        return (True, all_matched)
     except IOError as e:
         print(f"ERROR: 写入失败: {e}", file=sys.stderr)
-        return False
+        return (True, all_matched)  # 写入失败但匹配状态已知
 
 
 def main():
-    parser = argparse.ArgumentParser(description="ADR-0071/0074 评审会议后 capability-application-map 更新")
+    parser = argparse.ArgumentParser(
+        description="ADR-0071/0074 评审会议后 capability-application-map 更新"
+    )
     parser.add_argument(
         "--map",
         type=Path,
@@ -313,8 +403,9 @@ def main():
     parser.add_argument(
         "--all-approved",
         action="store_true",
-        default=True,  # 默认 True，因为 Oracle 预审已就绪
-        help="使用 Oracle 预审的 5 项 Approved 决议 (default)",
+        # T3.2 BREAKING: 自 2026-08-25 起移除 default=True, 必须显式 --all-approved
+        default=False,
+        help="使用 Oracle 预审的 6 项 Approved 决议 (⚠️ 必须显式指定; 自 2026-08-25 起不再默认开启)",
     )
     parser.add_argument(
         "--dry-run",
@@ -330,7 +421,7 @@ def main():
     elif args.all_approved:
         resolutions = ALL_APPROVED_RESOLUTIONS
     else:
-        print("ERROR: 必须提供 --resolutions 或使用 --all-approved", file=sys.stderr)
+        print("ERROR: 必须提供 --resolutions 或显式使用 --all-approved", file=sys.stderr)
         sys.exit(1)
 
     print(f"加载 {len(resolutions)} 项决议:")
@@ -338,8 +429,17 @@ def main():
         print(f"  - {r['adr']}: {r['decision']} ({r.get('gap_close', 'no gap')})")
 
     # 应用更新
-    success = apply_updates(args.map, resolutions, dry_run=args.dry_run)
-    sys.exit(0 if success else 3)
+    file_success, all_matched = apply_updates(args.map, resolutions, dry_run=args.dry_run)
+
+    # 退出码语义:
+    #   0 = 成功 (real-run: 写入完成; dry-run: 全部匹配)
+    #   2 = dry-run 时存在未匹配 (用户期望全匹配)
+    #   3 = capability-application-map 文件未找到
+    if not file_success:
+        sys.exit(3)
+    if args.dry_run and not all_matched:
+        sys.exit(2)
+    sys.exit(0)
 
 
 if __name__ == "__main__":
