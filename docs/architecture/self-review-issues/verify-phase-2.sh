@@ -102,8 +102,7 @@ for adr in \
   docs/adr/skill/adr-0061-06-v1-1-amendment-trajectory-ir-decouple.md \
   docs/adr/adr-0071-llm-native-agenticdsl-architecture.md \
   docs/adr/adr-0074-prompt-evidence-gate.md; do
-  if grep -qE "✅ Approved \(评审通过 [0-9]{4}-[0-9]{2}-[0-9]{2}" "$adr" 2>/dev/null || \
-     grep -qE "✅ Approved \([0-9]{4}-[0-9]{2}-[0-9]{2}" "$adr" 2>/dev/null; then
+  if grep -qE "✅.*Approved .*[0-9]{4}-[0-9]{2}-[0-9]{2}" "$adr" 2>/dev/null; then
     echo "  ✅ $(basename $adr): Approved"
     approved_count=$((approved_count + 1))
   else
