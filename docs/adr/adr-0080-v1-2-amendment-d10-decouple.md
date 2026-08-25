@@ -1,7 +1,7 @@
 # ADR-0080 v1.2 amendment: D10 Capture 与 Scrub Hook 解耦
 
 **日期**: 2026-08-24
-**状态**: 🔍 **Proposed** (Oracle 评审识别为架构层缺口, capability-application-map §八 G12)
+**状态**: ✅ **Approved (评审通过 2026-08-25)** (Oracle 评审识别为架构层缺口, capability-application-map §八 G12)
 **父 ADR**: [adr-0080-append-only-event-log.md](adr-0080-append-only-event-log.md) v1.1
 
 ## 状态
