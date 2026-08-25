@@ -157,7 +157,7 @@
 | [`agent-evolution-pipeline.md`](../architecture/agent-evolution-pipeline.md) | 本文 §二.4 标注工程形态 vs 运行时形态区分 |
 | ADR-0061-08 / 0061-09 | 本文 §三 标注 v2 候选机会，不立即合并 |
 | ADR-0078 / ADR-0081 / ADR-0083 | 本文 §三 标注重叠度（75%-95%） |
-| G11 issue（本会话新建） | 本文 §四 6 维度作 issue body 自审清单种子 |
+| G11 issue [#14](https://github.com/chisuhua/HydraForge/issues/14)（2026-08-26 创建） | 本文 §四 6 维度作 issue body 自审清单种子 |
 
 ---
 
@@ -165,7 +165,7 @@
 
 1. **本会话内**（已 ship）：
    - [x] 本笔记 ship（单 commit，零决策污染）
-   - [x] G11 GitHub issue 创建（启动 24h cooling-off）
+   - [x] G11 GitHub issue 创建（[#14](https://github.com/chisuhua/HydraForge/issues/14)，2026-08-26 启动 24h cooling-off，预计 2026-08-27 期满）
 
 2. **Sprint 24 中**（cooling-off 期满 + T17 骨架 ship 后）：
    - 在 G11 issue 中勾选 Self-Review Checklist
