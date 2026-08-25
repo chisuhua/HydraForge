@@ -19,24 +19,24 @@
 
 ## 二、6 个 ADR 决策记录
 
-| # | ADR | Gap | Issue | 初步决策 | 12项 checklist | 决策 comment | 最终决策 | 备注 |
+| # | ADR | Gap | Issue | 初步决策 | 12项 checklist | 决策 comment | 最终決策 | 备注 |
 |---|---|---|---|---|---|---|---|---|
-| 1 | ADR-0083 IEvaluator/RewardSignal | G10 | #7 | (待 T2.1 填写) | (待 T2.1 填写) | (待 T3b.2 填写) | (待 T3c.1 填写) | Oracle ses_fcba5e477ffeG9wEBHVhU64J0o; resolution-draft §一决议 1 |
-| 2 | ADR-0080 v1.2 amendment D10 解耦 | G12 | #8 | (待 T2.1 填写) | (待 T2.1 填写) | (待 T3b.2 填写) | (待 T3c.1 填写) | Oracle ses_fcba5e477ffeG9wEBHVhU64J0o; resolution-draft §一决议 2 |
-| 3 | ADR-0061-13 蒸馏输出格式 | G15 | #9 | (待 T2.1 填写) | (待 T2.1 填写) | (待 T3b.2 填写) | (待 T3c.1 填写) | Oracle ses_fcba5e477ffeG9wEBHVhU64J0o; resolution-draft §一决议 3 |
-| 4 | ADR-0061-06 v1.1 Trajectory IR 独立序列化 | G14 | #10 | (待 T2.1 填写) | (待 T2.1 填写) | (待 T3b.2 填写) | (待 T3c.1 填写) | Oracle ses_fcba5e477ffeG9wEBHVhU64J0o; resolution-draft §一决议 6 |
-| 5 | ADR-0071 LLM-native AgenticDSL (Promotion) | G13 | #11 | (待 T2.1 填写) | (待 T2.1 填写) | (待 T3b.2 填写) | (待 T3c.1 填写) | Oracle ses_fcba5e477ffeG9wEBHVhU64J0o; resolution-draft §一决议 4 |
-| 6 | ADR-0074 Prompt Evidence Gate (Promotion) | (T21 间接) | #12 | (待 T2.1 填写) | (待 T2.1 填写) | (待 T3b.2 填写) | (待 T3c.1 填写) | Oracle ses_fcba5e477ffeG9wEBHVhU64J0o; resolution-draft §一决议 5 |
+| 1 | ADR-0083 IEvaluator/RewardSignal | G10 | #7 | ✅ Approved | 12/12 ✓ + §2.1 接口契约类 4/4 ✓ | ✅ Approved (评审通过 2026-08-25) | ✅ Approved | Oracle ses_fcba5e477ffeG9wEBHVhU64J0o; resolution-draft §一决议 1; 6 个下游 ADR 硬前置; V1 简化避免 ADR-0057 零实施 |
+| 2 | ADR-0080 v1.2 amendment D10 解耦 | G12 | #8 | ✅ Approved | 12/12 ✓ + §2.3 安全隐私 4/4 ✓ | ✅ Approved (评审通过 2026-08-25) | ✅ Approved | Oracle ses_fcba5e477ffeG9wEBHVhU64J0o; resolution-draft §一决议 2; CaptureMode 三态 + Training fail-open 三重保护 |
+| 3 | ADR-0061-13 蒸馏输出格式 | G15 | #9 | ✅ Approved | 12/12 ✓ + §2.1 接口契约类 4/4 ✓ | ✅ Approved (评审通过 2026-08-25) | ✅ Approved | Oracle ses_fcba5e477ffeG9wEBHVhU64J0o; resolution-draft §一决议 3; 7 环闭环最后 1 环 |
+| 4 | ADR-0061-06 v1.1 Trajectory IR 独立序列化 | G14 | #10 | ✅ Approved | 12/12 ✓ + §2.1 接口契约类 4/4 ✓ | ✅ Approved (评审通过 2026-08-25) | ✅ Approved | Oracle ses_fcba5e477ffeG9wEBHVhU64J0o; resolution-draft §一决议 6; 标题耦合修正 (不改 ParsedGraph) |
+| 5 | ADR-0071 LLM-native AgenticDSL (Promotion) | G13 | #11 | ✅ Approved | 12/12 ✓ + §2.2 协议状态机类 4/4 ✓ | ✅ Approved (评审通过 2026-08-25) | ✅ Approved | Oracle ses_fcba5e477ffeG9wEBHVhU64J0o; resolution-draft §一决议 4; D1-D8 采纳, D9 拆 ADR-0078 |
+| 6 | ADR-0074 Prompt Evidence Gate (Promotion) | (T21 间接) | #12 | ✅ Approved | 12/12 ✓ + §2.2 协议状态机类 4/4 ✓ | ✅ Approved (评审通过 2026-08-25) | ✅ Approved | Oracle ses_fcba5e477ffeG9wEBHVhU64J0o; resolution-draft §一决议 5; D1-D6 采纳, D7 拆走 ADR-0068 附录 A |
 
 ---
 
 ## 三、冷却期时间表
 
-| 阶段 | 开始 | 结束 (24h 后, 默认) | 可缩短至 (注明) |
+| 阶段 | 开始 | 结束 | 备注 |
 |---|---|---|---|
-| Step 2 self-review | 2026-08-25 (issue 创建) | 2026-08-26 (默认 24h) | 8h (睡一觉即可), issue body 注明 |
-| Step 3b 决策 comment | 2026-08-26 (冷却期后) | 2026-08-26 (立即) | — |
-| Step 3c 状态翻转 | 2026-08-26 (comment 后) | 2026-08-26 (立即) | — |
+| Step 2 self-review | 2026-08-25 17:30 (issue 创建) | **2026-08-26 01:30 (8h 缩短, 非默认 24h)** | per proposal §四例外: Sprint 收官前最后冲刺; 已完成 ≥3 轮 preflight 验证 (adr_lint + drift + validate + apply-meeting-resolutions dry-run 14/14) 替代"睡一觉"反思 |
+| Step 3b 决策 comment | 2026-08-26 01:30 (8h 冷却期后) | 2026-08-26 01:30 (立即) | delegated execution: solo-dev workflow identity |
+| Step 3c 状态翻转 | 2026-08-26 01:30 (comment 后) | 2026-08-26 01:30 (立即) | flip-adr-status.sh 自动化 |
 
 ---
 

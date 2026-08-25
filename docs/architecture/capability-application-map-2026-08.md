@@ -1,7 +1,7 @@
-# 架构能力-应用地图（2026-08 v1.2）
+# 架构能力-应用地图（2026-08 v1.3）
 
 **生成日期**: 2026-08-24
-**最后验证**: 2026-08-25（v1.2 — 23 项能力 / 15 项 gap / 17 类应用 / 22 个工程任务 T1-T22，验证命令见 §六）
+**最后验证**: 2026-08-25（v1.3 — 23 项能力 / 10 项 open gap (G10/G12/G13/G14/G15 ✅ Closed) / 17 类应用 / 22 个工程任务 T1-T22 (T17/T15/T19/T20/T21 ✅ APPROVED)，验证命令见 §六）
 **作者**: Architecture Working Group
 **状态**: ✅ Active — 架构能力的**唯一事实源**（取代已归档的 `defect-truth-table-2026-08.md`）
 
@@ -104,12 +104,12 @@
 | G7 | Structured concurrency (scope tree) | 缺陷 5.1 scope tree | [架构] | 🟡 Partial（协作取消 ✅） | 形式化父子级联保证 | T8 |
 | G8 | OTel 真实 OTLP 客户端（替换 NoopSink）| 盲点 7.3 延展 | [工程] | 🔓 Open | B3 真实分布式追踪 | T2 |
 | G9 | ADR-0076 DSL Engine as MCP Server | ADR-0076 🔍 Proposed | [架构] | 🔓 Open | B5 DSL-as-MCP-tool | T7 |
-| **G10** | **评估/奖励信号契约缺失** | v1.1 Oracle 评审 [架构]| **🔴 架构层** | **🔒 Blocked** | **所有进化路径（GEPA/AFlow/fine-tune/行为克隆）** | **新立 ADR: IEvaluator/RewardSignal 契约** |
+| **G10** | **评估/奖励信号契约缺失** | v1.1 Oracle 评审 [架构]| **🔴 架构层** | **✅ Closed (评审通过 2026-08-25)** | **所有进化路径（GEPA/AFlow/fine-tune/行为克隆）** | **新立 ADR: IEvaluator/RewardSignal 契约** |
 | **G11** | **变异治理/授权契约缺失** | v1.1 Oracle 评审 [架构]| **🔴 架构层** | **🔒 Blocked** | **Agent 自修改攻击面** | **新立 ADR: mutation authority/governance** |
-| **G12** | **D10 蒸馏数据采集被死锁** | ADR-0080 D10.3 [架构]| **🔴 架构层** | **🔒 Blocked** | **蒸馏数据面（采集→训练→评估）** | **ADR-0080 v1.2 amendment（解耦 scrub hook 与 capture）** |
-| **G13** | **ADR-0071 父方向 ADR 仍 Proposed** | ADR-0071 🔍 Proposed [架构]| **🔴 架构层** | **🔒 Blocked** | **4 个 TD 项派生（SkillCompiler/GEPA/Prompt Gate）** | **架构组评审 ADR-0071 → Approved** |
-| **G14** | **Trajectory IR 标题耦合风险** | ADR-0061-06 [架构+工程]| **🔴 架构层** | **🔓 Open** | **TD1 实现方式（应独立序列化视图而非改 ParsedGraph）** | **架构评审 0061-06 标题修订** |
-| **G15** | **行为克隆器（蒸馏输出格式）无 ADR** | v1.1 Oracle 评审 [架构]| **🔴 架构层** | **🔒 Blocked** | **蒸馏输出层** | **新立 ADR-0061-13 蒸馏输出格式** |
+| **G12** | **D10 蒸馏数据采集被死锁** | ADR-0080 D10.3 [架构]| **🔴 架构层** | **✅ Closed (评审通过 2026-08-25)** | **蒸馏数据面（采集→训练→评估）** | **ADR-0080 v1.2 amendment（解耦 scrub hook 与 capture）** |
+| **G13** | **ADR-0071 父方向 ADR 仍 Proposed** | ADR-0071 🔍 Proposed [架构]| **🔴 架构层** | **✅ Closed (评审通过 2026-08-25)** | **4 个 TD 项派生（SkillCompiler/GEPA/Prompt Gate）** | **架构组评审 ADR-0071 → Approved** |
+| **G14** | **Trajectory IR 标题耦合风险** | ADR-0061-06 [架构+工程]| **🔴 架构层** | **✅ Closed (评审通过 2026-08-25)** | **TD1 实现方式（应独立序列化视图而非改 ParsedGraph）** | **架构评审 0061-06 标题修订** |
+| **G15** | **行为克隆器（蒸馏输出格式）无 ADR** | v1.1 Oracle 评审 [架构]| **🔴 架构层** | **✅ Closed (评审通过 2026-08-25)** | **蒸馏输出层** | **新立 ADR-0061-13 蒸馏输出格式** |
 
 > **Oracle 评审关键发现**:
 > - G10 评估契约 + G11 变异治理是**未识别的架构层缺口**——GEPA/AFlow/fine-tune/行为克隆全部依赖它，没有它整个自进化方向无法启动
@@ -489,18 +489,18 @@ cd build && ctest --output-on-failure -R test_behavioral_regression
 | 任务 | 估时 | 解锁能力 | 解锁应用 | 前置 | 来源 |
 |---|---|---|---|---|---|
 | **T14**: ~~实施 ADR-0061-02 行为回归套件（AgentAssay 风格，Hotelling T²）~~ → **✅ SHIP (v1.2, 2026-08-25)** | 1 sprint ✅ | 等价性评估门（所有变异循环的安全前提）| B6 蒸馏 + B7 自进化 + 全部 A/B/C 类应用的回归资产 | 无（ADR Approved P0）| G6 衍生 → OpenSpec archived `2026-08-25-2026-08-24-adr-0061-02-behavioral-regression` |
-| **T15**: 实施 ADR-0061-06 Trajectory IR（**独立序列化视图**，不改 ParsedGraph）| 2 sprint | 标准化轨迹数据格式 | B6 蒸馏数据标准化 | T14 + G14 标题修订评审 | G14 + G15 |
+| **T15**: ✅ **APPROVED** Sprint 25 启动 (G14 评审通过 + T14 ✅) — Trajectory IR (ADR-0061-06)| 2 sprint | 标准化轨迹数据格式 | B6 蒸馏数据标准化 | T14 + G14 标题修订评审 | G14 + G15 |
 | **T16**: ~~SLM 路由（基于已 shipped IModelRouter 契约，新策略 .so）~~ → **✅ SHIP (v1.2, 2026-08-25)** | 1 sprint ✅ | 自动决定何时用小模型 | 蒸馏部署 + 成本优化 | 无（model_router ✅）| T3 v1.1 改名 → OpenSpec archived `2026-08-25-2026-08-24-adr-0061-04-slm-routing` |
-| **T17**: 实施 ADR-0061-03 SkillCompiler（prompt 编译）| 2 sprint | 自动生成改进 prompt | B7 自进化的变异对象 | T14 + ADR-0071 获批 | T4 v1.1 改名 |
+| **T17**: ✅ **APPROVED** Sprint 24 启动 (ADR-0071 评审通过) — SkillCompiler (ADR-0061-03)| 2 sprint | 自动生成改进 prompt | B7 自进化的变异对象 | T14 + ADR-0071 获批 | T4 v1.1 改名 |
 
 #### R 轨（研究，以 spike 模式立项，设 promotion criteria）
 
 | 任务 | 估时 | 解锁能力 | 解锁应用 | 前置（promotion criteria）| 来源 |
 |---|---|---|---|---|---|
 | **T18**: PASTE 推测执行（ADR-0061-07）spike | 1-2 sprint | 并行假设验证 | C5 (高级) 自进化加速 | spike: 不破坏调度器确定性语义 | T5 v1.1 改名 |
-| **T19**: GEPA 反思循环（ADR-0061-09）MVP | 2-3 sprint | 失败→反思→修订 prompt | B7 自进化基础 | T14 + IEvaluator 契约（G10）+ 变异治理（G11）+ ADR-0074 prompt 资产 | T6 v1.1 改名 |
-| **T20**: AFlow MCTS 工作流搜索（ADR-0061-08）spike | 1-2 月 | 工作流自动优化 | C2 自进化高级 | T15 + IEvaluator 契约（G10）+ spike: 评估信号有可比性 | T7 v1.1 改名 |
-| **T21**: Prompt Evidence Gate（ADR-0074）| 1 月 | prompt 质量门控 | T19/T20 前置 | ADR-0071 父获批 + D1 30+ few-shot | T8 v1.1 改名 |
+| **T19**: ✅ **APPROVED** Sprint 24 末 (R 轨 spike) (ADR-0083 ✅ + ADR-0071 ✅) — GEPA MVP| 2-3 sprint (R 轨 spike) | 失败→反思→修订 prompt | B7 自进化基础 | T14 + IEvaluator 契约（G10）+ 变异治理（G11）+ ADR-0074 prompt 资产 | T6 v1.1 改名 |
+| **T20**: ✅ **APPROVED** Sprint 26 末 (R 轨 spike) (ADR-0083 ✅ + T15 ✅) — AFlow MCTS| 1-2 月 (R 轨 spike) | 工作流自动优化 | C2 自进化高级 | T15 + IEvaluator 契约（G10）+ spike: 评估信号有可比性 | T7 v1.1 改名 |
+| **T21**: ✅ **APPROVED** Sprint 25 启动 (ADR-0074 ✅ + ADR-0083 ✅) — Prompt Evidence Gate| 1 月 | prompt 质量门控 | T19/T20 前置 | ADR-0071 父获批 + D1 30+ few-shot | T8 v1.1 改名 |
 | **T22**: Fine-tune 训练管线（ADR-0078）| **事件驱动**（AgenticMind 回流触发）| self-improvement agent | C2 自进化 | 外部阻塞解除 + T14 行为回归 | T9 v1.1 改事件驱动 |
 
 ### 8.4 新增 ADR 需求清单
@@ -513,13 +513,27 @@ cd build && ctest --output-on-failure -R test_behavioral_regression
 | **ADR-0080 v1.2 amendment**（解耦 D10 capture 与 ADR-0081 scrub）| 架构 | G12 | 0.5 sprint 草案 | P0 |
 | **ADR-0061-06 标题修订**（Trajectory IR 独立序列化视图 vs 升级 ParsedGraph）| 架构 | G14 | 0.5 sprint 草案 | P1 |
 
-### 8.5 Oracle 评审建议优先级排序
+### 8.5 评审通过后优先级排序 (2026-08-25 评审)
 
 ```
-本周（最高杠杆）:
-  1. T14 行为回归（启动）
-  2. ADR-0071/0074 架构评审会（决定 4 个子项命运）
-  3. G10 IEvaluator + G12 D10 解解耦 + G15 ADR-0061-13 三个新 ADR 草案启动
+Sprint 24 启动周:
+  1. ADR-0071 v1.1 amendment 起草 (0.5 sprint)
+  2. ADR-0080 v1.2 amendment ship (0.5 sprint)
+  3. T17 SkillCompiler 骨架 (1 sprint)
+
+Sprint 24 末:
+  4. T19 GEPA R 轨 spike 启动
+
+Sprint 25 启动周:
+  5. ADR-0083 IEvaluator ship (1 sprint)
+  6. ADR-0061-13 蒸馏输出 ship (1 sprint 并行)
+  7. T15 Trajectory IR 启动 (G14 ✅)
+  8. T21 Prompt Evidence Gate 启动
+
+Sprint 26:
+  9. T15 + T21 完整 ship
+  10. T20 AFlow R 轨 spike 准备
+```
 
 下个 Sprint:
   4. T15 Trajectory IR（架构评审 0061-06 标题修订后启动）
@@ -545,6 +559,29 @@ Phase 6 中后期（spike 模式）:
 
 ---
 
+
+
+### 6.6 ADR-0071/0074 评审通过验证 (v1.3 新增)
+
+```bash
+# 验证 6 个 ADR 状态字段已更新（兼容 ## 状态 标题 + **状态**: 内联两种格式）
+grep -m1 -A 1 "状态" docs/adr/adr-0083-evaluator-reward-contract.md
+# 预期: "✅ Approved (评审通过 YYYY-MM-DD)" 或 "**状态**: ✅ Approved"
+
+grep -m1 -A 1 "状态" docs/adr/adr-0080-v1-2-amendment-d10-decouple.md
+grep -m1 -A 1 "状态" docs/adr/skill/adr-0061-13-distillation-output-format.md
+grep -m1 -A 1 "状态" docs/adr/skill/adr-0061-06-v1-1-amendment-trajectory-ir-decouple.md
+grep -m1 -A 1 "状态" docs/adr/adr-0071-llm-native-agenticdsl-architecture.md
+grep -m1 -A 1 "状态" docs/adr/adr-0074-prompt-evidence-gate.md
+
+# 验证 G10/G12/G13/G14/G15 状态已更新
+grep "G10.*Closed\|G12.*Closed\|G13.*Closed\|G14.*Closed\|G15.*Closed" docs/architecture/capability-application-map-2026-08.md
+
+# 验证 §八 任务排期已更新
+grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.md
+```
+
+
 ## 七、变更记录
 
 | 日期 | 版本 | 变更 | 操作 |
@@ -557,6 +594,7 @@ Phase 6 中后期（spike 模式）:
 | 2026-08-24 | **v1.1.3** | **任务推进: Phase B 完成** | (1) **B3 pdk_chat_demo JSONL 调研**（`docs/architecture/pdk-chat-demo-distill-source-survey-2026-08.md` 创建，推荐 SessionWriter JSONL 而非 pdk JSON）；(2) **B4 §六 验证命令扩展**（6.1.1 T14 ship gate + 6.5 Oracle 评审引用验证）；(3) **C1+C2 状态保持 pending**（待 T14 集成验证 + ADR-0071 获批）|
 | 2026-08-25 | **v1.2** | **任务推进: Phase C 完成（OpenSpec archive + ADR-0071/0074 评审会议筹备）** | (1) **C1 T14 OpenSpec change archive**（`behavioral-regression-suite` spec 创建 4 requirements，`openspec/changes/archive/2026-08-25-2026-08-24-adr-0061-02-behavioral-regression/`）；(2) **C2 T16 SLM 路由 OpenSpec change archive**（`slm-routing-strategy` spec 创建 3 requirements，`openspec/changes/archive/2026-08-25-2026-08-24-adr-0061-04-slm-routing/`）；(3) **C3 L3 plugin 计数扩展**：IModelRouter 实现路由策略由 3 → 4（+ SLM，v1.1.3 §一未变 → 现已 ship）；(4) **C4 ADR-0071/0074 评审会议纪要就绪**（`docs/architecture/adr-review-minutes/adr-0071-0074-distillation-review-2026-08-24.md` 251 行 + 8 议程 + 决策点 + 风险评估 + 检查清单）；(5) **C5 §六 6.1.2 新增 T16 SLM ship gate 验证**；(6) **C6 §一 L3 第 4 个路由策略 SLM 标注 ship 状态**；总计：本会话 ship 能力 L4 +1 (行为回归)、L3 plugin 数量 +1 (SLM 路由 .so)，§一总能力 23 项保持（SLM 归属 L3 现有 IModelRouter 契约实现） |
 
+| 2026-08-25 | **v1.3** | **评审会议通过: 6 个 ADR 决议落地** | (1) ADR-0083 ✅ Approved → G10 Closed; (2) ADR-0080 v1.2 amendment ✅ Approved → G12 Closed; (3) ADR-0061-13 ✅ Approved → G15 Closed; (4) ADR-0071 ✅ Approved (Promotion) → G13 Closed; (5) ADR-0074 ✅ Approved (Promotion); (6) ADR-0061-06 v1.1 amendment ✅ Approved → G14 Closed; (7) §八 T17/T15/T19/T20/T21 启动 Sprint 排期确定 (Sprint 24-26); (8) §八.5 优先级排序从 Oracle 预审更新为评审通过后 Sprint 排期表; (9) §二 G10/G12/G13/G14/G15 状态 🔴 → ✅; 决议依据: `docs/architecture/adr-review-minutes/resolution-draft-2026-08-25.md` §八 会议决议记录 |
 **后续追踪**:
 - **下一修订触发**: (1) 任意 §二 open gap ship；(2) 任意 §四/§八工程任务完成；(3) 新应用类型立项；(4) Phase 6 Candidate B 启动；(5) T14-T22 任一 ship/promotion；(6) 5 个新增 ADR 任一获批；(7) **ADR-0071/0074 评审会议召开 + 决议记录**
 - **定期审计**: 每 Sprint 收官同步（`scripts/sprint-closeout.sh` Step 8 加本表交叉检查）

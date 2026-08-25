@@ -80,9 +80,9 @@ docs/
 | `adr-0068-event-emission-contract.md` | 事件发射契约 (Canonical Topic Registry + 7 幻影主题强制发射点 + EventBuilder) | 🔍 Proposed (2026-07-31, D2 立项, 实施排期 Wave 1) |
 | `adr-0069-tool-coordinator-hooks.md` | ToolCoordinator Hook 注入点 (pre/post 双列表 + IToolHookRegistry + HookErrorPolicy) | 🔍 Proposed (2026-07-31, D3 立项, 实施排期 Wave 1) |
 | `adr-0070-declare-command.md` | PDK Plugin 命令/快捷键注册 (Command≠Tool + DECLARE_COMMAND + ICommandRegistry) | 🔍 Proposed (2026-07-31, D4 立项, 实施排期 Wave 1) |
-| `adr-0071-llm-native-agenticdsl-architecture.md` | LLM-native AgenticDSL 架构 (LLM 作为 DSL 作者, 3 平面 Operator/DSL/Backend, 派生 6 个子 ADR/Change) | 🔍 Proposed (2026-08-02, 顶层方向 ADR, 锚定 Phase 6+ 演化) |
+| `adr-0071-llm-native-agenticdsl-architecture.md` | LLM-native AgenticDSL 架构 (LLM 作为 DSL 作者, 3 平面 Operator/DSL/Backend, 派生 6 个子 ADR/Change) | ✅ Approved (评审通过 2026-08-25, Promotion, 顶层方向 ADR, 锚定 Phase 6+ 演化) |
 | `adr-0073-tool-json-schema-contract.md` | Tool JSON Schema 契约 (JSON Schema 2020-12, input_schema/output_schema 字段 + nlohmann validator + DECLARE_TOOL 自动生成) | 🟡 Partial (Phase 6a manifest 边界部分采纳, 详见 adr-0073-impl-scope-audit.md; D2/D3/D4 属 Phase 6c C8/C9) |
-| `adr-0074-prompt-evidence-gate.md` | Prompt Engineering + Evidence Gate (D1 30+ few-shot + D2 50+ golden + D3 3 模型 baseline + D4 Evidence Gate + D5 两阶段注入 ≤8k + D6 JSONL + D7 失败事件) | 🔍 Proposed (2026-08-03, Wave 2 Phase 2.2, 派生自 ADR-0071 §D5) |
+| `adr-0074-prompt-evidence-gate.md` | Prompt Engineering + Evidence Gate (D1 30+ few-shot + D2 50+ golden + D3 3 模型 baseline + D4 Evidence Gate + D5 两阶段注入 ≤8k + D6 JSONL + D7 失败事件) | ✅ Approved (评审通过 2026-08-25, Promotion, Wave 2 Phase 2.2, 派生自 ADR-0071 §D5) |
 | `adr-0075-env-backend-local-docker.md` | EnvBackend 多环境执行 (D1 IEnvBackend 接口 + D2 LocalBackend + D3 DockerBackend + D4 backend: 字段 + D5 EnvValidationHook) | ✅ Approved (2026-08-18 — Wave 3-A `from-roadmap-phase-6c-execution-envbackend` ship: D1+D2+D3+D5 全 ship) |
 | `adr-0076-dsl-engine-mcp-server.md` | DSL Engine as MCP Server 控制面 (D1 stdio+HTTP+SSE + D2 静态 token + D3-D7 capability 暴露 + D8 Stateless) | 🔍 Proposed (2026-08-03, Wave 3 末, **gated by active-status.md §四**, INTEGRATES WITH Phase 6 Candidate B) |
 | `adr-0077-grpc-data-plane.md` | gRPC Data Plane 高吞吐通道 (D1 4 service + D2 64KB 路由 + D3 mTLS + D4 proto + D5 grpc.* 事件 + D6 GRPCBackend + D7 路由决策 + D8 启动条件) | 🔍 Proposed (2026-08-03, Wave 4 descoped docs-only, 派生自 ADR-0071 §D8) |
@@ -91,8 +91,8 @@ docs/
 | `adr-0080-append-only-event-log.md` | AppendOnlyEventLog 作为核心审计日志 (Step 0: BusEvent 信封扩展 + GenerationRequest.purpose; v1.1 D10 Distillation Capture + D2 causal_time + D6 opt-in) | ✅ Approved (v1.1 amendment 2026-08-12; 原始 v1 文本 2026-01-19, 本会话讨论产出) |
 | `adr-0082-agent-first-class-registry.md` | Agent as First-Class Registry (讨论稿: AgentWorker + YAML + spawn_agent, 争议未决, 搁置至 0079/0080 实施后) | 🔍 Proposed (v1.1 状态注记 2026-08-12: 蒸馏需求加强搁置; 原始讨论稿 2026-01-19, 未定稿) |
 | `adr-0081-pre-step-hook-contract.md` | Pre-Step Hook Contract (Agent 级拦截点, 推迟至 ADR-0082 定稿) | 🔍 Proposed (2026-08-12, v1.1 引用触发, 占位) |
-| `adr-0080-v1-2-amendment-d10-decouple.md` | D10 Capture 与 Scrub Hook 解耦 (CaptureMode 三态 + Training fail-open 三重保护) | 🔍 Proposed (2026-08-24, Oracle G12 解锁 ADR-0081/0082 死锁) |
-| `adr-0083-evaluator-reward-contract.md` | IEvaluator/RewardSignal 评估契约 (双层契约 + 3 内置评估器 + V1 简化避免 ADR-0057 零实施) | 🔍 Proposed (2026-08-24, Oracle G10 关键缺口, 6 个下游 ADR 硬前置) |
+| `adr-0080-v1-2-amendment-d10-decouple.md` | D10 Capture 与 Scrub Hook 解耦 (CaptureMode 三态 + Training fail-open 三重保护) | ✅ Approved (评审通过 2026-08-25, Oracle G12 解锁 ADR-0081/0082 死锁) |
+| `adr-0083-evaluator-reward-contract.md` | IEvaluator/RewardSignal 评估契约 (双层契约 + 3 内置评估器 + V1 简化避免 ADR-0057 零实施) | ✅ Approved (评审通过 2026-08-25, Oracle G10 关键缺口, 6 个下游 ADR 硬前置) |
 
 ### adr/plugin/ - Plugin 化候选清单
 
@@ -120,8 +120,8 @@ docs/
 | `adr-0061-10-formal-lint.md` | λ_A-style Config 结构完整性检查 | P2 | 🔍 Proposed |
 | `adr-0061-11-dsl-wasm.md` | DSL→Wasm Bytecode 编译器 | P2 | 🔍 Proposed |
 | `adr-0061-12-webllm.md` | 浏览器端 WebLLM 集成 | P2 | 🔍 Proposed |
-| `adr-0061-13-distillation-output-format.md` | 蒸馏输出格式 (IDistillationWriter + DistillationRecord + trajectory/policy/meta 三文件分离) | P0 | 🔍 Proposed (2026-08-24, Oracle G15, 7 环闭环最后 1 环) |
-| `adr-0061-06-v1-1-amendment-trajectory-ir-decouple.md` | Trajectory IR 独立序列化视图 (不改 ParsedGraph, v1 标题耦合修正) | P1 | 🔍 Proposed (2026-08-24, Oracle G14 解耦风险) |
+| `adr-0061-13-distillation-output-format.md` | 蒸馏输出格式 (IDistillationWriter + DistillationRecord + trajectory/policy/meta 三文件分离) | P0 | ✅ Approved (评审通过 2026-08-25, Oracle G15, 7 环闭环最后 1 环) |
+| `adr-0061-06-v1-1-amendment-trajectory-ir-decouple.md` | Trajectory IR 独立序列化视图 (不改 ParsedGraph, v1 标题耦合修正) | P1 | ✅ Approved (评审通过 2026-08-25, Oracle G14 解耦风险) |
 
 ### adr-management/ - ADR 元数据
 

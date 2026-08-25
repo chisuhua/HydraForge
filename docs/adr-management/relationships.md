@@ -75,11 +75,11 @@
 | adr-0068 | 事件发射契约 (Event Emission Contract) | ✅ Approved | 2026-08-13 |  |
 | adr-0069 | ToolCoordinator Hook 注入点 (Tool Call Interception Hooks) | 🟡 Partial | Unknown |  |
 | adr-0070 | PDK Plugin 命令/快捷键注册 (DECLARE_COMMAND) | 🟡 Partial | Unknown |  |
-| adr-0071 | LLM-native AgenticDSL 架构 (LLM as DSL Author) | 🔍 Proposed | 2026-08-02 |  |
+| adr-0071 | LLM-native AgenticDSL 架构 (LLM as DSL Author) | ✅ Approved | 2026-08-02 |  |
 | adr-0072 | DSL 节点扩展 (stream: / $var / declarative style / backend:) | 🔍 Proposed | 2026-08-03 |  |
 | adr-0073 | ADR-0073 实现范围审计 (Implementation Scope Audit) | 🟡 Partial | 2026-08-13 |  |
 | adr-0073 | Tool JSON Schema 契约 (JSON Schema 2020-12) | ✅ Approved | 2026-08-02 |  |
-| adr-0074 | Prompt Engineering + Evidence Gate | 🔍 Proposed | 2026-08-03 |  |
+| adr-0074 | Prompt Engineering + Evidence Gate | ✅ Approved | 2026-08-03 |  |
 | adr-0075 | EnvBackend 多环境执行 (Local + Docker) | ✅ Approved | 2026-08-03 |  |
 | adr-0076 | DSL Engine as MCP Server (控制面, MCP 2025-11-25) | 🔍 Proposed | 2026-08-03 |  |
 | adr-0077 | gRPC Data Plane (High-Throughput Channels) | 🔍 Proposed | 2026-08-03 |  |
@@ -209,11 +209,11 @@ graph TD
 
 | 状态 | 数量 |
 |------|------|
-| ✅ Approved | 53 |
+| ✅ Approved | 55 |
 | 🟡 Partial | 9 |
 | ❌ Not Implemented | 1 |
 | ⛔ Superseded | 1 |
-| 🔍 Proposed | 13 |
+| 🔍 Proposed | 11 |
 | 📋 Reserved | 2 |
 | ❓ Unknown | 1 |
 
