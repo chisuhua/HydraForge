@@ -1,7 +1,7 @@
 # 自进化与协同进化架构定义（2026-08）
 
 **生成日期**: 2026-08-26  
-**最后验证**: 2026-08-26（v1.1，ADR-0083 状态统一 + ADR-0084 文件创建 + IEvaluator/IDistillationWriter 代码 ship 待办标注，验证命令见 §九）  
+**最后验证**: 2026-08-26（v1.1.1，ADR-0083 ✅ Approved 代码已 ship + ADR-0084 文件创建 + IDistillationWriter 代码 ship 待办标注，验证命令见 §九）  
 **作者**: Architecture Working Group  
 **状态**: 🔍 Proposed
 
@@ -161,7 +161,7 @@
 | 观测与审计 | EventLog、EventBuilder、IInteractionBus | 进化事件主题和 `EvolutionAttempt` schema 尚未批准 |
 | 会话与证据 | SessionManager、Session 4-scope、D10 Capture | 采集启用、抽取和训练数据流水线未完全实现 |
 | 轨迹视图 | ADR-0061-06 独立 Trajectory IR | T15 尚需工程实现 |
-| 评估信号 | ADR-0083 IEvaluator/RewardSignal (🔍 Proposed, 起草完成, 代码 ship 待办 2026-08-26 自审) | IEvaluator 类代码不存在 (grep 0 命中); 多主体信用分配未定义 |
+| 评估信号 | ADR-0083 IEvaluator/RewardSignal (✅ Approved, 代码 ship 2026-08-26) | ✅ IEvaluator 已 ship (tests/test_evaluator.cpp 12 cases / 31 assertions); 多主体信用分配未定义 |
 | 变异对象 | ADR-0074 Prompt Evidence、ADR-0061-03 SkillCompiler、DSL 资产 | L2/L3 候选生成和版本化尚未完整实现 |
 | 变异治理 | ADR-0084 起草文件已创建 (🔍 Proposed 2026-08-26, 待评审转 Approved); ApprovalPolicy/ExecutionPolicy 可复用 | ADR-0084 评审转 Approved 后才能执行自动提交 |
 | 稳定性门 | ADR-0061-02 行为回归、历史版本、SLM routing | 防共谋、多样性、语义对齐指标未定义 |
@@ -204,7 +204,7 @@ T19 GEPA 在 S1 阶段只能执行只读反思；S2 之前不得执行 `commit(P
 ## 七、需要继续形成的架构决议
 
 1. **ADR-0084**（2026-08-26 文件已创建 🔍 Proposed）：变异对象 L1-L4 分级 / 授权绑定复用 ADR-0004+ADR-0031 / 治理流程 propose→evaluator→回归门→commit / 审计复用 ADR-0080 + ADR-0068 amendment 注册 4 个 `mutation.*` 主题 / 失败回滚 / 攻击面 fail-closed — **待 Sprint 26 末评审转 ✅ Approved + G11 Closed**；
-2. **IEvaluator 代码 ship**（ADR-0083 🔍 Proposed）：`include/agenticdsl/contract/ievaluator.h` + `reward_signal.h` + 3 内置评估器 + `tests/test_evaluator.cpp` ≥ 4 cases — **2026-08-26 自审识别代码不存在，待 OpenSpec task 排期**；
+2. ~~**IEvaluator 代码 ship**（ADR-0083）~~ ✅ **已完成 (2026-08-26)**：`include/agenticdsl/contract/ievaluator.h` + `reward_signal.h` + TaskSuccessEvaluator V1 + CognitiveWorker/DomainWorkerPool setter 注入 + evaluation.result 事件发射，`tests/test_evaluator.cpp` 12 cases / 31 assertions PASS（V2 BehavioralEquivalence/Composite 评估器留 follow-up `ship-evaluator-v2-composite`）；
 3. **Trajectory IR 工程实现**（ADR-0061-06 v1.1 ✅）：序列化视图、敏感字段和版本兼容 — **T15 启动 Sprint 25**；
 4. **IDistillationWriter 代码 ship**（ADR-0061-13 ✅）：`include/agenticdsl/contract/idistillation_writer.h` + `distillation_record.h` + 3 文件分离实现 — **2026-08-26 自审识别代码不存在，待 OpenSpec task 排期**；
 5. 进化事件与 `EvolutionAttempt` schema：引用关系、幂等性和审计查询；
@@ -240,24 +240,24 @@ ls docs/architecture/capability-application-map-2026-08.md
 ls docs/adr/adr-0083-evaluator-reward-contract.md
 ls docs/adr/adr-0084-mutation-governance-contract.md
 
-# ADR-0083 内部矛盾已统一（2026-08-26 自审修正）
-grep -m1 "^\*\*状态\*\*" docs/adr/adr-0083-evaluator-reward-contract.md
-# 预期: **状态**: 🔍 Proposed — 契约起草完成，代码 ship 待办
+# ADR-0083 状态字段（2026-08-26 代码 ship 后翻转）
+grep -m1 "^✅ Approved" docs/adr/adr-0083-evaluator-reward-contract.md
+# 预期: ✅ Approved (ship 2026-08-26) — 契约代码已 ship ...
 
 # ADR-0084 状态字段
 grep -m1 "^\*\*状态\*\*" docs/adr/adr-0084-mutation-governance-contract.md
 # 预期: **状态**: 🔍 Proposed — 起草启动，方案骨架已确定
 
-# IEvaluator 代码 ship 状态（待补 OpenSpec task 落地）
+# IEvaluator 代码 ship 状态（2026-08-26 已 ship）
 grep -r "class IEvaluator\|struct IEvaluator" include/agenticdsl/contract/ src/ 2>/dev/null
-# 预期 (2026-08-26): 0 命中 — 代码 ship 待办
+# 预期 (2026-08-26 ship 后): ≥ 1 命中 (include/agenticdsl/contract/ievaluator.h)
 
 # IDistillationWriter 代码 ship 状态
 grep -r "class IDistillationWriter\|struct IDistillationWriter" include/agenticdsl/contract/ src/ 2>/dev/null
 # 预期 (2026-08-26): 0 命中 — 代码 ship 待办
 
-# 关键引用一致性 — cap-map §二 G10/G11 与 self-evolution §五 + ADR 文档状态一致
-grep -n "G10.*Proposed.*自审\|G11.*Proposed.*ADR-0084 文件已创建" \
+# 关键引用一致性 — cap-map §二 G10 Closed / G11 Proposed 与 self-evolution §五 + ADR 文档状态一致
+grep -n "G10.*Closed.*代码 ship\|G11.*Proposed.*ADR-0084 文件已创建" \
   docs/architecture/capability-application-map-2026-08.md
 # 预期: ≥ 1 行
 

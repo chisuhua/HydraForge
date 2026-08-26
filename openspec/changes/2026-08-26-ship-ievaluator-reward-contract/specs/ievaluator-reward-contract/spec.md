@@ -51,7 +51,7 @@ The TaskSuccessEvaluator MUST be the V1 default evaluator that maps `ToolResult.
 
 ### Requirement: Setter 注入而非构造注入
 
-CognitiveWorker 和 DomainWorkerPool 的构造签名保持不变。IEvaluator 通过可选 setter 注入。
+CognitiveWorker 和 DomainWorkerPool 的构造签名 MUST 保持不变。IEvaluator MUST 通过可选 setter 注入。
 
 #### Scenario: setter 注入 evaluator
 
@@ -67,7 +67,7 @@ CognitiveWorker 和 DomainWorkerPool 的构造签名保持不变。IEvaluator �
 
 ### Requirement: evaluation.result 事件 schema
 
-evaluation.result 事件在 cognitive.task.completed / domain.task.completed 之后发射。
+evaluation.result 事件 MUST 在 cognitive.task.completed / domain.task.completed 之后发射。
 
 #### Scenario: evaluation.result 事件字段
 
@@ -78,7 +78,7 @@ evaluation.result 事件在 cognitive.task.completed / domain.task.completed 之
 ```json
 {
   "evaluation_id": "eval_<uuid>",
-  "schema_version": "1.0",
+  "schema_version": "v1",
   "evaluator_type": "TaskSuccessEvaluator",
   "trace_ref": "<trace_id>",
   "quality": "Excellent",
@@ -102,7 +102,7 @@ evaluation.result 事件在 cognitive.task.completed / domain.task.completed 之
 
 ### Requirement: ExecutionTrace 与 TraceRecord 的边界定义
 
-ExecutionTrace 用于评估输入，TraceRecord 用于执行追踪。
+ExecutionTrace MUST 用于评估输入，TraceRecord MUST 用于执行追踪。
 
 #### Scenario: ExecutionTrace 构造
 
@@ -118,7 +118,7 @@ ExecutionTrace 用于评估输入，TraceRecord 用于执行追踪。
 
 ### Requirement: V2 评估器明确 out of scope
 
-以下评估器不在本 change 范围内：
+The following evaluators SHALL NOT be implemented in this change:
 
 #### Scenario: BehavioralEquivalenceEvaluator V2
 
@@ -139,7 +139,7 @@ ExecutionTrace 用于评估输入，TraceRecord 用于执行追踪。
 ```json
 {
   "evaluation_id": "string (format: eval_<uuid>, globally unique)",
-  "schema_version": "string (fixed: '1.0')",
+  "schema_version": "string (fixed: 'v1')",
   "evaluator_type": "string (concrete evaluator class name)",
   "trace_ref": "string (trace_id of evaluated execution)",
   "quality": "string (Excellent|Acceptable|Poor)",

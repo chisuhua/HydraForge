@@ -5,18 +5,21 @@
 
 ## 状态
 
-🔍 Proposed — 契约起草完成，代码 ship 待办 (Oracle 评审识别为架构层缺口, v1.1 capability-application-map §八 G10)
+✅ Approved (ship 2026-08-26) — 契约代码已 ship: IEvaluator + RewardSignal + ExecutionTrace + TaskSuccessEvaluator V1 + CognitiveWorker/DomainWorkerPool setter 注入 + evaluation.result 事件发射
 
-> **状态说明 (2026-08-26 自审修正)**:
-> 本 ADR 文档结构与 5 项决策点已 Oracle Pre-Review 通过 (session `ses_fcba5e477ffeG9wEBHVhU64J0o`)，但
-> **契约代码尚未 ship** — `include/agenticdsl/contract/ievaluator.h` 与 `include/agenticdsl/types/reward_signal.h`
-> 在 `include/` 与 `src/` 中均不存在 (grep 0 命中)。
+> **Ship 证据 (2026-08-26)**:
+> - 契约头文件: `include/agenticdsl/contract/ievaluator.h` + `include/agenticdsl/types/reward_signal.h`
+>   + `include/agenticdsl/types/execution_trace.h` + `include/agenticdsl/contract/evaluation_events.h`
+> - Worker 集成: `cognitive_worker.{h,cpp}` / `domain_worker_pool.{h,cpp}` 新增 `set_evaluator()` 可选注入
+>   (构造签名不变, 默认 nullptr 不评估不发射事件)
+> - `tests/test_evaluator.cpp` 12 cases / 31 assertions PASS (≥ 4 cases 判定满足)
+> - 全量 ctest 186/186 PASS 零回归
+> - OpenSpec change `2026-08-26-ship-ievaluator-reward-contract` archived
 >
-> **Approved 判定**：待 `tests/test_evaluator.cpp` ≥ 4 cases 通过 + 当前 ctest 总数零回归
-> + `openspec validate` 通过后，从 🔍 Proposed 翻转为 ✅ Approved。
->
-> **修正原因 (2026-08-26 self-audit)**：原文档头部 + §状态 字段存在自相矛盾 (头部 "✅ Approved" vs §状态 "🔍 Proposed")，
-> 经 Oracle 深度审查 session `ses_fc3090b49ffe7yJwXhx1MoNz5N` 识别，已统一为 🔍 Proposed + 代码 ship 待办。
+> **历史状态说明 (2026-08-26 自审修正, ship 前)**:
+> 本 ADR 文档结构与 5 项决策点经 Oracle Pre-Review 通过 (session `ses_fcba5e477ffeG9wEBHVhU64J0o`)，
+> 但契约代码一度未 ship — 经 Oracle 深度审查 session `ses_fc3090b49ffe7yJwXhx1MoNz5N` 识别头部/§状态 自相矛盾，
+> 已统一为 🔍 Proposed + 代码 ship 待办；2026-08-26 代码 ship 完成后翻转为 ✅ Approved。
 
 **前置文档**:
 - `docs/architecture/capability-application-map-2026-08.md` §八 Oracle 评审
