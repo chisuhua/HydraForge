@@ -41,8 +41,10 @@
 > **G11 跟踪（ADR 起草，OpenSpec 占位排 Sprint 25 W1）**:
 > - GitHub issue #14 ✅ Approved (2026-08-26): G11 变异治理契约方向批准, 6 项 Oracle 修订 + 16 项 Self-Review Checklist 全 ✅
 > - Oracle session `ses_fc41537bbffeC35NKqgvzn4m1c` Self-Review 预审 + `ses_fc3e070c0ffeIVgAhsgx2pNXFa` 深度审查
-> - `adr-0084-mutation-governance-contract.md` 起草中（Sprint 25 W1 OpenSpec change `2026-08-26-adr-0084-mutation-governance-contract` 启动）
+> - **`adr-0084-mutation-governance-contract.md` 文件已创建 (2026-08-26, 🔍 Proposed, 6 维度契约骨架)**：决策 1-6 (变异对象 L1-L4 分级 / 授权绑定复用 ADR-0004+ADR-0031 / 治理流程 propose→evaluator→回归门→commit / 审计复用 ADR-0080+4 mutation.* 主题 / 失败回滚 / 攻击面 fail-closed) + 9 项前置 ADR 引用 + V1 边界 (L4 权重显式禁止) — Sprint 25 W2-W3 代码 ship + Sprint 26 末评审转 ✅ Approved + G11 Closed
+> - **issue #14 保持 OPEN 直至本 ADR ship + Approved + G11 Closed** (2026-08-26 Oracle Deep Review 决议, 顶部声明 R6 修订)
 > - T19 GEPA Phase 1 只读反思约束（不执行 `commit(PromptEdit)`）直至 G11 ADR Approved
+> - **2026-08-26 自审修正 (Oracle session `ses_fc3090b49ffe7yJwXhx1MoNz5N`)**：原 ADR-0083 头部 "✅ Approved" 与 §状态 "🔍 Proposed" 自相矛盾，已统一为 🔍 Proposed + 代码 ship 待办 (`include/agenticdsl/contract/ievaluator.h` grep 0 命中)。OpenSpec task `2026-08-26-ship-ievaluator-reward-contract` 排期启动
 
 ### ✅ Wave 3-A 已归档 (历史参考)
 

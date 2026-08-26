@@ -9,6 +9,7 @@
 >
 > **关联文档**:
 > - 上下文：[`../architecture/capability-application-map-2026-08.md` §八](../architecture/capability-application-map-2026-08.md) — 蒸馏+自进化专题 + §二 Gap G11
+> - 架构定义：[`../architecture/self-evolution-architecture-2026-08.md`](../architecture/self-evolution-architecture-2026-08.md) — 自进化闭环、支撑平面与阶段边界
 > - 调研触发：用户梳理 5 篇综述（DSH / 11 改进空间 / 4 前沿方向 / 协同进化 / 在线教师蒸馏）
 > - Oracle 战略评估 session：`ses_fc640ea84ffe0f4dyYTa4aFjiL`（2026-08-26）
 
@@ -18,7 +19,7 @@
 
 梳理 2026 年 Agent 蒸馏 / 自进化 SOTA 文献，提炼与 HydraForge 项目已有 ADR 体系（ADR-0061 系列 + ADR-0078 + ADR-0080/0081/0083）的**对应 / 冲突 / 超纲**关系。重点支持：
 
-1. **G11 变异治理契约**起草（cap-map §二 Gap，🔒 Blocked）
+1. **G11 变异治理契约**起草（cap-map §二 Gap，🔍 Proposed，ADR-0084 起草中）
 2. **T19 GEPA R 轨 spike**（cap-map §八.3 Sprint 24 末，硬依赖 G11）
 3. **R 轨任务**（T18 PASTE / T20 AFlow / T22 Fine-tune）的范围界定
 
@@ -75,6 +76,18 @@
 | 教师即稳定器（KL 散度约束） | 防止学生偏离累积能力 | — | 🔴 **冲突**（隐含常驻大教师模型，违反 ADR-0061-04 SLM-routing-first 哲学 + 预算控制） |
 | 教师即进化引擎（Bootstrap） | 学生→教师选择性吸收→蒸馏 | 🟡 间接对应（ADR-0083 IEvaluator + ADR-0061-02 行为回归作为门禁） |
 | 多教师蒸馏 | 教师池动态选择/加权 | — | ⚠ **未批准方向**（与 G11 变异治理缺口叠加） |
+
+### 2.6 从综述观点到 HydraForge 架构结论
+
+上述讨论应被拆成三层，而不是合并成一个“自进化算法”清单：
+
+1. **闭环控制层**：观测/事件 → 轨迹或聚合指标 → 评估信号 → 变化归因 → 候选变异 → 回归与授权 → 版本发布或回滚。轨迹对序列决策、反思和对抗交互是核心输入，但对种群适应度、任务难度和资源曲线等机制不是强制输入。
+2. **支撑机制层**：信用分配解决“变化是谁造成的”，预测误差解决“接下来可能发生什么”，稳定性/防退化、语义对齐、安全探索、异步资源调度和因果诊断共同约束非平稳系统。它们是协同进化的落地前提，但不是当前 HydraForge 已实现的统一组件。
+3. **更新器层**：反向传播适合可微参数更新；强化学习、进化策略、贝叶斯优化、元学习和梯度协调用于不可微、非平稳或多目标场景。更新器应保持可插拔，不能被写死为架构契约。
+
+因此，在线教师蒸馏应定义为**训练期、异步、门控的知识传递机制**：学生候选先经独立验证，再允许教师吸收；教师不得被视为无条件可信源，也不得成为默认 serving 路径中的常驻大模型。多教师池、在线权重更新和 Agent-Agent 对等协同属于后续研究，不构成当前项目能力。
+
+HydraForge 当前应采用“受治理的单编排器自进化闭环”作为工程边界：EventLog/SessionManager 提供证据，Trajectory IR 提供独立序列化视图，IEvaluator 提供评估，行为回归提供安全门，ADR-0084 定义变异授权。T19 GEPA Phase 1 只能生成只读候选，不执行 `commit(PromptEdit)`；只有治理契约批准后，才可讨论受控提交。
 
 ---
 
@@ -152,7 +165,7 @@
 
 | 现有文档 | 协调动作 |
 |---|---|
-| [`capability-application-map-2026-08.md` §八](../architecture/capability-application-map-2026-08.md) | 不动（v1.3.1 已 ship 2026-08-25） |
+| [`capability-application-map-2026-08.md` §八](../architecture/capability-application-map-2026-08.md) | 保留能力、Gap 和任务事实；引用独立自进化架构定义，不在研究笔记中重复维护运行时边界 |
 | [`pdk-chat-demo-distill-source-survey-2026-08.md`](../architecture/pdk-chat-demo-distill-source-survey-2026-08.md) | 本文 §二.1 引用其结论（SessionWriter JSONL 过渡） |
 | [`agent-evolution-pipeline.md`](../architecture/agent-evolution-pipeline.md) | 本文 §二.4 标注工程形态 vs 运行时形态区分 |
 | ADR-0061-08 / 0061-09 | 本文 §三 标注 v2 候选机会，不立即合并 |

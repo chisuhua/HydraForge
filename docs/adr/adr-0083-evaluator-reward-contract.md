@@ -1,16 +1,27 @@
 # ADR-0083: 评估/奖励信号契约 (IEvaluator & RewardSignal)
 
 **日期**: 2026-08-24
-**状态**: ✅ **Approved (评审通过 2026-08-25)** (Oracle 评审识别为架构层缺口, v1.1 capability-application-map §八 G10)
 **父主题**: Phase 6 Agent 自进化方向
 
 ## 状态
 
-🔍 Proposed — 见上方 `**状态**` 字段 (Oracle 评审识别为架构层缺口, v1.1 capability-application-map §八 G10)
+🔍 Proposed — 契约起草完成，代码 ship 待办 (Oracle 评审识别为架构层缺口, v1.1 capability-application-map §八 G10)
+
+> **状态说明 (2026-08-26 自审修正)**:
+> 本 ADR 文档结构与 5 项决策点已 Oracle Pre-Review 通过 (session `ses_fcba5e477ffeG9wEBHVhU64J0o`)，但
+> **契约代码尚未 ship** — `include/agenticdsl/contract/ievaluator.h` 与 `include/agenticdsl/types/reward_signal.h`
+> 在 `include/` 与 `src/` 中均不存在 (grep 0 命中)。
+>
+> **Approved 判定**：待 `tests/test_evaluator.cpp` ≥ 4 cases 通过 + 185/185 ctest 零回归
+> + `openspec validate` 通过后，从 🔍 Proposed 翻转为 ✅ Approved。
+>
+> **修正原因 (2026-08-26 self-audit)**：原文档头部 + §状态 字段存在自相矛盾 (头部 "✅ Approved" vs §状态 "🔍 Proposed")，
+> 经 Oracle 深度审查 session `ses_fc3090b49ffe7yJwXhx1MoNz5N` 识别，已统一为 🔍 Proposed + 代码 ship 待办。
 
 **前置文档**:
 - `docs/architecture/capability-application-map-2026-08.md` §八 Oracle 评审
-- Oracle session `ses_fcba5e477ffeG9wEBHVhU64J0o`
+- Oracle session `ses_fcba5e477ffeG9wEBHVhU64J0o` (Pre-Review)
+- Oracle session `ses_fc3090b49ffe7yJwXhx1MoNz5N` (深度审查, 2026-08-26)
 - ADR-0061 Agent Evolution Pipeline (12 子项)
 - ADR-0061-02 Behavioral Regression (已 ship, T14)
 - ADR-0074 Prompt Evidence Gate (依赖本 ADR)

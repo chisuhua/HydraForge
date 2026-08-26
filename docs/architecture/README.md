@@ -17,7 +17,8 @@
 | `adr-implementation-status-gap-analysis.md` | ADR 实施状态基线 (**ADR 状态唯一事实源**) | 🔄 滚动更新 | 2026-07-30 | 任何 ADR 状态翻转 / ship gate |
 | `layer-based-missing-capabilities-analysis.md` | 五层缺失能力分析 + Wave 1-4 执行计划 | ✅ v1.2.1 (数据修正版) | 2026-07-31 | Wave 1 完成 / 缺失能力 ship |
 | ~~`defect-truth-table-2026-08.md`~~ → [`archive/architecture/defect-truth-table-2026-08.md`](../../archive/architecture/defect-truth-table-2026-08.md) | 架构缺陷真相表（**已归档** 2026-08-24 — 11 真实缺陷 + 3 盲点 × 代码 × ADR 真相） | ⛛ Superseded → `capability-application-map-2026-08.md` | 2026-08-24 | 历史审计追溯，不再维护 |
-| `capability-application-map-2026-08.md` | 架构能力-应用地图（**23 项已 ship 能力** + 15 项 open gap + 17 类应用场景 + 22 个工程任务 T1-T22 解锁映射 + Oracle 评审蒸馏+自进化专题 §八） | ✅ Active (v1.2) | 2026-08-25 | 新增能力 ship / open gap 闭合 / 新应用类型立项 / Oracle 评审输入 / T14+T16 archive 标记 |
+| `capability-application-map-2026-08.md` | 架构能力-应用地图（**23 项已 ship 能力** + 15 项 open gap + 17 类应用场景 + 22 个工程任务 T1-T22 解锁映射 + Oracle 评审蒸馏+自进化专题 §八） | ✅ Active (v1.6) | 2026-08-26 | 新增能力 ship / open gap 闭合 / 新应用类型立项 / Oracle 评审输入 / 自进化架构边界与 T14-T22 推进 / ADR-0083 状态修正 + ADR-0084 文件创建 |
+| `self-evolution-architecture-2026-08.md` | 自进化与协同进化架构定义（证据输入：闭环、支撑平面、阶段边界与当前禁止行为） | 🔍 Proposed (v1.1) | 2026-08-26 | ADR-0084 / T15 / T19 / T20 / T22 状态变化，或协同进化 spike promotion |
 | `pdk-chat-demo-distill-source-survey-2026-08.md` | pdk_chat_demo Session JSONL 临时数据源调研（推荐 SessionWriter JSONL 而非 pdk JSON） | ✅ Active (v1.0) | 2026-08-24 | SessionWriter 升级 / D10 v1.2 ship |
 | `defect-fix-roadmap-2026-08.md` | 架构缺陷修复路线图（12 个 rdd-workflow 提案节点 + Mermaid 依赖图） | ✅ Active (v1.0) | 2026-08-20 | 提案 ship / Sprint 收官交叉检查 |
 

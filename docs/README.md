@@ -92,8 +92,8 @@ docs/
 | `adr-0082-agent-first-class-registry.md` | Agent as First-Class Registry (讨论稿: AgentWorker + YAML + spawn_agent, 争议未决, 搁置至 0079/0080 实施后) | 🔍 Proposed (v1.1 状态注记 2026-08-12: 蒸馏需求加强搁置; 原始讨论稿 2026-01-19, 未定稿) |
 | `adr-0081-pre-step-hook-contract.md` | Pre-Step Hook Contract (Agent 级拦截点, 推迟至 ADR-0082 定稿) | 🔍 Proposed (2026-08-12, v1.1 引用触发, 占位) |
 | `adr-0080-v1-2-amendment-d10-decouple.md` | D10 Capture 与 Scrub Hook 解耦 (CaptureMode 三态 + Training fail-open 三重保护) | ✅ Approved (评审通过 2026-08-25, Oracle G12 解锁 ADR-0081/0082 死锁) |
-| `adr-0083-evaluator-reward-contract.md` | IEvaluator/RewardSignal 评估契约 (双层契约 + 3 内置评估器 + V1 简化避免 ADR-0057 零实施) | ✅ Approved (评审通过 2026-08-25, Oracle G10 关键缺口, 6 个下游 ADR 硬前置) |
-| `adr-0084-mutation-governance-contract.md` | Mutation Governance 契约 (6 维度: 变异对象 L1-L4 分级 / 授权绑定复用 ADR-0004 + ADR-0031 / 治理流程 propose→evaluator→回归门→commit / 审计复用 ADR-0080 + 4 个 mutation.* 主题 / 失败回滚 / 攻击面 fail-closed) | 🔍 Proposed 起草中 (2026-08-26, GitHub issue #14 ✅ Approved, Oracle session `ses_fc41537bbffeC35NKqgvzn4m1c` Self-Review + `ses_fc3e070c0ffeIVgAhsgx2pNXFa` 深度审查; Sprint 25 W1 起草, Sprint 26 末评审, G11 缺口解决) |
+| `adr-0083-evaluator-reward-contract.md` | IEvaluator/RewardSignal 评估契约 (双层契约 + 3 内置评估器 + V1 简化避免 ADR-0057 零实施) | 🔍 Proposed (起草完成, 2026-08-26 自审修正, 代码 ship 待办, Oracle G10 关键缺口, 6 个下游 ADR 硬前置) |
+| `adr-0084-mutation-governance-contract.md` | Mutation Governance 契约 (6 维度: 变异对象 L1-L4 分级 / 授权绑定复用 ADR-0004 + ADR-0031 / 治理流程 propose→evaluator→回归门→commit / 审计复用 ADR-0080 + 4 个 mutation.* 主题 / 失败回滚 / 攻击面 fail-closed) | 🔍 Proposed 起草中 (2026-08-26 文件创建, Sprint 25 W1 起草启动, Sprint 26 末评审, G11 缺口解决, 承接 GitHub issue #14 6 维度契约骨架 + Oracle session `ses_fc41537bbffeC35NKqgvzn4m1c` Self-Review + `ses_fc3e070c0ffeIVgAhsgx2pNXFa` 深度审查 + `ses_fc3090b49ffe7yJwXhx1MoNz5N` 架构文档审计) |
 
 ### adr/plugin/ - Plugin 化候选清单
 
