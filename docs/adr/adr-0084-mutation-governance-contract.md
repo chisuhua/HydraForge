@@ -5,7 +5,16 @@
 
 ## 状态
 
-🔍 Proposed — 起草完成 (2026-08-26 Oracle 评审收口修订),待 代码 ship + 评审转 Approved
+🔍 Proposed — 起草完成 (2026-08-26 Oracle 评审收口修订),待 评审转 Approved
+
+> **V1 代码 ship 完成 (2026-08-26)**: `IMutationGovernor` 契约 + `MutationGovernor`
+> gate-and-audit 实现 + 13 测试用例全部落地 (OpenSpec change
+> `2026-08-26-adr-0084-mutation-governance-contract`, commits `0ed5604` / `cfc3532` /
+> `a2b2d52`; ctest 187/187 PASS 零回归, 基线 = ship 启动时 main 实测 186 + 净增 1 测试
+> target)。ADR-0068 附录 A v1.2.1 amendment 同步 ship (4 mutation.* 主题注册 +
+> `mutation.approved` 修正为 `mutation.reverted` + payload schema 对齐 design D4)。
+> **状态保持 🔍 Proposed** — 评审翻转 / cap-map §二 G11 翻 ✅ / issue #14 关闭
+> 均为后续独立步骤 (见 §关联变更范围说明)。
 
 > **状态说明**:
 > 本 ADR 文件于 2026-08-26 创建 (Sprint 25 W1 起草触发器),承接 GitHub issue #14 中已
