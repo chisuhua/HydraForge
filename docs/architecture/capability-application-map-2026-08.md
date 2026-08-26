@@ -1,7 +1,7 @@
-# 架构能力-应用地图（2026-08 v1.3）
+# 架构能力-应用地图（2026-08 v1.4）
 
 **生成日期**: 2026-08-24
-**最后验证**: 2026-08-25（v1.3 — 23 项能力 / 10 项 open gap (G10/G12/G13/G14/G15 ✅ Closed) / 17 类应用 / 22 个工程任务 T1-T22 (T17/T15/T19/T20/T21 ✅ APPROVED)，验证命令见 §六）
+**最后验证**: 2026-08-26（v1.4 — 23 项能力 / 9 项 open gap (G10/G12/G13/G14/G15 ✅ Closed + G11 🔍 Proposed ADR-0084 起草中) / 17 类应用 / 22 个工程任务 T1-T22 (T17/T15/T19/T20/T21 ✅ APPROVED)，验证命令见 §六）
 **作者**: Architecture Working Group
 **状态**: ✅ Active — 架构能力的**唯一事实源**（取代已归档的 `defect-truth-table-2026-08.md`）
 
@@ -105,7 +105,7 @@
 | G8 | OTel 真实 OTLP 客户端（替换 NoopSink）| 盲点 7.3 延展 | [工程] | 🔓 Open | B3 真实分布式追踪 | T2 |
 | G9 | ADR-0076 DSL Engine as MCP Server | ADR-0076 🔍 Proposed | [架构] | 🔓 Open | B5 DSL-as-MCP-tool | T7 |
 | **G10** | **评估/奖励信号契约缺失** | v1.1 Oracle 评审 [架构]| **🔴 架构层** | **✅ Closed (评审通过 2026-08-25)** | **所有进化路径（GEPA/AFlow/fine-tune/行为克隆）** | **新立 ADR: IEvaluator/RewardSignal 契约** |
-| **G11** | **变异治理/授权契约缺失** | v1.1 Oracle 评审 [架构]| **🔴 架构层** | **🔒 Blocked** | **Agent 自修改攻击面** | **新立 ADR: mutation authority/governance** |
+| **G11** | **变异治理/授权契约缺失** | v1.1 Oracle 评审 [架构]| **🔴 架构层** | **🔍 Proposed (ADR-0084 起草中, Sprint 25 W1, issue #14 ✅ Approved 2026-08-26)** | **Agent 自修改攻击面** | **新立 ADR: adr-0084-mutation-governance-contract** |
 | **G12** | **D10 蒸馏数据采集被死锁** | ADR-0080 D10.3 [架构]| **🔴 架构层** | **✅ Closed (评审通过 2026-08-25)** | **蒸馏数据面（采集→训练→评估）** | **ADR-0080 v1.2 amendment（解耦 scrub hook 与 capture）** |
 | **G13** | **ADR-0071 父方向 ADR 仍 Proposed** | ADR-0071 🔍 Proposed [架构]| **🔴 架构层** | **✅ Closed (评审通过 2026-08-25)** | **4 个 TD 项派生（SkillCompiler/GEPA/Prompt Gate）** | **架构组评审 ADR-0071 → Approved** |
 | **G14** | **Trajectory IR 标题耦合风险** | ADR-0061-06 [架构+工程]| **🔴 架构层** | **✅ Closed (评审通过 2026-08-25)** | **TD1 实现方式（应独立序列化视图而非改 ParsedGraph）** | **架构评审 0061-06 标题修订** |
@@ -113,6 +113,7 @@
 
 > **Oracle 评审关键发现**:
 > - G10 评估契约 + G11 变异治理是**未识别的架构层缺口**——GEPA/AFlow/fine-tune/行为克隆全部依赖它，没有它整个自进化方向无法启动
+> - **G10 ✅ Closed (ADR-0083 IEvaluator 评审通过 2026-08-25) + G11 🔍 Proposed (ADR-0084 起草中, issue #14 Approved 2026-08-26)**
 > - G12 D10 死锁是**已 Approved 契约被 Proposed 链锁住**（ADR-0081 → 0082）——需 v1.2 amendment 解耦
 > - G13 ADR-0071 父未批 → 4 个子项全部悬空——**本周架构评审是最高杠杆动作**
 
@@ -151,7 +152,7 @@
 | **B4** Streaming Agent (partial result 流) | T6 (ADR-0060 stream 模式) | 2-3 sprint | IGenerationStream 流式契约 + 背压控制 |
 | **B5** MCP Server 形态 (DSL-as-tool) | T7 (ADR-0076 ship) | 2 sprint | stdio/HTTP/SSE transport + capability 暴露 |
 | **B6** Agent 蒸馏环境（教师→学生能力迁移）| T14 (行为回归 ✅ 门禁) + T15 (Trajectory IR) + ADR-0071 + G10 评估契约 | | 2-3 sprint | 教师规划轨迹采集 + 学生行为克隆 + 等价性评估（依赖 IEvaluator 契约）|
-| **B7** Agent 自进化基础（GEPA 反思循环 MVP）| T14 + T15 + T19 (GEPA spike) + G10/G11 契约 | | 2-3 sprint | 失败→反思→修订 prompt + 回归门禁 + 变异授权 |
+| **B7** Agent 自进化基础（GEPA 反思循环 MVP）| T14 + T15 + T19 (GEPA spike Phase 1 只读) + G10 ✅/G11 🔍 (ADR-0084 起草中) 契约 | | 2-3 sprint | 失败→反思→修订 prompt + 回归门禁 + 变异授权（T19 Phase 1 不执行 commit，Phase 2 待 ADR-0084 ship 后启动）|
 
 ### 🟠 C 类：1-3 月工程后可构建（4 个应用类型）
 
@@ -226,9 +227,25 @@ docs/architecture/capability-application-map-2026-08.md  ← 本表 (v1.1)
    - 剩余 3 项活跃提案进入 §四 T1-T8
 
 ↔ v1.1 关键评审输入（Oracle session ses_fcba5e477ffeG9wEBHVhU64J0o）
-   - 架构 vs 工程分层错误（L0-L4 是工程维度）
-   - 评估契约 + 变异治理是未识别的架构层缺口
-   - D10 蒸馏数据采集被 ADR-0081→0082 死锁
+    - 架构 vs 工程分层错误（L0-L4 是工程维度）
+    - 评估契约 + 变异治理是未识别的架构层缺口
+    - D10 蒸馏数据采集被 ADR-0081→0082 死锁
+
+↔ G11 战略评估（Oracle session ses_fc640ea84ffe0f4dyYTa4aFjiL, 2026-08-26）
+    - G11 变异治理契约 6 维度骨架（决策 1-6）
+    - G11 起草前置：T17 ship + ADR-0083 ✅ + ADR-0079 v1.1 ✅
+    - T19 时序冲突解决：Phase 1 只读反思约束（不执行 commit(PromptEdit)）
+
+↔ G11 Self-Review 预审（Oracle session ses_fc41537bbffeC35NKqgvzn4m1c, 2026-08-26）
+    - 12 项通用 + 4 项专用 Self-Review Checklist 逐项审查
+    - 9 ✅ / 6 ⚠ / 1 ❌ → 6 项修订后全部转 ✅
+    - T19 时序决议 + L1 措辞 + V1 终止锚点 + 6 项事实修订
+    - 引用：GitHub issue #14 Self-Review Pre-Review comment
+
+↔ G11 Approved 后续执行深度审查（Oracle session ses_fc3e070c0ffeIVgAhsgx2pNXFa, 2026-08-26）
+    - 6 步后续执行清单完整性验证
+    - cap-map 9 section 修订清单 + commit 策略 B' (3 atomic commits)
+    - 6 项风险点识别（R1-R6）+ 验证检查清单补充
 ```
 
 ↔ docs/architecture/adr-implementation-status-gap-analysis.md
@@ -465,6 +482,7 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 
 | 2026-08-25 | **v1.3** | **评审会议通过: 6 个 ADR 决议落地** | (1) ADR-0083 ✅ Approved → G10 Closed; (2) ADR-0080 v1.2 amendment ✅ Approved → G12 Closed; (3) ADR-0061-13 ✅ Approved → G15 Closed; (4) ADR-0071 ✅ Approved (Promotion) → G13 Closed; (5) ADR-0074 ✅ Approved (Promotion); (6) ADR-0061-06 v1.1 amendment ✅ Approved → G14 Closed; (7) §八 T17/T15/T19/T20/T21 启动 Sprint 排期确定 (Sprint 24-26); (8) §八.5 优先级排序从 Oracle 预审更新为评审通过后 Sprint 排期表; (9) §二 G10/G12/G13/G14/G15 状态 🔴 → ✅; 决议依据: `docs/architecture/adr-review-minutes/resolution-draft-2026-08-25.md` §八 会议决议记录 |
 | 2026-08-25 | **v1.3.1** | **Sprint 24 Step 3 文档结构 drift 收口 (OpenSpec `2026-08-25-cap-map-v1-3-drift-fix`)** | **12 项声明 drift 全修复** (drift-1 §七/§八 顺序互换、drift-2 §六.6 位置 + 路径、drift-3 §二 词汇表 ✅ Closed、drift-4 §二 标题去 "未 ship"、drift-5 §八 闭环 1 G15、drift-6 §八.5 重复排期、drift-7 ADR-0071/0074 footer、drift-8 ctest 184→185、drift-9 §一覆盖 Sprint 23、drift-10 §三 22→23、drift-11 性质标记、drift-12 L4 表头加注) **+ 4 项扩展修复** (闭环 1 G10/G12 同行 stale、闭环 2 G10 同行 stale、§一 标题 22→23)；章节顺序恢复 标准 §一→§二→§三→§四→§五→§六→§七→§八；ADR-0071/0074 footer 同步 "Promotion 评审通过 2026-08-25"；ctest 185/185 PASS 零回归；openspec validate --strict PASS；ADR lint + docs_drift_audit 零增加；本会话 ship 后保持 Sprint 24 Pre-Launch 治理范式 |
+| 2026-08-26 | **v1.4** | **G11 Approved 落地: ADR-0084 起草启动 + T19 Phase 1 只读化 + 5 文件同步** | (1) §一版本 v1.3 → v1.4 + 最后验证 2026-08-26；(2) §二 G11 状态 🔒 Blocked → 🔍 Proposed（ADR-0084 起草中, Sprint 25 W1, issue #14 ✅ Approved 2026-08-26）；(3) §二 Oracle 评审关键发现段补充 G10/G11 Closed/Proposed 状态；(4) §三 B7 G11 契约状态同步；(5) §五新增 3 个 Oracle session 引用（`ses_fc640ea84ffe0f4dyYTa4aFjiL` 战略评估 + `ses_fc41537bbffeC35NKqgvzn4m1c` Self-Review 预审 + `ses_fc3e070c0ffeIVgAhsgx2pNXFa` 深度审查）；(6) §七 v1.4 changelog（commit `docs(cap-map): v1.4 - G11 Proposed + ADR-0084 起草启动 + T19 Phase 1 只读化`）；(7) §八.3 T19 row 加 Phase 1 只读反思约束；(8) §八.4 新增 ADR 需求表标注 G11 方向已 Approved → adr-0084-mutation-governance-contract.md；(9) §八.5 排期新增 ADR-0084 起草行（Sprint 25 W1 启动周 4a, Sprint 26 末评审 11, Sprint 26 末 G11 ✅ Closed 12）；(10) §八.6 风险段更新"变异治理缺位"为"已解决"+ ADR-0071 风险同步更新；(11) Oracle Deep Review（session `ses_fc3e070c0ffeIVgAhsgx2pNXFa`）6 项风险点 + 验证检查清单。决议依据：GitHub issue #14 ✅ Approved + Oracle 三轮评审 session 引用 |
 **后续追踪**:
 - **下一修订触发**: (1) 任意 §二 open gap ship；(2) 任意 §四/§八工程任务完成；(3) 新应用类型立项；(4) Phase 6 Candidate B 启动；(5) T14-T22 任一 ship/promotion；(6) 5 个新增 ADR 任一获批；(7) **ADR-0071/0074 评审会议召开 + 决议记录**
 - **定期审计**: 每 Sprint 收官同步（`scripts/sprint-closeout.sh` Step 8 加本表交叉检查）
@@ -548,7 +566,7 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 | 任务 | 估时 | 解锁能力 | 解锁应用 | 前置（promotion criteria）| 来源 |
 |---|---|---|---|---|---|
 | **T18**: PASTE 推测执行（ADR-0061-07）spike | 1-2 sprint | 并行假设验证 | C5 (高级) 自进化加速 | spike: 不破坏调度器确定性语义 | T5 v1.1 改名 |
-| **T19**: ✅ **APPROVED** Sprint 24 末 (R 轨 spike) (ADR-0083 ✅ + ADR-0071 ✅) — GEPA MVP| 2-3 sprint (R 轨 spike) | 失败→反思→修订 prompt | B7 自进化基础 | T14 + IEvaluator 契约（G10）+ 变异治理（G11）+ ADR-0074 prompt 资产 | T6 v1.1 改名 |
+| **T19**: ✅ **APPROVED** Sprint 24 末 (R 轨 spike) (ADR-0083 ✅ + ADR-0071 ✅) — GEPA MVP| 2-3 sprint (R 轨 spike) | 失败→反思→修订 prompt | B7 自进化基础 | T14 + IEvaluator 契约（G10）+ 变异治理（G11 🔍 ADR-0084 起草中）+ ADR-0074 prompt 资产 **+ Phase 1 只读反思约束（不执行 `commit(PromptEdit)`，待 ADR-0084 ship 后启动 Phase 2 commit）** | T6 v1.1 改名 |
 | **T20**: ✅ **APPROVED** Sprint 26 末 (R 轨 spike) (ADR-0083 ✅ + T15 ✅) — AFlow MCTS| 1-2 月 (R 轨 spike) | 工作流自动优化 | C2 自进化高级 | T15 + IEvaluator 契约（G10）+ spike: 评估信号有可比性 | T7 v1.1 改名 |
 | **T21**: ✅ **APPROVED** Sprint 25 启动 (ADR-0074 ✅ + ADR-0083 ✅) — Prompt Evidence Gate| 1 月 | prompt 质量门控 | T19/T20 前置 | ADR-0071 父获批 + D1 30+ few-shot | T8 v1.1 改名 |
 | **T22**: Fine-tune 训练管线（ADR-0078）| **事件驱动**（AgenticMind 回流触发）| self-improvement agent | C2 自进化 | 外部阻塞解除 + T14 行为回归 | T9 v1.1 改事件驱动 |
@@ -559,11 +577,11 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 |---|---|---|---|---|
 | **ADR-0061-13** 蒸馏输出格式（行为克隆器契约） | 架构 | G15 | 1 sprint 草案 | P0 |
 | **IEvaluator / RewardSignal 契约** | 架构 | G10 | 1 sprint 草案 | P0 |
-| **变异治理/授权契约** | 架构 | G11 | 2 sprint 草案（含安全审计）| P1 |
+| **变异治理/授权契约** | 架构 | G11 | 2 sprint 草案（含安全审计）| P1 | ✅ **已 Approved 方向（issue #14, 2026-08-26）→ adr-0084-mutation-governance-contract.md 起草中** |
 | **ADR-0080 v1.2 amendment**（解耦 D10 capture 与 ADR-0081 scrub）| 架构 | G12 | 0.5 sprint 草案 | P0 |
 | **ADR-0061-06 标题修订**（Trajectory IR 独立序列化视图 vs 升级 ParsedGraph）| 架构 | G14 | 0.5 sprint 草案 | P1 |
 
-### 8.5 评审通过后优先级排序 (2026-08-25 评审)
+### 8.5 评审通过后优先级排序 (2026-08-25 评审 + 2026-08-26 G11 Approved 补充)
 
 ```
 Sprint 24 启动周:
@@ -572,9 +590,10 @@ Sprint 24 启动周:
   3. T17 SkillCompiler 骨架 (1 sprint)
 
 Sprint 24 末:
-  4. T19 GEPA R 轨 spike 启动
+  4. T19 GEPA R 轨 spike 启动 (Phase 1 只读反思约束, 不执行 commit(PromptEdit))
 
 Sprint 25 启动周:
+  4a. ADR-0084 mutation-governance-contract 起草 (2 sprint, P1, issue #14 Approved 2026-08-26)
   5. ADR-0083 IEvaluator ship (1 sprint)
   6. ADR-0061-13 蒸馏输出 ship (1 sprint 并行)
   7. T15 Trajectory IR 启动 (G14 ✅)
@@ -583,6 +602,10 @@ Sprint 25 启动周:
 Sprint 26:
   9. T15 + T21 完整 ship
   10. T20 AFlow R 轨 spike 准备
+  11. ADR-0084 mutation-governance-contract ship (2 sprint 完成)
+
+Sprint 26 末:
+  12. ADR-0084 mutation-governance 评审通过 → G11 ✅ Closed + T19 Phase 2 commit 启动
 ```
 
 ### 8.6 Oracle 风险提示
@@ -592,7 +615,8 @@ Sprint 26:
 | Trajectory IR 按 0061-06 标题"升级 ParsedGraph"会把训练数据格式耦合进运行时图结构 | 训练/运行时双向耦合 | 改独立序列化视图（详见 G14）|
 | D10 死锁不解决，蒸馏在数据面永远停在第一步 | 蒸馏方向无法启动 | pdk_chat_demo SessionManager JSONL 作临时数据源 + ADR-0080 v1.2 amendment |
 | R 轨若混入 Sprint 承诺，会重演 TD9 式虚假排期 | 排期失信 | R 轨 spike 模式 + promotion criteria，明确"事件驱动"非排期 |
-| 变异治理缺位，Agent 自修改无审计无授权 | 安全攻击面 | G11 契约强制（所有 R 轨 task 启动前置）|
-| ADR-0071 父未批，4 个子项全冻结 | 4 个 TD 项依赖 | **本周架构评审是最高杠杆动作** |
+| 变异治理缺位，Agent 自修改无审计无授权 | 安全攻击面 | ✅ **已解决**（2026-08-26 issue #14 Approved）：G11 → 🔍 Proposed（ADR-0084 起草中, Sprint 25 W1, 评审 Sprint 26 末）+ T19 GEPA spike 采纳 Phase 1 只读反思约束（不 commit(PromptEdit)）直至 G11 ADR Approved + Phase 2 commit 启动 |
+| ⛛ Superseded 历史风险（2026-08-26 G11 已启动起草后保留作 audit trail） | — | 原文："G11 契约强制（所有 R 轨 task 启动前置）" — Oracle session `ses_fc640ea84ffe0f4dyYTa4aFjiL` + `ses_fc41537bbffeC35NKqgvzn4m1c` + `ses_fc3e070c0ffeIVgAhsgx2pNXFa` 三轮评审落定 G11 起草路径 |
+| ADR-0071 父未批，4 个子项全冻结 | 4 个 TD 项依赖 | ✅ **已解决**（2026-08-25 评审通过）：ADR-0071 ✅ Approved + T17/T15/T19/T20/T21 排期已 ship |
 
 ---
