@@ -93,6 +93,7 @@ docs/
 | `adr-0081-pre-step-hook-contract.md` | Pre-Step Hook Contract (Agent 级拦截点, 推迟至 ADR-0082 定稿) | 🔍 Proposed (2026-08-12, v1.1 引用触发, 占位) |
 | `adr-0080-v1-2-amendment-d10-decouple.md` | D10 Capture 与 Scrub Hook 解耦 (CaptureMode 三态 + Training fail-open 三重保护) | ✅ Approved (评审通过 2026-08-25, Oracle G12 解锁 ADR-0081/0082 死锁) |
 | `adr-0083-evaluator-reward-contract.md` | IEvaluator/RewardSignal 评估契约 (双层契约 + 3 内置评估器 + V1 简化避免 ADR-0057 零实施) | ✅ Approved (评审通过 2026-08-25, Oracle G10 关键缺口, 6 个下游 ADR 硬前置) |
+| `adr-0084-mutation-governance-contract.md` | Mutation Governance 契约 (6 维度: 变异对象 L1-L4 分级 / 授权绑定复用 ADR-0004 + ADR-0031 / 治理流程 propose→evaluator→回归门→commit / 审计复用 ADR-0080 + 4 个 mutation.* 主题 / 失败回滚 / 攻击面 fail-closed) | 🔍 Proposed 起草中 (2026-08-26, GitHub issue #14 ✅ Approved, Oracle session `ses_fc41537bbffeC35NKqgvzn4m1c` Self-Review + `ses_fc3e070c0ffeIVgAhsgx2pNXFa` 深度审查; Sprint 25 W1 起草, Sprint 26 末评审, G11 缺口解决) |
 
 ### adr/plugin/ - Plugin 化候选清单
 

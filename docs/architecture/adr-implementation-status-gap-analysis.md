@@ -17,7 +17,7 @@
 | ❌ Not Implemented — 未实施（含已归档） | 18 | 25.0% | 12 归档 + 6 永久 (0002/0030V1/0036×2/0073V1待翻) |
 | ⛔ Superseded — 被替代 | 1 | 1.4% | ADR-0006 → ADR-0020 |
 | 📦 Archived (已实施后归档) | 1 | 1.4% | ADR-0032 (CostCollector) |
-| **总计** | **72** | **100%** | |
+| **总计** | **72** | **100%** | （含 2026-08-26 G11 ADR-0084 起草中, 方向 Approved, 1-2 sprint 后落入本表 🔍 Proposed 段）|
 
 > ① `docs/archive/adr/` 12 个归档 ADR（0010-0018 + 0030 V1 + 0036×2）计入 `❌ Not Implemented`。② ADR-0032 已实施后归档, 单列 `📦 Archived`。③ ADR-0002 未实施但文件仍在主目录, 计入 `❌`。④ ADR-0037 于 2026-07-27 从 🔍 提升为 🟡 Partial (CausalClock ship)。⑤ **本会话 6 个新 ADR (0072/0074/0075/0076/0077/0078) 全部 🔍 Proposed, 6/6 引用 0071/0073 作为父 ADR**。⑥ ADR-0073 内部 🔍 Proposed vs docs/README.md 显示 ✅ Approved — **状态不一致待对齐**。
 
@@ -279,13 +279,13 @@ Sprint 26+:
 
 ---
 
-## 四、ADR-0068 幻影主题注册缺口 (14 个待注册)
+## 四、ADR-0068 幻影主题注册缺口 (18 个待注册)
 
 ### 4.1 背景
 
-ADR-0068 §决策 2 明确: **新增/修改主题必须 PR 修订 §附录 A**. 当前 §附录 A 含 22 个注册主题. 但 4 个 LLM-native ADR (0074/0075/0076/0077) 设计 **14 个候选主题**, **未注册**:
+ADR-0068 §决策 2 明确: **新增/修改主题必须 PR 修订 §附录 A**. 当前 §附录 A 含 22 个注册主题. 但 5 个 ADR (0074/0075/0076/0077 + 0084 mutation-governance) 设计 **18 个候选主题**, **未注册**:
 
-### 4.2 14 个待注册主题清单
+### 4.2 18 个待注册主题清单
 
 | ADR | 主题名 | 触发 | Payload schema |
 |-----|--------|------|---------------|
@@ -304,6 +304,15 @@ ADR-0068 §决策 2 明确: **新增/修改主题必须 PR 修订 §附录 A**. 
 | **0077** | `grpc.stream.chunk` ⚠️ pending | stream chunk 发送/接收 | `{service, method, chunk_index, bytes}` |
 | **0077** | `grpc.stream.end` ⚠️ pending | stream 终止 | `{service, method, request_id, duration_ms, error_code?}` |
 | **0077** | `grpc.connection.{up,down}` ⚠️ pending | TCP 连接建立/断开 | `{peer_addr, tls?, error?}` |
+| **0084** | `mutation.proposed` ⚠️ pending (NEW 2026-08-26) | R 轨任务 propose 变异 (G11 Approved, issue #14) | `{trace_id, level, proposed_change, source}` |
+| **0084** | `mutation.committed` ⚠️ pending (NEW 2026-08-26) | 变异已 commit 通过 IEvaluator + 行为回归门 | `{trace_id, level, version_id, commit_timestamp}` |
+| **0084** | `mutation.reverted` ⚠️ pending (NEW 2026-08-26) | 变异被回滚（commit 后失败） | `{trace_id, version_id, rollback_reason}` |
+| **0084** | `mutation.denied` ⚠️ pending (NEW 2026-08-26) | 变异被拒绝（任一 gate 失败） | `{trace_id, level, denial_reason, gate}` |
+
+> **2026-08-26 新增 4 个 mutation.* 主题**（G11 ADR-0084 起草触发, issue #14 ✅ Approved + Oracle Self-Review session `ses_fc41537bbffeC35NKqgvzn4m1c`）:
+> - 4 主题共 18 行待注册（14 + 4）
+> - 配套 ADR-0068 §附录 A amendment PR（V1.1 → V1.2 含 mutation.* domain）
+> - 配合 §实施 任务"ADR-0068 amendment 注册 mutation.* 4 主题"（issue #14 决策 4）
 
 ### 4.3 注册流程 (推荐)
 

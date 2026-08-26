@@ -14,7 +14,7 @@
 | **Total ctest** | **182/182 PASS** (2026-08-22 `ctest -N` → Total Tests: 182; Batch 2 收官贡献 +18: P11 `test_otel_exporter` +7, P7 `test_agent_registry` +5, P3 `test_agent_hook_registry_contract` +4; 历史 + Wave 1 Phase 6c 共 164; 0 flake; ASan 92/93 (pre-existing `test_skill_interpreter` ASan-only 失败) |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
-| **OpenSpec active** | **3** (Wave 1 Phase 6c 三个 change ✅ ship + archived 2026-08-18; 剩余 3 个 Phase 6c 后续 Wave 待启动: `from-roadmap-phase-6c-evidence-gate` [Wave 2, 依赖 execution-baseline handoff] + `from-roadmap-phase-6c-execution-dsl` [Wave 3] + `from-roadmap-phase-6c-control-plane-eval` [Wave 4]) |
+| **OpenSpec active** | **4** (Wave 1 Phase 6c 三个 change ✅ ship + archived 2026-08-18; **Sprint 24 启动周 T17 SkillCompiler 骨架新增** `2026-08-24-adr-0061-03-skill-compiler` [OpenSpec change 启动中, ADR-0071 评审通过后]; 剩余 3 个 Phase 6c 后续 Wave 待启动: `from-roadmap-phase-6c-evidence-gate` [Wave 2, 依赖 execution-baseline handoff] + `from-roadmap-phase-6c-execution-dsl` [Wave 3] + `from-roadmap-phase-6c-control-plane-eval` [Wave 4]) |
 | **ADR Approved** | **48** (主 41: Phase 0-5 16 + Phase 6 18 [0050/0051/0052-0065/0067] + **ADR-0068** Wave 1 收官 + **ADR-0073** ✅ Approved 2026-08-18 (Phase 6c C9 D2+D3+D4 全 ship) + **ADR-0074** ✅ Approved 2026-08-18 (Phase 6c C1+C2+C3, D1/D2/D3 ship, baseline 数据 handoff to evidence-gate) + **ADR-0075** ✅ Approved 2026-08-18 (Phase 6c C11-C13 D1+D2+D3+D5 全 ship) + **ADR-0081** ✅ Approved 2026-08-22 (Batch 2 P3) + **ADR-0082** ✅ Approved 2026-08-22 (Batch 2 P7); plugin 1; skill 子项 6) |
 | **ADR 🔍 Proposed** | **17** (主 11: 0038/0039/0042/0045/0046/0070/0071/0076/0077/0078/0083; skill 子项 6: 0061-07~12) — ADR-0068 (D2) **已转 ✅ Approved** (2026-08-03 V2 收官); ADR-0070 (D4) 仍 Proposed; ADR-0081/0082 均 已转 ✅ Approved (Batch 2 P3+P7) |
 | **Completed Phase 0-4** | ✅ 100% |
@@ -26,14 +26,23 @@
 
 ## 二、活跃变更一览
 
-### 🔵 当前活跃 (3 个)
+### 🔵 当前活跃 (4 个)
 
-> Phase 6c 当前活跃 3 个 OpenSpec changes（Wave 2/3/4 待启动）。Wave 1 已完成 ✅ ship + archived 2026-08-18:
+> **Phase 6c** 当前活跃 3 个 OpenSpec changes（Wave 2/3/4 待启动）。Wave 1 已完成 ✅ ship + archived 2026-08-18:
 > - `from-roadmap-phase-6c-execution-baseline` (C1+C2+C3 ADR-0074 D1/D2/D3, baseline 数据 handoff to evidence-gate)
 > - `from-roadmap-phase-6c-schema-complete` (C9 ADR-0073 D3, 4-step sanitization pipeline)
 > - `from-roadmap-phase-6c-execution-envbackend` (C11-C13 ADR-0075 D1+D2+D3+D5, local+docker env backends)
 >
+> **Sprint 24 启动周新增** 1 个 OpenSpec change（ADR-0071 评审通过后启动）:
+> - `2026-08-24-adr-0061-03-skill-compiler` (T17 SkillCompiler 骨架, ADR-0061-03 实施)
+>
 > 剩余 Wave 2 (`evidence-gate` 依赖 baseline) / Wave 3 (`execution-dsl`) / Wave 4 (`control-plane-eval`) 等待启动。
+>
+> **G11 跟踪（ADR 起草，OpenSpec 占位排 Sprint 25 W1）**:
+> - GitHub issue #14 ✅ Approved (2026-08-26): G11 变异治理契约方向批准, 6 项 Oracle 修订 + 16 项 Self-Review Checklist 全 ✅
+> - Oracle session `ses_fc41537bbffeC35NKqgvzn4m1c` Self-Review 预审 + `ses_fc3e070c0ffeIVgAhsgx2pNXFa` 深度审查
+> - `adr-0084-mutation-governance-contract.md` 起草中（Sprint 25 W1 OpenSpec change `2026-08-26-adr-0084-mutation-governance-contract` 启动）
+> - T19 GEPA Phase 1 只读反思约束（不执行 `commit(PromptEdit)`）直至 G11 ADR Approved
 
 ### ✅ Wave 3-A 已归档 (历史参考)
 
