@@ -12,7 +12,7 @@
 > **契约代码尚未 ship** — `include/agenticdsl/contract/ievaluator.h` 与 `include/agenticdsl/types/reward_signal.h`
 > 在 `include/` 与 `src/` 中均不存在 (grep 0 命中)。
 >
-> **Approved 判定**：待 `tests/test_evaluator.cpp` ≥ 4 cases 通过 + 185/185 ctest 零回归
+> **Approved 判定**：待 `tests/test_evaluator.cpp` ≥ 4 cases 通过 + 当前 ctest 总数零回归
 > + `openspec validate` 通过后，从 🔍 Proposed 翻转为 ✅ Approved。
 >
 > **修正原因 (2026-08-26 self-audit)**：原文档头部 + §状态 字段存在自相矛盾 (头部 "✅ Approved" vs §状态 "🔍 Proposed")，
@@ -65,6 +65,7 @@ class IEvaluator {
   
   // 输入: 一次完整执行的结果 (含 trajectory)
   // 输出: 标量 reward [-1.0, 1.0] 或 Verdict 三值
+  // 约束: side-effect-free, thread-safe (无状态或仅 readonly 状态)
   virtual RewardSignal evaluate(const ExecutionTrace& trace) = 0;
   
   // 输入: 两个轨迹, 输出比较 (A vs B 谁更好)
@@ -75,22 +76,30 @@ class IEvaluator {
 // 奖励信号值类型 (V1: 三态, V2: 连续)
 struct RewardSignal {
   enum class Quality { Excellent, Acceptable, Poor } quality;
-  double scalar;  // [-1.0, 1.0], 用于 RLHF/DPO
+  double scalar;     // [-1.0, 1.0], invalid range throws std::out_of_range
+  double confidence; // [0.0, 1.0], default 1.0, 用于 RLHF/DPO 梯度加权
   
   // 工厂方法
   static RewardSignal excellent(double confidence = 1.0);
   static RewardSignal acceptable(double confidence = 0.5);
   static RewardSignal poor(double confidence = 1.0);
 };
+
+// 评估输入结构
+struct ExecutionTrace {
+  std::string trace_id;     // 关联的 trace 标识
+  ToolResult final_result;  // 任务的最终结果
+  nlohmann::json metadata; // 可选：额外元数据
+};
 ```
 
 ### 决策 2 — 三种内置评估器
 
-| 评估器 | 输入 | 输出 | 适用 |
-|---|---|---|---|
-| `TaskSuccessEvaluator` | ToolResult.ok + error_code | RewardSignal | 大多数任务（默认）|
-| `BehavioralEquivalenceEvaluator` | 两个 BehaviorFingerprint | Verdict (Pass/Fail/Inconclusive) | 演化前后对比 |
-| `CompositeEvaluator` | 多个 `IEvaluator*` 加权聚合 | RewardSignal 加权和 | 复杂场景（GEPA/AFlow）|
+| 评估器 | 输入 | 输出 | 适用 | 范围 |
+|---|---|---|---|---|
+| `TaskSuccessEvaluator` | ToolResult.ok + error_code | RewardSignal | 大多数任务（默认）| **V1 本 change** |
+| `BehavioralEquivalenceEvaluator` | 两个 BehaviorFingerprint | Verdict (Pass/Fail/Inconclusive) | 演化前后对比 | **V2 follow-up** |
+| `CompositeEvaluator` | 多个 `IEvaluator*` 加权聚合 | RewardSignal 加权和 | 复杂场景（GEPA/AFlow）| **V2 follow-up** |
 
 ### 决策 3 — 与 ToolResult / ErrorCode 的关系
 
@@ -98,15 +107,17 @@ struct RewardSignal {
 - `RewardSignal.quality` 与 `ErrorCode` 正交: 一个任务可能 `ok=true` 但 quality=Poor（成功但低效）
 - V2: `ErrorCode::Retryable` 与 `RewardSignal.quality::Poor` 联合判定是否触发 retry
 
-### 决策 4 — 集成点
+### 决策 4 — 集成点（Setter 注入，不修改构造签名）
 
-| 集成对象 | 集成方式 |
-|---|---|
-| `CognitiveWorker` | 构造时注入 `IEvaluator*`; 任务完成后调用 `evaluate()` |
-| `DomainWorkerPool` | 同上（per-domain evaluator）|
-| `IAgentHookRegistry` (ADR-0081) | post-step hook 调用 `evaluate()` 写 metric |
-| `EventLog` (ADR-0080) | 新增 `evaluation.result` 主题 |
-| `CostTrackingDecorator` (P16) | 评估代价计入 budget |
+| 集成对象 | 集成方式 | 约束 |
+|---|---|---|
+| `CognitiveWorker` | `set_evaluator(std::shared_ptr<IEvaluator>)` setter，运行时可选注入 | **不修改构造签名** `(unique_ptr<DSLEngine>, shared_ptr<IInteractionBus>)` |
+| `DomainWorkerPool` | `set_evaluator(std::shared_ptr<IEvaluator>)` setter，运行时可选注入 | **不修改构造签名** `(num_threads)` / `(num_threads, bus)` |
+| `IAgentHookRegistry` (ADR-0081) | post-step hook 调用 `evaluate()` 写 metric | V2 follow-up |
+| `EventLog` | 新增 `evaluation.result` 主题（**不在 ADR-0068 registry 中**） | 本 change 独立引入 |
+| `CostTrackingDecorator` (P16) | 评估代价计入 budget | V2 follow-up |
+
+**集成时机**: evaluator 为 nullptr 时不调用 evaluate()，不发射 evaluation.result 事件（幂等，无崩溃）。
 
 ### 决策 5 — V1 简化 (避免 V0 重蹈 ADR-0057 覆辙)
 
@@ -124,16 +135,50 @@ class TaskSuccessEvaluator : public IEvaluator {
 };
 ```
 
-`BehavioralEquivalenceEvaluator` 与 `CompositeEvaluator` 推迟到 V2。
+`BehavioralEquivalenceEvaluator` 与 `CompositeEvaluator` 明确为 **V2 follow-up**，不在本 change 范围。
+
+### 决策 6 — evaluation.result 事件 Schema
+
+```json
+{
+  "evaluation_id": "eval_<uuid>",
+  "schema_version": "1.0",
+  "evaluator_type": "TaskSuccessEvaluator",
+  "trace_ref": "<trace_id>",
+  "quality": "Excellent|Acceptable|Poor",
+  "scalar": 1.0,
+  "confidence": 1.0,
+  "evaluation_refs": []
+}
+```
+
+- `evaluation_id`: 不透明唯一标识，格式 `eval_<uuid>`，跨系统全局唯一
+- `schema_version`: 初始为 "1.0"，事件格式版本
+- `evaluation.result` **不在** ADR-0068 Canonical Topic Registry 中注册（本 change 独立引入）
+- 事件发射时机: `cognitive.task.completed` / `domain.task.completed` 之后
+
+### 决策 7 — ExecutionTrace 与 TraceRecord 的边界
+
+| 类型 | 职责 | 构造时机 |
+|---|---|---|
+| `TraceRecord` | 单节点执行追踪（per-node telemetry，ADR-0019 §1.4） | 节点执行时 |
+| `ExecutionTrace` | 任务级评估输入（evaluation input） | 任务完成时 |
+
+- `ExecutionTrace.final_result` 来自 `ToolResult`（任务的最终结果）
+- `ExecutionTrace.trace_id` 关联对应任务的 trace
+- `TraceRecord` 是细粒度节点追踪，EvaluationSignal 是粗粒度评估
+- 两者**不互相包含**，通过 trace_id 关联
 
 ---
 
 ## 不变量
 
 1. `IEvaluator` 接口纯虚函数, 必须 override 全部
-2. `RewardSignal.scalar` 必须在 `[-1.0, 1.0]` 区间（违反抛异常）
-3. 评估器无状态或仅 readonly 状态（线程安全）
+2. `RewardSignal.scalar` 必须在 `[-1.0, 1.0]` 区间（违反抛 `std::out_of_range`）
+3. 评估器无状态或仅 readonly 状态（线程安全，V1 TaskSuccessEvaluator 无状态）
 4. 评估器**不修改**输入 trace（避免 double-evaluation 副作用）
+5. `evaluation_id` 格式为 `eval_<uuid>`，每次 evaluate() 调用生成新 uuid
+6. evaluator 为 nullptr 时不发射 evaluation.result 事件（幂等）
 
 ---
 
@@ -152,9 +197,12 @@ class TaskSuccessEvaluator : public IEvaluator {
 - **文件**:
   - `include/agenticdsl/contract/ievaluator.h` (L1 契约层)
   - `include/agenticdsl/types/reward_signal.h` (值类型)
-  - `src/modules/cognitive/evaluator.cpp` (V1 TaskSuccessEvaluator)
+  - `include/agenticdsl/types/execution_trace.h` (评估输入)
+  - `src/modules/cognitive/task_success_evaluator.cpp` (V1 实现)
+  - `src/modules/cognitive/cognitive_worker.cpp` (setter + evaluate 调用)
+  - `src/modules/cognitive/domain_worker_pool.cpp` (setter + evaluate 调用)
   - `tests/test_evaluator.cpp` (≥ 4 cases)
-- **估时**: 1 sprint
+- **估时**: 1.5 sprint
 - **优先级**: P0 (Oracle 评审: "本周最高杠杆"之一)
 
 ---

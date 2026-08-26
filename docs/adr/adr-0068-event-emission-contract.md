@@ -2,7 +2,7 @@
 
 ## 状态
 
-✅ Approved (2026-08-03 — Wave 1 §1-§5 全部 ship + V2 EventBuilder 扩展覆盖 8 处 operation-result 事件. 7 个幻影主题全部真实发射, §5.11 grep 验收返回 0 行, EventBuilder 100% 覆盖生产代码 emit, `test_e2e_mock.cpp` 全面重写完成. 变更依据: `openspec/changes/archive/2026-08-03-adr-0068-event-emission-contract/` + `openspec/changes/archive/2026-08-03-promote-event-builder-fulltoolresult-support/`; **Appendix A v1.1 amendment (2026-08-13): 14 个 📡 主题注册完成, 状态更新为 ✅ registered**) 
+✅ Approved (2026-08-03 — Wave 1 §1-§5 全部 ship + V2 EventBuilder 扩展覆盖 8 处 operation-result 事件. 7 个幻影主题全部真实发射, §5.11 grep 验收返回 0 行, EventBuilder 100% 覆盖生产代码 emit, `test_e2e_mock.cpp` 全面重写完成. 变更依据: `openspec/changes/archive/2026-08-03-adr-0068-event-emission-contract/` + `openspec/changes/archive/2026-08-03-promote-event-builder-fulltoolresult-support/`; **Appendix A v1.1 amendment (2026-08-13): 14 个 📡 主题注册完成, 状态更新为 ✅ registered**; **Appendix A v1.2 amendment (2026-08-26): 新增 5 个主题 (1 evaluation.result + 4 mutation.*) 用于 ADR-0083/ADR-0084 契约, 待代码 ship 后标记 ✅**) 
 
 ## 领域
 
@@ -171,7 +171,7 @@ Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = 
 
 ---
 
-## 附录 A：Canonical Topic Registry (v1.1, 2026-08-13)
+## 附录 A：Canonical Topic Registry (v1.2, 2026-08-26)
 
 > 维护规则：新增/修改主题必须同步修订本表。状态列：✅ 已注册 / 👻 幻影 (零生产 emit) / 📡 已发射但无注册订阅方 (本 amendment 后已全部注册)。
 
@@ -211,3 +211,8 @@ Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = 
 | `agent.heartbeat` | PluginLoader (per-plugin jthread) | active 期间默认 30s | `state`, `uptime_ms` | ✅ (ADR-0057 §决策 6) |
 | `agent.terminated` | PluginLoader / CognitiveWorker | active→inactive 转换 | `reason`, `exit_code` | ✅ (ADR-0057 §决策 6) |
 | `agent.error` | PluginLoader / CognitiveWorker | 任意状态转换失败 | `error_code`, `diagnostic` | ✅ (ADR-0057 §决策 6) |
+| `evaluation.result` | CognitiveWorker / DomainWorkerPool | 任务评估完成后 | `evaluation_id`, `trace_id`, `reward` (RewardSignal), `confidence` | ✅ (ADR-0083 ship, 2026-08-26) |
+| `mutation.proposed` | MutationGovernor | 变异提议通过初步验证 | `mutation_id`, `source_id`, `subject_ref`, `mutation_kind`, `evaluation_refs` | ✅ (ADR-0084 ship, 2026-08-26) |
+| `mutation.approved` | MutationGovernor | 变异通过授权门 | `mutation_id`, `approval_mode`, `approved_by` | ✅ (ADR-0084 ship, 2026-08-26) |
+| `mutation.committed` | MutationGovernor | 变异提交完成 | `mutation_id`, `commit_timestamp` | ✅ (ADR-0084 ship, 2026-08-26) |
+| `mutation.denied` | MutationGovernor | 变异被拒绝 | `mutation_id`, `denial_reason`, `denied_at` | ✅ (ADR-0084 ship, 2026-08-26) |

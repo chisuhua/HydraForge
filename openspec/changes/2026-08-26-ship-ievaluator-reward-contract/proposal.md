@@ -39,18 +39,24 @@ ADR-0083（IEvaluator/RewardSignal 评估契约）🔍 Proposed，2026-08-26 自
 
 - **新增 V1 内置评估器**:
   - `src/modules/cognitive/task_success_evaluator.cpp` — `TaskSuccessEvaluator` (基于 `ToolResult.ok` 的 3 行实现，per ADR-0083 §决策 5)
-  - `src/modules/cognitive/behavioral_equivalence_evaluator.cpp` — `BehavioralEquivalenceEvaluator` (V2 推迟到 follow-up，本 change 不实现)
-  - `src/modules/cognitive/composite_evaluator.cpp` — `CompositeEvaluator` (V2 推迟到 follow-up)
+
+- **新增 setter 注入**:
+  - `CognitiveWorker::set_evaluator(std::shared_ptr<IEvaluator>)` — 可选setter，不修改构造签名
+  - `DomainWorkerPool::set_evaluator(std::shared_ptr<IEvaluator>)` — 可选setter，不修改构造签名
+  - V1 TaskSuccessEvaluator 作为默认内部持有（无需外部注入时使用默认实现）
 
 - **新增测试**:
   - `tests/test_evaluator.cpp` — ≥ 4 cases（happy path / compare / V1 简单实现 / thread-safety）
+
 - **事件集成**:
-  - 复用 ADR-0068 EventBuilder 在 `tool.coordinator.cycle_detected` + `domain.task.completed` 等事件点写入评估结果
+  - `evaluation.result` 事件在 `cognitive.task.completed` / `domain.task.completed` 之后发射
+  - 使用 EventBuilder，topic 为 `evaluation.result`
+  - evaluation.result **不在** ADR-0068 Canonical Topic Registry 中注册（本 change 独立引入）
 
 ## Impact
 
 - **影响范围**:
-  - L1 编排层（cap-map L1）新增 IEvaluator 抽象 — 不破坏既有 CognitiveWorker/DomainWorkerPool
+  - L1 编排层（cap-map L1）新增 IEvaluator 抽象 — 不破坏既有 CognitiveWorker/DomainWorkerPool 构造签名
   - 评估器线程安全约束：评估器无状态或仅 readonly 状态（per ADR-0083 §不变量 3）
 
 - **下游解锁**:
@@ -59,23 +65,90 @@ ADR-0083（IEvaluator/RewardSignal 评估契约）🔍 Proposed，2026-08-26 自
   - T20 AFlow MCTS 评估信号可比性前置
   - T21 Prompt Evidence Gate RewardSignal.quality 门控前置
 
-- **Breaking Changes**: 无（新增契约类，不修改既有 API）
+- **Breaking Changes**: 无（新增契约类 + setter 方法，不修改既有 API 构造签名）
 
-## ship gate 验证
+## 关键设计决议
+
+### 决议 1: Setter 注入而非构造注入
+
+**问题**: ADR-0083 §决策 4 原文本"CognitiveWorker 构造时注入 IEvaluator*"与既有构造签名 `(unique_ptr<DSLEngine>, shared_ptr<IInteractionBus>)` 冲突。
+
+**决议**: CognitiveWorker 和 DomainWorkerPool **不修改构造签名**。IEvaluator 通过可选 setter 注入：
+
+```cpp
+// CognitiveWorker 新增（不修改构造）
+void set_evaluator(std::shared_ptr<IEvaluator> evaluator);
+
+// DomainWorkerPool 新增（不修改构造）
+void set_evaluator(std::shared_ptr<IEvaluator> evaluator);
+```
+
+- 默认为 `nullptr`（无评估器时不发射 evaluation.result 事件）
+- 运行时注入，可在 start() 前或运行中设置
+
+### 决议 2: ExecutionTrace 与 TraceRecord 的边界
+
+| 类型 | 职责 | 构造时机 |
+|---|---|---|
+| `TraceRecord` | 单节点执行追踪（per-node telemetry） | 节点执行时 |
+| `ExecutionTrace` | 任务级评估输入（evaluation input） | 任务完成时 |
+
+- `ExecutionTrace.final_result` 来自 `ToolResult`（任务的最终结果）
+- `ExecutionTrace` 由 CognitiveWorker/DomainWorkerPool 在任务完成后构造
+- `TraceRecord` 是细粒度追踪，EvaluationSignal 是粗粒度评估
+
+### 决议 3: evaluation.result 事件 schema
+
+```json
+{
+  "evaluation_id": "eval_<uuid>",
+  "schema_version": "1.0",
+  "evaluator_type": "TaskSuccessEvaluator",
+  "trace_ref": "<trace_id>",
+  "quality": "Excellent|Acceptable|Poor",
+  "scalar": 1.0,
+  "confidence": 1.0,
+  "evaluation_refs": []
+}
+```
+
+- `evaluation_id`: 不透明唯一标识，格式 `eval_<uuid>`，跨系统唯一
+- `schema_version`: 本次事件格式版本，初始为 "1.0"
+- `evaluator_type`: 评估器类名（用于调试和溯源）
+- `trace_ref`: 关联的 trace_id（来自 TraceRecord 或任务上下文）
+- `quality`: RewardSignal 三态枚举字符串
+- `scalar`: [-1.0, 1.0] 区间值
+- `confidence`: 置信度 (0.0-1.0)，用于梯度加权
+- `evaluation_refs`: 关联的其他 evaluation_id（用于 composite 场景，V1 为空数组）
+
+### 决议 4: RewardSignal 语义定义
+
+- `quality`: 三态枚举 {Excellent, Acceptable, Poor}，独立于 ToolResult.ok
+- `scalar`: double，[-1.0, 1.0]，超出区间抛 `std::out_of_range`
+- `confidence`: double，[0.0, 1.0]，默认 1.0，用于 RLHF/DPO 梯度加权
+- 工厂方法: `RewardSignal::excellent(double confidence=1.0)`, `acceptable(double)`, `poor(double)`
+
+### 决议 5: V2 评估器明确 out of scope
+
+本 change **仅实现** TaskSuccessEvaluator V1。下列评估器明确推迟到后续 change：
+
+- `BehavioralEquivalenceEvaluator` — V2 follow-up（需要 ADR-0061-02 行为回归结果）
+- `CompositeEvaluator` — V2 follow-up（需要多评估器加权策略定义）
+
+## ship gate 验证（动态，非固定数值）
 
 - `python3 tools/adr_lint.py` 通过
 - `ctest --output-on-failure -R test_evaluator` ≥ 4 cases / ≥ 8 assertions PASS
-- `cd build && ctest --output-on-failure` 185/185 ctest PASS 零回归
+- `cd build && ctest --output-on-failure` 当前 ctest 总数 PASS 零回归（具体数值因 baseline 变化）
 - `grep -r "class IEvaluator" include/agenticdsl/contract/` 命中
-- cap-map §八.2 闭环 1/2 第 3 环"实现状态"列更新为"✅ 已 ship"
-- cap-map §二 G10 "🔍 Proposed (代码 ship 待办)" → "✅ Approved + 代码 ship"
-- ADR-0083 头部 `## 状态` 章节更新为 `✅ Approved (ship 2026-08-XX)`
+- cap-map §八.2 闭环 1/2 第 3 环"实现状态"列更新为"✅ 已 ship"（条件：上述验证通过）
+- ADR-0083 头部 `## 状态` 章节更新为 `✅ Approved (ship 2026-08-XX)`（条件：上述验证通过）
 
 ## 关联文档
 
 - ADR-0083-evaluator-reward-contract.md
 - ADR-0061-02-behavioral-regression.md (T14 已 ship)
 - ADR-0074-prompt-evidence-gate.md ✅
-- ADR-0068-event-emission-contract.md (EventBuilder 复用)
+- ADR-0068-event-emission-contract.md (EventBuilder 复用，evaluation.result 独立引入不在 registry 中)
 - `docs/architecture/self-evolution-architecture-2026-08.md` §四.2 评估/奖励/信用分配平面
 - `docs/architecture/capability-application-map-2026-08.md` §二 G10 + §八.2 闭环 1/2
