@@ -12,13 +12,16 @@
 
 #include "agenticdsl/cognitive/domain_worker_pool.h"
 #include "agenticdsl/contract/bus_event.h"
+#include "agenticdsl/contract/evaluation_events.h"
 #include "agenticdsl/contract/event_builder.h"
+#include "agenticdsl/contract/ievaluator.h"
 
 #include <nlohmann/json.hpp>
 
 #include <chrono>
 #include <exception>
 #include <stdexcept>
+#include <typeinfo>
 #include <utility>
 
 namespace agenticdsl {
@@ -116,6 +119,13 @@ void DomainWorkerPool::stop() {
       t.join();
     }
   }
+}
+
+// =====================================================================
+// set_evaluator: 可选注入 (ADR-0083), 默认 nullptr 不评估不发射事件
+// =====================================================================
+void DomainWorkerPool::set_evaluator(std::shared_ptr<IEvaluator> evaluator) {
+  evaluator_ = std::move(evaluator);
 }
 
 // =====================================================================
@@ -267,7 +277,22 @@ void DomainWorkerPool::process_task(std::size_t worker_id, DomainTask task) {
     }
   }
 
-  // 5) 派发计数器递增 (调试用, atomic 保证线程安全)
+  // 5) ADR-0083: 可选评估 (evaluator 为 nullptr 时跳过, 不发射 evaluation.result)
+  //    评估器异常不 kill worker (best-effort V1, try-catch 隔离, 与 handler 隔离同级)
+  if (bus_ && evaluator_) {
+    try {
+      ExecutionTrace trace;
+      trace.final_result = result;
+      trace.trace_id = result.trace_id.value_or(task.tool_name);
+      const RewardSignal signal = evaluator_->evaluate(trace);
+      bus_->emit(evaluation::build_evaluation_result_event(
+          typeid(*evaluator_).name(), trace, signal));
+    } catch (...) {
+      // best-effort: 评估失败不影响任务结果与 worker 生命周期
+    }
+  }
+
+  // 6) 派发计数器递增 (调试用, atomic 保证线程安全)
   next_worker_.fetch_add(1, std::memory_order_relaxed);
 }
 

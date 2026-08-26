@@ -37,6 +37,8 @@
 
 namespace agenticdsl {
 
+class IEvaluator;
+
 /**
  * @brief 领域任务结构 (Sprint 3 MVP)
  *
@@ -192,6 +194,18 @@ class DomainWorkerPool {
    */
   std::size_t num_threads() const { return num_threads_; }
 
+  /**
+   * @brief 注入评估器 (可选, ADR-0083, 非构造注入)
+   *
+   * 契约:
+   *  - evaluator == nullptr: 任务完成后不评估, 不发射 evaluation.result 事件
+   *  - evaluator != nullptr 且 bus_ != nullptr: 任务完成后
+   *    (domain.task.completed/failed 之后) 调用 evaluator->evaluate(trace)
+   *    并发射 evaluation.result 事件
+   *  - 线程模型 V1: 假定在 start() 前单线程调用 (design D4), 无 mutex
+   */
+  void set_evaluator(std::shared_ptr<IEvaluator> evaluator);
+
  private:
   /**
    * @brief Worker 主循环 (在 std::jthread 内运行)
@@ -225,6 +239,7 @@ class DomainWorkerPool {
   // === 不可变 (构造时固定) ===
   std::size_t num_threads_;
   std::shared_ptr<IInteractionBus> bus_;
+  std::shared_ptr<IEvaluator> evaluator_;  // 可选, 默认 nullptr (ADR-0083)
 
   // === 生命周期 (start/stop) ===
   std::vector<std::jthread> threads_;

@@ -14,7 +14,9 @@
 
 #include "agenticdsl/cognitive/simple_orchestrator.h"
 #include "agenticdsl/contract/bus_event.h"
+#include "agenticdsl/contract/evaluation_events.h"
 #include "agenticdsl/contract/event_builder.h"
+#include "agenticdsl/contract/ievaluator.h"
 #include "agenticdsl/plugin/agent_lifecycle_emitter.h"
 #include "core/engine.h"
 
@@ -24,6 +26,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <typeinfo>
 #include <utility>
 
 namespace agenticdsl {
@@ -149,6 +152,13 @@ void CognitiveWorker::stop() {
 }
 
 // =====================================================================
+// set_evaluator: 可选注入 (ADR-0083), 默认 nullptr 不评估不发射事件
+// =====================================================================
+void CognitiveWorker::set_evaluator(std::shared_ptr<IEvaluator> evaluator) {
+  evaluator_ = std::move(evaluator);
+}
+
+// =====================================================================
 // worker_loop: 阻塞消费任务, 委托 SimpleCognitiveOrchestrator, 转发事件
 // =====================================================================
 void CognitiveWorker::worker_loop() {
@@ -205,6 +215,21 @@ void CognitiveWorker::worker_loop() {
     // ADR-0068 §决策 7: operation-result event 通过 EventBuilder 接管 7 字段 (含 trace_id)
     // (promote-event-builder-fulltoolresult-support 2026-08-03 V2 扩展)
     bus_->emit(EventBuilder("cognitive.task.completed", result).build());
+
+    // 7) ADR-0083: 可选评估 (evaluator 为 nullptr 时跳过, 不发射 evaluation.result)
+    //    评估器异常不 kill worker (best-effort V1, try-catch 隔离)
+    if (evaluator_) {
+      try {
+        ExecutionTrace trace;
+        trace.final_result = result;
+        trace.trace_id = result.trace_id.value_or(task_id);
+        const RewardSignal signal = evaluator_->evaluate(trace);
+        bus_->emit(evaluation::build_evaluation_result_event(
+            typeid(*evaluator_).name(), trace, signal));
+      } catch (...) {
+        // best-effort: 评估失败不影响任务结果与 worker 生命周期
+      }
+    }
   }
 }
 

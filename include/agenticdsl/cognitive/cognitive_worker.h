@@ -36,6 +36,7 @@ namespace agenticdsl {
 // unique_ptr<DSLEngine> 的析构在 cognitive_worker.cpp 中需要 DSLEngine 完整类型，
 // 由 out-of-line 析构函数 + 类外 ctor/dtor 共同保证 PIMPL-lite 风格。
 class DSLEngine;
+class IEvaluator;
 
 /**
  * @brief 认知智能体工作线程（Sprint 2 MVP）
@@ -124,6 +125,17 @@ class CognitiveWorker {
   enum class State { idle, running, stopped };
   State state() const { return state_.load(); }
 
+  /**
+   * @brief 注入评估器 (可选, ADR-0083, 非构造注入)
+   *
+   * 契约:
+   *  - evaluator == nullptr: 任务完成后不评估, 不发射 evaluation.result 事件
+   *  - evaluator != nullptr: 任务完成后 (cognitive.task.completed 之后)
+   *    调用 evaluator->evaluate(trace) 并发射 evaluation.result 事件
+   *  - 线程模型 V1: 假定在 start() 前单线程调用 (design D4), 无 mutex
+   */
+  void set_evaluator(std::shared_ptr<IEvaluator> evaluator);
+
  private:
   /**
    * @brief Worker 主循环（在 std::thread 内运行）
@@ -144,6 +156,7 @@ class CognitiveWorker {
   std::atomic<State> state_{State::idle};
   std::unique_ptr<DSLEngine> engine_;  // 前向声明, .cpp 析构
   std::shared_ptr<IInteractionBus> bus_;
+  std::shared_ptr<IEvaluator> evaluator_;  // 可选, 默认 nullptr (ADR-0083)
   std::thread worker_thread_;
   std::queue<std::pair<std::string, std::string>> task_queue_;  // (task_id, prompt)
   std::mutex queue_mutex_;
