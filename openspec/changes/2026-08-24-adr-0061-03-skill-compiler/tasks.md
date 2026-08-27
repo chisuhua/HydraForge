@@ -34,13 +34,13 @@
 - [x] **T3.4** Verify pass: 编译产物结构正确 (10 cases / 36 assertions)
 - [x] **T3.5** Commit: `feat(cognitive): SKILL.md compile basic flow`
 
-## Phase 4: 集成（待 Phase 3 后, 估时 1 sprint）
+## Phase 4: 集成（✅ ship 2026-08-27）
 
-- [ ] **T4.1** 与 T14 行为回归集成：编译后自动验证
-- [ ] **T4.2** 与 ADR-0083 IEvaluator 集成：编译质量评分
-- [ ] **T4.3** 与 G11 变异治理集成：emit `skill.compilation.*` 3 个事件
-- [ ] **T4.4** ADR-0068 附录 A amendment：注册 `skill.compilation.{started,succeeded,failed}` 主题
-- [ ] **T4.5** Commit: `feat(cognitive): SkillCompiler full integration`
+- [x] **T4.1** 与 T14 行为回归集成：编译后自动验证 (空指纹恒等自检 → Verdict::Pass)
+- [x] **T4.2** 与 ADR-0083 IEvaluator 集成：编译质量评分 (Poor → quality_poor 拒绝)
+- [x] **T4.3** 与 G11 变异治理集成：emit `skill.compilation.*` 3 个事件 (emit-only, 不触发 MutationGovernor)
+- [x] **T4.4** ADR-0068 附录 A amendment：注册 `skill.compilation.{started,succeeded,failed}` 主题 (v1.2.2)
+- [x] **T4.5** Commit: `feat(cognitive): SkillCompiler full integration`
 
 ## Phase 5: 验证（待 Phase 4 后）
 

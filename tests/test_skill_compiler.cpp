@@ -13,8 +13,14 @@
 #include "agenticdsl/types/compiled_skill.h"
 #include "agenticdsl/cognitive/skill_compiler.h"
 
+#include "agenticdsl/contract/bus_event.h"
+#include "agenticdsl/contract/ievaluator.h"
+#include "agenticdsl/types/execution_trace.h"
+#include "agenticdsl/types/reward_signal.h"
+
 #include <string>
 #include <type_traits>
+#include <vector>
 
 using namespace agenticdsl;
 
@@ -147,4 +153,124 @@ TEST_CASE("validate rejects structurally incomplete CompiledSkill",
   SkillCompiler compiler;
   CompiledSkill empty;
   REQUIRE(compiler.validate(empty) == false);
+}
+
+// ============================================================================
+// Phase 4: 集成 (T4.1-T4.4) — T14 回归 / IEvaluator / G11 emit-only
+// ============================================================================
+
+namespace {
+
+// 可配置 quality 的 IEvaluator 测试替身 (与 test_mutation_governance StubEvaluator 同模式)
+class StubEvaluator : public IEvaluator {
+ public:
+  RewardSignal::Quality quality = RewardSignal::Quality::Excellent;
+
+  RewardSignal evaluate(const ExecutionTrace&) const override {
+    switch (quality) {
+      case RewardSignal::Quality::Excellent:
+        return RewardSignal::excellent();
+      case RewardSignal::Quality::Acceptable:
+        return RewardSignal::acceptable();
+      case RewardSignal::Quality::Poor:
+        return RewardSignal::poor();
+    }
+    return RewardSignal::acceptable();
+  }
+
+  int compare(const ExecutionTrace&, const ExecutionTrace&) const override {
+    return 0;
+  }
+};
+
+// 同步记录全部事件的 IInteractionBus 测试替身
+class RecordingBus : public IInteractionBus {
+ public:
+  std::vector<BusEvent> events;
+
+  void emit(const BusEvent& event) override { events.push_back(event); }
+  void emit(const std::string&, const std::string&) override {}
+  size_t subscribe(const std::string&,
+                   std::function<void(const BusEvent&)>) override {
+    return 0;
+  }
+  void unsubscribe(size_t) override {}
+};
+
+}  // namespace
+
+// T4.1: T14 行为回归集成 — 编译后自动验证, 产物带 Verdict
+TEST_CASE("compile integrates T14 regression verdict",
+          "[skill_compiler][phase4]") {
+  SkillCompiler compiler;
+  auto cs = compiler.compile(kBasicSkillMd);
+  REQUIRE(cs.ok);
+  // V1 模板包装不改语义: 恒等指纹比较必为 Pass
+  REQUIRE(cs.regression_verdict == "Pass");
+}
+
+// T4.2: IEvaluator 集成 — 评分透传 + Poor 质量门拒绝
+TEST_CASE("compile integrates IEvaluator quality gate",
+          "[skill_compiler][phase4]") {
+  auto excellent = std::make_shared<StubEvaluator>();
+  excellent->quality = RewardSignal::Quality::Excellent;
+  SkillCompiler ok_compiler(excellent, nullptr);
+  auto cs = ok_compiler.compile(kBasicSkillMd);
+  REQUIRE(cs.ok);
+  REQUIRE(cs.ievaluator_score == 1.0);
+
+  auto poor = std::make_shared<StubEvaluator>();
+  poor->quality = RewardSignal::Quality::Poor;
+  SkillCompiler poor_compiler(poor, nullptr);
+  auto rejected = poor_compiler.compile(kBasicSkillMd);
+  REQUIRE(rejected.ok == false);
+  REQUIRE(rejected.failure_reason == "quality_poor");
+  // 纯函数式回滚语义: 原内容保持只读快照
+  REQUIRE(rejected.original_content == kBasicSkillMd);
+  REQUIRE(rejected.compiled_content.empty());
+}
+
+// T4.3: G11 emit-only — started + succeeded 恰好各一次
+TEST_CASE("compile emits started and succeeded events (emit-only)",
+          "[skill_compiler][phase4]") {
+  auto bus = std::make_shared<RecordingBus>();
+  SkillCompiler compiler(nullptr, bus);
+  auto cs = compiler.compile(kBasicSkillMd);
+  REQUIRE(cs.ok);
+
+  REQUIRE(bus->events.size() == 2);
+  REQUIRE(bus->events[0].topic == "skill.compilation.started");
+  REQUIRE(bus->events[0].payload.data["skill_id"] == "test-skill");
+  REQUIRE(bus->events[0].payload.data["compiler_version"] ==
+          "skill-compiler-v1.0.0");
+  REQUIRE(bus->events[1].topic == "skill.compilation.succeeded");
+  REQUIRE(bus->events[1].payload.data["regression_verdict"] == "Pass");
+}
+
+// T4.3: G11 emit-only — 失败路径 started + failed, 终态互斥
+TEST_CASE("failed compile emits started and failed (terminal exclusive)",
+          "[skill_compiler][phase4]") {
+  auto bus = std::make_shared<RecordingBus>();
+  auto poor = std::make_shared<StubEvaluator>();
+  poor->quality = RewardSignal::Quality::Poor;
+  SkillCompiler compiler(poor, bus);
+  auto cs = compiler.compile(kBasicSkillMd);
+  REQUIRE_FALSE(cs.ok);
+
+  REQUIRE(bus->events.size() == 2);
+  REQUIRE(bus->events[0].topic == "skill.compilation.started");
+  REQUIRE(bus->events[1].topic == "skill.compilation.failed");
+  REQUIRE(bus->events[1].payload.ok == false);
+  REQUIRE(bus->events[1].payload.data["reason"] == "quality_poor");
+}
+
+// T4.3 边界: 空内容 + bus — 仅 failed (解析前置失败, 无 started)
+TEST_CASE("empty content emits only failed event", "[skill_compiler][phase4]") {
+  auto bus = std::make_shared<RecordingBus>();
+  SkillCompiler compiler(nullptr, bus);
+  auto cs = compiler.compile("");
+  REQUIRE_FALSE(cs.ok);
+  REQUIRE(bus->events.size() == 1);
+  REQUIRE(bus->events[0].topic == "skill.compilation.failed");
+  REQUIRE(bus->events[0].payload.data["reason"] == "infrastructure_error");
 }

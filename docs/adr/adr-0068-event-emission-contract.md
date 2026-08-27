@@ -2,7 +2,7 @@
 
 ## 状态
 
-✅ Approved (2026-08-03 — Wave 1 §1-§5 全部 ship + V2 EventBuilder 扩展覆盖 8 处 operation-result 事件. 7 个幻影主题全部真实发射, §5.11 grep 验收返回 0 行, EventBuilder 100% 覆盖生产代码 emit, `test_e2e_mock.cpp` 全面重写完成. 变更依据: `openspec/changes/archive/2026-08-03-adr-0068-event-emission-contract/` + `openspec/changes/archive/2026-08-03-promote-event-builder-fulltoolresult-support/`; **Appendix A v1.1 amendment (2026-08-13): 14 个 📡 主题注册完成, 状态更新为 ✅ registered**; **Appendix A v1.2 amendment (2026-08-26): 新增 5 个主题 (1 evaluation.result + 4 mutation.*) 用于 ADR-0083/ADR-0084 契约**; **Appendix A v1.2.1 修正 (2026-08-26, ADR-0084 V1 ship): mutation.* 4 行 payload schema 对齐 design D4 + `mutation.approved` 行修正为 `mutation.reverted` (design D6 终态事件集为 proposed/committed/reverted/denied, 无 approved)**) 
+✅ Approved (2026-08-03 — Wave 1 §1-§5 全部 ship + V2 EventBuilder 扩展覆盖 8 处 operation-result 事件. 7 个幻影主题全部真实发射, §5.11 grep 验收返回 0 行, EventBuilder 100% 覆盖生产代码 emit, `test_e2e_mock.cpp` 全面重写完成. 变更依据: `openspec/changes/archive/2026-08-03-adr-0068-event-emission-contract/` + `openspec/changes/archive/2026-08-03-promote-event-builder-fulltoolresult-support/`; **Appendix A v1.1 amendment (2026-08-13): 14 个 📡 主题注册完成, 状态更新为 ✅ registered**; **Appendix A v1.2 amendment (2026-08-26): 新增 5 个主题 (1 evaluation.result + 4 mutation.*) 用于 ADR-0083/ADR-0084 契约**; **Appendix A v1.2.1 修正 (2026-08-26, ADR-0084 V1 ship): mutation.* 4 行 payload schema 对齐 design D4 + `mutation.approved` 行修正为 `mutation.reverted` (design D6 终态事件集为 proposed/committed/reverted/denied, 无 approved)**; **Appendix A v1.2.2 amendment (2026-08-27, ADR-0061-03 T17 ship): 新增 3 个 `skill.compilation.{started,succeeded,failed}` 主题 (emit-only 模式, 不触发 MutationGovernor)**) 
 
 ## 领域
 
@@ -216,3 +216,6 @@ Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = 
 | `mutation.committed` | MutationGovernor | commit (evaluation_refs 非空校验通过) | `mutation_id`, `version_id`, `mutation_kind`, `evaluation_refs` | ✅ (ADR-0084 V1 ship, 2026-08-26) |
 | `mutation.reverted` | MutationGovernor | revert() 调用 (audit-only, 不触发恢复) | `mutation_id`, `target_version`, `rollback_reason` | ✅ (ADR-0084 V1 ship, 2026-08-26) |
 | `mutation.denied` | MutationGovernor | 任一门禁步骤失败 (终态事件) | `mutation_id`, `denial_reason`, `failed_step`, `subject_ref` | ✅ (ADR-0084 V1 ship, 2026-08-26) |
+| `skill.compilation.started` | SkillCompiler | 编译请求受理 (frontmatter 解析后) | `skill_id`, `original_version`, `compiler_version` | ✅ (ADR-0061-03 T17 ship, 2026-08-27, emit-only) |
+| `skill.compilation.succeeded` | SkillCompiler | 编译成功 (终态, 与 failed 互斥) | `skill_id`, `regression_verdict`, `ievaluator_score` | ✅ (ADR-0061-03 T17 ship, 2026-08-27, emit-only) |
+| `skill.compilation.failed` | SkillCompiler | 编译失败 (终态, 与 succeeded 互斥) | `skill_id`, `reason` (quality_poor/regression_fail/budget_exceeded/infrastructure_error) | ✅ (ADR-0061-03 T17 ship, 2026-08-27, emit-only) |
