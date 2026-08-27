@@ -10,7 +10,7 @@
 // 关键不变量：
 //   - ParsedGraph 零修改 (前向声明, 不 #include core/types/node.h)
 //   - TrajectoryIR 与 ParsedGraph 无继承/耦合关系 (独立类)
-//   - V2 延后: to_rl_data / to_eval_data / 跨框架 frontend / 完整 pass pipeline
+//   - V2 延后: RL/eval backends / 跨框架 frontend / 完整 pass pipeline
 // 作者：HydraForge Sprint 24 T15 ship
 // 最后修改日期：2026-08-27
 #pragma once

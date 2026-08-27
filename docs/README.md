@@ -114,7 +114,7 @@ docs/
 | `adr-0061-03-skill-compiler.md` | SkillCompiler 实施 | P0 | ✅ Approved (✅ V1 ship 2026-08-27, T17, 15 cases / 61 assertions PASS) |
 | `adr-0061-04-slm-routing.md` | SLM 路由优先（NVIDIA 2025） | P1 | ✅ Approved |
 | `adr-0061-05-cpp-wasm-toolchain.md` | wasi-sdk 集成 + C++→Wasm CI | P1 | ✅ Approved (⚠ 无代码) |
-| `adr-0061-06-trajectory-ir.md` | AgentIR-style Trajectory IR 升级 ParsedGraph | P1 | ⛔ Superseded (v1.1 amendment 2026-08-25, 见下行) |
+| `adr-0061-06-trajectory-ir.md` | AgentIR-style Trajectory IR 升级 ParsedGraph | P1 | ⛔ Superseded (v1.1 amendment 2026-08-25, 见下行; v1.1 ✅ Shipped 2026-08-27) |
 | `adr-0061-07-paste-speculation.md` | PASTE-style 推测执行 | P2 | 🔍 Proposed |
 | `adr-0061-08-aflow-search.md` | AFlow-style MCTS 工作流搜索 | P2 | 🔍 Proposed |
 | `adr-0061-09-gepa-loop.md` | GEPA-style 反思循环 | P2 | 🔍 Proposed |
@@ -122,7 +122,7 @@ docs/
 | `adr-0061-11-dsl-wasm.md` | DSL→Wasm Bytecode 编译器 | P2 | 🔍 Proposed |
 | `adr-0061-12-webllm.md` | 浏览器端 WebLLM 集成 | P2 | 🔍 Proposed |
 | `adr-0061-13-distillation-output-format.md` | 蒸馏输出格式 (IDistillationWriter + DistillationRecord + trajectory/policy/meta 三文件分离) | P0 | ✅ Approved (评审通过 2026-08-25, Oracle G15, 7 环闭环最后 1 环) ⏳ 代码 ship: Pending |
-| `adr-0061-06-v1-1-amendment-trajectory-ir-decouple.md` | Trajectory IR 独立序列化视图 (不改 ParsedGraph, v1 标题耦合修正) | P1 | ✅ Approved (评审通过 2026-08-25, Oracle G14 解耦风险) |
+| `adr-0061-06-v1-1-amendment-trajectory-ir-decouple.md` | Trajectory IR 独立序列化视图 (不改 ParsedGraph, v1 标题耦合修正) | P1 | ✅ Approved + Shipped (T15 ship 2026-08-27, 9 cases / 55 assertions, ParsedGraph 零修改) |
 
 ### adr-management/ - ADR 元数据
 

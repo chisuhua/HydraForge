@@ -12,9 +12,11 @@
 > - **实施估时**: 3 weeks → 2 sprint (T15, 与 ADR-0061-13 集成)
 >
 > **阅读建议**: 仅 v1.1 amendment 是当前有效设计；v1 文件保留作历史记录。
+>
+> **Ship 证据 (2026-08-27, T15)**: v1.1 设计已由 OpenSpec change `t15-trajectory-ir` 实施完成 — commits `3ba9f2c` (Phase 0 契约) + `53a0f17` (Phase 1 Converter) + `1fd5c4b` (Phase 2 backends/pass) + `7b24973` (Phase 3 SkillCompiler 集成); `tests/test_trajectory_ir.cpp` 9 cases / 55 assertions PASS; ParsedGraph (`src/core/types/node.h`) 零修改。
 
 **日期**: 2026-07-16
-**状态**: ⛔ Superseded (v1.1 amendment 取代，2026-08-25)
+**状态**: ⛔ Superseded (v1.1 amendment 取代，2026-08-25；v1.1 ✅ Approved + Shipped 2026-08-27)
 **父 ADR**: [../adr-0061-agent-evolution-and-solidification.md](../adr-0061-agent-evolution-and-solidification.md)
 
 ---

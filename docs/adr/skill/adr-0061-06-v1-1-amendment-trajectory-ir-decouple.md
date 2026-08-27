@@ -1,7 +1,7 @@
 # ADR-0061-06 v1.1 amendment: Trajectory IR 独立序列化视图(不改 ParsedGraph)
 
 **日期**: 2026-08-24
-**状态**: ✅ **Approved (评审通过 2026-08-25)** (Oracle 评审识别为架构层缺口, capability-application-map §八 G14)
+**状态**: ✅ **Approved + Shipped (2026-08-27, T15)** — OpenSpec change `t15-trajectory-ir` 实施完成: commits `3ba9f2c`/`53a0f17`/`1fd5c4b`/`7b24973`; 9 cases / 55 assertions PASS; ParsedGraph 零修改; ctest 零新增回归 (评审通过 2026-08-25, Oracle session `ses_fcba5e477ffeG9wEBHVhU64J0o`, capability-application-map §八 G14)
 **父 ADR**: [adr-0061-06-trajectory-ir.md](adr-0061-06-trajectory-ir.md) v1
 **父 ADR 兄弟**: adr-0061-02 (T14 行为回归已 ship), adr-0061-13 (蒸馏输出格式)
 

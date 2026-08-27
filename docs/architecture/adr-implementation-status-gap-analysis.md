@@ -11,7 +11,7 @@
 
 | 状态 | 计数 | 占比 | 备注 |
 |------|:---:|:----:|------|
-| ✅ Approved — 已批准且实施完成 | 32 | 44.4% | (含 Phase 6 架构评审 0052-0064 13 个, 大多数无代码; +ADR-0084 2026-08-26) |
+| ✅ Approved — 已批准且实施完成 | 32 | 44.4% | (含 Phase 6 架构评审 0052-0064 13 个, 大多数无代码; +ADR-0084 2026-08-26; +ADR-0061-06 v1.1 T15 ship 2026-08-27) |
 | 🟡 Partial — 已批准但实施不完整 | 8 | 11.1% | 含 ADR-0073 待翻牌 (Phase 5 Sprint 21 ship, 见 §2.1) |
 | 🔍 Proposed — 提议阶段，未批准 | 13 | 18.1% | 含 **6 个新起草 LLM-native** (0072/0074/0075/0076/0077/0078) |
 | ❌ Not Implemented — 未实施（含已归档） | 18 | 25.0% | 12 归档 + 6 永久 (0002/0030V1/0036×2/0073V1待翻) |
@@ -532,7 +532,7 @@ Phase 7+ ──→ Phase 8+
 | 0061-03 | SkillCompiler 实施 | ✅ Approved | P0, 无代码 |
 | 0061-04 | SLM 路由优先 | ✅ Approved | P1 |
 | 0061-05 | wasi-sdk 集成 | ✅ Approved | P1, 无代码 |
-| 0061-06 | Trajectory IR 升级 | ✅ Approved | P1, 无代码 |
+| 0061-06 | Trajectory IR 独立序列化视图 (v1.1) | ✅ Approved + Shipped | P1, T15 V1 ship 2026-08-27 (9 cases / 55 assertions, ParsedGraph 零修改) |
 | 0061-07 | PASTE 推测执行 | 🔍 Proposed | P2 |
 | 0061-08 | MCTS 工作流搜索 | 🔍 Proposed | P2 |
 | 0061-09 | GEPA 反思循环 | 🔍 Proposed | P2 |
