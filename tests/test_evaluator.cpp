@@ -4,6 +4,7 @@
 #include "agenticdsl/types/reward_signal.h"
 #include "agenticdsl/types/execution_trace.h"
 #include "agenticdsl/cognitive/behavioral_equivalence_evaluator.h"
+#include "agenticdsl/cognitive/composite_evaluator.h"
 #include "core/types/tool_result.h"
 
 // Phase 2/3: Worker setter 注入 + 事件发射
@@ -348,6 +349,29 @@ TEST_CASE("evaluation.result event contains required fields",
     REQUIRE(data["confidence"] == 1.0);
     REQUIRE(data.contains("evaluation_refs"));
     REQUIRE(data["evaluation_refs"].is_array());
+}
+
+TEST_CASE("composite_aggregate_two_evaluators", "[evaluator][v2][phase4]") {
+    auto excellent = std::make_shared<TaskSuccessEvaluator>();
+    auto acceptable = std::make_shared<BehavioralEquivalenceEvaluator>();
+    CompositeEvaluator composite({excellent, acceptable}, {3.0, 1.0});
+    ExecutionTrace trace;
+    trace.final_result = ToolResult::success("ok");
+
+    auto signal = composite.evaluate(trace);
+    REQUIRE(signal.scalar == Catch::Approx(0.75));
+    REQUIRE(signal.quality == RewardSignal::Quality::Excellent);
+    // confidence 取 min: TaskSuccessEvaluator=1.0, BehavioralEquivalence=0.5
+    REQUIRE(signal.confidence == Catch::Approx(0.5));
+}
+
+TEST_CASE("composite_aggregate_empty_evaluators_throws", "[evaluator][v2][phase4]") {
+    REQUIRE_THROWS_AS(CompositeEvaluator({}, {}), std::invalid_argument);
+}
+
+TEST_CASE("composite_weights_mismatch_throws", "[evaluator][v2][phase4]") {
+    auto evaluator = std::make_shared<TaskSuccessEvaluator>();
+    REQUIRE_THROWS_AS(CompositeEvaluator({evaluator}, {}), std::invalid_argument);
 }
 
 // =====================================================================
