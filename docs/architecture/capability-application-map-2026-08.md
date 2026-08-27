@@ -1,7 +1,7 @@
 # 架构能力-应用地图（2026-08 v1.7）
 
 **生成日期**: 2026-08-24
-**最后验证**: 2026-08-26（v1.7 — 23 项能力 / 9 项 open gap (G10/G11/G12/G13/G14/G15 全部 ✅ Closed — G11 ADR-0084 Approved + V1 gate-and-audit 代码 ship, commit `a2b2d52`) / 17 类应用 / 22 个工程任务 T1-T22 (T17/T15/T19/T20/T21 ✅ APPROVED)，IEvaluator/RewardSignal + IMutationGovernor 契约 ship 同步，验证命令见 §六）
+**最后验证**: 2026-08-27（v1.8 — 24 项能力 / 9 项 open gap (G10-G15 全部 ✅ Closed) / 17 类应用 / 22 个工程任务 T1-T22 (**T17 ✅ SHIP** / T15/T19/T20/T21 ✅ APPROVED)，T17 SkillCompiler V1 ship 同步 (15 cases / 61 assertions)，验证命令见 §六）
 **作者**: Architecture Working Group
 **状态**: ✅ Active — 架构能力的**唯一事实源**（取代已归档的 `defect-truth-table-2026-08.md`）
 
@@ -25,7 +25,7 @@
 
 ---
 
-## 一、架构能力清单（23 项已 ship 能力，L4 含 #23 T14 v1.2 后置增补）
+## 一、架构能力清单（24 项已 ship 能力，L4 含 #23 T14 + #24 T17 v1.3 后置增补）
 
 > **分层依据**: `docs/specs/architecture.md` L0~L4 + R1~R5 五层架构模型
 > **验证方法**: `grep` 实证 + ctest PASS + ADR 头部状态三方交叉（详见 §六）
@@ -70,7 +70,7 @@
 | 18 | IAgentComposition (call/call_async/delegate + stream 占位) | `iagent_composition.h` + `agent_composition.cpp` | test_agent_composition 10 cases PASS | ADR-0060 | Sprint 22 (P8) |
 | 19 | PDK 三种 Agent Loop + SafeExec 沙箱 + **SLM 路由 .so** (v1.2 +1) | `pdk/agent_macros.h` + `pdk/safe_exec.h` + `pdk/model_router/slm_strategy/` | test_pdk_macros 5 cases + test_safe_exec PASS + **test_model_router_slm ≥5 cases PASS (v1.2 ship)** | ADR-0021 + **0061-04 (SLM)** | Sprint 4 + 22 + **23 (SLM)** |
 
-### L4 可观测 + 治理层（4 项，#23 T14 v1.2 后置增补）
+### L4 可观测 + 治理层（5 项，#23 T14 / #24 T17 v1.3 后置增补）
 
 | # | 能力 | 实现位置 | 验证证据 | 关联 ADR | 上线 |
 |---|---|---|---|---|---|
@@ -78,9 +78,11 @@
 | 21 | Session 4-scope + node_id 寻址 + branch cursor + extract fork | `session_manager.cpp` + `session_store.cpp` + `session_writer.cpp` | 8 + 4 + 6 + 6 + 7 cases PASS | ADR-0079 v1.2 | Sprint 22 (P5 + P6) |
 | 22 | 17 ErrorCode + ExecutionResult<T> + is_retryable() | `tool_result.h` + `execution_result.h` | test_execution_result_error_taxonomy 8 cases PASS | ADR-0023 + 0033 + 0080 | Sprint 22 (P9) |
 | **23** | **行为回归套件 (AgentAssay-style, 三值 Verdict + Hotelling T²)** | `include/agenticdsl/testing/behavioral_regression.h` + `src/modules/testing/behavioral_regression.cpp` | test_behavioral_regression **6 cases / 13 assertions PASS** | ADR-0061-02 | **Sprint 23 (T14, 2026-08-24 ship)** |
+| **24** | **SkillCompiler V1 (纯函数式 SKILL.md 编译 + T14 自检 + IEvaluator 门 + G11 emit-only)** | `include/agenticdsl/contract/iskill_compiler.h` + `src/modules/cognitive/skill_compiler.cpp` | test_skill_compiler **15 cases / 61 assertions PASS** | ADR-0061-03 | **Sprint 24 (T17, 2026-08-27 ship)** |
 
-**总覆盖**: **23 项已 ship 能力** = L0(5) + L1(5) + L2(4) + L3(5) + L4(4)
+**总覆盖**: **24 项已 ship 能力** = L0(5) + L1(5) + L2(4) + L3(5) + L4(5)
 **v1.1.2 新增**: L4 +1（行为回归套件 — Oracle 评审 "本周最高杠杆" T14 完成）
+**v1.3 新增**: L4 +1（SkillCompiler V1 — T17 ship, B7 自进化"变异对象生成器"落地, 闭环 2 第 4 环接通）
 
 ---
 
@@ -488,6 +490,7 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 | 2026-08-26 | **v1.6** | **Oracle 深度审查 (session `ses_fc3090b49ffe7yJwXhx1MoNz5N`) 落地: ADR-0083 状态统一 + ADR-0084 文件创建 + IEvaluator/IDistillationWriter 代码 ship 待办标注** | (1) §二 G10 "✅ Closed" → "🔍 Proposed (ADR-0083 起草完成, 代码 ship 待办, 2026-08-26 自审修正)"; (2) §二 G11 "issue #14 Approved" → "issue #14 保持 OPEN 直至 ADR-0084 Approved + G11 Closed"; (3) §八.2 闭环 1/2 "评估信号环" 实现状态由 "✅ 已 ship" 改为 "❌ IEvaluator 类代码不存在 (grep 0 命中)"; (4) §八.2 闭环 1 "蒸馏输出格式" 实现状态由 "✅ Closed" 改为 "❌ IDistillationWriter 类代码不存在"; (5) §二 Oracle 评审关键发现段新增 2026-08-26 自审修正说明 (Oracle session 引用); (6) §八.2 闭环 1 "闭环状态" 由 "3 环断裂" → "5 环断裂"; (7) 头部版本 v1.5 → v1.6 + 最后验证 2026-08-26 |
 | 2026-08-26 | **v1.6.1** | **ADR-0083 IEvaluator/RewardSignal 代码 ship 同步** | (1) §二 G10 "🔍 Proposed 代码 ship 待办" → "✅ Closed (ADR-0083 Approved + 代码 ship)"; (2) §八.2 闭环 1/2 "评估信号环" 契约状态 → ✅ Approved + 实现状态 → ✅ IEvaluator 已 ship (12 cases / 31 assertions); (3) §八.2 闭环 1 "闭环状态" 由 "5 环断裂" → "4 环断裂"; (4) 头部版本 v1.6 → v1.6.1 |
 | 2026-08-26 | **v1.7** | **G11 ✅ Closed: ADR-0084 Approved + MutationGovernor V1 gate-and-audit 代码 ship** | (1) §二 G11 "🔍 Proposed (ADR-0084 文件已创建)" → "✅ Closed (ADR-0084 Approved + V1 ship 2026-08-26, commit `a2b2d52`)"; (2) §三 B7 行 "G11 🔍 (ADR-0084 起草中)" → "G11 ✅ Closed (V1 code ship, 2026-08-26)" + T19 Phase 2 commit 解锁; (3) §八.2 闭环 5 "变异治理/授权" 契约状态 → ✅ Approved + 实现状态 → ✅ MutationGovernor 已 ship (13 cases / 139 assertions), "闭环状态" 由 "4 环断裂" → "3 环断裂"; (4) §八.5 排期 12 项追加 "✅ 已完成 (2026-08-26 ship)" 标记; (5) §八.3 T19 行 / §八.4 ADR 需求表 / §八.6 风险段 G11 状态同步 Closed; (6) 头部版本 v1.6.1 → v1.7。决议依据: OpenSpec change `g11-closed-adr-0084-approved` + issue #14 关闭 (2026-08-26) |
+| 2026-08-27 | **v1.8** | **T17 ✅ SHIP: SkillCompiler V1 (ADR-0061-03) 代码落地** | (1) §一 L4 +1 (#24 SkillCompiler V1), 总能力 23 → 24; (2) §八.2 闭环 2 第 4 环 "变异对象" 实现状态 ⚙ 无代码 → ✅ T17 V1 ship, "闭环状态" 由 "3 环断裂" → "2 环断裂" (剩轨迹抽取 + 发布/热加载); (3) §八.3 E 轨 T17 行 APPROVED → ✅ SHIP; (4) 头部版本 v1.7 → v1.8。决议依据: OpenSpec change `2026-08-24-adr-0061-03-skill-compiler` (15 cases / 61 assertions PASS, ADR-0068 附录 A v1.2.2 注册 3 个 skill.compilation.* 主题) |
 **后续追踪**:
 - **下一修订触发**: (1) 任意 §二 open gap ship；(2) 任意 §四/§八工程任务完成；(3) 新应用类型立项；(4) Phase 6 Candidate B 启动；(5) T14-T22 任一 ship/promotion；(6) 5 个新增 ADR 任一获批；(7) **ADR-0071/0074 评审会议召开 + 决议记录**
 - **定期审计**: 每 Sprint 收官同步（`scripts/sprint-closeout.sh` Step 8 加本表交叉检查）
@@ -547,12 +550,12 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 | 1. 观测/事件 | EventLog (能力 20) | ✅ | ✅ | 无 |
 | 2. 轨迹抽取 | Trajectory IR（ADR-0061-06） | ✅ Approved | ⚙ 无代码 | T15 + G14 标题耦合风险 |
 | 3. 评估信号 | IEvaluator / RewardSignal (ADR-0083) | ✅ Approved (代码 ship 2026-08-26) | ✅ IEvaluator 已 ship | G10: ✅ Closed |
-| 4. 变异对象（prompt/skill）| SkillCompiler（ADR-0061-03） | ✅ Approved | ⚙ 无代码 | T17 (依赖 G13) |
+| 4. 变异对象（prompt/skill）| SkillCompiler（ADR-0061-03） | ✅ Approved | ✅ T17 V1 ship (2026-08-27, 15 cases / 61 assertions) | T17 ✅ |
 | 5. 变异治理/授权 | 变异授权契约 (ADR-0084) | ✅ Approved (代码 ship 2026-08-26) | ✅ MutationGovernor 已 ship (13 cases / 139 assertions) | G11: ✅ Closed (2026-08-26) |
 | 6. 等价性回归门 | ADR-0061-02 行为回归 | ✅ Approved | ✅ T14 ship (v1.2) | T14 |
 | 7. 发布/热加载 | ADR-0076 MCP hot-reload + ADR-0038 dynamic config | 🔍 Proposed | ❌ 无 | 外部依赖 |
 
-**闭环状态**: **7 环中 3 环仍断裂**（轨迹抽取、变异对象实现、发布/热加载）；评估契约、变异治理与回归门已经具备，不能据此宣称自进化端到端可用。信用分配和稳定性机制还属于更高阶协同进化前置能力，详见 [`self-evolution-architecture-2026-08.md`](self-evolution-architecture-2026-08.md)。
+**闭环状态**: **7 环中 2 环仍断裂**（轨迹抽取、发布/热加载）；评估契约、变异治理、回归门与变异对象生成器已经具备 (T17 SkillCompiler V1 ship 2026-08-27)，不能据此宣称自进化端到端可用。信用分配和稳定性机制还属于更高阶协同进化前置能力，详见 [`self-evolution-architecture-2026-08.md`](self-evolution-architecture-2026-08.md)。
 
 ### 8.3 T14-T22 任务映射（E 轨工程 + R 轨研究）
 
@@ -565,7 +568,7 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 | **T14**: ~~实施 ADR-0061-02 行为回归套件（AgentAssay 风格，Hotelling T²）~~ → **✅ SHIP (v1.2, 2026-08-25)** | 1 sprint ✅ | 等价性评估门（所有变异循环的安全前提）| B6 蒸馏 + B7 自进化 + 全部 A/B/C 类应用的回归资产 | 无（ADR Approved P0）| G6 衍生 → OpenSpec archived `2026-08-25-2026-08-24-adr-0061-02-behavioral-regression` |
 | **T15**: ✅ **APPROVED** Sprint 25 启动 (G14 评审通过 + T14 ✅) — Trajectory IR (ADR-0061-06)| 2 sprint | 标准化轨迹数据格式 | B6 蒸馏数据标准化 | T14 + G14 标题修订评审 | G14 + G15 |
 | **T16**: ~~SLM 路由（基于已 shipped IModelRouter 契约，新策略 .so）~~ → **✅ SHIP (v1.2, 2026-08-25)** | 1 sprint ✅ | 自动决定何时用小模型 | 蒸馏部署 + 成本优化 | 无（model_router ✅）| T3 v1.1 改名 → OpenSpec archived `2026-08-25-2026-08-24-adr-0061-04-slm-routing` |
-| **T17**: ✅ **APPROVED** Sprint 24 启动 (ADR-0071 评审通过) — SkillCompiler (ADR-0061-03)| 2 sprint | 自动生成改进 prompt | B7 自进化的变异对象 | T14 + ADR-0071 获批 | T4 v1.1 改名 |
+| **T17**: ~~✅ APPROVED Sprint 24 启动~~ → **✅ SHIP (v1.3, 2026-08-27)** — SkillCompiler V1 (ADR-0061-03)| 1 sprint ✅ (原估 2) | 自动生成改进 prompt | B7 自进化的变异对象 | T14 + ADR-0071 获批 | T4 v1.1 改名 → OpenSpec archived `2026-08-24-adr-0061-03-skill-compiler` |
 
 #### R 轨（研究，以 spike 模式立项，设 promotion criteria）
 

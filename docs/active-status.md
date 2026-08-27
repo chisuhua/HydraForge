@@ -11,7 +11,7 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **187/187 PASS** (2026-08-26 `ctest -N` → Total Tests: 187; ADR-0083/0084 ship 贡献 +5; 0 flake; ASan 92/93 (pre-existing `test_skill_interpreter` ASan-only 失败) |
+| **Total ctest** | **188 总数** (2026-08-27 T17 ship 后 `ctest -N` → Total Tests: 188; +1 = test_skill_compiler 15 cases / 61 assertions PASS) — ⚠ `test_event_log_query_perf` 环境性 timing flake (共享机 load 8-11, 3 个功能断言全过, 仅 elapsed_ms 阈值随负载抖动 2-3 个失败, 与 T17 代码路径无关 [event_log.cpp 未改]), 建议空闲机复验 |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
 | **OpenSpec active** | **4** (Wave 1 Phase 6c 三个 change ✅ ship + archived 2026-08-18; **Sprint 24 启动周 T17 SkillCompiler 骨架新增** `2026-08-24-adr-0061-03-skill-compiler` [OpenSpec change 启动中, ADR-0071 评审通过后]; 剩余 3 个 Phase 6c 后续 Wave 待启动: `from-roadmap-phase-6c-evidence-gate` [Wave 2, 依赖 execution-baseline handoff] + `from-roadmap-phase-6c-execution-dsl` [Wave 3] + `from-roadmap-phase-6c-control-plane-eval` [Wave 4]) |

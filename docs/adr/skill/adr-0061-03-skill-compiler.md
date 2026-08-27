@@ -1,7 +1,7 @@
 # ADR-0061-03: SkillCompiler 实施
 
 **日期**: 2026-07-16
-**状态**: ✅ Approved (P0, 父 ADR-0061 拆分)
+**状态**: ✅ Approved (P0, 父 ADR-0061 拆分) — **✅ V1 Shipped 2026-08-27** (Sprint 24 T17, OpenSpec change `2026-08-24-adr-0061-03-skill-compiler`: `include/agenticdsl/contract/iskill_compiler.h` + `include/agenticdsl/types/compiled_skill.h` + `include/agenticdsl/cognitive/skill_compiler.h` + `src/modules/cognitive/skill_compiler.cpp` + `tests/test_skill_compiler.cpp` 15 cases / 61 assertions PASS; V1 边界: 纯函数式编译 + T14 自检 + IEvaluator 质量门 + G11 emit-only 3 事件, 不触发 MutationGovernor / 不含 L4 权重 / TrajectoryPlaceholder 待 T15 替换; ADR-0068 附录 A v1.2.2 注册 3 个 `skill.compilation.*` 主题)
 **父 ADR**: [../adr-0061-agent-evolution-and-solidification.md](../adr-0061-agent-evolution-and-solidification.md)
 
 ---
@@ -83,10 +83,18 @@ public:
 
 ## 实施
 
-- 文件: `src/common/skills/skill_compiler.{h,cpp}`
-- 测试: `tests/test_skill_compiler.cpp`
-- 工作量: 3 weeks
+- 文件: `src/common/skills/skill_compiler.{h,cpp}` (原规划) → **实际 V1 落地 (2026-08-27 T17)**: `include/agenticdsl/contract/iskill_compiler.h` (L1 契约) + `include/agenticdsl/cognitive/skill_compiler.h` + `src/modules/cognitive/skill_compiler.cpp` (V1 实现, 构造注入 IEvaluator + IInteractionBus)
+- 测试: `tests/test_skill_compiler.cpp` (15 cases / 61 assertions)
+- 工作量: 3 weeks (原估) → 实际 V1 0.7 sprint (OpenSpec change 3.5 days 估算口径)
 - 优先级: P0
+
+### V1 ship 范围 (2026-08-27, Sprint 24 T17)
+
+- ✅ 纯函数式 SKILL.md → CompiledSkill (frontmatter 行级解析 + 6 字段 metadata frontmatter 生成)
+- ✅ T14 行为回归自检 (空指纹恒等 → Pass; 真实轨迹接入待 T15)
+- ✅ IEvaluator 质量门 (Poor → quality_poor 拒绝)
+- ✅ G11 emit-only 审计 (skill.compilation.{started,succeeded,failed}, 终态互斥)
+- ⏸ Deferred: SkillRegistry 集成 / 5 轴 TemplateEngine / SLM 路由协同 / PluginLoader `--optimize-skills` 触发 (spec 前瞻场景, 留 V2)
 
 ## 参考
 

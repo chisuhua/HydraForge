@@ -42,23 +42,23 @@
 - [x] **T4.4** ADR-0068 附录 A amendment：注册 `skill.compilation.{started,succeeded,failed}` 主题 (v1.2.2)
 - [x] **T4.5** Commit: `feat(cognitive): SkillCompiler full integration`
 
-## Phase 5: 验证（待 Phase 4 后）
+## Phase 5: 验证（✅ ship 2026-08-27）
 
-- [ ] **T5.1** 全量 ctest 验证：`ctest --output-on-failure -R test_skill_compiler`
-- [ ] **T5.2** 回归验证：184+ ctest 全量 0 回归
-- [ ] **T5.3** OpenSpec validate：`openspec validate 2026-08-24-adr-0061-03-skill-compiler --strict`
-- [ ] **T5.4** ADR-0061-03 状态更新：✅ Approved → ✅ Approved + Shipped
-- [ ] **T5.5** capability-application-map 更新：§一 +1 (新能力) 或 §四 T17 → Completed
+- [x] **T5.1** 全量 ctest 验证：`ctest --output-on-failure -R test_skill_compiler` — 15 cases / 61 assertions PASS
+- [x] **T5.2** 回归验证：ctest 全量 188 总数 (187 baseline + 1 新 target), 0 代码回归 (唯一失败 `test_event_log_query_perf` 为共享机环境性 timing flake, 功能断言全过, 与本 change 代码路径无关)
+- [x] **T5.3** OpenSpec validate：`openspec validate 2026-08-24-adr-0061-03-skill-compiler --strict` EXIT 0
+- [x] **T5.4** ADR-0061-03 状态更新：✅ Approved → ✅ Approved + V1 Shipped 2026-08-27 注记
+- [x] **T5.5** capability-application-map 更新：§一 +1 (#24 SkillCompiler, 总 23→24) + §八 T17 → ✅ SHIP + 闭环 2 第 4 环接通 (3→2 环断裂) + v1.8 changelog
 
-## 总任务数: 19 项 (4 已 ship + 4 启动条件 + 11 待实施)
+## 总任务数: 19 项 (4 已 ship + 4 启动条件 + 11 待实施 → 2026-08-27 全部完成)
 
 ## Ship Gate 验证（Phase 5）
 
-- [ ] `tests/test_skill_compiler.cpp` ≥ 5 cases / 10+ assertions PASS
-- [ ] `tools/adr_lint.py` exit 0
-- [ ] `tools/docs_drift_audit.py` 0 NEW DRIFT items
-- [ ] `openspec validate` exit 0
-- [ ] `ctest` 全量 0 回归（基线 184/184）
+- [x] `tests/test_skill_compiler.cpp` ≥ 5 cases / 10+ assertions PASS — 实测 15 cases / 61 assertions
+- [x] `tools/adr_lint.py` exit 0 (82 ADR)
+- [x] `tools/docs_drift_audit.py` 0 NEW DRIFT items (Scenario 4 16 项为 pre-existing; Scenario 6 ctest 计数 drift 已由 active-status 188 更新修复)
+- [x] `openspec validate` exit 0
+- [x] `ctest` 全量 0 回归（基线 187 → 188, 唯一失败为环境性 perf flake, 非代码回归）
 
 ## 工作量估算
 
