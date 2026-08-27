@@ -7,7 +7,8 @@
 //            4. T14 行为回归自检 (空指纹恒等比较 → Pass; V1 模板包装不改语义)
 //            5. 生成编译产物 (6 字段 metadata frontmatter + 原 body)
 //            6. emit skill.compilation.succeeded / failed (终态只 emit 一个)
-//          V1 边界: TrajectoryPlaceholder 合成输入 (T15 DEFERRED);
+//          V1 边界: TrajectoryIR::hash(CanonicalIR{}) 空快照 (T15 ship;
+//          真实轨迹提取 V2 集成 ADR-0061-13);
 //          SLM 路由 / PluginLoader 触发为 spec 前瞻场景, 本 V1 不实施。
 // 设计依据：docs/adr/skill/adr-0061-03-skill-compiler.md §决策 1-3
 //          + openspec/changes/2026-08-24-adr-0061-03-skill-compiler/specs/skill-compiler/spec.md
@@ -17,6 +18,7 @@
 #include "agenticdsl/cognitive/skill_compiler.h"
 
 #include "agenticdsl/contract/event_builder.h"
+#include "agenticdsl/ir/trajectory_ir.h"  // T15: TrajectoryIR::hash
 #include "agenticdsl/testing/behavioral_regression.h"
 #include "agenticdsl/types/execution_trace.h"
 #include "core/types/tool_result.h"
@@ -150,8 +152,11 @@ CompiledSkill SkillCompiler::compile(const std::string& skill_md_content) const 
 
   // T14 行为回归自检 (V1: 模板包装不改变执行语义, baseline == candidate
   // 空指纹恒等比较必为 Pass; T15 ship 后接入真实执行指纹)
-  const TrajectoryPlaceholder trajectory{};  // T1.3 DEFERRED 占位
-  result.trajectory_ir_hash = trajectory.hash();
+  // T15 ship: trajectory_ir_hash 由 TrajectoryIR::hash(CanonicalIR) 生成
+  // V1 简化: 空 CanonicalIR 快照 (真实轨迹从 ExecutionSession 提取留 V2,
+  //         集成 ADR-0061-13 DistillationRecord)
+  const ir::TrajectoryIR::CanonicalIR canonical{};
+  result.trajectory_ir_hash = ir::TrajectoryIR::hash(canonical);
   {
     BehaviorFingerprint baseline = compute_fingerprint({});
     baseline.label = "baseline";

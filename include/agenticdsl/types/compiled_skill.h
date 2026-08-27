@@ -1,35 +1,17 @@
 // include/agenticdsl/types/compiled_skill.h
 // 功能描述：CompiledSkill 值类型 (T17, ADR-0061-03 SkillCompiler 编译产物)
-//          + TrajectoryPlaceholder (T15 Trajectory IR 软依赖 V1 占位结构,
-//            T15 ship 后无缝替换为 CanonicalIR, 见 tasks.md T1.3 DEFERRED)
+//          trajectory_ir_hash 由 TrajectoryIR::hash(CanonicalIR) 生成
+//          (T15 ship 2026-08-27, V1 占位结构已删除,
+//           见 agenticdsl/ir/trajectory_ir.h)
 // 设计依据：openspec/changes/2026-08-24-adr-0061-03-skill-compiler/specs/skill-compiler/spec.md
 //          "编译 metadata 持久化" Requirement (frontmatter 6 字段)
 // 作者：HydraForge Sprint 24 T17 ship
-// 最后修改日期：2026-08-27
+// 最后修改日期：2026-08-27 (T15: 占位结构 → TrajectoryIR 升级)
 #pragma once
 
-#include <cstdint>
-#include <sstream>
 #include <string>
 
 namespace agenticdsl {
-
-// ============================================================================
-// TrajectoryPlaceholder — T15 Trajectory IR (ADR-0061-06 v1.1) V1 占位
-// V1 边界: 仅持有 opaque 原始文本 + 确定性 hash; 不做结构化解析。
-// T15 ship 后由 CanonicalIR 替换, 本结构保留 hash() 语义以兼容编译 metadata。
-// ============================================================================
-struct TrajectoryPlaceholder {
-  std::string raw;  // 不透明轨迹文本 (V1: 可为空 = 无轨迹输入)
-
-  // 确定性 hash (std::hash 十六进制, 空输入亦产生非空稳定值)
-  // 用于编译 frontmatter 的 trajectory_ir_hash 字段
-  std::string hash() const {
-    std::ostringstream oss;
-    oss << std::hex << std::hash<std::string>{}(raw);
-    return oss.str();
-  }
-};
 
 // ============================================================================
 // CompiledSkill — SkillCompiler::compile() 编译产物 (值类型, 纯数据)
@@ -45,7 +27,7 @@ struct CompiledSkill {
   std::string compiled_content;             // 编译产物 markdown (含 metadata frontmatter)
   std::string compiler_version = "skill-compiler-v1.0.0";
   std::string compiled_at;                  // ISO 8601 时间戳 (编译完成时刻)
-  std::string trajectory_ir_hash;           // TrajectoryPlaceholder::hash()
+  std::string trajectory_ir_hash;           // TrajectoryIR::hash(CanonicalIR) (T15)
   double ievaluator_score = 0.0;            // IEvaluator scalar [-1.0, 1.0] (无评估器时 0.0)
   std::string regression_verdict = "NotRun";  // T14 Verdict: Pass/Fail/Inconclusive/NotRun
   std::string failure_reason;               // ok=false 时的失败分类原因

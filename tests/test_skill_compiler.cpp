@@ -12,6 +12,7 @@
 #include "agenticdsl/contract/iskill_compiler.h"
 #include "agenticdsl/types/compiled_skill.h"
 #include "agenticdsl/cognitive/skill_compiler.h"
+#include "agenticdsl/ir/trajectory_ir.h"  // T15: TrajectoryIR::hash 集成验证
 
 #include "agenticdsl/contract/bus_event.h"
 #include "agenticdsl/contract/ievaluator.h"
@@ -46,12 +47,13 @@ TEST_CASE("CompiledSkill default-constructed fields", "[skill_compiler][phase2]"
 }
 
 // ============================================================================
-// Phase 2 骨架 Case 3: TrajectoryPlaceholder (T15 软依赖占位)
+// Phase 2 骨架 Case 3: CompiledSkill trajectory_ir_hash 默认为空
+// (T15: TrajectoryPlaceholder 占位已删除, 升级为 TrajectoryIR::hash)
 // ============================================================================
-TEST_CASE("TrajectoryPlaceholder default is empty", "[skill_compiler][phase2]") {
-  TrajectoryPlaceholder tp;
-  REQUIRE(tp.raw.empty());
-  REQUIRE(tp.hash().empty() == false);  // 空输入仍有确定性 hash
+TEST_CASE("CompiledSkill trajectory_ir_hash default empty",
+          "[skill_compiler][phase2]") {
+  CompiledSkill cs;
+  REQUIRE(cs.trajectory_ir_hash.empty());
 }
 
 // ============================================================================
@@ -97,6 +99,21 @@ Use this skill for testing.
 )";
 
 }  // namespace
+
+// ============================================================================
+// T15: CompiledSkill.trajectory_ir_hash 由 TrajectoryIR::hash 生成
+// (替换 TrajectoryPlaceholder 占位, spec "真实 TrajectoryIR hash 集成")
+// ============================================================================
+TEST_CASE("compiled_skill_trajectory_ir_hash", "[skill_compiler][t15]") {
+  SkillCompiler compiler;
+  auto cs = compiler.compile(kBasicSkillMd);
+  REQUIRE(cs.ok == true);
+  REQUIRE(cs.trajectory_ir_hash.empty() == false);
+  // V1: 编译时空 CanonicalIR 输入 (真实轨迹提取 V2 集成)
+  const auto expected =
+      ir::TrajectoryIR::hash(ir::TrajectoryIR::CanonicalIR{});
+  REQUIRE(cs.trajectory_ir_hash == expected);
+}
 
 TEST_CASE("compile_basic_skill produces valid CompiledSkill",
           "[skill_compiler][phase3]") {
