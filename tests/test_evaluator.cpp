@@ -375,6 +375,66 @@ TEST_CASE("composite_weights_mismatch_throws", "[evaluator][v2][phase4]") {
 }
 
 // =====================================================================
+// Phase 4: V2 集成测试 (evaluator-v2-composite, T2)
+// =====================================================================
+TEST_CASE("v1_v2_coexistence", "[evaluator][v2][phase4]") {
+    auto bus = std::make_shared<InMemoryBus>();
+    std::atomic<int> eval_event_count{0};
+    std::mutex payload_mutex;
+    nlohmann::json last_payload;
+    bus->subscribe("evaluation.result", [&](const BusEvent& e) {
+        std::lock_guard<std::mutex> lock(payload_mutex);
+        last_payload = e.payload.data;
+        ++eval_event_count;
+    });
+
+    // CompositeEvaluator 同时包装 V1 (TaskSuccessEvaluator) + V2 (BehavioralEquivalenceEvaluator)
+    auto v1 = std::make_shared<TaskSuccessEvaluator>();
+    auto v2 = std::make_shared<BehavioralEquivalenceEvaluator>();
+    auto composite = std::make_shared<CompositeEvaluator>(
+        std::vector<std::shared_ptr<IEvaluator>>{v1, v2},
+        std::vector<double>{1.0, 1.0});
+
+    auto engine = make_engine_with_mock(R"({"tool":"echo","args":{"message":"hi"}})");
+    register_echo_tool(*engine);
+    CognitiveWorker worker(std::move(engine), bus);
+    worker.set_evaluator(composite);
+    worker.start();
+    worker.submit_task("v2-coexist-1", "hello");
+
+    wait_until([&] { return eval_event_count.load() == 1; });
+    worker.stop();
+
+    // V1 与 V2 共存互不干扰: V1 返回 Excellent (quality), 复合 quality 取众数平局取高 → Excellent
+    std::lock_guard<std::mutex> lock(payload_mutex);
+    REQUIRE(last_payload.contains("quality"));
+    REQUIRE(last_payload["quality"] == "Excellent");
+}
+
+TEST_CASE("composite_with_v1_inside", "[evaluator][v2][phase4]") {
+    // CompositeEvaluator 包装 V1 TaskSuccessEvaluator → V1 在 V2 内正常工作
+    auto v1 = std::make_shared<TaskSuccessEvaluator>();
+    CompositeEvaluator composite(
+        std::vector<std::shared_ptr<IEvaluator>>{v1},
+        std::vector<double>{1.0});
+
+    ExecutionTrace ok_trace, bad_trace;
+    ok_trace.final_result = ToolResult::success("ok");
+    bad_trace.final_result = ToolResult::error(ErrorCode::Unknown, "bad");
+
+    auto ok_signal = composite.evaluate(ok_trace);
+    REQUIRE(ok_signal.quality == RewardSignal::Quality::Excellent);
+    REQUIRE(ok_signal.scalar == Catch::Approx(1.0));
+
+    auto bad_signal = composite.evaluate(bad_trace);
+    REQUIRE(bad_signal.quality == RewardSignal::Quality::Poor);
+    REQUIRE(bad_signal.scalar == Catch::Approx(-1.0));
+
+    // compare: V1 恒返回 0 → composite 也返回 0
+    REQUIRE(composite.compare(ok_trace, bad_trace) == 0);
+}
+
+// =====================================================================
 // Phase 4: V2 评估器 — BehavioralEquivalenceEvaluator (evaluator-v2-composite, T0)
 // =====================================================================
 TEST_CASE("behavioral_equivalence_compare_pass_pair", "[evaluator][v2][phase4]") {
