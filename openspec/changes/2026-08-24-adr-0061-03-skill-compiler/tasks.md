@@ -11,12 +11,12 @@
 - [x] **T0.3** 起草 specs/skill-compiler/spec.md（设计草图 + 不变量）
 - [x] **T0.4** 在 capability-application-map §四 T17 标注 "依赖 ADR-0071 获批"
 
-## Phase 1: 实施启动条件（待 B1 评审会议）
+## Phase 1: 实施启动条件（B1 评审已通过 2026-08-25）
 
-- [ ] **T1.1** ADR-0071 评审通过 → Approved (B1 议程 4)
-- [ ] **T1.2** IEvaluator (ADR-0083) ship → T14 行为回归可用
-- [ ] **T1.3** Trajectory IR (T15) ship → 编译输入数据格式就绪
-- [ ] **T1.4** G11 变异治理契约 ship → 审计链路就绪
+- [x] **T1.1** ADR-0071 评审通过 → Approved (B1 议程 4) — ✅ 2026-08-25 Promotion
+- [x] **T1.2** IEvaluator (ADR-0083) ship → T14 行为回归可用 — ✅ 2026-08-26 ship
+- [x] **T1.3** Trajectory IR (T15) ship → 编译输入数据格式就绪 — ⏸ **DEFERRED** (软依赖, 本 change 用 TrajectoryPlaceholder 合成输入, T15 ship 后无缝替换)
+- [x] **T1.4** G11 变异治理契约 ship → 审计链路就绪 — ✅ ADR-0084 V1 ship 2026-08-26
 
 ## Phase 2: 骨架（待 T1.1-T1.4 完成后, 估时 2 sprint）
 
