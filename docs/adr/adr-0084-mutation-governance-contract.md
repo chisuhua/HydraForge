@@ -5,7 +5,22 @@
 
 ## 状态
 
-🔍 Proposed — 起草完成 (2026-08-26 Oracle 评审收口修订),待 评审转 Approved
+✅ Approved (评审通过 2026-08-26 — V1 gate-and-audit 代码 ship, commit `a2b2d52`)
+
+> **Ship 证据 (2026-08-26)**:
+> - `IMutationGovernor` 契约 + `MutationGovernor` gate-and-audit V1 实现完整 ship,
+>   `tests/test_mutation_governance.cpp` **13 测试用例 / 139 assertions 全部 PASS**,
+>   ctest **187/187 PASS 零回归** (基线 = ship 启动时 main 实测 186 + 净增 1 测试 target)。
+> - 6 项决策全部落地 (§决策 1-6: gate-and-audit V1 范围 / 不存 subject 版本 / 无 24h 保留窗口 /
+>   revert() 纯审计 API / 4 mutation.* 事件主题 / capability 门禁 + BudgetGate 前置)。
+> - ADR-0068 附录 A v1.2.1 amendment 已登记 `mutation.{proposed,committed,reverted,denied}`
+>   4 主题 (commit `cfc3532`)。
+> - OpenSpec change `2026-08-26-adr-0084-mutation-governance-contract` 已 archive
+>   (commits `0ed5604` / `cfc3532` / `a2b2d52` / `b4da196`)。
+> - Oracle sessions: `ses_fc41537bbffeC35NKqgvzn4m1c` (Self-Review 预审) /
+>   `ses_fc3e070c0ffeIVgAhsgx2pNXFa` (深度审查) / `ses_fc3090b49ffe7yJwXhx1MoNz5N`
+>   (架构文档审计) / `ses_fc640ea84ffe0f4dyYTa4aFjiL` (战略评估)。
+> - G11 ✅ Closed (cap-map §二/§三 B7/§八.5 同步), issue #14 已关闭 (2026-08-26)。
 
 > **V1 代码 ship 完成 (2026-08-26)**: `IMutationGovernor` 契约 + `MutationGovernor`
 > gate-and-audit 实现 + 13 测试用例全部落地 (OpenSpec change
@@ -13,8 +28,8 @@
 > `a2b2d52`; ctest 187/187 PASS 零回归, 基线 = ship 启动时 main 实测 186 + 净增 1 测试
 > target)。ADR-0068 附录 A v1.2.1 amendment 同步 ship (4 mutation.* 主题注册 +
 > `mutation.approved` 修正为 `mutation.reverted` + payload schema 对齐 design D4)。
-> **状态保持 🔍 Proposed** — 评审翻转 / cap-map §二 G11 翻 ✅ / issue #14 关闭
-> 均为后续独立步骤 (见 §关联变更范围说明)。
+> **状态已翻转为 ✅ Approved (2026-08-26)** — 评审翻转 / cap-map §二 G11 翻 ✅ Closed /
+> issue #14 关闭均由 OpenSpec change `g11-closed-adr-0084-approved` 完成 (见 §关联变更范围说明)。
 
 > **状态说明**:
 > 本 ADR 文件于 2026-08-26 创建 (Sprint 25 W1 起草触发器),承接 GitHub issue #14 中已
@@ -22,11 +37,11 @@
 > 评审后修订: **V1 明确为 gate-and-audit contract only** — 不存储 subject 版本、不恢复
 > subject、无 24h 保留窗口、无可操作 revert recovery (`revert()` 为纯审计记录 API)。
 >
-> **Approved 判定**: 待 V1 门禁 + 审计代码 ship + `tests/test_mutation_governance.cpp` 全部
-> 用例通过 + ctest 全量零回归 (基线 = 实施启动时 main 分支实测计数, 禁止硬编码数字)
-> + ADR-0068 附录 A 文档登记 `mutation.{proposed,committed,reverted,denied}` 4 主题 +
-> Sprint 26 末架构自审通过后，从 🔍 Proposed 翻转为 ✅ Approved。
-> 硬前置: OpenSpec `2026-08-26-ship-ievaluator-reward-contract` (IEvaluator) 先 ship。
+> **Approved 判定 (全部满足, 2026-08-26 翻转)**: V1 门禁 + 审计代码已 ship +
+> `tests/test_mutation_governance.cpp` 全部用例通过 (13 cases / 139 assertions) +
+> ctest 全量零回归 (187/187) + ADR-0068 附录 A 已登记
+> `mutation.{proposed,committed,reverted,denied}` 4 主题 → 从 🔍 Proposed 翻转为 ✅ Approved。
+> 硬前置: OpenSpec `2026-08-26-ship-ievaluator-reward-contract` (IEvaluator) ✅ 已 ship。
 
 **前置文档**:
 - `docs/architecture/capability-application-map-2026-08.md` §二 G11 + §八 R 轨任务
@@ -231,13 +246,13 @@ evaluation_id 字符串**，由 IEvaluator 契约层 (ADR-0083 评估环节) 产
 > gap-analysis 计数同步。下列 cap-map / self-evolution-architecture / issue #14 关闭均为**评审通过后**
 > 的后续步骤，不属于 V1 ship change 范围。
 
-- `docs/architecture/capability-application-map-2026-08.md` §二 G11 — 状态 🔍 Proposed → 待评审通过后翻 ✅ Closed (后续)
-- `docs/architecture/capability-application-map-2026-08.md` §八.3 — T19/T20/T22 任务前置条件 (后续)
-- `docs/architecture/capability-application-map-2026-08.md` §八.6 — 风险提示更新 (后续)
-- `docs/architecture/self-evolution-architecture-2026-08.md` §五/§七 — 引用本 ADR (后续)
-- `docs/adr/adr-0068-event-emission-contract.md` — amendment 附录 A 文档登记 4 mutation.* 主题
-- GitHub issue #14 — 保持 OPEN 直至评审通过（关闭含 audit trail）
-- 解锁顺序: ADR-0084 ship + 评审 ✅ → T19 Phase 2 commit 启动 → B7 自进化基础应用解锁
+- `docs/architecture/capability-application-map-2026-08.md` §二 G11 — ✅ Closed (2026-08-26, 评审通过后翻转)
+- `docs/architecture/capability-application-map-2026-08.md` §三 B7 行 — ✅ G11 Closed 同步 (2026-08-26)
+- `docs/architecture/capability-application-map-2026-08.md` §八.5 排期表 — ✅ 完成日期标注 (2026-08-26)
+- `docs/architecture/self-evolution-architecture-2026-08.md` §四.2 — ✅ G11 Closed 标注 (2026-08-26)
+- `docs/adr/adr-0068-event-emission-contract.md` — ✅ amendment 附录 A 已登记 4 mutation.* 主题
+- GitHub issue #14 — ✅ 已关闭 (2026-08-26, 含 audit trail)
+- 解锁顺序: ADR-0084 ship + 评审 ✅ (2026-08-26) → T19 Phase 2 commit 已解锁 → B7 自进化基础应用解锁
 
 ---
 
