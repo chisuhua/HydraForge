@@ -47,10 +47,10 @@
 
 ## Phase 1: 反思循环核心 (估时 0.6 sprint)
 
-- [ ] **T1.1** Write failing test: `reflection_loop_basic_flow`（失败 trace → 反思 → 修订候选 → 回归 Pass → commit success）
-- [ ] **T1.2** Write failing test: `reflection_loop_no_improvement`（3 次迭代仍无改进 → return success=false）
-- [ ] **T1.3** Verify fail: 2 cases FAIL（reflect_and_commit 未实现）
-- [ ] **T1.4** Implement: `src/modules/cognitive/gepa_loop.cpp`
+- [x] **T1.1** Write failing test: `reflection_loop_basic_flow`（失败 trace → 反思 → 修订候选 → 回归 Pass → commit success）
+- [x] **T1.2** Write failing test: `reflection_loop_no_improvement`（3 次迭代仍无改进 → return success=false）
+- [x] **T1.3** Verify fail: 2 cases FAIL（reflect_and_commit 未实现）
+- [x] **T1.4** Implement: `src/modules/cognitive/gepa_loop.cpp`
   - `reflect_and_commit(failed_trace)`:
     1. 调用 `MutationGovernor::propose(MutationContext{source_id, "L1_prompt", subject_ref, evaluation_refs})`
     2. 调用 `TrajectoryIR::from_parsed_graph(failed_trace)` 序列化失败轨迹
@@ -60,8 +60,8 @@
     6. 调用 `IEvaluator::evaluate(new_trace)` 通过 CompositeEvaluator 加权评估
     7. 若新 reward > failed reward + threshold → 调用 `MutationGovernor::commit()` + emit `gepa.commit.committed`
     8. 否则 → emit `gepa.commit.denied` + 迭代下一轮
-- [ ] **T1.5** Verify pass: 2 cases PASS + Phase 0 编译通过
-- [ ] **T1.6** Commit: `feat(cognitive): GEPALoop reflection + commit core flow (T1)`
+- [x] **T1.5** Verify pass: 2 cases PASS + Phase 0 编译通过
+- [x] **T1.6** Commit: `feat(cognitive): GEPALoop reflection + commit core flow (T1)`
 
 ## Phase 2: 事件发射 + ADR-0068 集成 (估时 0.3 sprint)
 

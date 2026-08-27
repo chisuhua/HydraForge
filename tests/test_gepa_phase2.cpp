@@ -62,11 +62,16 @@ public:
 class StubEvaluator : public IEvaluator {
 public:
   RewardSignal::Quality quality = RewardSignal::Quality::Excellent;
+  bool score_by_ok = false;
   mutable int evaluate_calls = 0;
   mutable int compare_calls = 0;
 
-  RewardSignal evaluate(const ExecutionTrace& /*trace*/) const override {
+  RewardSignal evaluate(const ExecutionTrace& trace) const override {
     ++evaluate_calls;
+    if (score_by_ok) {
+      return trace.final_result.ok ? RewardSignal::excellent(0.9)
+                                   : RewardSignal::poor(0.9);
+    }
     if (quality == RewardSignal::Quality::Excellent) {
       return RewardSignal::excellent(0.9);
     }
@@ -188,6 +193,7 @@ TEST_CASE("gepa_loop_initialization", "[gepa][phase2][phase0]") {
 
 TEST_CASE("gepa_loop_failed_detection", "[gepa][phase2][phase0]") {
   auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
   auto governor = std::make_shared<StubMutationGovernor>();
   auto llm = std::make_shared<MockLLMProvider>();
   GEPALoop loop(evaluator, governor, llm);
@@ -201,6 +207,7 @@ TEST_CASE("gepa_loop_failed_detection", "[gepa][phase2][phase0]") {
 
 TEST_CASE("gepa_loop_trajectory_serialization", "[gepa][phase2][phase0]") {
   auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
   auto governor = std::make_shared<StubMutationGovernor>();
   auto llm = std::make_shared<MockLLMProvider>();
   GEPALoop loop(evaluator, governor, llm);
@@ -214,6 +221,7 @@ TEST_CASE("gepa_loop_trajectory_serialization", "[gepa][phase2][phase0]") {
 
 TEST_CASE("gepa_loop_reflection_generation", "[gepa][phase2][phase0]") {
   auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
   auto governor = std::make_shared<StubMutationGovernor>();
   auto llm = std::make_shared<MockLLMProvider>();
   GEPALoop loop(evaluator, governor, llm);
@@ -227,6 +235,7 @@ TEST_CASE("gepa_loop_reflection_generation", "[gepa][phase2][phase0]") {
 
 TEST_CASE("gepa_loop_skill_compilation", "[gepa][phase2][phase0]") {
   auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
   auto governor = std::make_shared<StubMutationGovernor>();
   auto llm = std::make_shared<MockLLMProvider>();
   GEPALoop loop(evaluator, governor, llm);
@@ -240,6 +249,7 @@ TEST_CASE("gepa_loop_skill_compilation", "[gepa][phase2][phase0]") {
 
 TEST_CASE("gepa_loop_regression_validation", "[gepa][phase2][phase0]") {
   auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
   auto governor = std::make_shared<StubMutationGovernor>();
   auto llm = std::make_shared<MockLLMProvider>();
   GEPALoop loop(evaluator, governor, llm);
@@ -253,6 +263,7 @@ TEST_CASE("gepa_loop_regression_validation", "[gepa][phase2][phase0]") {
 
 TEST_CASE("gepa_loop_evaluation_gate", "[gepa][phase2][phase0]") {
   auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
   auto governor = std::make_shared<StubMutationGovernor>();
   auto llm = std::make_shared<MockLLMProvider>();
   GEPALoop loop(evaluator, governor, llm);
@@ -266,6 +277,7 @@ TEST_CASE("gepa_loop_evaluation_gate", "[gepa][phase2][phase0]") {
 
 TEST_CASE("gepa_loop_commit_authorization", "[gepa][phase2][phase0]") {
   auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
   auto governor = std::make_shared<StubMutationGovernor>();
   auto llm = std::make_shared<MockLLMProvider>();
   GEPALoop loop(evaluator, governor, llm);
@@ -275,4 +287,44 @@ TEST_CASE("gepa_loop_commit_authorization", "[gepa][phase2][phase0]") {
 
   // Phase 0: 占位 — 实现后应调用 MutationGovernor::commit
   REQUIRE(result.success);
+}
+// ============================================================================
+// Phase 1: 反思循环核心 (2 cases)
+// ============================================================================
+
+TEST_CASE("reflection_loop_basic_flow", "[gepa][phase2][phase1]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
+  auto governor = std::make_shared<StubMutationGovernor>();
+  auto llm = std::make_shared<MockLLMProvider>();
+  GEPALoop::Config config;
+  config.reward_threshold = 0.0;
+  config.max_iterations = 3;
+  GEPALoop loop(evaluator, governor, llm, config);
+
+  ExecutionTrace trace = make_failed_trace("basic_flow");
+  GEPALoop::ReflectionResult result = loop.reflect_and_commit(trace);
+
+  REQUIRE(result.success);
+  REQUIRE(governor->propose_calls > 0);
+  REQUIRE(governor->commit_calls > 0);
+  REQUIRE(result.candidate_skills.size() == 1);
+}
+
+TEST_CASE("reflection_loop_no_improvement", "[gepa][phase2][phase1]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->quality = RewardSignal::Quality::Acceptable;
+  auto governor = std::make_shared<StubMutationGovernor>();
+  auto llm = std::make_shared<MockLLMProvider>();
+  GEPALoop::Config config;
+  config.reward_threshold = 0.0;
+  config.max_iterations = 3;
+  GEPALoop loop(evaluator, governor, llm, config);
+
+  ExecutionTrace trace = make_failed_trace("no_improve");
+  GEPALoop::ReflectionResult result = loop.reflect_and_commit(trace);
+
+  REQUIRE_FALSE(result.success);
+  REQUIRE(result.failure_mode == "no_improvement");
+  REQUIRE(governor->commit_calls == 0);
 }
