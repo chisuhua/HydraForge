@@ -18,21 +18,21 @@
 - [x] **T1.3** Trajectory IR (T15) ship → 编译输入数据格式就绪 — ⏸ **DEFERRED** (软依赖, 本 change 用 TrajectoryPlaceholder 合成输入, T15 ship 后无缝替换)
 - [x] **T1.4** G11 变异治理契约 ship → 审计链路就绪 — ✅ ADR-0084 V1 ship 2026-08-26
 
-## Phase 2: 骨架（待 T1.1-T1.4 完成后, 估时 2 sprint）
+## Phase 2: 骨架（✅ ship 2026-08-27, commit `5640326`）
 
-- [ ] **T2.1** Write failing test: `tests/test_skill_compiler.cpp` 骨架（≥ 5 cases 占位）
-- [ ] **T2.2** Verify fail: 编译失败（无实现）
-- [ ] **T2.3** Implement minimal: `include/agenticdsl/contract/iskill_compiler.h` 接口声明
-- [ ] **T2.4** Verify pass: 编译成功, 5 个 TEST_CASE 编译通过
-- [ ] **T2.5** Commit: `feat(cognitive): SkillCompiler interface skeleton (T17)`
+- [x] **T2.1** Write failing test: `tests/test_skill_compiler.cpp` 骨架（≥ 5 cases 占位）
+- [x] **T2.2** Verify fail: 编译失败（无实现）
+- [x] **T2.3** Implement minimal: `include/agenticdsl/contract/iskill_compiler.h` 接口声明
+- [x] **T2.4** Verify pass: 编译成功, 5 个 TEST_CASE 编译通过
+- [x] **T2.5** Commit: `feat(cognitive): SkillCompiler interface skeleton (T17)`
 
-## Phase 3: 核心编译逻辑（待 Phase 2 后, 估时 1 sprint）
+## Phase 3: 核心编译逻辑（✅ ship 2026-08-27）
 
-- [ ] **T3.1** Write failing test: `compile_basic_skill` (输入 SKILL.md → 输出编译产物)
-- [ ] **T3.2** Verify fail: 实现返回原 skill
-- [ ] **T3.3** Implement: SKILL.md 解析 + 优化模板生成
-- [ ] **T3.4** Verify pass: 编译产物结构正确
-- [ ] **T3.5** Commit: `feat(cognitive): SKILL.md compile basic flow`
+- [x] **T3.1** Write failing test: `compile_basic_skill` (输入 SKILL.md → 输出编译产物)
+- [x] **T3.2** Verify fail: 实现返回原 skill
+- [x] **T3.3** Implement: SKILL.md 解析 + 优化模板生成
+- [x] **T3.4** Verify pass: 编译产物结构正确 (10 cases / 36 assertions)
+- [x] **T3.5** Commit: `feat(cognitive): SKILL.md compile basic flow`
 
 ## Phase 4: 集成（待 Phase 3 后, 估时 1 sprint）
 

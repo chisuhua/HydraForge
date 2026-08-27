@@ -14,10 +14,12 @@ add_library(agenticdsl_modules_cognitive STATIC
     cognitive_worker.cpp    # Sprint 2: 认知智能体工作线程
     domain_worker_pool.cpp  # Sprint 3: 领域智能体工作线程池
     agent_composition.cpp   # Sprint 22 P8: Agent 编排模式实现
+    skill_compiler.cpp      # Sprint 24 T17: SkillCompiler V1 (ADR-0061-03)
 )
 
 target_link_libraries(agenticdsl_modules_cognitive PUBLIC
     agenticdsl_includes
     agenticdsl_common
     agenticdsl_core
+    agenticdsl_modules_testing  # Sprint 24 T17: T14 行为回归自检 (hotelling_t2_test)
 )
