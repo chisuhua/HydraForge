@@ -79,16 +79,16 @@
 
 ## Phase 3: E2E 集成测试 (估时 0.3 sprint)
 
-- [ ] **T3.1** Write failing test: `gepa_e2e_with_real_evaluator_v2`（注入真实 IEvaluator V2 CompositeEvaluator）
-- [ ] **T3.2** Write failing test: `gepa_e2e_with_real_mutation_governor`（注入真实 MutationGovernor + 真实 IApprovalHandler mock）
-- [ ] **T3.3** Write failing test: `gepa_e2e_regression_decline_aborts`（修订导致回归 → abort，不 commit）
-- [ ] **T3.4** Verify fail: 3 cases FAIL（集成场景）
-- [ ] **T3.5** Implement: E2E 测试 mock：
+- [x] **T3.1** Write failing test: `gepa_e2e_with_real_evaluator_v2`（注入真实 IEvaluator V2 CompositeEvaluator）
+- [x] **T3.2** Write failing test: `gepa_e2e_with_real_mutation_governor`（注入真实 MutationGovernor + 真实 IApprovalHandler mock）
+- [x] **T3.3** Write failing test: `gepa_e2e_regression_decline_aborts`（修订导致回归 → abort，不 commit）
+- [x] **T3.4** Verify fail: 3 cases FAIL（集成场景）
+- [x] **T3.5** Implement: E2E 测试 mock：
   - Mock ILLMProvider（返回固定 prompt 修订候选）
   - Mock IApprovalHandler（agent 模式返回 true）
   - 真实 IEvaluator V2 + MutationGovernor + BehavioralRegressionGate
-- [ ] **T3.6** Verify pass: 3 cases PASS
-- [ ] **T3.7** Commit: `test(gepa): E2E integration with real V2 evaluator + G11 governor (T3)`
+- [x] **T3.6** Verify pass: 3 cases PASS
+- [x] **T3.7** Commit: `test(gepa): E2E integration with real V2 evaluator + G11 governor (T3)`
 
 ## Phase 4: 文档同步 + ship 验证 (估时 0.2 sprint)
 

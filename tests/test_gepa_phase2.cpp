@@ -12,6 +12,7 @@
 #include "agenticdsl/cognitive/gepa_loop.h"
 #include "agenticdsl/contract/ievaluator.h"
 #include "agenticdsl/contract/imutation_governance.h"
+#include "common/governance/mutation_governor.h"
 #include "agenticdsl/contract/iinteraction_bus.h"
 #include "agenticdsl/policy/iapproval_handler.h"
 #include "agenticdsl/contract/event_builder.h"
@@ -24,6 +25,7 @@
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 using namespace agenticdsl;
@@ -357,4 +359,56 @@ TEST_CASE("gepa_event_emission", "[gepa][phase2][phase2]") {
   REQUIRE(std::count_if(events.begin(), events.end(), [](const BusEvent* event) {
     return event->topic == "gepa.commit.committed";
   }) == 1);
+}
+
+TEST_CASE("gepa_e2e_with_real_evaluator_v2", "[gepa][phase2][phase3]") {
+  auto base = std::make_shared<StubEvaluator>();
+  base->score_by_ok = true;
+  auto equivalent = std::make_shared<BehavioralEquivalenceEvaluator>();
+  auto evaluator = std::make_shared<CompositeEvaluator>(
+      std::vector<std::shared_ptr<IEvaluator>>{base, equivalent},
+      std::vector<double>{0.7, 0.3});
+  auto governor = std::make_shared<StubMutationGovernor>();
+  auto llm = std::make_shared<MockLLMProvider>();
+  GEPALoop loop(evaluator, governor, llm);
+
+  const auto result = loop.reflect_and_commit(make_failed_trace("e2e_eval"));
+
+  REQUIRE(result.success);
+  REQUIRE(governor->commit_calls == 1);
+}
+
+TEST_CASE("gepa_e2e_with_real_mutation_governor", "[gepa][phase2][phase3]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
+  auto bus = std::make_shared<RecordingBus>();
+  auto approval = std::make_shared<MockApprovalHandler>();
+  auto governor = std::make_shared<MutationGovernor>(
+      evaluator, std::unordered_set<std::string>{"R_T19_GEPA"}, bus.get(), approval.get());
+  auto llm = std::make_shared<MockLLMProvider>();
+  GEPALoop loop(evaluator, governor, llm);
+
+  const auto result = loop.reflect_and_commit(make_failed_trace("e2e_governor"));
+
+  REQUIRE(result.success);
+  REQUIRE(std::count_if(bus->events.begin(), bus->events.end(), [](const BusEvent& event) {
+    return event.topic == "mutation.committed";
+  }) == 1);
+}
+
+TEST_CASE("gepa_e2e_regression_decline_aborts", "[gepa][phase2][phase3]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
+  auto governor = std::make_shared<StubMutationGovernor>();
+  governor->commit_approved = false;
+  auto llm = std::make_shared<MockLLMProvider>();
+  GEPALoop::Config config;
+  config.max_iterations = 1;
+  GEPALoop loop(evaluator, governor, llm, config);
+
+  const auto result = loop.reflect_and_commit(make_failed_trace("e2e_decline"));
+
+  REQUIRE_FALSE(result.success);
+  REQUIRE(result.failure_mode == "commit_denied");
+  REQUIRE(governor->commit_calls == 1);
 }
