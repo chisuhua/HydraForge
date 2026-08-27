@@ -11,13 +11,13 @@
 
 | 状态 | 计数 | 占比 | 备注 |
 |------|:---:|:----:|------|
-| ✅ Approved — 已批准且实施完成 | 31 | 43.1% | (含 Phase 6 架构评审 0052-0064 13 个, 大多数无代码) |
+| ✅ Approved — 已批准且实施完成 | 32 | 44.4% | (含 Phase 6 架构评审 0052-0064 13 个, 大多数无代码; +ADR-0084 2026-08-26) |
 | 🟡 Partial — 已批准但实施不完整 | 8 | 11.1% | 含 ADR-0073 待翻牌 (Phase 5 Sprint 21 ship, 见 §2.1) |
 | 🔍 Proposed — 提议阶段，未批准 | 13 | 18.1% | 含 **6 个新起草 LLM-native** (0072/0074/0075/0076/0077/0078) |
 | ❌ Not Implemented — 未实施（含已归档） | 18 | 25.0% | 12 归档 + 6 永久 (0002/0030V1/0036×2/0073V1待翻) |
 | ⛔ Superseded — 被替代 | 1 | 1.4% | ADR-0006 → ADR-0020 |
 | 📦 Archived (已实施后归档) | 1 | 1.4% | ADR-0032 (CostCollector) |
-| **总计** | **72** | **100%** | （含 2026-08-26 G11 ADR-0084 起草中, 方向 Approved, 1-2 sprint 后落入本表 🔍 Proposed 段）|
+| **总计** | **72** | **100%** | （G11 ADR-0084 ✅ Approved (V1 ship 2026-08-26, commit `a2b2d52`, G11 ✅ Closed), 已计入 ✅ Approved 段）|
 
 > ① `docs/archive/adr/` 12 个归档 ADR（0010-0018 + 0030 V1 + 0036×2）计入 `❌ Not Implemented`。② ADR-0032 已实施后归档, 单列 `📦 Archived`。③ ADR-0002 未实施但文件仍在主目录, 计入 `❌`。④ ADR-0037 于 2026-07-27 从 🔍 提升为 🟡 Partial (CausalClock ship)。⑤ **本会话 6 个新 ADR (0072/0074/0075/0076/0077/0078) 全部 🔍 Proposed, 6/6 引用 0071/0073 作为父 ADR**。⑥ ADR-0073 内部 🔍 Proposed vs docs/README.md 显示 ✅ Approved — **状态不一致待对齐**。
 
@@ -482,7 +482,7 @@ Phase 7+ ──→ Phase 8+
 
 ## 附录 A: 完整 ADR 状态清单
 
-### ✅ Approved（31 个）
+### ✅ Approved（32 个）
 
 | ADR | 标题 | 批准日期 | 备注 |
 |-----|------|---------|------|
@@ -519,6 +519,7 @@ Phase 7+ ──→ Phase 8+
 | 0063 | OpenTelemetry 追踪 | 2026-07-16 | 无代码 |
 | 0064 | Conformance Test Suite | 2026-07-16 | 无代码 |
 | 0067 | 分层插件架构拆分 | 2026-07-23 | 追溯性正式化 |
+| 0084 | Mutation Governance 契约 | 2026-08-26 | V1 gate-and-audit ship (commit `a2b2d52`), G11 ✅ Closed |
 
 > **注**: ADR-0032 (CostCollector, 2026-06-30) 已实施后归档至 `docs/archive/adr/`, 不在此 Approved 列表中.
 

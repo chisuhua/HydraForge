@@ -2,7 +2,7 @@
 
 > **焦点**: 当前活跃的 OpenSpec changes | **更新**: 每日
 > **Master Plan**: [`docs/superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md`](superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md)
-> **架构决策**: [`docs/adr/`](adr/) — 74 ADR (61 主 + 1 plugin + 12 skill 子项), 48 Approved (主 41 + 子 7), adr_lint 零错误 (2026-08-22 校准, Batch 2 收官后 ADR-0081/0082 状态格式修正; ADR-0081/0082 均 ✅ Approved per Batch 2 P3+P7 `adr-0081/0082-promote-to-approved`)
+> **架构决策**: [`docs/adr/`](adr/) — 79 ADR (含 0083/0084 新增, 2026-08-26 校准), 53 Approved (+ADR-0083/0084 2026-08-26), adr_lint 零错误 (2026-08-22 校准, Batch 2 收官后 ADR-0081/0082 状态格式修正; ADR-0081/0082 均 ✅ Approved per Batch 2 P3+P7 `adr-0081/0082-promote-to-approved`)
 > **Phase**: 6 — Agent-as-Plugin (2026-07-15 ~ 至今, Phase 5 ✅ 收官)
 
 ---
@@ -11,7 +11,7 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **182/182 PASS** (2026-08-22 `ctest -N` → Total Tests: 182; Batch 2 收官贡献 +18: P11 `test_otel_exporter` +7, P7 `test_agent_registry` +5, P3 `test_agent_hook_registry_contract` +4; 历史 + Wave 1 Phase 6c 共 164; 0 flake; ASan 92/93 (pre-existing `test_skill_interpreter` ASan-only 失败) |
+| **Total ctest** | **187/187 PASS** (2026-08-26 `ctest -N` → Total Tests: 187; ADR-0083/0084 ship 贡献 +5; 0 flake; ASan 92/93 (pre-existing `test_skill_interpreter` ASan-only 失败) |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
 | **OpenSpec active** | **4** (Wave 1 Phase 6c 三个 change ✅ ship + archived 2026-08-18; **Sprint 24 启动周 T17 SkillCompiler 骨架新增** `2026-08-24-adr-0061-03-skill-compiler` [OpenSpec change 启动中, ADR-0071 评审通过后]; 剩余 3 个 Phase 6c 后续 Wave 待启动: `from-roadmap-phase-6c-evidence-gate` [Wave 2, 依赖 execution-baseline handoff] + `from-roadmap-phase-6c-execution-dsl` [Wave 3] + `from-roadmap-phase-6c-control-plane-eval` [Wave 4]) |
@@ -38,12 +38,12 @@
 >
 > 剩余 Wave 2 (`evidence-gate` 依赖 baseline) / Wave 3 (`execution-dsl`) / Wave 4 (`control-plane-eval`) 等待启动。
 >
-> **G11 跟踪（ADR 起草，OpenSpec 占位排 Sprint 25 W1）**:
-> - GitHub issue #14 ✅ Approved (2026-08-26): G11 变异治理契约方向批准, 6 项 Oracle 修订 + 16 项 Self-Review Checklist 全 ✅
+> **G11 跟踪（✅ Closed 2026-08-26）**:
+> - GitHub issue #14 ✅ Approved (2026-08-26): G11 变异治理契约方向批准, 6 项 Oracle 修订 + 16 项 Self-Review Checklist 全 ✅ — **issue #14 已 Closed (2026-08-26)**
 > - Oracle session `ses_fc41537bbffeC35NKqgvzn4m1c` Self-Review 预审 + `ses_fc3e070c0ffeIVgAhsgx2pNXFa` 深度审查
-> - **`adr-0084-mutation-governance-contract.md` 文件已创建 (2026-08-26, 🔍 Proposed, 6 维度契约骨架)**：决策 1-6 (变异对象 L1-L4 分级 / 授权绑定复用 ADR-0004+ADR-0031 / 治理流程 propose→evaluator→回归门→commit / 审计复用 ADR-0080+4 mutation.* 主题 / 失败回滚 / 攻击面 fail-closed) + 9 项前置 ADR 引用 + V1 边界 (L4 权重显式禁止) — Sprint 25 W2-W3 代码 ship + Sprint 26 末评审转 ✅ Approved + G11 Closed
-> - **issue #14 保持 OPEN 直至本 ADR ship + Approved + G11 Closed** (2026-08-26 Oracle Deep Review 决议, 顶部声明 R6 修订)
-> - T19 GEPA Phase 1 只读反思约束（不执行 `commit(PromptEdit)`）直至 G11 ADR Approved
+> - **`adr-0084-mutation-governance-contract.md` ✅ Approved (2026-08-26, V1 gate-and-audit 代码 ship, commit `a2b2d52`)**：决策 1-6 (变异对象 L1-L4 分级 / 授权绑定复用 ADR-0004+ADR-0031 / 治理流程 propose→evaluator→回归门→commit / 审计复用 ADR-0080+4 mutation.* 主题 / 失败回滚 / 攻击面 fail-closed) + 9 项前置 ADR 引用 + V1 边界 (L4 权重显式禁止) — 13 cases / 139 assertions PASS, ctest 187/187 零回归, OpenSpec change `2026-08-26-adr-0084-mutation-governance-contract` 已 archive
+> - **G11 ✅ Closed (2026-08-26)** — cap-map §二/§三 B7/§八.5 + self-evolution-architecture + gap-analysis 已同步
+> - T19 GEPA Phase 2 commit 已解锁 (G11 ✅ Closed 2026-08-26, Phase 1 只读反思约束解除)
 > - **2026-08-26 自审修正 (Oracle session `ses_fc3090b49ffe7yJwXhx1MoNz5N`)**：原 ADR-0083 头部 "✅ Approved" 与 §状态 "🔍 Proposed" 自相矛盾，已统一为 🔍 Proposed + 代码 ship 待办 (`include/agenticdsl/contract/ievaluator.h` grep 0 命中)。OpenSpec task `2026-08-26-ship-ievaluator-reward-contract` 排期启动
 
 ### ✅ Wave 3-A 已归档 (历史参考)

@@ -1,7 +1,7 @@
-# 架构能力-应用地图（2026-08 v1.6）
+# 架构能力-应用地图（2026-08 v1.7）
 
 **生成日期**: 2026-08-24
-**最后验证**: 2026-08-26（v1.6.1 — 23 项能力 / 9 项 open gap (G10 ✅ Closed ADR-0083 代码 ship + G12/G13/G14/G15 ✅ Closed + G11 🔍 Proposed ADR-0084 文件已创建) / 17 类应用 / 22 个工程任务 T1-T22 (T17/T15/T19/T20/T21 ✅ APPROVED)，IEvaluator/RewardSignal 契约 ship 同步，验证命令见 §六）
+**最后验证**: 2026-08-26（v1.7 — 23 项能力 / 9 项 open gap (G10/G11/G12/G13/G14/G15 全部 ✅ Closed — G11 ADR-0084 Approved + V1 gate-and-audit 代码 ship, commit `a2b2d52`) / 17 类应用 / 22 个工程任务 T1-T22 (T17/T15/T19/T20/T21 ✅ APPROVED)，IEvaluator/RewardSignal + IMutationGovernor 契约 ship 同步，验证命令见 §六）
 **作者**: Architecture Working Group
 **状态**: ✅ Active — 架构能力的**唯一事实源**（取代已归档的 `defect-truth-table-2026-08.md`）
 
@@ -105,7 +105,7 @@
 | G8 | OTel 真实 OTLP 客户端（替换 NoopSink）| 盲点 7.3 延展 | [工程] | 🔓 Open | B3 真实分布式追踪 | T2 |
 | G9 | ADR-0076 DSL Engine as MCP Server | ADR-0076 🔍 Proposed | [架构] | 🔓 Open | B5 DSL-as-MCP-tool | T7 |
 | **G10** | **评估/奖励信号契约缺失** | v1.1 Oracle 评审 [架构]| **🔴 架构层** | **✅ Closed (ADR-0083 Approved + IEvaluator 代码 ship, 2026-08-26)** | **所有进化路径（GEPA/AFlow/fine-tune/行为克隆）** | **~~新立 ADR: IEvaluator/RewardSignal 契约 + OpenSpec task ship IEvaluator 类 + 3 内置评估器~~ (已 ship: 12 cases / 31 assertions, V2 评估器留 follow-up)** |
-| **G11** | **变异治理/授权契约缺失** | v1.1 Oracle 评审 [架构]| **🔴 架构层** | **🔍 Proposed (ADR-0084 文件已创建, 待评审转 Approved, issue #14 保持 OPEN 直至 ADR-0084 Approved + G11 Closed)** | **Agent 自修改攻击面** | **新立 ADR: adr-0084-mutation-governance-contract** |
+| **G11** | **变异治理/授权契约缺失** | v1.1 Oracle 评审 [架构]| **🔴 架构层** | **✅ Closed (ADR-0084 Approved + V1 gate-and-audit 代码 ship, 2026-08-26, commit `a2b2d52`)** | **Agent 自修改攻击面** | **~~新立 ADR: adr-0084-mutation-governance-contract~~ (已 ship: 13 cases / 139 assertions, ctest 187/187 PASS, issue #14 已关闭)** |
 | **G12** | **D10 蒸馏数据采集被死锁** | ADR-0080 D10.3 [架构]| **🔴 架构层** | **✅ Closed (评审通过 2026-08-25)** | **蒸馏数据面（采集→训练→评估）** | **ADR-0080 v1.2 amendment（解耦 scrub hook 与 capture）** |
 | **G13** | **ADR-0071 父方向 ADR 仍 Proposed** | ADR-0071 🔍 Proposed [架构]| **🔴 架构层** | **✅ Closed (评审通过 2026-08-25)** | **4 个 TD 项派生（SkillCompiler/GEPA/Prompt Gate）** | **架构组评审 ADR-0071 → Approved** |
 | **G14** | **Trajectory IR 标题耦合风险** | ADR-0061-06 [架构+工程]| **🔴 架构层** | **✅ Closed (评审通过 2026-08-25)** | **TD1 实现方式（应独立序列化视图而非改 ParsedGraph）** | **架构评审 0061-06 标题修订** |
@@ -113,7 +113,7 @@
 
 > **Oracle 评审关键发现**:
 > - G10 评估契约 + G11 变异治理是**未识别的架构层缺口**——GEPA/AFlow/fine-tune/行为克隆全部依赖它，没有它整个自进化方向无法启动
-> - **G10 🔍 Proposed (ADR-0083 起草完成, 代码 ship 待办, 2026-08-26 自审修正) + G11 🔍 Proposed (ADR-0084 文件已创建 2026-08-26, 待评审转 Approved, issue #14 保持 OPEN)**
+> - **G10 ✅ Closed (ADR-0083 Approved + IEvaluator 代码 ship 2026-08-26) + G11 ✅ Closed (ADR-0084 Approved + V1 gate-and-audit 代码 ship 2026-08-26, commit `a2b2d52`, issue #14 已关闭)**
 > - **2026-08-26 自审修正 (Oracle session `ses_fc3090b49ffe7yJwXhx1MoNz5N`)**：原文档将 G10 标 "✅ Closed" 与代码实际状态不符（ADR-0083 头部 + §状态字段自相矛盾，`include/agenticdsl/contract/ievaluator.h` 代码不存在）；现统一为「ADR 起草完成 + 代码 ship 待办」语义。G11 同步标 ADR-0084 文件创建 + 待评审转 Approved
 > - G12 D10 死锁是**已 Approved 契约被 Proposed 链锁住**（ADR-0081 → 0082）——需 v1.2 amendment 解耦
 > - G13 ADR-0071 父未批 → 4 个子项全部悬空——**本周架构评审是最高杠杆动作**
@@ -153,7 +153,7 @@
 | **B4** Streaming Agent (partial result 流) | T6 (ADR-0060 stream 模式) | 2-3 sprint | IGenerationStream 流式契约 + 背压控制 |
 | **B5** MCP Server 形态 (DSL-as-tool) | T7 (ADR-0076 ship) | 2 sprint | stdio/HTTP/SSE transport + capability 暴露 |
 | **B6** Agent 蒸馏环境（教师→学生能力迁移）| T14 (行为回归 ✅ 门禁) + T15 (Trajectory IR) + ADR-0071 + G10 评估契约 | | 2-3 sprint | 教师规划轨迹采集 + 学生行为克隆 + 等价性评估（依赖 IEvaluator 契约）|
-| **B7** Agent 自进化基础（GEPA 反思循环 MVP）| T14 + T15 + T19 (GEPA spike Phase 1 只读) + G10 ✅/G11 🔍 (ADR-0084 起草中) 契约 | | 2-3 sprint | 失败→反思→修订 prompt + 回归门禁 + 变异授权（T19 Phase 1 不执行 commit，Phase 2 待 ADR-0084 ship 后启动）|
+| **B7** Agent 自进化基础（GEPA 反思循环 MVP）| T14 + T15 + T19 (GEPA spike Phase 1 只读) + G10 ✅/G11 ✅ Closed (V1 code ship, 2026-08-26) 契约 | | 2-3 sprint | 失败→反思→修订 prompt + 回归门禁 + 变异授权（T19 Phase 2 commit 已解锁 — G11 ✅ Closed 2026-08-26）|
 
 ### 🟠 C 类：1-3 月工程后可构建（4 个应用类型）
 
@@ -487,6 +487,7 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 | 2026-08-26 | **v1.5** | **新增自进化架构边界并同步能力地图** | 新增 [`self-evolution-architecture-2026-08.md`](self-evolution-architecture-2026-08.md)，定义受治理的单编排器自进化闭环、轨迹/聚合指标边界、信用分配与预测误差缺口、混合更新器、在线教师蒸馏训练期约束、稳定性与协同进化 promotion criteria；同步 §八 引用、闭环状态和维护职责 |
 | 2026-08-26 | **v1.6** | **Oracle 深度审查 (session `ses_fc3090b49ffe7yJwXhx1MoNz5N`) 落地: ADR-0083 状态统一 + ADR-0084 文件创建 + IEvaluator/IDistillationWriter 代码 ship 待办标注** | (1) §二 G10 "✅ Closed" → "🔍 Proposed (ADR-0083 起草完成, 代码 ship 待办, 2026-08-26 自审修正)"; (2) §二 G11 "issue #14 Approved" → "issue #14 保持 OPEN 直至 ADR-0084 Approved + G11 Closed"; (3) §八.2 闭环 1/2 "评估信号环" 实现状态由 "✅ 已 ship" 改为 "❌ IEvaluator 类代码不存在 (grep 0 命中)"; (4) §八.2 闭环 1 "蒸馏输出格式" 实现状态由 "✅ Closed" 改为 "❌ IDistillationWriter 类代码不存在"; (5) §二 Oracle 评审关键发现段新增 2026-08-26 自审修正说明 (Oracle session 引用); (6) §八.2 闭环 1 "闭环状态" 由 "3 环断裂" → "5 环断裂"; (7) 头部版本 v1.5 → v1.6 + 最后验证 2026-08-26 |
 | 2026-08-26 | **v1.6.1** | **ADR-0083 IEvaluator/RewardSignal 代码 ship 同步** | (1) §二 G10 "🔍 Proposed 代码 ship 待办" → "✅ Closed (ADR-0083 Approved + 代码 ship)"; (2) §八.2 闭环 1/2 "评估信号环" 契约状态 → ✅ Approved + 实现状态 → ✅ IEvaluator 已 ship (12 cases / 31 assertions); (3) §八.2 闭环 1 "闭环状态" 由 "5 环断裂" → "4 环断裂"; (4) 头部版本 v1.6 → v1.6.1 |
+| 2026-08-26 | **v1.7** | **G11 ✅ Closed: ADR-0084 Approved + MutationGovernor V1 gate-and-audit 代码 ship** | (1) §二 G11 "🔍 Proposed (ADR-0084 文件已创建)" → "✅ Closed (ADR-0084 Approved + V1 ship 2026-08-26, commit `a2b2d52`)"; (2) §三 B7 行 "G11 🔍 (ADR-0084 起草中)" → "G11 ✅ Closed (V1 code ship, 2026-08-26)" + T19 Phase 2 commit 解锁; (3) §八.2 闭环 5 "变异治理/授权" 契约状态 → ✅ Approved + 实现状态 → ✅ MutationGovernor 已 ship (13 cases / 139 assertions), "闭环状态" 由 "4 环断裂" → "3 环断裂"; (4) §八.5 排期 12 项追加 "✅ 已完成 (2026-08-26 ship)" 标记; (5) §八.3 T19 行 / §八.4 ADR 需求表 / §八.6 风险段 G11 状态同步 Closed; (6) 头部版本 v1.6.1 → v1.7。决议依据: OpenSpec change `g11-closed-adr-0084-approved` + issue #14 关闭 (2026-08-26) |
 **后续追踪**:
 - **下一修订触发**: (1) 任意 §二 open gap ship；(2) 任意 §四/§八工程任务完成；(3) 新应用类型立项；(4) Phase 6 Candidate B 启动；(5) T14-T22 任一 ship/promotion；(6) 5 个新增 ADR 任一获批；(7) **ADR-0071/0074 评审会议召开 + 决议记录**
 - **定期审计**: 每 Sprint 收官同步（`scripts/sprint-closeout.sh` Step 8 加本表交叉检查）
@@ -547,11 +548,11 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 | 2. 轨迹抽取 | Trajectory IR（ADR-0061-06） | ✅ Approved | ⚙ 无代码 | T15 + G14 标题耦合风险 |
 | 3. 评估信号 | IEvaluator / RewardSignal (ADR-0083) | ✅ Approved (代码 ship 2026-08-26) | ✅ IEvaluator 已 ship | G10: ✅ Closed |
 | 4. 变异对象（prompt/skill）| SkillCompiler（ADR-0061-03） | ✅ Approved | ⚙ 无代码 | T17 (依赖 G13) |
-| 5. 变异治理/授权 | 变异授权契约 (ADR-0084) | 🔍 Proposed (ADR-0084 文件已创建 2026-08-26, 待评审转 Approved) | ❌ 无 | **G11: ADR-0084 起草启动, 待评审转 Approved + G11 Closed** |
+| 5. 变异治理/授权 | 变异授权契约 (ADR-0084) | ✅ Approved (代码 ship 2026-08-26) | ✅ MutationGovernor 已 ship (13 cases / 139 assertions) | G11: ✅ Closed (2026-08-26) |
 | 6. 等价性回归门 | ADR-0061-02 行为回归 | ✅ Approved | ✅ T14 ship (v1.2) | T14 |
 | 7. 发布/热加载 | ADR-0076 MCP hot-reload + ADR-0038 dynamic config | 🔍 Proposed | ❌ 无 | 外部依赖 |
 
-**闭环状态**: **7 环中 4 环仍断裂**（轨迹抽取、变异对象实现、变异治理落地、发布/热加载）；评估契约与回归门已经具备，不能据此宣称自进化端到端可用。信用分配和稳定性机制还属于更高阶协同进化前置能力，详见 [`self-evolution-architecture-2026-08.md`](self-evolution-architecture-2026-08.md)。
+**闭环状态**: **7 环中 3 环仍断裂**（轨迹抽取、变异对象实现、发布/热加载）；评估契约、变异治理与回归门已经具备，不能据此宣称自进化端到端可用。信用分配和稳定性机制还属于更高阶协同进化前置能力，详见 [`self-evolution-architecture-2026-08.md`](self-evolution-architecture-2026-08.md)。
 
 ### 8.3 T14-T22 任务映射（E 轨工程 + R 轨研究）
 
@@ -571,7 +572,7 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 | 任务 | 估时 | 解锁能力 | 解锁应用 | 前置（promotion criteria）| 来源 |
 |---|---|---|---|---|---|
 | **T18**: PASTE 推测执行（ADR-0061-07）spike | 1-2 sprint | 并行假设验证 | C5 (高级) 自进化加速 | spike: 不破坏调度器确定性语义 | T5 v1.1 改名 |
-| **T19**: ✅ **APPROVED** Sprint 24 末 (R 轨 spike) (ADR-0083 ✅ + ADR-0071 ✅) — GEPA MVP| 2-3 sprint (R 轨 spike) | 失败→反思→修订 prompt | B7 自进化基础 | T14 + IEvaluator 契约（G10）+ 变异治理（G11 🔍 ADR-0084 起草中）+ ADR-0074 prompt 资产 **+ Phase 1 只读反思约束（不执行 `commit(PromptEdit)`，待 ADR-0084 ship 后启动 Phase 2 commit）** | T6 v1.1 改名 |
+| **T19**: ✅ **APPROVED** Sprint 24 末 (R 轨 spike) (ADR-0083 ✅ + ADR-0071 ✅) — GEPA MVP| 2-3 sprint (R 轨 spike) | 失败→反思→修订 prompt | B7 自进化基础 | T14 + IEvaluator 契约（G10）+ 变异治理（G11 ✅ Closed ADR-0084 Approved 2026-08-26）+ ADR-0074 prompt 资产 **+ ~~Phase 1 只读反思约束~~ Phase 2 commit 已解锁 (G11 ✅ Closed 2026-08-26)** | T6 v1.1 改名 |
 | **T20**: ✅ **APPROVED** Sprint 26 末 (R 轨 spike) (ADR-0083 ✅ + T15 ✅) — AFlow MCTS| 1-2 月 (R 轨 spike) | 工作流自动优化 | C2 自进化高级 | T15 + IEvaluator 契约（G10）+ spike: 评估信号有可比性 | T7 v1.1 改名 |
 | **T21**: ✅ **APPROVED** Sprint 25 启动 (ADR-0074 ✅ + ADR-0083 ✅) — Prompt Evidence Gate| 1 月 | prompt 质量门控 | T19/T20 前置 | ADR-0071 父获批 + D1 30+ few-shot | T8 v1.1 改名 |
 | **T22**: Fine-tune 训练管线（ADR-0078）| **事件驱动**（AgenticMind 回流触发）| self-improvement agent | C2 自进化 | 外部阻塞解除 + T14 行为回归 | T9 v1.1 改事件驱动 |
@@ -582,7 +583,7 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 |---|---|---|---|---|
 | **ADR-0061-13** 蒸馏输出格式（行为克隆器契约） | 架构 | G15 | 1 sprint 草案 | P0 |
 | **IEvaluator / RewardSignal 契约** | 架构 | G10 | 1 sprint 草案 | P0 |
-| **变异治理/授权契约** | 架构 | G11 | 2 sprint 草案（含安全审计）| P1 | ✅ **已 Approved 方向（issue #14, 2026-08-26）→ adr-0084-mutation-governance-contract.md 起草中** |
+| **变异治理/授权契约** | 架构 | G11 | 2 sprint 草案（含安全审计）| P1 | ✅ **Approved + V1 ship (2026-08-26, commit `a2b2d52`) → adr-0084-mutation-governance-contract.md, G11 ✅ Closed** |
 | **ADR-0080 v1.2 amendment**（解耦 D10 capture 与 ADR-0081 scrub）| 架构 | G12 | 0.5 sprint 草案 | P0 |
 | **ADR-0061-06 标题修订**（Trajectory IR 独立序列化视图 vs 升级 ParsedGraph）| 架构 | G14 | 0.5 sprint 草案 | P1 |
 
@@ -610,7 +611,7 @@ Sprint 26:
   11. ADR-0084 mutation-governance-contract ship (2 sprint 完成)
 
 Sprint 26 末:
-  12. ADR-0084 mutation-governance 评审通过 → G11 ✅ Closed + T19 Phase 2 commit 启动
+  12. ADR-0084 mutation-governance 评审通过 → G11 ✅ Closed + T19 Phase 2 commit 启动 ✅ **已完成 (2026-08-26 ship, commit `a2b2d52`)**
 ```
 
 ### 8.6 Oracle 风险提示
@@ -620,7 +621,7 @@ Sprint 26 末:
 | Trajectory IR 按 0061-06 标题"升级 ParsedGraph"会把训练数据格式耦合进运行时图结构 | 训练/运行时双向耦合 | 改独立序列化视图（详见 G14）|
 | D10 死锁不解决，蒸馏在数据面永远停在第一步 | 蒸馏方向无法启动 | pdk_chat_demo SessionManager JSONL 作临时数据源 + ADR-0080 v1.2 amendment |
 | R 轨若混入 Sprint 承诺，会重演 TD9 式虚假排期 | 排期失信 | R 轨 spike 模式 + promotion criteria，明确"事件驱动"非排期 |
-| 变异治理缺位，Agent 自修改无审计无授权 | 安全攻击面 | ✅ **已解决**（2026-08-26 issue #14 Approved）：G11 → 🔍 Proposed（ADR-0084 起草中, Sprint 25 W1, 评审 Sprint 26 末）+ T19 GEPA spike 采纳 Phase 1 只读反思约束（不 commit(PromptEdit)）直至 G11 ADR Approved + Phase 2 commit 启动 |
+| 变异治理缺位，Agent 自修改无审计无授权 | 安全攻击面 | ✅ **已解决**（2026-08-26）：G11 ✅ Closed（ADR-0084 Approved + V1 gate-and-audit 代码 ship, commit `a2b2d52`, issue #14 已关闭）+ T19 GEPA spike Phase 2 commit 已解锁 |
 | ⛛ Superseded 历史风险（2026-08-26 G11 已启动起草后保留作 audit trail） | — | 原文："G11 契约强制（所有 R 轨 task 启动前置）" — Oracle session `ses_fc640ea84ffe0f4dyYTa4aFjiL` + `ses_fc41537bbffeC35NKqgvzn4m1c` + `ses_fc3e070c0ffeIVgAhsgx2pNXFa` 三轮评审落定 G11 起草路径 |
 | ADR-0071 父未批，4 个子项全冻结 | 4 个 TD 项依赖 | ✅ **已解决**（2026-08-25 评审通过）：ADR-0071 ✅ Approved + T17/T15/T19/T20/T21 排期已 ship |
 
