@@ -1,7 +1,7 @@
-# 架构能力-应用地图（2026-08 v1.9）
+# 架构能力-应用地图（2026-08 v2.0）
 
-**生成日期**: 2026-08-24
-**最后验证**: 2026-08-27（v1.9 — 25 项能力 / 9 项 open gap (G10-G15 全部 ✅ Closed) / 17 类应用 / 22 个工程任务 T1-T22 (**T17 ✅ SHIP** / **T15 ✅ SHIP** / T19/T20/T21 ✅ APPROVED)，T15 TrajectoryIR V1 ship 同步 (9 cases / 55 assertions)，验证命令见 §六）
+**生成日期**: 2026-08-27
+**最后验证**: 2026-08-27（v2.0 — 26 项能力 / 9 项 open gap (G10-G15 全部 ✅ Closed) / 17 类应用 / 22 个工程任务 T1-T22 (**T17 ✅ SHIP** / **T15 ✅ SHIP** / **IEvaluator V2 ✅ SHIP** / T19/T20/T21 ✅ APPROVED)，T15 TrajectoryIR V1 ship 同步 (9 cases / 55 assertions)，验证命令见 §六）
 **作者**: Architecture Working Group
 **状态**: ✅ Active — 架构能力的**唯一事实源**（取代已归档的 `defect-truth-table-2026-08.md`）
 
@@ -25,11 +25,11 @@
 
 ---
 
-## 一、架构能力清单（25 项已 ship 能力，L4 含 #23 T14 + #24 T17 + #25 T15 v1.9 后置增补）
+## 一、架构能力清单（26 项已 ship 能力，L4 含 #23 T14 + #24 T17 + #25 T15 + #26 IEvaluator V2 v2.0 后置增补）
 
 > **分层依据**: `docs/specs/architecture.md` L0~L4 + R1~R5 五层架构模型
 > **验证方法**: `grep` 实证 + ctest PASS + ADR 头部状态三方交叉（详见 §六）
-> **覆盖范围**: 截至 2026-08-25, 含 Sprint 23 (含 T14/T16 后置增补) 全部 ship
+> **覆盖范围**: 截至 2026-08-27, 含 Sprint 24 (含 T14/T17/T15/IEvaluator-V2 后置增补) 全部 ship
 
 ### L0 运行时层（核心引擎，5 项）
 
@@ -70,7 +70,7 @@
 | 18 | IAgentComposition (call/call_async/delegate + stream 占位) | `iagent_composition.h` + `agent_composition.cpp` | test_agent_composition 10 cases PASS | ADR-0060 | Sprint 22 (P8) |
 | 19 | PDK 三种 Agent Loop + SafeExec 沙箱 + **SLM 路由 .so** (v1.2 +1) | `pdk/agent_macros.h` + `pdk/safe_exec.h` + `pdk/model_router/slm_strategy/` | test_pdk_macros 5 cases + test_safe_exec PASS + **test_model_router_slm ≥5 cases PASS (v1.2 ship)** | ADR-0021 + **0061-04 (SLM)** | Sprint 4 + 22 + **23 (SLM)** |
 
-### L4 可观测 + 治理层（6 项，#23 T14 / #24 T17 / #25 T15 v1.9 后置增补）
+### L4 可观测 + 治理层（7 项，#23 T14 / #24 T17 / #25 T15 / #26 IEvaluator V2 v2.0 后置增补）
 
 | # | 能力 | 实现位置 | 验证证据 | 关联 ADR | 上线 |
 |---|---|---|---|---|---|
@@ -80,11 +80,13 @@
 | **23** | **行为回归套件 (AgentAssay-style, 三值 Verdict + Hotelling T²)** | `include/agenticdsl/testing/behavioral_regression.h` + `src/modules/testing/behavioral_regression.cpp` | test_behavioral_regression **6 cases / 13 assertions PASS** | ADR-0061-02 | **Sprint 23 (T14, 2026-08-24 ship)** |
 | **24** | **SkillCompiler V1 (纯函数式 SKILL.md 编译 + T14 自检 + IEvaluator 门 + G11 emit-only)** | `include/agenticdsl/contract/iskill_compiler.h` + `src/modules/cognitive/skill_compiler.cpp` | test_skill_compiler **16 cases / 63 assertions PASS** | ADR-0061-03 | **Sprint 24 (T17, 2026-08-27 ship)** |
 | **25** | **Trajectory IR V1 (独立序列化视图, 3 级 IR + 单向 Converter + SFT/OTel backends + Pass 占位)** | `include/agenticdsl/ir/trajectory_ir.h` + `src/core/parsed_graph_to_trajectory_ir.cpp` + `src/modules/ir/` | test_trajectory_ir **9 cases / 55 assertions PASS**; ParsedGraph 零修改 | ADR-0061-06 v1.1 | **Sprint 24 (T15, 2026-08-27 ship)** |
+| **26** | **IEvaluator V2 (BehavioralEquivalence + Composite 多评估器聚合)** | `include/agenticdsl/cognitive/{behavioral_equivalence_evaluator,composite_evaluator}.h` + `src/modules/cognitive/{behavioral_equivalence_evaluator,composite_evaluator}.cpp` | test_evaluator **8 cases / 18 assertions PASS (V2)**; IEvaluator 接口零修改 | ADR-0083 | **Sprint 24 (evaluator-v2-composite, 2026-08-27 ship)** |
 
-**总覆盖**: **25 项已 ship 能力** = L0(5) + L1(5) + L2(4) + L3(5) + L4(6)
+**总覆盖**: **26 项已 ship 能力** = L0(5) + L1(5) + L2(4) + L3(5) + L4(7)
 **v1.1.2 新增**: L4 +1（行为回归套件 — Oracle 评审 "本周最高杠杆" T14 完成）
 **v1.3 新增**: L4 +1（SkillCompiler V1 — T17 ship, B7 自进化"变异对象生成器"落地, 闭环 2 第 4 环接通）
 **v1.9 新增**: L4 +1（Trajectory IR V1 — T15 ship, B6 蒸馏数据标准化落地, G14 闭环; ParsedGraph 独立视图, 单向 Converter 桥接）
+**v2.0 新增**: L4 +1（IEvaluator V2 — evaluator-v2-composite ship, BehavioralEquivalence (T14 集成) + Composite 多评估器聚合, G10 评估信号 V2 层落地）
 
 ---
 
@@ -489,11 +491,11 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 | 2026-08-25 | **v1.3.1** | **Sprint 24 Step 3 文档结构 drift 收口 (OpenSpec `2026-08-25-cap-map-v1-3-drift-fix`)** | **12 项声明 drift 全修复** (drift-1 §七/§八 顺序互换、drift-2 §六.6 位置 + 路径、drift-3 §二 词汇表 ✅ Closed、drift-4 §二 标题去 "未 ship"、drift-5 §八 闭环 1 G15、drift-6 §八.5 重复排期、drift-7 ADR-0071/0074 footer、drift-8 ctest 184→185、drift-9 §一覆盖 Sprint 23、drift-10 §三 22→23、drift-11 性质标记、drift-12 L4 表头加注) **+ 4 项扩展修复** (闭环 1 G10/G12 同行 stale、闭环 2 G10 同行 stale、§一 标题 22→23)；章节顺序恢复 标准 §一→§二→§三→§四→§五→§六→§七→§八；ADR-0071/0074 footer 同步 "Promotion 评审通过 2026-08-25"；ctest 185/185 PASS 零回归；openspec validate --strict PASS；ADR lint + docs_drift_audit 零增加；本会话 ship 后保持 Sprint 24 Pre-Launch 治理范式 |
 | 2026-08-26 | **v1.4** | **G11 Approved 落地: ADR-0084 起草启动 + T19 Phase 1 只读化 + 5 文件同步** | (1) §一版本 v1.3 → v1.4 + 最后验证 2026-08-26；(2) §二 G11 状态 🔒 Blocked → 🔍 Proposed（ADR-0084 起草中, Sprint 25 W1, issue #14 ✅ Approved 2026-08-26）；(3) §二 Oracle 评审关键发现段补充 G10/G11 Closed/Proposed 状态；(4) §三 B7 G11 契约状态同步；(5) §五新增 3 个 Oracle session 引用（`ses_fc640ea84ffe0f4dyYTa4aFjiL` 战略评估 + `ses_fc41537bbffeC35NKqgvzn4m1c` Self-Review 预审 + `ses_fc3e070c0ffeIVgAhsgx2pNXFa` 深度审查）；(6) §七 v1.4 changelog（commit `docs(cap-map): v1.4 - G11 Proposed + ADR-0084 起草启动 + T19 Phase 1 只读化`）；(7) §八.3 T19 row 加 Phase 1 只读反思约束；(8) §八.4 新增 ADR 需求表标注 G11 方向已 Approved → adr-0084-mutation-governance-contract.md；(9) §八.5 排期新增 ADR-0084 起草行（Sprint 25 W1 启动周 4a, Sprint 26 末评审 11, Sprint 26 末 G11 ✅ Closed 12）；(10) §八.6 风险段更新"变异治理缺位"为"已解决"+ ADR-0071 风险同步更新；(11) Oracle Deep Review（session `ses_fc3e070c0ffeIVgAhsgx2pNXFa`）6 项风险点 + 验证检查清单。决议依据：GitHub issue #14 ✅ Approved + Oracle 三轮评审 session 引用 |
 | 2026-08-26 | **v1.5** | **新增自进化架构边界并同步能力地图** | 新增 [`self-evolution-architecture-2026-08.md`](self-evolution-architecture-2026-08.md)，定义受治理的单编排器自进化闭环、轨迹/聚合指标边界、信用分配与预测误差缺口、混合更新器、在线教师蒸馏训练期约束、稳定性与协同进化 promotion criteria；同步 §八 引用、闭环状态和维护职责 |
-| 2026-08-26 | **v1.6** | **Oracle 深度审查 (session `ses_fc3090b49ffe7yJwXhx1MoNz5N`) 落地: ADR-0083 状态统一 + ADR-0084 文件创建 + IEvaluator/IDistillationWriter 代码 ship 待办标注** | (1) §二 G10 "✅ Closed" → "🔍 Proposed (ADR-0083 起草完成, 代码 ship 待办, 2026-08-26 自审修正)"; (2) §二 G11 "issue #14 Approved" → "issue #14 保持 OPEN 直至 ADR-0084 Approved + G11 Closed"; (3) §八.2 闭环 1/2 "评估信号环" 实现状态由 "✅ 已 ship" 改为 "❌ IEvaluator 类代码不存在 (grep 0 命中)"; (4) §八.2 闭环 1 "蒸馏输出格式" 实现状态由 "✅ Closed" 改为 "❌ IDistillationWriter 类代码不存在"; (5) §二 Oracle 评审关键发现段新增 2026-08-26 自审修正说明 (Oracle session 引用); (6) §八.2 闭环 1 "闭环状态" 由 "3 环断裂" → "5 环断裂"; (7) 头部版本 v1.5 → v1.6 + 最后验证 2026-08-26 |
 | 2026-08-26 | **v1.6.1** | **ADR-0083 IEvaluator/RewardSignal 代码 ship 同步** | (1) §二 G10 "🔍 Proposed 代码 ship 待办" → "✅ Closed (ADR-0083 Approved + 代码 ship)"; (2) §八.2 闭环 1/2 "评估信号环" 契约状态 → ✅ Approved + 实现状态 → ✅ IEvaluator 已 ship (12 cases / 31 assertions); (3) §八.2 闭环 1 "闭环状态" 由 "5 环断裂" → "4 环断裂"; (4) 头部版本 v1.6 → v1.6.1 |
 | 2026-08-26 | **v1.7** | **G11 ✅ Closed: ADR-0084 Approved + MutationGovernor V1 gate-and-audit 代码 ship** | (1) §二 G11 "🔍 Proposed (ADR-0084 文件已创建)" → "✅ Closed (ADR-0084 Approved + V1 ship 2026-08-26, commit `a2b2d52`)"; (2) §三 B7 行 "G11 🔍 (ADR-0084 起草中)" → "G11 ✅ Closed (V1 code ship, 2026-08-26)" + T19 Phase 2 commit 解锁; (3) §八.2 闭环 5 "变异治理/授权" 契约状态 → ✅ Approved + 实现状态 → ✅ MutationGovernor 已 ship (13 cases / 139 assertions), "闭环状态" 由 "4 环断裂" → "3 环断裂"; (4) §八.5 排期 12 项追加 "✅ 已完成 (2026-08-26 ship)" 标记; (5) §八.3 T19 行 / §八.4 ADR 需求表 / §八.6 风险段 G11 状态同步 Closed; (6) 头部版本 v1.6.1 → v1.7。决议依据: OpenSpec change `g11-closed-adr-0084-approved` + issue #14 关闭 (2026-08-26) |
 | 2026-08-27 | **v1.8** | **T17 ✅ SHIP: SkillCompiler V1 (ADR-0061-03) 代码落地** | (1) §一 L4 +1 (#24 SkillCompiler V1), 总能力 23 → 24; (2) §八.2 闭环 2 第 4 环 "变异对象" 实现状态 ⚙ 无代码 → ✅ T17 V1 ship, "闭环状态" 由 "3 环断裂" → "2 环断裂" (剩轨迹抽取 + 发布/热加载); (3) §八.3 E 轨 T17 行 APPROVED → ✅ SHIP; (4) 头部版本 v1.7 → v1.8。决议依据: OpenSpec change `2026-08-24-adr-0061-03-skill-compiler` (15 cases / 61 assertions PASS, ADR-0068 附录 A v1.2.2 注册 3 个 skill.compilation.* 主题) |
 | 2026-08-27 | **v1.9** | **T15 ✅ SHIP: Trajectory IR V1 (ADR-0061-06 v1.1) 代码落地** | (1) §一 L4 +1 (#25 Trajectory IR V1), 总能力 24 → 25; (2) §八.2 闭环 2 第 2 环 "轨迹抽取" 实现状态 ⚙ 无代码 → ✅ T15 V1 ship, "闭环状态" 由 "2 环断裂" → "1 环断裂" (仅剩发布/热加载); (3) §八.3 E 轨 T15 行 APPROVED → ✅ Completed/SHIP; (4) 头部版本 v1.8 → v1.9; (5) ADR-0061-06 v1 头部追加 ship 证据段 + v1.1 amendment 状态 → ✅ Approved + Shipped。决议依据: OpenSpec change `t15-trajectory-ir` (9 cases / 55 assertions PASS, commits `3ba9f2c`/`53a0f17`/`1fd5c4b`/`7b24973`, ParsedGraph 零修改, SkillCompiler TrajectoryPlaceholder → TrajectoryIR::hash 升级) |
+| 2026-08-27 | **v2.0** | **IEvaluator V2 ship (OpenSpec `evaluator-v2-composite`)** | (1) §一 25→26 项能力, L4 +1 (#26 IEvaluator V2: BehavioralEquivalence + Composite); (2) §二 G10 评估信号 V2 层落地 (BehavioralEquivalence 复用 T14 fingerprint + Hotelling T², Composite 多评估器加权聚合); (3) §八 闭环 1 评估信号行更新 V2 ship; (4) 头部 v1.9 → v2.0 + 生成/最后验证 2026-08-27; (5) 测试: test_evaluator V2 8 cases / 18 assertions PASS, IEvaluator 接口零修改, V1 12 cases 零回归, ctest 动态基线 0 回归 |
 **后续追踪**:
 - **下一修订触发**: (1) 任意 §二 open gap ship；(2) 任意 §四/§八工程任务完成；(3) 新应用类型立项；(4) Phase 6 Candidate B 启动；(5) T14-T22 任一 ship/promotion；(6) 5 个新增 ADR 任一获批；(7) **ADR-0071/0074 评审会议召开 + 决议记录**
 - **定期审计**: 每 Sprint 收官同步（`scripts/sprint-closeout.sh` Step 8 加本表交叉检查）
@@ -536,7 +538,7 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 |---|---|---|---|---|
 | 1. 轨迹采集 | ADR-0080 D10 Distillation Capture | ✅ Approved | ⚙ 未启用 | G12: ✅ Closed (ADR-0080 v1.2 解耦) |
 | 2. 数据集结构 | ADR-0074 D6 JSONL | ✅ Approved (Promotion) | ⚙ 无代码 | G13: ✅ Closed (ADR-0071 Promotion) |
-| 3. 评估信号 | IEvaluator / RewardSignal (ADR-0083) | ✅ Approved (代码 ship 2026-08-26) | ✅ IEvaluator 已 ship (tests/test_evaluator.cpp 12 cases / 31 assertions) | G10: ✅ Closed |
+| 3. 评估信号 | IEvaluator / RewardSignal (ADR-0083) | ✅ Approved (代码 ship 2026-08-26) | ✅ IEvaluator V1+V2 已 ship (test_evaluator.cpp V1 12 cases / 31 assertions + V2 8 cases / 18 assertions, 2026-08-27) | G10: ✅ Closed |
 | 4. 训练管线 | ADR-0078 LoRA | 🔍 Proposed | ❌ 无 | 🔒 外部阻塞：AgenticMind 项目 4-6 周 |
 | 5. 模型服务 | ADR-0034 model_router + llama_engine | ✅ Approved | ✅ 已 ship | 无 |
 | 6. 等价性回归门 | ADR-0061-02 行为回归 | ✅ Approved | ✅ T14 ship (v1.2, 6 cases / 13 assertions) | 工程任务 T14 |

@@ -92,7 +92,7 @@ docs/
 | `adr-0082-agent-first-class-registry.md` | Agent as First-Class Registry (讨论稿: AgentWorker + YAML + spawn_agent, 争议未决, 搁置至 0079/0080 实施后) | 🔍 Proposed (v1.1 状态注记 2026-08-12: 蒸馏需求加强搁置; 原始讨论稿 2026-01-19, 未定稿) |
 | `adr-0081-pre-step-hook-contract.md` | Pre-Step Hook Contract (Agent 级拦截点, 推迟至 ADR-0082 定稿) | 🔍 Proposed (2026-08-12, v1.1 引用触发, 占位) |
 | `adr-0080-v1-2-amendment-d10-decouple.md` | D10 Capture 与 Scrub Hook 解耦 (CaptureMode 三态 + Training fail-open 三重保护) | ✅ Approved (评审通过 2026-08-25, Oracle G12 解锁 ADR-0081/0082 死锁) |
-| `adr-0083-evaluator-reward-contract.md` | IEvaluator/RewardSignal 评估契约 (双层契约 + 3 内置评估器 + V1 简化避免 ADR-0057 零实施) | ✅ Approved (ship 2026-08-26 — IEvaluator + TaskSuccessEvaluator V1 代码 ship, G10 Closed, 12 cases / 31 assertions PASS) |
+| `adr-0083-evaluator-reward-contract.md` | IEvaluator/RewardSignal 评估契约 (双层契约 + 3 内置评估器 + V1 简化避免 ADR-0057 零实施) | ✅ Approved (V1 ship 2026-08-26 — IEvaluator + TaskSuccessEvaluator, 12 cases / 31 assertions PASS, G10 Closed; V2 ship 2026-08-27 — BehavioralEquivalence + Composite, 8 cases / 18 assertions PASS, `evaluator-v2-composite` archived) |
 | `adr-0084-mutation-governance-contract.md` | Mutation Governance 契约 (6 维度: 变异对象 L1-L4 分级 / 授权绑定复用 ADR-0004 + ADR-0031 / 治理流程 propose→evaluator→回归门→commit / 审计复用 ADR-0080 + 4 个 mutation.* 主题 / 失败回滚 / 攻击面 fail-closed) | ✅ Approved (2026-08-26 — V1 gate-and-audit 代码 ship, G11 Closed, 13 cases / 139 assertions PASS, OpenSpec change `2026-08-26-adr-0084-mutation-governance-contract`) |
 
 ### adr/plugin/ - Plugin 化候选清单

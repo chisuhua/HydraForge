@@ -20,6 +20,19 @@
 > 本 ADR 文档结构与 5 项决策点经 Oracle Pre-Review 通过 (session `ses_fcba5e477ffeG9wEBHVhU64J0o`)，
 > 但契约代码一度未 ship — 经 Oracle 深度审查 session `ses_fc3090b49ffe7yJwXhx1MoNz5N` 识别头部/§状态 自相矛盾，
 > 已统一为 🔍 Proposed + 代码 ship 待办；2026-08-26 代码 ship 完成后翻转为 ✅ Approved。
+>
+> **V2 ship 证据 (2026-08-27, OpenSpec change `evaluator-v2-composite`)**:
+> - 新增 `BehavioralEquivalenceEvaluator` (V2, T14 集成): `include/agenticdsl/cognitive/behavioral_equivalence_evaluator.h`
+>   + `src/modules/cognitive/behavioral_equivalence_evaluator.cpp` — compare(a,b) 复用
+>   `agenticdsl::compute_fingerprint` + `hotelling_t2_test` (行为指纹 + Hotelling T²)，
+>   Pass/Inconclusive → 0, Fail → 按 reward scalar 比较返回 +1/-1；evaluate(trace) V1 占位 Acceptable(0.5)
+> - 新增 `CompositeEvaluator` (V2, 多评估器聚合): `include/agenticdsl/cognitive/composite_evaluator.h`
+>   + `src/modules/cognitive/composite_evaluator.cpp` — scalar 归一化权重加权平均 + quality 众数(平局取高)
+>   + confidence min + compare 加权求和 ±0.1 阈值
+> - IEvaluator 接口**零修改** (V2 仅子类实现)；V1 TaskSuccessEvaluator + 12 cases 零回归
+> - `tests/test_evaluator.cpp` 新增 8 cases / 18 assertions PASS (BehavioralEquivalence 3 + Composite 3 + 集成 2)
+>   — 满足 ≥ 6 新增 cases 判定
+> - 全量 ctest 动态基线 0 回归
 
 **前置文档**:
 - `docs/architecture/capability-application-map-2026-08.md` §八 Oracle 评审

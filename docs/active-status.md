@@ -45,6 +45,10 @@
 > - **G11 ✅ Closed (2026-08-26)** — cap-map §二/§三 B7/§八.5 + self-evolution-architecture + gap-analysis 已同步
 > - T19 GEPA Phase 2 commit 已解锁 (G11 ✅ Closed 2026-08-26, Phase 1 只读反思约束解除)
 > - **2026-08-26 自审修正 (Oracle session `ses_fc3090b49ffe7yJwXhx1MoNz5N`)**：原 ADR-0083 头部 "✅ Approved" 与 §状态 "🔍 Proposed" 自相矛盾，已统一为 🔍 Proposed + 代码 ship 待办 (`include/agenticdsl/contract/ievaluator.h` grep 0 命中)。OpenSpec task `2026-08-26-ship-ievaluator-reward-contract` 排期启动
+>
+> **G10 跟踪（✅ Closed — V2 层 ship 2026-08-27）**:
+> - **IEvaluator V1** ✅ ship 2026-08-26 (ADR-0083, 12 cases / 31 assertions, change `2026-08-26-ship-ievaluator-reward-contract` archived)
+> - **IEvaluator V2** ✅ ship 2026-08-27 (OpenSpec `evaluator-v2-composite` — BehavioralEquivalenceEvaluator [T14 fingerprint + Hotelling T²] + CompositeEvaluator [多评估器加权聚合]; test_evaluator +8 cases / 18 assertions PASS, IEvaluator 接口零修改, V1 零回归; cap-map v2.0 #26 能力落地)
 
 ### ✅ Wave 3-A 已归档 (历史参考)
 
