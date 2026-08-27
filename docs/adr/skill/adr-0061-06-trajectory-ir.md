@@ -1,7 +1,20 @@
 # ADR-0061-06: AgentIR-style Trajectory IR 升级 ParsedGraph
 
+> ⛔ **Superseded by v1.1 amendment (2026-08-25, Oracle session `ses_fcba5e477ffeG9wEBHVhU64J0o`)**
+>
+> 本文件 (v1) 已由 [v1.1 amendment](./adr-0061-06-v1-1-amendment-trajectory-ir-decouple.md) 修订：
+>
+> - **标题**: "升级 ParsedGraph" → "独立序列化视图（不改 ParsedGraph）"
+> - **决策 1**: TrajectoryIR = ParsedGraph 升级版 → TrajectoryIR = 独立类（Converter 单向桥接 ParsedGraph）
+> - **决策 2**: 三级 IR + V1 列 4 个 Pass (ConstantFoldingPass/DCE/BudgetAwarePruningPass/PGO) → V1 仅 ConstantFoldingPass 占位（其他 3 个推迟 V2）
+> - **决策 3**: Framework frontends 5 个 → V1 仅 2 个 (HydraForge DSL + 用户 YAML)
+> - **决策 4**: Backends 4 个 (SFT/RL/eval/可观测性) → V1 仅 2 个 (SFT 数据 + OTel spans)
+> - **实施估时**: 3 weeks → 2 sprint (T15, 与 ADR-0061-13 集成)
+>
+> **阅读建议**: 仅 v1.1 amendment 是当前有效设计；v1 文件保留作历史记录。
+
 **日期**: 2026-07-16
-**状态**: ✅ Approved (P1, 父 ADR-0061 拆分)
+**状态**: ⛔ Superseded (v1.1 amendment 取代，2026-08-25)
 **父 ADR**: [../adr-0061-agent-evolution-and-solidification.md](../adr-0061-agent-evolution-and-solidification.md)
 
 ---

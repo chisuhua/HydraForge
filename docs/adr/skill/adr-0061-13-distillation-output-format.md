@@ -2,6 +2,7 @@
 
 **日期**: 2026-08-24
 **状态**: ✅ **Approved (评审通过 2026-08-25)** (Oracle 评审识别为架构层缺口, capability-application-map §八 G15)
+⏳ **代码 ship: Pending** — OpenSpec change `2026-08-24-adr-0061-13-distillation-output-format` 尚未 ship；`include/agenticdsl/contract/idistillation_writer.h` 与 `struct DistillationRecord` 不存在（grep 0 命中，cap-map §八.2 闭环 1 第 7 环节 2026-08-26 自审识别）。消费方（T15 Trajectory IR、ADR-0078 Fine-tune）暂受阻。V1 ship 估时 1 sprint（含与 Trajectory IR 集成测试）。
 **父 ADR**: [../adr-0061-agent-evolution-and-solidification.md](../adr-0061-agent-evolution-and-solidification.md)
 **父 ADR 兄弟**: adr-0061-02 (T14 行为回归已 ship), adr-0061-06 (Trajectory IR), adr-0061-09 (GEPA)
 
@@ -120,7 +121,16 @@ class IDistillationWriter {
 
 - **必须** 在 `CaptureMode::Training` 模式下使用 (与 ADR-0080 v1.2 amendment G12 联动)
 - 文件头必须包含 `"capture_mode": "Training"` (沿用 D10.v1.2.4 约定)
-- `input` 字段**禁止**包含: API key / password / 邮箱 / IP (PII 自动 scrub)
+- `input` 字段**禁止**包含: API key / password / 邮箱 / IP (**调用方**负责 PII scrub)
+
+**Scrub 责任划分** (避免与 ADR-0080 v1.2 amendment 决策 D10.v1.2.2 "Training 模式跳过 scrub 强制" 措辞混淆):
+
+| 维度 | ADR-0080 v1.2 amendment | ADR-0061-13 (本 ADR) |
+|---|---|---|
+| **scrub hook 是否强制 ship** | ❌ Training 模式不强制 ADR-0081 scrub hook（fail-open 宽松启动）| N/A（不直接依赖） |
+| **PII scrub 责任** | N/A | ✅ **调用方负责**（写入前自行处理）|
+| **V2 自动化 scrub 集成** | ✅ ADR-0081 ✅ Approved 2026-08-21 | 调用方接入 ADR-0081 即可自动化 |
+
 - `meta.json.dataset_hash` 用于审计追踪,但不暴露原始数据
 
 ---

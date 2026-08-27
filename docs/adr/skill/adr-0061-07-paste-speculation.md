@@ -42,7 +42,7 @@ class ExecutionSession {
 
 ## 实施
 
-- 依赖: [ADR-0061-06-trajectory-ir](./adr-0061-06-trajectory-ir.md)
+- 依赖: [ADR-0061-06 v1.1 amendment (Trajectory IR)](./adr-0061-06-v1-1-amendment-trajectory-ir-decouple.md) — ⛔ v1 已 Superseded，请阅读 v1.1
 - 工作量: 4 weeks
 - 优先级: P2
 

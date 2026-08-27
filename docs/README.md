@@ -77,7 +77,7 @@ docs/
 | `adr-0023-tool-result-standard-impl-scope.md` | ADR-0023 实施范围审计 (C9) | 📋 审计补充 |
 | `adr-0033-session-hierarchy-impl-scope.md` | ADR-0033 实施范围审计 (C9) | 📋 审计补充 |
 | `adr-0067-layered-plugin-architecture-split.md` | L2/L3/L4 分层插件架构拆分 | ✅ Approved (追溯性正式化, 2026-07-23, 源自 `docs/specs/architecture.md` §2.3) |
-| `adr-0068-event-emission-contract.md` | 事件发射契约 (Canonical Topic Registry + 7 幻影主题强制发射点 + EventBuilder) | 🔍 Proposed (2026-07-31, D2 立项, 实施排期 Wave 1) |
+| `adr-0068-event-emission-contract.md` | 事件发射契约 (Canonical Topic Registry + 7 幻影主题强制发射点 + EventBuilder) | ✅ Approved (2026-08-03 — Wave 1 §1-§5 ship + Appendix A v1.2.2, 2026-08-27) |
 | `adr-0069-tool-coordinator-hooks.md` | ToolCoordinator Hook 注入点 (pre/post 双列表 + IToolHookRegistry + HookErrorPolicy) | 🔍 Proposed (2026-07-31, D3 立项, 实施排期 Wave 1) |
 | `adr-0070-declare-command.md` | PDK Plugin 命令/快捷键注册 (Command≠Tool + DECLARE_COMMAND + ICommandRegistry) | 🔍 Proposed (2026-07-31, D4 立项, 实施排期 Wave 1) |
 | `adr-0071-llm-native-agenticdsl-architecture.md` | LLM-native AgenticDSL 架构 (LLM 作为 DSL 作者, 3 平面 Operator/DSL/Backend, 派生 6 个子 ADR/Change) | ✅ Approved (评审通过 2026-08-25, Promotion, 顶层方向 ADR, 锚定 Phase 6+ 演化) |
@@ -110,18 +110,18 @@ docs/
 | 文件 | 议题 | 优先级 | 状态 |
 |------|------|:---:|:----:|
 | `adr-0061-01-skill-std.md` | SKILL.md 标准对齐（Anthropic / Cline Skills） | P0 | ✅ Approved |
-| `adr-0061-02-behavioral-regression.md` | AgentAssay-style 行为回归套件 | P0 | ✅ Approved (⚠ 无代码) |
-| `adr-0061-03-skill-compiler.md` | SkillCompiler 实施 | P0 | ✅ Approved (⚠ 无代码) |
+| `adr-0061-02-behavioral-regression.md` | AgentAssay-style 行为回归套件 | P0 | ✅ Approved (✅ T14 ship 2026-08-25, 6 cases / 13 assertions PASS) |
+| `adr-0061-03-skill-compiler.md` | SkillCompiler 实施 | P0 | ✅ Approved (✅ V1 ship 2026-08-27, T17, 15 cases / 61 assertions PASS) |
 | `adr-0061-04-slm-routing.md` | SLM 路由优先（NVIDIA 2025） | P1 | ✅ Approved |
 | `adr-0061-05-cpp-wasm-toolchain.md` | wasi-sdk 集成 + C++→Wasm CI | P1 | ✅ Approved (⚠ 无代码) |
-| `adr-0061-06-trajectory-ir.md` | AgentIR-style Trajectory IR 升级 ParsedGraph | P1 | ✅ Approved (⚠ 无代码) |
+| `adr-0061-06-trajectory-ir.md` | AgentIR-style Trajectory IR 升级 ParsedGraph | P1 | ⛔ Superseded (v1.1 amendment 2026-08-25, 见下行) |
 | `adr-0061-07-paste-speculation.md` | PASTE-style 推测执行 | P2 | 🔍 Proposed |
 | `adr-0061-08-aflow-search.md` | AFlow-style MCTS 工作流搜索 | P2 | 🔍 Proposed |
 | `adr-0061-09-gepa-loop.md` | GEPA-style 反思循环 | P2 | 🔍 Proposed |
 | `adr-0061-10-formal-lint.md` | λ_A-style Config 结构完整性检查 | P2 | 🔍 Proposed |
 | `adr-0061-11-dsl-wasm.md` | DSL→Wasm Bytecode 编译器 | P2 | 🔍 Proposed |
 | `adr-0061-12-webllm.md` | 浏览器端 WebLLM 集成 | P2 | 🔍 Proposed |
-| `adr-0061-13-distillation-output-format.md` | 蒸馏输出格式 (IDistillationWriter + DistillationRecord + trajectory/policy/meta 三文件分离) | P0 | ✅ Approved (评审通过 2026-08-25, Oracle G15, 7 环闭环最后 1 环) |
+| `adr-0061-13-distillation-output-format.md` | 蒸馏输出格式 (IDistillationWriter + DistillationRecord + trajectory/policy/meta 三文件分离) | P0 | ✅ Approved (评审通过 2026-08-25, Oracle G15, 7 环闭环最后 1 环) ⏳ 代码 ship: Pending |
 | `adr-0061-06-v1-1-amendment-trajectory-ir-decouple.md` | Trajectory IR 独立序列化视图 (不改 ParsedGraph, v1 标题耦合修正) | P1 | ✅ Approved (评审通过 2026-08-25, Oracle G14 解耦风险) |
 
 ### adr-management/ - ADR 元数据

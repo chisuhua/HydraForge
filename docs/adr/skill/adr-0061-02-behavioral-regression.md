@@ -81,9 +81,13 @@ struct RegressionBudget {
 
 ## 实施
 
-- 文件: `tests/behavioral_regression/` (新目录)
-- 核心: `include/agenticdsl/testing/behavioral_regression.h`
-- 工作量: 2 weeks
+- **文件 (V1 ship 实际位置, 2026-08-25 T14)**:
+  - `include/agenticdsl/testing/behavioral_regression.h` (L1 契约头)
+  - `src/modules/testing/behavioral_regression.cpp` (V1 实现)
+  - `src/modules/testing/CMakeLists.txt`
+  - `tests/test_behavioral_regression.cpp` (6 cases / 13 assertions PASS)
+- **Ship 验证** (cap-map §六.6.1.1): T14 ship (2026-08-25), 6 cases / 13 assertions PASS, 183/183 全量 ctest 0 回归, OpenSpec change `2026-08-24-adr-0061-02-behavioral-regression` 已 archive
+- 工作量: 2 weeks (原估) → V1 ship 1 sprint (与 Sprint 23 T14 排期对齐)
 - 优先级: P0
 
 ## 参考

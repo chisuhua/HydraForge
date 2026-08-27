@@ -4,6 +4,8 @@
 
 ✅ Approved (2026-08-03 — 派生自 ADR-0071 §决策 D5, Wave 2 Phase 2.2 ADR; 衔接 ADR-0073 (Tool JSON Schema); Promotion 评审通过 2026-08-25; 实施 2-3 周)
 
+> **隐含前置 (D7 主题注册)**: §决策 D7 设计 2 个新幻影主题 `llm.dsl.parse_failed` / `llm.dsl.schema_validation_failed`，需 ADR-0068 §附录 A amendment PR 注册。ADR-0068 Appendix A v1.2.2 已 ship (2026-08-27, 同步注册 `skill.compilation.*` 3 主题)，D7 主题注册前置 ✅ 满足（与 ADR-0068 amendment 集成 ship 路径明确）。
+
 ## 领域
 
 L0 运行时 / L1 OS Services / LLM-DSL 协同 / Prompt Engineering / 训练数据采集 / 评估方法学
