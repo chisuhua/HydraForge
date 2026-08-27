@@ -21,6 +21,7 @@
 #include "agenticdsl/cognitive/composite_evaluator.h"
 #include "core/types/tool_result.h"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
@@ -327,4 +328,33 @@ TEST_CASE("reflection_loop_no_improvement", "[gepa][phase2][phase1]") {
   REQUIRE_FALSE(result.success);
   REQUIRE(result.failure_mode == "no_improvement");
   REQUIRE(governor->commit_calls == 0);
+}
+
+TEST_CASE("gepa_event_emission", "[gepa][phase2][phase2]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
+  auto governor = std::make_shared<StubMutationGovernor>();
+  auto llm = std::make_shared<MockLLMProvider>();
+  auto bus = std::make_shared<RecordingBus>();
+  GEPALoop::Config config;
+  config.max_iterations = 1;
+  GEPALoop loop(evaluator, governor, llm, config, bus);
+
+  const auto result = loop.reflect_and_commit(make_failed_trace("events"));
+
+  REQUIRE(result.success);
+  const auto events = bus->gepa_events();
+  REQUIRE(events.size() >= 4);
+  REQUIRE(std::count_if(events.begin(), events.end(), [](const BusEvent* event) {
+    return event->topic == "gepa.reflection.started";
+  }) == 1);
+  REQUIRE(std::count_if(events.begin(), events.end(), [](const BusEvent* event) {
+    return event->topic == "gepa.commit.proposed";
+  }) == 1);
+  REQUIRE(std::count_if(events.begin(), events.end(), [](const BusEvent* event) {
+    return event->topic == "gepa.reflection.completed";
+  }) == 1);
+  REQUIRE(std::count_if(events.begin(), events.end(), [](const BusEvent* event) {
+    return event->topic == "gepa.commit.committed";
+  }) == 1);
 }

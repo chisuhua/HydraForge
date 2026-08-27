@@ -65,17 +65,17 @@
 
 ## Phase 2: 事件发射 + ADR-0068 集成 (估时 0.3 sprint)
 
-- [ ] **T2.1** Write failing test: `gepa_event_emission`（成功 commit 后 emit 6 个事件）
-- [ ] **T2.2** Verify fail: 事件未发射）
-- [ ] **T2.3** Implement: 在 `gepa_loop.cpp` 中添加 EventBuilder emit 调用：
+- [x] **T2.1** Write failing test: `gepa_event_emission`（成功 commit 后 emit 6 个事件）
+- [x] **T2.2** Verify fail: 事件未发射）
+- [x] **T2.3** Implement: 在 `gepa_loop.cpp` 中添加 EventBuilder emit 调用：
   - 反思开始 → emit `gepa.reflection.started`
   - 反思完成 → emit `gepa.reflection.completed` 或 `gepa.reflection.failed`
   - 变异提议 → emit `gepa.commit.proposed`
   - 变异提交 → emit `gepa.commit.committed` 或 `gepa.commit.denied`
-- [ ] **T2.4** Modify: `docs/adr/adr-0068-event-emission-contract.md` 附录 A v1.2.2 → v1.3：
+- [x] **T2.4** Modify: `docs/adr/adr-0068-event-emission-contract.md` 附录 A v1.2.2 → v1.3：
   - 注册 6 个 `gepa.*` 主题（payload schema: reflection_id / candidate_skill / regression_verdict / commit_id / evaluation_refs）
-- [ ] **T2.5** Verify pass: 1 case PASS + T1 + T0 全过
-- [ ] **T2.6** Commit: `feat(cognitive): GEPA event emission + ADR-0068 v1.3 (T2)`
+- [x] **T2.5** Verify pass: 1 case PASS + T1 + T0 全过
+- [x] **T2.6** Commit: `feat(cognitive): GEPA event emission + ADR-0068 v1.3 (T2)`
 
 ## Phase 3: E2E 集成测试 (估时 0.3 sprint)
 
