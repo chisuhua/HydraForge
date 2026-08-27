@@ -56,6 +56,11 @@ struct BehaviorFingerprint {
 
 // ============================================================================
 // §决策 4: Adaptive Budget
+// V1 简化: 仅 confidence_threshold 字段在 hotelling_t2_test() 决策中实际
+// 生效 (Pass/Fail/Inconclusive 三值边界); max_tokens / adaptive_test_count /
+// max_wallclock_ms 字段保留以备 V2 真实回归测试 (N 任务循环 + token 上限 +
+// wallclock 上限) 接入时使用。SkillCompiler T14 自检目前用默认 RegressionBudget{}
+// 仅触发 Pass (空指纹恒等比较)。
 // ============================================================================
 
 struct RegressionBudget {

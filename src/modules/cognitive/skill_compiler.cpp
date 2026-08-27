@@ -151,10 +151,11 @@ CompiledSkill SkillCompiler::compile(const std::string& skill_md_content) const 
   }
 
   // T14 行为回归自检 (V1: 模板包装不改变执行语义, baseline == candidate
-  // 空指纹恒等比较必为 Pass; T15 ship 后接入真实执行指纹)
-  // T15 ship: trajectory_ir_hash 由 TrajectoryIR::hash(CanonicalIR) 生成
-  // V1 简化: 空 CanonicalIR 快照 (真实轨迹从 ExecutionSession 提取留 V2,
-  //         集成 ADR-0061-13 DistillationRecord)
+  // 空指纹恒等比较必为 Pass)
+  // V1 边界: trajectory_ir_hash 由 TrajectoryIR::hash(CanonicalIR) 生成
+  // (T15 已 ship, 占位已替换为真实 hash 函数; 输入仍为空 CanonicalIR 快照,
+  // 真实轨迹接入留 V2 — 需先实现 SKILL→ParsedGraph 解析器 + ExecutionSession
+  // TraceRecord 提取, 集成 ADR-0061-13 DistillationRecord.steps)
   const ir::TrajectoryIR::CanonicalIR canonical{};
   result.trajectory_ir_hash = ir::TrajectoryIR::hash(canonical);
   {

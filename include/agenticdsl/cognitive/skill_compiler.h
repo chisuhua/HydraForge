@@ -26,6 +26,14 @@ namespace agenticdsl {
 //   - evaluator: 可选 IEvaluator (nullptr = 跳过质量门, ievaluator_score=0.0)
 //   - bus: 可选 IInteractionBus (nullptr = 不发射 skill.compilation.* 事件)
 // 线程安全: 全部成员 const 方法 + 无可变状态。
+//
+// V1 简化语义 (避免误读):
+//   - IEvaluator 质量门评估对象 = "编译动作成功" 的合成 ExecutionTrace,
+//     **不是**编译产物的语义/质量。V1 不构建 ParsedGraph, 无产物轨迹可评估。
+//     实际产物质量评估待 V2 接入真实 TrajectoryIR (SKILL→ParsedGraph + ADR-0061-13
+//     DistillationRecord.steps) 后扩展。
+//   - T14 行为回归自检 = 空指纹恒等比较恒为 Pass (V1 模板包装不改语义);
+//     真实回归测试待 V2 同上条件满足后接入。
 // ============================================================================
 class SkillCompiler : public ISkillCompiler {
  public:

@@ -41,6 +41,8 @@ class TrajectoryIR {
   enum class IRLevel : uint8_t { RawIR = 0, ParsedIR = 1, CanonicalIR = 2 };
 
   // RawIR — text-near DSL 表示
+  // V1 简化: 无对应转换入口 (from_text() 推迟 V2)。V1 Converter
+  // (from_parsed_graph) 直接从 ParsedGraph → ParsedIR, 跳过 RawIR 层。
   struct RawIR {
     std::string dsl_text;
     nlohmann::json metadata = nlohmann::json::object();
