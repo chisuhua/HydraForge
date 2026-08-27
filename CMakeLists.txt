@@ -133,6 +133,7 @@ add_subdirectory(src/modules/plugin)
 add_subdirectory(src/modules/pdk)
 add_subdirectory(src/modules/skill_interpreter)
 add_subdirectory(src/modules/testing)
+add_subdirectory(src/modules/ir)  # Sprint 24 T15: Trajectory IR (ADR-0061-06 v1.1)
 add_subdirectory(src/common/contract)
 add_subdirectory(src/common/policy)
 add_subdirectory(src/common/tools)
@@ -163,7 +164,8 @@ add_library(agenticdsl_core STATIC
 src/core/types/session_registry.cpp  # C11 Phase 5 Stage 1
 src/core/context_compactor.cpp      # context-compactor Task 1: 上下文压缩器骨架
 src/core/agent_registry.cpp         # P7: IAgentRegistry InMemory 参考实现 (ADR-0082 §决策 7)
-src/core/agent_hook_registry.cpp    # P3: IAgentHookRegistry InMemory 参考实现 (ADR-0081)
+ src/core/agent_hook_registry.cpp    # P3: IAgentHookRegistry InMemory 参考实现 (ADR-0081)
+ src/core/parsed_graph_to_trajectory_ir.cpp  # T15: TrajectoryIR 单向 Converter (ADR-0061-06 v1.1)
 )
 
 target_link_libraries(agenticdsl_core
