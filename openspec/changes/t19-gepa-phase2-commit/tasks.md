@@ -6,7 +6,7 @@
 
 ## Phase 0: GEPA Loop 契约 (估时 0.4 sprint)
 
-- [ ] **T0.1** Write failing test: `tests/test_gepa_phase2.cpp` 骨架（≥ 8 cases 占位）
+- [x] **T0.1** Write failing test: `tests/test_gepa_phase2.cpp` 骨架（≥ 8 cases 占位）
   - `gepa_loop_initialization`
   - `gepa_loop_failed_detection` (BehavioralEquivalence 检测失败)
   - `gepa_loop_trajectory_serialization` (T15 TrajectoryIR)
@@ -15,8 +15,8 @@
   - `gepa_loop_regression_validation` (T14 BehaviorRegression)
   - `gepa_loop_evaluation_gate` (IEvaluator V2 CompositeEvaluator)
   - `gepa_loop_commit_authorization` (MutationGovernor commit)
-- [ ] **T0.2** Verify fail: 编译失败（`fatal error: 'agenticdsl/cognitive/gepa_loop.h' file not found`）
-- [ ] **T0.3** Implement: `include/agenticdsl/cognitive/gepa_loop.h`:
+- [x] **T0.2** Verify fail: 编译失败（`fatal error: 'agenticdsl/cognitive/gepa_loop.h' file not found`）
+- [x] **T0.3** Implement: `include/agenticdsl/cognitive/gepa_loop.h`:
   ```cpp
   namespace agenticdsl {
   class GEPALoop {
@@ -42,8 +42,8 @@
   };
   }
   ```
-- [ ] **T0.4** Verify pass: 8 cases 编译通过（运行时仍 FAIL，断言占位）
-- [ ] **T0.5** Commit: `feat(cognitive): GEPALoop contract skeleton (T0)`
+- [x] **T0.4** Verify pass: 8 cases 编译通过（运行时仍 FAIL，断言占位）
+- [x] **T0.5** Commit: `feat(cognitive): GEPALoop contract skeleton (T0)`
 
 ## Phase 1: 反思循环核心 (估时 0.6 sprint)
 

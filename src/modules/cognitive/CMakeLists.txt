@@ -17,6 +17,7 @@ add_library(agenticdsl_modules_cognitive STATIC
     skill_compiler.cpp      # Sprint 24 T17: SkillCompiler V1 (ADR-0061-03)
     behavioral_equivalence_evaluator.cpp # evaluator-v2-composite T0: T14 行为等价
     composite_evaluator.cpp      # evaluator-v2-composite T1: 多评估器聚合
+    gepa_loop.cpp                # Sprint 24 T19: GEPA 反思循环编排器 (ADR-0071)
 )
 
 target_link_libraries(agenticdsl_modules_cognitive PUBLIC
