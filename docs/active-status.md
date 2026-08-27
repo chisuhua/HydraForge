@@ -11,7 +11,7 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **189 总数** (2026-08-27 T15 TrajectoryIR ship 后 `ctest -N` → Total Tests: 189; +1 = test_trajectory_ir 9 cases / 55 assertions PASS) — ⚠ `test_event_log_query_perf` 环境性 timing flake (共享机 load 8-11, 3 个功能断言全过, 仅 elapsed_ms 阈值随负载抖动 2-3 个失败, 与 T15 代码路径无关 [event_log.cpp 未改]), 建议空闲机复验 |
+| **Total ctest** | **189 总数** (2026-08-27 T15 TrajectoryIR ship 后 `ctest -N` → Total Tests: 189; +1 = test_trajectory_ir 9 cases / 55 assertions PASS; T19 GEPA 测试并入 test_gepa_phase2 单一 target) — ⚠ `test_event_log_query_perf` 环境性 timing flake (共享机 load 8-11, 3 个功能断言全过, 仅 elapsed_ms 阈值随负载抖动 2-3 个失败, 与 T15 代码路径无关 [event_log.cpp 未改]), 建议空闲机复验 |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
 | **OpenSpec active** | **3** (~~Sprint 24 启动周 T17 SkillCompiler~~ `2026-08-24-adr-0061-03-skill-compiler` ✅ ship + archived 2026-08-27; ~~T15 TrajectoryIR~~ `t15-trajectory-ir` ✅ ship + archived 2026-08-27 [9 cases / 55 assertions, ParsedGraph 零修改]; 剩余 3 个 Phase 6c 后续 Wave 待启动: `from-roadmap-phase-6c-evidence-gate` [Wave 2, 依赖 execution-baseline handoff] + `from-roadmap-phase-6c-execution-dsl` [Wave 3] + `from-roadmap-phase-6c-control-plane-eval` [Wave 4]) |
@@ -45,6 +45,9 @@
 > - **G11 ✅ Closed (2026-08-26)** — cap-map §二/§三 B7/§八.5 + self-evolution-architecture + gap-analysis 已同步
 > - T19 GEPA Phase 2 commit 已解锁 (G11 ✅ Closed 2026-08-26, Phase 1 只读反思约束解除)
 > - **2026-08-26 自审修正 (Oracle session `ses_fc3090b49ffe7yJwXhx1MoNz5N`)**：原 ADR-0083 头部 "✅ Approved" 与 §状态 "🔍 Proposed" 自相矛盾，已统一为 🔍 Proposed + 代码 ship 待办 (`include/agenticdsl/contract/ievaluator.h` grep 0 命中)。OpenSpec task `2026-08-26-ship-ievaluator-reward-contract` 排期启动
+>
+> **T19 跟踪（✅ Phase 2 commit ship 2026-08-27）**:
+> - **GEPA MVP V1** ✅ ship 2026-08-27 (OpenSpec `t19-gepa-phase2-commit` — GEPALoop 编排层: 失败轨迹反思 + Mock LLM 候选 + SkillCompiler + T14 回归自检 + IEvaluator V2 评估 + MutationGovernor 授权提交; test_gepa_phase2 14 cases PASS [8 骨架 + 2 核心流 + 1 事件 + 3 E2E], 既有 7 契约零修改, ADR-0068 附录 A v1.3 注册 6 个 `gepa.*` 主题; cap-map v2.1 #27 能力 + B7 → ✅ Completed)
 >
 > **G10 跟踪（✅ Closed — V2 层 ship 2026-08-27）**:
 > - **IEvaluator V1** ✅ ship 2026-08-26 (ADR-0083, 12 cases / 31 assertions, change `2026-08-26-ship-ievaluator-reward-contract` archived)

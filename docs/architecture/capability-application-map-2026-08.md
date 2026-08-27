@@ -1,7 +1,7 @@
-# 架构能力-应用地图（2026-08 v2.0）
+# 架构能力-应用地图（2026-08 v2.1）
 
 **生成日期**: 2026-08-27
-**最后验证**: 2026-08-27（v2.0 — 26 项能力 / 9 项 open gap (G10-G15 全部 ✅ Closed) / 17 类应用 / 22 个工程任务 T1-T22 (**T17 ✅ SHIP** / **T15 ✅ SHIP** / **IEvaluator V2 ✅ SHIP** / T19/T20/T21 ✅ APPROVED)，T15 TrajectoryIR V1 ship 同步 (9 cases / 55 assertions)，验证命令见 §六）
+**最后验证**: 2026-08-27（v2.1 — 27 项能力 / 9 项 open gap (G10-G15 全部 ✅ Closed) / 17 类应用 / 22 个工程任务 T1-T22 (**T17 ✅ SHIP** / **T15 ✅ SHIP** / **IEvaluator V2 ✅ SHIP** / **T19 GEPA MVP V1 ✅ SHIP** / T20/T21 ✅ APPROVED)，T15 TrajectoryIR V1 ship 同步 (9 cases / 55 assertions)，T19 GEPA Phase 2 commit 2026-08-27 完成，验证命令见 §六）
 **作者**: Architecture Working Group
 **状态**: ✅ Active — 架构能力的**唯一事实源**（取代已归档的 `defect-truth-table-2026-08.md`）
 
@@ -81,12 +81,14 @@
 | **24** | **SkillCompiler V1 (纯函数式 SKILL.md 编译 + T14 自检 + IEvaluator 门 + G11 emit-only)** | `include/agenticdsl/contract/iskill_compiler.h` + `src/modules/cognitive/skill_compiler.cpp` | test_skill_compiler **16 cases / 63 assertions PASS** | ADR-0061-03 | **Sprint 24 (T17, 2026-08-27 ship)** |
 | **25** | **Trajectory IR V1 (独立序列化视图, 3 级 IR + 单向 Converter + SFT/OTel backends + Pass 占位)** | `include/agenticdsl/ir/trajectory_ir.h` + `src/core/parsed_graph_to_trajectory_ir.cpp` + `src/modules/ir/` | test_trajectory_ir **9 cases / 55 assertions PASS**; ParsedGraph 零修改 | ADR-0061-06 v1.1 | **Sprint 24 (T15, 2026-08-27 ship)** |
 | **26** | **IEvaluator V2 (BehavioralEquivalence + Composite 多评估器聚合)** | `include/agenticdsl/cognitive/{behavioral_equivalence_evaluator,composite_evaluator}.h` + `src/modules/cognitive/{behavioral_equivalence_evaluator,composite_evaluator}.cpp` | test_evaluator **8 cases / 18 assertions PASS (V2)**; IEvaluator 接口零修改 | ADR-0083 | **Sprint 24 (evaluator-v2-composite, 2026-08-27 ship)** |
+| **27** | **GEPALoop 反思循环 MVP (失败轨迹 → LLM 反思 → 修订候选 → 编译 → 回归 → 评估 → MutationGovernor 授权提交)** | `include/agenticdsl/cognitive/gepa_loop.h` + `src/modules/cognitive/gepa_loop.cpp` | test_gepa_phase2 **14 cases PASS (含 3 E2E: 真实 V2 evaluator / 真实 governor / 回归拒绝中止)**; 既有 7 契约零修改; 6 个 `gepa.*` 事件注册 (ADR-0068 v1.3) | ADR-0071 + ADR-0061-09 (GEPA) | **Sprint 24 (T19, 2026-08-27 Phase 2 commit ship)** |
 
-**总覆盖**: **26 项已 ship 能力** = L0(5) + L1(5) + L2(4) + L3(5) + L4(7)
+**总覆盖**: **27 项已 ship 能力** = L0(5) + L1(5) + L2(4) + L3(5) + L4(8)
 **v1.1.2 新增**: L4 +1（行为回归套件 — Oracle 评审 "本周最高杠杆" T14 完成）
 **v1.3 新增**: L4 +1（SkillCompiler V1 — T17 ship, B7 自进化"变异对象生成器"落地, 闭环 2 第 4 环接通）
 **v1.9 新增**: L4 +1（Trajectory IR V1 — T15 ship, B6 蒸馏数据标准化落地, G14 闭环; ParsedGraph 独立视图, 单向 Converter 桥接）
 **v2.0 新增**: L4 +1（IEvaluator V2 — evaluator-v2-composite ship, BehavioralEquivalence (T14 集成) + Composite 多评估器聚合, G10 评估信号 V2 层落地）
+**v2.1 新增**: L4 +1（GEPALoop — T19 Phase 2 commit ship, B7 自进化基础应用解锁, 失败→反思→修订→回归→评估→授权提交全闭环落地）
 
 ---
 
@@ -159,7 +161,7 @@
 | **B4** Streaming Agent (partial result 流) | T6 (ADR-0060 stream 模式) | 2-3 sprint | IGenerationStream 流式契约 + 背压控制 |
 | **B5** MCP Server 形态 (DSL-as-tool) | T7 (ADR-0076 ship) | 2 sprint | stdio/HTTP/SSE transport + capability 暴露 |
 | **B6** Agent 蒸馏环境（教师→学生能力迁移）| T14 (行为回归 ✅ 门禁) + T15 (Trajectory IR) + ADR-0071 + G10 评估契约 | | 2-3 sprint | 教师规划轨迹采集 + 学生行为克隆 + 等价性评估（依赖 IEvaluator 契约）|
-| **B7** Agent 自进化基础（GEPA 反思循环 MVP）| T14 + T15 + T19 (GEPA spike Phase 1 只读) + G10 ✅/G11 ✅ Closed (V1 code ship, 2026-08-26) 契约 | | 2-3 sprint | 失败→反思→修订 prompt + 回归门禁 + 变异授权（T19 Phase 2 commit 已解锁 — G11 ✅ Closed 2026-08-26）|
+| **B7** Agent 自进化基础（GEPA 反思循环 MVP）| T14 + T15 + T19 (GEPA spike Phase 2 committed 2026-08-27) + G10 ✅/G11 ✅ Closed (V1 code ship, 2026-08-26) 契约 | | 2-3 sprint | 失败→反思→修订 prompt + 回归门禁 + 变异授权（T19 Phase 2 committed 2026-08-27, B7 → ✅ Completed）|
 
 ### 🟠 C 类：1-3 月工程后可构建（4 个应用类型）
 
@@ -496,6 +498,7 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 | 2026-08-27 | **v1.8** | **T17 ✅ SHIP: SkillCompiler V1 (ADR-0061-03) 代码落地** | (1) §一 L4 +1 (#24 SkillCompiler V1), 总能力 23 → 24; (2) §八.2 闭环 2 第 4 环 "变异对象" 实现状态 ⚙ 无代码 → ✅ T17 V1 ship, "闭环状态" 由 "3 环断裂" → "2 环断裂" (剩轨迹抽取 + 发布/热加载); (3) §八.3 E 轨 T17 行 APPROVED → ✅ SHIP; (4) 头部版本 v1.7 → v1.8。决议依据: OpenSpec change `2026-08-24-adr-0061-03-skill-compiler` (15 cases / 61 assertions PASS, ADR-0068 附录 A v1.2.2 注册 3 个 skill.compilation.* 主题) |
 | 2026-08-27 | **v1.9** | **T15 ✅ SHIP: Trajectory IR V1 (ADR-0061-06 v1.1) 代码落地** | (1) §一 L4 +1 (#25 Trajectory IR V1), 总能力 24 → 25; (2) §八.2 闭环 2 第 2 环 "轨迹抽取" 实现状态 ⚙ 无代码 → ✅ T15 V1 ship, "闭环状态" 由 "2 环断裂" → "1 环断裂" (仅剩发布/热加载); (3) §八.3 E 轨 T15 行 APPROVED → ✅ Completed/SHIP; (4) 头部版本 v1.8 → v1.9; (5) ADR-0061-06 v1 头部追加 ship 证据段 + v1.1 amendment 状态 → ✅ Approved + Shipped。决议依据: OpenSpec change `t15-trajectory-ir` (9 cases / 55 assertions PASS, commits `3ba9f2c`/`53a0f17`/`1fd5c4b`/`7b24973`, ParsedGraph 零修改, SkillCompiler TrajectoryPlaceholder → TrajectoryIR::hash 升级) |
 | 2026-08-27 | **v2.0** | **IEvaluator V2 ship (OpenSpec `evaluator-v2-composite`)** | (1) §一 25→26 项能力, L4 +1 (#26 IEvaluator V2: BehavioralEquivalence + Composite); (2) §二 G10 评估信号 V2 层落地 (BehavioralEquivalence 复用 T14 fingerprint + Hotelling T², Composite 多评估器加权聚合); (3) §八 闭环 1 评估信号行更新 V2 ship; (4) 头部 v1.9 → v2.0 + 生成/最后验证 2026-08-27; (5) 测试: test_evaluator V2 8 cases / 18 assertions PASS, IEvaluator 接口零修改, V1 12 cases 零回归, ctest 动态基线 0 回归 |
+| 2026-08-27 | **v2.1** | **T19 GEPA Phase 2 commit ship (OpenSpec `t19-gepa-phase2-commit`)** | (1) §一 26→27 项能力, L4 +1 (#27 GEPALoop 反思循环 MVP); (2) §三 B7 行 "T19 Phase 2 commit 已解锁" → "T19 Phase 2 committed 2026-08-27, B7 → ✅ Completed"; (3) §八 T19 行 Phase 1 只读反思约束解除 + Phase 2 committed; (4) §八.2 闭环 2 变异提交环接通 (GEPALoop 经 MutationGovernor 授权 commit); (5) 头部 v2.0 → v2.1 + 最后验证 2026-08-27; (6) 测试: test_gepa_phase2 14 cases PASS (含 3 E2E), 既有 7 契约零修改, ADR-0068 附录 A v1.3 注册 6 个 gepa.* 主题, ctest 动态基线 0 回归 |
 **后续追踪**:
 - **下一修订触发**: (1) 任意 §二 open gap ship；(2) 任意 §四/§八工程任务完成；(3) 新应用类型立项；(4) Phase 6 Candidate B 启动；(5) T14-T22 任一 ship/promotion；(6) 5 个新增 ADR 任一获批；(7) **ADR-0071/0074 评审会议召开 + 决议记录**
 - **定期审计**: 每 Sprint 收官同步（`scripts/sprint-closeout.sh` Step 8 加本表交叉检查）
@@ -580,7 +583,7 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 | 任务 | 估时 | 解锁能力 | 解锁应用 | 前置（promotion criteria）| 来源 |
 |---|---|---|---|---|---|
 | **T18**: PASTE 推测执行（ADR-0061-07）spike | 1-2 sprint | 并行假设验证 | C5 (高级) 自进化加速 | spike: 不破坏调度器确定性语义 | T5 v1.1 改名 |
-| **T19**: ✅ **APPROVED** Sprint 24 末 (R 轨 spike) (ADR-0083 ✅ + ADR-0071 ✅) — GEPA MVP| 2-3 sprint (R 轨 spike) | 失败→反思→修订 prompt | B7 自进化基础 | T14 + IEvaluator 契约（G10）+ 变异治理（G11 ✅ Closed ADR-0084 Approved 2026-08-26）+ ADR-0074 prompt 资产 **+ ~~Phase 1 只读反思约束~~ Phase 2 commit 已解锁 (G11 ✅ Closed 2026-08-26)** | T6 v1.1 改名 |
+| **T19**: ✅ **SHIP** Sprint 24 末 (R 轨 spike) (ADR-0083 ✅ + ADR-0071 ✅) — GEPA MVP| 2-3 sprint (R 轨 spike) | 失败→反思→修订 prompt | B7 自进化基础 | T14 + IEvaluator 契约（G10）+ 变异治理（G11 ✅ Closed ADR-0084 Approved 2026-08-26）+ ADR-0074 prompt 资产 **+ ~~Phase 1 只读反思约束~~ Phase 2 committed 2026-08-27** | T6 v1.1 改名 |
 | **T20**: ✅ **APPROVED** Sprint 26 末 (R 轨 spike) (ADR-0083 ✅ + T15 ✅) — AFlow MCTS| 1-2 月 (R 轨 spike) | 工作流自动优化 | C2 自进化高级 | T15 + IEvaluator 契约（G10）+ spike: 评估信号有可比性 | T7 v1.1 改名 |
 | **T21**: ✅ **APPROVED** Sprint 25 启动 (ADR-0074 ✅ + ADR-0083 ✅) — Prompt Evidence Gate| 1 月 | prompt 质量门控 | T19/T20 前置 | ADR-0071 父获批 + D1 30+ few-shot | T8 v1.1 改名 |
 | **T22**: Fine-tune 训练管线（ADR-0078）| **事件驱动**（AgenticMind 回流触发）| self-improvement agent | C2 自进化 | 外部阻塞解除 + T14 行为回归 | T9 v1.1 改事件驱动 |

@@ -92,20 +92,20 @@
 
 ## Phase 4: 文档同步 + ship 验证 (估时 0.2 sprint)
 
-- [ ] **T4.1** Modify `docs/adr/adr-0071-llm-native-agenticdsl-architecture.md` §决策 5 / §实施: 追加 GEPA MVP V1 ship 注记
-- [ ] **T4.2** Modify `docs/architecture/capability-application-map-2026-08.md`:
+- [x] **T4.1** Modify `docs/adr/adr-0071-llm-native-agenticdsl-architecture.md` §决策 5 / §实施: 追加 GEPA MVP V1 ship 注记
+- [x] **T4.2** Modify `docs/architecture/capability-application-map-2026-08.md`:
   - 头部 v2.0 → v2.1 + 最后验证 2026-08-27
   - §一 +1（能力 #27 GEPA MVP V1）
   - §三 B7 行 → ✅ Completed
   - §八 T19 行 Phase 1 只读反思约束行更新（移除 "Phase 2 commit 已解锁" 加 "Phase 2 committed 2026-08-27"）
   - §七 changelog v2.1 条目
-- [ ] **T4.3** Modify `docs/architecture/self-evolution-architecture-2026-08.md` §四: 评估/奖励/变异治理行追加 "GEPA MVP V1 ship 2026-08-27"
-- [ ] **T4.4** Modify `docs/active-status.md` §一 T19 跟踪段 + G11 跟踪段同步
-- [ ] **T4.5** Verify: `python3 tools/adr_lint.py` + `docs_drift_audit.py` 全通过
-- [ ] **T4.6** Verify: `openspec validate --changes --strict` PASS
-- [ ] **T4.7** Verify: `ctest --output-on-failure` 全量 0 回归（动态基线）
-- [ ] **T4.8** Commit: `feat(gepa): ship T19 Phase 2 commit MVP - B7 自进化基础应用解锁`
-- [ ] **T4.9** `openspec archive t19-gepa-phase2-commit`
+- [x] **T4.3** Modify `docs/architecture/self-evolution-architecture-2026-08.md` §四: 评估/奖励/变异治理行追加 "GEPA MVP V1 ship 2026-08-27"
+- [x] **T4.4** Modify `docs/active-status.md` §一 T19 跟踪段 + G11 跟踪段同步
+- [x] **T4.5** Verify: `python3 tools/adr_lint.py` + `docs_drift_audit.py` 全通过
+- [x] **T4.6** Verify: `openspec validate --changes --strict` PASS
+- [x] **T4.7** Verify: `ctest --output-on-failure` 全量 0 回归（动态基线）
+- [x] **T4.8** Commit: `feat(gepa): ship T19 Phase 2 commit MVP - B7 自进化基础应用解锁`
+- [x] **T4.9** `openspec archive t19-gepa-phase2-commit`
 
 ## 总估时
 

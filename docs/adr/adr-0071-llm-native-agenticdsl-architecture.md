@@ -569,6 +569,8 @@ adr-0070 (commands) ──┘                                  │            GA
 
 ## 实施检查清单
 
+> **T19 GEPA MVP V1 ship (2026-08-27)**：GEPALoop 编排层已完成失败轨迹反思、Mock LLM 候选生成、SkillCompiler、T14 回归自检、IEvaluator V2 评估及 MutationGovernor 授权提交；L4 权重与真实 LLM 调用仍明确不在 V1 范围内。
+
 ### Wave 2 准入 (本 ADR 决议生效后)
 - [ ] Tool Schema V3 草案公开评审（ADR-0073）
 - [ ] Prompt 模板初稿 + 30+ examples 启动采集（ADR-0074）
