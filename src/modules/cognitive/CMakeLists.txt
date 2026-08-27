@@ -15,6 +15,7 @@ add_library(agenticdsl_modules_cognitive STATIC
     domain_worker_pool.cpp  # Sprint 3: 领域智能体工作线程池
     agent_composition.cpp   # Sprint 22 P8: Agent 编排模式实现
     skill_compiler.cpp      # Sprint 24 T17: SkillCompiler V1 (ADR-0061-03)
+    behavioral_equivalence_evaluator.cpp # evaluator-v2-composite T0: T14 行为等价
 )
 
 target_link_libraries(agenticdsl_modules_cognitive PUBLIC

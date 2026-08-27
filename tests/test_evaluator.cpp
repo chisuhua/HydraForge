@@ -3,6 +3,7 @@
 #include "agenticdsl/contract/ievaluator.h"
 #include "agenticdsl/types/reward_signal.h"
 #include "agenticdsl/types/execution_trace.h"
+#include "agenticdsl/cognitive/behavioral_equivalence_evaluator.h"
 #include "core/types/tool_result.h"
 
 // Phase 2/3: Worker setter 注入 + 事件发射
@@ -347,4 +348,40 @@ TEST_CASE("evaluation.result event contains required fields",
     REQUIRE(data["confidence"] == 1.0);
     REQUIRE(data.contains("evaluation_refs"));
     REQUIRE(data["evaluation_refs"].is_array());
+}
+
+// =====================================================================
+// Phase 4: V2 评估器 — BehavioralEquivalenceEvaluator (evaluator-v2-composite, T0)
+// =====================================================================
+TEST_CASE("behavioral_equivalence_compare_pass_pair", "[evaluator][v2][phase4]") {
+    BehavioralEquivalenceEvaluator evaluator;
+    ExecutionTrace a, b;
+    // 相似 fingerprint: 两个成功 trace, 无 latency/tokens 差异
+    a.final_result = ToolResult::success("a");
+    b.final_result = ToolResult::success("b");
+    // Hotelling Pass → compare 返回 0
+    REQUIRE(evaluator.compare(a, b) == 0);
+}
+
+TEST_CASE("behavioral_equivalence_compare_fail_pair", "[evaluator][v2][phase4]") {
+    BehavioralEquivalenceEvaluator evaluator;
+    ExecutionTrace good, bad;
+    good.final_result = ToolResult::success("good");
+    bad.final_result = ToolResult::error(ErrorCode::Unknown, "bad");
+    // 差异 fingerprint (ok vs error → success_rate/error_rate 特征差) + Hotelling Fail
+    // → compare 返回 +1 (good 优于 bad)
+    REQUIRE(evaluator.compare(good, bad) == 1);
+    REQUIRE(evaluator.compare(bad, good) == -1);
+}
+
+TEST_CASE("behavioral_equivalence_evaluate_single_returns_acceptable",
+          "[evaluator][v2][phase4]") {
+    BehavioralEquivalenceEvaluator evaluator;
+    ExecutionTrace trace;
+    trace.final_result = ToolResult::success("t");
+    // V1: 单 trace 无法评估等价性 → 占位 Acceptable(0.5)
+    auto signal = evaluator.evaluate(trace);
+    REQUIRE(signal.quality == RewardSignal::Quality::Acceptable);
+    REQUIRE(signal.scalar == 0.0);
+    REQUIRE(signal.confidence == 0.5);
 }
