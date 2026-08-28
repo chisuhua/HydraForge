@@ -206,6 +206,13 @@ if(TEST test_measure_prompt_baseline)
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 endif()
 
+# T21 — test_prompt_evidence_gate 需以仓库根为工作目录
+# (lib/prompt/few_shots + lib/prompt/golden 相对路径 + python 工具调用)
+if(TEST test_prompt_evidence_gate)
+    set_tests_properties(test_prompt_evidence_gate PROPERTIES
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+endif()
+
 # ─────────────────────────────────────────────────────────────
 # Sprint 7 Day 3 quick win (Oracle Top 2 - 推迟自 Day 2 spot-check):
 # 静态 grep 锁定 fork 状态契约, 防止 Day 1 fork dedup 回归。

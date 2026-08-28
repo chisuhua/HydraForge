@@ -129,6 +129,7 @@ add_subdirectory(src/modules/trace)
 add_subdirectory(src/modules/library)
 add_subdirectory(src/modules/system)
 add_subdirectory(src/modules/cognitive)
+add_subdirectory(src/modules/prompt)   # Sprint 25 T21: Prompt Evidence Gate (ADR-0074)
 add_subdirectory(src/modules/plugin)
 add_subdirectory(src/modules/pdk)
 add_subdirectory(src/modules/skill_interpreter)
@@ -180,6 +181,7 @@ target_link_libraries(agenticdsl_core
  agenticdsl_modules_library
  agenticdsl_modules_system
  agenticdsl_modules_cognitive
+ agenticdsl_modules_prompt
  agenticdsl_modules_plugin
  agenticdsl_modules_pdk
  agenticdsl_modules_skill_interpreter

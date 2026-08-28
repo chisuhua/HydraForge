@@ -6,11 +6,11 @@
 
 ## Phase 0: Few-shot Library + Golden Tasks (估时 0.5 sprint)
 
-- [ ] **T0.1** Write failing test: `tests/test_prompt_evidence_gate.cpp` 骨架（≥ 10 cases 占位）
-- [ ] **T0.2** Verify fail: 编译失败（`fatal error: 'prompt/evidence_gate.h' file not found`）
-- [ ] **T0.3** Implement minimal: `include/agenticdsl/prompt/evidence_gate.h` 契约声明
-- [ ] **T0.4** Verify pass: 编译成功，10 cases 编译通过（运行时仍 FAIL）
-- [ ] **T0.5** Commit: `feat(prompt): evidence_gate contract skeleton (T0)`
+- [x] **T0.1** Write failing test: `tests/test_prompt_evidence_gate.cpp` 骨架（≥ 10 cases 占位）
+- [x] **T0.2** Verify fail: 编译失败（`fatal error: 'prompt/evidence_gate.h' file not found`）
+- [x] **T0.3** Implement minimal: `include/agenticdsl/prompt/evidence_gate.h` 契约声明
+- [x] **T0.4** Verify pass: 编译成功，10 cases 编译通过（运行时仍 FAIL）
+- [x] **T0.5** Commit: `feat(prompt): evidence_gate contract skeleton (T0)`
 - [ ] **T0.6** Generate `lib/prompt/few_shots/*.md` ≥ 30 个 few-shot demos（V1 实际生成）
 - [ ] **T0.7** Generate `lib/prompt/golden/*.json` ≥ 50 个 golden tasks（V1 实际生成）
 - [ ] **T0.8** Commit: `feat(prompt): few_shots library + golden tasks dataset (T0 data)`
