@@ -1,0 +1,12 @@
+{
+  "task_id": "human_02",
+  "domain": "human",
+  "difficulty": "L2",
+  "input": "失败两次升级人工。",
+  "expected_output": "## human.escalate\ncondition: failure_count >= 2\ntarget: oncall",
+  "validation_rules": [
+    "P:## human.escalate",
+    "S:condition",
+    "S:oncall"
+  ]
+}

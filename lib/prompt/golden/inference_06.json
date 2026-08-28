@@ -1,0 +1,12 @@
+{
+  "task_id": "inference_06",
+  "domain": "inference",
+  "difficulty": "L2",
+  "input": "贪婪解码。",
+  "expected_output": "## inference.decoding\ntop_k: 1\nstrategy: greedy",
+  "validation_rules": [
+    "P:## inference.decoding",
+    "S:top_k: 1",
+    "S:greedy"
+  ]
+}

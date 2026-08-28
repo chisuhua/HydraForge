@@ -1,0 +1,13 @@
+{
+  "task_id": "math_10",
+  "domain": "math",
+  "difficulty": "L3",
+  "input": "求幂 2^10。",
+  "expected_output": "## math.pow\nbase: 2\nexp: 10\noutput: result",
+  "validation_rules": [
+    "P:## math.pow",
+    "S:base: 2",
+    "S:exp: 10",
+    "S:output: result"
+  ]
+}

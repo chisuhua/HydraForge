@@ -1,0 +1,12 @@
+{
+  "task_id": "human_08",
+  "domain": "human",
+  "difficulty": "L2",
+  "input": "人工输入透传变量。",
+  "expected_output": "## human.input\nkey: user_path\nrequired: true",
+  "validation_rules": [
+    "P:## human.input",
+    "S:user_path",
+    "S:required: true"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "task_id": "human_03",
+  "domain": "human",
+  "difficulty": "L2",
+  "input": "多轮收集直到合法。",
+  "expected_output": "## human.ask\nprompt: 路径?\nrepeat_until: valid",
+  "validation_rules": [
+    "P:## human.ask",
+    "S:repeat_until: valid"
+  ]
+}

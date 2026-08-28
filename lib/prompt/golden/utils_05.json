@@ -1,0 +1,11 @@
+{
+  "task_id": "utils_05",
+  "domain": "utils",
+  "difficulty": "L1",
+  "input": "暂停 5 秒。",
+  "expected_output": "## utils.sleep\nduration_ms: 5000",
+  "validation_rules": [
+    "P:## utils.sleep",
+    "S:5000"
+  ]
+}

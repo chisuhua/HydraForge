@@ -1,0 +1,15 @@
+{
+  "task_id": "auth_05",
+  "domain": "auth",
+  "difficulty": "L3",
+  "input": "多角色矩阵: dev 只读, admin 全部。",
+  "expected_output": "## auth.matrix\nroles: [dev, admin]\ndev: [read]\nadmin: [read, write, delete]",
+  "validation_rules": [
+    "P:## auth.matrix",
+    "S:dev",
+    "S:read",
+    "S:admin",
+    "S:write",
+    "S:delete"
+  ]
+}

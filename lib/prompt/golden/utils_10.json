@@ -1,0 +1,14 @@
+{
+  "task_id": "utils_10",
+  "domain": "utils",
+  "difficulty": "L2",
+  "input": "字符串替换。",
+  "expected_output": "## utils.replace\ninput: a-b-c\nfrom: -\nto: _\noutput: s",
+  "validation_rules": [
+    "P:## utils.replace",
+    "S:a-b-c",
+    "S:from",
+    "S:to",
+    "S:output: s"
+  ]
+}

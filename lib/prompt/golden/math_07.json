@@ -1,0 +1,12 @@
+{
+  "task_id": "math_07",
+  "domain": "math",
+  "difficulty": "L3",
+  "input": "斐波那契前 8 项。",
+  "expected_output": "## math.fibonacci\nn: 8\noutput: seq",
+  "validation_rules": [
+    "P:## math.fibonacci",
+    "S:n: 8",
+    "S:output: seq"
+  ]
+}

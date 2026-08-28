@@ -1,0 +1,13 @@
+{
+  "task_id": "human_05",
+  "domain": "human",
+  "difficulty": "L3",
+  "input": "多审批人 OR 通过。",
+  "expected_output": "## human.multi_approval\napprovers: [a, b]\nmode: or",
+  "validation_rules": [
+    "P:## human.multi_approval",
+    "S:a",
+    "S:b",
+    "S:or"
+  ]
+}

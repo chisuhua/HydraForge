@@ -1,0 +1,13 @@
+{
+  "task_id": "utils_04",
+  "domain": "utils",
+  "difficulty": "L2",
+  "input": "拼接 /var/log + app.log。",
+  "expected_output": "## utils.path_join\nparts: [/var/log, app.log]\noutput: full",
+  "validation_rules": [
+    "P:## utils.path_join",
+    "S:/var/log",
+    "S:app.log",
+    "S:output: full"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "task_id": "loop_06",
+  "domain": "loop",
+  "difficulty": "L2",
+  "input": "条件循环。",
+  "expected_output": "## loop.while\ncondition: retries < 4\nbody: retry_step",
+  "validation_rules": [
+    "P:## loop.while",
+    "S:condition",
+    "S:retries < 4",
+    "S:retry_step"
+  ]
+}

@@ -11,9 +11,9 @@
 - [x] **T0.3** Implement minimal: `include/agenticdsl/prompt/evidence_gate.h` 契约声明
 - [x] **T0.4** Verify pass: 编译成功，10 cases 编译通过（运行时仍 FAIL）
 - [x] **T0.5** Commit: `feat(prompt): evidence_gate contract skeleton (T0)`
-- [ ] **T0.6** Generate `lib/prompt/few_shots/*.md` ≥ 30 个 few-shot demos（V1 实际生成）
-- [ ] **T0.7** Generate `lib/prompt/golden/*.json` ≥ 50 个 golden tasks（V1 实际生成）
-- [ ] **T0.8** Commit: `feat(prompt): few_shots library + golden tasks dataset (T0 data)`
+- [x] **T0.6** Generate `lib/prompt/few_shots/*.md` ≥ 30 个 few-shot demos（V1 实际生成）
+- [x] **T0.7** Generate `lib/prompt/golden/*.json` ≥ 50 个 golden tasks（V1 实际生成）
+- [x] **T0.8** Commit: `feat(prompt): few_shots library + golden tasks dataset (T0 data)`
 
 ## Phase 1: Evidence Gate 核心 (估时 0.5 sprint)
 

@@ -1,0 +1,12 @@
+{
+  "task_id": "inference_02",
+  "domain": "inference",
+  "difficulty": "L2",
+  "input": "加载模型。",
+  "expected_output": "## inference.model.load\nmodel: qwen-7b\nquant: q4",
+  "validation_rules": [
+    "P:## inference.model.load",
+    "S:qwen-7b",
+    "S:q4"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "task_id": "inference_01",
+  "domain": "inference",
+  "difficulty": "L1",
+  "input": "初始化引擎。",
+  "expected_output": "## inference.engine.init\nmodel_path: m.gguf\nn_ctx: 4096",
+  "validation_rules": [
+    "P:## inference.engine.init",
+    "S:m.gguf",
+    "S:4096"
+  ]
+}

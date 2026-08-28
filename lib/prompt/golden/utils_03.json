@@ -1,0 +1,12 @@
+{
+  "task_id": "utils_03",
+  "domain": "utils",
+  "difficulty": "L1",
+  "input": "读 data.json 的 items。",
+  "expected_output": "## utils.json_read\npath: data.json\nkey: items\noutput: items",
+  "validation_rules": [
+    "P:## utils.json_read",
+    "S:data.json",
+    "S:items"
+  ]
+}

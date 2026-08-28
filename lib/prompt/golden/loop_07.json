@@ -1,0 +1,12 @@
+{
+  "task_id": "loop_07",
+  "domain": "loop",
+  "difficulty": "L3",
+  "input": "超时终止循环。",
+  "expected_output": "## loop.timeout\nlimit_ms: 60000\naction: cancel",
+  "validation_rules": [
+    "P:## loop.timeout",
+    "S:limit_ms: 60000",
+    "S:cancel"
+  ]
+}

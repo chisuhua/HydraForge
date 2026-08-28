@@ -1,0 +1,13 @@
+{
+  "task_id": "loop_01",
+  "domain": "loop",
+  "difficulty": "L2",
+  "input": "ReAct 循环。",
+  "expected_output": "## loop.react\nmax_steps: 5\ntools: [search, calc]",
+  "validation_rules": [
+    "P:## loop.react",
+    "S:max_steps: 5",
+    "S:search",
+    "S:calc"
+  ]
+}

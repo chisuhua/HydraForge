@@ -1,0 +1,13 @@
+{
+  "task_id": "human_04",
+  "domain": "human",
+  "difficulty": "L2",
+  "input": "高危操作审批门。",
+  "expected_output": "## human.approval\nlevel: high\napprover: lead\nif_denied: abort",
+  "validation_rules": [
+    "P:## human.approval",
+    "S:high",
+    "S:lead",
+    "S:abort"
+  ]
+}

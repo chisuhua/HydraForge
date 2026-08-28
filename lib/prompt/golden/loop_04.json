@@ -1,0 +1,12 @@
+{
+  "task_id": "loop_04",
+  "domain": "loop",
+  "difficulty": "L1",
+  "input": "失败重试。",
+  "expected_output": "## loop.retry\nmax_retry: 3\nbackoff: exponential",
+  "validation_rules": [
+    "P:## loop.retry",
+    "S:max_retry: 3",
+    "S:exponential"
+  ]
+}

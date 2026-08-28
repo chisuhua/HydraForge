@@ -1,0 +1,11 @@
+{
+  "task_id": "inference_08",
+  "domain": "inference",
+  "difficulty": "L2",
+  "input": "卸载模型。",
+  "expected_output": "## inference.model.unload\nmodel: qwen-7b",
+  "validation_rules": [
+    "P:## inference.model.unload",
+    "S:qwen-7b"
+  ]
+}

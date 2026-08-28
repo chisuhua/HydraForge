@@ -1,0 +1,12 @@
+{
+  "task_id": "loop_05",
+  "domain": "loop",
+  "difficulty": "L3",
+  "input": "带取消的循环。",
+  "expected_output": "## loop.react\nmax_steps: 10\ncancelable: true",
+  "validation_rules": [
+    "P:## loop.react",
+    "S:max_steps: 10",
+    "S:cancelable: true"
+  ]
+}

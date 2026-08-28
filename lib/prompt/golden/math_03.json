@@ -1,0 +1,13 @@
+{
+  "task_id": "math_03",
+  "domain": "math",
+  "difficulty": "L1",
+  "input": "计算 3*7。",
+  "expected_output": "## math.multiply\na: 3\nb: 7\noutput: product",
+  "validation_rules": [
+    "P:## math.multiply",
+    "S:a: 3",
+    "S:b: 7",
+    "S:output: product"
+  ]
+}

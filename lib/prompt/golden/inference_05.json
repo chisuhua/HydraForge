@@ -1,0 +1,12 @@
+{
+  "task_id": "inference_05",
+  "domain": "inference",
+  "difficulty": "L3",
+  "input": "prefix 缓存。",
+  "expected_output": "## inference.prefix_cache\nenabled: true\nmax_entries: 100",
+  "validation_rules": [
+    "P:## inference.prefix_cache",
+    "S:enabled: true",
+    "S:100"
+  ]
+}

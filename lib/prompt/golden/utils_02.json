@@ -1,0 +1,13 @@
+{
+  "task_id": "utils_02",
+  "domain": "utils",
+  "difficulty": "L2",
+  "input": "渲染模板注入变量。",
+  "expected_output": "## utils.template_render\ntemplate: t.md\nvars: {name: hydra}\noutput: out",
+  "validation_rules": [
+    "P:## utils.template_render",
+    "S:t.md",
+    "S:hydra",
+    "S:output: out"
+  ]
+}

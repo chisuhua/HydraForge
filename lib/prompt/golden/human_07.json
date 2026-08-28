@@ -1,0 +1,12 @@
+{
+  "task_id": "human_07",
+  "domain": "human",
+  "difficulty": "L3",
+  "input": "超时默认回滚。",
+  "expected_output": "## human.timeout\nlimit_ms: 30000\non_timeout: rollback",
+  "validation_rules": [
+    "P:## human.timeout",
+    "S:limit_ms: 30000",
+    "S:rollback"
+  ]
+}

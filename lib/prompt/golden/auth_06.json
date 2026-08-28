@@ -1,0 +1,12 @@
+{
+  "task_id": "auth_06",
+  "domain": "auth",
+  "difficulty": "L2",
+  "input": "审批通过前禁止执行敏感工具。",
+  "expected_output": "## auth.approval\nrequired: true\ntools: [delete]",
+  "validation_rules": [
+    "P:## auth.approval",
+    "S:required: true",
+    "S:delete"
+  ]
+}

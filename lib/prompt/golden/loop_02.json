@@ -1,0 +1,12 @@
+{
+  "task_id": "loop_02",
+  "domain": "loop",
+  "difficulty": "L2",
+  "input": "规划-执行。",
+  "expected_output": "## loop.plan_execute\nplan_steps: 3\nverify: true",
+  "validation_rules": [
+    "P:## loop.plan_execute",
+    "S:plan_steps: 3",
+    "S:verify: true"
+  ]
+}

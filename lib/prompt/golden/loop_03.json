@@ -1,0 +1,13 @@
+{
+  "task_id": "loop_03",
+  "domain": "loop",
+  "difficulty": "L3",
+  "input": "fork-join 并行。",
+  "expected_output": "## loop.fork_join\nbranches: [b1, b2]\nmode: wait_all",
+  "validation_rules": [
+    "P:## loop.fork_join",
+    "S:b1",
+    "S:b2",
+    "S:wait_all"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "task_id": "math_05",
+  "domain": "math",
+  "difficulty": "L2",
+  "input": "5 的阶乘。",
+  "expected_output": "## math.factorial\nn: 5\noutput: fact",
+  "validation_rules": [
+    "P:## math.factorial",
+    "S:n: 5",
+    "S:output: fact"
+  ]
+}

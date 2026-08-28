@@ -1,0 +1,12 @@
+{
+  "task_id": "utils_08",
+  "domain": "utils",
+  "difficulty": "L2",
+  "input": "base64 解码。",
+  "expected_output": "## utils.base64_decode\ndata: aGVsbG8=\noutput: text",
+  "validation_rules": [
+    "P:## utils.base64_decode",
+    "S:aGVsbG8=",
+    "S:output: text"
+  ]
+}

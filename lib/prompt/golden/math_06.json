@@ -1,0 +1,13 @@
+{
+  "task_id": "math_06",
+  "domain": "math",
+  "difficulty": "L1",
+  "input": "17 % 5。",
+  "expected_output": "## math.modulo\na: 17\nb: 5\noutput: rem",
+  "validation_rules": [
+    "P:## math.modulo",
+    "S:a: 17",
+    "S:b: 5",
+    "S:output: rem"
+  ]
+}

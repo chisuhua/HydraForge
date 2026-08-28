@@ -1,0 +1,12 @@
+{
+  "task_id": "auth_07",
+  "domain": "auth",
+  "difficulty": "L1",
+  "input": "会话建立双向 TLS。",
+  "expected_output": "## auth.tls\nmutual: true\nca: ca.pem",
+  "validation_rules": [
+    "P:## auth.tls",
+    "S:mutual: true",
+    "S:ca.pem"
+  ]
+}

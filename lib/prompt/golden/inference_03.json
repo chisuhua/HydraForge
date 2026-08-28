@@ -1,0 +1,12 @@
+{
+  "task_id": "inference_03",
+  "domain": "inference",
+  "difficulty": "L1",
+  "input": "生成补全。",
+  "expected_output": "## inference.generate\nprompt: 你好\nmax_tokens: 256\ntemperature: 0.7",
+  "validation_rules": [
+    "P:## inference.generate",
+    "S:max_tokens: 256",
+    "S:0.7"
+  ]
+}

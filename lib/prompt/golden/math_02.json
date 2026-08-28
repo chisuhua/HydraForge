@@ -1,0 +1,15 @@
+{
+  "task_id": "math_02",
+  "domain": "math",
+  "difficulty": "L1",
+  "input": "求 [1,2,3,4] 和。",
+  "expected_output": "## math.sum\nvalues: [1,2,3,4]\noutput: total",
+  "validation_rules": [
+    "P:## math.sum",
+    "S:1",
+    "S:2",
+    "S:3",
+    "S:4",
+    "S:output: total"
+  ]
+}

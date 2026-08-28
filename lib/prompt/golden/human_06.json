@@ -1,0 +1,11 @@
+{
+  "task_id": "human_06",
+  "domain": "human",
+  "difficulty": "L1",
+  "input": "进度通知用户。",
+  "expected_output": "## human.notify\nmessage: 已完成\nchannel: slack",
+  "validation_rules": [
+    "P:## human.notify",
+    "S:slack"
+  ]
+}

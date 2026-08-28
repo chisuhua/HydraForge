@@ -1,0 +1,11 @@
+{
+  "task_id": "utils_06",
+  "domain": "utils",
+  "difficulty": "L1",
+  "input": "输出固定文本。",
+  "expected_output": "## utils.echo\nmessage: hello",
+  "validation_rules": [
+    "P:## utils.echo",
+    "S:hello"
+  ]
+}

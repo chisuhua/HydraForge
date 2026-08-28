@@ -1,0 +1,12 @@
+{
+  "task_id": "human_01",
+  "domain": "human",
+  "difficulty": "L1",
+  "input": "删除前要求确认。",
+  "expected_output": "## human.confirm\nmessage: 确认?\nrequired: true\non_timeout: abort",
+  "validation_rules": [
+    "P:## human.confirm",
+    "S:required: true",
+    "S:abort"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "task_id": "loop_08",
+  "domain": "loop",
+  "difficulty": "L2",
+  "input": "循环内状态共享。",
+  "expected_output": "## loop.share\nkey: counter\nscope: loop",
+  "validation_rules": [
+    "P:## loop.share",
+    "S:counter",
+    "S:loop"
+  ]
+}

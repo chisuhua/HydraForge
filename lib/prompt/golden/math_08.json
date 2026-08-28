@@ -1,0 +1,13 @@
+{
+  "task_id": "math_08",
+  "domain": "math",
+  "difficulty": "L3",
+  "input": "计算组合数 C(6,2)。",
+  "expected_output": "## math.combination\nn: 6\nk: 2\noutput: comb",
+  "validation_rules": [
+    "P:## math.combination",
+    "S:n: 6",
+    "S:k: 2",
+    "S:output: comb"
+  ]
+}

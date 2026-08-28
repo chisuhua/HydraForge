@@ -1,0 +1,14 @@
+{
+  "task_id": "auth_01",
+  "domain": "auth",
+  "difficulty": "L1",
+  "input": "授予工作流读取 /etc/hosts 的权限。",
+  "expected_output": "## auth.approve_permissions\npermissions: [read]\nscope: system",
+  "validation_rules": [
+    "P:## auth.approve_permissions",
+    "S:permissions",
+    "S:read",
+    "S:scope: system",
+    "S:## end"
+  ]
+}

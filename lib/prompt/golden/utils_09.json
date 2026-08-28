@@ -1,0 +1,12 @@
+{
+  "task_id": "utils_09",
+  "domain": "utils",
+  "difficulty": "L3",
+  "input": "glob 匹配日志文件。",
+  "expected_output": "## utils.glob\npattern: logs/*.log\noutput: files",
+  "validation_rules": [
+    "P:## utils.glob",
+    "S:logs/*.log",
+    "S:output: files"
+  ]
+}

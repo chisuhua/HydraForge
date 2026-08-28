@@ -1,0 +1,13 @@
+{
+  "task_id": "auth_04",
+  "domain": "auth",
+  "difficulty": "L2",
+  "input": "admin 才能删除, 其余拒绝。",
+  "expected_output": "## auth.rbac\nrole: admin\nallow: [delete]\npolicy: deny_by_default",
+  "validation_rules": [
+    "P:## auth.rbac",
+    "S:role: admin",
+    "S:delete",
+    "S:deny_by_default"
+  ]
+}

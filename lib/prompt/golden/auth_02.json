@@ -1,0 +1,13 @@
+{
+  "task_id": "auth_02",
+  "domain": "auth",
+  "difficulty": "L1",
+  "input": "从环境注入 API_KEY 且不回显。",
+  "expected_output": "## auth.secret_env\nname: API_KEY\nrequired: true\nmask: true",
+  "validation_rules": [
+    "P:## auth.secret_env",
+    "S:name: API_KEY",
+    "S:required: true",
+    "S:mask: true"
+  ]
+}

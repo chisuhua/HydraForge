@@ -1,0 +1,13 @@
+{
+  "task_id": "auth_03",
+  "domain": "auth",
+  "difficulty": "L2",
+  "input": "令牌 401 后自动刷新重试。",
+  "expected_output": "## auth.token_refresh\nendpoint: /api\non_401: refresh_and_retry\nmax_retry: 2",
+  "validation_rules": [
+    "P:## auth.token_refresh",
+    "S:on_401: refresh_and_retry",
+    "S:max_retry: 2",
+    "P:->"
+  ]
+}

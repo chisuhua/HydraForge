@@ -1,0 +1,12 @@
+{
+  "task_id": "inference_10",
+  "domain": "inference",
+  "difficulty": "L3",
+  "input": "top-p 采样。",
+  "expected_output": "## inference.decoding\ntop_p: 0.9\nstrategy: sampling",
+  "validation_rules": [
+    "P:## inference.decoding",
+    "S:top_p: 0.9",
+    "S:sampling"
+  ]
+}

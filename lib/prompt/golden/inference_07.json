@@ -1,0 +1,12 @@
+{
+  "task_id": "inference_07",
+  "domain": "inference",
+  "difficulty": "L3",
+  "input": "KV 缓存复用。",
+  "expected_output": "## inference.kv_cache\nenabled: true\ncapacity: 512",
+  "validation_rules": [
+    "P:## inference.kv_cache",
+    "S:enabled: true",
+    "S:512"
+  ]
+}

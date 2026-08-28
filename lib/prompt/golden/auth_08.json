@@ -1,0 +1,12 @@
+{
+  "task_id": "auth_08",
+  "domain": "auth",
+  "difficulty": "L3",
+  "input": "限流: 每分钟最多 60 次。",
+  "expected_output": "## auth.rate_limit\nper_minute: 60\nscope: global",
+  "validation_rules": [
+    "P:## auth.rate_limit",
+    "S:per_minute: 60",
+    "S:global"
+  ]
+}

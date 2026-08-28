@@ -1,0 +1,13 @@
+{
+  "task_id": "math_01",
+  "domain": "math",
+  "difficulty": "L1",
+  "input": "计算 1+2。",
+  "expected_output": "## math.add\na: 1\nb: 2\noutput: sum",
+  "validation_rules": [
+    "P:## math.add",
+    "S:a: 1",
+    "S:b: 2",
+    "S:output: sum"
+  ]
+}

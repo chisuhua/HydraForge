@@ -1,0 +1,11 @@
+{
+  "task_id": "inference_04",
+  "domain": "inference",
+  "difficulty": "L2",
+  "input": "流式生成。",
+  "expected_output": "## inference.generate_stream\nprompt: 讲故事\nstream: true",
+  "validation_rules": [
+    "P:## inference.generate_stream",
+    "S:stream: true"
+  ]
+}

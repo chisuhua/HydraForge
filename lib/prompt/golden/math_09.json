@@ -1,0 +1,13 @@
+{
+  "task_id": "math_09",
+  "domain": "math",
+  "difficulty": "L2",
+  "input": "求最大公约数 gcd(48,36)。",
+  "expected_output": "## math.gcd\na: 48\nb: 36\noutput: g",
+  "validation_rules": [
+    "P:## math.gcd",
+    "S:a: 48",
+    "S:b: 36",
+    "S:output: g"
+  ]
+}

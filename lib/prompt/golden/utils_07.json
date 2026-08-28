@@ -1,0 +1,12 @@
+{
+  "task_id": "utils_07",
+  "domain": "utils",
+  "difficulty": "L3",
+  "input": "JSON 校验字段类型。",
+  "expected_output": "## utils.json_validate\nschema: user.json\nstrict: true",
+  "validation_rules": [
+    "P:## utils.json_validate",
+    "S:user.json",
+    "S:strict: true"
+  ]
+}

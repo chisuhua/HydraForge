@@ -1,0 +1,12 @@
+{
+  "task_id": "utils_01",
+  "domain": "utils",
+  "difficulty": "L1",
+  "input": "解析 config.yaml。",
+  "expected_output": "## utils.yaml_parse\nsource: config.yaml\noutput: config",
+  "validation_rules": [
+    "P:## utils.yaml_parse",
+    "S:config.yaml",
+    "S:output: config"
+  ]
+}

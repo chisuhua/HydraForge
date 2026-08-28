@@ -1,0 +1,12 @@
+{
+  "task_id": "inference_09",
+  "domain": "inference",
+  "difficulty": "L3",
+  "input": "云端引擎配置。",
+  "expected_output": "## inference.cloud_engine.configure\nprovider: openai\nmodel: gpt-4o",
+  "validation_rules": [
+    "P:## inference.cloud_engine.configure",
+    "S:openai",
+    "S:gpt-4o"
+  ]
+}
