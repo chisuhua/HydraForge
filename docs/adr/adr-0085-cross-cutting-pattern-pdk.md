@@ -79,7 +79,10 @@ struct CrossCuttingContext {
     IAgentHookRegistry* agent_hook_registry;
     IToolHookRegistry* tool_hook_registry;
     IInteractionBus* bus;
-    ILLMProvider** llm_provider_slot;  // 槽位供 DecoratorPattern 替换
+    // Oracle B1: L0 通道使用 set_llm_provider 回调替代虚构的
+    // ILLMProvider** 槽位 (engine.h:130 仅暴露 set_llm_provider API)。
+    // 用户构造 Orchestrator 时绑定到 DSLEngine::set_llm_provider。
+    std::function<void(std::unique_ptr<ILLMProvider>)> set_llm_provider;
 };
 
 namespace cross_cutting_pattern {
@@ -179,7 +182,7 @@ description: "Enable strict privacy + audit + approval"
 patterns:
   - type: decorator-v1
     config:
-      decorators: ["CostTracking", "Compliance", "PII-Scrub", "Retry"]
+      decorators: ["CostTracking", "Compliance", "PII-Scrub"]  # Oracle B2: 链深 ≤4 含 inner (移除 Retry)
   - type: hook-v1
     config:
       hooks:
@@ -327,6 +330,8 @@ patterns:
 - `git diff HEAD -- include/agenticdsl/contract/iagent_hook_registry.h` — 0 行
 - `git diff HEAD -- include/agenticdsl/contract/iagent_registry.h` — 0 行
 - `git diff HEAD -- include/agenticdsl/contract/i_llm_provider_decorator.h` — 0 行
+- `git diff HEAD -- include/agenticdsl/contract/iagent_composition.h` — 0 行
+- `git diff HEAD -- src/core/engine.h` — 0 行 (Oracle B3: V1 不修改 DSLEngine，通过 set_llm_provider 复用既有 API)
 - `git diff HEAD -- docs/adr/adr-0068-event-emission-contract.md` — 0 行
 
 ---

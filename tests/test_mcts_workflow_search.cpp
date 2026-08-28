@@ -458,3 +458,44 @@ TEST_CASE("mcts_mutation_governor_authorizes_commit", "[mcts][phase2]") {
   REQUIRE(governor->commit_calls == 1);
   REQUIRE(governor->last_kind == "L1_prompt");
 }
+
+// ============================================================================
+// Phase 3: 事件发射 (1 case)
+// ============================================================================
+
+TEST_CASE("mcts_event_emission", "[mcts][phase3]") {
+  // happy path: started ×1 + iteration ×N + completed ×1, 无 failed
+  auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->mode = StubEvaluator::Mode::ScoreByOk;
+  auto governor = std::make_shared<StubGovernor>();
+  auto gate = std::make_shared<BehavioralRegressionGate>();
+  auto bus = std::make_shared<RecordingBus>();
+  MCTSWorkflowSearch::SearchConfig config;
+  config.max_iterations = 20;
+  auto search = make_search(evaluator, governor, gate, config, bus);
+
+  const auto result = search->search(make_spec("events"));
+
+  REQUIRE(result.success);
+  REQUIRE(bus->mcts_events("mcts.search.started").size() == 1);
+  REQUIRE(bus->mcts_events("mcts.search.iteration").size() == 20);
+  REQUIRE(bus->mcts_events("mcts.search.completed").size() == 1);
+  REQUIRE(bus->mcts_events("mcts.search.failed").empty());
+
+  // failure path: 候选劣化 → mcts.search.failed ×1, 无 completed
+  auto decline_eval = std::make_shared<DeclineEvaluator>();
+  auto bus2 = std::make_shared<RecordingBus>();
+  MCTSWorkflowSearch::SearchConfig decline_config;
+  decline_config.max_iterations = 20;
+  auto decline_search =
+      make_search(decline_eval, governor, gate, decline_config, bus2);
+
+  const auto decline_result =
+      decline_search->search(make_spec("decline-events"));
+
+  REQUIRE_FALSE(decline_result.success);
+  REQUIRE(bus2->mcts_events("mcts.search.started").size() == 1);
+  REQUIRE(bus2->mcts_events("mcts.search.iteration").size() == 20);
+  REQUIRE(bus2->mcts_events("mcts.search.failed").size() == 1);
+  REQUIRE(bus2->mcts_events("mcts.search.completed").empty());
+}

@@ -12,6 +12,8 @@
 
 #include "agenticdsl/cognitive/mcts_workflow_search.h"
 
+#include "agenticdsl/contract/event_builder.h"
+#include "agenticdsl/ir/trajectory_ir.h"
 #include "agenticdsl/types/execution_trace.h"
 #include "agenticdsl/types/reward_signal.h"
 #include "core/types/tool_result.h"
@@ -139,6 +141,28 @@ std::string workflow_summary(const WorkflowGraph& g) {
          std::to_string(g.edges.size()) + "edges";
 }
 
+// 工作流 → TrajectoryIR CanonicalIR hash (搜索空间表示, T15)
+std::string workflow_hash(const WorkflowGraph& g, const TaskSpec& spec) {
+  ir::TrajectoryIR::CanonicalIR canonical;
+  for (const auto& n : g.nodes) {
+    canonical.canonical_nodes.push_back(ir::TrajectoryIR::NodeRecord{
+        n.id, axis3_name(n.axis3), nlohmann::json::object()});
+  }
+  for (const auto& e : g.edges) {
+    canonical.canonical_edges.push_back(
+        ir::TrajectoryIR::EdgeRecord{e.from_node_id, e.to_node_id, 1.0});
+  }
+  canonical.metadata["task_id"] = spec.task_id;
+  return ir::TrajectoryIR::hash(canonical);
+}
+
+void emit_event(const std::shared_ptr<IInteractionBus>& bus,
+                const std::string& topic, const nlohmann::json& args) {
+  if (bus) {
+    bus->emit(EventBuilder(topic).args(args).build());
+  }
+}
+
 }  // namespace
 
 MCTSWorkflowSearch::MCTSWorkflowSearch(
@@ -165,8 +189,15 @@ MCTSWorkflowSearch::SearchResult MCTSWorkflowSearch::search(
   SearchResult result;
   if (!evaluator_ || !governor_ || config_.max_iterations <= 0) {
     result.failure_mode = "invalid_configuration";
+    emit_event(bus_, "mcts.search.failed",
+               {{"search_id", spec.task_id},
+                {"failure_reason", result.failure_mode}});
     return result;
   }
+
+  const std::string search_id = spec.task_id;
+  emit_event(bus_, "mcts.search.started",
+             {{"search_id", search_id}, {"task_id", spec.task_id}});
 
   // 根节点: 单 start 节点工作流
   std::vector<MCTSNode> tree;
@@ -238,6 +269,12 @@ MCTSWorkflowSearch::SearchResult MCTSWorkflowSearch::search(
       tree[nid].reward_sum += reward;
     }
 
+    emit_event(bus_, "mcts.search.iteration",
+               {{"search_id", search_id},
+                {"iteration", iteration},
+                {"reward", reward},
+                {"node_id", node.id}});
+
     if (reward > best_reward) {
       best_reward = reward;
       best_workflow = std::make_shared<WorkflowGraph>(node.state);
@@ -261,6 +298,9 @@ MCTSWorkflowSearch::SearchResult MCTSWorkflowSearch::search(
   if (regression_gate_ &&
       !regression_gate_->allows(baseline_results, candidate_results)) {
     result.failure_mode = "behavioral_regression_failed";
+    emit_event(bus_, "mcts.search.failed",
+               {{"search_id", search_id},
+                {"failure_reason", result.failure_mode}});
     return result;
   }
 
@@ -278,15 +318,26 @@ MCTSWorkflowSearch::SearchResult MCTSWorkflowSearch::search(
   const MutationDecision proposed = governor_->propose(proposal);
   if (!proposed.approved) {
     result.failure_mode = "proposal_denied";
+    emit_event(bus_, "mcts.search.failed",
+               {{"search_id", search_id},
+                {"failure_reason", result.failure_mode}});
     return result;
   }
   const MutationDecision committed = governor_->commit(proposal);
   if (!committed.approved) {
     result.failure_mode = "commit_denied";
+    emit_event(bus_, "mcts.search.failed",
+               {{"search_id", search_id},
+                {"failure_reason", result.failure_mode}});
     return result;
   }
 
   result.success = true;
+  emit_event(bus_, "mcts.search.completed",
+             {{"search_id", search_id},
+              {"best_workflow", workflow_hash(*best_workflow, spec)},
+              {"best_reward", best_reward},
+              {"iterations_used", result.iterations_used}});
   return result;
 }
 
