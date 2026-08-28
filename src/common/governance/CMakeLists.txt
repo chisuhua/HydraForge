@@ -13,6 +13,7 @@ add_library(agenticdsl_governance STATIC
   cross_cutting/hook_pattern.cpp
   cross_cutting/composition_pattern.cpp
   cross_cutting/bus_pattern.cpp
+  cross_cutting/cross_cutting_orchestrator.cpp
 )
 
 target_include_directories(agenticdsl_governance PUBLIC
