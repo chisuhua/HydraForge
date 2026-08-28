@@ -8,6 +8,7 @@
 add_library(agenticdsl_modules_prompt STATIC
     evidence_gate.cpp
     prompt_assembler.cpp   # Sprint 25 T21: 两阶段注入 (ADR-0074 §决策 5)
+    prompt_hash.cpp        # Sprint 25 T21 payload redact: hash_prompt + estimate_tokens (T0)
 )
 
 target_link_libraries(agenticdsl_modules_prompt PUBLIC
