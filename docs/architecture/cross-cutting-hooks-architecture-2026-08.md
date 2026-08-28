@@ -1575,6 +1575,11 @@ HydraForge 在 **横切抽象粒度完整性、PDK 模式一致性、Agent first
 1. ADR-0085 评审转 ✅ Approved（Oracle H1-H4 + M1-M9 修正已完成）
 2. 创建 `pdk-cross-cutting-patterns` OpenSpec change 实施 4 Pattern + Orchestrator + DSL
 
+**T21 Payload 泄露面**:
+✅ 已修复 (commit t21-payload-redact ship, 2026-08-28)
+- `llm.dsl.parse_failed` + `llm.dsl.schema_validation_failed` + `prompt.token_limit_exceeded` 3 事件 payload 从原始 prompt 改为 hash-only (prompt_hash + prompt_length)
+- 符合 ADR-0080 D10 PII 约束 + G11 mutation.* hash 范式
+
 **中期**:
 3. 实施示例横切功能（全局 PII 脱敏 + Metrics + Audit 三件套）
 4. 集成到 pdk_chat_demo（类比 examples/pdk_chat_demo/dsl/）
