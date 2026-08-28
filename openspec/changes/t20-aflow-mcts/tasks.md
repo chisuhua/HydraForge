@@ -6,7 +6,7 @@
 
 ## Phase 0: MCTSWorkflowSearch 契约 (估时 0.3 sprint)
 
-- [ ] **T0.1** Write failing test: `tests/test_mcts_workflow_search.cpp` 骨架（≥ 10 cases 占位）
+- [x] **T0.1** Write failing test: `tests/test_mcts_workflow_search.cpp` 骨架（≥ 10 cases 占位）
   - `mcts_workflow_initialization`
   - `mcts_node_5_axis_template`
   - `mcts_edge_combination_rules`
@@ -17,8 +17,8 @@
   - `mcts_reward_evaluator_v2_weighted`
   - `mcts_regression_gate_integration`
   - `mcts_mutation_governor_authorization`
-- [ ] **T0.2** Verify fail: 编译失败（`fatal error: 'cognitive/mcts_workflow_search.h' file not found`）
-- [ ] **T0.3** Implement minimal: `include/agenticdsl/cognitive/mcts_workflow_search.h`:
+- [x] **T0.2** Verify fail: 编译失败（`fatal error: 'cognitive/mcts_workflow_search.h' file not found`）
+- [x] **T0.3** Implement minimal: `include/agenticdsl/cognitive/mcts_workflow_search.h`:
   ```cpp
   namespace agenticdsl {
   struct WorkflowNode {
@@ -63,69 +63,69 @@
   };
   }
   ```
-- [ ] **T0.4** Verify pass: 编译成功，10 cases 编译通过（运行时仍 FAIL）
-- [ ] **T0.5** Commit: `feat(cognitive): MCTSWorkflowSearch contract skeleton (T0)`
+- [x] **T0.4** Verify pass: 编译成功，10 cases 编译通过（运行时仍 FAIL）
+- [x] **T0.5** Commit: `feat(cognitive): MCTSWorkflowSearch contract skeleton (T0)`
 
 ## Phase 1: MCTS 算法核心 (估时 0.5 sprint)
 
-- [ ] **T1.1** Write failing test: `mcts_ucb1_selection_best_arm` (UCB1 选择最优子节点)
-- [ ] **T1.2** Write failing test: `mcts_ucb1_selection_exploration_exploitation_balance` (UCB1 平衡探索与利用)
-- [ ] **T1.3** Write failing test: `mcts_search_convergence_100_iterations` (100 iterations 收敛)
-- [ ] **T1.4** Verify fail: 3 cases FAIL（UCB1 未实现）
-- [ ] **T1.5** Implement: `src/modules/cognitive/mcts_workflow_search.cpp`:
+- [x] **T1.1** Write failing test: `mcts_ucb1_selection_best_arm` (UCB1 选择最优子节点)
+- [x] **T1.2** Write failing test: `mcts_ucb1_selection_exploration_exploitation_balance` (UCB1 平衡探索与利用)
+- [x] **T1.3** Write failing test: `mcts_search_convergence_100_iterations` (100 iterations 收敛)
+- [x] **T1.4** Verify fail: 3 cases FAIL（UCB1 未实现）
+- [x] **T1.5** Implement: `src/modules/cognitive/mcts_workflow_search.cpp`:
   - `MCTSTree` 内部结构: `std::vector<MCTSNode>` + `std::unordered_map<node_id, MCTSNode>`
   - `MCTSNode`: state (WorkflowGraph) + children + visits + reward_sum
   - UCB1 选择: `argmax(quality + exploration_weight * sqrt(log(parent_visits) / visits))`
   - 扩展 (expansion): 添加新子节点 (新 5 轴模板实例化)
   - 模拟 (simulation): 评估 reward
   - 反向传播 (backpropagation): 更新 visits + reward_sum
-- [ ] **T1.6** Verify pass: 3 cases PASS + Phase 0 编译通过
-- [ ] **T1.7** Commit: `feat(cognitive): MCTS UCB1 + expansion/simulation/backpropagation (T1)`
+- [x] **T1.6** Verify pass: 3 cases PASS + Phase 0 编译通过
+- [x] **T1.7** Commit: `feat(cognitive): MCTS UCB1 + expansion/simulation/backpropagation (T1)`
 
 ## Phase 2: 集成 IEvaluator V2 + 回归门禁 + 变异授权 (估时 0.4 sprint)
 
-- [ ] **T2.1** Write failing test: `mcts_reward_evaluator_v2_composite` (CompositeEvaluator 加权聚合)
-- [ ] **T2.2** Write failing test: `mcts_regression_gate_rejects_decline` (BehavioralRegressionGate 拒绝回归)
-- [ ] **T2.3** Write failing test: `mcts_mutation_governor_authorizes_commit` (L1 workflow commit 授权)
-- [ ] **T2.4** Verify fail: 3 cases FAIL
-- [ ] **T2.5** Implement: MCTS 集成层:
+- [x] **T2.1** Write failing test: `mcts_reward_evaluator_v2_composite` (CompositeEvaluator 加权聚合)
+- [x] **T2.2** Write failing test: `mcts_regression_gate_rejects_decline` (BehavioralRegressionGate 拒绝回归)
+- [x] **T2.3** Write failing test: `mcts_mutation_governor_authorizes_commit` (L1 workflow commit 授权)
+- [x] **T2.4** Verify fail: 3 cases FAIL
+- [x] **T2.5** Implement: MCTS 集成层:
   - 奖励函数: 调用 `IEvaluator::evaluate(trace)` (V2 CompositeEvaluator)
   - 回归门禁: 调用 `BehavioralRegressionGate::compute_fingerprint + hotelling_t2_test`
   - 变异授权: 调用 `MutationGovernor::propose()` → `commit()` 或 reject
-- [ ] **T2.6** Verify pass: 3 cases PASS
-- [ ] **T2.7** Commit: `feat(cognitive): MCTS integration with V2 evaluator + regression gate + governor (T2)`
+- [x] **T2.6** Verify pass: 3 cases PASS
+- [x] **T2.7** Commit: `feat(cognitive): MCTS integration with V2 evaluator + regression gate + governor (T2)`
 
 ## Phase 3: 事件发射 + ADR-0068 v1.5 (估时 0.2 sprint)
 
-- [ ] **T3.1** Write failing test: `mcts_event_emission` (4 事件主题发射)
-- [ ] **T3.2** Verify fail: 事件未发射
-- [ ] **T3.3** Implement: MCTS 添加 EventBuilder emit:
+- [x] **T3.1** Write failing test: `mcts_event_emission` (4 事件主题发射)
+- [x] **T3.2** Verify fail: 事件未发射
+- [x] **T3.3** Implement: MCTS 添加 EventBuilder emit:
   - 搜索开始 → emit `mcts.search.started` (search_id, task_spec)
   - 每次 iteration → emit `mcts.search.iteration` (iteration, reward, node_id)
   - 搜索完成 → emit `mcts.search.completed` (search_id, best_workflow, best_reward, iterations_used)
   - 搜索失败 → emit `mcts.search.failed` (search_id, failure_reason)
-- [ ] **T3.4** Modify `docs/adr/adr-0068-event-emission-contract.md` 附录 A v1.4 → v1.5:
+- [x] **T3.4** Modify `docs/adr/adr-0068-event-emission-contract.md` 附录 A v1.4 → v1.5:
   - 注册 4 个 `mcts.*` 主题（owner: MCTSWorkflowSearch）
-- [ ] **T3.5** Verify pass: 1 case PASS + T1+T2 全过
-- [ ] **T3.6** Commit: `feat(cognitive): MCTS event emission + ADR-0068 v1.5 (T3)`
+- [x] **T3.5** Verify pass: 1 case PASS + T1+T2 全过
+- [x] **T3.6** Commit: `feat(cognitive): MCTS event emission + ADR-0068 v1.5 (T3)`
 
 ## Phase 4: 文档同步 + ship (估时 0.2 sprint)
 
-- [ ] **T4.1** Modify `docs/adr/skill/adr-0061-08-aflow-search.md` 头部 `##状态`:
+- [x] **T4.1** Modify `docs/adr/skill/adr-0061-08-aflow-search.md` 头部 `##状态`:
   - 🔍 Proposed → ✅ Approved (V1 ship, 评审通过 2026-08-28)
-- [ ] **T4.2** Modify `docs/architecture/capability-application-map-2026-08.md`:
+- [x] **T4.2** Modify `docs/architecture/capability-application-map-2026-08.md`:
   - 头部 v2.2 → v2.3 + 最后验证 2026-08-28
   - §一 +1（能力 #29 AFlow MCTS）
   - §八 T20 → ✅ Completed
   - §七 changelog v2.3
-- [ ] **T4.3** Modify `docs/active-status.md` §一 T20 跟踪段
-- [ ] **T4.4` Modify `docs/architecture/self-evolution-architecture-2026-08.md` §四
-- [ ] **T4.5` Modify `docs/architecture/adr-implementation-status-gap-analysis.md` §一 总计行 + Approved 列表追加 ADR-0061-08
-- [ ] **T4.6` Verify: `python3 tools/adr_lint.py` + `docs_drift_audit.py` 全通过
-- [ ] **T4.7` Verify: `openspec validate --changes --strict` PASS
-- [ ] **T4.8` Verify: `ctest --output-on-failure` 全量 0 回归（动态基线）
-- [ ] **T4.9` Commit: `feat(mcts): ship T20 AFlow MCTS V1 - C2 自进化高级工作流搜索解锁`
-- [ ] **T4.10` `openspec archive t20-aflow-mcts`
+- [x] **T4.3** Modify `docs/active-status.md` §一 T20 跟踪段
+- [x] **T4.4` Modify `docs/architecture/self-evolution-architecture-2026-08.md` §四
+- [x] **T4.5` Modify `docs/architecture/adr-implementation-status-gap-analysis.md` §一 总计行 + Approved 列表追加 ADR-0061-08
+- [x] **T4.6` Verify: `python3 tools/adr_lint.py` + `docs_drift_audit.py` 全通过
+- [x] **T4.7` Verify: `openspec validate --changes --strict` PASS
+- [x] **T4.8` Verify: `ctest --output-on-failure` 全量 0 回归（动态基线）
+- [x] **T4.9` Commit: `feat(mcts): ship T20 AFlow MCTS V1 - C2 自进化高级工作流搜索解锁`
+- [x] **T4.10` `openspec archive t20-aflow-mcts`
 
 ## 总估时
 
