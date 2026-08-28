@@ -17,16 +17,16 @@
 
 ## Phase 1: Evidence Gate 核心 (估时 0.5 sprint)
 
-- [ ] **T1.1** Write failing test: `evidence_gate_parse_valid_passes` (parse-valid=95% → Go)
-- [ ] **T1.2** Write failing test: `evidence_gate_parse_valid_conditional` (parse-valid=85% → Conditional)
-- [ ] **T1.3** Write failing test: `evidence_gate_parse_valid_fail` (parse-valid=70% → No-Go)
-- [ ] **T1.4** Verify fail: 3 cases FAIL (evidence_gate 未实现)
-- [ ] **T1.5** Implement: `src/modules/prompt/evidence_gate.cpp`:
+- [x] **T1.1** Write failing test: `evidence_gate_parse_valid_passes` (parse-valid=95% → Go)
+- [x] **T1.2** Write failing test: `evidence_gate_parse_valid_conditional` (parse-valid=85% → Conditional)
+- [x] **T1.3** Write failing test: `evidence_gate_parse_valid_fail` (parse-valid=70% → No-Go)
+- [x] **T1.4** Verify fail: 3 cases FAIL (evidence_gate 未实现)
+- [x] **T1.5** Implement: `src/modules/prompt/evidence_gate.cpp`:
   - `PromptEvidenceGate::evaluate(prompt, response, golden_task) -> Decision {Go, Conditional, No-Go}`
   - 阈值: ≥90% Go / 80-89% Conditional / <80% No-Go
   - 复用 IEvaluator V2 CompositeEvaluator 评估 task-success
-- [ ] **T1.6** Verify pass: 3 cases PASS + 全部既有测试零回归
-- [ ] **T1.7** Commit: `feat(prompt): Evidence Gate core with Go/No-Go thresholds (T1)`
+- [x] **T1.6** Verify pass: 3 cases PASS + 全部既有测试零回归
+- [x] **T1.7** Commit: `feat(prompt): Evidence Gate core with Go/No-Go thresholds (T1)`
 
 ## Phase 2: Baseline Measurement + Two-Stage Injection (估时 0.5 sprint)
 

@@ -185,3 +185,43 @@ TEST_CASE("empty validation rules are not implicitly valid", "[prompt][t0]") {
   REQUIRE(PromptEvidenceGate::parse_valid_rate("anything", task) == Catch::Approx(0.0));
   REQUIRE(gate.evaluate("prompt", "anything", task) == GateDecision::No_Go);
 }
+
+TEST_CASE("evidence_gate_parse_valid_passes", "[prompt][t1]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  PromptEvidenceGate gate(evaluator);
+  GoldenTask task;
+  for (int i = 0; i < 19; ++i) task.validation_rules.push_back(rule("ok" + std::to_string(i)));
+  task.validation_rules.push_back(rule("missing"));
+  std::string response;
+  for (int i = 0; i < 19; ++i) response += "ok" + std::to_string(i) + " ";
+
+  REQUIRE(gate.evaluate("prompt", response, task) == GateDecision::Go);
+  REQUIRE(gate.last_parse_valid_rate() == Catch::Approx(0.95));
+  REQUIRE(evaluator->evaluate_calls == 1);
+}
+
+TEST_CASE("evidence_gate_parse_valid_conditional", "[prompt][t1]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  PromptEvidenceGate gate(evaluator);
+  GoldenTask task;
+  for (int i = 0; i < 17; ++i) task.validation_rules.push_back(rule("ok" + std::to_string(i)));
+  for (int i = 17; i < 20; ++i) task.validation_rules.push_back(rule("missing" + std::to_string(i)));
+  std::string response;
+  for (int i = 0; i < 17; ++i) response += "ok" + std::to_string(i) + " ";
+
+  REQUIRE(gate.evaluate("prompt", response, task) == GateDecision::Conditional);
+  REQUIRE(gate.last_parse_valid_rate() == Catch::Approx(0.85));
+}
+
+TEST_CASE("evidence_gate_parse_valid_fail", "[prompt][t1]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  PromptEvidenceGate gate(evaluator);
+  GoldenTask task;
+  for (int i = 0; i < 7; ++i) task.validation_rules.push_back(rule("ok" + std::to_string(i)));
+  for (int i = 7; i < 10; ++i) task.validation_rules.push_back(rule("missing" + std::to_string(i)));
+  std::string response;
+  for (int i = 0; i < 7; ++i) response += "ok" + std::to_string(i) + " ";
+
+  REQUIRE(gate.evaluate("prompt", response, task) == GateDecision::No_Go);
+  REQUIRE(gate.last_parse_valid_rate() == Catch::Approx(0.70));
+}
