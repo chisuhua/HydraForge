@@ -75,7 +75,7 @@
 - [x] **T4.6** Verify: `openspec validate --changes --strict` PASS
 - [x] **T4.7** Verify: `ctest --output-on-failure` 全量 0 回归（动态基线）
 - [x] **T4.8** Commit: `feat(prompt): ship T21 Prompt Evidence Gate V1 - Wave 2 → Wave 3 Go/No-Go 门控就绪`
-- [ ] **T4.9** `openspec archive t21-prompt-evidence-gate`
+- [x] **T4.9** `openspec archive t21-prompt-evidence-gate`
 
 ## 总估时
 
