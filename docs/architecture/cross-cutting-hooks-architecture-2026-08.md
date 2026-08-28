@@ -1,7 +1,7 @@
 # Cross-Cutting Hooks Architecture（横切架构与扩展指南）
 
 **生成日期**: 2026-08-28
-**最后验证**: 2026-08-28（v1.2 — Oracle 评审 H1-H4 + M1-M9 修正应用：真实 API 校正 + 命名空间卫生 + 文档清理，验证命令见 §十）
+**最后验证**: 2026-08-28（v1.3 — V1 implementation shipped (commit a4187da, 2026-08-28)，验证命令见 §十）
 **作者**: Architecture Working Group
 **状态**: 🔍 Proposed v1.2（横切架构文档化 + PDK 模式重构 + Agent 编排管理策略，与 ADR-0081/0082/0085 联动；Oracle 评审 H1-H4 + M1-M9 已应用）
 

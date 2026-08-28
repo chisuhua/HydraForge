@@ -2,7 +2,7 @@
 
 > **焦点**: 当前活跃的 OpenSpec changes | **更新**: 每日
 > **Master Plan**: [`docs/superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md`](superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md)
-> **架构决策**: [`docs/adr/`](adr/) — 80 ADR (含 0083/0084/0085 新增, 2026-08-28 校准), 54 Approved (+ADR-0083/0084 2026-08-26, +ADR-0061-08 T20 V1 ship 2026-08-28), adr_lint 零错误 (2026-08-22 校准, Batch 2 收官后 ADR-0081/0082 状态格式修正; ADR-0081/0082 均 ✅ Approved per Batch 2 P3+P7 `adr-0081/0082-promote-to-approved`)
+> **架构决策**: [`docs/adr/`](adr/) — 80 ADR (含 0083/0084/0085 新增, 2026-08-28 校准), 54 Approved (+ADR-0083/0084 2026-08-26, +ADR-0061-08 T20 V1 ship 2026-08-28, +ADR-0085 T26 V1 ship 2026-08-28), adr_lint 零错误 (2026-08-22 校准, Batch 2 收官后 ADR-0081/0082 状态格式修正; ADR-0081/0082 均 ✅ Approved per Batch 2 P3+P7 `adr-0081/0082-promote-to-approved`)
 > **Phase**: 6 — Agent-as-Plugin (2026-07-15 ~ 至今, Phase 5 ✅ 收官)
 
 ---
@@ -58,6 +58,9 @@
 >
 > **T20 跟踪（✅ ship 2026-08-28）**:
 > - **AFlow MCTS V1** ✅ ship 2026-08-28 (OpenSpec `t20-aflow-mcts` — `MCTSWorkflowSearch` 搜索编排层: 5 轴模板实例化搜索空间 + UCB1 选择/扩展/模拟/反向传播 + IEvaluator V2 (CompositeEvaluator) 奖励 + BehavioralRegressionGate 回归门 + MutationGovernor L1 workflow variants 授权 + 4 个 `mcts.*` 事件发射; V1 边界: Mock 模板实例化不触发真实 LLM, AFlow 改进 + L2+ variants deferred V2; test_mcts_workflow_search 17 cases / 65 assertions PASS [10 契约骨架 + 3 UCB1 算法 + 3 V2 集成 + 1 事件发射], 全量 ctest 动态基线 0 回归, 既有 5 契约零修改; ADR-0068 附录 A v1.5 注册 4 个 `mcts.*` 主题; ADR-0061-08 🔍 Proposed → ✅ Approved (V1 ship 2026-08-28); cap-map v2.3 #29 能力 + §八 T20 → ✅ SHIP 2026-08-28; C2 自进化高级工作流搜索解锁)
+>
+> **T26 跟踪（✅ ship 2026-08-28）**:
+> - **Cross-Cutting Pattern PDK V1** ✅ ship 2026-08-28 (OpenSpec `pdk-cross-cutting-patterns` — ICrossCuttingPattern 抽象接口 + CrossCuttingOrchestrator 编排器 + 4 Pattern implementations (Decorator/Hook/Composition/Bus) + DSL loader + 3 examples; ADR-0085 ✅ Approved; 18 测试 cases PASS; 既有 10 个契约文件零修改 (Oracle B3); cap-map v2.4 #30 能力 + §八 T26 → ✅ SHIP 2026-08-28; 横切功能管理 PDK 模式落地)
 
 ### ✅ Wave 3-A 已归档 (历史参考)
 
