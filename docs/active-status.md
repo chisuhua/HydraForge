@@ -11,7 +11,7 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **189 总数** (2026-08-27 T15 TrajectoryIR ship 后 `ctest -N` → Total Tests: 189; +1 = test_trajectory_ir 9 cases / 55 assertions PASS; T19 GEPA 测试并入 test_gepa_phase2 单一 target) — ⚠ `test_event_log_query_perf` 环境性 timing flake (共享机 load 8-11, 3 个功能断言全过, 仅 elapsed_ms 阈值随负载抖动 2-3 个失败, 与 T15 代码路径无关 [event_log.cpp 未改]), 建议空闲机复验 |
+| **Total ctest** | **191 总数** (2026-08-28 T21 Prompt Evidence Gate ship 后 `ctest -N` → Total Tests: 191; +1 = test_prompt_evidence_gate 19 cases / 338 assertions PASS; T21 ship 后动态基线 190/191, 1 pre-existing `test_event_log_query_perf` timing flake) — ⚠ `test_event_log_query_perf` 环境性 timing flake (共享机 load 8-11, 3 个功能断言全过, 仅 elapsed_ms 阈值随负载抖动 2-3 个失败, 与 T21 代码路径无关 [event_log.cpp 未改]), 建议空闲机复验 |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
 | **OpenSpec active** | **3** (~~Sprint 24 启动周 T17 SkillCompiler~~ `2026-08-24-adr-0061-03-skill-compiler` ✅ ship + archived 2026-08-27; ~~T15 TrajectoryIR~~ `t15-trajectory-ir` ✅ ship + archived 2026-08-27 [9 cases / 55 assertions, ParsedGraph 零修改]; 剩余 3 个 Phase 6c 后续 Wave 待启动: `from-roadmap-phase-6c-evidence-gate` [Wave 2, 依赖 execution-baseline handoff] + `from-roadmap-phase-6c-execution-dsl` [Wave 3] + `from-roadmap-phase-6c-control-plane-eval` [Wave 4]) |
@@ -52,6 +52,9 @@
 > **G10 跟踪（✅ Closed — V2 层 ship 2026-08-27）**:
 > - **IEvaluator V1** ✅ ship 2026-08-26 (ADR-0083, 12 cases / 31 assertions, change `2026-08-26-ship-ievaluator-reward-contract` archived)
 > - **IEvaluator V2** ✅ ship 2026-08-27 (OpenSpec `evaluator-v2-composite` — BehavioralEquivalenceEvaluator [T14 fingerprint + Hotelling T²] + CompositeEvaluator [多评估器加权聚合]; test_evaluator +8 cases / 18 assertions PASS, IEvaluator 接口零修改, V1 零回归; cap-map v2.0 #26 能力落地)
+>
+> **T21 跟踪（✅ ship 2026-08-28）**:
+> - **Prompt Evidence Gate V1** ✅ ship 2026-08-28 (OpenSpec `t21-prompt-evidence-gate` — 质量门控层: `PromptEvidenceGate` Go/Conditional/No-Go 阈值 [≥90%/80-89%/<80%] + IEvaluator V2 CompositeEvaluator 集成 + `PromptAssembler` 两阶段注入 ≤8k tokens + baseline 测量 [3 MockLLM × 2 指标] + JSONL 导出; 30 few-shot `lib/prompt/few_shots/` + 54 golden `lib/prompt/golden/` 实际生成; ADR-0068 附录 A v1.4 注册 3 主题; test_prompt_evidence_gate 19 cases / 338 assertions PASS, 全量 ctest 动态基线 0 回归, 既有 7 契约零修改; cap-map v2.2 #28 能力 + §八 T21 → ✅ SHIP; Wave 2 → Wave 3 Go/No-Go 门控就绪)
 
 ### ✅ Wave 3-A 已归档 (历史参考)
 

@@ -4,6 +4,8 @@
 
 ✅ Approved (2026-08-03 — 派生自 ADR-0071 §决策 D5, Wave 2 Phase 2.2 ADR; 衔接 ADR-0073 (Tool JSON Schema); Promotion 评审通过 2026-08-25; 实施 2-3 周)
 
+> **V1 ship (2026-08-28, OpenSpec `t21-prompt-evidence-gate`)**: Prompt Evidence Gate V1 完整落地 — `PromptEvidenceGate` (Go ≥90% / Conditional 80-89% / No-Go <80% 阈值 + IEvaluator V2 CompositeEvaluator 集成) + `PromptAssembler` (两阶段注入 ≤8k tokens) + baseline 测量 (`tools/baseline/measure_prompt_baseline.py`, 3 MockLLM × 2 指标) + JSONL 导出 (`tools/prompt/export_training_data.py`) + 30 个 few-shot (`lib/prompt/few_shots/*.md`) + 54 个 golden tasks (`lib/prompt/golden/*.json`) + 3 主题注册 (`llm.dsl.parse_failed` / `llm.dsl.schema_validation_failed` / `prompt.token_limit_exceeded`, ADR-0068 附录 A v1.4)。验证: test_prompt_evidence_gate **19 cases / 338 assertions PASS**, 全量 ctest 动态基线 0 回归 (190/191, 1 pre-existing timing flake `test_event_log_query_perf`), 既有 7 契约零修改。Committs: `808817f`/`63ad838`/`178868d`/`70cdc41`/`b6ebf85` + ship commit。
+
 > **隐含前置 (D7 主题注册)**: §决策 D7 设计 2 个新幻影主题 `llm.dsl.parse_failed` / `llm.dsl.schema_validation_failed`，需 ADR-0068 §附录 A amendment PR 注册。ADR-0068 Appendix A v1.2.2 已 ship (2026-08-27, 同步注册 `skill.compilation.*` 3 主题)，D7 主题注册前置 ✅ 满足（与 ADR-0068 amendment 集成 ship 路径明确）。
 
 ## 领域

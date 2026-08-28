@@ -62,19 +62,19 @@
 
 ## Phase 4: 文档同步 + ship (估时 0.2 sprint)
 
-- [ ] **T4.1** Modify `docs/adr/adr-0074-prompt-evidence-gate.md` 头部 `##状态`:
+- [x] **T4.1** Modify `docs/adr/adr-0074-prompt-evidence-gate.md` 头部 `##状态`:
   - 追加 V1 ship 证据段 (commit hash + 测试数 + ctest baseline)
-- [ ] **T4.2** Modify `docs/architecture/capability-application-map-2026-08.md`:
-  - 头部 v2.1 → v2.2 + 最后验证 2026-08-27
+- [x] **T4.2** Modify `docs/architecture/capability-application-map-2026-08.md`:
+  - 头部 v2.1 → v2.2 + 最后验证 2026-08-28
   - §一 +1（新能力 #28 Prompt Evidence Gate）
   - §八 T21 → ✅ Completed
   - §七 changelog v2.2 条目
-- [ ] **T4.3** Modify `docs/active-status.md` §一 T21 跟踪段
-- [ ] **T4.4** Modify `docs/architecture/self-evolution-architecture-2026-08.md` §四
-- [ ] **T4.5** Verify: `python3 tools/adr_lint.py` + `docs_drift_audit.py` 全通过
-- [ ] **T4.6** Verify: `openspec validate --changes --strict` PASS
-- [ ] **T4.7** Verify: `ctest --output-on-failure` 全量 0 回归（动态基线）
-- [ ] **T4.8** Commit: `feat(prompt): ship T21 Prompt Evidence Gate V1 - Wave 2 → Wave 3 Go/No-Go 门控就绪`
+- [x] **T4.3** Modify `docs/active-status.md` §一 T21 跟踪段
+- [x] **T4.4** Modify `docs/architecture/self-evolution-architecture-2026-08.md` §四
+- [x] **T4.5** Verify: `python3 tools/adr_lint.py` + `docs_drift_audit.py` 全通过
+- [x] **T4.6** Verify: `openspec validate --changes --strict` PASS
+- [x] **T4.7** Verify: `ctest --output-on-failure` 全量 0 回归（动态基线）
+- [x] **T4.8** Commit: `feat(prompt): ship T21 Prompt Evidence Gate V1 - Wave 2 → Wave 3 Go/No-Go 门控就绪`
 - [ ] **T4.9** `openspec archive t21-prompt-evidence-gate`
 
 ## 总估时
