@@ -30,18 +30,18 @@
 
 ## Phase 2: Baseline Measurement + Two-Stage Injection (估时 0.5 sprint)
 
-- [ ] **T2.1** Write failing test: `baseline_measurement_3_llms_2_metrics` (3 MockLLM × 2 指标 → baseline.json)
-- [ ] **T2.2** Write failing test: `two_stage_injection_under_8k_tokens` (Stage 1 + Stage 2 ≤ 8k)
-- [ ] **T2.3** Write failing test: `two_stage_injection_over_8k_emits_event` (超出 → emit `prompt.token_limit_exceeded`)
-- [ ] **T2.4** Verify fail: 3 cases FAIL
-- [ ] **T2.5** Implement: `tools/baseline/measure_prompt_baseline.py`:
+- [x] **T2.1** Write failing test: `baseline_measurement_3_llms_2_metrics` (3 MockLLM × 2 指标 → baseline.json)
+- [x] **T2.2** Write failing test: `two_stage_injection_under_8k_tokens` (Stage 1 + Stage 2 ≤ 8k)
+- [x] **T2.3** Write failing test: `two_stage_injection_over_8k_emits_event` (超出 → emit `prompt.token_limit_exceeded`)
+- [x] **T2.4** Verify fail: 3 cases FAIL
+- [x] **T2.5** Implement: `tools/baseline/measure_prompt_baseline.py`:
   - 调用 PromptEvidenceGate + MockLLMProvider × 3 (模拟 GPT-4 / Claude / DeepSeek)
   - 输出 baseline.json (parse-valid + task-success 矩阵)
-- [ ] **T2.6** Implement: `src/modules/prompt/prompt_assembler.cpp`:
+- [x] **T2.6** Implement: `src/modules/prompt/prompt_assembler.cpp`:
   - `PromptAssembler::assemble(task)` 两阶段注入 (≤4k + ≤4k = ≤8k)
   - 超出 token limit → emit `prompt.token_limit_exceeded`
-- [ ] **T2.7** Verify pass: 3 cases PASS
-- [ ] **T2.8** Commit: `feat(prompt): baseline measurement + two-stage injection (T2)`
+- [x] **T2.7** Verify pass: 3 cases PASS
+- [x] **T2.8** Commit: `feat(prompt): baseline measurement + two-stage injection (T2)`
 
 ## Phase 3: JSONL Export + ADR-0068 v1.4 主题 (估时 0.3 sprint)
 

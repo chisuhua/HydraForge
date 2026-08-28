@@ -9,17 +9,24 @@
 #include "catch_amalgamated.hpp"
 
 #include "agenticdsl/prompt/evidence_gate.h"
+#include "agenticdsl/prompt/prompt_assembler.h"
 #include "agenticdsl/contract/ievaluator.h"
 #include "agenticdsl/contract/iinteraction_bus.h"
 #include "agenticdsl/types/execution_trace.h"
 #include "agenticdsl/types/reward_signal.h"
 #include "core/types/tool_result.h"
+#include "nlohmann/json.hpp"
 
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
 
+namespace fs = std::filesystem;
 using namespace agenticdsl;
+using nlohmann::json;
 
 namespace {
 
@@ -224,4 +231,54 @@ TEST_CASE("evidence_gate_parse_valid_fail", "[prompt][t1]") {
 
   REQUIRE(gate.evaluate("prompt", response, task) == GateDecision::No_Go);
   REQUIRE(gate.last_parse_valid_rate() == Catch::Approx(0.70));
+}
+
+TEST_CASE("baseline_measurement_3_llms_2_metrics", "[prompt][t2]") {
+  fs::path out = "/tmp/t21_baseline.json";
+  if (fs::exists(out)) fs::remove(out);
+
+  std::string cmd = "python3 tools/baseline/measure_prompt_baseline.py"
+                    " --golden-dir lib/prompt/golden --output " + out.string() + " 2>&1";
+  int rc = std::system(cmd.c_str());
+  REQUIRE(rc == 0);
+  REQUIRE(fs::exists(out));
+
+  json result = json::parse(std::ifstream(out));
+  REQUIRE(result["llms"].contains("gpt-4"));
+  REQUIRE(result["llms"].contains("claude"));
+  REQUIRE(result["llms"].contains("deepseek"));
+  for (const auto& name : {"gpt-4", "claude", "deepseek"}) {
+    REQUIRE(result["llms"][name].contains("parse_valid"));
+    REQUIRE(result["llms"][name].contains("task_success"));
+    REQUIRE(result["llms"][name]["parse_valid"].is_number());
+    REQUIRE(result["llms"][name]["task_success"].is_number());
+  }
+  fs::remove(out);
+}
+
+TEST_CASE("two_stage_injection_under_8k_tokens", "[prompt][t2]") {
+  auto bus = std::make_shared<RecordingBus>();
+  PromptAssembler assembler(bus, "lib/prompt/few_shots");
+  AssembledPrompt p = assembler.assemble("计算 1+2", "## math.add\na: 1\nb: 2\n");
+
+  REQUIRE(p.stage1_few_shots.size() > 0);
+  REQUIRE(PromptAssembler::estimate_tokens(p.stage1_few_shots) <= PromptAssembler::kStageTokenLimit);
+  REQUIRE(PromptAssembler::estimate_tokens(p.stage2_stdlib) <= PromptAssembler::kStageTokenLimit);
+  REQUIRE(p.estimated_tokens_total <= PromptAssembler::kTotalTokenLimit);
+  REQUIRE_FALSE(p.token_limit_exceeded);
+  REQUIRE(bus->by_topic_prefix("prompt.token_limit_exceeded").empty());
+}
+
+TEST_CASE("two_stage_injection_over_8k_emits_event", "[prompt][t2]") {
+  auto bus = std::make_shared<RecordingBus>();
+  PromptAssembler assembler(bus, "lib/prompt/few_shots");
+  const std::string huge_task(40000, 'x');
+  AssembledPrompt p = assembler.assemble(huge_task, "## math.add\na: 1\nb: 2\n");
+
+  REQUIRE(p.token_limit_exceeded);
+  REQUIRE(p.estimated_tokens_total > PromptAssembler::kTotalTokenLimit);
+  auto events = bus->by_topic_prefix("prompt.token_limit_exceeded");
+  REQUIRE(events.size() == 1);
+  REQUIRE(events[0]->payload.data.contains("estimated_tokens"));
+  REQUIRE(events[0]->payload.data.contains("limit"));
 }
