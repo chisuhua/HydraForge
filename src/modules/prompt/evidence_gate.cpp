@@ -9,6 +9,8 @@
 
 #include "agenticdsl/prompt/evidence_gate.h"
 
+#include "agenticdsl/contract/event_builder.h"
+
 #include <algorithm>
 #include <stdexcept>
 #include <utility>
@@ -32,7 +34,7 @@ PromptEvidenceGate::PromptEvidenceGate(std::shared_ptr<IEvaluator> evaluator,
   }
 }
 
-GateDecision PromptEvidenceGate::evaluate(const std::string& /*prompt*/,
+GateDecision PromptEvidenceGate::evaluate(const std::string& prompt,
                                           const std::string& response,
                                           const GoldenTask& golden) {
   last_parse_valid_rate_ = parse_valid_rate(response, golden);
@@ -51,6 +53,25 @@ GateDecision PromptEvidenceGate::evaluate(const std::string& /*prompt*/,
       last_failure_.kind = GateFailureKind::SchemaError;
       last_failure_.violation = rule_body(validation_rule);
       last_failure_.no_retry = true;
+    }
+  }
+
+  // ADR-0068 事件发射 (owner: PromptEvidenceGate)
+  if (bus_) {
+    if (last_failure_.kind == GateFailureKind::ParseError) {
+      bus_->emit(
+          EventBuilder("llm.dsl.parse_failed")
+              .args(nlohmann::json{{"prompt", prompt},
+                                   {"error_position", last_failure_.error_position},
+                                   {"retry_count", last_failure_.retry_count}})
+              .build());
+    } else if (last_failure_.kind == GateFailureKind::SchemaError) {
+      bus_->emit(
+          EventBuilder("llm.dsl.schema_validation_failed")
+              .args(nlohmann::json{{"prompt", prompt},
+                                   {"violation", last_failure_.violation},
+                                   {"no_retry", last_failure_.no_retry}})
+              .build());
     }
   }
 

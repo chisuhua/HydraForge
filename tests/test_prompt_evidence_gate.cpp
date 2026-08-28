@@ -282,3 +282,68 @@ TEST_CASE("two_stage_injection_over_8k_emits_event", "[prompt][t2]") {
   REQUIRE(events[0]->payload.data.contains("estimated_tokens"));
   REQUIRE(events[0]->payload.data.contains("limit"));
 }
+
+TEST_CASE("jsonl_export_schema_compliance", "[prompt][t3]") {
+  fs::path out = "/tmp/t21_train.jsonl";
+  if (fs::exists(out)) fs::remove(out);
+
+  std::string cmd = "python3 tools/prompt/export_training_data.py"
+                    " --golden-dir lib/prompt/golden --output " + out.string() + " 2>&1";
+  int rc = std::system(cmd.c_str());
+  REQUIRE(rc == 0);
+  REQUIRE(fs::exists(out));
+
+  std::ifstream in(out);
+  std::string line;
+  int lines = 0;
+  while (std::getline(in, line)) {
+    if (line.empty()) continue;
+    json record = json::parse(line);
+    REQUIRE(record.contains("prompt"));
+    REQUIRE(record.contains("response"));
+    REQUIRE(record.contains("reward"));
+    REQUIRE(record.contains("metadata"));
+    REQUIRE(record["reward"].is_number());
+    ++lines;
+  }
+  REQUIRE(lines >= 1);
+  fs::remove(out);
+}
+
+TEST_CASE("llm_dsl_parse_failed_event_emitted", "[prompt][t3]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  auto bus = std::make_shared<RecordingBus>();
+  PromptEvidenceGate gate(evaluator, bus);
+
+  GoldenTask task;
+  task.input = "task";
+  task.validation_rules = {rule("## start", true), rule("-> next", true)};
+  (void)gate.evaluate("prompt-1", "## start", task);  // 缺 "-> next" → parse 错误
+
+  auto events = bus->by_topic_prefix("llm.dsl.parse_failed");
+  REQUIRE(events.size() == 1);
+  REQUIRE(events[0]->payload.data.contains("prompt"));
+  REQUIRE(events[0]->payload.data.contains("error_position"));
+  REQUIRE(events[0]->payload.data.contains("retry_count"));
+  REQUIRE(events[0]->payload.data["retry_count"] == 1);
+  REQUIRE(events[0]->payload.data["error_position"] == "-> next");
+}
+
+TEST_CASE("llm_dsl_schema_validation_failed_event_emitted", "[prompt][t3]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  auto bus = std::make_shared<RecordingBus>();
+  PromptEvidenceGate gate(evaluator, bus);
+
+  GoldenTask task;
+  task.input = "task";
+  task.validation_rules = {rule("## start", true), rule("## end")};
+  (void)gate.evaluate("prompt-2", "## start", task);  // 缺 "## end" → schema 错误
+
+  auto events = bus->by_topic_prefix("llm.dsl.schema_validation_failed");
+  REQUIRE(events.size() == 1);
+  REQUIRE(events[0]->payload.data.contains("prompt"));
+  REQUIRE(events[0]->payload.data.contains("violation"));
+  REQUIRE(events[0]->payload.data.contains("no_retry"));
+  REQUIRE(events[0]->payload.data["no_retry"] == true);
+  REQUIRE(events[0]->payload.data["violation"] == "## end");
+}

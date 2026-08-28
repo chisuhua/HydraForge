@@ -45,20 +45,20 @@
 
 ## Phase 3: JSONL Export + ADR-0068 v1.4 主题 (估时 0.3 sprint)
 
-- [ ] **T3.1** Write failing test: `jsonl_export_schema_compliance` (输出符合 ADR-0080 JSONL schema)
-- [ ] **T3.2** Write failing test: `llm_dsl_parse_failed_event_emitted` (parse 错误 → emit `llm.dsl.parse_failed`)
-- [ ] **T3.3** Write failing test: `llm_dsl_schema_validation_failed_event_emitted` (schema 错误 → emit `llm.dsl.schema_validation_failed`)
-- [ ] **T3.4** Verify fail: 3 cases FAIL
-- [ ] **T3.5** Implement: `tools/prompt/export_training_data.py`:
+- [x] **T3.1** Write failing test: `jsonl_export_schema_compliance` (输出符合 ADR-0080 JSONL schema)
+- [x] **T3.2** Write failing test: `llm_dsl_parse_failed_event_emitted` (parse 错误 → emit `llm.dsl.parse_failed`)
+- [x] **T3.3** Write failing test: `llm_dsl_schema_validation_failed_event_emitted` (schema 错误 → emit `llm.dsl.schema_validation_failed`)
+- [x] **T3.4** Verify fail: 3 cases FAIL
+- [x] **T3.5** Implement: `tools/prompt/export_training_data.py`:
   - 导出 JSONL: `{"prompt": "...", "response": "...", "reward": float, "metadata": {...}}`
-- [ ] **T3.6** Implement: Evidence Gate 添加事件发射:
+- [x] **T3.6** Implement: Evidence Gate 添加事件发射:
   - parse 错误 → emit `llm.dsl.parse_failed` (topic + payload: prompt + error_position + retry_count)
   - schema 错误 → emit `llm.dsl.schema_validation_failed` (topic + payload: prompt + violation + no_retry)
-- [ ] **T3.7** Modify `docs/adr/adr-0068-event-emission-contract.md` 附录 A v1.3 → v1.4:
+- [x] **T3.7** Modify `docs/adr/adr-0068-event-emission-contract.md` 附录 A v1.3 → v1.4:
   - 注册 2 个 `llm.dsl.*` 主题（owner: PromptEvidenceGate）
   - 注册 1 个 `prompt.token_limit_exceeded` 主题（owner: PromptAssembler）
-- [ ] **T3.8** Verify pass: 3 cases PASS
-- [ ] **T3.9** Commit: `feat(prompt): JSONL export + ADR-0068 v1.4 (T3)`
+- [x] **T3.8** Verify pass: 3 cases PASS
+- [x] **T3.9** Commit: `feat(prompt): JSONL export + ADR-0068 v1.4 (T3)`
 
 ## Phase 4: 文档同步 + ship (估时 0.2 sprint)
 

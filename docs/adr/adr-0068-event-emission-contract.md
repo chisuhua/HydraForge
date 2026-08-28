@@ -2,7 +2,7 @@
 
 ## 状态
 
-✅ Approved (2026-08-03 — Wave 1 §1-§5 全部 ship + V2 EventBuilder 扩展覆盖 8 处 operation-result 事件. 7 个幻影主题全部真实发射, §5.11 grep 验收返回 0 行, EventBuilder 100% 覆盖生产代码 emit, `test_e2e_mock.cpp` 全面重写完成. 变更依据: `openspec/changes/archive/2026-08-03-adr-0068-event-emission-contract/` + `openspec/changes/archive/2026-08-03-promote-event-builder-fulltoolresult-support/`; **Appendix A v1.1 amendment (2026-08-13): 14 个 📡 主题注册完成, 状态更新为 ✅ registered**; **Appendix A v1.2 amendment (2026-08-26): 新增 5 个主题 (1 evaluation.result + 4 mutation.*) 用于 ADR-0083/ADR-0084 契约**; **Appendix A v1.2.1 修正 (2026-08-26, ADR-0084 V1 ship): mutation.* 4 行 payload schema 对齐 design D4 + `mutation.approved` 行修正为 `mutation.reverted` (design D6 终态事件集为 proposed/committed/reverted/denied, 无 approved)**; **Appendix A v1.2.2 amendment (2026-08-27, ADR-0061-03 T17 ship): 新增 3 个 `skill.compilation.{started,succeeded,failed}` 主题 (emit-only 模式, 不触发 MutationGovernor)**; **Appendix A v1.3 amendment (2026-08-27, T19 GEPA Phase 2 ship): 新增 6 个 `gepa.*` 主题 (GEPALoop 编排层, owner=GEPALoop cognitive 模块, 全部为 emit 审计 + 反思/提交生命周期)**) 
+✅ Approved (2026-08-03 — Wave 1 §1-§5 全部 ship + V2 EventBuilder 扩展覆盖 8 处 operation-result 事件. 7 个幻影主题全部真实发射, §5.11 grep 验收返回 0 行, EventBuilder 100% 覆盖生产代码 emit, `test_e2e_mock.cpp` 全面重写完成. 变更依据: `openspec/changes/archive/2026-08-03-adr-0068-event-emission-contract/` + `openspec/changes/archive/2026-08-03-promote-event-builder-fulltoolresult-support/`; **Appendix A v1.1 amendment (2026-08-13): 14 个 📡 主题注册完成, 状态更新为 ✅ registered**; **Appendix A v1.2 amendment (2026-08-26): 新增 5 个主题 (1 evaluation.result + 4 mutation.*) 用于 ADR-0083/ADR-0084 契约**; **Appendix A v1.2.1 修正 (2026-08-26, ADR-0084 V1 ship): mutation.* 4 行 payload schema 对齐 design D4 + `mutation.approved` 行修正为 `mutation.reverted` (design D6 终态事件集为 proposed/committed/reverted/denied, 无 approved)**; **Appendix A v1.2.2 amendment (2026-08-27, ADR-0061-03 T17 ship): 新增 3 个 `skill.compilation.{started,succeeded,failed}` 主题 (emit-only 模式, 不触发 MutationGovernor)**; **Appendix A v1.3 amendment (2026-08-27, T19 GEPA Phase 2 ship): 新增 6 个 `gepa.*` 主题 (GEPALoop 编排层, owner=GEPALoop cognitive 模块, 全部为 emit 审计 + 反思/提交生命周期)**; **Appendix A v1.4 amendment (2026-08-28, T21 Prompt Evidence Gate ship): 新增 3 个主题 — `llm.dsl.parse_failed` + `llm.dsl.schema_validation_failed` (owner=PromptEvidenceGate) + `prompt.token_limit_exceeded` (owner=PromptAssembler), 3 主题全部为 emit 审计)**) 
 
 ## 领域
 
@@ -171,7 +171,7 @@ Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = 
 
 ---
 
-## 附录 A：Canonical Topic Registry (v1.3, 2026-08-27)
+## 附录 A：Canonical Topic Registry (v1.4, 2026-08-28)
 
 > 维护规则：新增/修改主题必须同步修订本表。状态列：✅ 已注册 / 👻 幻影 (零生产 emit) / 📡 已发射但无注册订阅方 (本 amendment 后已全部注册)。
 
@@ -225,3 +225,6 @@ Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = 
 | `gepa.commit.proposed` | GEPALoop (cognitive) | 变异提议送治理门 | `reflection_id`, `candidate_skill` | ✅ (T19 Phase 2, 2026-08-27) |
 | `gepa.commit.committed` | GEPALoop (cognitive) | MutationGovernor commit 成功 | `reflection_id`, `commit_id`, `evaluation_refs` | ✅ (T19 Phase 2, 2026-08-27) |
 | `gepa.commit.denied` | GEPALoop (cognitive) | 提议/提交/评估门拒绝 | `reflection_id`, `reason` | ✅ (T19 Phase 2, 2026-08-27) |
+| `llm.dsl.parse_failed` | PromptEvidenceGate | DSL 语法 (parse) 错误 — 重试一次后发射 | `prompt`, `error_position`, `retry_count` | ✅ (T21 ship, 2026-08-28) |
+| `llm.dsl.schema_validation_failed` | PromptEvidenceGate | DSL 语义 (schema) 错误 — 直接发射不重试 | `prompt`, `violation`, `no_retry` | ✅ (T21 ship, 2026-08-28) |
+| `prompt.token_limit_exceeded` | PromptAssembler | 两阶段注入超出 8k tokens 上限 | `prompt`, `estimated_tokens`, `limit` | ✅ (T21 ship, 2026-08-28) |
