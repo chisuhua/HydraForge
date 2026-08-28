@@ -1,7 +1,7 @@
 # ADR-0061-08: AFlow-style MCTS 工作流搜索
 
 **日期**: 2026-07-16
-**状态**: 🔍 Proposed (P2, v2 候选)
+**状态**: ✅ Approved (P2, v2 候选) — **✅ V1 Shipped 2026-08-28** (Sprint 24 T20, OpenSpec change `t20-aflow-mcts`: `include/agenticdsl/cognitive/mcts_workflow_search.h` + `src/modules/cognitive/mcts_workflow_search.cpp` + `tests/test_mcts_workflow_search.cpp` **17 cases / 65 assertions PASS**; 评审通过 2026-08-28; V1 边界: Mock 5 轴模板实例化 (不触发真实 LLM) + UCB1 MCTS (选择/扩展/模拟/反向传播) + IEvaluator V2 (CompositeEvaluator) 奖励 + BehavioralRegressionGate 回归门 + MutationGovernor L1 workflow variants 授权 + 4 个 `mcts.*` 事件发射 (ADR-0068 附录 A v1.5); 既有 5 契约零修改; AFlow 改进 + L2+ mutation variants deferred V2; ctest 动态基线 0 回归)
 **父 ADR**: [../adr-0061-agent-evolution-and-solidification.md](../adr-0061-agent-evolution-and-solidification.md)
 
 ---

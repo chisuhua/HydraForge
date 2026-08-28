@@ -111,7 +111,7 @@
 
 ### 4.2 评估、奖励与信用分配平面
 
-`IEvaluator/RewardSignal` 是当前已批准的评估契约，覆盖质量、成功/失败和 retryable 判断等基础场景。T19 GEPA MVP V1 已在此平面接通同步的失败轨迹反思、候选评估与 MutationGovernor 授权提交（2026-08-27）；T21 Prompt Evidence Gate V1（2026-08-28）进一步为 prompt 类变异对象提供 Go/Conditional/No-Go 质量门控（parse-valid 阈值 + IEvaluator V2 评估），使 B7 自进化的 prompt 修订具备客观吸收/拒绝标准；信用分配仍是缺口，应在引入多主体协同前单独定义：
+`IEvaluator/RewardSignal` 是当前已批准的评估契约，覆盖质量、成功/失败和 retryable 判断等基础场景。T19 GEPA MVP V1 已在此平面接通同步的失败轨迹反思、候选评估与 MutationGovernor 授权提交（2026-08-27）；T21 Prompt Evidence Gate V1（2026-08-28）进一步为 prompt 类变异对象提供 Go/Conditional/No-Go 质量门控（parse-valid 阈值 + IEvaluator V2 评估），使 B7 自进化的 prompt 修订具备客观吸收/拒绝标准；T20 AFlow MCTS V1（2026-08-28）在这一平面接通**搜索空间自动发现**：以 5 轴模板实例化工作流图为搜索状态，UCB1 选择/扩展/模拟/反向传播 + IEvaluator V2 加权奖励 + BehavioralRegressionGate 回归门 + MutationGovernor L1 workflow variants 授权，使自进化从"失败反思修订"扩展至"结构化搜索最优工作流"（C2）；信用分配仍是缺口，应在引入多主体协同前单独定义：
 
 - 版本前后对照与固定基线；
 - 环境、对手、任务难度变化的分层记录；

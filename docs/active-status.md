@@ -2,7 +2,7 @@
 
 > **焦点**: 当前活跃的 OpenSpec changes | **更新**: 每日
 > **Master Plan**: [`docs/superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md`](superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md)
-> **架构决策**: [`docs/adr/`](adr/) — 79 ADR (含 0083/0084 新增, 2026-08-26 校准), 53 Approved (+ADR-0083/0084 2026-08-26), adr_lint 零错误 (2026-08-22 校准, Batch 2 收官后 ADR-0081/0082 状态格式修正; ADR-0081/0082 均 ✅ Approved per Batch 2 P3+P7 `adr-0081/0082-promote-to-approved`)
+> **架构决策**: [`docs/adr/`](adr/) — 80 ADR (含 0083/0084/0085 新增, 2026-08-28 校准), 54 Approved (+ADR-0083/0084 2026-08-26, +ADR-0061-08 T20 V1 ship 2026-08-28), adr_lint 零错误 (2026-08-22 校准, Batch 2 收官后 ADR-0081/0082 状态格式修正; ADR-0081/0082 均 ✅ Approved per Batch 2 P3+P7 `adr-0081/0082-promote-to-approved`)
 > **Phase**: 6 — Agent-as-Plugin (2026-07-15 ~ 至今, Phase 5 ✅ 收官)
 
 ---
@@ -11,7 +11,7 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **191 总数** (2026-08-28 T21 Prompt Evidence Gate ship 后 `ctest -N` → Total Tests: 191; +1 = test_prompt_evidence_gate 19 cases / 338 assertions PASS; T21 ship 后动态基线 190/191, 1 pre-existing `test_event_log_query_perf` timing flake) — ⚠ `test_event_log_query_perf` 环境性 timing flake (共享机 load 8-11, 3 个功能断言全过, 仅 elapsed_ms 阈值随负载抖动 2-3 个失败, 与 T21 代码路径无关 [event_log.cpp 未改]), 建议空闲机复验 |
+| **Total ctest** | **192/192** 配置总数 (2026-08-28 T20 AFlow MCTS ship 后 `ctest -N` → Total Tests: 192; +1 = test_mcts_workflow_search 17 cases / 65 assertions PASS; T20 ship 后动态基线 191/192, 1 pre-existing `test_event_log_query_perf` timing flake) — ⚠ `test_event_log_query_perf` 环境性 timing flake (共享机 load 8-11, 3 个功能断言全过, 仅 elapsed_ms 阈值随负载抖动 2-3 个失败, 与 T21/T20 代码路径无关 [event_log.cpp 未改]), 建议空闲机复验 |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
 | **OpenSpec active** | **3** (~~Sprint 24 启动周 T17 SkillCompiler~~ `2026-08-24-adr-0061-03-skill-compiler` ✅ ship + archived 2026-08-27; ~~T15 TrajectoryIR~~ `t15-trajectory-ir` ✅ ship + archived 2026-08-27 [9 cases / 55 assertions, ParsedGraph 零修改]; 剩余 3 个 Phase 6c 后续 Wave 待启动: `from-roadmap-phase-6c-evidence-gate` [Wave 2, 依赖 execution-baseline handoff] + `from-roadmap-phase-6c-execution-dsl` [Wave 3] + `from-roadmap-phase-6c-control-plane-eval` [Wave 4]) |
@@ -55,6 +55,9 @@
 >
 > **T21 跟踪（✅ ship 2026-08-28）**:
 > - **Prompt Evidence Gate V1** ✅ ship 2026-08-28 (OpenSpec `t21-prompt-evidence-gate` — 质量门控层: `PromptEvidenceGate` Go/Conditional/No-Go 阈值 [≥90%/80-89%/<80%] + IEvaluator V2 CompositeEvaluator 集成 + `PromptAssembler` 两阶段注入 ≤8k tokens + baseline 测量 [3 MockLLM × 2 指标] + JSONL 导出; 30 few-shot `lib/prompt/few_shots/` + 54 golden `lib/prompt/golden/` 实际生成; ADR-0068 附录 A v1.4 注册 3 主题; test_prompt_evidence_gate 19 cases / 338 assertions PASS, 全量 ctest 动态基线 0 回归, 既有 7 契约零修改; cap-map v2.2 #28 能力 + §八 T21 → ✅ SHIP; Wave 2 → Wave 3 Go/No-Go 门控就绪)
+>
+> **T20 跟踪（✅ ship 2026-08-28）**:
+> - **AFlow MCTS V1** ✅ ship 2026-08-28 (OpenSpec `t20-aflow-mcts` — `MCTSWorkflowSearch` 搜索编排层: 5 轴模板实例化搜索空间 + UCB1 选择/扩展/模拟/反向传播 + IEvaluator V2 (CompositeEvaluator) 奖励 + BehavioralRegressionGate 回归门 + MutationGovernor L1 workflow variants 授权 + 4 个 `mcts.*` 事件发射; V1 边界: Mock 模板实例化不触发真实 LLM, AFlow 改进 + L2+ variants deferred V2; test_mcts_workflow_search 17 cases / 65 assertions PASS [10 契约骨架 + 3 UCB1 算法 + 3 V2 集成 + 1 事件发射], 全量 ctest 动态基线 0 回归, 既有 5 契约零修改; ADR-0068 附录 A v1.5 注册 4 个 `mcts.*` 主题; ADR-0061-08 🔍 Proposed → ✅ Approved (V1 ship 2026-08-28); cap-map v2.3 #29 能力 + §八 T20 → ✅ SHIP 2026-08-28; C2 自进化高级工作流搜索解锁)
 
 ### ✅ Wave 3-A 已归档 (历史参考)
 

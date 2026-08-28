@@ -1,7 +1,7 @@
-# 架构能力-应用地图（2026-08 v2.2）
+# 架构能力-应用地图（2026-08 v2.3）
 
 **生成日期**: 2026-08-28
-**最后验证**: 2026-08-28（v2.2 — 28 项能力 / 9 项 open gap (G10-G15 全部 ✅ Closed) / 17 类应用 / 22 个工程任务 T1-T22 (**T17 ✅ SHIP** / **T15 ✅ SHIP** / **IEvaluator V2 ✅ SHIP** / **T19 GEPA MVP V1 ✅ SHIP** / **T21 ✅ SHIP** / T20/T22 待启动)，T15 TrajectoryIR V1 ship 同步 (9 cases / 55 assertions)，T19 GEPA Phase 2 commit 2026-08-27 完成，T21 Prompt Evidence Gate 2026-08-28 ship (test_prompt_evidence_gate 19 cases / 338 assertions)，验证命令见 §六）
+**最后验证**: 2026-08-28（v2.3 — 29 项能力 / 9 项 open gap (G10-G15 全部 ✅ Closed) / 17 类应用 / 22 个工程任务 T1-T22 (**T17 ✅ SHIP** / **T15 ✅ SHIP** / **IEvaluator V2 ✅ SHIP** / **T19 GEPA MVP V1 ✅ SHIP** / **T21 ✅ SHIP** / **T20 AFlow MCTS V1 ✅ SHIP** / T22 待启动)，T15 TrajectoryIR V1 ship 同步 (9 cases / 55 assertions)，T19 GEPA Phase 2 commit 2026-08-27 完成，T21 Prompt Evidence Gate 2026-08-28 ship (test_prompt_evidence_gate 19 cases / 338 assertions)，T20 AFlow MCTS 2026-08-28 ship (test_mcts_workflow_search 17 cases / 65 assertions)，验证命令见 §六）
 **作者**: Architecture Working Group
 **状态**: ✅ Active — 架构能力的**唯一事实源**（取代已归档的 `defect-truth-table-2026-08.md`）
 
@@ -25,7 +25,7 @@
 
 ---
 
-## 一、架构能力清单（28 项已 ship 能力，L4 含 #23 T14 + #24 T17 + #25 T15 + #26 IEvaluator V2 v2.0 后置增补 + #27 GEPALoop + #28 Prompt Evidence Gate）
+## 一、架构能力清单（29 项已 ship 能力，L4 含 #23 T14 + #24 T17 + #25 T15 + #26 IEvaluator V2 v2.0 后置增补 + #27 GEPALoop + #28 Prompt Evidence Gate + #29 MCTSWorkflowSearch）
 
 > **分层依据**: `docs/specs/architecture.md` L0~L4 + R1~R5 五层架构模型
 > **验证方法**: `grep` 实证 + ctest PASS + ADR 头部状态三方交叉（详见 §六）
@@ -70,7 +70,7 @@
 | 18 | IAgentComposition (call/call_async/delegate + stream 占位) | `iagent_composition.h` + `agent_composition.cpp` | test_agent_composition 10 cases PASS | ADR-0060 | Sprint 22 (P8) |
 | 19 | PDK 三种 Agent Loop + SafeExec 沙箱 + **SLM 路由 .so** (v1.2 +1) | `pdk/agent_macros.h` + `pdk/safe_exec.h` + `pdk/model_router/slm_strategy/` | test_pdk_macros 5 cases + test_safe_exec PASS + **test_model_router_slm ≥5 cases PASS (v1.2 ship)** | ADR-0021 + **0061-04 (SLM)** | Sprint 4 + 22 + **23 (SLM)** |
 
-### L4 可观测 + 治理层（9 项，#23 T14 / #24 T17 / #25 T15 / #26 IEvaluator V2 v2.0 后置增补 / #27 GEPALoop / #28 Prompt Evidence Gate）
+### L4 可观测 + 治理层（10 项，#23 T14 / #24 T17 / #25 T15 / #26 IEvaluator V2 v2.0 后置增补 / #27 GEPALoop / #28 Prompt Evidence Gate / #29 MCTSWorkflowSearch）
 
 | # | 能力 | 实现位置 | 验证证据 | 关联 ADR | 上线 |
 |---|---|---|---|---|---|
@@ -83,14 +83,16 @@
 | **26** | **IEvaluator V2 (BehavioralEquivalence + Composite 多评估器聚合)** | `include/agenticdsl/cognitive/{behavioral_equivalence_evaluator,composite_evaluator}.h` + `src/modules/cognitive/{behavioral_equivalence_evaluator,composite_evaluator}.cpp` | test_evaluator **8 cases / 18 assertions PASS (V2)**; IEvaluator 接口零修改 | ADR-0083 | **Sprint 24 (evaluator-v2-composite, 2026-08-27 ship)** |
 | **27** | **GEPALoop 反思循环 MVP (失败轨迹 → LLM 反思 → 修订候选 → 编译 → 回归 → 评估 → MutationGovernor 授权提交)** | `include/agenticdsl/cognitive/gepa_loop.h` + `src/modules/cognitive/gepa_loop.cpp` | test_gepa_phase2 **14 cases PASS (含 3 E2E: 真实 V2 evaluator / 真实 governor / 回归拒绝中止)**; 既有 7 契约零修改; 6 个 `gepa.*` 事件注册 (ADR-0068 v1.3) | ADR-0071 + ADR-0061-09 (GEPA) | **Sprint 24 (T19, 2026-08-27 Phase 2 commit ship)** |
 | **28** | **Prompt Evidence Gate (Go/No-Go 阈值 + parse-valid + 两阶段注入 ≤8k + JSONL 导出 + llm.dsl.* 事件)** | `include/agenticdsl/prompt/evidence_gate.h` + `src/modules/prompt/evidence_gate.cpp` + `src/modules/prompt/prompt_assembler.cpp` + `tools/baseline/measure_prompt_baseline.py` + `tools/prompt/export_training_data.py` | test_prompt_evidence_gate **19 cases / 338 assertions PASS**; 30+ few-shot `lib/prompt/few_shots/` + 50+ golden `lib/prompt/golden/`; 3 主题注册 (ADR-0068 v1.4); 既有契约零修改 | ADR-0074 + ADR-0083 (IEvaluator V2) | **Sprint 25 (T21, 2026-08-28 ship)** |
+| **29** | **MCTSWorkflowSearch V1 (AFlow 风格 MCTS 工作流搜索: 5 轴模板搜索空间 + UCB1 选择/扩展/模拟/反向传播 + V2 评估 + 回归门 + 变异授权 + mcts.* 事件)** | `include/agenticdsl/cognitive/mcts_workflow_search.h` + `src/modules/cognitive/mcts_workflow_search.cpp` | test_mcts_workflow_search **17 cases / 65 assertions PASS**; 4 主题注册 (ADR-0068 v1.5); 既有 5 契约零修改; Mock 模板实例化不触发真实 LLM | ADR-0061-08 | **Sprint 24 (T20, 2026-08-28 ship)** |
 
-**总覆盖**: **28 项已 ship 能力** = L0(5) + L1(5) + L2(4) + L3(5) + L4(9)
+**总覆盖**: **29 项已 ship 能力** = L0(5) + L1(5) + L2(4) + L3(5) + L4(10)
 **v1.1.2 新增**: L4 +1（行为回归套件 — Oracle 评审 "本周最高杠杆" T14 完成）
 **v1.3 新增**: L4 +1（SkillCompiler V1 — T17 ship, B7 自进化"变异对象生成器"落地, 闭环 2 第 4 环接通）
 **v1.9 新增**: L4 +1（Trajectory IR V1 — T15 ship, B6 蒸馏数据标准化落地, G14 闭环; ParsedGraph 独立视图, 单向 Converter 桥接）
 **v2.0 新增**: L4 +1（IEvaluator V2 — evaluator-v2-composite ship, BehavioralEquivalence (T14 集成) + Composite 多评估器聚合, G10 评估信号 V2 层落地）
 **v2.1 新增**: L4 +1（GEPALoop — T19 Phase 2 commit ship, B7 自进化基础应用解锁, 失败→反思→修订→回归→评估→授权提交全闭环落地）
 **v2.2 新增**: L4 +1（Prompt Evidence Gate — T21 ship, prompt 质量门控层落地, Wave 2 → Wave 3 Go/No-Go 客观标准就绪, B7 自进化 prompt 门控前置）
+**v2.3 新增**: L4 +1（MCTSWorkflowSearch V1 — T20 ship, C2 自进化高级工作流搜索解锁, B7 自进化方向从反思循环扩展至搜索空间自动发现）
 
 ---
 
@@ -502,6 +504,7 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 | 2026-08-27 | **v2.0** | **IEvaluator V2 ship (OpenSpec `evaluator-v2-composite`)** | (1) §一 25→26 项能力, L4 +1 (#26 IEvaluator V2: BehavioralEquivalence + Composite); (2) §二 G10 评估信号 V2 层落地 (BehavioralEquivalence 复用 T14 fingerprint + Hotelling T², Composite 多评估器加权聚合); (3) §八 闭环 1 评估信号行更新 V2 ship; (4) 头部 v1.9 → v2.0 + 生成/最后验证 2026-08-27; (5) 测试: test_evaluator V2 8 cases / 18 assertions PASS, IEvaluator 接口零修改, V1 12 cases 零回归, ctest 动态基线 0 回归 |
 | 2026-08-27 | **v2.1** | **T19 GEPA Phase 2 commit ship (OpenSpec `t19-gepa-phase2-commit`)** | (1) §一 26→27 项能力, L4 +1 (#27 GEPALoop 反思循环 MVP); (2) §三 B7 行 "T19 Phase 2 commit 已解锁" → "T19 Phase 2 committed 2026-08-27, B7 → ✅ Completed"; (3) §八 T19 行 Phase 1 只读反思约束解除 + Phase 2 committed; (4) §八.2 闭环 2 变异提交环接通 (GEPALoop 经 MutationGovernor 授权 commit); (5) 头部 v2.0 → v2.1 + 最后验证 2026-08-27; (6) 测试: test_gepa_phase2 14 cases PASS (含 3 E2E), 既有 7 契约零修改, ADR-0068 附录 A v1.3 注册 6 个 gepa.* 主题, ctest 动态基线 0 回归 |
 | 2026-08-28 | **v2.2** | **T21 Prompt Evidence Gate ship (OpenSpec `t21-prompt-evidence-gate`)** | (1) §一 27→28 项能力, L4 +1 (#28 Prompt Evidence Gate: Go/No-Go 阈值 + parse-valid + 两阶段注入 + JSONL + llm.dsl.* 事件); (2) §八 T21 行 APPROVED → ✅ SHIP; (3) 头部 v2.1 → v2.2 + 生成/最后验证 2026-08-28; (4) 测试: test_prompt_evidence_gate 19 cases / 338 assertions PASS, 30+ few-shot + 50+ golden 实际生成 (非占位), 既有 7 契约零修改, ADR-0068 附录 A v1.4 注册 3 个主题 (2 llm.dsl.* + 1 prompt.*), ctest 动态基线 0 回归 |
+| 2026-08-28 | **v2.3** | **T20 AFlow MCTS V1 ship (OpenSpec `t20-aflow-mcts`)** | (1) §一 28→29 项能力, L4 +1 (#29 MCTSWorkflowSearch V1: 5 轴模板搜索空间 + UCB1 选择/扩展/模拟/反向传播 + V2 评估 + 回归门 + 变异授权 + mcts.* 事件); (2) §八 T20 行 APPROVED → ✅ SHIP 2026-08-28; (3) §三 B7 行 T20 解锁 C2 自进化高级; (4) 头部 v2.2 → v2.3 + 最后验证 2026-08-28; (5) 测试: test_mcts_workflow_search 17 cases / 65 assertions PASS, 既有 5 契约零修改, ADR-0068 附录 A v1.5 注册 4 个 mcts.* 主题, ADR-0061-08 🔍 Proposed → ✅ Approved (V1 ship), ctest 动态基线 0 回归 |
 **后续追踪**:
 - **下一修订触发**: (1) 任意 §二 open gap ship；(2) 任意 §四/§八工程任务完成；(3) 新应用类型立项；(4) Phase 6 Candidate B 启动；(5) T14-T22 任一 ship/promotion；(6) 5 个新增 ADR 任一获批；(7) **ADR-0071/0074 评审会议召开 + 决议记录**
 - **定期审计**: 每 Sprint 收官同步（`scripts/sprint-closeout.sh` Step 8 加本表交叉检查）
@@ -587,7 +590,7 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 |---|---|---|---|---|---|
 | **T18**: PASTE 推测执行（ADR-0061-07）spike | 1-2 sprint | 并行假设验证 | C5 (高级) 自进化加速 | spike: 不破坏调度器确定性语义 | T5 v1.1 改名 |
 | **T19**: ✅ **SHIP** Sprint 24 末 (R 轨 spike) (ADR-0083 ✅ + ADR-0071 ✅) — GEPA MVP| 2-3 sprint (R 轨 spike) | 失败→反思→修订 prompt | B7 自进化基础 | T14 + IEvaluator 契约（G10）+ 变异治理（G11 ✅ Closed ADR-0084 Approved 2026-08-26）+ ADR-0074 prompt 资产 **+ ~~Phase 1 只读反思约束~~ Phase 2 committed 2026-08-27** | T6 v1.1 改名 |
-| **T20**: ✅ **APPROVED** Sprint 26 末 (R 轨 spike) (ADR-0083 ✅ + T15 ✅) — AFlow MCTS| 1-2 月 (R 轨 spike) | 工作流自动优化 | C2 自进化高级 | T15 + IEvaluator 契约（G10）+ spike: 评估信号有可比性 | T7 v1.1 改名 |
+| **T20**: ~~✅ **APPROVED** Sprint 26 末 (R 轨 spike) (ADR-0083 ✅ + T15 ✅)~~ → **✅ SHIP 2026-08-28** — AFlow MCTS V1 (ADR-0061-08)| 1-2 月 (R 轨 spike) → 实际 1 周 ✅ | 工作流自动优化 | C2 自进化高级 | T15 + IEvaluator 契约（G10）+ spike: 评估信号有可比性 | T7 v1.1 改名 → OpenSpec archived `t20-aflow-mcts` |
 | **T21**: ✅ **SHIP** 2026-08-28 (ADR-0074 ✅ + ADR-0083 ✅) — Prompt Evidence Gate| 1 月 | prompt 质量门控 | T19/T20 前置 | ADR-0071 父获批 + D1 30+ few-shot | T8 v1.1 改名 |
 | **T22**: Fine-tune 训练管线（ADR-0078）| **事件驱动**（AgenticMind 回流触发）| self-improvement agent | C2 自进化 | 外部阻塞解除 + T14 行为回归 | T9 v1.1 改事件驱动 |
 
