@@ -94,6 +94,7 @@ docs/
 | `adr-0080-v1-2-amendment-d10-decouple.md` | D10 Capture 与 Scrub Hook 解耦 (CaptureMode 三态 + Training fail-open 三重保护) | ✅ Approved (评审通过 2026-08-25, Oracle G12 解锁 ADR-0081/0082 死锁) |
 | `adr-0083-evaluator-reward-contract.md` | IEvaluator/RewardSignal 评估契约 (双层契约 + 3 内置评估器 + V1 简化避免 ADR-0057 零实施) | ✅ Approved (V1 ship 2026-08-26 — IEvaluator + TaskSuccessEvaluator, 12 cases / 31 assertions PASS, G10 Closed; V2 ship 2026-08-27 — BehavioralEquivalence + Composite, 8 cases / 18 assertions PASS, `evaluator-v2-composite` archived) |
 | `adr-0084-mutation-governance-contract.md` | Mutation Governance 契约 (6 维度: 变异对象 L1-L4 分级 / 授权绑定复用 ADR-0004 + ADR-0031 / 治理流程 propose→evaluator→回归门→commit / 审计复用 ADR-0080 + 4 个 mutation.* 主题 / 失败回滚 / 攻击面 fail-closed) | ✅ Approved (2026-08-26 — V1 gate-and-audit 代码 ship, G11 Closed, 13 cases / 139 assertions PASS, OpenSpec change `2026-08-26-adr-0084-mutation-governance-contract`) |
+| `adr-0085-cross-cutting-pattern-pdk.md` | Cross-Cutting Pattern PDK (4 范式 PDK Pattern + `CrossCuttingOrchestrator` 无状态 dispatcher + `ICrossCuttingPattern` 统一抽象 + 横切功能 DSL `*.cc.md`；类比 PDK Loop Agent 模式；V1 不实施 Meta-Agent 自管理) | 🔍 Proposed (2026-08-28 — 设计依据 `docs/architecture/cross-cutting-hooks-architecture-2026-08.md` v1.1 §四；实施载体 OpenSpec change `pdk-cross-cutting-patterns` 待创建；估时 ~2.2 sprint) |
 
 ### adr/plugin/ - Plugin 化候选清单
 

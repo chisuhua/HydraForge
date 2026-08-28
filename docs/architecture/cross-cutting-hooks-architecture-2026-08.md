@@ -1,9 +1,9 @@
 # Cross-Cutting Hooks Architecture（横切架构与扩展指南）
 
 **生成日期**: 2026-08-28
-**最后验证**: 2026-08-28（v1.0 — 6 层抽象 + 4 范式 + Agent 编排，验证命令见 §十）
+**最后验证**: 2026-08-28（v1.1 — PDK 模式重构 + 4 Pattern + CrossCuttingOrchestrator + 可选 Meta-Agent + 横切功能 DSL，验证命令见 §十）
 **作者**: Architecture Working Group
-**状态**: 🔍 Proposed（横切架构文档化 + Agent 编排管理策略，与 ADR-0081/0082 联动）
+**状态**: 🔍 Proposed v1.1（横切架构文档化 + PDK 模式重构 + Agent 编排管理策略，与 ADR-0081/0082/0085 联动）
 
 > **定位**: 本文是 HydraForge 横切扩展架构的工作文档，覆盖现有 6 层抽象扩展点的设计原理 + 4 种功能扩展范式 + 通过 Agent first-class 编排管理横切功能的策略。
 >
@@ -609,174 +609,502 @@ private:
 
 ---
 
-## 四、Agent first-class 编排管理横切功能
+## 四、PDK 模式管理横切功能（v1.1 重构）
 
-### 4.1 设计原则：Agent 作为横切功能的"管理者"
+> **v1.0 → v1.1 重构说明（重要）**：原文档 §四 提出 4 种"Agent 模式"（Side-effect / Policy / Orchestrator / Adapter）。本版本 v1.1 **修正**为：**4 范式独立 PDK Pattern + 1 个 CrossCuttingOrchestrator 编排器 + 可选 Meta-Agent 自管理**。
+>
+> **理由**：
+> 1. **PDK 一致性**：现有 `LoopDispatcher` 模式是 3 个独立 Loop class（React/PlanExecute/ForkJoin）+ 1 个 dispatcher 模板分发，而非"Loop Agent god class"。横切功能管理应采用完全相同的 PDK 模式。
+> 2. **SRP 原则**：原"Orchestrator Agent"违反单一职责——调度逻辑应在无状态的 Orchestrator class 而非 Agent。
+> 3. **可扩展性**：新增第 5 种范式只需新增 1 个 PDK Pattern class + 注册到 Orchestrator，无需修改任何既有代码。
+> 4. **DSL 实例化**：横切功能配置 DSL（`examples/cross_cutting/dsl/*.cc.md`）类比 Agent DSL（`*.agent.md`）。
 
-**核心思想**: 横切功能（如 PII 过滤、metrics 收集、retry 策略）本身可以被建模为 **Agent**，由 IAgentRegistry 管理生命周期，由 IAgentComposition 编排调用。
+### 4.1 核心设计：4 范式独立 PDK Pattern + Orchestrator
 
-**为什么这样做**:
-1. **可发现性**：横切功能作为 agent 注册，可通过 registry.list() 发现所有可用功能
-2. **可编排性**：横切功能可被主 agent 调用、组合、覆盖
-3. **可观测性**：横切功能作为 agent，有独立 metrics / traces
-4. **可演化性**：横切功能可独立 ship，无需改动业务代码
-5. **可测试性**：横切功能作为 agent，可独立测试
+**与 PDK Loop Agent 的对等映射**:
 
-### 4.2 横切功能 Agent 模式
+| PDK Loop Agent（已 ship） | 横切功能管理（v1.1 推荐） |
+|---------------------------|---------------------------|
+| `class ReactLoop` 实现 React 循环 | `class DecoratorPattern` 实现 Decorator 范式 |
+| `class PlanExecuteLoop` 实现 3 阶段 | `class HookPattern` 实现 Hook 范式 |
+| `class ForkJoinLoop` 实现并发分支 | `class CompositionPattern` 实现 Composition 范式 |
+| （未来）`class StreamLoop` 实现流式 | `class BusPattern` 实现 Event Bus 范式 |
+| `LoopDispatcher<LoopType>` 模板分发 | `class CrossCuttingOrchestrator` 动态分发 |
+| `loop_type: react_loop` DSL 字段 | `pattern_type: decorator-v1` 配置字段 |
+| `examples/pdk_chat_demo/dsl/*.agent.md` 实例化 | `examples/cross_cutting/dsl/*.cc.md` 实例化 |
+| `include/agenticdsl/pdk/agent_loops/*` | `include/agenticdsl/pdk/cross_cutting/*`（v1.1 实施） |
 
-#### 模式 A: Side-effect Agent（副作用代理）
+### 4.2 统一抽象：`ICrossCuttingPattern`
 
-**定义**: 副作用 Agent 不返回业务结果，只执行横切关注点（如 metrics 记录、审计）。
+**位置（v1.1 待实施）**: `include/agenticdsl/pdk/cross_cutting/icross_cutting_pattern.h`
 
 ```cpp
-class MetricsCollectorAgent : public IAgent {
+namespace hydraforge::pdk {
+
+// 统一抽象: 4 范式共同接口 (类比 LoopResult)
+class ICrossCuttingPattern {
 public:
-    MetricsCollectorAgent(const AgentConfig& cfg) : cfg_(cfg) {}
+    virtual ~ICrossCuttingPattern() = default;
     
-    std::string name() const override { return "metrics-collector-v1"; }
+    // Pattern 唯一标识 (类比 AgentLoopType::React/PlanExecute/ForkJoin)
+    virtual const std::string& name() const = 0;
+    
+    // 应用 pattern 配置到目标基础设施 (类比 Loop::run)
+    //   decorator-v1 → 修改 ILLMProvider 链
+    //   hook-v1      → 注册 hook 到 ToolHookRegistry/AgentHookRegistry
+    //   composition-v1 → 创建 agent 并注入到目标 registry
+    //   bus-v1       → 订阅 IInteractionBus 主题
+    virtual void apply(const nlohmann::json& pattern_config,
+                      CrossCuttingContext& ctx) = 0;
+};
+
+// Pattern 标识常量 (类比 AgentLoopType 枚举)
+namespace cross_cutting_pattern {
+    constexpr const char* Decorator = "decorator-v1";
+    constexpr const char* Hook = "hook-v1";
+    constexpr const char* Composition = "composition-v1";
+    constexpr const char* Bus = "bus-v1";
+}
+
+// 共享上下文 (4 范式都需要的基础设施引用)
+struct CrossCuttingContext {
+    IAgentRegistry* agent_registry;
+    IAgentHookRegistry* agent_hook_registry;
+    IToolHookRegistry* tool_hook_registry;
+    IInteractionBus* bus;
+    ILLMProvider** llm_provider_slot;  // 槽位供 decorator 替换
+};
+
+}  // namespace hydraforge::pdk
+```
+
+### 4.3 4 范式独立 PDK 实现（v1.1 实施路径）
+
+#### Pattern 1: DecoratorPattern
+
+**位置**: `include/agenticdsl/pdk/cross_cutting/decorator_pattern.h`
+
+```cpp
+namespace hydraforge::pdk {
+
+class DecoratorPattern : public ICrossCuttingPattern {
+public:
+    const std::string& name() const override {
+        static const std::string n = "decorator-v1";
+        return n;
+    }
+    
+    void apply(const nlohmann::json& config, CrossCuttingContext& ctx) override {
+        // 配置示例: {"decorators": ["CostTracking", "Compliance", "Retry"]}
+        auto decorators = config["decorators"].get<std::vector<std::string>>();
+        for (const auto& name : decorators) {
+            auto decorator = DecoratorFactory::create(name, std::move(*ctx.llm_provider_slot));
+            *ctx.llm_provider_slot = std::move(decorator);
+        }
+    }
+};
+
+}  // namespace hydraforge::pdk
+```
+
+#### Pattern 2: HookPattern
+
+**位置**: `include/agenticdsl/pdk/cross_cutting/hook_pattern.h`
+
+```cpp
+namespace hydraforge::pdk {
+
+class HookPattern : public ICrossCuttingPattern {
+public:
+    const std::string& name() const override {
+        static const std::string n = "hook-v1";
+        return n;
+    }
+    
+    void apply(const nlohmann::json& config, CrossCuttingContext& ctx) override {
+        // 配置示例: {"hooks": [{"glob": "L3_*", "type": "pre", "policy": "FailClosed", "handler": "human-approval"}]}
+        for (const auto& hook_cfg : config["hooks"]) {
+            std::string target_registry = hook_cfg.value("target", "tool");  // "tool" / "agent"
+            auto hook = HookFactory::create(hook_cfg["handler"], hook_cfg);
+            
+            if (target_registry == "tool") {
+                ctx.tool_hook_registry->register_pre_hook(
+                    hook_cfg["glob"], hook, hook_cfg["priority"], 
+                    parse_policy(hook_cfg["policy"]));
+            } else if (target_registry == "agent") {
+                ctx.agent_hook_registry->register_pre_hook(
+                    hook_cfg["glob"], hook, hook_cfg["priority"],
+                    parse_policy(hook_cfg["policy"]));
+            }
+        }
+    }
+};
+
+}  // namespace hydraforge::pdk
+```
+
+#### Pattern 3: CompositionPattern
+
+**位置**: `include/agenticdsl/pdk/cross_cutting/composition_pattern.h`
+
+```cpp
+namespace hydraforge::pdk {
+
+class CompositionPattern : public ICrossCuttingPattern {
+public:
+    const std::string& name() const override {
+        static const std::string n = "composition-v1";
+        return n;
+    }
+    
+    void apply(const nlohmann::json& config, CrossCuttingContext& ctx) override {
+        // 配置示例: {"agents": [{"name": "privacy-policy-v1", "scope": "react-loop/*"}]}
+        for (const auto& agent_cfg : config["agents"]) {
+            auto agent = ctx.agent_registry->create(agent_cfg["name"], {});
+            auto hook = [agent](const IAgent& a, const std::string& input) {
+                return static_cast<PrivacyPolicyAgent*>(agent.get())
+                    ->enforce_policy(a, input);
+            };
+            ctx.agent_hook_registry->register_pre_hook(
+                agent_cfg["scope"], hook, /*priority=*/100, HookErrorPolicy::FailClosed);
+        }
+    }
+};
+
+}  // namespace hydraforge::pdk
+```
+
+#### Pattern 4: BusPattern
+
+**位置**: `include/agenticdsl/pdk/cross_cutting/bus_pattern.h`
+
+```cpp
+namespace hydraforge::pdk {
+
+class BusPattern : public ICrossCuttingPattern {
+public:
+    const std::string& name() const override {
+        static const std::string n = "bus-v1";
+        return n;
+    }
+    
+    void apply(const nlohmann::json& config, CrossCuttingContext& ctx) override {
+        // 配置示例: {"subscriptions": ["mutation.*"], "handler": "siem-adapter-v1"}
+        for (const auto& topic : config["subscriptions"]) {
+            ctx.bus->subscribe(topic, [ctx, config](const BusEvent& e) {
+                forward_to_handler(config["handler"], e, ctx);
+            });
+        }
+    }
+};
+
+}  // namespace hydraforge::pdk
+```
+
+### 4.4 Orchestrator: CrossCuttingOrchestrator（类比 LoopDispatcher）
+
+**位置**: `include/agenticdsl/pdk/cross_cutting/cross_cutting_orchestrator.h`
+
+```cpp
+namespace hydraforge::pdk {
+
+// Orchestrator 是无状态的分发器 (类比 LoopDispatcher 编译期分发)
+// 关键差异: CrossCuttingOrchestrator 是运行时分发 (基于 JSON 配置),
+//           LoopDispatcher 是编译期分发 (基于模板特化)
+class CrossCuttingOrchestrator {
+public:
+    CrossCuttingOrchestrator(IAgentRegistry& agent_reg,
+                              IAgentHookRegistry& agent_hook_reg,
+                              IToolHookRegistry& tool_hook_reg,
+                              IInteractionBus& bus)
+        : ctx_{&agent_reg, &agent_hook_reg, &tool_hook_reg, &bus, nullptr} {
+        register_pattern(std::make_unique<DecoratorPattern>());
+        register_pattern(std::make_unique<HookPattern>());
+        register_pattern(std::make_unique<CompositionPattern>());
+        register_pattern(std::make_unique<BusPattern>());
+    }
+    
+    // 主入口: 类比 LoopDispatcher::dispatch(loop_type)
+    void dispatch(const nlohmann::json& cross_cutting_config) {
+        ctx_.llm_provider_slot = current_llm_provider_slot_;
+        
+        for (const auto& pattern_cfg : cross_cutting_config["patterns"]) {
+            std::string type = pattern_cfg["type"];
+            auto it = patterns_.find(type);
+            if (it == patterns_.end()) {
+                throw std::runtime_error("Unknown cross_cutting pattern: " + type);
+            }
+            it->second->apply(pattern_cfg["config"], ctx_);  // 各范式独立 apply
+        }
+    }
+    
+    // 注册自定义 pattern (扩展点)
+    void register_pattern(std::unique_ptr<ICrossCuttingPattern> pattern) {
+        patterns_[pattern->name()] = std::move(pattern);
+    }
+    
+private:
+    CrossCuttingContext ctx_;
+    std::unordered_map<std::string, std::unique_ptr<ICrossCuttingPattern>> patterns_;
+    ILLMProvider** current_llm_provider_slot_ = nullptr;  // 由 DSLEngine 提供
+};
+
+}  // namespace hydraforge::pdk
+```
+
+**关键设计点**：
+- **无状态**：Orchestrator 只持有基础设施引用 + pattern 集合，**不存储业务状态**
+- **运行时分发**：基于 JSON 配置动态选择 pattern（vs LoopDispatcher 的编译期模板特化）
+- **扩展点**：`register_pattern()` 方法允许注册自定义 pattern（V2 扩展）
+
+### 4.5 横切功能 DSL（类比 Agent DSL）
+
+**位置**: `examples/cross_cutting/dsl/*.cc.md`（v1.1 实施）
+
+```yaml
+# examples/cross_cutting/dsl/high_security_mode.cc.md
+# 横切功能 DSL - 高安全模式
+
+### AgenticDSL `/__meta__`
+```yaml
+version: "1.0"
+mode: high_security
+description: "Enable strict privacy + audit + approval"
+```
+
+### AgenticDSL `/cross_cutting`
+```yaml
+patterns:
+  # Pattern 1: LLM 装饰器链
+  - type: decorator-v1
+    config:
+      decorators: ["CostTracking", "Compliance", "PII-Scrub", "Retry"]
+      
+  # Pattern 2: Tool + Agent hooks
+  - type: hook-v1
+    config:
+      hooks:
+        - target: tool
+          glob: "L3_*"
+          type: pre
+          priority: 1000
+          policy: FailClosed
+          handler: human-approval-v1
+        - target: agent
+          glob: "react-loop/*"
+          type: pre
+          priority: 500
+          policy: FailClosed
+          handler: privacy-policy-v1
+          
+  # Pattern 3: Composition (Agent first-class)
+  - type: composition-v1
+    config:
+      agents:
+        - name: privacy-policy-v1
+          scope: "react-loop/*"
+          config: {pii_patterns: ["email", "phone", "ssn"]}
+        - name: metrics-collector-v1
+          scope: "*"
+          config: {metrics_backend: "prometheus"}
+          
+  # Pattern 4: Event Bus 订阅
+  - type: bus-v1
+    config:
+      subscriptions: ["mutation.committed", "gepa.commit.committed"]
+      handler: external-siem-adapter-v1
+
+### AgenticDSL `/meta_agent` (可选)
+```yaml
+# 可选: 启用 Meta-Agent 自管理模式
+meta_agent:
+  enabled: true
+  name: "cross-cutting-meta-v1"
+  self_configure_goals:
+    - "high_security_mode"
+    - "cost_optimization_mode"
+    - "development_mode"
+```
+
+### 使用方式:
+```cpp
+// 加载 DSL
+CrossCuttingConfig config = CrossCuttingConfig::load("high_security_mode.cc.md");
+
+// 初始化 Orchestrator
+CrossCuttingOrchestrator orch(agent_registry, agent_hook_registry,
+                                tool_hook_registry, bus);
+
+// 应用横切配置 (一次 dispatch 应用所有 patterns)
+orch.dispatch(config.to_json());
+```
+
+### 4.6 自管理 Meta-Agent（可选高级特性）
+
+**位置**: `include/agenticdsl/pdk/cross_cutting/cross_cutting_meta_agent.h`（v1.1 实施）
+
+> **设计争议**：v1.0 提出 `CrossCuttingMetaAgent` 作为自管理入口。v1.1 修正为**可选高级特性**，因为：
+> 1. **SRP 违反**：单点决策所有范式 = god class
+> 2. **违反 Loop 设计哲学**：PDK Loop 没有"MetaLoop"集中决策
+> 3. **使用场景窄**：仅"自适应系统"场景需要，多数应用用 Config/Compile-time 即可
+>
+> **替代方案**：Orchestrator 是必需的核心组件；Meta-Agent 是可选包装层。
+
+```cpp
+namespace hydraforge::pdk {
+
+// 可选: Meta-Agent 自管理（基于 Orchestrator 之上）
+class CrossCuttingMetaAgent : public IAgent {
+public:
+    CrossCuttingMetaAgent(const AgentConfig& cfg,
+                          CrossCuttingOrchestrator& orch,
+                          ConfigRegistry& config_registry)
+        : cfg_(cfg), orch_(orch), config_registry_(config_registry) {}
+    
+    std::string name() const override {
+        static const std::string n = "cross-cutting-meta-v1";
+        return n;
+    }
     std::string id() const override { return cfg_.instance_id; }
     
-    // 接收 event payload，发送 metrics
-    void process_event(const BusEvent& event) {
-        auto metric_name = "agent.event." + event.topic;
-        metrics_.increment(metric_name, event.payload);
+    // Meta-Agent 自主决定启用哪些横切功能
+    AgentResult<std::string> self_configure(const std::string& goal) {
+        // 1. 查询预定义 goal 配置 (类比 pdk_chat_demo preset)
+        auto config = config_registry_.get_goal_config(goal);
+        if (!config) {
+            return {"", {}, ErrorCode::NotFound, "Unknown goal: " + goal};
+        }
+        
+        // 2. 调用 Orchestrator 应用配置
+        orch_.dispatch(config->to_json());
+        
+        return {"configured_for_" + goal, {}, std::nullopt, ""};
+    }
+    
+    // 注册为 agent（可选）
+    void register_to(IAgentRegistry& registry) {
+        registry.register_agent(name(), [this](const AgentConfig& cfg) {
+            return std::make_unique<CrossCuttingMetaAgent>(cfg, orch_, config_registry_);
+        });
     }
     
 private:
     AgentConfig cfg_;
-    MetricsCollector metrics_;
+    CrossCuttingOrchestrator& orch_;
+    ConfigRegistry& config_registry_;
 };
 
-// 注册
-registry.register_agent("metrics-collector-v1", [](const AgentConfig& cfg) {
-    return std::make_unique<MetricsCollectorAgent>(cfg);
-});
+}  // namespace hydraforge::pdk
 ```
 
-**使用场景**: metrics 收集、审计记录、log 持久化
+**Meta-Agent 工作流**:
+```
+用户: meta_agent.self_configure("high_security_mode")
+  ↓
+MetaAgent → ConfigRegistry.get("high_security_mode") → CrossCuttingConfig
+  ↓
+MetaAgent → CrossCuttingOrchestrator.dispatch(config)
+  ↓
+Orchestrator → 遍历 patterns → 4 Pattern.apply() 独立执行
+  ↓
+结果: decorator-v1 + hook-v1 + composition-v1 + bus-v1 全部生效
+```
+
+**适用场景**（仅以下情况需要 Meta-Agent）:
+- **自适应系统**: 根据运行时目标（high_security / cost_optimization / dev_mode）自动切换横切策略
+- **多租户配置**: 每个租户有独立的横切配置，Meta-Agent 按租户 ID 加载
+
+**不适用场景**（直接用 Orchestrator 即可）:
+- 单环境部署 → 用 Config 驱动（策略 2）
+- 固定配置 → 用 Compile-time 注入（策略 1）
+- 动态启用/禁用单个功能 → 用 Hot-Reload Manager（策略 3）
+
+### 4.7 4 种管理策略（保留 v1.0 但更新实施）
+
+#### 策略 1: Compile-time 注入（直接调用 Orchestrator）
+
+```cpp
+int main() {
+    AgentRegistry registry;
+    AgentHookRegistry agent_hooks;
+    ToolHookRegistry tool_hooks;
+    InteractionBus bus;
+    
+    // 初始化 Orchestrator
+    CrossCuttingOrchestrator orch(registry, agent_hooks, tool_hooks, bus);
+    
+    // 直接 dispatch DSL 配置
+    orch.dispatch(load_yaml("high_security_mode.cc.md"));
+    
+    return run_app(registry, bus);
+}
+```
+
+**适用场景**: 单环境、配置固定
+
+#### 策略 2: Config 驱动（从 YAML/JSON 加载）
+
+```cpp
+// 启动时从配置加载
+CrossCuttingConfig config = CrossCuttingConfig::load("cross_cutting.yaml");
+CrossCuttingOrchestrator orch(...);
+orch.dispatch(config.to_json());
+```
+
+#### 策略 3: Hot-Reload（运行时动态增删）
+
+```cpp
+class HotReloadManager {
+    void enable_pattern(const std::string& pattern_name,
+                       const nlohmann::json& pattern_config,
+                       CrossCuttingOrchestrator& orch) {
+        orch.dispatch({{"patterns", {{
+            {"type", pattern_name},
+            {"config", pattern_config}
+        }}}});
+    }
+    
+    void disable_pattern(const std::string& pattern_name) {
+        // TODO: 反向取消 (V2 需要 pattern 撤回支持)
+    }
+};
+```
+
+#### 策略 4: Meta-Agent 自管理（可选高级特性）
+
+见 §4.6。
 
 ---
 
-#### 模式 B: Policy Agent（策略代理）
+## 5.0 与 PDK Loop Agent 的对等映射（v1.1 关键洞察）
 
-**定义**: Policy Agent 实现 `IAgentHookRegistry` 接口，对其他 agent 的行为施加策略约束。
+| PDK Loop Agent（已 ship） | 横切功能管理（v1.1 推荐） |
+|---------------------------|---------------------------|
+| 3 个独立 Loop class | **4 个独立 Pattern class** |
+| `LoopDispatcher<LoopType>` 编译期模板分发 | `CrossCuttingOrchestrator` 运行时 JSON 分发 |
+| `AgentLoopType` 枚举 | `cross_cutting_pattern::Decorator/Hook/Composition/Bus` 常量 |
+| `LoopResult` 统一返回类型 | `void apply(...)` 统一应用接口 + `ICrossCuttingPattern` 抽象 |
+| `loop_type: react_loop` DSL 字段 | `pattern_type: decorator-v1` 配置字段 |
+| `examples/pdk_chat_demo/dsl/*.agent.md` | `examples/cross_cutting/dsl/*.cc.md` |
+| `DEFINE_AGENT` 宏（agent_macros.h） | （V2 待定，可考虑 `DECLARE_CROSS_CUTTING` 宏） |
+| **无 MetaLoop** | **无强制 MetaCrossCutting**（可选 MetaAgent） |
 
-```cpp
-class PrivacyPolicyAgent : public IAgent {
-public:
-    std::string name() const override { return "privacy-policy-v1"; }
-    std::string id() const override { return cfg_.instance_id; }
-    
-    // 作为 AgentHookRegistry 的 hook 注入
-    AgentPreHookResult enforce_privacy_policy(const IAgent& agent,
-                                              const std::string& step_input) {
-        if (agent.name() == "react-loop-v1") {
-            auto scrubbed = pii_scrubber_.scrub(step_input);
-            if (scrubbed.contains_pii()) {
-                return {Deny, "pii_detected_in_step_input", {}};
-            }
-            return {ModifyContext, "", {{"scrubbed_input", scrubbed.text()}}};
-        }
-        return {Continue, "", {}};
-    }
-    
-private:
-    PIIScrubber pii_scrubber_;
-};
+**关键洞察**：PDK Loop 设计从未做"集中决策的 MetaLoop"，而是用 dispatcher 模板 + 独立 Loop class 组合。横切功能管理应遵循完全相同的设计哲学——**Orchestrator 是必需核心**，**MetaAgent 是可选包装**。
 
-// 注册 + 注入
-registry.register_agent("privacy-policy-v1", [](const AgentConfig& cfg) {
-    return std::make_unique<PrivacyPolicyAgent>(cfg);
-});
+### 5.1 与 Semantica 重新对比（v1.1 更新）
 
-auto policy_agent = registry.create("privacy-policy-v1", {});
-
-// 把 policy agent 作为 hook 注入到目标 agent hook registry
-agent_hook_registry.register_pre_hook(
-    "react-loop/*",
-    [policy_agent](const IAgent& agent, const std::string& input) {
-        return static_cast<PrivacyPolicyAgent*>(policy_agent.get())
-            ->enforce_privacy_policy(agent, input);
-    }, /*priority=*/100, HookErrorPolicy::FailClosed);
-```
-
-**使用场景**: PII 过滤、policy injection、合规检查
-
----
-
-#### 模式 C: Orchestrator Agent（编排代理）
-
-**定义**: Orchestrator Agent 通过 `IAgentComposition` 编排其他 agent 的调用顺序。
-
-```cpp
-class ReflexionOrchestrator : public IAgent {
-public:
-    std::string name() const override { return "reflexion-orchestrator-v1"; }
-    std::string id() const override { return cfg_.instance_id; }
-    
-    // 编排: 失败 → 反思 → 修订 → 重试（基于 T19 GEPA Phase 2 commit）
-    AgentResult<std::string> orchestrate(const std::string& task) {
-        // 1. 调用主 agent
-        auto result = comp_->call(main_agent_id_, task, {});
-        if (result.ok) return result;
-        
-        // 2. 触发 GEPA 反思循环（另一个 agent）
-        auto reflection_result = comp_->call(gepa_agent_id_, 
-                                              "reflect on failure: " + result.message,
-                                              {});
-        
-        // 3. 应用修订后的 prompt 重试
-        return comp_->call(main_agent_id_, reflection_result.value, {});
-    }
-    
-private:
-    IAgentComposition* comp_;
-    std::string main_agent_id_;
-    std::string gepa_agent_id_;
-};
-
-// 注册
-registry.register_agent("reflexion-orchestrator-v1", [](const AgentConfig& cfg) {
-    return std::make_unique<ReflexionOrchestrator>(cfg);
-});
-```
-
-**使用场景**: 多 agent 协同、反思循环、工作流编排
-
----
-
-#### 模式 D: Adapter Agent（适配代理）
-
-**定义**: Adapter Agent 将不同来源的事件/数据适配到统一接口。
-
-```cpp
-class ExternalSystemAdapterAgent : public IAgent {
-public:
-    std::string name() const override { return "external-siem-adapter-v1"; }
-    std::string id() const override { return cfg_.instance_id; }
-    
-    // 订阅内部事件，转换为外部 SIEM 格式
-    void setup_subscription(IInteractionBus* bus) {
-        bus->subscribe("mutation.*", [this](const BusEvent& e) {
-            forward_to_siem(e);
-        });
-        bus->subscribe("gepa.*", [this](const BusEvent& e) {
-            forward_to_siem(e);
-        });
-    }
-    
-private:
-    void forward_to_siem(const BusEvent& e) {
-        // 转换为 SIEM 格式 (CEF / LEEF / JSON)
-        auto siem_event = convert_to_cef(e);
-        siem_client_.send(siem_event);
-    }
-    
-    SIEMClient siem_client_;
-};
-```
-
-**使用场景**: 外部系统集成（SIEM / billing / dashboard）、事件格式转换
+| 维度 | Semantica | HydraForge 横切架构 v1.1 |
+|------|-----------|-------------------------|
+| 横切机制 | 依赖元数据 + 工作流组合 | **6 层抽象 + 4 PDK Pattern + Orchestrator** |
+| 拦截粒度 | LLM call level | LLM/Tool/Agent step/Lifecycle 全覆盖 |
+| 范式抽象 | 扁平工作流 | **4 范式独立 PDK Pattern + 抽象接口** |
+| 扩展性 | 单一集中决策 | **register_pattern() 扩展点 + DSL 声明** |
+| Agent 编排 | 单一类型 + 工作流 | `IAgentRegistry` + `IAgentComposition` |
+| 装饰器链 | 无显式 | `ILLMProviderDecorator`（GoF Decorator + final 转发）|
+| Hook 策略 | 自定义 | `HookErrorPolicy` (FailClosed/FailOpen) 统一 |
+| 失败处理 | 自定义 | **不变量**：hook 异常不阻断主流程 |
+| 事件系统 | 自定义 | ADR-0068 Canonical Topic Registry（27+ 主题）|
+| DSL 实例化 | 自定义 | `examples/cross_cutting/dsl/*.cc.md` 类比 Agent DSL |
 
 ---
 
@@ -932,7 +1260,9 @@ private:
 
 ---
 
-## 五、实战案例：给所有 Agent 添加 5 种横切功能
+## 五、实战案例：给所有 Agent 添加 5 种横切功能（v1.1 更新）
+
+> **v1.1 更新**：5 个案例现在通过 `CrossCuttingOrchestrator::dispatch()` 应用（而非 v1.0 手动注册 agent hook/bus）。每个案例展示对应的 DSL 配置 + 1 段 Orchestrator dispatch 代码。
 
 ### 案例 1: 全局 Metrics 收集
 
@@ -1157,27 +1487,64 @@ ctest -R "test_(hook|agent|composition|approval|interaction)" --output-on-failur
 
 ---
 
-## 十一、总结
+## 十一、总结（v1.1 更新）
 
-HydraForge 横切架构的核心优势：
+### v1.1 核心修正
+- **删除** v1.0 §四 "4 Agent 模式"（Side-effect / Policy / Orchestrator / Adapter）
+- **新增** v1.1 §四 "4 PDK Pattern + Orchestrator + 可选 Meta-Agent"
+- **关键洞察**：横切功能管理应采用与 PDK Loop Agent **完全相同**的设计模式（独立 class + dispatcher 编排）
+
+### 横切架构核心优势
 1. **6 层抽象** 覆盖完整调用链（LLM → Tool → Agent step → Lifecycle → Global）
 2. **正交分层** 互不耦合，按需组合
-3. **Agent first-class** 横切功能可被 Agent 自身管理（Side-effect / Policy / Orchestrator / Adapter）
-4. **fail-safe 默认** hook 失败不阻断主流程
-5. **HookErrorPolicy 统一** FailClosed/FailOpen 贯穿所有 hook
-6. **事件驱动** 27+ 主题统一注册 + 全局订阅
-7. **V1 已 ship** 多个横切能力（Decorator + Hook Registry + Approval Handler + EventBus）
-8. **可扩展** 新增横切能力只需新增 hook 或 decorator，不修改业务代码
+3. **4 PDK Pattern**（Decorator / Hook / Composition / Bus）独立可扩展
+4. **Orchestrator 无状态分发**（类比 LoopDispatcher）
+5. **Agent first-class** 横切功能可建模为 Agent（Composition Pattern）
+6. **可选 Meta-Agent 自管理**（高级特性，非必需）
+7. **fail-safe 默认** hook 失败不阻断主流程（ADR-0081 §不变量）
+8. **HookErrorPolicy 统一** FailClosed/FailOpen 贯穿所有 hook
+9. **DSL 实例化** `examples/cross_cutting/dsl/*.cc.md` 类比 `*.agent.md`
+10. **事件驱动** 27+ 主题统一注册 + 全局订阅
 
-**对比 Semantica**: HydraForge 在 hook 粒度完整性、Agent first-class、事件驱动、HookErrorPolicy 标准化方面有显著优势。
+### 对比 Semantica
+HydraForge 在 **横切抽象粒度完整性、PDK 模式一致性、Agent first-class、HookErrorPolicy 标准化、事件驱动、DSL 实例化** 方面有显著优势。
 
-**下一步建议**:
-1. 创建横切功能 Agent 模板（基类）作为示例
-2. 实施"全局 Metrics + Audit + Privacy"三件套示范 Agent
-3. 文档化每种范式的具体实施步骤（已有 §三 + §四）
+### 与既有架构的对等性
+| 维度 | PDK Loop Agent | 横切功能管理 |
+|------|----------------|-------------|
+| 独立 class | ReactLoop / PlanExecuteLoop / ForkJoinLoop | DecoratorPattern / HookPattern / CompositionPattern / BusPattern |
+| Dispatcher | LoopDispatcher<LoopType> 模板 | CrossCuttingOrchestrator 动态 |
+| DSL 实例化 | `*.agent.md` | `*.cc.md` |
+| Meta 抽象 | （无）| （可选 Meta-Agent） |
 
-**问题**：你希望我接下来：
-1. 创建示例横切功能 Agent 代码模板（Side-effect + Policy + Orchestrator + Adapter）？
-2. 实施一个示范横切功能（如全局 PII 脱敏 Agent）作为完整示例？
-3. 继续 Layer 3 收官（T20 AFlow MCTS）？
-4. 或者其他方向？
+### 关联 ADR
+
+- **ADR-0081** Pre-Step Hook Contract（IAgentHookRegistry, Agent-scoped）— v1.1 §四 引用
+- **ADR-0082** Agent First-Class Registry（IAgentRegistry）— CompositionPattern 依赖
+- **ADR-0085** Cross-Cutting Pattern PDK（待创建）— v1.1 §四 4 Pattern + Orchestrator 设计依据
+- **ADR-0069** ToolCoordinator Hook（IToolHookRegistry, HookErrorPolicy）— HookPattern 依赖
+- **ADR-0068** Event Emission Contract（27+ 主题）— BusPattern 依赖
+- **ADR-0021** PDK Design（PDK Plugin 范式）— 横切功能管理作为 PDK 子模式
+
+### 下一步建议
+
+**短期**:
+1. 创建 ADR-0085（Cross-Cutting Pattern PDK 设计依据）
+2. 创建 `pdk-cross-cutting-patterns` OpenSpec change 实施 4 Pattern + Orchestrator + DSL
+
+**中期**:
+3. 实施示例横切功能（全局 PII 脱敏 + Metrics + Audit 三件套）
+4. 集成到 pdk_chat_demo（类比 examples/pdk_chat_demo/dsl/）
+
+**长期**:
+5. 横切功能 marketplace（社区贡献新 Pattern）
+6. Meta-Agent 自管理（自适应系统场景）
+
+### 问题
+
+**你想接下来**:
+1. 立即创建 ADR-0085（基于本文档 §4.1-4.5 设计依据）？
+2. 创建 OpenSpec change `pdk-cross-cutting-patterns`（4 Pattern + Orchestrator + DSL + DSL examples + 测试）？
+3. 实施示例横切功能（全局 PII 脱敏作为首个 Pattern 实现）？
+4. 继续 Layer 3 收官（T20 AFlow MCTS）？
+5. 或者其他方向？
