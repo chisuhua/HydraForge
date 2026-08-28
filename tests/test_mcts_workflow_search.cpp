@@ -385,3 +385,76 @@ TEST_CASE("mcts_search_convergence_100_iterations", "[mcts][phase1]") {
   REQUIRE(has_search);
   REQUIRE(result.success);
 }
+
+// ============================================================================
+// Phase 2: 集成 IEvaluator V2 + 回归门禁 + 变异授权 (3 cases)
+// ============================================================================
+
+TEST_CASE("mcts_reward_evaluator_v2_composite", "[mcts][phase2]") {
+  // CompositeEvaluator 加权聚合: {Stub(ok) 0.7 + BehavioralEquivalence 0.3}
+  //   scalar = 0.7*1.0 + 0.3*0.0 = 0.7 → 归一化 q = (0.7+1)/2 = 0.85
+  auto stub = std::make_shared<StubEvaluator>();
+  stub->mode = StubEvaluator::Mode::ScoreByOk;
+  auto bev = std::make_shared<BehavioralEquivalenceEvaluator>();
+  auto evaluator = std::make_shared<CompositeEvaluator>(
+      std::vector<std::shared_ptr<IEvaluator>>{stub, bev},
+      std::vector<double>{0.7, 0.3});
+  auto governor = std::make_shared<StubGovernor>();
+  auto gate = std::make_shared<BehavioralRegressionGate>();
+  MCTSWorkflowSearch::SearchConfig config;
+  config.max_iterations = 50;
+  auto search = make_search(evaluator, governor, gate, config);
+
+  const auto result = search->search(make_spec("v2_composite"));
+
+  REQUIRE(result.best_workflow != nullptr);
+  REQUIRE(result.best_reward == Catch::Approx(0.85));
+  REQUIRE(stub->evaluate_calls > 0);  // Composite 聚合调用了子评估器
+}
+
+TEST_CASE("mcts_regression_gate_rejects_decline", "[mcts][phase2]") {
+  // 1) 门禁包装直接验证: 健康基线 vs 劣化候选 → Fail 拒绝
+  auto gate = std::make_shared<BehavioralRegressionGate>();
+  ToolResult healthy = ToolResult::success(nlohmann::json::object());
+  healthy.latency_ms = 100;
+  healthy.meta["tokens_used"] = 1000;
+  ToolResult declining =
+      ToolResult::error(ErrorCode::Unknown, "behavioral_decline",
+                        nlohmann::json::object());
+  declining.latency_ms = 100000;
+  REQUIRE(gate->allows({healthy}, {healthy}));
+  REQUIRE_FALSE(gate->allows({healthy}, {declining}));
+
+  // 2) MCTS 层: 候选劣于基线 (搜索无改善) → 回归门拒绝, 不提交
+  auto evaluator = std::make_shared<DeclineEvaluator>();
+  auto governor = std::make_shared<StubGovernor>();
+  MCTSWorkflowSearch::SearchConfig config;
+  config.max_iterations = 50;
+  auto search = make_search(evaluator, governor, gate, config);
+
+  const auto result = search->search(make_spec("decline"));
+
+  REQUIRE_FALSE(result.success);
+  REQUIRE(result.failure_mode == "behavioral_regression_failed");
+  REQUIRE(governor->propose_calls == 0);
+  REQUIRE(governor->commit_calls == 0);
+}
+
+TEST_CASE("mcts_mutation_governor_authorizes_commit", "[mcts][phase2]") {
+  // 最优工作流经 MutationGovernor propose → commit (L1 workflow variants)
+  auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->mode = StubEvaluator::Mode::ScoreByOk;  // 全 ok → 无劣化
+  auto governor = std::make_shared<StubGovernor>();
+  auto gate = std::make_shared<BehavioralRegressionGate>();
+  MCTSWorkflowSearch::SearchConfig config;
+  config.max_iterations = 30;
+  auto search = make_search(evaluator, governor, gate, config);
+
+  const auto result = search->search(make_spec("authorize"));
+
+  REQUIRE(result.success);
+  REQUIRE(result.best_workflow != nullptr);
+  REQUIRE(governor->propose_calls == 1);
+  REQUIRE(governor->commit_calls == 1);
+  REQUIRE(governor->last_kind == "L1_prompt");
+}

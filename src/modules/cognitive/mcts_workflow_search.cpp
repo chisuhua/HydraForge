@@ -2,9 +2,9 @@
 // 功能描述：AFlow 风格 MCTS 工作流搜索编排层实现 (T20, ADR-0061-08, Sprint 24)
 //          标准 MCTS 四步: UCB1 选择 → 扩展 (5 轴模板实例化) → 模拟
 //          (IEvaluator V2 奖励) → 反向传播 (visits + reward_sum)。
+//          Phase 2 集成: BehavioralRegressionGate 回归门 (候选劣化拒绝)
+//          + IMutationGovernor 变异授权 (propose → commit, V1 仅 L1_prompt)。
 //          V1 简化: Mock 模板实例化 (不调用 LLM); AFlow 改进 deferred V2。
-//          后续 Phase 2 追加: BehavioralRegressionGate 回归门 + IMutationGovernor
-//          变异授权; Phase 3 追加: mcts.* 事件发射 (ADR-0068 v1.5)。
 // 设计依据：docs/adr/skill/adr-0061-08-aflow-search.md
 //          + openspec/changes/t20-aflow-mcts/tasks.md
 // 作者：HydraForge Sprint 24 T20 ship
@@ -118,6 +118,27 @@ ExecutionTrace trace_of(const WorkflowGraph& graph, const TaskSpec& spec,
   return trace;
 }
 
+// V1 mock: 合成行为回归特征结果 (decline=true → 候选劣于基线, 指纹显著偏离)
+std::vector<ToolResult> synthesize_results(const WorkflowGraph& /*graph*/,
+                                           bool decline) {
+  if (decline) {
+    ToolResult r =
+        ToolResult::error(ErrorCode::Unknown, "behavioral_decline",
+                          nlohmann::json::object());
+    r.latency_ms = 100000;
+    return {r};
+  }
+  ToolResult r = ToolResult::success(nlohmann::json::object());
+  r.latency_ms = 100;
+  r.meta["tokens_used"] = 1000;
+  return {r};
+}
+
+std::string workflow_summary(const WorkflowGraph& g) {
+  return "workflow:" + std::to_string(g.nodes.size()) + "nodes:" +
+         std::to_string(g.edges.size()) + "edges";
+}
+
 }  // namespace
 
 MCTSWorkflowSearch::MCTSWorkflowSearch(
@@ -227,7 +248,45 @@ MCTSWorkflowSearch::SearchResult MCTSWorkflowSearch::search(
   result.best_reward = best_reward;
   result.best_workflow = best_workflow;
   result.iterations_used = config_.max_iterations;
-  result.success = true;  // Phase 1: 搜索完成即成功; Phase 2 追加回归门 + 变异授权
+
+  // 回归门禁: 候选 vs 基线 — 行为劣化拒绝 (V1 mock 合成特征)
+  const ExecutionTrace baseline_trace = trace_of(tree[0].state, spec, -1);
+  const double baseline_reward =
+      normalize(evaluator_->evaluate(baseline_trace).scalar);
+  const std::vector<ToolResult> baseline_results =
+      synthesize_results(tree[0].state, /*decline=*/false);
+  const bool declined = best_reward < baseline_reward;
+  const std::vector<ToolResult> candidate_results =
+      synthesize_results(*best_workflow, declined);
+  if (regression_gate_ &&
+      !regression_gate_->allows(baseline_results, candidate_results)) {
+    result.failure_mode = "behavioral_regression_failed";
+    return result;
+  }
+
+  // 变异授权: propose → commit (V1 仅 L1 workflow variants)
+  MutationContext proposal;
+  proposal.mutation_id =
+      spec.task_id + ":mcts:" + std::to_string(result.iterations_used);
+  proposal.source_id = config_.source_id;
+  proposal.mutation_kind = "L1_prompt";
+  proposal.subject_ref = spec.task_id;
+  proposal.parent_ref = spec.task_id;
+  proposal.proposed_change = workflow_summary(*best_workflow);
+  proposal.mode = MutationMode::Yolo;
+  proposal.evaluation_refs = {best_trace_id};
+  const MutationDecision proposed = governor_->propose(proposal);
+  if (!proposed.approved) {
+    result.failure_mode = "proposal_denied";
+    return result;
+  }
+  const MutationDecision committed = governor_->commit(proposal);
+  if (!committed.approved) {
+    result.failure_mode = "commit_denied";
+    return result;
+  }
+
+  result.success = true;
   return result;
 }
 
