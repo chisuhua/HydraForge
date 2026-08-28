@@ -1,8 +1,8 @@
 # ADR 实施状态差距分析
 
 **生成日期**: 2026-08-03
-**最后更新**: 2026-08-03 — 集成 `llm-native-blueprint-vs-code-gap-analysis` (本会话 2026-08-03) + Oracle 深度审查 (session `ses_037e12115ffeLkeR1QTIko0BHb`) + 5 项 MUST-FIX 应用 + 6 个新 LLM-native ADR (0072/0074/0075/0076/0077/0078) 起草
-**分析范围**: 72 个 ADR（46 主 + 6 新 LLM-native + 1 plugin + 12 skill 子项 + 7 archive）vs 代码库实施状态
+**最后更新**: 2026-08-28 — 集成 `cross-cutting-hooks-architecture-2026-08.md` v1.2 + Oracle 3 轮复审 (session `ses_fb9839be4ffeEdO0T7O6SfFUSi`) + ADR-0085 Cross-Cutting Pattern PDK ✅ Approved (2026-08-28) + T20 AFlow MCTS V1 ship (2026-08-28) + T21 payload redact ship (2026-08-28, PII 防御)
+**分析范围**: 73 个 ADR（47 主 + 6 新 LLM-native + 1 plugin + 12 skill 子项 + 7 archive）vs 代码库实施状态
 **数据源**: `docs/adr/` 目录、AGENTS.md Recent Changes、Oracle session `ses_037e12115ffeLkeR1QTIko0BHb`、代码库架构扫描、`docs/active-status.md §四`、code-review-graph、git log 2026-07-23~08-03
 
 ---
@@ -11,13 +11,13 @@
 
 | 状态 | 计数 | 占比 | 备注 |
 |------|:---:|:----:|------|
-| ✅ Approved — 已批准且实施完成 | 32 | 44.4% | (含 Phase 6 架构评审 0052-0064 13 个, 大多数无代码; +ADR-0084 2026-08-26; +ADR-0061-06 v1.1 T15 ship 2026-08-27; +ADR-0061-08 T20 V1 ship 2026-08-28) |
+| ✅ Approved — 已批准且实施完成 | 33 | 45.8% | (含 Phase 6 架构评审 0052-0064 13 个, 大多数无代码; +ADR-0084 2026-08-26; +ADR-0061-06 v1.1 T15 ship 2026-08-27; +ADR-0061-08 T20 V1 ship 2026-08-28; **+ADR-0085 2026-08-28 — Cross-Cutting Pattern PDK, Oracle 3 轮复审通过, 实施载体 OpenSpec change `pdk-cross-cutting-patterns` 后续创建**) |
 | 🟡 Partial — 已批准但实施不完整 | 8 | 11.1% | 含 ADR-0073 待翻牌 (Phase 5 Sprint 21 ship, 见 §2.1) |
 | 🔍 Proposed — 提议阶段，未批准 | 13 | 18.1% | 含 **6 个新起草 LLM-native** (0072/0074/0075/0076/0077/0078) |
 | ❌ Not Implemented — 未实施（含已归档） | 18 | 25.0% | 12 归档 + 6 永久 (0002/0030V1/0036×2/0073V1待翻) |
 | ⛔ Superseded — 被替代 | 1 | 1.4% | ADR-0006 → ADR-0020 |
 | 📦 Archived (已实施后归档) | 1 | 1.4% | ADR-0032 (CostCollector) |
-| **总计** | **72** | **100%** | （G11 ADR-0084 ✅ Approved (V1 ship 2026-08-26, commit `a2b2d52`, G11 ✅ Closed), 已计入 ✅ Approved 段）|
+| **总计** | **73** | **100%** | （G11 ADR-0084 ✅ Approved (V1 ship 2026-08-26, commit `a2b2d52`, G11 ✅ Closed), **+ADR-0085 ✅ Approved (2026-08-28, Oracle 3 轮复审通过)**, 已计入 ✅ Approved 段）|
 
 > ① `docs/archive/adr/` 12 个归档 ADR（0010-0018 + 0030 V1 + 0036×2）计入 `❌ Not Implemented`。② ADR-0032 已实施后归档, 单列 `📦 Archived`。③ ADR-0002 未实施但文件仍在主目录, 计入 `❌`。④ ADR-0037 于 2026-07-27 从 🔍 提升为 🟡 Partial (CausalClock ship)。⑤ **本会话 6 个新 ADR (0072/0074/0075/0076/0077/0078) 全部 🔍 Proposed, 6/6 引用 0071/0073 作为父 ADR**。⑥ ADR-0073 内部 🔍 Proposed vs docs/README.md 显示 ✅ Approved — **状态不一致待对齐**。
 

@@ -2,9 +2,19 @@
 
 **日期**: 2026-08-28
 **父主题**: HydraForge 横切架构工作文档 `docs/architecture/cross-cutting-hooks-architecture-2026-08.md` v1.2
-**状态**: 🔍 Proposed（待评审转 Approved，OpenSpec change `pdk-cross-cutting-patterns` 实施依据）
+**状态**: ✅ **Approved** (2026-08-28 — Oracle 3 轮复审全部通过, GitHub issue #15 Self-Review 决议)
 
 > **V1 范围**: 4 个独立 PDK Pattern class + `CrossCuttingOrchestrator` 编排器 + `ICrossCuttingPattern` 抽象接口 + 横切功能 DSL 格式（`*.cc.md`）。**V1 不实施**：横切功能 Agent 自管理（可选高级特性，V2 deferred）。
+
+> **Ship 证据 (2026-08-28)**: 
+> - GitHub issue #15 Self-Review 决议通过 (`https://github.com/chisuhua/HydraForge/issues/15`)
+> - Oracle 3 轮复审全部通过 (Round 1: 1 Blocking + 4 High + 9 Medium; Round 2: Blocking 修正 commit `040e9bd`; Round 3: H+M 修正 commit `2e1f4e4`)
+> - adr_lint 83 ADR 文件 0 错误; openspec validate 4/4 PASS; docs_drift_audit 0 NEW CRITICAL
+> - 零契约变更验证: 6 层抽象 (i_*.h) + engine.h + iagent_composition.h 全部 0 diff
+> - 命名空间卫生: agenticdsl:: 限定 92 处 (≥30 门槛)
+> - **实施载体**: OpenSpec change `pdk-cross-cutting-patterns` 后续创建 (~2.2 sprint 估时)
+> - **T21 payload 泄露面**已 ship 修复 (commit `abe0b3f`) 作为本 ADR 设计模式的应用示范
+> - **Oracle session**: `ses_fb9839be4ffeEdO0T7O6SfFUSi` (横切架构 adversarial review)
 >
 > **不引入**: 新增横切功能类别、新增 hook 类型、新增事件主题（所有现有 6 层扩展点 L0-L5 + 27+ 主题保持不变）。
 >
