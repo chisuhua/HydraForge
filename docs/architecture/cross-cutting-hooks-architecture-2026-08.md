@@ -1,9 +1,9 @@
 # Cross-Cutting Hooks Architecture（横切架构与扩展指南）
 
 **生成日期**: 2026-08-28
-**最后验证**: 2026-08-28（v1.1 — PDK 模式重构 + 4 Pattern + CrossCuttingOrchestrator + 可选 Meta-Agent + 横切功能 DSL，验证命令见 §十）
+**最后验证**: 2026-08-28（v1.2 — Oracle 评审 H1-H4 + M1-M9 修正应用：真实 API 校正 + 命名空间卫生 + 文档清理，验证命令见 §十）
 **作者**: Architecture Working Group
-**状态**: 🔍 Proposed v1.1（横切架构文档化 + PDK 模式重构 + Agent 编排管理策略，与 ADR-0081/0082/0085 联动）
+**状态**: 🔍 Proposed v1.2（横切架构文档化 + PDK 模式重构 + Agent 编排管理策略，与 ADR-0081/0082/0085 联动；Oracle 评审 H1-H4 + M1-M9 已应用）
 
 > **定位**: 本文是 HydraForge 横切扩展架构的工作文档，覆盖现有 6 层抽象扩展点的设计原理 + 4 种功能扩展范式 + 通过 Agent first-class 编排管理横切功能的策略。
 >
@@ -410,17 +410,17 @@ public:
 **典型用法**:
 ```cpp
 // 全局审计
-bus.subscribe("mutation.committed", [](const BusEvent& e) {
+bus.subscribe("mutation.committed", [](const agenticdsl::BusEvent& e) {
     audit_log.record(e.payload.data["mutation_id"]);
 });
 
 // 全局 metrics
-bus.subscribe("cognitive.task.*", [](const BusEvent& e) {
+bus.subscribe("cognitive.task.*", [](const agenticdsl::BusEvent& e) {
     metrics.record_latency(e.payload.latency_ms);
 });
 
 // 跨子系统集成
-bus.subscribe("gepa.commit.*", [](const BusEvent& e) {
+bus.subscribe("gepa.commit.*", [](const agenticdsl::BusEvent& e) {
     if (e.topic == "gepa.commit.committed") {
         external_dashboard.notify(e);
     }
@@ -517,28 +517,28 @@ engine.set_llm_provider(std::move(provider));
 
 **完整示例 — 实现 Tool Rate Limiter**:
 ```cpp
-ToolHookRegistry registry;
+agenticdsl::ToolHookRegistry registry;
 
 // 给所有工具调用添加 100 req/s 限流
 RateLimiter limiter(100 /* req/s */);
 registry.register_pre_hook("*",
-    [&limiter](const ToolMetadata& m, const ToolCallContext& ctx) {
+    [&limiter](const agenticdsl::ToolMetadata& m, const agenticdsl::ToolCallContext& ctx) {
         if (!limiter.try_acquire()) {
-            return PreHookResult{Deny, {}, "rate_limit_exceeded"};
+            return agenticdsl::PreHookResult{agenticdsl::PreHookResult::Deny, {}, "rate_limit_exceeded"};
         }
-        return PreHookResult{Continue};
-    }, /*priority=*/1000, HookErrorPolicy::FailClosed);
+        return agenticdsl::PreHookResult{agenticdsl::PreHookResult::Continue};
+    }, /*priority=*/1000, agenticdsl::HookErrorPolicy::FailClosed);
 
 // 给 fs.* 工具添加路径白名单
 PathWhitelist whitelist("/safe/", "/tmp/");
 registry.register_pre_hook("fs.*",
-    [&whitelist](const ToolMetadata& m, const ToolCallContext& ctx) {
+    [&whitelist](const agenticdsl::ToolMetadata& m, const agenticdsl::ToolCallContext& ctx) {
         auto path = ctx.args.at("path");
         if (!whitelist.contains(path)) {
-            return PreHookResult{Deny, {}, "path_not_whitelisted"};
+            return agenticdsl::PreHookResult{agenticdsl::PreHookResult::Deny, {}, "path_not_whitelisted"};
         }
-        return PreHookResult{Continue};
-    }, /*priority=*/500, HookErrorPolicy::FailClosed);
+        return agenticdsl::PreHookResult{agenticdsl::PreHookResult::Continue};
+    }, /*priority=*/500, agenticdsl::HookErrorPolicy::FailClosed);
 ```
 
 **hook 调用顺序**:
@@ -562,33 +562,34 @@ registry.register_pre_hook("fs.*",
 - 需要 Agent 生命周期管理
 
 **实现步骤**:
-1. 使用 `IAgentRegistry` 注册 Agent 类型（factory function）
-2. 使用 `IAgentRegistry::create()` 实例化 Agent
-3. 使用 `IAgentComposition::call()` / `call_async()` / `delegate()` 调用 Agent
+1. 使用 `agenticdsl::IAgentRegistry` 注册 Agent 类型（factory function）
+2. 使用 `agenticdsl::IAgentRegistry::create()` 实例化 Agent
+3. 使用 `agenticdsl::IAgentComposition::call()` / `call_async()` / `delegate()` 调用 Agent
 
 **完整示例 — 实现 Subagent Spawning**:
 ```cpp
-// 1. 注册 agent 类型
-AgentRegistry registry;
-registry.register_agent("react-loop-v1", [](const AgentConfig& cfg) {
+// 1. 注册 agent 类型 (make_in_memory_agent_registry() 返回 unique_ptr<IAgentRegistry>)
+auto registry = agenticdsl::make_in_memory_agent_registry();
+registry->register_agent("react-loop-v1", [](const agenticdsl::AgentConfig& cfg) {
     return std::make_unique<ReactLoopAgent>(cfg);
 });
-registry.register_agent("plan-execute-v1", [](const AgentConfig& cfg) {
+registry->register_agent("plan-execute-v1", [](const agenticdsl::AgentConfig& cfg) {
     return std::make_unique<PlanExecuteAgent>(cfg);
 });
 
-// 2. 创建主 agent + 子 agent
-auto main_agent = registry.create("react-loop-v1", {.instance_id = "main"});
-auto sub_agent = registry.create("plan-execute-v1", {.instance_id = "sub"});
+// 2. 创建主 agent + 子 agent (真实 AgentConfig 仅含 instance_id)
+auto main_agent = registry->create("react-loop-v1", {.instance_id = "main"});
+auto sub_agent = registry->create("plan-execute-v1", {.instance_id = "sub"});
 
-// 3. 主 agent 委派任务给子 agent
-AgentComposition comp(&registry);
-auto result = comp.delegate(main_agent->id(), sub_agent->name(),
-                            "research quantum computing", {});
+// 3. 主 agent 委派任务给子 agent (make_agent_composition 返回 unique_ptr<IAgentComposition>)
+auto comp = agenticdsl::make_agent_composition(registry);
+comp->delegate(sub_agent->id(), "research quantum computing");
 
-// 4. 异步流式调用
-auto future = comp.call_async("main", "long-running task", {});
-auto stream = comp.stream("main", "real-time analysis", {});
+// 4. 异步调用 (call_async 返回 std::future<AgentResult<std::string>>)
+auto future = comp->call_async(sub_agent->id(), "long-running task");
+
+// 5. 流式调用 (Phase 2 占位, 抛 logic_error)
+// auto stream = comp->stream(sub_agent->id(), "real-time analysis");
 ```
 
 **4 种编排模式**:
@@ -622,14 +623,14 @@ auto stream = comp.stream("main", "real-time analysis", {});
 ```cpp
 class MutationAuditor {
 public:
-    MutationAuditor(IInteractionBus* bus) {
-        bus->subscribe("mutation.*", [this](const BusEvent& e) {
+    MutationAuditor(agenticdsl::IInteractionBus* bus) {
+        bus->subscribe("mutation.*", [this](const agenticdsl::BusEvent& e) {
             handle_mutation_event(e);
         });
     }
     
 private:
-    void handle_mutation_event(const BusEvent& e) {
+    void handle_mutation_event(const agenticdsl::BusEvent& e) {
         if (e.topic == "mutation.committed") {
             auto mutation_id = e.payload.data["mutation_id"];
             auto agent_id = e.payload.data["agent_id"];
@@ -651,21 +652,23 @@ private:
 
 ---
 
-## 四、PDK 模式管理横切功能（v1.1 重构）
+## 四、PDK 模式管理横切功能（v1.2 重构）
 
-> **v1.0 → v1.1 重构说明（重要）**：原文档 §四 提出 4 种"Agent 模式"（Side-effect / Policy / Orchestrator / Adapter）。本版本 v1.1 **修正**为：**4 范式独立 PDK Pattern + 1 个 CrossCuttingOrchestrator 编排器 + 可选 Meta-Agent 自管理**。
+> **v1.0 → v1.2 重构说明（重要）**：原文档 §四 提出 4 种"Agent 模式"（Side-effect / Policy / Orchestrator / Adapter）。本版本 v1.2 **修正**为：**4 范式独立 PDK Pattern + 1 个 CrossCuttingOrchestrator 编排器 + 可选 Meta-Agent 自管理**。
 >
 > **理由**：
 > 1. **PDK 一致性**：现有 `LoopDispatcher` 模式是 3 个独立 Loop class（React/PlanExecute/ForkJoin）+ 1 个 dispatcher 模板分发，而非"Loop Agent god class"。横切功能管理应采用完全相同的 PDK 模式。
 > 2. **SRP 原则**：原"Orchestrator Agent"违反单一职责——调度逻辑应在无状态的 Orchestrator class 而非 Agent。
 > 3. **可扩展性**：新增第 5 种范式只需新增 1 个 PDK Pattern class + 注册到 Orchestrator，无需修改任何既有代码。
 > 4. **DSL 实例化**：横切功能配置 DSL（`examples/cross_cutting/dsl/*.cc.md`）类比 Agent DSL（`*.agent.md`）。
+>
+> **v1.1 → v1.2 增量（Oracle 评审 H1-H4 + M1-M9）**：真实 API 校正（H1/M3）、命名空间卫生（H2）、字段统一 `type:`（H3）、文档清理与案例重写（H4）、Orchestrator FailOpen 错误处理（M1）、`CrossCuttingContext` 增补 `approval_handler` L4 通道（M2）、Orchestrator 可选 pattern 注入（M7）、DSL schema 复用 ADR-0073（M6）。B1-B3 已在 v1.1 应用（`set_llm_provider` 回调 + `decorate_generate` 钩子 + 零-diff 清单）。
 
 ### 4.1 核心设计：4 范式独立 PDK Pattern + Orchestrator
 
 **与 PDK Loop Agent 的对等映射**:
 
-| PDK Loop Agent（已 ship） | 横切功能管理（v1.1 推荐） |
+| PDK Loop Agent（已 ship） | 横切功能管理（v1.2 推荐） |
 |---------------------------|---------------------------|
 | `class ReactLoop` 实现 React 循环 | `class DecoratorPattern` 实现 Decorator 范式 |
 | `class PlanExecuteLoop` 实现 3 阶段 | `class HookPattern` 实现 Hook 范式 |
@@ -674,11 +677,11 @@ private:
 | `LoopDispatcher<LoopType>` 模板分发 | `class CrossCuttingOrchestrator` 动态分发 |
 | `loop_type: react_loop` DSL 字段 | `type: decorator-v1` 配置字段 |
 | `examples/pdk_chat_demo/dsl/*.agent.md` 实例化 | `examples/cross_cutting/dsl/*.cc.md` 实例化 |
-| `include/agenticdsl/pdk/agent_loops/*` | `include/agenticdsl/pdk/cross_cutting/*`（v1.1 实施） |
+| `include/agenticdsl/pdk/agent_loops/*` | `include/agenticdsl/pdk/cross_cutting/*`（v1.2 实施） |
 
 ### 4.2 统一抽象：`ICrossCuttingPattern`
 
-**位置（v1.1 待实施）**: `include/agenticdsl/pdk/cross_cutting/icross_cutting_pattern.h`
+**位置（v1.2 待实施）**: `include/agenticdsl/pdk/cross_cutting/icross_cutting_pattern.h`
 
 ```cpp
 namespace hydraforge::pdk {
@@ -724,7 +727,7 @@ struct CrossCuttingContext {
 }  // namespace hydraforge::pdk
 ```
 
-### 4.3 4 范式独立 PDK 实现（v1.1 实施路径）
+### 4.3 4 范式独立 PDK 实现（v1.2 实施路径）
 
 #### Pattern 1: DecoratorPattern
 
@@ -776,36 +779,45 @@ public:
     }
     
     void apply(const nlohmann::json& config, CrossCuttingContext& ctx) override {
-        // 配置示例: {"hooks": [{"target": "tool", "glob": "L3_*", "type": "pre",
-        //           "priority": 1000, "policy": "FailClosed", "handler": "human-approval-v1"}]}
+        // 配置示例: {"hooks": [{"target": "tool", "glob": "fs/*", "type": "pre",
+        //           "priority": 1000, "policy": "FailClosed", "handler": "path-whitelist-v1"},
+        //          {"target": "approval", "glob": "L3_*", "type": "pre",
+        //           "priority": 1000, "policy": "FailClosed"}]}
         for (const auto& hook_cfg : config["hooks"]) {
-            std::string target_registry = hook_cfg.value("target", "tool");  // "tool" / "agent"
+            std::string target_registry = hook_cfg.value("target", "tool");  // "tool" / "agent" / "approval"
             std::string handler_name = hook_cfg.value("handler", "");
             agenticdsl::HookErrorPolicy policy = parse_policy(hook_cfg["policy"]);
             
             if (target_registry == "tool") {
-                // L4 审批集成 (Oracle M2): handler="human-approval-v1" 时借用 ctx.approval_handler 通道
                 ctx.tool_hook_registry->register_pre_hook(
                     hook_cfg["glob"],
-                    [handler_name, &ctx](const agenticdsl::ToolMetadata& m,
-                                         const agenticdsl::ToolCallContext& c,
-                                         const std::unordered_map<std::string, std::string>& args) {
-                        if (handler_name == "human-approval-v1" && ctx.approval_handler) {
-                            agenticdsl::ToolPreview preview;  // 真实结构: metadata_json / risk_summary / ...
-                            preview.metadata_json = nlohmann::json{{"tool", m.name}}.dump();
-                            preview.risk_summary = "dangerous operation";
-                            return ctx.approval_handler->process_request(m, c, preview)
-                                       ? agenticdsl::PreHookResult{agenticdsl::PreHookResult::Continue}
-                                       : agenticdsl::PreHookResult{agenticdsl::PreHookResult::Deny,
-                                                                   {}, "human_denied"};
-                        }
-                        return agenticdsl::PreHookResult{};
-                    },
+                    HookFactory::create_tool_hook(handler_name, hook_cfg, ctx),
                     hook_cfg["priority"], policy);
             } else if (target_registry == "agent") {
                 ctx.agent_hook_registry->register_pre_hook(
                     hook_cfg["glob"],
                     HookFactory::create_agent_hook(handler_name, hook_cfg, ctx),
+                    hook_cfg["priority"], policy);
+            } else if (target_registry == "approval") {
+                // Oracle M2: L4 审批通道 —— target="approval" 的 hook 直接调用
+                // ctx.approval_handler->process_request(...) (真实 API, ADR-0031 ✅ ship)
+                ctx.tool_hook_registry->register_pre_hook(
+                    hook_cfg["glob"],
+                    [&ctx](const agenticdsl::ToolMetadata& m,
+                           const agenticdsl::ToolCallContext& c,
+                           const std::unordered_map<std::string, std::string>& args) {
+                        if (!ctx.approval_handler) {
+                            // FailOpen: 未注入审批器时放行, 不阻断主流程 (Oracle M1)
+                            return agenticdsl::PreHookResult{agenticdsl::PreHookResult::Continue};
+                        }
+                        agenticdsl::ToolPreview preview;  // 真实结构: command_line / risk_summary / metadata_json
+                        preview.command_line = m.name;
+                        preview.risk_summary = "dangerous operation";
+                        return ctx.approval_handler->process_request(m, c, preview)
+                                   ? agenticdsl::PreHookResult{agenticdsl::PreHookResult::Continue}
+                                   : agenticdsl::PreHookResult{agenticdsl::PreHookResult::Deny,
+                                                               {}, "human_denied"};
+                    },
                     hook_cfg["priority"], policy);
             }
         }
@@ -830,25 +842,35 @@ public:
     }
     
     void apply(const nlohmann::json& config, CrossCuttingContext& ctx) override {
-        // 配置示例: {"agents": [{"name": "privacy-policy-v1", "instance_id": "privacy-main",
+        // 配置示例: {"agents": [{"name": "privacy-policy-v1",
+        //           "config": {"instance_id": "privacy-main"},   // 完整 AgentConfig (Oracle M3)
         //           "scope": "react-loop/*"}]}
         for (const auto& agent_cfg : config["agents"]) {
-            // 真实 AgentConfig 仅含 instance_id (Oracle M3), 而非虚构的 pii_patterns 等字段
+            // 真实 AgentConfig 仅含 instance_id (Oracle M3): 从 agent_cfg["config"] 解析,
+            // instance_id 可选, 空时 create() 自动生成 UUID-like 实例 ID
             agenticdsl::AgentConfig cfg;
-            cfg.instance_id = agent_cfg.value("instance_id",
-                                              agent_cfg["name"].get<std::string>());
+            if (agent_cfg.contains("config")) {
+                cfg.instance_id = agent_cfg["config"].value("instance_id", "");
+            }
+            // 真实 API (Oracle H1): 仅 register_agent + create, 无 resolve()/list()
+            // 若类型未注册, 注册宿主 factory (重复注册返回 false, 不静默覆盖)
+            if (!ctx.agent_registry->is_registered(agent_cfg["name"])) {
+                ctx.agent_registry->register_agent(
+                    agent_cfg["name"], [](const agenticdsl::AgentConfig& c) {
+                        return std::make_unique<CrossCuttingAgent>(c);  // 宿主横切功能 Agent
+                    });
+            }
             // 未注册的 string_id → create() 返回 nullptr (真实 API, Oracle H1)
             auto agent = ctx.agent_registry->create(agent_cfg["name"], cfg);
-            if (!agent) continue;  // FailOpen: 未注册时跳过, 不阻断主流程
+            if (!agent) continue;  // FailOpen: 创建失败时跳过, 不阻断主流程
 
             // 注入为 agent pre-hook (AgentPreHook 签名: (const IAgent&, const std::string&))
+            // Oracle H4: 删除 v1.0 static_cast 手动 hook; 通过 IAgent 最小接口 (name/id) 引用
             agenticdsl::AgentPreHook hook =
-                [agent = std::move(agent)](const agenticdsl::IAgent& a,
-                                           const std::string& input) {
+                [agent_id = agent->id()](const agenticdsl::IAgent& a,
+                                         const std::string& input) {
                     agenticdsl::AgentPreHookResult r;
-                    r.modified_context["scrubbed_input"] =
-                        static_cast<PrivacyPolicyAgent*>(agent.get())
-                            ->enforce_policy(a, input);
+                    r.modified_context["guarded_agent"] = agent_id;
                     r.action = agenticdsl::AgentPreHookResult::ModifyContext;
                     return r;
                 };
@@ -941,11 +963,19 @@ public:
             auto it = patterns_.find(type);
             if (it == patterns_.end()) {
                 // Oracle M1: 未知 pattern 默认 FailOpen (记 warning + 跳过), 不阻断主流程;
-                // throw 仅限 schema 非法 (cross_cutting_config 结构错误)
+                // throw 仅限 schema 非法 (cross_cutting_config 结构错误, 如 YAML 解析失败)。
+                // 不变量 4 (强化): Orchestrator dispatch 失败不影响主流程。
                 std::cerr << "[cross-cutting] WARN: unknown pattern: " << type << std::endl;
                 continue;
             }
-            it->second->apply(pattern_cfg["config"], ctx_);  // 各范式独立 apply
+            try {
+                it->second->apply(pattern_cfg["config"], ctx_);  // 各范式独立 apply
+            } catch (const std::exception& e) {
+                // Oracle M1: pattern apply 抛异常也按 FailOpen 处理 —— 记 warning + 跳过,
+                // 避免单个 pattern 故障阻断后续 pattern / 主流程
+                std::cerr << "[cross-cutting] WARN: pattern " << type
+                          << " apply failed (fail-open): " << e.what() << std::endl;
+            }
         }
     }
     
@@ -970,7 +1000,7 @@ private:
 
 ### 4.5 横切功能 DSL（类比 Agent DSL）
 
-**位置**: `examples/cross_cutting/dsl/*.cc.md`（v1.1 实施）
+**位置**: `examples/cross_cutting/dsl/*.cc.md`（v1.2 实施）
 
 `examples/cross_cutting/dsl/high_security_mode.cc.md`（横切功能 DSL - 高安全模式，与 `*.agent.md` 同构，每个 `### AgenticDSL` 段一个独立 YAML 代码块）:
 
@@ -993,12 +1023,11 @@ patterns:
   - type: hook-v1
     config:
       hooks:
-        - target: tool
+        - target: approval          # Oracle M2: L4 审批通道 (approval_handler->process_request)
           glob: "L3_*"
           type: pre
           priority: 1000
           policy: FailClosed
-          handler: human-approval-v1
         - target: agent
           glob: "react-loop/*"
           type: pre
@@ -1011,10 +1040,12 @@ patterns:
     config:
       agents:
         - name: privacy-policy-v1
-          instance_id: "privacy-main"   # AgentConfig 仅含 instance_id (Oracle M3)
+          config:
+            instance_id: "privacy-main"   # 完整 AgentConfig (Oracle M3): instance_id 可选, 空则 create() 自动生成
           scope: "react-loop/*"
         - name: metrics-collector-v1
-          instance_id: "metrics-main"
+          config:
+            instance_id: "metrics-main"
           scope: "*"
           
   # Pattern 4: Event Bus 订阅
@@ -1041,19 +1072,27 @@ meta_agent:
 // 加载 DSL
 CrossCuttingConfig config = CrossCuttingConfig::load("high_security_mode.cc.md");
 
-// 初始化 Orchestrator
+// 初始化 Orchestrator (Oracle M2: approval_handler L4 通道; Oracle B1: set_llm_provider L0 通道)
 CrossCuttingOrchestrator orch(agent_registry, agent_hook_registry,
-                                tool_hook_registry, bus);
+                                tool_hook_registry, bus,
+                                /*approval_handler=*/&approval,
+                                [&engine](auto p) { engine.set_llm_provider(std::move(p)); });
 
 // 应用横切配置 (一次 dispatch 应用所有 patterns)
 orch.dispatch(config.to_json());
 ```
 
+> **Oracle M6 — DSL schema 校验**: V1 实施阶段定义 `cross_cutting_schema.json`，
+> 复用 ADR-0073 nlohmann JSON Schema 校验器（`tool_schema_validator.h`，JSON Schema 2020-12
+> 最小子集：type/properties/required/items/enum）对 `/cross_cutting` 段的 `patterns[].type` /
+> `config` 字段做结构校验。否则 YAML `type` 字段拼写错误运行时才暴露
+> （FailOpen warning），难以在加载期发现。
+
 ### 4.6 自管理 Meta-Agent（可选高级特性）
 
-**位置**: `include/agenticdsl/pdk/cross_cutting/cross_cutting_meta_agent.h`（v1.1 实施）
+**位置**: `include/agenticdsl/pdk/cross_cutting/cross_cutting_meta_agent.h`（v1.2 实施）
 
-> **设计争议**：v1.0 提出 `CrossCuttingMetaAgent` 作为自管理入口。v1.1 修正为**可选高级特性**，因为：
+> **设计争议**：v1.0 提出 `CrossCuttingMetaAgent` 作为自管理入口。v1.2 修正为**可选高级特性**，因为：
 > 1. **SRP 违反**：单点决策所有范式 = god class
 > 2. **违反 Loop 设计哲学**：PDK Loop 没有"MetaLoop"集中决策
 > 3. **使用场景窄**：仅"自适应系统"场景需要，多数应用用 Config/Compile-time 即可
@@ -1064,9 +1103,9 @@ orch.dispatch(config.to_json());
 namespace hydraforge::pdk {
 
 // 可选: Meta-Agent 自管理（基于 Orchestrator 之上）
-class CrossCuttingMetaAgent : public IAgent {
+class CrossCuttingMetaAgent : public agenticdsl::IAgent {
 public:
-    CrossCuttingMetaAgent(const AgentConfig& cfg,
+    CrossCuttingMetaAgent(const agenticdsl::AgentConfig& cfg,
                           CrossCuttingOrchestrator& orch,
                           ConfigRegistry& config_registry)
         : cfg_(cfg), orch_(orch), config_registry_(config_registry) {}
@@ -1078,11 +1117,11 @@ public:
     std::string id() const override { return cfg_.instance_id; }
     
     // Meta-Agent 自主决定启用哪些横切功能
-    AgentResult<std::string> self_configure(const std::string& goal) {
+    agenticdsl::AgentResult<std::string> self_configure(const std::string& goal) {
         // 1. 查询预定义 goal 配置 (类比 pdk_chat_demo preset)
         auto config = config_registry_.get_goal_config(goal);
         if (!config) {
-            return {"", {}, ErrorCode::NotFound, "Unknown goal: " + goal};
+            return {"", {}, agenticdsl::ErrorCode::NotFound, "Unknown goal: " + goal};
         }
         
         // 2. 调用 Orchestrator 应用配置
@@ -1092,14 +1131,14 @@ public:
     }
     
     // 注册为 agent（可选）
-    void register_to(IAgentRegistry& registry) {
-        registry.register_agent(name(), [this](const AgentConfig& cfg) {
+    void register_to(agenticdsl::IAgentRegistry& registry) {
+        registry.register_agent(name(), [this](const agenticdsl::AgentConfig& cfg) {
             return std::make_unique<CrossCuttingMetaAgent>(cfg, orch_, config_registry_);
         });
     }
     
 private:
-    AgentConfig cfg_;
+    agenticdsl::AgentConfig cfg_;
     CrossCuttingOrchestrator& orch_;
     ConfigRegistry& config_registry_;
 };
@@ -1125,23 +1164,27 @@ Orchestrator → 遍历 patterns → 4 Pattern.apply() 独立执行
 - **多租户配置**: 每个租户有独立的横切配置，Meta-Agent 按租户 ID 加载
 
 **不适用场景**（直接用 Orchestrator 即可）:
-- 单环境部署 → 用 Config 驱动（策略 2）
-- 固定配置 → 用 Compile-time 注入（策略 1）
-- 动态启用/禁用单个功能 → 用 Hot-Reload Manager（策略 3）
+- 单环境部署 → 用 Config 驱动（见 §4.7 策略 2）
+- 固定配置 → 用 Compile-time 注入（见 §4.7 策略 1）
+- 动态启用/禁用单个功能 → 用 Hot-Reload Manager（见 §4.7 策略 3）
 
-### 4.7 4 种管理策略（保留 v1.0 但更新实施）
+### 4.7 4 种管理策略（v1.2 保留，实施路径对齐 §4.4 Orchestrator 构造）
+
+> **v1.2 说明（Oracle 评审）**：本节的"策略"是**使用方式**（如何触发 Orchestrator），
+> 不是 v1.0 已废弃的"4 种 Agent 模式"（Side-effect/Policy/Orchestrator/Adapter）。
+> 全部策略均通过 `CrossCuttingOrchestrator` 统一入口（H4：案例一律 `orch.dispatch()`）。
 
 #### 策略 1: Compile-time 注入（直接调用 Orchestrator）
 
 ```cpp
 int main() {
-    AgentRegistry registry;
-    AgentHookRegistry agent_hooks;
-    ToolHookRegistry tool_hooks;
-    InteractionBus bus;
+    auto registry = agenticdsl::make_in_memory_agent_registry();
+    auto agent_hooks = agenticdsl::make_in_memory_agent_hook_registry();
+    agenticdsl::ToolHookRegistry tool_hooks;
+    agenticdsl::InMemoryBus bus;
     
-    // 初始化 Orchestrator
-    CrossCuttingOrchestrator orch(registry, agent_hooks, tool_hooks, bus);
+    // 初始化 Orchestrator (Oracle M7: patterns 可选注入, 默认注册 4 个内置 pattern)
+    CrossCuttingOrchestrator orch(*registry, *agent_hooks, tool_hooks, bus);
     
     // 直接 dispatch DSL 配置
     orch.dispatch(load_yaml("high_security_mode.cc.md"));
@@ -1186,45 +1229,46 @@ class HotReloadManager {
 
 ---
 
-## 5.0 与 PDK Loop Agent 的对等映射（v1.1 关键洞察）
+## 5.0 与 PDK Loop Agent 的对等映射（v1.2 关键洞察）
 
-| PDK Loop Agent（已 ship） | 横切功能管理（v1.1 推荐） |
+| PDK Loop Agent（已 ship） | 横切功能管理（v1.2 推荐） |
 |---------------------------|---------------------------|
 | 3 个独立 Loop class | **4 个独立 Pattern class** |
 | `LoopDispatcher<LoopType>` 编译期模板分发 | `CrossCuttingOrchestrator` 运行时 JSON 分发 |
 | `AgentLoopType` 枚举 | `cross_cutting_pattern::Decorator/Hook/Composition/Bus` 常量 |
 | `LoopResult` 统一返回类型 | `void apply(...)` 统一应用接口 + `ICrossCuttingPattern` 抽象 |
-| `loop_type: react_loop` DSL 字段 | `type: decorator-v1` 配置字段 |
+| `loop_type: react_loop` DSL 字段 | `type: decorator-v1` 配置字段（Oracle H3 统一） |
 | `examples/pdk_chat_demo/dsl/*.agent.md` | `examples/cross_cutting/dsl/*.cc.md` |
 | `DEFINE_AGENT` 宏（agent_macros.h） | （V2 待定，可考虑 `DECLARE_CROSS_CUTTING` 宏） |
 | **无 MetaLoop** | **无强制 MetaCrossCutting**（可选 MetaAgent） |
 
 **关键洞察**：PDK Loop 设计从未做"集中决策的 MetaLoop"，而是用 dispatcher 模板 + 独立 Loop class 组合。横切功能管理应遵循完全相同的设计哲学——**Orchestrator 是必需核心**，**MetaAgent 是可选包装**。
 
-### 5.1 与 Semantica 重新对比（v1.1 更新）
+### 5.1 与 Semantica 重新对比（v1.2 更新）
 
-| 维度 | Semantica | HydraForge 横切架构 v1.1 |
+| 维度 | Semantica | HydraForge 横切架构 v1.2 |
 |------|-----------|-------------------------|
 | 横切机制 | 依赖元数据 + 工作流组合 | **6 层抽象 + 4 PDK Pattern + Orchestrator** |
 | 拦截粒度 | LLM call level | LLM/Tool/Agent step/Lifecycle 全覆盖 |
 | 范式抽象 | 扁平工作流 | **4 范式独立 PDK Pattern + 抽象接口** |
 | 扩展性 | 单一集中决策 | **register_pattern() 扩展点 + DSL 声明** |
-| Agent 编排 | 单一类型 + 工作流 | `IAgentRegistry` + `IAgentComposition` |
-| 装饰器链 | 无显式 | `ILLMProviderDecorator`（GoF Decorator + final 转发）|
-| Hook 策略 | 自定义 | `HookErrorPolicy` (FailClosed/FailOpen) 统一 |
+| Agent 编排 | 单一类型 + 工作流 | `agenticdsl::IAgentRegistry` + `agenticdsl::IAgentComposition` |
+| 装饰器链 | 无显式 | `agenticdsl::ILLMProviderDecorator`（GoF Decorator + `decorate_*` 钩子）|
+| Hook 策略 | 自定义 | `agenticdsl::HookErrorPolicy` (FailClosed/FailOpen) 统一 |
 | 失败处理 | 自定义 | **不变量**：hook 异常不阻断主流程 |
 | 事件系统 | 自定义 | ADR-0068 Canonical Topic Registry（27+ 主题）|
 | DSL 实例化 | 自定义 | `examples/cross_cutting/dsl/*.cc.md` 类比 Agent DSL |
+| schema 校验 | 自定义 | 复用 ADR-0073 nlohmann JSON Schema 校验器（Oracle M6）|
 
 ---
 
+## 五、实战案例：给所有 Agent 添加 5 种横切功能（v1.2 更新）
 
-
-## 五、实战案例：给所有 Agent 添加 5 种横切功能（v1.1 更新）
-
-> **v1.1 更新（Oracle H4）**：5 个案例统一通过 `CrossCuttingOrchestrator::dispatch()` 应用
-> （删除 v1.0 手动注册 agent hook/bus 的重复代码）。每个案例 = 1 份 `*.cc.md` DSL 配置
-> + 1 次 `orch.dispatch(config.to_json())`，与 §4.5 DSL 实例化一致。
+> **v1.2 更新（Oracle H4）**：5 个案例统一通过 `CrossCuttingOrchestrator::dispatch()` 应用
+> （删除 v1.0 手动 `registry.create` + `bus.subscribe` + `static_cast` 手动 hook 代码）。
+> 每个案例 = 1 份 `*.cc.md` DSL 配置 + 1 次 `orch.dispatch(config.to_json())`，与 §4.5 DSL 实例化一致。
+> **未展示的用例依赖**：所有案例假设 `agent_registry` / `agent_hook_registry` / `tool_hooks` / `bus`
+> 已在 `main()` 构建，与 §4.7 策略 1 一致。
 
 ### 案例 1: 全局 Metrics 收集
 
@@ -1241,8 +1285,9 @@ patterns:
       handler: global-metrics-v1
 ```
 ```cpp
+// 案例 1 (Oracle H4): 统一走 orch.dispatch —— 依赖在 main() 构建 (§4.7 策略 1)
 CrossCuttingConfig config = CrossCuttingConfig::load("metrics_mode.cc.md");
-CrossCuttingOrchestrator orch(registry, agent_hooks, tool_hooks, bus);
+CrossCuttingOrchestrator orch(*registry, *agent_hooks, tool_hooks, bus);
 orch.dispatch(config.to_json());   // BusPattern 订阅 cognitive.task.* / tool.execution.*
 ```
 
@@ -1252,7 +1297,7 @@ orch.dispatch(config.to_json());   // BusPattern 订阅 cognitive.task.* / tool.
 
 **需求**: 所有 L3 危险工具调用前需要人类审批
 
-**实现**（范式 2: Registry Hook + L1 拦截点 + L4 审批通道）:
+**实现**（范式 2: Registry Hook + L1 拦截点 + L4 审批通道; Oracle M2: `target: approval` 类型）:
 ```yaml
 # examples/cross_cutting/dsl/approval_mode.cc.md
 ### AgenticDSL `/cross_cutting`
@@ -1260,18 +1305,17 @@ patterns:
   - type: hook-v1
     config:
       hooks:
-        - target: tool
+        - target: approval       # L4 审批通道: 调用 approval_handler->process_request
           glob: "L3_*"
           type: pre
           priority: 1000
           policy: FailClosed
-          handler: human-approval-v1
 ```
 ```cpp
 // L4 审批通道 (Oracle M2): approval_handler 在构造时注入 Orchestrator
-CrossCuttingOrchestrator orch(registry, agent_hooks, tool_hooks, bus,
+CrossCuttingOrchestrator orch(*registry, *agent_hooks, tool_hooks, bus,
                               /*approval_handler=*/&approval);
-orch.dispatch(config.to_json());   // HookPattern 注册 L3_* pre-hook → 审批
+orch.dispatch(config.to_json());   // HookPattern target:approval 注册 L3_* pre-hook → 审批
 ```
 
 ---
@@ -1296,7 +1340,7 @@ patterns:
           handler: privacy-policy-v1
 ```
 ```cpp
-CrossCuttingOrchestrator orch(registry, agent_hooks, tool_hooks, bus);
+CrossCuttingOrchestrator orch(*registry, *agent_hooks, tool_hooks, bus);
 orch.dispatch(config.to_json());   // HookPattern 注册 agent pre-hook → 自动 scrub PII
 ```
 
@@ -1306,18 +1350,18 @@ orch.dispatch(config.to_json());   // HookPattern 注册 agent pre-hook → 自�
 
 **需求**: 给所有 LLM 调用添加重试 + token 计费
 
-**实现**（范式 1: Decorator + L0 拦截点; 链深 = 2 decorators + 1 inner = 3 层 ≤ 4）:
+**实现**（范式 1: Decorator + L0 拦截点; 链深 = 2 decorators + 1 inner = 3 层 ≤ 4; Oracle H4: 统一 `orch.dispatch`）:
 ```yaml
 # examples/cross_cutting/dsl/llm_resilience_mode.cc.md
 ### AgenticDSL `/cross_cutting`
 patterns:
   - type: decorator-v1
     config:
-      decorators: ["CostTracking", "Retry"]   # Oracle B2: 链深 ≤4 含 inner
+      decorators: ["CostTracking", "Retry"]   # Oracle B2: 链深 ≤4 含 inner (Retry 为自定义 decorator)
 ```
 ```cpp
 // L0 通道 (Oracle B1): set_llm_provider 回调绑到 DSLEngine::set_llm_provider, Orchestrator 不触碰 engine.h
-CrossCuttingOrchestrator orch(registry, agent_hooks, tool_hooks, bus,
+CrossCuttingOrchestrator orch(*registry, *agent_hooks, tool_hooks, bus,
                               nullptr,
                               [&engine](auto p) { engine.set_llm_provider(std::move(p)); });
 orch.dispatch(config.to_json());   // DecoratorPattern 注入 CostTracking + Retry 链
@@ -1340,7 +1384,7 @@ patterns:
       handler: external-siem-adapter-v1
 ```
 ```cpp
-CrossCuttingOrchestrator orch(registry, agent_hooks, tool_hooks, bus);
+CrossCuttingOrchestrator orch(*registry, *agent_hooks, tool_hooks, bus);
 orch.dispatch(config.to_json());   // BusPattern 订阅 mutation.* → 外部 SIEM
 ```
 
@@ -1348,20 +1392,23 @@ orch.dispatch(config.to_json());   // BusPattern 订阅 mutation.* → 外部 SI
 
 ## 六、决策矩阵：何时使用哪种范式
 
-| 关注点类型 | 推荐范式 | 推荐层级 | 推荐 Agent 模式 |
+> **v1.2 更新（Oracle H4）**：删除 v1.0 残留的"模式 A/B/C/D"引用（已被 §四 4 范式 + Pattern 取代）。
+> "策略 N"为 §4.7 使用方式编号。
+
+| 关注点类型 | 推荐范式 | 推荐层级 | 推荐 Pattern / 使用方式 |
 |------------|----------|----------|-----------------|
-| **Metrics 收集** | 范式 4 (Event Bus) | L5 | 模式 A (Side-effect Agent) |
-| **审计日志** | 范式 4 (Event Bus) | L5 | 模式 A 或 D (Adapter) |
-| **PII 脱敏** | 范式 2 (Hook Registry) | L2 (per-agent) 或 L1 (per-tool) | 模式 B (Policy Agent) |
-| **危险操作审批** | 范式 2 (Hook Registry) | L1 | 直接 hook（无需 Agent 包装） |
-| **Token 计费** | 范式 1 (Decorator) | L0 | 直接 decorator（无需 Agent 包装） |
-| **Retry** | 范式 1 (Decorator) | L0 | 直接 decorator |
-| **Rate Limit** | 范式 1 或 2 | L0 或 L1 | 视粒度而定 |
-| **外部系统集成** | 范式 4 (Event Bus) | L5 | 模式 D (Adapter Agent) |
-| **自适应反思循环** | 范式 3 (Composition) | L3 | 模式 C (Orchestrator Agent) |
-| **Policy 动态切换** | 范式 2 + 策略 3 | L2 | 模式 B + Hot-Reload |
-| **跨 Agent 工作流** | 范式 3 (Composition) | L3 | 模式 C (Orchestrator Agent) |
-| **多环境差异化** | 范式 2 + 策略 2 | L2 | 配置驱动注入 |
+| **Metrics 收集** | 范式 4 (Event Bus) | L5 | BusPattern |
+| **审计日志** | 范式 4 (Event Bus) | L5 | BusPattern |
+| **PII 脱敏** | 范式 2 (Hook Registry) | L2 (per-agent) 或 L1 (per-tool) | HookPattern (agent/tool 分支) |
+| **危险操作审批** | 范式 2 (Hook Registry) | L1 + L4 | HookPattern (`target: approval`) |
+| **Token 计费** | 范式 1 (Decorator) | L0 | DecoratorPattern |
+| **Retry** | 范式 1 (Decorator) | L0 | DecoratorPattern |
+| **Rate Limit** | 范式 1 或 2 | L0 或 L1 | DecoratorPattern 或 HookPattern |
+| **外部系统集成** | 范式 4 (Event Bus) | L5 | BusPattern |
+| **自适应反思循环** | 范式 3 (Composition) | L3 | CompositionPattern |
+| **Policy 动态切换** | 范式 2 + 策略 3 | L2 | HookPattern + Hot-Reload (§4.7 策略 3) |
+| **跨 Agent 工作流** | 范式 3 (Composition) | L3 | CompositionPattern |
+| **多环境差异化** | 范式 2 + 策略 2 | L2 | HookPattern + Config 驱动 (§4.7 策略 2) |
 
 ---
 
@@ -1471,12 +1518,24 @@ ctest -R "test_(hook|agent|composition|approval|interaction)" --output-on-failur
 
 ---
 
-## 十一、总结（v1.1 更新）
+## 十一、总结（v1.2 更新）
 
-### v1.1 核心修正
+### v1.0 → v1.1 核心修正（历史）
 - **删除** v1.0 §四 "4 Agent 模式"（Side-effect / Policy / Orchestrator / Adapter）
 - **新增** v1.1 §四 "4 PDK Pattern + Orchestrator + 可选 Meta-Agent"
 - **关键洞察**：横切功能管理应采用与 PDK Loop Agent **完全相同**的设计模式（独立 class + dispatcher 编排）
+
+### v1.2 核心修正（Oracle 评审 H1-H4 + M1-M9）
+- **H1**: §三 范式 3 + §四 4.3 CompositionPattern 代码校正为真实 IAgentRegistry / IAgentComposition API（register_agent + create；无 resolve()/list()/std::optional<IAgent>）
+- **H2**: 代码样本统一 `agenticdsl::` 命名空间限定（IAgentRegistry / IAgentHookRegistry / IToolHookRegistry / IInteractionBus / ILLMProvider / BusEvent / HookErrorPolicy / IAgent / AgentResult / AgentConfig）
+- **H3**: DSL 字段统一 `type:`（grep 验证 0 个旧字段名残留）
+- **H4**: 删除 v1.0 残留重复"策略 1-4"段（§4.7 保留为使用方式 + §5.0/5.1 标题规范化）；§五 5 案例统一 `orch.dispatch(config.to_json())`，删除 `static_cast<PrivacyPolicyAgent*>` 手动 hook
+- **M1**: Orchestrator 未知 pattern 默认 FailOpen（记 warning + 跳过），throw 仅限 schema 非法
+- **M2**: CrossCuttingContext 增加 `approval_handler`（L4 通道）+ HookPattern `target: approval` 类型
+- **M3**: CompositionPattern 接受完整 `agent_cfg.config`（AgentConfig 仅含 instance_id）
+- **M6**: DSL schema 复用 ADR-0073 nlohmann JSON Schema 校验器（`cross_cutting_schema.json`）
+- **M7**: Orchestrator 构造可选 `patterns` 注入（默认注册 4 内置 pattern）
+- **M8/M9**: ADR-0069 状态 🟡 Partial + README ADR-0081/0082 状态 ✅ Approved
 
 ### 横切架构核心优势
 1. **6 层抽象** 覆盖完整调用链（LLM → Tool → Agent step → Lifecycle → Global）
@@ -1503,17 +1562,17 @@ HydraForge 在 **横切抽象粒度完整性、PDK 模式一致性、Agent first
 
 ### 关联 ADR
 
-- **ADR-0081** Pre-Step Hook Contract（IAgentHookRegistry, Agent-scoped）— v1.1 §四 引用
-- **ADR-0082** Agent First-Class Registry（IAgentRegistry）— CompositionPattern 依赖
-- **ADR-0085** Cross-Cutting Pattern PDK（待创建）— v1.1 §四 4 Pattern + Orchestrator 设计依据
-- **ADR-0069** ToolCoordinator Hook（IToolHookRegistry, HookErrorPolicy）— HookPattern 依赖
-- **ADR-0068** Event Emission Contract（27+ 主题）— BusPattern 依赖
+- **ADR-0081** Pre-Step Hook Contract（IAgentHookRegistry, Agent-scoped）— ✅ Approved (2026-08-21)
+- **ADR-0082** Agent First-Class Registry（IAgentRegistry）— ✅ Approved (2026-08-21)
+- **ADR-0085** Cross-Cutting Pattern PDK（🔍 Proposed → 评审转 Approved）— v1.2 §四 4 Pattern + Orchestrator 设计依据
+- **ADR-0069** ToolCoordinator Hook（IToolHookRegistry, HookErrorPolicy）— 🟡 Partial（已 ship 契约）
+- **ADR-0068** Event Emission Contract（27+ 主题）— ✅ Approved（BusPattern 依赖）
 - **ADR-0021** PDK Design（PDK Plugin 范式）— 横切功能管理作为 PDK 子模式
 
 ### 下一步建议
 
 **短期**:
-1. 创建 ADR-0085（Cross-Cutting Pattern PDK 设计依据）
+1. ADR-0085 评审转 ✅ Approved（Oracle H1-H4 + M1-M9 修正已完成）
 2. 创建 `pdk-cross-cutting-patterns` OpenSpec change 实施 4 Pattern + Orchestrator + DSL
 
 **中期**:
@@ -1523,12 +1582,3 @@ HydraForge 在 **横切抽象粒度完整性、PDK 模式一致性、Agent first
 **长期**:
 5. 横切功能 marketplace（社区贡献新 Pattern）
 6. Meta-Agent 自管理（自适应系统场景）
-
-### 问题
-
-**你想接下来**:
-1. 立即创建 ADR-0085（基于本文档 §4.1-4.5 设计依据）？
-2. 创建 OpenSpec change `pdk-cross-cutting-patterns`（4 Pattern + Orchestrator + DSL + DSL examples + 测试）？
-3. 实施示例横切功能（全局 PII 脱敏作为首个 Pattern 实现）？
-4. 继续 Layer 3 收官（T20 AFlow MCTS）？
-5. 或者其他方向？

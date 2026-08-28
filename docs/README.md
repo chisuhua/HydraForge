@@ -78,7 +78,7 @@ docs/
 | `adr-0033-session-hierarchy-impl-scope.md` | ADR-0033 实施范围审计 (C9) | 📋 审计补充 |
 | `adr-0067-layered-plugin-architecture-split.md` | L2/L3/L4 分层插件架构拆分 | ✅ Approved (追溯性正式化, 2026-07-23, 源自 `docs/specs/architecture.md` §2.3) |
 | `adr-0068-event-emission-contract.md` | 事件发射契约 (Canonical Topic Registry + 7 幻影主题强制发射点 + EventBuilder) | ✅ Approved (2026-08-03 — Wave 1 §1-§5 ship + Appendix A v1.2.2, 2026-08-27) |
-| `adr-0069-tool-coordinator-hooks.md` | ToolCoordinator Hook 注入点 (pre/post 双列表 + IToolHookRegistry + HookErrorPolicy) | 🔍 Proposed (2026-07-31, D3 立项, 实施排期 Wave 1) |
+| `adr-0069-tool-coordinator-hooks.md` | ToolCoordinator Hook 注入点 (pre/post 双列表 + IToolHookRegistry + HookErrorPolicy) | 🟡 Partial (2026-08-04 — middleware 改造 + budget_agent pre-hook + 5 类测试已 ship; 待 HookErrorPolicy amendment) |
 | `adr-0070-declare-command.md` | PDK Plugin 命令/快捷键注册 (Command≠Tool + DECLARE_COMMAND + ICommandRegistry) | 🔍 Proposed (2026-07-31, D4 立项, 实施排期 Wave 1) |
 | `adr-0071-llm-native-agenticdsl-architecture.md` | LLM-native AgenticDSL 架构 (LLM 作为 DSL 作者, 3 平面 Operator/DSL/Backend, 派生 6 个子 ADR/Change) | ✅ Approved (评审通过 2026-08-25, Promotion, 顶层方向 ADR, 锚定 Phase 6+ 演化) |
 | `adr-0073-tool-json-schema-contract.md` | Tool JSON Schema 契约 (JSON Schema 2020-12, input_schema/output_schema 字段 + nlohmann validator + DECLARE_TOOL 自动生成) | 🟡 Partial (Phase 6a manifest 边界部分采纳, 详见 adr-0073-impl-scope-audit.md; D2/D3/D4 属 Phase 6c C8/C9) |
@@ -89,8 +89,8 @@ docs/
 | `adr-0078-finetune-base-model.md` | Fine-tune 基模与训练管线 (D1 4 维度评分 + D2 触发条件 + D3 数据 + D4 LoRA + D5 评估 + D6 AgenticMind 回流 + D7 serving) | 🔍 Proposed (2026-08-03, Wave 5+ descoped docs-only, 派生自 ADR-0071 §D9) |
 | `adr-0079-unified-session-4scope.md` | 统一会话模型与 4-Scope 存储 (Conversation/Attempt/Step/Execution + ConvergenceEntry) | ✅ Approved (v1.1 amendment 2026-08-12; 原始 v1 文本 2026-01-19, 本会话讨论产出) |
 | `adr-0080-append-only-event-log.md` | AppendOnlyEventLog 作为核心审计日志 (Step 0: BusEvent 信封扩展 + GenerationRequest.purpose; v1.1 D10 Distillation Capture + D2 causal_time + D6 opt-in) | ✅ Approved (v1.1 amendment 2026-08-12; 原始 v1 文本 2026-01-19, 本会话讨论产出) |
-| `adr-0082-agent-first-class-registry.md` | Agent as First-Class Registry (讨论稿: AgentWorker + YAML + spawn_agent, 争议未决, 搁置至 0079/0080 实施后) | 🔍 Proposed (v1.1 状态注记 2026-08-12: 蒸馏需求加强搁置; 原始讨论稿 2026-01-19, 未定稿) |
-| `adr-0081-pre-step-hook-contract.md` | Pre-Step Hook Contract (Agent 级拦截点, 推迟至 ADR-0082 定稿) | 🔍 Proposed (2026-08-12, v1.1 引用触发, 占位) |
+| `adr-0082-agent-first-class-registry.md` | Agent as First-Class Registry (AgentWorker + YAML + spawn_agent, IAgentRegistry + IAgent 骨架) | ✅ Approved (评审通过 2026-08-21, Sprint 22 — adr-0082-promote-to-approved, V1 骨架 ship; 完整 AgentWorker 推迟 Sprint 24+) |
+| `adr-0081-pre-step-hook-contract.md` | Pre-Step Hook Contract (Agent 级拦截点, IAgentHookRegistry Agent-scoped) | ✅ Approved (评审通过 2026-08-21, Sprint 22 — adr-0081-promote-to-approved, V1 骨架 ship; Agent loop 集成推迟 Sprint 24+) |
 | `adr-0080-v1-2-amendment-d10-decouple.md` | D10 Capture 与 Scrub Hook 解耦 (CaptureMode 三态 + Training fail-open 三重保护) | ✅ Approved (评审通过 2026-08-25, Oracle G12 解锁 ADR-0081/0082 死锁) |
 | `adr-0083-evaluator-reward-contract.md` | IEvaluator/RewardSignal 评估契约 (双层契约 + 3 内置评估器 + V1 简化避免 ADR-0057 零实施) | ✅ Approved (V1 ship 2026-08-26 — IEvaluator + TaskSuccessEvaluator, 12 cases / 31 assertions PASS, G10 Closed; V2 ship 2026-08-27 — BehavioralEquivalence + Composite, 8 cases / 18 assertions PASS, `evaluator-v2-composite` archived) |
 | `adr-0084-mutation-governance-contract.md` | Mutation Governance 契约 (6 维度: 变异对象 L1-L4 分级 / 授权绑定复用 ADR-0004 + ADR-0031 / 治理流程 propose→evaluator→回归门→commit / 审计复用 ADR-0080 + 4 个 mutation.* 主题 / 失败回滚 / 攻击面 fail-closed) | ✅ Approved (2026-08-26 — V1 gate-and-audit 代码 ship, G11 Closed, 13 cases / 139 assertions PASS, OpenSpec change `2026-08-26-adr-0084-mutation-governance-contract`) |

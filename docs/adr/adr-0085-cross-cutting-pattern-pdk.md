@@ -1,7 +1,7 @@
 # ADR-0085: Cross-Cutting Pattern PDK (横切功能 PDK 模式)
 
 **日期**: 2026-08-28
-**父主题**: HydraForge 横切架构工作文档 `docs/architecture/cross-cutting-hooks-architecture-2026-08.md` v1.1
+**父主题**: HydraForge 横切架构工作文档 `docs/architecture/cross-cutting-hooks-architecture-2026-08.md` v1.2
 **状态**: 🔍 Proposed（待评审转 Approved，OpenSpec change `pdk-cross-cutting-patterns` 实施依据）
 
 > **V1 范围**: 4 个独立 PDK Pattern class + `CrossCuttingOrchestrator` 编排器 + `ICrossCuttingPattern` 抽象接口 + 横切功能 DSL 格式（`*.cc.md`）。**V1 不实施**：横切功能 Agent 自管理（可选高级特性，V2 deferred）。
@@ -18,7 +18,7 @@
 
 HydraForge 当前已有完整的 6 层抽象扩展点矩阵（L0 ILLMProviderDecorator → L5 IInteractionBus），但**没有统一的横切功能管理机制**：
 1. **业务代码与横切逻辑混合**：每个应用需手动注册 decorator / hook / bus subscriber，重复模板代码
-2. **横切功能不可发现**：registry.list() 找不到所有可用的横切能力（仅 business agents）
+2. **横切功能不可发现**：registry.list_registered() 找不到所有可用的横切能力（仅 business agents）
 3. **配置驱动缺失**：缺乏统一的 YAML/JSON 配置格式驱动横切能力装配
 4. **多范式无统一抽象**：4 种扩展方式（Decorator / Hook / Composition / Bus）独立 API，缺少共同接口
 5. **Agent first-class 不彻底**：横切功能可建模为 Agent 但缺乏统一编排入口
@@ -50,7 +50,7 @@ examples/cross_cutting/dsl/
 - **统一抽象**：`ICrossCuttingPattern` interface（类比 `LoopResult`）
 - **无状态 dispatcher**：`CrossCuttingOrchestrator` 不存储业务状态（类比 `LoopDispatcher` 模板）
 - **Agent first-class**：Composition Pattern 通过 `IAgentRegistry` 注入 Agent（ADR-0082 ✅）
-- **fail-safe 默认**：复用 `HookErrorPolicy` (FailClosed/FailOpen, ADR-0069 ✅)
+- **fail-safe 默认**：复用 `HookErrorPolicy` (FailClosed/FailOpen, ADR-0069 🟡 Partial)
 - **零业务代码侵入**：横切关注点通过 Pattern apply 注入，business code 无需感知
 - **DSL 实例化**：`*.cc.md` 配置文件（类比 `*.agent.md`），YAML 格式
 
@@ -75,14 +75,16 @@ public:
 };
 
 struct CrossCuttingContext {
-    IAgentRegistry* agent_registry;
-    IAgentHookRegistry* agent_hook_registry;
-    IToolHookRegistry* tool_hook_registry;
-    IInteractionBus* bus;
+    agenticdsl::IAgentRegistry* agent_registry;
+    agenticdsl::IAgentHookRegistry* agent_hook_registry;
+    agenticdsl::IToolHookRegistry* tool_hook_registry;
+    agenticdsl::IAgentComposition* agent_composition;   // L3 编排 (Oracle H1: 真实 API)
+    agenticdsl::IApprovalHandler* approval_handler;     // L4 通道 (Oracle M2)
+    agenticdsl::IInteractionBus* bus;
     // Oracle B1: L0 通道使用 set_llm_provider 回调替代虚构的
-    // ILLMProvider** 槽位 (engine.h:130 仅暴露 set_llm_provider API)。
+    // ILLMProvider** 槽位 (engine.h 仅暴露 set_llm_provider API)。
     // 用户构造 Orchestrator 时绑定到 DSLEngine::set_llm_provider。
-    std::function<void(std::unique_ptr<ILLMProvider>)> set_llm_provider;
+    std::function<void(std::unique_ptr<agenticdsl::ILLMProvider>)> set_llm_provider;
 };
 
 namespace cross_cutting_pattern {
@@ -94,6 +96,13 @@ namespace cross_cutting_pattern {
 
 }  // namespace hydraforge::pdk
 ```
+
+**真实 API 引用（Oracle H1）** — 本 ADR 依赖的 L3 契约，实施时以实际头文件为准：
+- `include/agenticdsl/contract/iagent_registry.h`（ADR-0082 ✅ Approved）— `AgentFactory` = `std::function<std::unique_ptr<IAgent>(const AgentConfig&)>`；`AgentConfig` = `struct { std::string instance_id; }`；API：`register_agent(string_id, factory)`（重复注册返回 false 不抛）/ `create(string_id, config)`（未注册 → nullptr）/ `unregister` / `is_registered` / `list_registered` / `size`。**无** `resolve()` / `list()` / `std::optional<IAgent>`（虚构方法已删除）
+- `include/agenticdsl/contract/iagent_composition.h`（ADR-0060 ✅ Approved）— `call(id, args, timeout)` / `delegate(id, task, priority)` / `call_async(id, args, callback, timeout)` / `stream(id, args)`（Phase 2 占位，抛 `logic_error`）
+- `include/agenticdsl/policy/iapproval_handler.h`（ADR-0031 ✅）— `process_request(const ToolMetadata&, const ToolCallContext&, const ToolPreview&) -> bool`（Oracle M2）
+- `include/agenticdsl/contract/itool_hook_registry.h`（ADR-0069 🟡 Partial）— `HookErrorPolicy` / `PreHookResult` / `register_pre_hook(tool_glob, PreHook, priority, policy)`
+- `include/agenticdsl/contract/iagent_hook_registry.h`（ADR-0081 ✅ Approved）— `AgentPreHook` = `std::function<AgentPreHookResult(const IAgent&, const std::string&)>`
 
 **理由**:
 - 4 范式（Decorator / Hook / Composition / Bus）覆盖现有 6 层抽象扩展点的所有应用场景
@@ -112,10 +121,15 @@ namespace cross_cutting_pattern {
 // include/agenticdsl/pdk/cross_cutting/cross_cutting_orchestrator.h
 class CrossCuttingOrchestrator {
 public:
-    CrossCuttingOrchestrator(IAgentRegistry& agent_reg,
-                              IAgentHookRegistry& agent_hook_reg,
-                              IToolHookRegistry& tool_hook_reg,
-                              IInteractionBus& bus);
+    // Oracle M7: patterns 可选注入, 默认注册 4 个内置 pattern (向后兼容)。
+    CrossCuttingOrchestrator(agenticdsl::IAgentRegistry& agent_reg,
+                              agenticdsl::IAgentHookRegistry& agent_hook_reg,
+                              agenticdsl::IToolHookRegistry& tool_hook_reg,
+                              agenticdsl::IInteractionBus& bus,
+                              agenticdsl::IApprovalHandler* approval_handler = nullptr,   // L4 通道 (Oracle M2)
+                              std::function<void(std::unique_ptr<agenticdsl::ILLMProvider>)>
+                                  set_llm_provider = nullptr,                              // L0 通道 (Oracle B1)
+                              std::vector<std::unique_ptr<ICrossCuttingPattern>> patterns = {});  // Oracle M7
     
     void dispatch(const nlohmann::json& cross_cutting_config);  // 主入口
     
@@ -127,13 +141,17 @@ private:
 };
 ```
 
+> **Oracle M7 说明**: `patterns` 参数为空时默认注册 4 个内置 pattern（Decorator/Hook/Composition/Bus），
+> 保持向后兼容；调用方可注入自定义 pattern 集合覆盖默认。**硬编码内置 pattern 是 V1 简化**，
+> V2 可改为静态工厂（`CrossCuttingPatternFactory::create_defaults()`）或完全配置驱动。
+
 **关键差异 vs LoopDispatcher**:
 | 维度 | LoopDispatcher | CrossCuttingOrchestrator |
 |------|-----------------|---------------------------|
 | 分发时机 | 编译期（模板特化）| 运行期（JSON 配置）|
 | 状态 | 无（纯模板）| 无（仅持有引用）|
 | 注册时机 | 编译时 `template<>` | 运行时 `register_pattern()` |
-| 错误处理 | 编译错误 | 运行期 throw |
+| 错误处理 | 编译错误 | 未知 pattern **FailOpen**（记 warning + 跳过, Oracle M1）；throw 仅限 schema 非法 |
 
 **理由**:
 - 配置驱动 vs 编译期类型（横切功能运行时按需启用）
@@ -143,18 +161,20 @@ private:
 ### 决策 3 — 4 Pattern 实现职责（每 Pattern 单一关注点）
 
 **Pattern 1: DecoratorPattern**（L0 ILLMProviderDecorator 注入）
-- **职责**: 修改 `ILLMProvider` 链（添加 cost tracking / retry / PII scrub 等）
-- **依赖**: `ILLMProvider**` 槽位（由 DSLEngine 注入）
-- **V1 不实现**: 工厂模式 + 装饰器链自动构造（V2 deferred）
+- **职责**: 修改 `ILLMProvider` 链（添加 cost tracking / rate limit / PII scrub 等）
+- **依赖**: `set_llm_provider` 回调（Oracle B1：绑定到 `DSLEngine::set_llm_provider`，非虚构 `ILLMProvider**` 槽位）
+- **V1 不实现**: 工厂模式 + 装饰器链自动构造（V2 deferred；链构造委托 `DecoratorFactory::create_chain`，类比 `wrap_chain` 静态工厂）
 
-**Pattern 2: HookPattern**（L1 ToolHook + L2 AgentHook 注册）
-- **职责**: 注册 pre/post hooks 到 ToolHookRegistry 或 AgentHookRegistry
+**Pattern 2: HookPattern**（L1 ToolHook + L2 AgentHook + L4 Approval 注册）
+- **职责**: 注册 pre/post hooks 到 ToolHookRegistry / AgentHookRegistry
 - **依赖**: `IToolHookRegistry*` + `IAgentHookRegistry*`
-- **配置粒度**: target (tool/agent), glob, priority, policy
+- **配置粒度**: target (tool/agent/**approval**), glob, priority, policy
+- **Oracle M2**: 新增 `target: approval` 类型 —— 通过 `ctx.approval_handler->process_request(...)` 走 L4 审批通道（依赖 ADR-0031 `IApprovalHandler` ✅）
 
 **Pattern 3: CompositionPattern**（L3 AgentRegistry 注入）
 - **职责**: 通过 `IAgentRegistry::create()` 实例化横切功能 Agent，注入到目标 registry
 - **依赖**: `IAgentRegistry*` + `IAgentHookRegistry*`（自动注入为 hook）
+- **真实 API（Oracle H1/M3）**: 仅 `register_agent` + `create`（无 `resolve/list`）；`AgentConfig` 仅含 `instance_id`；未注册 string_id → `create()` 返回 nullptr（FailOpen 跳过）
 - **V1 不实现**: 跨 Agent 通信编排（V2 deferred）
 
 **Pattern 4: BusPattern**（L5 IInteractionBus 订阅）
@@ -182,20 +202,27 @@ description: "Enable strict privacy + audit + approval"
 patterns:
   - type: decorator-v1
     config:
-      decorators: ["CostTracking", "Compliance", "PII-Scrub"]  # Oracle B2: 链深 ≤4 含 inner (移除 Retry)
+      decorators: ["CostTracking", "Compliance", "PII-Scrub"]  # Oracle B2: 链深 ≤4 含 inner (Retry 为自定义 decorator)
   - type: hook-v1
     config:
       hooks:
-        - target: tool
+        - target: approval       # Oracle M2: L4 审批通道 (approval_handler->process_request)
           glob: "L3_*"
           type: pre
           priority: 1000
           policy: FailClosed
-          handler: human-approval-v1
+        - target: agent
+          glob: "react-loop/*"
+          type: pre
+          priority: 500
+          policy: FailClosed
+          handler: privacy-policy-v1
   - type: composition-v1
     config:
       agents:
         - name: privacy-policy-v1
+          config:
+            instance_id: "privacy-main"   # Oracle M3: 完整 AgentConfig (instance_id 可选, 空则 create() 自动生成)
           scope: "react-loop/*"
   - type: bus-v1
     config:
@@ -203,16 +230,25 @@ patterns:
       handler: external-siem-adapter-v1
 ```
 
+**Oracle M6 — DSL schema 校验**: 加载 `/cross_cutting` 段时使用 `cross_cutting_schema.json`
+（V1 实施阶段定义），复用 ADR-0073 nlohmann JSON Schema 校验器
+（`include/agenticdsl/tools/tool_schema_validator.h`，JSON Schema 2020-12 最小子集：
+type/properties/required/items/enum）做**结构校验**——`patterns[].type` 必须是
+`decorator-v1` / `hook-v1` / `composition-v1` / `bus-v1` 之一，`config` 字段按各 pattern
+声明。否则 YAML `type` 字段拼写错误（Oracle H3）运行时才以
+FailOpen warning 暴露，难以在加载期发现。
+
 **理由**:
 - YAML 格式与 Agent DSL（`*.agent.md`）一致（ADR-0043 命名约定）
 - 类比 `examples/pdk_chat_demo/dsl/*.agent.md` 实例化模式
 - V1 仅 4 字段（patterns/type/config/global_meta），后续可扩展
+- schema 校验复用 ADR-0073 既有校验器（零新依赖）
 
 ### 决策 5 — V1 不强制 Meta-Agent 自管理
 
 **重要修正（vs v1.0 工作文档）**：
 - v1.0 提出 `CrossCuttingMetaAgent` 作为统一入口
-- v1.1 修正为**可选高级特性**（V2 deferred）
+- v1.2 修正为**可选高级特性**（V2 deferred）
 
 **理由**:
 - **PDK 一致性**：Loop Dispatcher 没有"MetaLoop"集中决策，Orchestrator 也不应有"MetaOrchestrator"
@@ -247,9 +283,11 @@ patterns:
 1. **既有契约零修改**: `ICrossCuttingPattern` / Orchestrator 仅**依赖**既有 6 层抽象（L0-L5）+ IAgentRegistry + IAgentHookRegistry + IToolHookRegistry + IInteractionBus，不修改其接口
 2. **Orchestrator 无状态**: 不存储业务配置 / state，所有 state 来自 DSL 加载器
 3. **Pattern 单一关注点**: 每个 Pattern 仅处理一种范式，互不耦合
-4. **fail-safe 默认**: HookPattern 复用既有 `HookErrorPolicy` (ADR-0069)；Orchestrator 不阻断主流程
+4. **fail-safe 默认**: HookPattern 复用既有 `HookErrorPolicy` (ADR-0069)；Orchestrator **不阻断主流程** —— 未知 pattern / pattern apply 异常均按 FailOpen（记 warning + 跳过），throw 仅限 schema 非法（Oracle M1 强化）
 5. **PDK Loop 一致性**: 4 Pattern 独立 class + Orchestrator 编排 = 与 3 Loop + LoopDispatcher 完全对等
 6. **DSL 实例化**: `*.cc.md` 配置文件类比 `*.agent.md`，YAML 格式
+7. **命名空间卫生**: 所有代码样本使用 `agenticdsl::` 限定（Oracle H2）
+8. **DSL 字段统一**: 配置字段统一 `type:`（无旧字段名残留，Oracle H3）
 
 ---
 
@@ -268,7 +306,7 @@ patterns:
 - `bus_pattern.h/.cpp` + ≥2 tests
 
 ### Phase 2: DSL 加载器 + examples（估时 0.5 sprint）
-- `cross_cutting_config.h/.cpp`（YAML 解析）
+- `cross_cutting_config.h/.cpp`（YAML 解析 + **`cross_cutting_schema.json` 结构校验, 复用 ADR-0073 校验器, Oracle M6**）
 - `examples/cross_cutting/dsl/high_security_mode.cc.md`
 - `examples/cross_cutting/dsl/cost_optimization_mode.cc.md`
 - `examples/cross_cutting/dsl/development_mode.cc.md`
@@ -288,16 +326,18 @@ patterns:
 ## 关联
 
 ### 父 ADR / 父文档
-- `docs/architecture/cross-cutting-hooks-architecture-2026-08.md` v1.1（本文档设计依据）
+- `docs/architecture/cross-cutting-hooks-architecture-2026-08.md` v1.2（本文档设计依据；Oracle 评审 H1-H4 + M1-M9 已应用）
 
 ### 依赖 ADR（已 ship 或 Approved）
 - **ADR-0021** PDK Design ✅ Approved（PDK Plugin 范式）
 - **ADR-0068** Event Emission Contract ✅ Approved（27+ 主题）
-- **ADR-0069** ToolCoordinator Hook ✅ Proposed → 即将 Approved（HookErrorPolicy）
+- **ADR-0069** ToolCoordinator Hook 🟡 Partial（HookErrorPolicy 已 ship，待 HookErrorPolicy amendment）— Oracle M8 状态修正
+- **ADR-0073** Tool JSON Schema Contract 🟡 Partial（DSL schema 校验器复用，Oracle M6）
 - **ADR-0081** Pre-Step Hook Contract ✅ Approved（IAgentHookRegistry, Agent-scoped）
 - **ADR-0082** Agent First-Class Registry ✅ Approved（IAgentRegistry + IAgent）
 - **ADR-0083** IEvaluator ✅ Approved + ship（Composition Pattern 复用）
 - **ADR-0084** Mutation Governance ✅ Approved + ship（HookPattern 集成示例）
+- **ADR-0031** Execution Policy ✅ Approved（IApprovalHandler L4 通道，Oracle M2）
 
 ### 不依赖（V1 零耦合）
 - T17 SkillCompiler ✅ ship（V1 不集成）
@@ -312,8 +352,8 @@ patterns:
 ## 测试要求
 
 ### 单元测试（每 Pattern 独立）
-- `test_decorator_pattern.cpp` — ≥2 cases（cost tracking / retry）
-- `test_hook_pattern.cpp` — ≥3 cases（tool pre / agent pre / HookErrorPolicy 验证）
+- `test_decorator_pattern.cpp` — ≥2 cases（cost tracking / rate limit）
+- `test_hook_pattern.cpp` — ≥3 cases（tool pre / agent pre / `target: approval` L4 通道）
 - `test_composition_pattern.cpp` — ≥2 cases（Agent 创建 + hook 注入）
 - `test_bus_pattern.cpp` — ≥2 cases（单主题订阅 / 多主题订阅）
 
@@ -340,33 +380,38 @@ patterns:
 
 - [x] **命名一致性**: `cross_cutting_pattern::Decorator` 等常量与 ADR-0043 命名约定对齐
 - [x] **接口正交性**: 4 Pattern 仅依赖既有 6 层抽象，互不耦合
-- [x] **fail-safe 默认**: HookPattern 复用 ADR-0069 HookErrorPolicy
+- [x] **fail-safe 默认**: HookPattern 复用 ADR-0069 HookErrorPolicy；Orchestrator FailOpen（Oracle M1）
 - [x] **可测试性**: 每 Pattern 独立单元测试，Orchestrator 集成测试
 - [x] **可演化性**: register_pattern() 扩展点允许 V2 新增第 5 种范式
-- [x] **Agent first-class**: Composition Pattern 通过 IAgentRegistry 注入
+- [x] **Agent first-class**: Composition Pattern 通过 IAgentRegistry 注入（真实 API，Oracle H1）
 - [x] **DSL 实例化**: `*.cc.md` 配置类比 `*.agent.md` Agent DSL
 - [x] **V1 边界清晰**: 4 Pattern + Orchestrator + DSL；V2 包含 Meta-Agent / marketplace
 - [x] **既有契约零修改**: 6 层抽象 + IAgentRegistry + IAgentHookRegistry + IToolHookRegistry + IInteractionBus 均不修改
 - [x] **PDK Loop 一致性**: 独立 class + dispatcher 编排与 PDK Loop 完全对等
+- [x] **命名空间卫生**: 代码样本统一 `agenticdsl::` 限定（Oracle H2）
+- [x] **DSL 字段统一**: `type:` 字段统一（0 个旧字段名残留，Oracle H3）
+- [x] **schema 校验**: DSL 加载复用 ADR-0073 校验器（Oracle M6）
+- [x] **L4 审批通道**: `target: approval` 通过 `IApprovalHandler`（Oracle M2）
+- [x] **真实 AgentConfig**: CompositionPattern 接受完整 `config`（仅含 instance_id，Oracle M3）
 
 ---
 
 ## 待 Oracle / 架构组评审项
 
-1. **D1-D6 决策是否完整覆盖 v1.1 文档所有设计点**?
+1. **D1-D6 决策是否完整覆盖 v1.2 文档所有设计点**?
 2. **CrossCuttingOrchestrator 运行时分发 vs LoopDispatcher 编译期分发是否合理**?
-3. **4 Pattern 划分（不包含 L4 Approval）是否完整覆盖所有横切场景**?
+3. **4 Pattern 划分（L4 Approval 作为 HookPattern 的 `target: approval` 分支，非独立 Pattern）是否完整覆盖所有横切场景**?
 4. **V1 不实施 MetaAgent 是否合理**?（vs v1.0 强制实施）
-5. **`*.cc.md` DSL 格式是否需要更严格 schema 校验**?
+5. **`*.cc.md` DSL 格式 schema 校验粒度是否足够**?（复用 ADR-0073 校验器）
 6. **V1 实施估时 2.2 sprint 是否合理**?
-7. **ADR-0085 状态是否可立即转 Approved**?（取决于 OpenSpec change 实施决心）
+7. **ADR-0085 状态是否可立即转 Approved**?（Oracle 评审 H1-H4 + M1-M9 已完成，取决于 OpenSpec change 实施决心）
 
 ---
 
 ## 状态变更
 
-- 当前: 🔍 Proposed（2026-08-28 创建）
-- 评审准备: 设计依据完整 + 关键不变量清晰 + 测试要求明确
+- 当前: 🔍 Proposed（2026-08-28 创建；Oracle 评审 H1-H4 + M1-M9 修正完成）
+- 评审准备: 设计依据完整 + 关键不变量清晰 + 测试要求明确 + 真实 API 引用校正
 - 待评审: ADR 评审会议 + 与 ADR-0021 (PDK Design) 关联验证
 
-> **注**: 本 ADR 文件于 2026-08-28 创建，承接 `cross-cutting-hooks-architecture-2026-08.md` v1.1 的 §四 设计建议。实施载体为 OpenSpec change `pdk-cross-cutting-patterns`（待创建）。
+> **注**: 本 ADR 文件于 2026-08-28 创建，承接 `cross-cutting-hooks-architecture-2026-08.md` v1.2 的 §四 设计建议（Oracle 评审修正已同步）。实施载体为 OpenSpec change `pdk-cross-cutting-patterns`（待创建）。
