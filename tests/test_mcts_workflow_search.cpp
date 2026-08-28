@@ -334,3 +334,54 @@ TEST_CASE("mcts_mutation_governor_authorization", "[mcts][phase0]") {
   REQUIRE(governor->commit_calls > 0);
   REQUIRE(governor->last_kind == "L1_prompt");  // V1 仅 L1 workflow variants
 }
+// ============================================================================
+// Phase 1: MCTS 算法核心 (3 cases)
+// ============================================================================
+
+TEST_CASE("mcts_ucb1_selection_best_arm", "[mcts][phase1]") {
+  // 等访问量下, 高质量臂 UCB1 值更高 → 选择最优臂
+  const double c = 1.414;
+  const double best = ucb1_value(0.9, 10, 20, c);
+  const double worse = ucb1_value(0.5, 10, 20, c);
+  REQUIRE(best > worse);
+  // 未访问子节点 → +inf (保证探索)
+  REQUIRE(std::isinf(ucb1_value(0.0, 0, 1, c)));
+  // 低访问量 + 高探索权重 → 低质量但未充分访问的臂胜出 (探索-利用平衡)
+  REQUIRE(ucb1_value(0.5, 3, 20, 3.0) > ucb1_value(0.9, 10, 20, 3.0));
+}
+
+TEST_CASE("mcts_ucb1_selection_exploration_exploitation_balance",
+          "[mcts][phase1]") {
+  // c=0: 纯利用 → 高质量臂胜出
+  REQUIRE(ucb1_value(0.9, 5, 10, 0.0) > ucb1_value(0.6, 5, 10, 0.0));
+  // 大 c: 低访问但尚不确定的臂获得更高 UCB1 (探索优先)
+  REQUIRE(ucb1_value(0.6, 2, 12, 10.0) > ucb1_value(0.9, 10, 12, 10.0));
+  // c 单调性: 高权重只会让未充分访问的臂更有吸引力
+  REQUIRE(ucb1_value(0.6, 2, 12, 10.0) > ucb1_value(0.6, 2, 12, 1.0));
+}
+
+TEST_CASE("mcts_search_convergence_100_iterations", "[mcts][phase1]") {
+  // 100 iterations 收敛: 奖励函数偏好含 Search 工具节点的工作流
+  auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->mode = StubEvaluator::Mode::ScoreBySearchTool;
+  auto governor = std::make_shared<StubGovernor>();
+  auto gate = std::make_shared<BehavioralRegressionGate>();
+  MCTSWorkflowSearch::SearchConfig config;
+  config.max_iterations = 100;
+  auto search = make_search(evaluator, governor, gate, config);
+
+  const auto result = search->search(make_spec("conv_100"));
+
+  REQUIRE(result.iterations_used == 100);
+  REQUIRE(result.best_workflow != nullptr);
+  // 含 Search 工具节点 → excellent(scalar=1.0) → 归一化 q=1.0
+  REQUIRE(result.best_reward == Catch::Approx(1.0));
+  bool has_search = false;
+  for (const auto& n : result.best_workflow->nodes) {
+    if (n.axis3 == WorkflowNode::Axis3Tool::Search) {
+      has_search = true;
+    }
+  }
+  REQUIRE(has_search);
+  REQUIRE(result.success);
+}
