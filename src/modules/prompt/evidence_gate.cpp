@@ -10,6 +10,7 @@
 #include "agenticdsl/prompt/evidence_gate.h"
 
 #include "agenticdsl/contract/event_builder.h"
+#include "agenticdsl/prompt/prompt_hash.h"
 
 #include <algorithm>
 #include <stdexcept>
@@ -61,14 +62,16 @@ GateDecision PromptEvidenceGate::evaluate(const std::string& prompt,
     if (last_failure_.kind == GateFailureKind::ParseError) {
       bus_->emit(
           EventBuilder("llm.dsl.parse_failed")
-              .args(nlohmann::json{{"prompt", prompt},
+              .args(nlohmann::json{{"prompt_hash", hash_prompt(prompt)},
+                                   {"prompt_length", static_cast<int>(prompt.size())},
                                    {"error_position", last_failure_.error_position},
                                    {"retry_count", last_failure_.retry_count}})
               .build());
     } else if (last_failure_.kind == GateFailureKind::SchemaError) {
       bus_->emit(
           EventBuilder("llm.dsl.schema_validation_failed")
-              .args(nlohmann::json{{"prompt", prompt},
+              .args(nlohmann::json{{"prompt_hash", hash_prompt(prompt)},
+                                   {"prompt_length", static_cast<int>(prompt.size())},
                                    {"violation", last_failure_.violation},
                                    {"no_retry", last_failure_.no_retry}})
               .build());

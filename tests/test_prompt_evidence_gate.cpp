@@ -279,8 +279,14 @@ TEST_CASE("two_stage_injection_over_8k_emits_event", "[prompt][t2]") {
   REQUIRE(p.estimated_tokens_total > PromptAssembler::kTotalTokenLimit);
   auto events = bus->by_topic_prefix("prompt.token_limit_exceeded");
   REQUIRE(events.size() == 1);
-  REQUIRE(events[0]->payload.data.contains("estimated_tokens"));
-  REQUIRE(events[0]->payload.data.contains("limit"));
+  REQUIRE(events[0]->payload.data.contains("prompt_hash"));
+  REQUIRE(events[0]->payload.data["prompt_hash"].is_string());
+  REQUIRE(events[0]->payload.data["prompt_hash"].get<std::string>().size() == 16);
+  REQUIRE(events[0]->payload.data.contains("prompt_length"));
+  REQUIRE(events[0]->payload.data["prompt_length"].is_number());
+  REQUIRE(events[0]->payload.data.contains("token_estimate"));
+  REQUIRE(events[0]->payload.data.contains("stage"));
+  REQUIRE(events[0]->payload.data.contains("actual_tokens"));
 }
 
 TEST_CASE("jsonl_export_schema_compliance", "[prompt][t3]") {
@@ -322,7 +328,11 @@ TEST_CASE("llm_dsl_parse_failed_event_emitted", "[prompt][t3]") {
 
   auto events = bus->by_topic_prefix("llm.dsl.parse_failed");
   REQUIRE(events.size() == 1);
-  REQUIRE(events[0]->payload.data.contains("prompt"));
+  REQUIRE(events[0]->payload.data.contains("prompt_hash"));
+  REQUIRE(events[0]->payload.data["prompt_hash"].is_string());
+  REQUIRE(events[0]->payload.data["prompt_hash"].get<std::string>().size() == 16);
+  REQUIRE(events[0]->payload.data.contains("prompt_length"));
+  REQUIRE(events[0]->payload.data["prompt_length"].is_number());
   REQUIRE(events[0]->payload.data.contains("error_position"));
   REQUIRE(events[0]->payload.data.contains("retry_count"));
   REQUIRE(events[0]->payload.data["retry_count"] == 1);
@@ -341,7 +351,11 @@ TEST_CASE("llm_dsl_schema_validation_failed_event_emitted", "[prompt][t3]") {
 
   auto events = bus->by_topic_prefix("llm.dsl.schema_validation_failed");
   REQUIRE(events.size() == 1);
-  REQUIRE(events[0]->payload.data.contains("prompt"));
+  REQUIRE(events[0]->payload.data.contains("prompt_hash"));
+  REQUIRE(events[0]->payload.data["prompt_hash"].is_string());
+  REQUIRE(events[0]->payload.data["prompt_hash"].get<std::string>().size() == 16);
+  REQUIRE(events[0]->payload.data.contains("prompt_length"));
+  REQUIRE(events[0]->payload.data["prompt_length"].is_number());
   REQUIRE(events[0]->payload.data.contains("violation"));
   REQUIRE(events[0]->payload.data.contains("no_retry"));
   REQUIRE(events[0]->payload.data["no_retry"] == true);

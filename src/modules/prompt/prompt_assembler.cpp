@@ -11,6 +11,7 @@
 #include "agenticdsl/prompt/prompt_assembler.h"
 
 #include "agenticdsl/contract/event_builder.h"
+#include "agenticdsl/prompt/prompt_hash.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -82,9 +83,11 @@ void PromptAssembler::emit_token_limit_exceeded(const std::string& prompt,
                                                 std::size_t estimated) {
   const BusEvent event =
       EventBuilder("prompt.token_limit_exceeded")
-          .args(nlohmann::json{{"prompt", prompt},
-                               {"estimated_tokens", estimated},
-                               {"limit", kTotalTokenLimit}})
+          .args(nlohmann::json{{"prompt_hash", hash_prompt(prompt)},
+                               {"prompt_length", static_cast<int>(prompt.size())},
+                               {"token_estimate", estimate_tokens(prompt)},
+                               {"stage", "total"},
+                               {"actual_tokens", static_cast<int>(estimated)}})
           .build();
   bus_->emit(event);
 }
