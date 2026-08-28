@@ -9,6 +9,10 @@
 
 add_library(agenticdsl_governance STATIC
   mutation_governor.cpp
+  cross_cutting/decorator_pattern.cpp
+  cross_cutting/hook_pattern.cpp
+  cross_cutting/composition_pattern.cpp
+  cross_cutting/bus_pattern.cpp
 )
 
 target_include_directories(agenticdsl_governance PUBLIC
