@@ -59,6 +59,7 @@ nlohmann::json TrajectoryIR::to_sft_data(const CanonicalIR& canonical) {
       {"step_count", canonical.canonical_steps.size()},
       {"trajectory_hash", TrajectoryIR::hash(canonical)},
   };
+  out["schema_version"] = canonical.schema_version;
   return out;
 }
 
@@ -95,7 +96,10 @@ nlohmann::json TrajectoryIR::to_otel_spans(const CanonicalIR& canonical) {
     ++index;
   }
 
-  return nlohmann::json{{"spans", std::move(spans)}, {"trace_id", trace_id}};
+  return nlohmann::json{
+      {"spans", std::move(spans)},
+      {"trace_id", trace_id},
+      {"schema_version", canonical.schema_version}};
 }
 
 }  // namespace agenticdsl::ir

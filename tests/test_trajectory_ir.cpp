@@ -211,3 +211,39 @@ TEST_CASE("canonical_ir_hash_deterministic", "[ir][t15][phase2]") {
       TrajectoryIR::NodeRecord{"/main/end", "end", nlohmann::json::object()});
   REQUIRE(TrajectoryIR::hash(b) != ha);
 }
+
+// ============================================================================
+// Case 10: schema_version 字段默认 1.0 + sft/otel 序列化透传
+// (ADR-0061-06 v1.1 §不变量 3 落地)
+// ============================================================================
+TEST_CASE("schema_version_defaults_and_serializes", "[ir][t15][phase2]") {
+  // 默认值校验
+  TrajectoryIR::ParsedIR parsed;
+  REQUIRE(parsed.schema_version == "1.0");
+
+  TrajectoryIR::CanonicalIR canonical;
+  REQUIRE(canonical.schema_version == "1.0");
+
+  // to_sft_data 顶层含 schema_version
+  canonical.canonical_nodes.push_back(
+      TrajectoryIR::NodeRecord{"/main/start", "start", nlohmann::json::object()});
+  canonical.canonical_edges.push_back(
+      TrajectoryIR::EdgeRecord{"/main/start", "/main/end", 1.0});
+
+  const auto sft = TrajectoryIR::to_sft_data(canonical);
+  REQUIRE(sft.contains("schema_version"));
+  REQUIRE(sft["schema_version"] == "1.0");
+
+  // to_otel_spans 顶层含 schema_version
+  const auto otel = TrajectoryIR::to_otel_spans(canonical);
+  REQUIRE(otel.contains("schema_version"));
+  REQUIRE(otel["schema_version"] == "1.0");
+
+  // 显式设置值透传
+  TrajectoryIR::CanonicalIR custom;
+  custom.schema_version = "1.1";
+  custom.canonical_nodes.push_back(
+      TrajectoryIR::NodeRecord{"/main/a", "tool_call", nlohmann::json::object()});
+  const auto sft_custom = TrajectoryIR::to_sft_data(custom);
+  REQUIRE(sft_custom["schema_version"] == "1.1");
+}

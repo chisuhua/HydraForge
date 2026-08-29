@@ -70,6 +70,7 @@ class TrajectoryIR {
 
   // ParsedIR — 结构化 JSON (Converter 输出)
   struct ParsedIR {
+    std::string schema_version = "1.0";  // ADR-0061-06 v1.1 §不变量 3
     std::vector<NodeRecord> nodes;
     std::vector<EdgeRecord> edges;
     std::vector<StepRecord> steps;
@@ -78,6 +79,7 @@ class TrajectoryIR {
   // CanonicalIR — pass pipeline 输出, backends 输入
   // V2 扩展: pass pipeline (ConstantFolding + DeadCodeElim + LoopUnroll)
   struct CanonicalIR {
+    std::string schema_version = "1.0";  // ADR-0061-06 v1.1 §不变量 3
     std::vector<NodeRecord> canonical_nodes;
     std::vector<EdgeRecord> canonical_edges;
     std::vector<StepRecord> canonical_steps;
