@@ -170,7 +170,7 @@ class TaskSuccessEvaluator : public IEvaluator {
 
 - `evaluation_id`: 不透明唯一标识，格式 `eval_<uuid>`，跨系统全局唯一
 - `schema_version`: 初始为 "1.0"，事件格式版本
-- `evaluation.result` **不在** ADR-0068 Canonical Topic Registry 中注册（本 change 独立引入）
+- `evaluation.result` **已注册于** ADR-0068 Canonical Topic Registry 附录 A v1.2 (2026-08-26, line 214, [ADR-0068 §附录 A](adr-0068-event-emission-contract.md#附录-a-canonical-topic-registry))
 - 事件发射时机: `cognitive.task.completed` / `domain.task.completed` 之后
 
 ### 决策 7 — ExecutionTrace 与 TraceRecord 的边界

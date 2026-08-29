@@ -218,6 +218,11 @@ success_criteria:
 }
 ```
 
+> **V1 实施注记 (T21 ship 2026-08-28)**：D3 要求 GPT-4 Turbo / Claude 3.5 / DeepSeek 三模型 baseline 测量，但 V1 ship (`t21-prompt-evidence-gate`) 实际使用 **3 MockLLM × 2 指标** 跑 baseline（参 `tools/baseline/measure_prompt_baseline.py`）。两者偏差原因：
+> - V1 用 MockLLM 是为验证 baseline 测量管线（解析协议 + 指标计算 + JSONL 输出）协议正确性
+> - 真实 3 模型 baseline 是 V2 硬前置，必须在 **ADR-0072 启动前完成**（Oracle 二次审查识别，session `ses_fb4cd8ff8ffeJlYBgU3JogcnfB`）
+> - Evidence Gate 决议文档（`docs/audits/2026-08-25-evidence-gate-momus-decision-summary.md`）当前基于 MockLLM baseline，效力弱于 ADR 原设计；ADR-0072 启动前必须用真实 baseline 复测
+
 ### D4. Evidence Gate Go/No-Go 阈值
 
 **目标**: 客观定义 Wave 2 → Wave 3 推进标准, 避免"看起来差不多"陷阱。
@@ -253,6 +258,13 @@ success_criteria:
 
 - baseline 测量后 24h 内: Evidence Gate 决议 (GO / NO-GO / CONDITIONAL)
 - 决议记录在 `docs/audits/<date>-evidence-gate-<version>.md`
+
+> **Evidence Gate 门控范围注记 (Oracle 2026-08-29 追加)**：D4 "Evidence Gate 不可绕过" 的实际**门控范围 = 仅 ADR-0072 语法扩展**（条件性节点扩展 = try/catch / env: / stream: / $var 等 LLM-native DSL 语法），**不门控**：
+> - ADR-0075 EnvBackend（L1 OS Services 抽象，工程能力）
+> - ADR-0076 DSL Engine as MCP Server（Wave 2 + 控制面工程能力）
+> - ADR-0077 gRPC Data Plane（Wave 4 descoped docs-only）
+>
+> **背景**：ADR-0075 ship 时间（2026-08-18）早于 Evidence Gate 决议时间（2026-08-25）7 天，形式上违反不变量 4。澄清后，ADR-0075 不在门控范围内，故不构成实际违规。本注记与 [ADR-0071 §Evidence Gate 门控范围注记](adr-0071-llm-native-agenticdsl-architecture.md#evidence-gate-门控范围注记-oracle-评审追加-2026-08-29) 保持一致。
 
 ### D5. 两阶段 Prompt 注入 (subgraphs 选择 → 生成, ≤8k prefix)
 

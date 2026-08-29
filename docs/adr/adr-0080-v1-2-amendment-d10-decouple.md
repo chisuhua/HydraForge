@@ -6,7 +6,7 @@
 
 ## 状态
 
-🔍 Proposed — 见上方 `**状态**` 字段 (Oracle 评审识别为架构层缺口, capability-application-map §八 G12)
+✅ Approved (评审通过 2026-08-25, 详见头部状态字段) — Oracle 评审识别为架构层缺口, capability-application-map §八 G12
 
 **前置文档**:
 - `docs/architecture/capability-application-map-2026-08.md` §八 Oracle 评审

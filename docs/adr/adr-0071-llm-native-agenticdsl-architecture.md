@@ -685,6 +685,38 @@ adr-0070 (commands) ──┘                                  │            GA
 
 ---
 
+## 实施检查清单 (Post-Ship 跟踪)
+
+> **Oracle 评审 (2026-08-29, post-T26) 追加**：本节跟踪本 ADR 派生子 ADR/Change 的实际 ship 状态，与 §关联 §下游派生 + §战略协调 章节交叉验证。
+
+| Task | OpenSpec change | Ship commit | 状态 | 关联 ADR |
+|------|----------------|-------------|------|----------|
+| T17 SkillCompiler V1 | `2026-08-24-adr-0061-03-skill-compiler` | (commit hash) | ✅ SHIP (15 cases / 61 assertions) | ADR-0061-03 |
+| T15 Trajectory IR V1 | `t15-trajectory-ir` | `9c7c6da` | ✅ SHIP (9 cases / 55 assertions) | ADR-0061-06 v1.1 |
+| T19 GEPA Phase 2 | `t19-gepa-phase2-commit` | `35578d9` | ✅ SHIP (14 cases) | ADR-0084 派生 |
+| T20 AFlow MCTS V1 | `t20-aflow-mcts` | `8d23919` | ✅ SHIP (17 cases / 65 assertions) | ADR-0061-08 |
+| T21 Prompt Evidence Gate | `t21-prompt-evidence-gate` | `abd3bd3` | ✅ SHIP (19 cases / 338 assertions) | ADR-0074 |
+| T26 Cross-Cutting Pattern PDK V1 | `pdk-cross-cutting-patterns` | `5410b2a` | ✅ SHIP (18 cases) | ADR-0085 |
+
+**Wave 推进实况**：
+- Wave 1 (ADR-0072/0073/0074/0075): ADR-0074 ✅ SHIP + ADR-0075 ✅ SHIP (08-18) + ADR-0073 🟡 Partial + ADR-0072 🔍 GATED
+- Wave 2 (ADR-0076/0077/0078): ADR-0076/0077/0078 🔍 仍 Proposed（Wave 2 准入待 Wave 1 准出 + Evidence Gate 通过）
+- Wave 3+ (Distillation/Fine-tune): T17/T15/T19/T20 已 ship，T21 prompt 证据已 ship，蒸馏数据面闭环待 ADR-0080 v1.2 + ADR-0061-13 捆绑 ship
+
+---
+
+## Evidence Gate 门控范围注记 (Oracle 评审追加 2026-08-29)
+
+> **澄清**：ADR-0074 §不变量 4 "Evidence Gate 不可绕过 — 任何 Wave 推进必须附 Evidence Gate 决议文档" 的实际**门控范围 = 仅 3.B 条件性节点扩展**（即 ADR-0072 语法扩展），**不门控**：
+>
+> - **ADR-0075 EnvBackend**（L1 OS Services 抽象，工程能力 ship 早于 Evidence Gate 决议 7 天，2026-08-18 ship / 2026-08-25 决议）
+> - **ADR-0076 DSL Engine as MCP Server**（Wave 2 + 工程能力，未启动）
+> - **ADR-0077 gRPC Data Plane**（Wave 4 descoped docs-only）
+>
+> **背景**：Oracle 二次审查 (2026-08-29, session `ses_fb4cd8ff8ffeJlYBgU3JogcnfB`) 发现 ADR-0075 ship 早于 Evidence Gate 决议 7 天，形式上违反不变量 4。经评估，ADR-0075 是 backend 工程能力而非 LLM-native 语法扩展，不属于 Evidence Gate 实际门控对象。本注记明确门控范围，避免后续误读"不可绕过"的语义边界。
+
+---
+
 *文档版本: v1.0*
 *创建日期: 2026-08-02*
 *作者: HydraForge 架构组*
