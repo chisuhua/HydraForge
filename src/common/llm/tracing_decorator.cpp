@@ -59,7 +59,7 @@ void TracingDecorator::emit_request(const GenerationRequest& req) {
       {"prompt_hash", compute_prompt_hash(req.prompt)},
       {"params", params_json}};
   nlohmann::json meta = {{"trace_id", trace_id_}};
-  if (capture_prompt_bytes_) {
+  if (capture_mode_ != CaptureMode::Off) {
     // ADR-0080 v1.1 D10: opt-in prompt 字节落地（蒸馏数据源）
     if (req.prompt.size() <= 64 * 1024) {
       args["prompt_text"] = req.prompt;
@@ -85,7 +85,7 @@ void TracingDecorator::emit_response(
     args["completion_tokens"] = r.completion_tokens;
     args["tokens"] = r.prompt_tokens + r.completion_tokens;
     args["ok"] = true;
-    if (capture_prompt_bytes_ && r.text.size() <= 1024 * 1024) {
+    if (capture_mode_ == CaptureMode::Online && r.text.size() <= 1024 * 1024) {
       args["response_text"] = r.text;
     }
   } else {

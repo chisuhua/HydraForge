@@ -28,6 +28,7 @@
 //   - include/agenticdsl/types/trace_record.h (data-only struct, ADR-0019 §1.4 退出标准通过)
 
 #include "common/llm/llm_types.h"      // ILLMProvider*, ILLMTool, LLMParams 接口 (types 头文件例外, 保留)
+#include "agenticdsl/types/capture_mode.h"  // Phase 1: CaptureMode 迁移
 #include "agenticdsl/contract/ischeduler.h" // IScheduler 抽象接口 (Stage 4 / Task 16)
 #include "agenticdsl/contract/iparser.h"    // IParser 抽象接口 (Stage 4 / Task 16)
 #include "agenticdsl/contract/iinteraction_bus.h" // Phase 1 Sprint 1b (S1b.T1): IInteractionBus 注入契约 (ADR-0019 P2)
@@ -189,7 +190,7 @@ void check_and_compact(LayeredContext& ctx);
     // 调用前置: engine.set_interaction_bus(bus) 已执行
     // agent_id 空字符串 throw (fail-closed, 多 agent 场景避免静默合并)
     void enable_event_log(const std::string& agent_id,
-                          bool capture_prompt_bytes = false,
+                          CaptureMode capture_mode = CaptureMode::Off,
                           std::size_t max_file_size = 100 * 1024 * 1024,
                           std::size_t max_rotation_files = 3);
 

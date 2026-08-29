@@ -48,6 +48,10 @@ function(add_catch_test TEST_NAME)
     if(TEST_NAME STREQUAL "test_trajectory_ir")
         target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_modules_ir)
     endif()
+    # Phase 1 (capture-mode-and-distillation-writer-v1): FileDistillationWriter 测试需要 distillation 模块
+    if(TEST_NAME STREQUAL "test_distillation_writer")
+        target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_distillation)
+    endif()
     target_compile_definitions(${TEST_NAME} PRIVATE CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1)
 
     # temporal_agent 测试需要直接链接 plugin 源码 (pdk_register_tools + pdk_plugin_info)

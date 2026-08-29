@@ -195,7 +195,7 @@ void DSLEngine::set_interaction_bus(std::shared_ptr<IInteractionBus> bus) {
 // agent_id 空字符串 throw (fail-closed: 多 agent 场景避免静默合并到 default)
 // 双调用 throw: 同一 engine 不允许重复启用 (析构由 unique_ptr 管理)
 void DSLEngine::enable_event_log(const std::string& agent_id,
-                                 bool capture_prompt_bytes,
+                                 CaptureMode capture_mode,
                                  std::size_t max_file_size,
                                  std::size_t max_rotation_files) {
     if (event_log_) {
@@ -214,7 +214,7 @@ void DSLEngine::enable_event_log(const std::string& agent_id,
     EventLogConfig cfg;
     cfg.event_log_enabled = true;
     cfg.event_log_agent_id = agent_id;
-    cfg.capture_prompt_bytes = capture_prompt_bytes;
+    cfg.capture_mode = capture_mode;  // ✅ Phase 1 迁移
     cfg.max_file_size = max_file_size;
     cfg.max_rotation_files = max_rotation_files;
 

@@ -8,7 +8,9 @@
 #include "agenticdsl/contract/bus_event.h"
 #include "agenticdsl/contract/event_builder.h"
 #include "agenticdsl/contract/iinteraction_bus.h"
+#include "agenticdsl/types/capture_mode.h"
 
+#include <iostream>
 #include <chrono>
 #include <cstdint>
 #include <ctime>
@@ -32,7 +34,30 @@ std::string next_event_id() {
   return "evt-" + std::to_string(ts) + "-" + std::to_string(counter.fetch_add(1));
 }
 
-}  // namespace
+// Training 三重保护校验
+void validate_training_mode(const EventLogConfig& cfg, const std::string& output_path) {
+  if (cfg.capture_mode != CaptureMode::Training) return;
+
+  // 保护 #2: 路径必须包含 "train" 或 "distill" 子串
+  if (output_path.find("train") == std::string::npos &&
+      output_path.find("distill") == std::string::npos) {
+    throw std::invalid_argument(
+        "EventLog Training mode requires output path containing 'train' or 'distill'");
+  }
+
+  // 保护 #3: WARNING 记录（v1.1 emit WARNING 事件）
+  std::cerr << "[WARNING] EventLogConfig in Training mode — PII capture risk. "
+            << "Ensure agent_id is set and output path: " << output_path << std::endl;
+}
+
+// Online → Training 降级检测
+bool detect_online_to_training_downgrade(const EventLogConfig& new_cfg,
+                                          CaptureMode previous_mode) {
+  return previous_mode == CaptureMode::Online &&
+         new_cfg.capture_mode == CaptureMode::Training;
+}
+
+}  // anonymous namespace
 
 EventLogWriter::EventLogWriter(EventLogConfig config,
                                  std::shared_ptr<IInteractionBus> bus)
@@ -50,6 +75,26 @@ EventLogWriter::EventLogWriter(EventLogConfig config,
  static_cast<std::uint64_t>(file_.tellp());
     file_.seekp(0, std::ios::end);
   }
+
+  // Training 模式启动校验
+  validate_training_mode(config_, log_path_.string());
+
+  // Online → Training 降级检测 + 审计事件发射
+  static CaptureMode s_previous_mode = CaptureMode::Off;  // V1: 全局共享，V2: per-instance
+  if (detect_online_to_training_downgrade(config_, s_previous_mode)) {
+    if (bus_) {
+      // 构造 BusEvent + emit event_log.capture_mode_downgrade
+      nlohmann::json payload = {
+          {"previous_mode", to_string(CaptureMode::Online)},
+          {"new_mode", to_string(CaptureMode::Training)},
+          {"reason", "Runtime capture mode downgrade detected"}
+      };
+      bus_->emit(EventBuilder("event_log.capture_mode_downgrade")
+                     .args(payload)
+                     .build());
+    }
+  }
+  s_previous_mode = config_.capture_mode;
 
   flush_thread_ = std::thread(&EventLogWriter::flush_loop, this);
   if (bus_) {
