@@ -193,9 +193,11 @@ EXEMPTION_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-# 跟踪占位标记模式 (Approved 但允许临时 pending)
+# 跟踪占位标记模式 (Approved 但允许临时 pending / 终态 shipped)
+# pending: Approved 但允许临时占位 (24h 内应创建 tracking change)
+# shipped: 终态 — change 已完整 ship + archive, 不再需要 active tracking
 TRACKING_PENDING_PATTERN = re.compile(
-    r"⏳\s*tracking\s*:\s*pending|tracking\s*:\s*pending",
+    r"⏳\s*tracking\s*:\s*(pending|shipped)|tracking\s*:\s*(pending|shipped)",
     re.IGNORECASE,
 )
 

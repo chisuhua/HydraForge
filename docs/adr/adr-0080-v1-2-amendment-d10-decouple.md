@@ -1,9 +1,9 @@
 # ADR-0080 v1.2 amendment: D10 Capture 与 Scrub Hook 解耦
 
 **日期**: 2026-08-24
-**状态**: ✅ **Approved (评审通过 2026-08-25)** ✅ **+ Phase 0 code ship 2026-08-29** (Oracle 评审识别为架构层缺口, capability-application-map §八 G12)
-✅ **Phase 0 code ship (commit `11d3515`)** — `include/agenticdsl/types/capture_mode.h` (三态枚举 Off/Online/Training + kDefaultCaptureMode) 已 ship. Phase 1 (EventLogConfig `bool capture_prompt_bytes → CaptureMode capture_mode` BREAKING 迁移, 5 消费者) 待启动.
-⏳ **tracking: in-progress** — Phase 0 ✅ ship, Phase 1-3 待启动: see `openspec/changes/capture-mode-and-distillation-writer-v1/` (2026-08-29 创建)
+**状态**: ✅ **Approved (评审通过 2026-08-25)** ✅ **+ 完整 ship 2026-08-29** (Oracle 评审识别为架构层缺口, capability-application-map §八 G12)
+✅ **完整 ship (3 commits)**: Phase 0 (`11d3515` CaptureMode + IDistillationWriter 抽象层) + Phase 1 (`9a781f8` EventLogConfig BREAKING 迁移 + FileDistillationWriter V1) + Phase 2 (`ed5fcaf` --allow-training-capture CLI + TrajectoryIR bridge + payload redact)
+⏳ **tracking: shipped** — see `openspec/changes/archive/2026-08-29-capture-mode-and-distillation-writer-v1/` (archived 2026-08-29)
 **父 ADR**: [adr-0080-append-only-event-log.md](adr-0080-append-only-event-log.md) v1.1
 
 ## 状态

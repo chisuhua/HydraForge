@@ -1,9 +1,9 @@
 # ADR-0061-13: 蒸馏输出格式 (Distillation Output Format & Behavior Cloner Contract)
 
 **日期**: 2026-08-24
-**状态**: ✅ **Approved (评审通过 2026-08-25)** ✅ **+ Phase 0 code ship 2026-08-29** (Oracle 评审识别为架构层缺口, capability-application-map §八 G15)
-✅ **Phase 0 code ship (commit `11d3515`)** — `include/agenticdsl/contract/idistillation_writer.h` (3 虚函数 + 1 工厂, 完全对齐 §决策 3) + `include/agenticdsl/types/distillation_record.h` (字段全集对齐 §决策 2) + `include/agenticdsl/types/capture_mode.h` 已 ship. Phase 1 (FileDistillationWriter V1 + EventLogConfig BREAKING 迁移 + 闭环 1 第 1 环) 待启动.
-⏳ **tracking: in-progress** — Phase 0 ✅ ship, Phase 1-3 待启动: see `openspec/changes/capture-mode-and-distillation-writer-v1/` (2026-08-29 创建, P0 路线图级)
+**状态**: ✅ **Approved (评审通过 2026-08-25)** ✅ **+ 完整 ship 2026-08-29** (Oracle 评审识别为架构层缺口, capability-application-map §八 G15)
+✅ **完整 ship (3 commits)**: Phase 0 (`11d3515` DistillationRecord + IDistillationWriter) + Phase 1 (`9a781f8` FileDistillationWriter V1 实现 3 虚函数 + make_file_writer 工厂) + Phase 2 (`ed5fcaf` TrajectoryIR → DistillationRecord bridge + payload redact)
+⏳ **tracking: shipped** — see `openspec/changes/archive/2026-08-29-capture-mode-and-distillation-writer-v1/` (archived 2026-08-29)
 **父 ADR**: [../adr-0061-agent-evolution-and-solidification.md](../adr-0061-agent-evolution-and-solidification.md)
 **父 ADR 兄弟**: adr-0061-02 (T14 行为回归已 ship), adr-0061-06 (Trajectory IR), adr-0061-09 (GEPA)
 
