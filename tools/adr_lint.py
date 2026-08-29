@@ -47,6 +47,17 @@ VALID_STATUSES = {
 ADR_SUBDIRS = ["plugin"]
 
 
+def _is_impl_scope_audit(path: Path) -> bool:
+    """判断是否为 impl-scope 审计补充文档（如 adr-0020-impl-scope-audit.md）。
+
+    这些是 C9 audit 衍生的审计产物文件（OpenSpec change `docs-code-drift-audit-2026-06`），
+    非独立 ADR。它们的 Approved 状态依赖于同名主 ADR (e.g. adr-0020-*)，不应触发
+    ADR-TRACKING-01 WARNING 检查，否则会产生大量 false-positive（如 adr-0020 主 ADR
+    已 ship 多年但仍报 WARNING 因为同目录有 impl-scope 文件）。
+    """
+    return "impl-scope" in path.name
+
+
 def _candidate_paths(adr_dir: Path) -> list[Path]:
     """返回 ADR 根目录下所有待扫描的 ADR 文件路径列表。
 
@@ -55,14 +66,21 @@ def _candidate_paths(adr_dir: Path) -> list[Path]:
       - adr_dir/<subdir>/adr-*.md （每个 ADR_SUBDIRS 子目录下的 ADR）
 
     非 ADR 文件（如 README.md）不会被识别为 ADR。
+    impl-scope 审计补充文档被 _is_impl_scope_audit 排除。
     """
     paths: list[Path] = []
     if adr_dir.exists():
-        paths.extend(sorted(adr_dir.glob("adr-*.md")))
+        paths.extend(
+            p for p in sorted(adr_dir.glob("adr-*.md"))
+            if not _is_impl_scope_audit(p)
+        )
         for sub in ADR_SUBDIRS:
             sub_dir = adr_dir / sub
             if sub_dir.exists() and sub_dir.is_dir():
-                paths.extend(sorted(sub_dir.glob("adr-*.md")))
+                paths.extend(
+                    p for p in sorted(sub_dir.glob("adr-*.md"))
+                    if not _is_impl_scope_audit(p)
+                )
     return paths
 
 # 已废弃的中文/英文状态词（在状态行中出现应报错）

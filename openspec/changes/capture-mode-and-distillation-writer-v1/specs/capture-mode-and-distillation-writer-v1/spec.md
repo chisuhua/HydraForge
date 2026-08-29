@@ -21,6 +21,12 @@ The `CaptureMode` enum MUST provide exactly 3 states (`Off` / `Online` / `Traini
 - **WHEN** 构造 `EventLogConfig`（默认字段）
 - **THEN** `capture_mode == CaptureMode::Off`（生产路径零开销）
 
+> **实现注记 (Metis A3 修正)**:
+> - **Phase 0 ship** (commit `11d3515`): 仅测 `kDefaultCaptureMode` 常量本身（不构造 EventLogConfig，因 Phase 0 不 touch `src/core/types/event_log_config.h`）
+> - **Phase 1 ship**: 该 Scenario 在 EventLogConfig 字段迁移后真实验证（`bool capture_prompt_bytes → CaptureMode capture_mode`）
+> - **测试代码位置**: `tests/test_capture_mode.cpp::default_value_and_static_asserts`
+> - **Oracle 决策 2**: 禁止 bool 兼容层，迁移彻底后默认值校验自动满足
+
 ### Requirement: BREAKING 字段迁移彻底
 
 The V1 implementation MUST NOT leave any `capture_prompt_bytes` references in `src/`, `include/`, or `examples/`. Migration MUST touch all 5 consumer files (engine.h, engine.cpp, tracing_decorator.h, tracing_decorator.cpp, event_log_config.h).
@@ -61,12 +67,28 @@ The `Training` mode MUST enforce 3 protections at startup: (1) `agent_id` non-em
 
 ### Requirement: IDistillationWriter 纯虚契约
 
-The `IDistillationWriter` MUST be a pure virtual interface with 2 methods: `write(DistillationRecord)` and `finalize()`. FileDistillationWriter MUST implement both.
+The `IDistillationWriter` MUST be a pure virtual interface with **3 pure virtual methods + 1 static factory**, **完全对齐 ADR-0061-13 §决策 3**:
+- `write_record(const DistillationRecord&)` — 写入单条 record
+- `close()` — flush + 关闭（析构时自动调用）
+- `finalize(const DistillationMetadata&)` — 收尾写 meta.json
+- `make_file_writer(const std::filesystem::path&, const std::string&)` — 静态工厂
+
+FileDistillationWriter MUST implement all 3 virtual methods and the factory.
+
+> **历史变更（spec 修订）**:
+> - 原 spec v0.1: 2 methods (`write` + `finalize()`)
+> - **修订为 3 methods + 工厂**（Oracle/Metis 修正 D3, 2026-08-29）— 与 ADR-0061-13 §决策 3 完全对齐，避免 Phase 1 因 `finalize()` 缺参数导致接口返工
+> - Phase 0 ship commit `11d3515` 已应用此修订
 
 #### Scenario: 契约层接口完整性
 
-- **WHEN** 静态检查 `grep "virtual.*write\|virtual.*finalize" include/agenticdsl/contract/idistillation_writer.h`
-- **THEN** 2 个虚函数声明存在
+- **WHEN** 静态检查 `grep "virtual.*write_record\|virtual.*close\|virtual.*finalize" include/agenticdsl/contract/idistillation_writer.h`
+- **THEN** **3 个虚函数声明全部存在**（修正 D3 后由 2 个扩为 3 个）
+
+#### Scenario: 静态工厂存在性
+
+- **WHEN** 静态检查 `grep "make_file_writer" include/agenticdsl/contract/idistillation_writer.h`
+- **THEN** 静态工厂签名必须存在（修正 D3 新增）
 
 #### Scenario: FileDistillationWriter 实现
 
@@ -149,12 +171,26 @@ After V1 ship, the `tools/adr_lint.py` ADR-TRACKING-01 rule MUST NOT emit WARNIN
 
 ### Requirement: 契约层零修改（Oracle B3 关键不变量）
 
-The V1 implementation MUST NOT modify any existing file under `include/agenticdsl/contract/` (only ADD new files).
+The V1 implementation MUST NOT modify any existing file under `include/agenticdsl/contract/` (only ADD new files). **20 个 contract 既有头文件**（修正 D8：从 9 个更新为完整 20 个清单）零 diff。
 
-#### Scenario: 10 个契约文件 git diff 0 行
+完整 20 个清单（不可修改）:
+```
+bus_event.h, causal_clock.h, evaluation_events.h, event_builder.h,
+i_llm_provider_decorator.h, iagent_composition.h, iagent_hook_registry.h,
+iagent_registry.h, icommand_registry.h, ievaluator.h, iinteraction_bus.h,
+imutation_governance.h, inmemory_bus.h, iparser.h, iprovider_factory.h,
+ischeduler.h, iskill_compiler.h, itool_hook_registry.h, itool_registry.h,
+test_double_registry.h
+```
 
-- **WHEN** `git diff HEAD -- include/agenticdsl/contract/`
-- **THEN** 仅 NEW file + idistillation_writer.h，其他 9 个契约文件 0 行修改
+✅ 仅允许新增: `idistillation_writer.h`
+
+#### Scenario: 20 个契约文件 git diff 0 行
+
+- **WHEN** `git diff HEAD^ HEAD -- include/agenticdsl/contract/` (commit 后)
+- **THEN** **仅含 idistillation_writer.h 新增行，其余 20 文件 0 行修改**（修正 D5：commit 前/后两个不同命令）
+
+> **Phase 0 ship 验证**: commit `11d3515` 实测通过（idistillation_writer.h +59 行, 其余 20 文件 0 行）
 
 ### Requirement: ctest 全量零回归
 

@@ -128,6 +128,24 @@ if (provider_mode == "mock" && capture_mode == CaptureMode::Training) {
 - ≤1.5MB/record（不变量 1，超出 throw `std::length_error`）
 - finalize 后写 `<agent_id>_<seq>.distill.v1.meta.json`（ConvergenceMeta 摘要）
 
+### D9 — Phase 0 ship 时对齐 ADR-0061-13 §决策 2 + 3（反向证据, 2026-08-29）
+
+**历史背景**: Phase 0 plan 初稿（`capture-mode-and-distillation-writer-v1-phase-0.md`）的 T0.4 + T0.5 代码片段与 ADR-0061-13 §决策 2 + 3 存在 4 项偏离:
+1. DistillationRecord 无 `input`/`output`/`trace_id`/`source_event`/`generation_timestamp_ms` 字段
+2. StepRecord 字段集为通用步骤（`node_id`/`reward`/`confidence`）而非 ADR ReAct 步骤（`thought`/`tool_name`/`tool_args`/`observation`/`latency_ms`）
+3. StepRecord.reward 拍平为 `double` + `double confidence` 而非真嵌入 `RewardSignal` struct（丢 Quality 三值枚举）
+4. IDistillationWriter 仅 2 虚函数（`write` + `finalize()`）而非 ADR §决策 3 的 3 虚函数 + 工厂（`write_record` + `close` + `finalize(meta)` + `make_file_writer`）
+
+**Oracle + Metis 双审查**（sessions `ses_fb33c1b2affe6CJtJph7iMdW22` + `ses_fb33c1973ffem31zWGz6f2XTlt`）识别上述偏离, 产出 9 项修正决策 (D1-D9), 由修正版 prompt `capture-mode-and-distillation-writer-v1-phase-0-CORRECTED.md` (655 行) 强制实施.
+
+**Phase 0 ship 实际对齐结果** (commit `11d3515`):
+- ✅ D1: `reward_signal.h` 路径修正为 `types/`
+- ✅ D3: IDistillationWriter 3 虚函数 + 1 静态工厂完全对齐 ADR §决策 3
+- ✅ D6 + D7: DistillationRecord 字段全集对齐 ADR §决策 2（含 input/output/trace_id/source_event/agent_id/teacher_version/generation_timestamp_ms/CaptureMode/ConvergenceMeta）+ StepRecord 真嵌入 `RewardSignal reward` 字段
+- ✅ D8: MUST NOT 列完整 20 个 contract 既有头文件清单
+
+**结论**: Phase 0 ship 与 ADR-0061-13 §决策 2 + 3 **完全对齐, 零偏离**. 此 D9 决策作为反向证据, 防 Phase 1 实施时误改回归.
+
 ## Risks
 
 | 风险 | 缓解 |

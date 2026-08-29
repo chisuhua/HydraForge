@@ -4,11 +4,19 @@
 > **关键不变量**（Oracle 决策 2）: 契约层 **零修改** — `include/agenticdsl/contract/` 全部 0 diff
 > **设计依据**: ADR-0080 v1.2 + ADR-0061-13 + Oracle 决策 2 (session `ses_fb4cd8ff8ffeJlYBgU3JogcnfB`)
 
-## Phase 0: 抽象层（4 .h + 默认实现骨架）
+## Phase 0: 抽象层（4 .h + 默认实现骨架）✅ ship 2026-08-29
 
-- [ ] **T0.1** Write failing test: `tests/test_capture_mode.cpp` ≥ 3 cases 占位
-- [ ] **T0.2** Verify fail: 编译失败（`fatal error: 'agenticdsl/types/capture_mode.h' file not found`）
-- [ ] **T0.3** Implement: `include/agenticdsl/types/capture_mode.h`:
+> **Ship 证据**: commit `11d3515` — 4 files changed, +267 insertions
+> - `include/agenticdsl/types/capture_mode.h` (47 行)
+> - `include/agenticdsl/types/distillation_record.h` (77 行, **对齐 ADR-0061-13 §决策 2 字段全集**)
+> - `include/agenticdsl/contract/idistillation_writer.h` (59 行, **3 虚函数 + 1 静态工厂对齐 ADR-0061-13 §决策 3**)
+> - `tests/test_capture_mode.cpp` (84 行, **4 cases / 22 assertions PASS**, 修正版 D4 零编译覆盖)
+> **Oracle B3 验证**: commit 前/后两次 `git diff HEAD -- include/agenticdsl/contract/` = 20 个既有文件 0 行 diff（仅 +59 行新增）
+> **ADR-TRACKING-01**: 34 WARNING 与 baseline 持平
+
+- [x] **T0.1** Write failing test: `tests/test_capture_mode.cpp` ≥ 3 cases 占位
+- [x] **T0.2** Verify fail: 编译失败（`fatal error: 'agenticdsl/types/capture_mode.h' file not found`）
+- [x] **T0.3** Implement: `include/agenticdsl/types/capture_mode.h`:
   ```cpp
   namespace agenticdsl {
   enum class CaptureMode : uint8_t { Off = 0, Online = 1, Training = 2 };
@@ -17,23 +25,29 @@
   CaptureMode parse_capture_mode(const std::string& s);  // throws std::invalid_argument
   }
   ```
-- [ ] **T0.4** Implement: `include/agenticdsl/types/distillation_record.h`:
-  - `struct StepRecord { std::string node_id; nlohmann::json metadata; double reward; double confidence; }`
-  - `struct DistillationRecord { std::string agent_id; std::string teacher_version; CaptureMode capture_mode; std::vector<StepRecord> steps; std::string trajectory_jsonl; ConvergenceMeta meta; }`
-  - `struct ConvergenceMeta { std::string task_id; std::string trace_id; std::chrono::system_clock::time_point created_at; }`
-- [ ] **T0.5** Implement: `include/agenticdsl/contract/idistillation_writer.h`:
+- [x] **T0.4** Implement: `include/agenticdsl/types/distillation_record.h`:
+  - `struct StepRecord { std::string thought; std::string tool_name; nlohmann::json tool_args; std::string observation; std::uint64_t latency_ms; }` *(Oracle/Metis 修正 D7: 字段集对齐 ADR-0061-13 §决策 2 ReAct 步骤)*
+  - `struct DistillationRecord { std::string input; std::string output; std::vector<StepRecord> steps; RewardSignal reward; std::string trace_id; std::string source_event; std::string agent_id; std::string teacher_version; std::uint64_t generation_timestamp_ms; CaptureMode capture_mode; ConvergenceMeta convergence; }` *(Oracle/Metis 修正 D6: 字段全集 + 真嵌入 RewardSignal)*
+  - `struct ConvergenceMeta { std::string agent_id; std::string teacher_version; std::string task_id; std::string trace_id; std::chrono::system_clock::time_point created_at; }`
+- [x] **T0.5** Implement: `include/agenticdsl/contract/idistillation_writer.h`:
   ```cpp
   namespace agenticdsl {
+  struct DistillationMetadata { std::string version; std::uint64_t total_examples; std::string dataset_hash; nlohmann::json generation_config; };
+
   class IDistillationWriter {
   public:
     virtual ~IDistillationWriter() = default;
-    virtual void write(const DistillationRecord& record) = 0;
-    virtual void finalize() = 0;
+    virtual void write_record(const DistillationRecord& record) = 0;  // (Oracle/Metis 修正 D3: write → write_record)
+    virtual void close() = 0;                                          // (修正 D3 新增 close)
+    virtual void finalize(const DistillationMetadata& meta) = 0;       // (修正 D3: finalize() → finalize(meta))
+    static std::unique_ptr<IDistillationWriter> make_file_writer(      // (修正 D3 新增工厂)
+        const std::filesystem::path& output_dir,
+        const std::string& agent_id);
   };
   }
   ```
-- [ ] **T0.6** Verify pass: 3 cases 编译通过（运行时仍 FAIL）
-- [ ] **T0.7** Commit: `feat(distillation): CaptureMode + DistillationRecord + IDistillationWriter contracts (T0)`
+- [x] **T0.6** Verify pass: **4 cases / 22 assertions PASS** (含 phase0_headers_compile_smoke 防零编译覆盖)
+- [x] **T0.7** Commit: `feat(distillation): CaptureMode + DistillationRecord + IDistillationWriter contracts (T0)` (commit `11d3515`)
 
 ## Phase 1: BREAKING 字段迁移 + 默认实现
 
