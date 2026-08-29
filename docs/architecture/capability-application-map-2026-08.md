@@ -1,7 +1,7 @@
-# 架构能力-应用地图（2026-08 v2.4）
+# 架构能力-应用地图（2026-08 v2.5）
 
-**生成日期**: 2026-08-28
-**最后验证**: 2026-08-28（v2.4 — 30 项能力 / 9 项 open gap (G10-G15 全部 ✅ Closed) / 17 类应用 / 23 个工程任务 T1-T22 + T26（T17/T15/IEvaluator V2/T19/T21/T20/Cross-Cutting Pattern PDK V1 全部 ✅ SHIP），验证命令见 §六）
+**生成日期**: 2026-08-29
+**最后验证**: 2026-08-29（v2.5 — 31 项能力 / 9 项 open gap (G10-G15 全部 ✅ Closed, G6 接近 Closed) / 17 类应用 / 23 个工程任务 T1-T22 + T26（T17/T15/IEvaluator V2/T19/T21/T20/Cross-Cutting Pattern PDK V1 全部 ✅ SHIP, T26 横切化 + capture-mode-and-distillation-writer-v1 启动中），验证命令见 §六）
 **作者**: Architecture Working Group
 **状态**: ✅ Active — 架构能力的**唯一事实源**（取代已归档的 `defect-truth-table-2026-08.md`）
 
@@ -25,7 +25,7 @@
 
 ---
 
-## 一、架构能力清单（30 项已 ship 能力，L4 含 #23 T14 + #24 T17 + #25 T15 + #26 IEvaluator V2 v2.0 后置增补 + #27 GEPALoop + #28 Prompt Evidence Gate + #29 MCTSWorkflowSearch + #30 Cross-Cutting Pattern PDK V1）
+## 一、架构能力清单（31 项已 ship 能力，L4 含 #23 T14 + #24 T17 + #25 T15 + #26 IEvaluator V2 v2.0 后置增补 + #27 GEPALoop + #28 Prompt Evidence Gate + #29 MCTSWorkflowSearch + #30 Cross-Cutting Pattern PDK V1 + **#31 Distillation Data Plane V1 (Change #1 ship 后增补, 当前 🔵 Active change 进行中)**）
 
 > **分层依据**: `docs/specs/architecture.md` L0~L4 + R1~R5 五层架构模型
 > **验证方法**: `grep` 实证 + ctest PASS + ADR 头部状态三方交叉（详见 §六）
@@ -85,8 +85,9 @@
 | **28** | **Prompt Evidence Gate (Go/No-Go 阈值 + parse-valid + 两阶段注入 ≤8k + JSONL 导出 + llm.dsl.* 事件)** | `include/agenticdsl/prompt/evidence_gate.h` + `src/modules/prompt/evidence_gate.cpp` + `src/modules/prompt/prompt_assembler.cpp` + `tools/baseline/measure_prompt_baseline.py` + `tools/prompt/export_training_data.py` | test_prompt_evidence_gate **19 cases / 338 assertions PASS**; 30+ few-shot `lib/prompt/few_shots/` + 50+ golden `lib/prompt/golden/`; 3 主题注册 (ADR-0068 v1.4); 既有契约零修改 | ADR-0074 + ADR-0083 (IEvaluator V2) | **Sprint 25 (T21, 2026-08-28 ship)** |
 | **29** | **MCTSWorkflowSearch V1 (AFlow 风格 MCTS 工作流搜索: 5 轴模板搜索空间 + UCB1 选择/扩展/模拟/反向传播 + V2 评估 + 回归门 + 变异授权 + mcts.* 事件)** | `include/agenticdsl/cognitive/mcts_workflow_search.h` + `src/modules/cognitive/mcts_workflow_search.cpp` | test_mcts_workflow_search **17 cases / 65 assertions PASS**; 4 主题注册 (ADR-0068 v1.5); 既有 5 契约零修改; Mock 模板实例化不触发真实 LLM | ADR-0061-08 | **Sprint 24 (T20, 2026-08-28 ship)** |
 | **30** | **Cross-Cutting Pattern PDK V1 (4 范式 PDK Pattern + CrossCuttingOrchestrator + ICrossCuttingPattern + 横切功能 DSL `*.cc.md`)** | `include/agenticdsl/pdk/cross_cutting/` + `src/common/governance/cross_cutting/` | test_cross_cutting_orchestrator 5 cases + test_decorator_pattern 2 + test_hook_pattern 3 + test_composition_pattern 2 + test_bus_pattern 2 + test_cross_cutting_dsl 2 + test_cross_cutting_e2e 2 = **18 cases PASS**; 既有 10 个契约文件零修改 (Oracle B3) | ADR-0085 | **Sprint 24 (pdk-cross-cutting-patterns, 2026-08-28 ship)** |
+| **31** | **Distillation Data Plane V1 (CaptureMode 三态枚举 + IDistillationWriter 契约 + FileDistillationWriter V1 默认实现 + TrajectoryIR → DistillationRecord 桥接 + payload redact hash-only PII 防御)** | `include/agenticdsl/types/capture_mode.h` + `include/agenticdsl/contract/idistillation_writer.h` + `src/modules/distillation/file_writer.cpp` + `src/modules/distillation/trajectory_bridge.cpp` | test_capture_mode 3 cases + test_distillation_writer 5 + test_event_log_capture_mode 5 = **≥13 cases** (ship 后); BREAKING EventLogConfig `bool capture_prompt_bytes → CaptureMode capture_mode` (5 消费者迁移, `grep capture_prompt_bytes = 0` 强验证); 既有 9 个 contract 头文件零修改 (Oracle B3) | **ADR-0080 v1.2** + **ADR-0061-13** | **Sprint 24-25 (capture-mode-and-distillation-writer-v1, 2026-08-29 active, 24h cooling-off + Phase 0-3)** |
 
-**总覆盖**: **30 项已 ship 能力** = L0(5) + L1(5) + L2(4) + L3(5) + L4(11)
+**总覆盖**: **31 项已 ship 能力 (含 #31 Distillation Data Plane V1 进行中)** = L0(5) + L1(5) + L2(4) + L3(5) + L4(12)
 **v1.1.2 新增**: L4 +1（行为回归套件 — Oracle 评审 "本周最高杠杆" T14 完成）
 **v1.3 新增**: L4 +1（SkillCompiler V1 — T17 ship, B7 自进化"变异对象生成器"落地, 闭环 2 第 4 环接通）
 **v1.9 新增**: L4 +1（Trajectory IR V1 — T15 ship, B6 蒸馏数据标准化落地, G14 闭环; ParsedGraph 独立视图, 单向 Converter 桥接）
@@ -507,6 +508,7 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 | 2026-08-28 | **v2.2** | **T21 Prompt Evidence Gate ship (OpenSpec `t21-prompt-evidence-gate`)** | (1) §一 27→28 项能力, L4 +1 (#28 Prompt Evidence Gate: Go/No-Go 阈值 + parse-valid + 两阶段注入 + JSONL + llm.dsl.* 事件); (2) §八 T21 行 APPROVED → ✅ SHIP; (3) 头部 v2.1 → v2.2 + 生成/最后验证 2026-08-28; (4) 测试: test_prompt_evidence_gate 19 cases / 338 assertions PASS, 30+ few-shot + 50+ golden 实际生成 (非占位), 既有 7 契约零修改, ADR-0068 附录 A v1.4 注册 3 个主题 (2 llm.dsl.* + 1 prompt.*), ctest 动态基线 0 回归 |
 | 2026-08-28 | **v2.3** | **T20 AFlow MCTS V1 ship (OpenSpec `t20-aflow-mcts`)** | (1) §一 28→29 项能力, L4 +1 (#29 MCTSWorkflowSearch V1: 5 轴模板搜索空间 + UCB1 选择/扩展/模拟/反向传播 + V2 评估 + 回归门 + 变异授权 + mcts.* 事件); (2) §八 T20 行 APPROVED → ✅ SHIP 2026-08-28; (3) §三 B7 行 T20 解锁 C2 自进化高级; (4) 头部 v2.2 → v2.3 + 最后验证 2026-08-28; (5) 测试: test_mcts_workflow_search 17 cases / 65 assertions PASS, 既有 5 契约零修改, ADR-0068 附录 A v1.5 注册 4 个 mcts.* 主题, ADR-0061-08 🔍 Proposed → ✅ Approved (V1 ship), ctest 动态基线 0 回归 |
 | 2026-08-28 | **v2.4** | **T26 Cross-Cutting Pattern PDK V1 ship (OpenSpec `pdk-cross-cutting-patterns`)** | (1) §一 29→30 项能力, L4 +1 (#30 Cross-Cutting Pattern PDK V1: ICrossCuttingPattern + CrossCuttingOrchestrator + 4 Pattern implementations + DSL loader); (2) 既有 10 个契约文件零修改 (Oracle B3 强制不变量); (3) 测试: 18 cases PASS (5 orchestrator + 2 decorator + 3 hook + 2 composition + 2 bus + 2 dsl + 2 e2e); (4) ADR-0085 已 ✅ Approved; (5) 头部 v2.3 → v2.4 + 最后验证 2026-08-28 |
+| 2026-08-29 | **v2.5** | **Day 1+2 ship + capture-mode-and-distillation-writer-v1 启动 (Oracle 二次审查 6 ADR)** | (1) **Day 1 ship (3 commits)**: (a) `9efd139` fix(ir) TrajectoryIR schema_version + 1 test case (10/10 trajectory_ir PASS); (b) `871cb4a` docs(adr) 4 处评审勘误 (ADR-0083 D6 / 0080 v1.2 双状态 / 0071 实施清单 / 0074 MockLLM 注记); (c) `f811ce7` feat(tools) adr_lint ADR-TRACKING-01 规则 (35 WARNING 触发, 验证有效); (2) **Day 2 ship (3 commits)**: (a) `a87f3f3` chore(openspec) capture-mode-and-distillation-writer-v1 init (5 文件 + openspec validate --strict PASS); (b) `0e0359c` docs(adr) ⏳ tracking: pending 注记 (ADR-0080 v1.2 + ADR-0061-13 实战验证 ADR-TRACKING-01, WARNING 35→34); (c) `f7c99aa` docs(architecture) Sprint 24 kickoff doc; (3) **§一 30→31 项能力**: L4 +1 (#31 Distillation Data Plane V1: CaptureMode + IDistillationWriter + FileDistillationWriter + TrajectoryIR bridge + payload redact, capture-mode-and-distillation-writer-v1 active); (4) **§六 文档同步准备**: cap-map §一 +1 + ADR-0068 附录 A v1.7 准备 (event_log.capture_mode_downgrade 新主题) + checklist §13 追加 (ADR-TRACKING-01 规则文档化); (5) **Sprint 24-30+ Roadmap 创建**: `docs/superpowers/plans/2026-08-29-sprint-24-30-roadmap.md` (commit `595bf0f`, 选项 A 采纳, 12 周排期 + Phase 6c/7 过渡); (6) **§八 T26 横切化启动**: T26.a (T19 GEPA L0 装饰链) + T26.b (T20 MCTS mutation 配置化) + T26.c (T15 BusPattern OTel) 排入 Sprint 25-26; (7) **Sprint 24 24h cooling-off 窗口**: kickoff 创建 2026-08-29 → 实施启动 2026-08-30 18:00 后 (Single-Dev Mode 硬约束); (8) 头部 v2.4 → v2.5 + 最后验证 2026-08-29。决议依据: Oracle 决策 1-5 (session `ses_fb4cd8ff8ffeJlYBgU3JogcnfB`) + Oracle 二次审查 (session `ses_fb4e00320ffeqQVZ2S61tF3dZi`) + 8 atomic commits (Day 1+2) + Sprint 24-30+ plan (commit `595bf0f`) |
 **后续追踪**:
 - **下一修订触发**: (1) 任意 §二 open gap ship；(2) 任意 §四/§八工程任务完成；(3) 新应用类型立项；(4) Phase 6 Candidate B 启动；(5) T14-T22 任一 ship/promotion；(6) 5 个新增 ADR 任一获批；(7) **ADR-0071/0074 评审会议召开 + 决议记录**
 - **定期审计**: 每 Sprint 收官同步（`scripts/sprint-closeout.sh` Step 8 加本表交叉检查）

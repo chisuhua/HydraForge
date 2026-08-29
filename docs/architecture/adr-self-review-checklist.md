@@ -29,6 +29,7 @@
 - [ ] **C2. 依赖关系** — ADR 引用的其他 ADR 全部存在且状态正确
 - [ ] **C3. 契约层一致性** — 与 `include/agenticdsl/contract/` 现有契约协调 (命名/接口/语义)
 - [ ] **C4. 文档同步** — `capability-application-map-2026-08.md` §二/§三/§四/§八 引用同步
+- [ ] **C5. ADR-TRACKING-01 跟踪 change 创建** — Approved 后 24h 内必须 (1) 创建 tracking OpenSpec change 覆盖此 ADR 实施, 或 (2) 头部追加 `⏳ tracking: pending` 标注, 或 (3) 头部追加 `代码 ship: N/A (docs-only)` 豁免标记。验证命令: `python3 tools/adr_lint.py 2>&1 | grep "ADR-TRACKING-01"` 应不命中此 ADR。依据: Oracle 决策 5 (2026-08-29, session `ses_fb4cd8ff8ffeJlYBgU3JogcnfB`), 防止 "Approved 即遗忘" 先例扩散。
 
 ---
 
