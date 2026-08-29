@@ -10,6 +10,17 @@
 # 作者: AgenticDSL Stage 5
 # 最后修改日期: 2026-06-16
 
+# ADR-TRACKING-01 (Oracle 决策 5, 2026-08-29):
+#   检测 Approved 但 24h 内无 tracking OpenSpec change 的 ADR（warning 级，不阻断 CI）
+#   触发: **状态** 含 ✅ Approved (评审通过 YYYY-MM-DD) 且 elapsed > 24h
+#         且 openspec/changes/ 无匹配 ADR 编号的目录
+#         且 ADR 头部无豁免标记 `代码 ship: N/A (docs-only)`
+#   修复: (1) 创建 OpenSpec change 覆盖此 ADR 实施, 或
+#         (2) 头部追加 `⏳ tracking: pending` 标注, 或
+#         (3) 头部追加 `代码 ship: N/A (docs-only)` 豁免标记
+#   目的: 防止 single-dev 治理范式下 "Approved 即遗忘" 先例扩散
+#   参考: docs/architecture/adr-self-review-checklist.md §13 (待追加)
+
 import argparse
 import re
 import sys
@@ -148,6 +159,102 @@ def find_superseded_references(text: str, current_number: str) -> list[str]:
 
 
 # ----------------------------------------------------------------------------
+# ADR-TRACKING-01 规则辅助函数 (Oracle 决策 5)
+# ----------------------------------------------------------------------------
+
+# 评审日期模式: "(评审通过 YYYY-MM-DD)" 或 "(YYYY-MM-DD)"
+APPROVAL_DATE_PATTERN = re.compile(
+    r"\(?评审通过\s*(\d{4}-\d{2}-\d{2})\)?|"
+    r"Approved[^()\n]{0,50}?\(?\s*(\d{4}-\d{2}-\d{2})",
+    re.IGNORECASE,
+)
+
+# 豁免标记模式
+EXEMPTION_PATTERN = re.compile(
+    r"代码\s*ship\s*:\s*N/A\s*\(docs-only\)|docs-only\s*ADR",
+    re.IGNORECASE,
+)
+
+# 跟踪占位标记模式 (Approved 但允许临时 pending)
+TRACKING_PENDING_PATTERN = re.compile(
+    r"⏳\s*tracking\s*:\s*pending|tracking\s*:\s*pending",
+    re.IGNORECASE,
+)
+
+
+def check_tracking_pending(
+    path: Path,
+    text: str,
+    repo_root: Path,
+    now: "datetime | None" = None,  # type: ignore[valid-type]
+) -> str | None:
+    """ADR-TRACKING-01: 检查 Approved ADR 是否 24h 内无 tracking OpenSpec change.
+
+    Returns: warning message string if violation detected, None otherwise.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    # 1. 仅检查 ✅ Approved ADR
+    if "Approved" not in text[:500]:  # 快速过滤: 头部不含 Approved
+        return None
+
+    # 2. 提取评审日期
+    m = APPROVAL_DATE_PATTERN.search(text[:1000])  # 头部 1000 字符内
+    if not m:
+        return None
+    approval_date_str = m.group(1) or m.group(2)
+    try:
+        approval_date = datetime.strptime(approval_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+    # 3. 检查 elapsed > 24h
+    check_time = now or datetime.now(timezone.utc)
+    if check_time - approval_date < timedelta(hours=24):
+        return None
+
+    # 4. 检查豁免标记
+    if EXEMPTION_PATTERN.search(text[:1500]):
+        return None
+
+    # 5. 检查 tracking: pending 占位
+    if TRACKING_PENDING_PATTERN.search(text[:1500]):
+        return None
+
+    # 6. 检查 openspec/changes/ 是否有匹配目录
+    adr_number_match = ADR_PATTERN.match(path.name)
+    if not adr_number_match:
+        return None
+    adr_number = adr_number_match.group(1)
+
+    openspec_dir = repo_root / "openspec" / "changes"
+    if not openspec_dir.exists():
+        return f"WARNING [ADR-TRACKING-01] {path.name}: Approved {approval_date_str}, openspec/changes/ 不存在（仓库根: {repo_root}）"
+
+    # 匹配: change 目录名含 ADR 编号（含 4 位子串）
+    matching_changes = [
+        d.name for d in openspec_dir.iterdir()
+        if d.is_dir() and adr_number in d.name
+    ]
+    # 同时检查 archive
+    archive_dir = openspec_dir / "archive"
+    if archive_dir.exists():
+        matching_changes.extend([
+            d.name for d in archive_dir.iterdir()
+            if d.is_dir() and adr_number in d.name
+        ])
+
+    if not matching_changes:
+        return (
+            f"WARNING [ADR-TRACKING-01] {path.name}: Approved {approval_date_str} 已超过 24h, "
+            f"但 openspec/changes/ 无含 '{adr_number}' 的 tracking change 目录. "
+            f"修复: (1) 创建 OpenSpec change, (2) 头部加 '⏳ tracking: pending', 或 (3) 加 '代码 ship: N/A (docs-only)' 豁免"
+        )
+
+    return None
+
+
+# ----------------------------------------------------------------------------
 # 核心校验函数
 # ----------------------------------------------------------------------------
 
@@ -243,6 +350,14 @@ def lint_adr_file(path: Path, all_adr_numbers: set[str]) -> list[str]:
     #    状态应为 ⛔ Superseded（软警告，不计入错误）
     #    此处仅记录在 stderr 模式（--strict 时升级为错误，由调用方控制）
 
+    # 7. ADR-TRACKING-01: Approved 24h 无 tracking change (warning 级)
+    #    通过 stderr 风格输出, 不计入 errors 列表（保持 exit code 0 行为）
+    repo_root = Path(__file__).resolve().parent.parent
+    warning = check_tracking_pending(path, text, repo_root)
+    if warning:
+        # 写入 stderr 不影响 lint 通过, 但用户可见
+        print(f"  ⚠ {warning}", file=__import__('sys').stderr)
+
     return errors
 
 
@@ -283,6 +398,7 @@ def main() -> int:
         all_errors.extend(errors)
 
     print(f"已检查 {files_checked} 个 ADR 文件")
+    print("  (含 ADR-TRACKING-01 规则: Approved 24h 无 tracking change → WARNING)")
     if all_errors:
         print(f"\n✗ 发现 {len(all_errors)} 个 lint 错误：\n")
         for e in all_errors:
