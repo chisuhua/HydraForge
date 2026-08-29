@@ -3,6 +3,7 @@
 **日期**: 2026-08-24
 **状态**: ✅ **Approved (评审通过 2026-08-25)** (Oracle 评审识别为架构层缺口, capability-application-map §八 G15)
 ⏳ **代码 ship: Pending** — OpenSpec change `2026-08-24-adr-0061-13-distillation-output-format` 尚未 ship；`include/agenticdsl/contract/idistillation_writer.h` 与 `struct DistillationRecord` 不存在（grep 0 命中，cap-map §八.2 闭环 1 第 7 环节 2026-08-26 自审识别）。消费方（T15 Trajectory IR、ADR-0078 Fine-tune）暂受阻。V1 ship 估时 1 sprint（含与 Trajectory IR 集成测试）。
+⏳ **tracking: pending** — 与 ADR-0080 v1.2 捆绑 ship: see `openspec/changes/capture-mode-and-distillation-writer-v1/`（2026-08-29 创建，P0 路线图级）
 **父 ADR**: [../adr-0061-agent-evolution-and-solidification.md](../adr-0061-agent-evolution-and-solidification.md)
 **父 ADR 兄弟**: adr-0061-02 (T14 行为回归已 ship), adr-0061-06 (Trajectory IR), adr-0061-09 (GEPA)
 

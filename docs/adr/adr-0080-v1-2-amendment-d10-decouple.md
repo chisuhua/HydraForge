@@ -2,6 +2,7 @@
 
 **日期**: 2026-08-24
 **状态**: ✅ **Approved (评审通过 2026-08-25)** (Oracle 评审识别为架构层缺口, capability-application-map §八 G12)
+⏳ **tracking: pending** — 与 ADR-0061-13 捆绑 ship: see `openspec/changes/capture-mode-and-distillation-writer-v1/`（2026-08-29 创建）
 **父 ADR**: [adr-0080-append-only-event-log.md](adr-0080-append-only-event-log.md) v1.1
 
 ## 状态
