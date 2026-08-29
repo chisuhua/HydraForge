@@ -117,6 +117,21 @@ int main(int argc, char* argv[]) {
     const std::string& session_id_to_load = cli_options.session_id;
 
     // ============================================================
+    // Mock-mode hard rejection（spec Requirement: Mock-mode hard rejection）
+    // mock 数据会污染蒸馏训练集 — --allow-training-capture 要求真实 LLM provider
+    // ============================================================
+    try {
+      if (cli_options.allow_training_capture && mock_mode) {
+        throw std::runtime_error(
+            "--allow-training-capture requires real LLM provider (not mock). "
+            "Mock-generated data would pollute the distillation training set.");
+      }
+    } catch (const std::exception& e) {
+      std::cerr << "[main] " << e.what() << std::endl;
+      return 1;
+    }
+
+    // ============================================================
     // 1.5. Session 选项早期校验 — 在 engine/validation 初始化之前失败快速
     //     --fork 需要 --session 指定源 session
     //     --name 与 --session 互斥（--name 仅用于新建 session）

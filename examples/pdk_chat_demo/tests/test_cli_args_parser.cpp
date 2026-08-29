@@ -22,9 +22,9 @@ TEST_CASE("parser accepts mock mode", "[cli][stage3]") {
   CHECK_FALSE(result.options.offline);
 }
 
-TEST_CASE("declaration table contains exactly the nine flags", "[cli][stage3]") {
+TEST_CASE("declaration table contains exactly the ten flags", "[cli][stage3]") {
   const auto& table = pdk_chat_demo::cli_flag_declarations();
-  REQUIRE(table.size() == 9);
+  REQUIRE(table.size() == 10);
   CHECK(table[0].long_name == "mock");
   CHECK(table[1].long_name == "session");
   CHECK(table[2].long_name == "print");
@@ -33,6 +33,7 @@ TEST_CASE("declaration table contains exactly the nine flags", "[cli][stage3]") 
   CHECK(table[4].long_name == "offline");
   CHECK(table[5].long_name == "fork");
   CHECK(table[6].long_name == "name");
+  CHECK(table[9].long_name == "allow-training-capture");
 }
 
 TEST_CASE("all declarations map to CliOptions", "[cli][stage3]") {
@@ -158,6 +159,22 @@ TEST_CASE("--help mentions both system-prompt flags", "[cli_parser][system_promp
   REQUIRE(r.show_help);
   CHECK(r.help.find("--system-prompt") != std::string::npos);
   CHECK(r.help.find("--append-system-prompt") != std::string::npos);
+}
+
+TEST_CASE("--allow-training-capture parses to true", "[cli][stage3][training-capture]") {
+  char a[] = "pdk_chat_demo"; char b[] = "--allow-training-capture"; char* argv[] = {a, b};
+  const auto result = pdk_chat_demo::parse_cli_args(2, argv);
+  REQUIRE(result.ok);
+  CHECK(result.options.allow_training_capture);
+  CHECK_FALSE(result.options.mock);
+}
+
+TEST_CASE("--allow-training-capture default false", "[cli][stage3][training-capture]") {
+  char a[] = "pdk_chat_demo";
+  char* argv[] = {a};
+  const auto result = pdk_chat_demo::parse_cli_args(1, argv);
+  REQUIRE(result.ok);
+  CHECK_FALSE(result.options.allow_training_capture);
 }
 
 TEST_CASE("missing value after --system-prompt returns error with help", "[cli_parser][system_prompt]") {

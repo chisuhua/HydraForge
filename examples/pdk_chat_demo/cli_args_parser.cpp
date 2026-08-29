@@ -15,6 +15,9 @@ const std::vector<CliFlagSpec>& cli_flag_declarations() {
     {"name", "", CliValueKind::string, "SESSION_NAME", "Persist a human-readable name for the new session (ignored when --session loads an existing session)", CliDestination::session_name},
     {"system-prompt", "", CliValueKind::string, "TEXT", "Replace the default system prompt with TEXT (overwrites)", CliDestination::system_prompt},
     {"append-system-prompt", "", CliValueKind::string, "TEXT", "Append TEXT after the default system prompt, separated by one newline", CliDestination::append_system_prompt},
+    {"allow-training-capture", "", CliValueKind::flag, "",
+     "Enable Training-mode distillation capture (requires real LLM provider, rejected in mock mode)",
+     CliDestination::allow_training_capture},
   };
   return table;
 }
@@ -38,6 +41,7 @@ CliParseResult parse_cli_args(int argc, char* argv[]) {
       result.options.mock = parsed["mock"].as<bool>();
       result.options.print = parsed["print"].as<bool>();
       result.options.offline = parsed["offline"].as<bool>();
+      result.options.allow_training_capture = parsed["allow-training-capture"].as<bool>();
       if (parsed.count("session")) result.options.session_id = parsed["session"].as<std::string>();
       if (parsed.count("provider")) result.options.provider = parsed["provider"].as<std::string>();
       if (parsed.count("fork")) result.options.fork_node_id = parsed["fork"].as<std::string>();

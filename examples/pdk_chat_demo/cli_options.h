@@ -6,6 +6,7 @@ struct CliOptions {
   bool mock = false;
   bool print = false;
   bool offline = false;
+  bool allow_training_capture = false;  // Phase 2: --allow-training-capture (Training-mode distillation capture)
   std::string session_id;
   std::string provider;
   std::string fork_node_id;
