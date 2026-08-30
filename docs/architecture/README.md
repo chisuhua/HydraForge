@@ -21,7 +21,8 @@
 | `self-evolution-architecture-2026-08.md` | 自进化与协同进化架构定义（证据输入：闭环、支撑平面、阶段边界与当前禁止行为） | 🔍 Proposed (v1.1) | 2026-08-26 | ADR-0084 / T15 / T19 / T20 / T22 状态变化，或协同进化 spike promotion |
 | `pdk-chat-demo-distill-source-survey-2026-08.md` | pdk_chat_demo Session JSONL 临时数据源调研（推荐 SessionWriter JSONL 而非 pdk JSON） | ✅ Active (v1.0) | 2026-08-24 | SessionWriter 升级 / D10 v1.2 ship |
 | `defect-fix-roadmap-2026-08.md` | 架构缺陷修复路线图（12 个 rdd-workflow 提案节点 + Mermaid 依赖图） | ✅ Active (v1.0) | 2026-08-20 | 提案 ship / Sprint 收官交叉检查 |
-| `agent-orchestration-architecture-2026-08.md` | **多智能体编排架构总览**（5 层编排模型 + 5 种编排单元 + Loop×Pattern 行为矩阵 + 认知/领域协同 + 17 类应用场景映射 + LLM 编排蓝图 + 断链清单） | 🔍 Proposed (v1.0) | 2026-08-29 | 横切架构 / PDK Agent 家族 / Cognitive-Domain 协作演进（断链修复 P0 落地 / 场景智能体 P1 ship）|
+| `agent-orchestration-architecture-2026-08.md` | **多智能体编排架构总览**（5 层编排模型 + 5 种编排单元 + Loop×Pattern 行为矩阵 + 认知/领域协同 + 17 类应用场景映射 + LLM 编排蓝图 + 断链清单） | 🔍 Proposed (v1.5) | 2026-08-30 | 横切架构 / PDK Agent 家族 / Cognitive-Domain 协作演进（断链修复 P0 落地 / 场景智能体 P1 ship / Axis6 Phase 0+1 ship）|
+| `axis6-chain-workflow-architecture-2026-08.md` | **Axis6 Chain 完整工作流程架构**（双图宇宙第一性原理 + 6 阶段工作流程 + EvolutionReadinessGate + WorkflowMaterializer + GenerateSubGraph×Axis6 关系 + 7 项缺口 G1-G7） | 🔍 Proposed (v1.0) | 2026-08-31 | G1-G7 缺口修复 / ADR-0061-08 v1.1 Approved / GenerateSubGraph 断链修复 |
 | `multi-domain-agent-architecture.md` | **多领域智能体架构与服务协作**（Cognitive/Domain 分层 + IInteractionBus 事件驱动 + PDK 工具注册 + DSL DAG 直传） | ✅ Active (v1.0, 2026-08-30 从 `docs/guides/` 迁入) | 2026-08-30 | ADR-0020 / 0082 状态变化, 或 Cognitive-Domain 协作机制演进 |
 
 > 归档版本（v1.0/v1.1 架构、v1 SOTA 定位）见 [`../archive/architecture/`](../archive/architecture/)。
