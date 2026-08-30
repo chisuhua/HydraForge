@@ -208,7 +208,7 @@ T19 GEPA 在 S1 阶段只能执行只读反思；S2 之前不得执行 `commit(P
 3. **Trajectory IR 工程实现**（ADR-0061-06 v1.1 ✅）：序列化视图、敏感字段和版本兼容 — **T15 启动 Sprint 25**；
 4. **IDistillationWriter 代码 ship**（ADR-0061-13 ✅）：`include/agenticdsl/contract/idistillation_writer.h` + `distillation_record.h` + 3 文件分离实现 — **2026-08-26 自审识别代码不存在，待 OpenSpec task 排期**；
 5. 进化事件与 `EvolutionAttempt` schema：引用关系、幂等性和审计查询；
-6. 信用分配契约：单主体与多主体评估的归因边界（建议预估 `adr-0085-credit-assignment-contract.md`，1+2 sprint spike + ADR）；
+6. ~~信用分配契约：单主体与多主体评估的归因边界（建议预估 `adr-0085-credit-assignment-contract.md`，1+2 sprint spike + ADR）~~ ✅ **已立项 (2026-08-31)**：[`../adr/adr-0086-credit-assignment-contract.md`](../adr/adr-0086-credit-assignment-contract.md) 🔍 Proposed — 文件名修正为 0086 (0085 已被横切 Pattern PDK 占用)；评估层 vs 归因层划界 + VersionPairDiff V1 + 默认 NotAttempted fail-closed；
 7. 稳定性与反共谋评估：历史锚点、多样性、独立对手/环境和停止条件；
 8. 在线教师蒸馏研究协议：教师准入、门控吸收、异步调度、成本和回滚；
 9. Agent-Agent/Agent-Environment 协同进化：只有在 S4 promotion criteria 满足后再单独立项。

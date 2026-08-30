@@ -895,7 +895,7 @@ patterns:
 | `docs/adr/skill/adr-0061-08-aflow-search.md` | AFlow MCTS 工作流搜索 ADR（T20 MCTSWorkflowSearch ✅ Ship）|
 | `docs/adr/adr-0050-phase6-strategic-evaluation.md` | Phase 6 战略评估 ✅ Approved；**Candidate B 服务化 🔒 冻结** (重开条件 0/6), Phase 6 实际主线 = PDK 生产化 + AgentForge MVP |
 | `docs/adr/adr-0077-grpc-data-plane.md` | gRPC Data Plane 🔍 Proposed + **Wave 4 descoped docs-only**; C1 跨主机联邦应用依赖此 ADR 重启 |
-| `docs/adr/adr-0086-credit-assignment-contract.md` | **待立项**（取代 self-evolution §七 #6 已过期的 `adr-0085-` 文件名；0085 已被横切 Pattern PDK 占用）— 信用分配契约, S4 协同进化前置 |
+| `docs/adr/adr-0086-credit-assignment-contract.md` | **🔍 Proposed (2026-08-31 立项)** — 信用分配契约 (评估层 vs 归因层划界, VersionPairDiff V1, 默认 NotAttempted fail-closed); S4 协同进化前置 + Axis6 Phase 1 blocker 解除; 取代 self-evolution §七 #6 已过期的 `adr-0085-` 文件名 |
 | `docs/adr/skill/adr-0061-08-aflow-search.md` | AFlow MCTS ADR（T20 已 ship 2026-08-28）; **v1.4 增补 §18.10.1**: Axis6 cognitive_domain composition 搜索 (触发 §14 M5 cognitive domain 链 + 自进化生成 cognitive_domain 链) — amendment 草案见 `docs/adr/skill/adr-0061-08-v1-1-amendment-axis6.md` 🔍 Proposed, 实施载体 `openspec/changes/2026-08-31-mcts-axis6-cognitive-domain/` |
 | `docs/specs/architecture.md` | AgenticOS 五层架构规范 (L0-L4 + R1-R5) |
 
