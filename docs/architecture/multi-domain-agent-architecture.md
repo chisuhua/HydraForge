@@ -1,8 +1,18 @@
 # 多领域智能体架构与服务协作
 
+**生成日期**: 2026-05-13（初版, `docs/guides/` 起源）
+**最后验证**: 2026-08-30（v1.1 — 从 `docs/guides/` 迁入 `docs/architecture/`, 与 `agent-orchestration-architecture-2026-08.md` 对接; ADR 链接全部 ✅ Approved 验证, ADR-0019/0020/0021/0022/0023/0060/0082 已 ship）
+**作者**: Architecture Working Group
+**状态**: ✅ Active（v1.1, 2026-08-30 迁入本目录）
+
 > **文档目标**：解释 ADR-0019 至 ADR-0023 定义的多领域智能体架构中，智能体之间如何互相提供服务。
 
 > **涉及 ADR**：ADR-0019 (IInteractionBus)、ADR-0020 (线程模型)、ADR-0021 (PDK)、ADR-0022 (插件加载)、ADR-0023 (ToolResult 标准)
+
+> **关联文档**（2026-08-30 同步）:
+> - 上层编排视图: [`agent-orchestration-architecture-2026-08.md`](agent-orchestration-architecture-2026-08.md) — 5 层编排模型 + Loop × Pattern 行为矩阵 + 横切编排
+> - 横切机制细节: [`cross-cutting-hooks-architecture-2026-08.md`](cross-cutting-hooks-architecture-2026-08.md) — 6 层抽象 + 4 PDK Pattern
+> - 蒸馏与自进化: [`self-evolution-architecture-2026-08.md`](self-evolution-architecture-2026-08.md) — Cognitive 指导 Domain 的进化路径
 
 ---
 

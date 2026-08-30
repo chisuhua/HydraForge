@@ -389,7 +389,7 @@ Agent 不仅被编排，还参与编排决策。
 | 文档 | 关系 |
 |------|------|
 | `docs/archive/specs/architecture-v2.2.md`（已归档） | **互补** — 八层规范是"深度分层"，本文档是"应用视角" |
-| `docs/guides/multi-domain-agent-architecture.md` | **演进** — 本文档将 Cognitive/Domain Worker 模式提升为 Agent-as-Plugin 范式 |
+| `docs/architecture/multi-domain-agent-architecture.md` | **演进** — 本文档将 Cognitive/Domain Worker 模式提升为 Agent-as-Plugin 范式 (2026-08-30 从 `docs/guides/` 迁入) |
 | `docs/adr/adr-0021-pdk-design.md` | **扩展** — PDK 从"工具脚手架"扩展为"Agent 脚手架" |
 | `docs/adr/adr-0051-*.md` | **落地** — Spike 发现的 awkward pattern 是本文档的实践反馈 |
 | `docs/architecture/agent-as-plugin-architecture-v1.1.md` | **基础** — 本文档建立在 Plugin 架构文档之上 |

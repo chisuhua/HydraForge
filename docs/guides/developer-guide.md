@@ -5,6 +5,18 @@
 > **适用对象**：AI 工程师、智能体开发者、LLM 应用架构师
 > **前置要求**：熟悉 AgenticDSL v3.10 规范（[链接](#)）
 
+> ⚠️ **状态说明 (2026-08-30)**: 本指南最后更新 2026-05-13, **未反映** 2026-06 至 2026-08 期间的重要演进, 包括:
+> - **编排层新增**: Loop Agent (React/PlanExecute/ForkJoin, ADR-0021 Sprint 20)、Cognitive/Domain Worker 拆分 (ADR-0020)、GenerateSubgraph 动态子图
+> - **横切架构**: 6 层抽象 + 4 PDK Pattern + CrossCuttingOrchestrator (ADR-0085, 2026-08-28)
+> - **蒸馏与自进化**: CaptureMode + IDistillationWriter + GEPALoop + MCTSWorkflowSearch + IEvaluator + MutationGovernor (cap-map §一 #27-#31, 2026-08-27/28/29)
+> - **Skill 模型**: SKILL.md 标准 + SkillCompiler V1 + WASM 字节码编译路径 (ADR-0061-01/03/05)
+> - **会话模型**: SessionManager + Session 4-Scope + JSONL 持久化 (ADR-0079)
+>
+> **架构全景与决策地图**: 请参阅 [`../architecture/agent-orchestration-architecture-2026-08.md`](../architecture/agent-orchestration-architecture-2026-08.md)（v1.2, 5 层编排模型 + 5 种编排单元 + Loop×Pattern 行为矩阵 + Cognitive↔Domain 指导生态 + 蒸馏 + 自进化）
+> **多领域协作**: [`../architecture/multi-domain-agent-architecture.md`](../architecture/multi-domain-agent-architecture.md)（2026-08-30 从 `docs/guides/` 迁入）
+>
+> **建议**: 将本指南重写任务排期到 v3.11 文档刷新窗口, 当前读者应以 v3.10 DSL 语法 + cap-map §一/#27-#31 + orchestration-architecture §十二-§十六 为准。
+
 ---
 
 ## 一、快速入门：5 分钟创建你的第一个智能体

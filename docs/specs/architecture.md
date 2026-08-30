@@ -230,7 +230,7 @@ L4: Temporal Agent (pdk/temporal_agent/lib.so)          ← 编排 + 暴露外�
 
 ### 2.7 与多领域智能体架构的演进关系
 
-`docs/guides/multi-domain-agent-architecture.md` 定义了:
+`docs/architecture/multi-domain-agent-architecture.md` 定义了 (2026-08-30 从 `docs/guides/` 迁入):
 - **Cognitive Worker**（编排者）→ **L4 Agent 应用服务**
 - **Domain Workers**（执行者，提供工具）→ **L2 Plugin 工具**
 
@@ -950,7 +950,7 @@ orchestration:
 | 应用层 SOTA 定位 (v1, 已归档) | `docs/archive/architecture/application-layer-sota-positioning.md` |
 | Agent-as-Plugin v1.0 (基线) | `docs/archive/architecture/agent-as-plugin-architecture.md` |
 | AgenticOS 八层架构 (v2.2, 已归档) | `docs/archive/specs/architecture-v2.2.md` |
-| 多领域智能体架构 | `docs/guides/multi-domain-agent-architecture.md` |
+| 多领域智能体架构 | `docs/architecture/multi-domain-agent-architecture.md` |
 | PKM Temporal Agent PoC 设计 | `examples/pkm_temporal_demo/DESIGN.md` |
 | PDK Chat Demo 设计 | `examples/pdk_chat_demo/DESIGN.md` |
 | PDK 设计 | `docs/adr/adr-0021-pdk-design.md` |
