@@ -1,9 +1,9 @@
 # 多智能体编排架构总览（Agent Orchestration Architecture）
 
 **生成日期**: 2026-08-29
-**最后验证**: 2026-08-30（v1.4 — Oracle 综合评审后续 Step 1：新增 §十八 cognitive-cognitive 协调模式目录 5 模式 + §四 决策树分支 + §十七关联文档 + §九 验证命令）
+**最后验证**: 2026-08-30（v1.5 — cognitive domain 分层 + 多 CognitiveWorker 递归 + MCTS Axis6 触发条件：§十四 M5 + §18.10.1 + §十七 ADR-0061-08 amendment 引用）
 **作者**: Architecture Working Group（Sisyphus 综述，整合 Oracle + Metis + Deep Agent 会话）
-**状态**: 🔍 Proposed（v1.4，指导性文档——定位为**应用场景编排的决策地图**，非 ADR 本身）
+**状态**: 🔍 Proposed（v1.5，指导性文档——定位为**应用场景编排的决策地图**，非 ADR 本身）
 
 > **文档定位**: 回答"一个应用场景应该用哪些 Agent / Pattern / 编排层组合来实现"。
 > 它是 `cross-cutting-hooks-architecture-2026-08.md`（横切机制）+ `multi-domain-agent-architecture.md`（认知/领域协作，同目录,2026-08-30 从 `docs/guides/` 迁入）+ `pdk-cross-cutting-patterns`（PDK 家族）的**统一视图**。
@@ -662,6 +662,7 @@ implementation:           → loop body (state machine)
 | **M2 评估信号注入** | `set_evaluator(shared_ptr<IEvaluator>)` 注入评估器 | Domain Worker 在 `set_evaluator` 后, 每个 task 完成时 emit `evaluation.result` 事件 | `cognitive_worker.h:137` + `domain_worker_pool.h:207` + `contract/ievaluator.h` |
 | **M3 反思循环驱动** | Cognitive Worker 在 ReAct 失败时生成反思候选 | Domain Worker 提供失败 trajectory 给 Cognitive 反思 | T19 GEPALoop (`cognitive/gepa_loop.h` + `commit()` via `MutationGovernor`) |
 | **M4 技能编译输出** | Cognitive Worker 通过 `SkillCompiler` 编译 SKILL.md | Domain Worker 的工具实现可被编译产物替换 (T17) | `cognitive/skill_compiler.h` ✅ Ship 2026-08-27 |
+| **M5 cognitive domain 显式注册** | Cognitive Worker 把 cognitive 任务 specialists (GEPALoop/MCTSWorkflowSearch/SkillCompiler/IPER) 作为 `"cognitive"` domain 注册到 DomainWorkerPool | Cognitive Worker 自身也可作为 cognitive_domain agent 接受上游 cognitive agent 编排（每层是 Loop 实例, §十三 哲学）| `domain_worker_pool.h:170` + `register_domain_handler("cognitive", ...)` |
 
 ### 14.2 Cognitive × Domain × 横切能力 功能矩阵
 
@@ -895,6 +896,7 @@ patterns:
 | `docs/adr/adr-0050-phase6-strategic-evaluation.md` | Phase 6 战略评估 ✅ Approved；**Candidate B 服务化 🔒 冻结** (重开条件 0/6), Phase 6 实际主线 = PDK 生产化 + AgentForge MVP |
 | `docs/adr/adr-0077-grpc-data-plane.md` | gRPC Data Plane 🔍 Proposed + **Wave 4 descoped docs-only**; C1 跨主机联邦应用依赖此 ADR 重启 |
 | `docs/adr/adr-0086-credit-assignment-contract.md` | **待立项**（取代 self-evolution §七 #6 已过期的 `adr-0085-` 文件名；0085 已被横切 Pattern PDK 占用）— 信用分配契约, S4 协同进化前置 |
+| `docs/adr/skill/adr-0061-08-aflow-search.md` | AFlow MCTS ADR（T20 已 ship 2026-08-28）; **v1.4 增补 §18.10.1**: Axis6 cognitive_domain composition 搜索 (触发 §14 M5 cognitive domain 链 + 自进化生成 cognitive_domain 链) — amendment 草案见 `docs/adr/skill/adr-0061-08-v1-1-amendment-axis6.md` 🔍 Proposed, 实施载体 `openspec/changes/2026-08-31-mcts-axis6-cognitive-domain/` |
 | `docs/specs/architecture.md` | AgenticOS 五层架构规范 (L0-L4 + R1-R5) |
 
 ---
@@ -1030,6 +1032,16 @@ try {
 - S4 promotion criteria 全部满足（self-evolution §六, 含信用分配 ADR ship + 防共谋/多样性指标定义）;
 - 用户需求被识别为"运行时动态选择协调模式"而非静态选型（当前 §18.2 是静态选择, 不涉及运行时决策）。
 
+#### 18.10.1 v1.4 增补：cognitive domain 链触发条件
+
+§十四 M5 cognitive domain 显式注册后, 触发 `cognitive→cognitive_domain→...→other_domain` 链搜索（self-evolution §六 S2 阶段）的具体判据:
+
+- **A1 横切接口监控**: L2 IAgentHook (cognitive::* 命名空间) 持续 emit `cognitive.understanding_check` 事件 + BehavioralEquivalenceEvaluator V2 verdict 累积
+- **A2 停机判据**: 当 `verdict == Match` 连续 N 次（默认 N=3, 可由 MutationGovernor 配置），触发 L5 IInteractionBus 发射 `cognitive.understanding_complete` 事件，上层 cognitive agent 据此停机
+- **A3 自进化触发**: Axis6 cognitive_domain composition 搜索（ADR-0061-08 amendment 形式）发现新 chain 比当前 chain eval score 高 ≥5% 时, 通过 MutationGovernor L2 workflow variants 授权提交
+- **A4 多 CognitiveWorker 实例隔离**: chain 中每一层 cognitive agent 是**独立 CognitiveWorker 实例**（per-instance DSLEngine + 独立线程, ADR-0020 §1 线程级隔离），避免单 CognitiveWorker 嵌套 Loop body 违反 ADR-0020 隔离保证
+- **A5 Meta-Cognitive Agent 仍不需要**: 上述 A1-A4 全部通过横切接口 + 评估器 + 治理门 + Loop 实例递归**分布式实现**, 无需新增集中 agent 类 — 与 ADR-0085 §决策 5 兼容
+
 ---
 
 ## 变更记录
@@ -1041,6 +1053,7 @@ try {
 | 2026-08-30 | v1.2 | (1) **文件迁移协调** 原 `docs/guides/multi-domain-agent-architecture.md` → `multi-domain-agent-architecture.md`（同目录迁入），全部引用同步更新（architecture/README, architecture/application-layer-sota-positioning-v2, research/agent-as-plugin-architecture-synthesis, specs/architecture 4 处 + developer-guide 顶部 banner 指向新位置）；(2) **§十二新增** 横切功能矩阵 (8 横切能力 × 17 应用场景激活矩阵 + 蒸馏环境配置 DSL 示例)；(3) **§十三新增** Agent = Loop 编排哲学（3 Loop × 5 编排体 × 横切层 + Loop × Skill 运行时关系）；(4) **§十四新增** Cognitive ↔ Domain 功能矩阵生态（4 指导机制 M1-M4 + 蒸馏路径 + 反思路径）；(5) **§十五新增** 编排蒸馏学习（7 环蒸馏闭环 + 3 变体 + 数据安全边界）；(6) **§十六新增** 自进化全景（已 ship 基础 #27-#31 + 编排层角色分工 + 4 阶段路径 + 横切配置示例）；(7) **§十七扩充** 关联文档表 (+ 4 个 ADR 1 个 evolution pipeline doc); (8) **§九扩充** 验证命令 #8-#13（自进化组件存在性 + IEvaluator/MutationGovernor 代码 + 31 项 cap-map 能力 + 17 应用行数 + 文档同目录 + ADR-0061-13 status） |
 | 2026-08-30 | v1.3 | **Oracle 综合评审修正 4 处失实**（path 1/2/3/4 独立评审 + 综合, 4 Oracle 共识后修正）：(1) **§五 C1/C4** 引用 ADR-0077 + ADR-0050 Candidate B 服务化 — 标注 ADR-0077 Wave 4 descoped (docs-only) + Candidate B 🔒 冻结（重开条件 0/6, Phase 6 主线 = PDK 生产化 + AgentForge MVP）；(2) **§十六** 头部新增 Phase 6 战略对齐 note — 自进化路径不属服务化轨道, B7 落地应用归属 PDK 生产化, S3/S4 阶段待 `adr-0086-credit-assignment-contract.md` ship 后推进；(3) **§十七关联文档表** +3 行（ADR-0050/0077/0086-pending），其中 ADR-0086 取代 self-evolution §七 #6 已过期文件名 `adr-0085-credit-assignment-contract.md`（0085 已被 ADR-0085 横切 Pattern PDK 占用）；(4) **§七 P1 Meta-Agent** 修复路径同步指向 ADR-0086。Oracle 评审其他结论（路径 2.3 IAgent 直接扩展 No-Go / 路径 3.2 MCTS Axis6 优先 / 路径 4.3 完整平台 No-Go）以 §十六战略对齐 note 间接表达，避免与已 Approved ADR 冲突。 |
 | 2026-08-30 | v1.4 | **Oracle 综合评审后续 Step 1 (Conditional-Go 路径 1)**: 新增 **§十八 Cognitive-Cognitive 协调模式目录**（5 模式 + 不变量 + 17 类应用映射 + 升级触发条件）；§四 决策树新增"需要认知 agent 互相协调？"分支；§十七关联文档+1 行（§十八自引用 + ADR-0085 §决策 5 V1 不实施 MetaAgent 链接）；§九验证命令 #18-#20 验证模式目录一致性 + stream 占位 + ADR-0085 §决策 5 引用。3 个强制条件已落实: (a) stream-pipeline 标 🔴 V2 占位; (b) debate-round 标 🟡 组合配方; (c) §18.7 stream 演示文档伪代码标"🔴 V2 占位"且不要求可执行验证。 |
+| 2026-08-30 | v1.5 | **cognitive domain 分层 + 多 CognitiveWorker 递归 + MCTS Axis6 触发条件 沉淀**（基于用户提议 + Metis 评审）：(1) **§十四 M1-M4 +1 行 M5** — cognitive domain 显式注册 (`DomainWorkerPool::register_domain_handler("cognitive", ...)` 包装 GEPALoop/MCTSWorkflowSearch/SkillCompiler); (2) **§18.10.1 v1.4 增补 cognitive domain 链触发条件** — A1 横切接口监控 (L2 IAgentHook + BehavioralEquivalenceEvaluator V2) + A2 停机判据 (verdict==Match 连续 N 次) + A3 自进化触发 (Axis6 chain eval score ≥5%) + A4 多 CognitiveWorker 实例隔离 (per-instance DSLEngine, ADR-0020 §1 线程级隔离) + A5 Meta-Cognitive Agent 仍不需要 (分布式实现); (3) **§十七关联文档+1 行** ADR-0061-08 amendment 引用 (Axis6 cognitive_domain composition chain); (4) **版本号 v1.4 → v1.5**。零新 contract 类, 零代码改动, 4 触发条件全部基于已 ship 组件 (§18.10.1 A1-A5)。 |
 
 ---
 
