@@ -294,7 +294,8 @@ endif()
 
 TEST_CASE("cognitive_meta_demo compiles and runs in mock-mode",
           "[examples][opt-in][v18]") {
-    const std::string build_dir = std::getenv("BUILD_DIR") ?: "build";
+    const char* build_dir_env = std::getenv("BUILD_DIR");
+    const std::string build_dir = build_dir_env ? build_dir_env : "build";
     std::filesystem::path exe = std::filesystem::path(build_dir)
         / "examples/cognitive_meta_demo/cognitive_meta_demo";
     if (!std::filesystem::exists(exe)) {
