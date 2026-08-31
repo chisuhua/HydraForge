@@ -2,7 +2,9 @@
 
 > **关键不变量**: 输出纯 DSL 文本 (不直接构造 ParsedGraph), 无 LLM 调用, 纯模板渲染
 > **估时**: 1 sprint
-> **前置依赖**: 全部 ✅ ship (T20 MCTS + continue_with_generated_dsl + MarkdownParser)
+> **前置依赖**:
+> - ✅ ship: T20 MCTSWorkflowSearch + continue_with_generated_dsl + MarkdownParser + IInteractionBus
+> - **🔴 关键前置 (B3 修复)**: `openspec/changes/2026-08-31-mcts-axis6-cognitive-domain/` 必须先 ship, 因为本 change 的 axis6 映射测试需要 `WorkflowNode.axis6` 字段 (该字段由 Axis6 change 新增)
 > **Oracle 评审**: session `ses_facbd3ffbffeUjlJgZsgMWFiM4` (G1 真实 + DSL 文本输出修正)
 
 ## 1. Pre-flight Verification
@@ -56,7 +58,7 @@
 
 ## 4. Phase 0 — 事件注册 + 文档同步
 
-- [ ] 4.1 ADR-0068 Appendix A 新增 `workflow.materialized` 主题 (v1.8+, 与 axis6.* 同 amendment 或紧随其后)
+- [ ] 4.1 ADR-0068 Appendix A 新增 `workflow.materialized` 主题 (**v1.9+**, 不用 v1.8 因为 Axis6 change 已 owns v1.8; 与 axis6.* 同 amendment 或紧随其后)
   - owner=WorkflowMaterializer cognitive 模块
   - payload: `workflow_hash, output_path, node_count, edge_count, axis6_specialists, spec_task_id`
 - [ ] 4.2 `axis6-chain-workflow-architecture-2026-08.md` G1 缺口状态更新 (修复中 → 已修复)

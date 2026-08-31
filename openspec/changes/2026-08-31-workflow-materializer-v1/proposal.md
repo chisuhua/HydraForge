@@ -21,7 +21,7 @@ MCTSWorkflowSearch (T20 ✅ ship 2026-08-28)
        ↓ 阻塞
 G1 Materialize 缺口: WorkflowGraph → 可执行实体 转换器不存在
   ├─ grep "to_parsed_graph|to_dsl|materialize|WorkflowGraph.*parse" = 0 命中
-  └─ Axis6 chain 即使搜出来也无法执行, 端到端价值为零
+  └─ Axis6 chain 即使搜出来也无法执行, 当前 zero value（W5 修复: 仅 "管线 demo" 级, 真实端到端闭环还需触发器 G3 + 归因 G7, 均属后续 change）
        ↓ 本 change 修复
 WorkflowMaterializer V1 (DSL 文本输出版, Oracle 修正)
   ├─ WorkflowGraph → DSL 文本 (Markdown AgenticDSL 格式)
@@ -41,6 +41,8 @@ WorkflowMaterializer V1 (DSL 文本输出版, Oracle 修正)
 
 | 依赖 | 状态 | 验证 |
 |------|------|------|
+| **`openspec/changes/2026-08-31-mcts-axis6-cognitive-domain/`** | **🔴 关键前置 (B3 修复)** | 本 change 的 axis6=Reflect/Search/Compile 映射测试需要 `WorkflowNode.axis6` 字段（`include/agenticdsl/cognitive/mcts_workflow_search.h`），该字段由 Axis6 change 新增。**正确顺序: Axis6 → T1**。并行分支无法编译通过。 |
+| `markdown_parser.h::parse_from_string` | ✅ ship | 实装已存在 |
 | `MCTSWorkflowSearch` (T20) | ✅ ship | `include/agenticdsl/cognitive/mcts_workflow_search.h` |
 | `DSLEngine::continue_with_generated_dsl()` | ✅ ship + 4 处调用 | `src/core/engine.cpp:390` |
 | `MarkdownParser::parse_from_string()` | ✅ ship | engine.cpp:394 内部使用 |
@@ -72,7 +74,7 @@ WorkflowMaterializer V1 (DSL 文本输出版, Oracle 修正)
 
 4. **集成 demo (手写 driver, 非 CognitiveWorker 队列)**: `examples/mcts_materialize_demo/main.cpp`
    - MCTSWorkflowSearch 搜索 → Materializer → continue_with_generated_dsl → execute
-   - 证明端到端管线可跑 (Oracle "最关键 1 件事")
+   - **W5 修复: 证明"管线 demo"可跑 (搜索→具体化→注册→执行), 不是"端到端闭环" (后者还需 G3 触发器 + G7 归因契约)**
 
 ### 明确不做
 

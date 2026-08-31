@@ -43,15 +43,49 @@ struct ExecutionBudget {
 ### 决策 2 — BudgetController 委托 + 周期边界
 
 ```cpp
-class BudgetController {
+// IBudgetController 接口同步扩展 (W3 修复: factory 返回 unique_ptr<IBudgetController>, 新方法必须加在接口层)
+class IBudgetController {
  public:
-    // 新增委托:
-    bool try_consume_evolution_llm_call();
-    bool evolution_budget_exceeded() const;
+  // ... 现有 try_consume_node / try_consume_llm_call / try_consume_subgraph_depth / exceeded ...
+  virtual bool try_consume_evolution_llm_call() = 0;       // 新增: 委托给 budget_opt_
+  virtual bool evolution_budget_exceeded() const = 0;       // 新增
+  virtual void begin_evolution_cycle() = 0;                // 新增: reset + emit start
+  virtual void end_evolution_cycle() = 0;                  // 新增: emit end
 
-    // 周期边界 (事件发射):
-    void begin_evolution_cycle();   // reset + emit budget.evolution_cycle.start
-    void end_evolution_cycle();     // emit budget.evolution_cycle.end {used, max}
+  // 事件发射通道 (W3 修复): 接入方需传入 bus, BudgetController 新增 std::shared_ptr<IInteractionBus> bus_ 成员
+  virtual void set_bus(std::shared_ptr<IInteractionBus> bus) = 0;
+  virtual std::shared_ptr<IInteractionBus> get_bus() const = 0;
+};
+
+class BudgetController : public IBudgetController {
+ public:
+  explicit BudgetController(std::optional<ExecutionBudget> initial_budget = std::nullopt,
+                            std::shared_ptr<IInteractionBus> bus = nullptr);  // 新增 bus 参数 (默认值兼容)
+
+  bool try_consume_evolution_llm_call() override;   // 委托 budget_opt_->try_consume_evolution_llm_call()
+  bool evolution_budget_exceeded() const override;   // 委托 budget_opt_->evolution_budget_exceeded()
+
+  void begin_evolution_cycle() override {
+    budget_opt_->reset_evolution_cycle();
+    if (bus_) bus_->emit(EventBuilder("budget.evolution_cycle.start")
+        .meta({{"agent_id", current_agent_id_}, {"max", budget_opt_->max_evolution_llm_calls}}).build());
+  }
+  void end_evolution_cycle() override {
+    if (bus_) bus_->emit(EventBuilder("budget.evolution_cycle.end")
+        .meta({{"used", budget_opt_->evolution_llm_calls_used.load()},
+               {"max", budget_opt_->max_evolution_llm_calls},
+               {"exceeded", budget_opt_->evolution_budget_exceeded()}}).build());
+    // 超限事件单独 emit (供监控订阅)
+    if (budget_opt_->evolution_budget_exceeded() && bus_) bus_->emit(EventBuilder("budget.evolution_cycle.exceeded")
+        .meta({{"used", budget_opt_->evolution_llm_calls_used.load()},
+               {"max", budget_opt_->max_evolution_llm_calls}}).build());
+  }
+
+  void set_bus(std::shared_ptr<IInteractionBus> bus) override { bus_ = bus_; }
+  std::shared_ptr<IInteractionBus> get_bus() const override { return bus_; }
+
+ private:
+  std::shared_ptr<IInteractionBus> bus_;  // 新增成员 (W3 修复)
 };
 ```
 

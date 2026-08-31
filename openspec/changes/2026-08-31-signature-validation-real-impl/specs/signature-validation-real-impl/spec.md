@@ -2,22 +2,24 @@
 
 ## Purpose
 
-> 修复 Oracle G5 严重度上调缺口: `node_executor.cpp:309` GenerateSubGraph signature 校验是占位符 (`bool is_valid = true; // Placeholder`), strict 恒通过, GenerateSubGraph 治理 ≈ 零。本 change 将占位符替换为真实 schema 校验, 复用 ADR-0073 已实装的 `tool_schema_validator` (nlohmann 递归 validate_node)。
+> 修复 Oracle G5 严重度上调缺口: `node_executor.cpp:309` GenerateSubGraph signature 校验是占位符 (`bool is_valid = true; // Placeholder`), strict 恒通过, GenerateSubGraph 治理 ≈ 零。本 change 将占位符替换为真实 schema 校验, 复用 ADR-0073 已实装的 `tool_schema_validator` 公开 API (`ToolSchemaValidator::validate`) 校验 type 合法性 + 新增 signature 字符串解析 (对齐 dsl.md v3.10 §5.7 signature DSL 格式)。
+
+> **Oracle B2 修复 (session `ses_fa91c94bdffeOraAXCrgkwK05f`)**: `ParsedGraph::signature` 是 `std::optional<std::string>` (如 `"(input: string) -> {result: number}"`), **非 JSON Schema 对象**; 且 `validate_node` 在匿名命名空间不可复用。本 spec 按 B2 修正: signature 先解析为 AST (inputs/outputs 数组 + name/type 字段), type 校验委托 ToolSchemaValidator 公开 API, 不重复实现 JSON Schema 校验。
 
 ## ADDED Requirements
 
 ### Requirement: validate_subgraph_signature 独立函数
 
-`validate_subgraph_signature(const ParsedGraph& graph, std::string* error_msg)` MUST 为独立函数 (与 NodeExecutor 解耦, 可测试性), MUST 复用 ADR-0073 `tool_schema_validator`, MUST NOT 重复实现 JSON Schema 校验。
+`validate_subgraph_signature(const ParsedGraph& graph, std::string* error_msg)` MUST 为独立函数 (与 NodeExecutor 解耦, 可测试性), MUST 复用 ADR-0073 `tool_schema_validator` 公开 API, MUST NOT 重复实现 JSON Schema 校验。
 
 #### Scenario: 独立函数存在
 
 - **WHEN** 静态检查 `grep "validate_subgraph_signature" src/modules/executor/signature_validator.h`
 - **THEN** 1 行匹配
 
-#### Scenario: 复用 ADR-0073 validator
+#### Scenario: 复用 ADR-0073 validator 公开 API (B2 修复: 不再引用不可复用的 validate_node)
 
-- **WHEN** 静态检查 `grep "tool_schema_validator\|validate_node" src/modules/executor/signature_validator.cpp`
+- **WHEN** 静态检查 `grep "ToolSchemaValidator\|tool_schema_validator" src/modules/executor/signature_validator.cpp`
 - **THEN** ≥1 命中
 
 #### Scenario: 无重复 JSON Schema 实现
@@ -25,24 +27,24 @@
 - **WHEN** 静态检查 signature_validator.cpp 不重新定义 type/properties/required/items/enum 校验逻辑
 - **THEN** 0 命中 (全部委托 tool_schema_validator)
 
-### Requirement: 校验规则 (signature 结构合法性)
+### Requirement: 校验规则 (B2 修复: signature 字符串解析 + type 校验)
 
-校验 MUST 覆盖: signature 是合法 JSON Schema 对象 + `inputs`/`outputs` 字段存在且为数组 + 每项含 `name` + `type` 字段 + type 是合法 JSON Schema type。
+校验 MUST 覆盖 (B2 修正): signature 字符串可解析为 `(inputs) -> (outputs)` AST 格式 (对齐 dsl.md v3.10 §5.7) + inputs/outputs 数组存在 + 每项含 `name` + `type` 字段 + type 是合法 JSON Schema type (校验委托 `ToolSchemaValidator` 公开 API)。**不再假设 signature 是 JSON Schema 对象**。
 
 #### Scenario: 合法 signature 通过
 
-- **WHEN** 输入 ParsedGraph 含合法 signature (inputs+outputs 完整, name+type 齐全)
+- **WHEN** 输入 ParsedGraph 含合法 signature 字符串 `"(input: string, n: number) -> {result: string}"`
 - **THEN** 返回 true
 
 #### Scenario: 缺 outputs 失败
 
-- **WHEN** 输入 ParsedGraph 含 signature 但缺 outputs 字段
+- **WHEN** 输入 ParsedGraph 含 signature 字符串但缺 outputs 段 (如 `"(input: string) ->"` 或单箭头无右侧)
 - **THEN** 返回 false + error_msg 含 "outputs"
 
-#### Scenario: 非法结构失败
+#### Scenario: 非法 type 失败
 
-- **WHEN** 输入 ParsedGraph 含 signature 但结构非法 (非 JSON Schema)
-- **THEN** 返回 false + error_msg 含具体原因
+- **WHEN** 输入 ParsedGraph 含 signature 字符串但 type 非法 (如 `"foo: notatype"`, 非合法 JSON Schema type)
+- **THEN** 返回 false + error_msg 含 "type" (校验委托 ToolSchemaValidator 公开 API)
 
 #### Scenario: 无 signature 不校验
 

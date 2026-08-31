@@ -41,7 +41,7 @@
 
 ## 3. Phase 0 — 事件注册
 
-- [ ] 3.1 ADR-0068 Appendix A 注册 3 个 `budget.evolution_cycle.*` 主题 (v1.8+, 与 axis6/workflow.materialized 同 amendment 或紧随)
+- [ ] 3.1 ADR-0068 Appendix A 注册 3 个 `budget.evolution_cycle.*` 主题 (**v1.9+**, W4 归口: Axis6 change 独占 v1.8, 本 change 用 v1.9+ 紧随, 不与其竞争版本号)
   - `budget.evolution_cycle.start` / `.end` / `.exceeded`
   - owner=BudgetController
 - [ ] 3.2 验证注册

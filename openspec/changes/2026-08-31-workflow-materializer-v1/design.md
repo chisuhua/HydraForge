@@ -164,14 +164,20 @@ Materializer **不放 CognitiveWorker 队列** (ADR-0020 单线程单队列, 长
 - ✅ MarkdownParser::parse_from_string
 - ✅ IInteractionBus (workflow.materialized 事件通道)
 
+### **🔴 B3 关键前置 (与姊妹 change 编译依赖)**
+- **`openspec/changes/2026-08-31-mcts-axis6-cognitive-domain/` 必须先 ship**
+  - 本 change 的 axis6=Reflect/Search/Compile 映射测试需要 `WorkflowNode.axis6` 字段（`include/agenticdsl/cognitive/mcts_workflow_search.h`），该字段由 Axis6 change 新增
+  - **正确顺序**: Axis6 → T1; 并行分支无法编译通过 (Phase 0 task 2.3 测试 case `axis6=Reflect` 需 WorkflowNode.axis6 存在)
+  - 不依赖 Axis6 的 axis1-5 部分可独立开发, 但 axis6 部分必须后置
+
 ### 后续 (不在本 change)
 - T2 `cognitive-specialists-as-tools` — axis6=Reflect/Search/Compile 节点的 tool 实装 (本 change 的 DSL 节点引用 `cognitive::*` tool, T2 提供实装)
 - T5 `evolution-readiness-gate-v1` — 进化触发门禁
 - T6 `chain-evolution-driver-v1` — 串联器 (依赖 T1+T2+T5)
 
-### 并行 (本 change 可并行)
-- T3 `evolution-budget-cap` — 独立
-- T4 `signature-validation-real-impl` — 独立 (node_executor.cpp:309 占位符)
+### 并行 (本 change 可并行, 但必须等 Axis6)
+- T3 `evolution-budget-cap` — 独立 (不依赖 axis6 字段)
+- T4 `signature-validation-real-impl` — 独立 (node_executor.cpp:309 占位符, 不依赖 axis6)
 
 ## ADR 兼容性
 

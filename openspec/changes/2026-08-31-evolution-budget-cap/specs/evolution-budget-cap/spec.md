@@ -57,11 +57,21 @@
 - **WHEN** `max_evolution_llm_calls=2` 消耗 2 次 (达上限), 调用 reset_evolution_cycle(), 再调用 try_consume_evolution_llm_call
 - **THEN** 返回 true (计数器已重置)
 
-### Requirement: BudgetController 委托 + 周期边界
+### Requirement: IBudgetController 接口同步扩展 (W3 修复)
 
-`BudgetController` MUST 新增 `try_consume_evolution_llm_call()` / `evolution_budget_exceeded()` 委托 + `begin_evolution_cycle()` / `end_evolution_cycle()` 周期边界方法。
+IBudgetController MUST 新增 4 个纯虚方法: `try_consume_evolution_llm_call()` / `evolution_budget_exceeded() const` / `begin_evolution_cycle()` / `end_evolution_cycle()`; MUST 新增 `set_bus()` / `get_bus()` 用于事件发射通道注入。**关键**: factory 返回 `unique_ptr<IBudgetController>`, 接入方经接口调用, 新方法必须在接口层 (不能在仅 BudgetController) 声明。
 
-#### Scenario: 委托路径工作
+#### Scenario: 接口层 4 新方法存在
+
+- **WHEN** 静态检查 `grep -E "try_consume_evolution_llm_call|evolution_budget_exceeded|begin_evolution_cycle|end_evolution_cycle" include/agenticdsl/budget/budget_controller.h`
+- **THEN** ≥4 行 (IBudgetController 4 纯虚方法声明, 在 line 23-41 范围)
+
+#### Scenario: 接口层 set_bus/get_bus 存在
+
+- **WHEN** 静态检查 `grep "set_bus\|get_bus" include/agenticdsl/budget/budget_controller.h`
+- **THEN** ≥2 行 (IBudgetController 声明)
+
+#### Scenario: BudgetController 委托路径工作
 
 - **WHEN** BudgetController 调用 try_consume_evolution_llm_call
 - **THEN** 与直接调用 ExecutionBudget 行为一致
@@ -70,6 +80,11 @@
 
 - **WHEN** begin_evolution_cycle() 调用
 - **THEN** evolution_llm_calls_used 重置为 0
+
+#### Scenario: BudgetController 持有 bus 成员 (W3 修复)
+
+- **WHEN** 静态检查 `grep "bus_\|std::shared_ptr<IInteractionBus> bus" src/modules/budget/budget_controller.h`
+- **THEN** ≥1 行 (bus 成员存在, 事件发射通道)
 
 ### Requirement: budget.evolution_cycle.* 事件发射与注册
 

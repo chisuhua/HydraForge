@@ -39,7 +39,7 @@
 
 ## 3. Phase 0 — 事件注册 + 文档同步
 
-- [ ] 3.1 ADR-0068 Appendix A 注册 2 个 `cognitive.specialist.*` 主题 (v1.8+, 与 axis6/workflow.materialized/budget.evolution_cycle 同 amendment 或紧随)
+- [ ] 3.1 ADR-0068 Appendix A 注册 2 个 `cognitive.specialist.*` 主题 (**v1.9+**, W4 归口: Axis6 change 独占 v1.8, 本 change 用 v1.9+ 紧随, 不与其竞争版本号)
   - `cognitive.specialist.invoked` / `cognitive.specialist.completed`
   - owner=cognitive_tools 模块
 - [ ] 3.2 axis6-chain-workflow G4 缺口状态更新 (tool 路线修复中)

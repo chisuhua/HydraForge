@@ -65,12 +65,12 @@
 
 ### Requirement: nullptr specialist fail-closed
 
-specialist 为 nullptr 时, tool MUST 仍注册, 但 handler MUST 返回 `ToolResult::error(ErrorCode::Unavailable)`, 不抛异常。
+specialist 为 nullptr 时, tool MUST 仍注册, 但 handler MUST 返回 `ToolResult::error(ErrorCode::InvalidParams, "specialist not configured")`, 不抛异常。
 
 #### Scenario: nullptr specialist 返回 error
 
 - **WHEN** 调用 `register_cognitive_tools(registry, nullptr, nullptr, nullptr)`, 再调用任一 cognitive::* tool
-- **THEN** 返回 ToolResult::error (fail-closed, 不抛异常)
+- **THEN** 返回 `ToolResult::error(ErrorCode::InvalidParams, "specialist not configured")` (fail-closed, 不抛异常; **W1 修复: ErrorCode::Unavailable 不存在, 改用 InvalidParams**, 语义匹配 "工具入参错误: specialist 未配置", 对应 JSON-RPC -32602)
 
 ### Requirement: 事件发射 (cognitive.specialist.*)
 

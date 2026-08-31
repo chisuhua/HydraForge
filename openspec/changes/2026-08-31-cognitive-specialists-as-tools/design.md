@@ -67,13 +67,24 @@ void register_cognitive_tools(
 } // namespace agenticdsl
 ```
 
-**nullptr 处理**: specialist 为 nullptr 时, tool 仍注册但 handler 返回 `ToolResult::error(ErrorCode::Unavailable, "specialist not configured")` (fail-closed, 不变量 3)。
+**nullptr 处理**: specialist 为 nullptr 时, tool 仍注册但 handler 返回 `ToolResult::error(ErrorCode::InvalidParams, "specialist not configured")` (fail-closed, 不变量 3; **W1 修复: ErrorCode::Unavailable 不存在**, 改用 InvalidParams, 语义匹配 "工具入参错误: specialist 未配置", 对应 JSON-RPC -32602)。
 
 ### 决策 4 — Handler 实现 (lambda 包装)
 
 ```cpp
-// cognitive::gepa_reflect handler
-registry.register_tool_function("cognitive::gepa_reflect",
+// cognitive::gepa_reflect handler (W2 修复: 补 ToolMetadata 参数 + 改用 register_tool_function_json 便利方法)
+ToolMetadata gepa_meta{
+  .name = "cognitive::gepa_reflect",
+  .description = "GEPALoop reflection on failed trace",
+  .category = ToolCategory::Execute,
+  .approval = ApprovalPolicy{.requires_approval_in_plan=true, .requires_approval_in_agent=true, .requires_approval_in_yolo=false},
+  .allowed_layers = {LayerProfile::Workflow, LayerProfile::Thinking},
+  .cost_estimate = 0.05,
+  .timeout_ms = 30000,
+  .input_schema = {/* ExecutionTrace JSON Schema */},
+  .output_schema = {/* ReflectionResult JSON Schema */},
+};
+registry.register_tool_function_json("cognitive::gepa_reflect", gepa_meta,
   [gepa_loop, bus](const nlohmann::json& args) -> nlohmann::json {
     if (!gepa_loop) return tool_error("specialist not configured");
     // 1. 从 args 构造 ExecutionTrace (字段: trace_id, final_result, ...)
@@ -85,6 +96,10 @@ registry.register_tool_function("cognitive::gepa_reflect",
                          {"failure_mode", result.failure_mode},
                          {"candidate_skills", result.candidate_skills}});
   });
+// (W2 修复: 原 design `registry.register_tool_function("name", lambda)` 缺 ToolMetadata 参数 + lambda 是 json→json 签名;
+//  应改用 `register_tool_function_json(name, metadata, lambda)` 便利方法, 公共 API 完整 3 参;
+//  IToolRegistry::register_tool_function 实际签名是 (name, ToolMetadata, ToolFunc), ToolFunc 接 std::string→string map;
+//  走 json 便利方法语义更清晰且避免 args stringification)
 ```
 
 ### 决策 5 — 与 Materializer (T1) 的对齐 (不变量 5)
@@ -102,7 +117,7 @@ registry.register_tool_function("cognitive::gepa_reflect",
 - `cognitive.specialist.invoked` — tool 调用开始 (payload: tool_name, trace_id)
 - `cognitive.specialist.completed` — tool 调用完成 (payload: tool_name, ok, duration_ms)
 
-注册 ADR-0068 Appendix A (v1.8+, 与 axis6/workflow.materialized 同 amendment 或紧随)。
+注册 ADR-0068 Appendix A (**v1.9+**, W4 归口: Axis6 change 独占 v1.8, 本 change 用 v1.9+ 紧随, 不与其竞争版本号)。
 
 ## 接口
 

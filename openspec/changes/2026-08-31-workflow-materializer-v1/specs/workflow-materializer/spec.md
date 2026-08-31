@@ -6,6 +6,8 @@
 >
 > **Oracle 修正 (session `ses_facbd3ffbffeUjlJgZsgMWFiM4`)**: 输出 DSL 文本而非直接构造 ParsedGraph, 复用 MarkdownParser 单一事实源。
 >
+> **🔴 B3 关键前置 (顺序约束)**: `WorkflowNode.axis6` 字段 (axis6 映射测试依赖) 由 `openspec/changes/2026-08-31-mcts-axis6-cognitive-domain/` 新增。**Axis6 change 必须先 ship**, 本 change 才能编译通过 axis6 相关测试。Axis6 amendment `adr-0061-08-v1-1-amendment-axis6.md` 状态翻转为 ✅ Approved 后, 本 change 才进入实装。
+>
 > **零 contract 修改**: 新增限于 `include/agenticdsl/cognitive/workflow_materializer.h` + `src/modules/cognitive/workflow_materializer.cpp`。
 
 ## ADDED Requirements
@@ -29,7 +31,21 @@
 - **WHEN** 运行 `grep -E "ParsedGraph|make_unique<ParsedGraph>|new ParsedGraph" src/modules/cognitive/workflow_materializer.cpp`
 - **THEN** 0 命中 (除注释/文档引用)
 
-### Requirement: axis→DSL 映射表完整覆盖 6 轴
+### Requirement: B3 axis6 字段前置依赖 (Axis6 change 必须先 ship)
+
+Materializer 的 axis6 映射 (Reflect/Search/Compile/tool_call 节点) MUST 强依赖 `WorkflowNode.axis6` 字段存在, 该字段由姊妹 OpenSpec change `2026-08-31-mcts-axis6-cognitive-domain/` 新增。Axis6 change 未 ship 前, 本 change 的 axis6 测试无法编译通过。
+
+#### Scenario: WorkflowNode.axis6 字段存在 (前置条件)
+
+- **WHEN** 静态检查 `grep "Axis6CognitiveDomain axis6" include/agenticdsl/cognitive/mcts_workflow_search.h`
+- **THEN** 1 行匹配 (Axis6 change ship 后该字段存在)
+
+#### Scenario: 测试文件依赖 axis6 字段
+
+- **WHEN** 静态检查 `grep "axis6\s*=\s*\(Reflect\|Search\|Compile\)" tests/test_workflow_materializer.cpp`
+- **THEN** ≥3 行匹配 (axis6 三个 mapped 值各有 1 测试)
+
+#### Scenario: axis→DSL 映射表完整覆盖 6 轴
 
 Materializer MUST 支持 axis1 (Template) + axis2 (Param) + axis3 (Tool) + axis4 (Control) + axis5 (Error) + axis6 (CognitiveDomain) 全部枚举值的 DSL 映射, 映射规则与 `axis6-chain-workflow-architecture-2026-08.md` §4.1 单一事实源一致。
 

@@ -4,7 +4,7 @@
 
 Oracle 评审 (session `ses_facbd3ffbffeUjlJgZsgMWFiM4`) 发现 G5 严重度上调: `node_executor.cpp:309` GenerateSubGraph signature 校验是占位符 (`bool is_valid = true; // Placeholder`), strict 恒通过。GenerateSubGraph 治理 ≈ 零。
 
-本 change 将占位符替换为真实 schema 校验, 复用 ADR-0073 已实装的 `tool_schema_validator.{h,cpp}` (nlohmann 递归 validate_node)。
+本 change 将占位符替换为真实 schema 校验, 复用 ADR-0073 已实装的 `tool_schema_validator.{h,cpp}` 公开 API (`ToolSchemaValidator::validate`) + 新增 signature 字符串解析 (对齐 dsl.md v3.10 §5.7 signature DSL 格式)。
 
 ## 决策
 
@@ -24,30 +24,52 @@ bool validate_subgraph_signature(const ParsedGraph& graph, std::string* error_ms
 
 **提取理由**: 将校验逻辑从 execute_generate_subgraph 内联代码提取为独立函数, 便于单元测试 (不依赖 NodeExecutor 完整上下文)。
 
-### 决策 2 — 校验规则 (复用 ADR-0073 validator)
+### 决策 2 — 校验规则 (B2 修复: signature 是 string 非 JSON Schema)
+
+**Oracle B2 关键发现**: `ParsedGraph::signature` 类型是 `std::optional<std::string>` (形如 `"(input: string) -> {result: number}"`), **不是** JSON Schema 对象。原 design "signature 必须是合法 JSON Schema 对象 + inputs/outputs 字段存在且为数组" 校验规则对 string 类型**无从验证**。同时 `validate_node` 在 `tool_schema_validator.cpp` 匿名命名空间 (internal linkage, 不可从外部调用); 公开 API `ToolSchemaValidator::validate(instance)` 是 schema→instance 数据校验, 不是 schema 合法性校验。
+
+**B2 修复后的校验路径**:
 
 ```cpp
 // src/modules/executor/signature_validator.cpp (新建)
 bool validate_subgraph_signature(const ParsedGraph& graph, std::string* error_msg) {
   if (!graph.signature.has_value()) return true;  // 不变量 3: 无 signature 不校验
 
-  const auto& sig = graph.signature.value();
+  const auto& sig_str = graph.signature.value();  // std::string 非 JSON 对象
 
-  // 1. signature 结构校验 (复用 ADR-0073 ToolSchemaValidator)
-  //    signature 应为 JSON Schema 对象, 含 inputs/outputs 字段
-  // 2. inputs/outputs 各自的 JSON Schema 结构合法性校验
-  //    - type/properties/required/items/enum 字段合法 (ADR-0073 最小子集)
-  // 3. 失败时 error_msg 填充具体原因 (e.g. "signature.outputs 缺失 required 字段")
-
-  // ... 调用 ToolSchemaValidator::validate 或 validate_node 递归校验
+  // 方案 A (V1 推荐): 解析 signature 字符串 → 校验结构
+  //   signature DSL 格式约定 (参见 docs/specs/dsl.md §5.7 v3.10):
+  //     "({input1: type1, input2: type2, ...}) -> ({output1: type1, ...})"
+  //   或纯函数式: "(input: type) -> type"
+  // 解析后验证 inputs/outputs 数组存在 + 每项 {name, type} 字段完整 + type 合法
+  SignatureAST ast = parse_signature_string(sig_str);
+  if (!ast.is_valid()) {
+    if (error_msg) *error_msg = "signature parse error: " + ast.error;
+    return false;
+  }
+  // 验证 inputs/outputs 字段 + type 合法性 (复用 ToolSchemaValidator 公开 API 校验 type 字符串)
+  for (const auto& param : ast.inputs) {
+    if (!is_valid_json_schema_type(param.type)) {  // ToolSchemaValidator 公开 API
+      if (error_msg) *error_msg = "signature.inputs[" + param.name + "].type 无效: " + param.type;
+      return false;
+    }
+  }
+  // ... 同理 outputs ...
+  return true;
 }
+
+// 方案 B (V1 备选): 改用 output_schema 字段 (ParsedGraph 唯一 JSON Schema 字段, node.h:96)
+//   signature 留作简单字符串描述, schema 验证走 output_schema
+//   但这违背 dsl.md v3.10 signature_validation 语义, 需 ADR-0073 v2 修订
+//   → 方案 A 为 V1 默认, 方案 B 留作 V2 备选
 ```
 
-**校验规则** (与 ADR-0073 最小子集对齐):
-- signature 必须是合法 JSON Schema 对象
-- `inputs` / `outputs` 字段必须存在且为数组
-- 每个 input/output 项必须含 `name` + `type` 字段
-- type 必须是合法 JSON Schema type (string/number/boolean/object/array)
+**B2 修复后校验规则**:
+- signature 字符串可解析为 `(inputs) -> (outputs)` AST 格式 (对齐 dsl.md §5.7 v3.10)
+- inputs/outputs 数组存在 (按 DSL 字符串约定解析)
+- 每个 input/output 项含 `name` + `type` 字段
+- type 是合法 JSON Schema type (string/number/boolean/object/array), 校验委托 `ToolSchemaValidator` 公开 API (复用, 不重复实现)
+- 无 signature → 返回 true (不变量 3, 不校验)
 
 ### 决策 3 — execute_generate_subgraph 集成 (替换占位符)
 
