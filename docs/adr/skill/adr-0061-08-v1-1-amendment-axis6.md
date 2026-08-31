@@ -13,7 +13,7 @@
 - `docs/architecture/agent-orchestration-architecture-2026-08.md` v1.5 §十四 M5 + §18.10.1 — cognitive domain 链触发条件
 - `openspec/changes/2026-08-31-mcts-axis6-cognitive-domain/` — 实施载体 OpenSpec change
 
-**最后更新**: 2026-08-31 (v1.1-draft.2 — Oracle 评审 5 blocker 修复: B1 实装 API 对齐 / B2 chain 语义澄清 / B3 commit-revert 触发统一 / B4 ADR-0068 v1.8 主题注册 / B5 兜底 Scenario + 口径统一)
+**最后更新**: 2026-08-31 (v1.1-draft.3 — Oracle B1-B3 阻塞修复: B1 实装 API `governor->commit(ctx).approved` 判定替换虚构 authorize / B2 chain 语义节点级属性 / B3 commit-revert 触发统一 + W4 双发射语义分离; 执行载体 OpenSpec change `2026-08-31-mcts-axis6-cognitive-domain` v2.1)
 
 ---
 
@@ -155,11 +155,11 @@ Axis6 仅在以下 4 条件**全部**满足时才应启用 (调用方负责检�
 
 | 事件 | 触发 (唯一定义) | payload |
 |------|----------------|---------|
-| `axis6.commit` | 新 chain 通过改进阈值 **且** `governor_->authorize()` (L1) 返回 accepted | `{chain, eval_score, depth, iterations_used}` |
-| `axis6.revert` | `governor_->authorize()` (L1) 返回 denied (统一由 governor 拒绝定义, 不再混用 "eval 下降") | `{chain, prev_eval_score, denial_reason}` |
+| `axis6.commit` | 新 chain 通过改进阈值 **且** `governor_->commit(ctx)` 返回 `MutationDecision{approved=true}` (L1) | `{chain, eval_score, depth, iterations_used}` |
+| `axis6.revert` | `governor_->commit(ctx)` 返回 `MutationDecision{approved=false}` (L1, denial_reason 非空) | `{chain, prev_eval_score, denial_reason}` |
 | `axis6.degraded` | `available_specialists` 为空/仅 None (R6 兜底) | `{reason: "empty_specialists"}` |
 
-**governor 调用是 commit 的前置** (不变量 3): 伪代码中 `authorize()` 必须先于 emit commit。3 个新主题注册见决策 7 (ADR-0068 Appendix A **v1.8** amendment, v1.7 已被 capture-mode 占用 — Oracle B4 修复)。
+**governor 调用是 commit 的前置** (不变量 3): 伪代码中 `governor_->commit(ctx).approved` 必须先于 emit axis6.commit。3 个新主题注册见决策 7 (ADR-0068 Appendix A **v1.8** amendment, v1.7 已被 capture-mode 占用 — Oracle B4 修复)。
 
 ### 决策 7 — 事件主题注册 (Oracle B4 修复)
 
@@ -176,7 +176,7 @@ Axis6 仅在以下 4 条件**全部**满足时才应启用 (调用方负责检�
 |----|----------|----------------|
 | **何时选择 chain** | MCTS UCB1 树选择 (axis6 为节点采样属性) | ❌ 不需要 |
 | **何时停机** | 决策 5 四项判据 + (Phase 1) L2 Hook 观察 understanding_complete | ❌ 不需要 |
-| **何时提交新 chain** | `governor_->authorize()` L1 (Phase 0) / L2+ (V2) | ❌ 不需要 |
+| **何时提交新 chain** | `governor_->commit(ctx).approved` L1 (Phase 0) / L2+ (V2) | ❌ 不需要 |
 | **跨层一致性** | IInteractionBus 事件 + ADR-0068 主题 | ❌ 不需要 |
 
 **结论**: Axis6 通过**搜索算法 + 横切 hook + 治理门 + 事件总线**分布式实现, **不需要 Meta-Cognitive Agent 类**。与 ADR-0085 §决策 5 "V1 不实施 Meta-Agent 自管理" 完全兼容。
@@ -185,7 +185,7 @@ Axis6 仅在以下 4 条件**全部**满足时才应启用 (调用方负责检�
 
 - **不变量 1**: v1.0 17 cases / 65 assertions 测试基线 0 回归
 - **不变量 2**: `enable_axis6 = false` (默认) 行为 100% 等同 v1.0; 原 ctor (无 chain_config) 委托新 ctor 默认值
-- **不变量 3**: axis6.commit 必须先经 `governor_->authorize()` L1 接受, 再 emit (L2+ deferred V2)
+- **不变量 3**: axis6.commit 必须先经 `governor_->commit(ctx)` 返回 `MutationDecision{approved=true}`, 再 emit (L2+ deferred V2)
 - **不变量 4**: `max_chain_depth` 默认 3, 图中连续 axis6≠None 节点数硬上限
 - **不变量 5**: cognitive_domain specialists 来自 §十四 M5 `register_domain_handler("cognitive", ...)` 注册项, **不可硬编码**; 注册名字符串→Axis6CognitiveDomain enum 映射机制属 Phase 1 (调用方注入 enum 值列表)
 - **不变量 6**: `tools/adr_lint.py` + `docs_drift_audit.py` + `openspec validate --strict` 全 PASS
@@ -204,7 +204,7 @@ Axis6 仅在以下 4 条件**全部**满足时才应启用 (调用方负责检�
    - 子节点扩展时从 `available_specialists` 采样 axis6 (复用 v1.0 UCB1, 不引入特征向量叙述)
    - 连续 axis6≠None 节点数 ≤ max_chain_depth 截断
    - 改进停机 (绝对值)
-   - `governor_->authorize()` → `axis6.commit` / `axis6.revert` / `axis6.degraded` 事件
+   - `governor_->commit(ctx).approved` → `axis6.commit` / `axis6.revert` / `axis6.degraded` 事件 (governor 内部同时 emit `mutation.committed`/`mutation.denied`, MCTS 层只追加搜索层审计)
 3. **`tests/test_mcts_workflow_search_axis6.cpp`** (新建, ≥6 cases):
    - Axis6 enum 序列化 round-trip
    - 默认 `axis6=None` 行为等同 v1.0 (含原 ctor 委托验证)
