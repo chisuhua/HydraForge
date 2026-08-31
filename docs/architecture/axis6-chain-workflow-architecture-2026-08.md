@@ -1,9 +1,9 @@
 # Axis6 Chain 完整工作流程架构 (Axis6 Cognitive Domain Chain Architecture)
 
 **生成日期**: 2026-08-31
-**最后验证**: 2026-08-31（v1.0 — 基于代码审计 + Oracle 评审 + ADR-0061-08 v1.1 + ADR-0086 草案, 含 7 项未识别缺口 G1-G7）
+**最后验证**: 2026-08-31（v1.1 — Oracle 评审修正 (session `ses_facbd3ffbffeUjlJgZsgMWFiM4`): 4 项设计修正 + 5 项新缺口 N1-N5 + G6 自相矛盾修复 + P0 降级 + G2 合并）
 **作者**: Architecture Working Group（Sisyphus 综述，整合用户提议 + Metis/Oracle 评审 + 代码审计）
-**状态**: 🔍 Proposed（v1.0，指导性文档——Axis6 chain 的端到端工作流程定义与缺口清单，非 ADR 本身）
+**状态**: 🔍 Proposed（v1.1，指导性文档——Axis6 chain 的端到端工作流程定义与缺口清单，非 ADR 本身）
 
 > **文档定位**: 回答"Axis6 cognitive_domain chain 从搜索到执行到进化的完整工作流程是什么"。
 > 它是 `agent-orchestration-architecture-2026-08.md` v1.5 §十四 M5 + §18.10.1（触发条件）+ `adr-0061-08-v1-1-amendment-axis6.md`（搜索维度）+ `adr-0086-credit-assignment-contract.md`（归因判定）的**端到端整合视图**。
@@ -180,21 +180,17 @@ namespace agenticdsl {
 
 enum class EvolutionReadiness {
   Ready,                    // 可以进化
-  NotReady_Attribution,     // 归因不成立 (Confounded/Insufficient/NotAttempted)
+  NotReady_Attribution,     // 归因不成立 (Confounded/Insufficient/NotAttempted, 含混杂控制)
   NotReady_Regression,      // 行为回归门未通过
-  NotReady_Budget,          // 预算不足
-  NotReady_Confounder,      // 存在未控制混杂
-  NotReady_CaptureMode,     // CaptureMode != Training (蒸馏场景)
-  Blocked_Governor,         // MutationGovernor 硬门禁
+  NotReady_Budget,          // 进化预算不足 (N1 evolution-budget-cap)
 };
 
 struct EvolutionReadinessReport {
   EvolutionReadiness verdict;
   std::string reason;                    // 人类可读原因
-  AttributionVerdict attribution;        // ADR-0086 归因判定
+  AttributionVerdict attribution;        // ADR-0086 归因判定 (内含混杂控制)
   bool regression_passed;                // T14 回归门
-  bool budget_ok;                        // 预算检查
-  std::vector<ConfounderRecord> open_confounders;  // 未控制混杂
+  bool evolution_budget_ok;              // N1 进化周期预算检查
 };
 
 // 纯函数: 消费事件流快照, 输出判定 (无 LLM, 无 specialist 执行)
@@ -206,19 +202,25 @@ EvolutionReadinessReport check_evolution_readiness(
 } // namespace agenticdsl
 ```
 
-### 3.2 判定矩阵 (全部条件 AND)
+### 3.2 判定矩阵 (Oracle 修正: 7→3 条件)
+
+> **Oracle 修正 (session `ses_facbd3ffbffeUjlJgZsgMWFiM4`)**: 原 7 条件过度设计。精简理由:
+> - **C4 (混杂控制) ⊂ C1 (归因判定)**: ADR-0086 的 `Confounded` 判定已内含混杂控制检查, gate 重复检查是冗余
+> - **C6 (governor 预检) 是双重门禁**: governor.propose() 是 commit 时的本职, gate 里预检与其重复 — 门禁应在治理层 (commit) 而非判定层 (gate)
+> - **C5 (CaptureMode) 属蒸馏正交面**: 蒸馏场景才有 CaptureMode 要求, 不应混入通用进化门
+> - **C7 (冷却期) 是配置 guard 非判定条件**: 冷却逻辑可由调用方节流, 非 gate 语义
+>
+> **V1 精简判定矩阵 (3 条件 AND)**:
 
 | # | 条件 | 数据来源 (已 ship) | Ready 判据 |
 |---|------|-------------------|-----------|
-| C1 | 归因判定 | ADR-0086 `attribute_version_pair()` | `verdict == Attributed` |
+| C1 | 归因判定 (含混杂控制) | ADR-0086 `attribute_version_pair()` | `verdict == Attributed` |
 | C2 | 行为回归门 | T14 BehavioralRegressionGate | `gate.pass(candidate, baseline) == true` |
-| C3 | 预算充足 | ExecutionBudget | `!budget.exceeded()` 且剩余 ≥ 1 次进化迭代成本 |
-| C4 | 无未控制混杂 | ADR-0086 ConfounderRecord | 所有 `confounder.controlled == true` |
-| C5 | CaptureMode | ADR-0080 v1.2 CaptureMode | 蒸馏场景: `mode == Training`; 非蒸馏: 不要求 |
-| C6 | MutationGovernor 预检 | ADR-0084 | `governor.propose()` 白名单 + L4 + 矩阵通过 |
-| C7 | 冷却期 | (新增, 防进化振荡) | 距上次 commit ≥ `min_evolution_interval` (默认 1h) |
+| C3 | 预算预留 | ExecutionBudget + **N1 进化周期预算** (evolution-budget-cap) | `!evolution_budget_exceeded()` 且预留 ≥ 1 次进化迭代成本 |
 
-**7 条件全部满足 → Ready; 任一不满足 → NotReady(具体 reason); C6 失败 → Blocked**
+**3 条件全部满足 → Ready; 任一不满足 → NotReady(具体 reason)**
+
+> **V2 扩展** (不在 V1): 冷却期节流 (配置 guard) / CaptureMode 蒸馏场景检查 / 连续监控触发。
 
 ### 3.3 进化触发的 3 种模式 (与现有机制对齐)
 
@@ -234,14 +236,20 @@ EvolutionReadinessReport check_evolution_readiness(
 
 **这是 Axis6 chain 从"搜索结果"变成"可执行实体"的唯一路径，当前完全不存在（G1 缺口）**。
 
+> **Oracle 修正 (session `ses_facbd3ffbffeUjlJgZsgMWFiM4`) — Materializer 输出 DSL 文本而非直接构造 ParsedGraph**:
+> - `DSLEngine::continue_with_generated_dsl()` (engine.cpp:390) **已存在且在用** (plan_execute_loop.h:241 / agent_loop 示例 / test_engine.cpp:44 — 4 处调用)
+> - `MarkdownParser::parse_from_string()` 是 DSL→ParsedGraph 的**单一事实源** (signature/权限/节点解析全在此)
+> - 直接构造 ParsedGraph 会制造**第二套构建逻辑**, 与 parser 分裂
+> - **正确方案**: Materializer 输出 **DSL 文本** (Markdown AgenticDSL 格式) → `continue_with_generated_dsl(dsl_text)` → 复用现有 parser+append 路径
+
 ### 4.1 转换规则 (axis → DSL 节点映射)
 
 | Axis 值 | → DSL 节点类型 | 说明 |
 |---------|---------------|------|
-| **axis6=Reflect** | `type: dsl_call, subgraph: "/lib/cognitive/gepa_reflect@v1"` | 调用 GEPALoop (需先 SKILL.md 化, 见 §六 G4) |
-| **axis6=Search** | `type: dsl_call, subgraph: "/lib/cognitive/mcts_search@v1"` | 嵌套 MCTS, 预算 `max_nested_search_iterations=30` |
-| **axis6=Compile** | `type: dsl_call, subgraph: "/lib/cognitive/skill_compile@v1"` | 调用 SkillCompiler (T17 已 ship) |
-| **axis6=Reason** | `type: dsl_call, subgraph: "/lib/reasoning/iper_loop@v1"` | IPER (未实装, Phase 1 预留) |
+| **axis6=Reflect** | `type: tool_call, tool: "cognitive::gepa_reflect"` | 调用 GEPALoop — **V1 走 tool 注册路线** (Oracle T2 修正: 比 SKILL.md 化更简单, 天然走 ADR-0004 审批矩阵; 见 §六 G4) |
+| **axis6=Search** | `type: tool_call, tool: "cognitive::mcts_search"` | 嵌套 MCTS, 预算 `max_nested_search_iterations=30` |
+| **axis6=Compile** | `type: tool_call, tool: "cognitive::skill_compile"` | 调用 SkillCompiler (T17 已 ship) |
+| **axis6=Reason** | Phase 1 预留 | IPER (未实装) — V1 返回 nullopt + "axis6_not_implemented_in_v1" |
 | **axis1=Linear** | 顺序边 `next: ["/next_node"]` | DAG 线性结构 |
 | **axis1=Branching** | `type: fork, branches: [...]` | 分支结构 |
 | **axis1=Loop** | 循环边 `next: ["/loop_start"]` | 循环结构 (受 max_iterations 限制) |
@@ -259,19 +267,21 @@ EvolutionReadinessReport check_evolution_readiness(
 | **axis5=Fallback** | `on_failure: "/fallback_node"` | 降级路径 |
 | **axis5=Abort** | `on_failure: "/end"` + `termination_mode: hard` | 失败终止 |
 
-### 4.2 转换器接口 (提议)
+### 4.2 转换器接口 (Oracle 修正: 输出 DSL 文本)
 
 ```cpp
 namespace agenticdsl {
 
 class WorkflowMaterializer {
  public:
-  // WorkflowGraph (图宇宙 A) → ParsedGraph (图宇宙 B)
-  // 失败时返回 nullopt + failure_reason
-  static std::optional<ParsedGraph> materialize(
+  // WorkflowGraph (图宇宙 A) → DSL 文本 (Markdown AgenticDSL 格式)
+  // 返回的 DSL 文本经 DSLEngine::continue_with_generated_dsl() 进入图宇宙 B
+  // 失败时返回 nullopt + failure_reason (fail-safe, 不抛异常)
+  static std::optional<std::string> materialize_to_dsl(
       const WorkflowGraph& wf_graph,           // MCTS 输出
       const TaskSpec& spec,                    // 原始任务描述
-      const MaterializeConfig& config);
+      const MaterializeConfig& config,
+      std::string* failure_reason = nullptr);
 
   struct MaterializeConfig {
     std::string output_path_prefix = "/dynamic/mcts/";  // GenerateSubGraph 同命名空间
@@ -283,11 +293,13 @@ class WorkflowMaterializer {
 } // namespace agenticdsl
 ```
 
+**调用路径**: `materialize_to_dsl()` → `DSLEngine::continue_with_generated_dsl(dsl_text)` → `MarkdownParser::parse_from_string()` → `append_graphs()` → 可调度。
+
 ### 4.3 signature 生成 (与 GenerateSubGraph 对齐)
 
-materialize 后的 ParsedGraph 必须携带 signature（与 GenerateSubGraph 的 signature_validation strict/warn/ignore 同机制），确保：
+materialize 后的 DSL 文本必须携带 signature（Markdown yaml 块内 `signature:` 字段），由 MarkdownParser 解析时校验（与 GenerateSubGraph 的 signature_validation strict/warn/ignore 同机制），确保：
 - 输入/输出 schema 明确
-- `strict` 模式下 signature 违规 → 拒绝注册
+- `strict` 模式下 signature 违规 → 解析失败 → 不注册
 - 与 ADR-0073 Tool JSON Schema 契约兼容
 
 ---
@@ -338,30 +350,21 @@ LLM 通过 GenerateSubGraph 生成的 DSL 子图:
 
 **关键设计点**: LLM 生成的子图**可以引用 cognitive_domain specialists**（通过 §十四 M1 inject_subgraphs_into_prompt 注入的可用 skill 列表），等效于 LLM 在自由空间中"手动"构建 chain。这条路径**绕过 MCTS 搜索**，但也**绕过 Axis6 的评估/归因/治理** — 需要决定：是否要求 GenerateSubGraph 生成的含 cognitive_domain 节点的子图**也走 MutationGovernor 治理**？（§六 G5）
 
-#### 模式 3: 双轨并行 + 仲裁 (chain vs subgraph 竞争)
+#### ~~模式 3: 双轨并行 + 仲裁~~ (Oracle 修正: V1 删除)
 
-```
-同一任务, 两条路径并行:
-  路径 A: MCTSWorkflowSearch + Axis6 → 结构化 chain
-  路径 B: GenerateSubGraph → LLM 自由生成子图
+> **Oracle 修正 (session `ses_facbd3ffbffeUjlJgZsgMWFiM4`)**: 双轨仲裁是**早产优化**。
+> V1 默认结构化路径 (Axis6/MCTS, 可归因), GenerateSubGraph 仅在 chain 显式包含时启用 (模式 1)。
+> 仲裁器引入额外的 eval 比较 + margin 阈值 + 双路径并行成本, V1 无此需求。V2 再评估。
 
-仲裁器 (待设计, G7):
-  IF 路径 A eval > 路径 B eval + margin:
-    采用路径 A (结构化, 可归因)
-  ELSE IF 路径 A 搜索空间不覆盖目标 (available_specialists 不足):
-    采用路径 B (开放式, 但需额外治理)
-  ELSE:
-    默认路径 A (fail-safe: 优先可归因方案)
-```
+**V1 规则**: 默认路径 A (结构化可归因); GenerateSubGraph 仅作为 chain 的末端开放节点 (模式 1) 或独立使用 (与 Axis6 无交互, 走自身治理路径)。
 
 ### 5.3 当前集成缺口 (关键!)
 
 **GenerateSubGraph 断链与 Axis6 的隐藏依赖**: `node_executor.cpp:327` 的 `g_current_engine->append_graphs()` 被注释掉，意味着：
-- GenerateSubGraph 生成的子图**无法注册到调度器**
-- 即使 Axis6 chain materialize 成功，如果 chain 中包含 GenerateSubGraph 节点，该节点在运行时也无法注册其生成的子图
-- **Axis6 chain 的完整工作流程在阶段 3（注册）和阶段 4（执行）都被这个 P0 断链阻塞**
+- GenerateSubGraph 生成的子图**无法注册到调度器**（动态 in-loop 注册路径断裂）
+- 如果 Axis6 chain 中包含 GenerateSubGraph 节点，该节点在运行时无法注册其生成的子图
 
-**修复优先级**: GenerateSubGraph 断链修复（§十一 11.6，恢复 `append_graphs_callback_` 调用链）是 Axis6 chain 端到端工作的**硬前置**。
+**Oracle 优先级修正 (session `ses_facbd3ffbffeUjlJgZsgMWFiM4`)**: 断链**降级** — 静态路径 A (`DSLEngine::append_graphs()`) 可用，断链只阻塞 chain 内含 GenerateSubGraph 节点的动态 in-loop 场景。**V1 chain 可以不包含 GenerateSubGraph 节点，因此断链不是 Axis6 端到端的硬前置**。断链修复 (§十一 11.6) 仅在 chain 需要动态子图生成时才升级回 P0。
 
 ---
 
@@ -387,7 +390,11 @@ LLM 通过 GenerateSubGraph 生成的 DSL 子图:
 
 **影响**: 整个 Axis6 工作流程的"阶段 1 搜索"没有启动者。
 
-**建议**: 定义 **ChainExecutor**（或复用 CognitiveWorker）作为 MCTS 的消费者 — 接收 goal → 调用 MCTSWorkflowSearch → materialize → 注册 → 执行 → 归因 → 提交。这是 G3 EvolutionReadinessGate 的下游执行体。
+**建议**: 定义 **ChainEvolutionDriver** 作为 MCTS 的消费者 — 接收 goal → 调用 MCTSWorkflowSearch → materialize → 注册 → 执行 → 归因 → 提交。
+
+> **Oracle 修正 (session `ses_facbd3ffbffeUjlJgZsgMWFiM4`)**:
+> 1. **G2 与 "缺 ChainExecutor" 是同一缺口的两次陈述** — G2 的修复建议本身就是消费者, 应与 G3 合并为单一 "进化驱动器" 组件
+> 2. **不复用 CognitiveWorker 队列** — MCTS 搜索是分钟级长任务, 放进 ADR-0020 单线程单队列会饿死其他 cognitive 任务。**V1 = 同步 driver 函数** (纯 C++ 调用, 由进化触发点同步调用), 不进队列
 
 ### G3 🔴 进化触发信号零基础设施 — "何时进化"无人回答
 
@@ -407,17 +414,21 @@ LLM 通过 GenerateSubGraph 生成的 DSL 子图:
 
 **影响**: 阶段 4 执行时，chain 中的 cognitive_domain 节点无法通过 DSL 调度到实际 specialist。
 
-**建议**: 新增 3 个 SKILL.md（`/lib/cognitive/{gepa_reflect,mcts_search,skill_compile}.agent.md`），与现有 `lib/loop/*.agent.md` 同构。这是 §十四 M5 cognitive domain 显式注册的具体落地形式（~0.5 sprint）。
+**建议 (Oracle T2 修正)**: **V1 走 tool 注册路线** — 将 GEPALoop/MCTSWorkflowSearch/SkillCompiler 注册为 tool (`cognitive::gepa_reflect` / `cognitive::mcts_search` / `cognitive::skill_compile`, ToolMetadata V2, approval=plan)。C++ class 经 ToolRegistry 注册即可被 `tool_call` 节点调用, **比写 3 个 .agent.md 更简单, 且天然走 ADR-0004 审批矩阵**（~0.5 sprint）。SKILL.md 化（`/lib/cognitive/*.agent.md`）是 V2 可组合性需求, 非 V1 阻塞。
 
 ### G5 🟠 GenerateSubGraph 绕过治理 — LLM 自由生成的 chain 无评估/归因/授权
 
 **发现**: GenerateSubGraph 的治理仅 signature_validation (strict/warn/ignore)，**无 eval / 无归因 / 无 MutationGovernor authorize**。而 Axis6 chain 有完整治理链（IEvaluator + governor authorize + attribution + 回归门）。
 
-**问题**: 如果 LLM 通过 GenerateSubGraph 生成一个等效于 axis6 chain 的子图（模式 2），它**完全绕过** Axis6 的治理体系。这是治理不对称 — 同一结果（cognitive_domain chain），一条路径（Axis6/MCTS）受严格治理，另一条路径（GenerateSubGraph）几乎无治理。
+> **Oracle 严重度上调 (session `ses_facbd3ffbffeUjlJgZsgMWFiM4`)**: 文档假设 signature_validation 是有效防线 — 实际 `node_executor.cpp:309` 是 `bool is_valid = true; // Placeholder`，**校验根本没实现，strict 模式恒通过**。GenerateSubGraph 当前治理 ≈ 零。"攻击面"措辞对 solo-dev 本地系统偏重，实质是**治理一致性**问题。
 
-**影响**: 攻击面 — 恶意或低质量 LLM 输出可通过 GenerateSubGraph 注入未受治理的 chain，而 Axis6 的治理设计（决策 8, ADR-0085 兼容）形同虚设。
+**问题**: 如果 LLM 通过 GenerateSubGraph 生成一个等效于 axis6 chain 的子图（模式 2），它**完全绕过** Axis6 的治理体系。这是治理不对称 — 同一结果（cognitive_domain chain），一条路径（Axis6/MCTS）受严格治理，另一条路径（GenerateSubGraph）治理为零（signature 校验是占位符）。
 
-**建议**: 明确规则 — **GenerateSubGraph 生成的子图中若包含 cognitive_domain specialist 节点（gepa/mcts/skill_compile/iper），必须走与 Axis6 相同的 MutationGovernor 治理流程**。可在 GenerateSubGraph 的 signature_validation 阶段增加 cognitive_domain 检测（若子图含 `/lib/cognitive/` 引用，升级为 strict + governor authorize）。
+**影响**: 治理一致性缺陷 — 恶意或低质量 LLM 输出可通过 GenerateSubGraph 注入未受治理的 chain，而 Axis6 的治理设计（决策 8, ADR-0085 兼容）形同虚设。
+
+**建议 (Oracle 修正, 分两步)**:
+1. **先修复 signature_validation 占位符** (`node_executor.cpp:309` 替换为真 schema 校验, 复用 ADR-0073 nlohmann validator) — 独立 change `signature-validation-real-impl` (~0.5 sprint)
+2. **再加 cognitive_domain 检测** — GenerateSubGraph 生成的子图若含 `/lib/cognitive/` 引用或 `cognitive::*` tool, 升级为 strict + governor authorize
 
 ### G6 🟡 深度限制三重奏未对齐 — 3 个独立深度限制的联合上限未定义
 
@@ -426,11 +437,13 @@ LLM 通过 GenerateSubGraph 生成的 DSL 子图:
 - Axis6 chain: `max_chain_depth = 3` (chain 内连续 specialist 节点数)
 - Axis6 嵌套: `max_nested_search_iterations = 30` (axis6=Search 节点嵌套 MCTS 迭代)
 
-**问题**: 当一个 axis6=Search 节点内的嵌套 MCTS 搜索出的 chain 中又包含 GenerateSubGraph 节点，且该节点继续 generate_subgraph 时，**理论最大深度 = 3 × 30 × 2 = 180 层**（chain_depth × nested_iterations × subgraph_depth）。没有任何机制限制这个组合爆炸。
+> **Oracle 修正 (session `ses_facbd3ffbffeUjlJgZsgMWFiM4`) — 原文档自相矛盾**: §五.2 模式 1 算的是 3×2=**6 层**，本节却算 3×30×2=**180 层** — `max_nested_search_iterations` 是**迭代次数**不是嵌套深度。180 层场景不现实。**真正的风险是预算**（每次嵌套搜索都烧 LLM token），应按预算而非深度设防 — 见 N1 (进化预算上限)。
 
-**影响**: 预算失控 — LLM 互相调用在最坏情况下可达 180 层，每次调用都消耗 token。
+**问题 (修正后)**: 多个独立深度/迭代限制的组合**总成本**无预算上限。chain_depth × subgraph_depth 的真实最大层数 ≈ 3 × 2 = 6 层（可接受），但每层内的 nested MCTS 迭代 (30) × IEvaluator 调用是 LLM 成本的主要来源。
 
-**建议**: 定义**联合深度上限** `max_total_cognitive_depth = 6`（chain_depth × max_subgraph_depth，不含 nested_iterations 因为它是迭代数不是层数），并在 ExecutionBudget 中增加 `cognitive_depth_used` 计数器。超过硬上限 → fail-closed。
+**影响 (修正后)**: 预算失控 — 不是"180 层深度"，而是"嵌套搜索 × 评估 × 反思的 LLM 调用次数"无上限。
+
+**建议 (Oracle 修正)**: **按预算设防而非按深度** — 新增 `evolution_cycle_budget` 预留字段 (ExecutionBudget, N1 修复 change `evolution-budget-cap`)，超限 fail-closed。深度限制保留为辅助防线 (chain_depth=3 + subgraph_depth=2 已足够)。
 
 ### G7 🟡 Chain 内归因（Blame Assignment）— ADR-0086 无法回答"chain 中哪个 specialist 贡献了提升"
 
@@ -444,40 +457,110 @@ LLM 通过 GenerateSubGraph 生成的 DSL 子图:
 
 ---
 
-## 七、缺口依赖图与修复顺序
+### Oracle 评审新增缺口 N1-N5 (session `ses_facbd3ffbffeUjlJgZsgMWFiM4`)
+
+> 以下 5 项缺口由 Oracle 独立评审发现, 原文档未列出。N1/N2 为 🔴 Blocker 级。
+
+### N1 🔴 进化预算失控 (Evolution loop burn) — 进化循环无成本上限
+
+**发现**: MCTS 搜索 (100 迭代 × IEvaluator 调用) × GEPA 反思 (LLM) × 嵌套 MCTS 全是 LLM 调用, 且进化是**正反馈循环** (越进化越触发评估)。ExecutionBudget 管单次执行, 无"每进化周期成本上限"。
+
+**问题**: EvolutionReadinessGate 的预算检查只查**余额**, 不**预留** — 进化循环可烧光预算后才被 exceeded() 拦截。**这才是 G6 的真身** (按预算设防而非按深度)。
+
+**影响**: 第一次自进化就可能烧光预算, fail-closed 原则要求先有钱闸。
+
+**建议**: ExecutionBudget 增 `max_evolution_llm_calls` + `evolution_llm_calls_used` + `try_consume_evolution_llm_call()` (CAS 原子, 与现有 try_consume_* 同构) + `reset_evolution_cycle()`。默认 -1 无限制保证零回归。修复 change: `openspec/changes/2026-08-31-evolution-budget-cap/` (~0.25 sprint)。
+
+### N2 🔴 变异提交时 in-flight 一致性 — 旧 chain 执行中的 session/task 怎么办
+
+**发现**: governor.commit() 切换 chain 时, 正在执行旧 chain 的 session (ADR-0079 4-Scope) 和 DomainWorkerPool 排队/在跑的 DomainTask 的一致性未定义。
+
+**问题**: (a) 执行入口未绑定 chain 版本快照 — in-flight 执行用旧 chain 还是新 chain? (b) 回滚后基于旧 chain 的 trajectory 归因到哪个版本? (c) commit 是否等待 in-flight 完成 (drain) 还是立即切换?
+
+**影响**: 归因错误 (旧 chain 的 trajectory 被归到新 chain) + 执行结果不一致。
+
+**建议**: 执行入口固定 chain 版本快照 (ExecutionSession 构造时记录 chain_version); commit 语义定义 (V1: 新版本仅影响新启动的 execution, in-flight 继续旧版本); 回滚时 trajectory 携带 chain_version 供归因。
+
+### N3 🟠 并发进化互斥 — 并发 MCTS 搜索的 propose→commit 竞争
+
+**发现**: CognitiveWorker 单线程 (ADR-0020), 但触发源可多个 (GEPA 失败 / 手动 / 未来监控)。两个并发 MCTS 搜索同时走 propose→commit 无互斥保护; governor 状态非线程安全。
+
+**问题**: 并发进化的提交竞争条件未定义 — 两个 chain 同时通过评估, 谁的 commit 生效?
+
+**影响**: 状态不一致 + 归因混乱。
+
+**建议**: V1 单触发源串行规避 (GEPA 失败驱动同步调用); V2 加 governor 互斥锁 (propose→commit 原子化)。
+
+### N4 🟠 LLM-in-the-loop chain 测试策略 — mock 分层未定义
+
+**发现**: MockLLMProvider 在 provider 层, 但 MCTS 的 IEvaluator / GEPA 反思 / GenerateSubGraph 生成各需独立 mock 点。T14 回归套件是行为级的, chain 级 golden 测试缺失。
+
+**问题**: 3 层 chain 的 E2E 测试如何构造确定性结果? mock 在哪个层级?
+
+**影响**: chain 级功能无法被确定性测试覆盖。
+
+**建议**: 定义 chain 级 mock 分层 (provider mock + evaluator mock + governor mock 三独立注入点); 参考 test_mcts_workflow_search.cpp 的 Mock evaluator 模式扩展到 chain 级。
+
+### N5 🟠 GenerateSubGraph 断链修复的回归风险 — 迭代中图突变
+
+**发现**: `append_graphs` 在 node_executor.cpp:327 被注释**必有原因** — 执行中 DAG 突变 → `rebuild_dynamic_graph()` 与主循环迭代器交互。
+
+**问题**: 直接恢复 append_graphs 调用可能在主循环迭代中修改图, 导致迭代器失效或节点重复执行。
+
+**影响**: 断链修复不是"取消注释"那么简单 — 需专项并发/迭代安全验证。
+
+**建议**: 断链修复 change (`generatesubgraph-append-restore`) 必须含: rebuild_dynamic_graph 迭代安全测试 + 图突变时的 ready_queue 一致性验证 + in-flight 节点完成保证。
+
+---
+
+## 七、缺口依赖图与修复顺序 (Oracle 修正版)
+
+> **Oracle 评审修正 (session `ses_facbd3ffbffeUjlJgZsgMWFiM4`)**: 缺口重排 + P0 断链降级 + G2 合并 + 新增 N1-N5。
 
 ```
-G1 Materialize (WorkflowGraph→ParsedGraph)     🔴 阻塞级
-  ↓ 依赖
-G4 Cognitive Specialists SKILL.md 化            🟠 重要级 (G1 的 materialize 需要可调用的 subgraph)
-  ↓ 依赖
-G3 EvolutionReadinessGate (进化触发)            🔴 阻塞级 (G1 完成前可并行设计)
-  ↓ 依赖
-G2 ChainExecutor (MCTS 消费者)                 🔴 阻塞级 (G1+G3 的下游执行体)
-  ↓ 依赖
-G5 GenerateSubGraph 治理对称                    🟠 重要级 (G1 完成后的治理补齐)
-  ↓ 依赖
-G6 联合深度上限                                 🟡 设计级 (G1+G4 完成后对齐)
-  ↓ 依赖
-G7 Chain 内归因 (Blame Assignment)              🟡 设计级 (V2 阶段, ADR-0086 V2 范围)
+🔴 Blocker 级 (不修则 Axis6 端到端零价值):
+  G1 Materialize (WorkflowGraph→DSL 文本)         — Oracle 修正: 输出 DSL 文本
+  N1 进化预算上限 (evolution-budget-cap)          — Oracle 新增, G6 真身
+  G4 Cognitive Specialists tool 注册              — Oracle 修正: tool 路线非 SKILL.md
 
-额外硬前置 (已识别, 非本次新发现):
-  P0 GenerateSubGraph 断链修复 (§十一 11.6) — Axis6 chain 端到端工作的硬前置
-  ADR-0061-08 v1.1 amendment 评审通过 (24h cooling-off + self-review)
-  ADR-0086 信用分配契约 ship (Axis6 Phase 1 前置, 已立项 🔍 Proposed)
+🟠 Important 级 (端到端可跑但有缺陷):
+  G5 GenerateSubGraph 治理 (先修 signature 占位符)
+  N2 In-flight 版本绑定 (commit 语义定义)
+  P0 GenerateSubGraph 断链修复                     — Oracle 降级: 仅 chain 含 GenerateSubGraph 节点时需
+  G3 EvolutionReadinessGate 精简版 (3 条件)        — Oracle 修正: 7→3 条件
+  N3 并发进化互斥                                  — V1 单触发源串行规避
+  N4 chain 级测试策略                              — mock 分层定义
+  N5 断链修复回归风险                              — 迭代安全验证
+
+🟡 V2 级:
+  G6 联合深度上限 (并入 N1 预算方案)
+  G7 Chain 内归因 (ADR-0086 V2)
+  连续监控触发
 ```
 
-**推荐修复顺序**:
-1. **P0 GenerateSubGraph 断链修复**（已在 §七 P0 清单，~0.5 sprint）— 一切动态注册的前置
-2. **G4 Cognitive Specialists SKILL.md 化**（~0.5 sprint）— 与 P0 并行
-3. **G1 WorkflowMaterializer**（~1 sprint）— 核心跨宇宙桥
-4. **G3 EvolutionReadinessGate**（~0.5 sprint）— 与 G1 并行设计
-5. **G2 ChainExecutor**（~0.5 sprint）— 串联 G1+G3
-6. **G5 GenerateSubGraph 治理对称**（~0.5 sprint）— 治理补齐
-7. **G6 联合深度上限**（~0.5 sprint）— 预算防护
-8. **G7 Chain 内归因**（V2，~2 sprint）— ADR-0086 V2 范围
+### 修复任务表 (Oracle 评审 + Solo Dev 容量 ~27h/周)
 
-**总估时**: G1-G6 ≈ 3.5-4 sprint（可并行压缩到 ~2.5 sprint），G7 属 V2。
+| # | Change 名 | 估时 | 依赖 | 修复缺口 | 并行 |
+|---|-----------|------|------|---------|------|
+| **T1** | `workflow-materializer-v1` | 1 sprint | 无 | G1 | 起点 |
+| **T2** | `cognitive-specialists-as-tools` | 0.5 sprint | 无 | G4 (tool 路线) | ∥T1 |
+| **T3** | `evolution-budget-cap` | 0.25 sprint | 无 | N1 | ∥T1/T2 |
+| **T4** | `signature-validation-real-impl` | 0.5 sprint | 无 | G5 (占位符修复) | ∥ |
+| **T5** | `evolution-readiness-gate-v1` | 0.5 sprint | **ADR-0086 ship** (关键路径) | G3 (3 条件) | T1 后 |
+| **T6** | `chain-evolution-driver-v1` | 0.5 sprint | T1+T2+T5 | G2 (合并) — 同步 driver, 非 CognitiveWorker 队列 | 收官 |
+| T7 | `generatesubgraph-append-restore` | 0.5 sprint | T4 | P0 断链 + N5 | 可推迟 |
+| T8 | chain 内归因 (G7) | 2 sprint | T6 + 数据积累 | G7 | V2 |
+
+**关键路径**: ADR-0086 ship (docs-only, self-review) → T5 → T6
+
+**额外硬前置**:
+- ADR-0061-08 v1.1 amendment 评审通过 (24h cooling-off + self-review)
+- ADR-0086 信用分配契约 ship (已立项 🔍 Proposed, T5 前置)
+- **Hygiene: 33 commits push 已完成** (2026-08-31)
+
+**总估时**: T1-T6 ≈ 3.25 sprint 串行 (~2.25 sprint 并行压缩), T7+ 可推迟。
+
+**最关键的 1 件事 (Oracle)**: **T1 Materializer (DSL 文本输出) + 手写 driver 脚本跑通 "MCTS 搜索→DSL 文本→append→执行" demo** — 成本最低、无依赖, 立刻把已 ship 的 MCTS 从"孤儿组件"变成"可演示价值", 实证检验整条管线假设。
 
 ---
 
@@ -524,6 +607,26 @@ grep -rn "max_depth\|max_chain_depth\|max_nested_search_iterations" docs/specs/d
 # 7. Axis6 chain 文档引用完整性
 grep -c "G1\|G2\|G3\|G4\|G5\|G6\|G7" docs/architecture/axis6-chain-workflow-architecture-2026-08.md
 # 预期: ≥14 (7 缺口 × 至少 2 处引用)
+
+# 8. N1-N5 新缺口存在性 (v1.1)
+grep -c "N1\|N2\|N3\|N4\|N5" docs/architecture/axis6-chain-workflow-architecture-2026-08.md
+# 预期: ≥10 (5 缺口 × 至少 2 处引用)
+
+# 9. Gate 精简验证 (v1.1: 7→3 条件)
+grep -c "C4\|C5\|C6\|C7" docs/architecture/axis6-chain-workflow-architecture-2026-08.md
+# 预期: ≥4 (C4-C7 仅在"Oracle 修正"说明中引用, 不在判定矩阵)
+
+# 10. Materializer DSL 文本输出 (v1.1 Oracle 修正)
+grep -c "materialize_to_dsl\|continue_with_generated_dsl" docs/architecture/axis6-chain-workflow-architecture-2026-08.md
+# 预期: ≥4
+
+# 11. 模式 3 已删除 (v1.1)
+grep -c "模式 3: 双轨并行" docs/architecture/axis6-chain-workflow-architecture-2026-08.md
+# 预期: 1 (仅删除标记, 仲裁器内容已删除)
+
+# 12. Oracle 评审 session 引用
+grep -c "ses_facbd3ffbffeUjlJgZsgMWFiM4" docs/architecture/axis6-chain-workflow-architecture-2026-08.md
+# 预期: ≥5 (各修正点引用)
 ```
 
 ---
@@ -533,9 +636,10 @@ grep -c "G1\|G2\|G3\|G4\|G5\|G6\|G7" docs/architecture/axis6-chain-workflow-arch
 | 日期 | 版本 | 变更 |
 |------|------|------|
 | 2026-08-31 | v1.0 | 初始化（双图宇宙第一性原理 + 6 阶段完整工作流程 + EvolutionReadinessGate 判定矩阵 + WorkflowMaterializer 转换规则 + GenerateSubGraph×Axis6 三种交互模式 + 7 项未识别缺口 G1-G7 + 缺口依赖图与修复顺序）|
+| 2026-08-31 | v1.1 | **Oracle 评审修正** (session `ses_facbd3ffbffeUjlJgZsgMWFiM4`): (1) **§三 Gate 7→3 条件** — C4 混杂 ⊂ C1 归因 (ADR-0086 Confounded 内含), C6 governor 预检是双重门禁, C5 CaptureMode 属蒸馏正交面, C7 冷却是配置 guard; V1 = C1+C2+预算预留; (2) **§四 Materializer 输出 DSL 文本** (非直接构造 ParsedGraph) — 复用 `continue_with_generated_dsl()` 现有路径 (engine.cpp:390, 4 处调用) + MarkdownParser 单一事实源; axis6 节点走 **tool_call** 路线 (非 dsl_call, 无需先 SKILL.md 化); (3) **§五 删除模式 3 双轨仲裁** — 早产优化, V1 默认结构化路径; (4) **§六 G2 合并 + G4 tool 路线 + G5 严重度上调 (signature 占位符 `is_valid=true` 恒通过) + G6 自相矛盾修复 (180 层夸大 → 预算设防)**; (5) **新增 5 项缺口 N1-N5** — N1 进化预算失控 (Blocker, G6 真身) / N2 in-flight 一致性 / N3 并发互斥 / N4 chain 测试策略 / N5 断链修复回归风险; (6) **§七 缺口依赖图重排** — P0 断链降级 (仅 chain 含 GenerateSubGraph 节点时需) + 8 任务表 (T1-T8) + 关键路径 (ADR-0086 ship → T5 → T6) + 最关键 1 件事 (T1 + driver demo)。 |
 
 ---
 
-**状态**: 🔍 Proposed（v1.0）— 指导性文档，需架构组评审后晋升为 Active
+**状态**: 🔍 Proposed（v1.1）— 指导性文档，需架构组评审后晋升为 Active
 **维护者**: solo-dev（Sisyphus）
-**下一修订**: G1-G7 缺口任一修复落地后 + ADR-0061-08 v1.1 amendment Approved 后 + GenerateSubGraph 断链修复后
+**下一修订**: T1-T6 缺口修复落地后 + ADR-0061-08 v1.1 amendment Approved 后 + ADR-0086 ship 后
