@@ -67,7 +67,7 @@ WorkflowMaterializer V1 (DSL 文本输出版, Oracle 修正)
 3. **`tests/test_workflow_materializer.cpp`** (新建, ≥6 cases):
    - 空 WorkflowGraph → nullopt
    - Linear axis1 + None axis6 → 线性 DSL 文本 (start→node→end)
-   - axis6=Reflect 节点 → dsl_call `/lib/cognitive/gepa_reflect` 节点生成
+   - axis6=Reflect 节点 → tool_call `cognitive::gepa_reflect` 节点生成 (V1 走 tool_call 路线,见 design.md §决策 5; T5 cognitive-specialists-as-tools 提供 tool 实装; ⚠️ 原文 dsl_call `/lib/cognitive/...` 已过时,以 design.md 为准)
    - axis1=Branching → fork/join 节点对生成
    - DSL 文本可被 MarkdownParser 解析回 ParsedGraph (round-trip)
    - emit lineage 事件含 workflow_hash + output_path

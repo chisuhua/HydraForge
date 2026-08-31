@@ -118,7 +118,7 @@ docs/
 | `adr-0061-05-cpp-wasm-toolchain.md` | wasi-sdk 集成 + C++→Wasm CI | P1 | ✅ Approved (⚠ 无代码) |
 | `adr-0061-06-trajectory-ir.md` | AgentIR-style Trajectory IR 升级 ParsedGraph | P1 | ⛔ Superseded (v1.1 amendment 2026-08-25, 见下行; v1.1 ✅ Shipped 2026-08-27) |
 | `adr-0061-07-paste-speculation.md` | PASTE-style 推测执行 | P2 | 🔍 Proposed |
-| `adr-0061-08-aflow-search.md` | AFlow-style MCTS 工作流搜索 | P2 | 🔍 Proposed |
+| `adr-0061-08-aflow-search.md` | AFlow-style MCTS 工作流搜索 | P2 | ✅ Approved + V1 Shipped 2026-08-28 (T20 MCTSWorkflowSearch ship) |
 | `adr-0061-09-gepa-loop.md` | GEPA-style 反思循环 | P2 | 🔍 Proposed |
 | `adr-0061-10-formal-lint.md` | λ_A-style Config 结构完整性检查 | P2 | 🔍 Proposed |
 | `adr-0061-11-dsl-wasm.md` | DSL→Wasm Bytecode 编译器 | P2 | 🔍 Proposed |
