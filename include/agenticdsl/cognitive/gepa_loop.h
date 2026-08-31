@@ -10,6 +10,7 @@
 #include "agenticdsl/contract/ievaluator.h"
 #include "agenticdsl/contract/imutation_governance.h"
 #include "agenticdsl/contract/iinteraction_bus.h"
+#include "modules/budget/budget_controller.h"
 #include "agenticdsl/types/execution_trace.h"
 
 #include <memory>
@@ -44,12 +45,20 @@ class GEPALoop {
            std::shared_ptr<ILLMProvider> llm,
            Config config,
            std::shared_ptr<IInteractionBus> bus = nullptr);
+  // T6 gepa-mcts-budget-integration: budget controller injection
+  GEPALoop(std::shared_ptr<IEvaluator> evaluator,
+           std::shared_ptr<IMutationGovernor> governor,
+           std::shared_ptr<IBudgetController> budget_controller,
+           std::shared_ptr<ILLMProvider> llm,
+           Config config,
+           std::shared_ptr<IInteractionBus> bus = nullptr);
 
   ReflectionResult reflect_and_commit(const ExecutionTrace& failed_trace);
 
  private:
   std::shared_ptr<IEvaluator> evaluator_;
   std::shared_ptr<IMutationGovernor> governor_;
+  std::shared_ptr<IBudgetController> budget_controller_;
   std::shared_ptr<ILLMProvider> llm_;
   std::shared_ptr<IInteractionBus> bus_;
   Config config_;
