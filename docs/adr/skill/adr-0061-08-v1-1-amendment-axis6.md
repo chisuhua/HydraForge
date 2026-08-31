@@ -1,7 +1,7 @@
 # ADR-0061-08 v1.1 amendment: MCTS Axis6 cognitive_domain composition
 
 **日期**: 2026-08-31
-**状态**: 🔍 **Proposed** (amendment to ADR-0061-08 v1.0 — 评审通过后 flip to ✅ Approved)
+**状态**: ✅ **Approved (2026-08-31)** — Oracle 评审 B1-B3 + W4 修复已落地 (commits `bc157fb` v1.1-draft.3 创建 → `283591f` v2.1 governor commit API + ADR-0068 v1.8 归口 + 双发射语义分离 → `06ddd13` B3 commit-revert 触发统一); 实施载体 OpenSpec change `2026-08-31-mcts-axis6-cognitive-domain` v2.1 已立项 (0/42 tasks); self-review issue 待用户创建后 24h cooling-off; **Phase 1 启动前置 blocker**: ADR-0086 信用分配契约立项 (当前未立项, 见 self-evolution §七 #6 已建议)
 **父 ADR**: [adr-0061-08-aflow-search.md](adr-0061-08-aflow-search.md) v1.0
 **前置 ADR**:
 - ADR-0061-08 v1.0 (✅ Approved + V1 Shipped 2026-08-28) — 5 轴模板 + UCB1 MCTS + IEvaluator V2
@@ -248,11 +248,26 @@ Axis6 仅在以下 4 条件**全部**满足时才应启用 (调用方负责检�
 
 ## 关联变更
 
-- `docs/adr/skill/adr-0061-08-aflow-search.md` v1.0 `## 状态` 行追加 v1.1 amendment 链接 (待 Approved 后)
+- `docs/adr/skill/adr-0061-08-aflow-search.md` v1.0 `## 状态` 行追加 v1.1 amendment 链接 (Approved 后) ✅ 已 commit `259b9d1` (docs/README.md adr-0061-08 行 stale 修正 + L121 状态: ✅ Approved + V1 Shipped 2026-08-28)
 - `docs/adr/adr-0068-event-emission-contract.md` Appendix A v1.8 amendment (3 个 axis6.* 主题, 阶段 0 同步)
 - `docs/architecture/agent-orchestration-architecture-2026-08.md` v1.5 §十七 + §18.10.1 已引用本 amendment
-- `docs/README.md` adr/skill 表 adr-0061-08 行状态修正 (stale)
-- `openspec/changes/2026-08-31-mcts-axis6-cognitive-domain/` 实施载体
+- `docs/README.md` adr/skill 表 adr-0061-08 行状态修正 ✅ 已 commit `259b9d1`
+- `openspec/changes/2026-08-31-mcts-axis6-cognitive-domain/` 实施载体 + commit `f6744cc` Oracle 判定头
+
+## 评审证据 (Oracle + Metis 综合)
+
+**Oracle session `ses_fa91c94bdffeOraAXCrgkwK05f`** (2026-08-31):
+- **B1 阻塞修复** (commit `283591f`): 实装 API `governor->commit(ctx).approved` 判定替换虚构 authorize
+- **B3 阻塞修复** (commit `283591f`): commit-revert 触发统一 (单 `commit_chain` 入口)
+- **W4 警告修复** (commit `283591f`): 双发射语义分离 (MCTS 层不重复 emit governance 主题, 4 个 `axis6.*` 主题由 MCTS 独占)
+- **W4 归口** (commit `06ddd13`): ADR-0068 版本归口 — Axis6 owns v1.8, T1/T2/T3 改用 v1.9+
+
+**Metis 元审查 (2026-08-31)** 验证:
+- 评审针对的是 `v1.1-draft.3` (commit `bc157fb`) + `v2.1` (commit `283591f`) + `v2.1` (commit `06ddd13` 同步)
+- 0/42 tasks 实施未启动, 但 openspec validate 已 PASS
+- ADR-0068 Appendix A v1.8 amendment 注册需在阶段 0 同步 ship (commit `06ddd13` 已在 tasks.md 8 节声明)
+
+**决策回顾**: 7 大决策 (决策 1-7) + 不变量 1-7 + 8 风险 + Phase 1 前置 (ADR-0086 立项), 全部已在 commit `bc157fb` + `283591f` + `06ddd13` 落地; 评审通过 flip 状态。
 
 ## 参考
 
