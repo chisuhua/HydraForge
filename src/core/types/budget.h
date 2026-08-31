@@ -20,12 +20,18 @@ struct ExecutionBudget {
     int max_snapshots = -1;           // -1 表示无限制
     size_t snapshot_max_size_kb = 512;
 
+    // Evolution cycle budget (N1 修复 — T3 evolution-budget-cap, 2026-08-31)
+    // -1 表示无限制, 否则为单次进化周期内允许的 LLM 调用次数
+    int max_evolution_llm_calls = -1;
+
 
 
     // Use atomic integers for thread-safe budget updates
     mutable std::atomic<int> nodes_used{0};
     mutable std::atomic<int> llm_calls_used{0};
     mutable std::atomic<int> subgraph_depth_used{0};
+    // Evolution cycle counter (T3)
+    mutable std::atomic<int> evolution_llm_calls_used{0};
     std::chrono::steady_clock::time_point start_time;
 
     // Constructor to initialize start_time
@@ -39,9 +45,11 @@ struct ExecutionBudget {
           max_subgraph_depth(other.max_subgraph_depth),
           max_snapshots(other.max_snapshots),
           snapshot_max_size_kb(other.snapshot_max_size_kb),
+          max_evolution_llm_calls(other.max_evolution_llm_calls),  // T3
           nodes_used(0), // 重置计数器！
           llm_calls_used(0),
           subgraph_depth_used(0),
+          evolution_llm_calls_used(0),  // T3
           start_time(std::chrono::steady_clock::now()) // 重置开始时间
     {}
 
@@ -54,10 +62,12 @@ struct ExecutionBudget {
             max_subgraph_depth = other.max_subgraph_depth;
             max_snapshots = other.max_snapshots;
             snapshot_max_size_kb = other.snapshot_max_size_kb;
+            max_evolution_llm_calls = other.max_evolution_llm_calls;
             // 重置原子计数器（不移动 other 的值）
             nodes_used = 0;
             llm_calls_used = 0;
             subgraph_depth_used = 0;
+            evolution_llm_calls_used = 0;
             start_time = std::chrono::steady_clock::now();
         }
         return *this;
@@ -109,6 +119,27 @@ struct ExecutionBudget {
             if (max_subgraph_depth >= 0 && expected >= max_subgraph_depth) return false;
         }
         return true;
+    }
+
+    // Evolution cycle budget (T3 evolution-budget-cap, 2026-08-31)
+    bool try_consume_evolution_llm_call() {
+        if (max_evolution_llm_calls < 0) return true;
+        int current = evolution_llm_calls_used.load();
+        if (current >= max_evolution_llm_calls) return false;
+        int expected = current;
+        while (!evolution_llm_calls_used.compare_exchange_weak(expected, expected + 1)) {
+            if (max_evolution_llm_calls >= 0 && expected >= max_evolution_llm_calls) return false;
+        }
+        return true;
+    }
+
+    bool evolution_budget_exceeded() const {
+        if (max_evolution_llm_calls < 0) return false;
+        return evolution_llm_calls_used.load() >= max_evolution_llm_calls;
+    }
+
+    void reset_evolution_cycle_counter() {
+        evolution_llm_calls_used.store(0);
     }
 
 };

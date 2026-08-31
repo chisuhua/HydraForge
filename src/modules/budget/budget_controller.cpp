@@ -122,4 +122,29 @@ void BudgetController::reset() {
     cost_tracker_.last_call_cost_usd = 0.0;
 }
 
+// T3 evolution-budget-cap
+bool BudgetController::try_consume_evolution_llm_call() {
+    if (!budget_opt_.has_value()) return true;
+    return budget_opt_->try_consume_evolution_llm_call();
+}
+
+bool BudgetController::evolution_budget_exceeded() const {
+    if (!budget_opt_.has_value()) return false;
+    return budget_opt_->evolution_budget_exceeded();
+}
+
+void BudgetController::begin_evolution_cycle(const std::string& cycle_id) {
+    LOG_DEBUG("begin_evolution_cycle: id=" << cycle_id);
+}
+
+void BudgetController::end_evolution_cycle(const std::string& cycle_id, bool success) {
+    LOG_DEBUG("end_evolution_cycle: id=" << cycle_id << " success=" << success);
+}
+
+void BudgetController::reset_evolution_cycle_counter() {
+    if (budget_opt_.has_value()) {
+        budget_opt_->reset_evolution_cycle_counter();
+    }
+}
+
 } // namespace agenticdsl

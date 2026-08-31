@@ -44,6 +44,12 @@ class MockBudget : public IBudgetController {
   }
   double get_total_cost_usd() const override { return 0.0; }
   void reset() override {}
+  // T3 evolution-budget-cap additions
+  bool try_consume_evolution_llm_call() override { return true; }
+  bool evolution_budget_exceeded() const override { return false; }
+  void begin_evolution_cycle(const std::string&) override {}
+  void end_evolution_cycle(const std::string&, bool) override {}
+  void reset_evolution_cycle_counter() override {}
 };
 
 }  // namespace

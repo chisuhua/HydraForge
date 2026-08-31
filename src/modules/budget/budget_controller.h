@@ -38,6 +38,13 @@ public:
     virtual void record_llm_call(int tokens, const std::string& model) = 0;
     virtual double get_total_cost_usd() const = 0;
     virtual void reset() = 0;
+
+    // Evolution cycle budget (T3 evolution-budget-cap, 2026-08-31)
+    virtual bool try_consume_evolution_llm_call() = 0;
+    virtual bool evolution_budget_exceeded() const = 0;
+    virtual void begin_evolution_cycle(const std::string& cycle_id) = 0;
+    virtual void end_evolution_cycle(const std::string& cycle_id, bool success) = 0;
+    virtual void reset_evolution_cycle_counter() = 0;
 };
 
 // BudgetController 类封装了预算的管理和检查逻辑
@@ -66,6 +73,13 @@ public:
     void record_llm_call(int tokens, const std::string& model) override;
     double get_total_cost_usd() const override;
     void reset() override;
+
+    // T3 evolution-budget-cap
+    bool try_consume_evolution_llm_call() override;
+    bool evolution_budget_exceeded() const override;
+    void begin_evolution_cycle(const std::string& cycle_id) override;
+    void end_evolution_cycle(const std::string& cycle_id, bool success) override;
+    void reset_evolution_cycle_counter() override;
 
     const CostTracker& cost_tracker() const { return cost_tracker_; }
 
