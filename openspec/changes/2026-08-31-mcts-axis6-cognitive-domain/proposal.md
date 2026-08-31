@@ -1,5 +1,7 @@
 # MCTS Axis6 cognitive_domain composition chain
 
+> **Oracle 判定**: 🟡 Conditional-Go (2026-08-31, session ses_fa91c94bdffeOraAXCrgkwK05f) — B1 (governor commit API) / B3 (commit-revert 触发统一) / W4 (双发射语义分离) 已 commit `283591f` 修复;commit `06ddd13` 应用 B3 依赖声明;剩余:adr-0061-08 v1.1 amendment 头部仍 🔍 Proposed 需独立 flip (前置 blocker);docs/README.md adr-0061-08 stale 已 commit `259b9d1` 修复
+>
 > **状态**: 🔍 Proposed (2026-08-31, ADR-0061-08 v1.1 amendment 评审中)
 > **关联文档**:
 > - `docs/architecture/agent-orchestration-architecture-2026-08.md` v1.5 §十四 M5 + §18.10.1

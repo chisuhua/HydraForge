@@ -1,5 +1,7 @@
 # Cognitive Specialists as Tools — GEPA/MCTS/SkillCompiler 注册为 cognitive::* 工具
 
+> **Oracle 判定**: 🟡 Conditional-Go (2026-08-31, session ses_facbd3ffbffeUjlJgZsgMWFiM4) — Oracle T2 修正路线正确(无需 lib/cognitive/ SKILL.md 化);commit `06ddd13` 已修 W1 (ErrorCode::Unavailable → InvalidParams tool_result.h:57) + W2 (register_tool_function → register_tool_function_json name+metadata+lambda itool_registry.h:127); 遗留 Oracle P0 命名争议 (`cognitive::*` vs `evolution::*` 未裁决 — 与 ADR-0020 Cognitive Worker 二元论有概念重叠, LayerProfile::Cognitive L4 禁止 tool_call); ToolCategory::Execute 语义错误待 P0 修正;input/output_schema 仅注释待补实际 JSON Schema
+>
 > **状态**: 🔍 Proposed (2026-08-31, Oracle 评审 T2: tool 注册路线优于 SKILL.md 化)
 > **关联文档**:
 > - `docs/architecture/axis6-chain-workflow-architecture-2026-08.md` §六 G4 (Cognitive Specialists 未 SKILL.md 化, Oracle 修正: tool 路线)

@@ -1,5 +1,7 @@
 # WorkflowMaterializer V1 — WorkflowGraph → DSL 文本具体化桥
 
+> **Oracle 判定**: 🟡 Conditional-Go (2026-08-31, session ses_facbd3ffbffeUjlJgZsgMWFiM4) — Oracle 方案修正完全合规(DSL 文本输出复用 continue_with_generated_dsl 静态路径,跳过 P0 GenerateSubGraph 断链); commit `06ddd13` 已修 B3 (axis6 依赖声明 + WorkflowNode.axis6 字段); commit `259b9d1` 修了 proposal L70 stale (`dsl_call /lib/cognitive/...` → `tool_call cognitive::*` 对齐 design.md §决策 5); 遗留 Oracle P0: Axis6 change 必须先 ship 才可编译 axis6 测试 case; axis1=Branching fork 分支内容映射规则 design.md §决策 2 空白待补
+>
 > **状态**: 🔍 Proposed (2026-08-31, Oracle 评审修正版: Materializer 输出 DSL 文本而非直接构造 ParsedGraph)
 > **关联文档**:
 > - `docs/architecture/axis6-chain-workflow-architecture-2026-08.md` §一/§四 (G1 Materialize 缺口 + 转换规则)

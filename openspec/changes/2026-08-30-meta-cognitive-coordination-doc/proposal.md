@@ -1,5 +1,7 @@
 # Cognitive-Cognitive 协调模式目录（§十八 OpenSpec change）
 
+> **Oracle 判定**: 🟢 Go (2026-08-30, sessions ses_faf7caad0ffeOiLqgZMofEuPpA + ses_faf7e5317ffe2ha7qD6m09TF5x + ses_faf7b0a43ffeHenVBGL1Y9O3cu + ses_faf77e870ffeqfqNoyZrwpqD4O) — Path 1 Conditional-Go 3 强制条件全部满足(stream-pipeline 标 V2 占位 / debate-round 标组合配方 / example mock-mode 可跑),与 ADR-0085 §决策 5 Meta-Agent V1 defer 一致;纯文档沉淀零代码改动,docs/README.md adr-0061-08 stale 已 commit `259b9d1` 修复
+>
 > **状态**: 🔍 Proposed (2026-08-30, Oracle 综合评审后续 Step 1)
 > **关联文档**: `docs/architecture/agent-orchestration-architecture-2026-08.md` (v1.4 含 §十八)
 > **关联 ADR**:

@@ -1,5 +1,7 @@
 # GEPA/MCTS 进化预算接入 (Evolution Budget Integration)
 
+> **Oracle 判定**: 🟡 Conditional-Go (2026-08-31, session ses_facbd3ffbffeUjlJgZsgMWFiM4) — N1 接入方完整(GEPA `llm_->generate()` gepa_loop.cpp:92 + MCTS `evaluator_->evaluate()` mcts_workflow_search.cpp:263); 强依赖 T3 evolution-budget-cap (commit `06ddd13` 已修 W3 IBudgetController 4 新方法 + ADR-0068 v2.0+ 归口); 遗留覆盖空白: MCTS V1 mock evaluator 零 LLM 调用(V2 real evaluator 升级路径需文档化) + SkillCompiler.compile() 间接调用未覆盖 + PlanExecuteLoop 独立 LLM 调用点未覆盖
+>
 > **状态**: 🔍 Proposed (2026-08-31, Oracle N1 缺口闭环)
 > **关联文档**:
 > - `docs/architecture/axis6-chain-workflow-architecture-2026-08.md` §六 N1 (进化预算失控, 🔴 Blocker)

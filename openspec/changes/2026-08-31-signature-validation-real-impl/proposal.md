@@ -1,5 +1,7 @@
 # Signature Validation Real Impl — GenerateSubGraph signature 校验占位符修复
 
+> **Oracle 判定**: 🟡 Conditional-Go (2026-08-31, session ses_fa91c94bdffeOraAXCrgkwK05f + ses_facbd3ffbffeUjlJgZsgMWFiM4) — G5 严重度上调合理(`bool is_valid = true` 占位符 strict 恒通过 → 治理不对称); commit `06ddd13` 已修 B2 (放弃匿名命名空间 validate_node,改字符串解析 AST 对齐 dsl.md §5.7 函数式格式); 遗留 Oracle P0-M1: `is_valid_json_schema_type()` 在 ToolSchemaValidator 公开 API 不存在,需自实现 type 白名单(string/number/boolean/object/array/integer/null);语义层校验(防 LLM prompt injection)完全缺失, 仅结构层覆盖; P0 GenerateSubGraph 断链(独立 change)导致通过校验的子图不执行,ship gate 需交叉验证
+>
 > **状态**: 🔍 Proposed (2026-08-31, Oracle 评审发现: signature_validation 是占位符, strict 恒通过)
 > **关联文档**:
 > - `docs/architecture/axis6-chain-workflow-architecture-2026-08.md` §六 G5 (GenerateSubGraph 治理不对称, Oracle 严重度上调)

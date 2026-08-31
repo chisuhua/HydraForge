@@ -1,5 +1,7 @@
 # EvolutionBudgetCap — 进化周期预算上限 (N1 修复)
 
+> **Oracle 判定**: 🟢 Go (2026-08-31, session ses_facbd3ffbffeUjlJgZsgMWFiM4) — N1 修复路径对症,与现有 ExecutionBudget 同构,零回归保证合理;commit `06ddd13` 已修 Oracle W3 警告(spec.md 路径错误 + IBudgetController 4 新方法接口扩展 + 移动构造测试 + ADR-0068 v1.9+ 归口); 遗留 N1.2 并发进化覆盖空白 (设计文档中说明 per-cycle 隔离要求即可); ADR-0086 信用分配 ship 后 ConfounderRecord.ResourceChange 可消费 budget 事件
+>
 > **状态**: 🔍 Proposed (2026-08-31, Oracle 评审发现 N1 缺口: 进化预算失控为 Blocker)
 > **关联文档**:
 > - `docs/architecture/axis6-chain-workflow-architecture-2026-08.md` §六 N1 (进化预算失控缺口)
