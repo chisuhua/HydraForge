@@ -78,7 +78,7 @@ orchestration-architecture v1.5 §18.10.1
 
 ## What Changes
 
-> **v2 (Oracle 评审 5 blocker 修复后)**: B1 实装 API 对齐 (`SearchResult search(const TaskSpec&)` + ctor 注入) / B2 chain 语义 (节点级属性, 图级形态) / B3 commit-revert 触发统一 (governor authorize 前置) / B4 ADR-0068 v1.8 主题注册 / B5 兜底 Scenario + 绝对值口径
+> **v2.1 (Oracle 评审 5 blocker + 3 阻塞修复后)**: B1 实装 API 对齐 (`SearchResult search(const TaskSpec&)` + ctor 注入 + `governor->commit(ctx).approved` 判定) / B2 chain 语义 (节点级属性, 图级形态) / B3 commit-revert 触发统一 (governor commit 前置实装 API) / B4 ADR-0068 v1.8 主题注册 (本 change owns v1.8) / B5 兜底 Scenario + 绝对值口径 + W4 双发射语义分离 (axis6.* 为搜索层审计, 不替代 mutation.*)
 
 ### Phase 0 (本 change 立即, ~1-1.5 sprint)
 
@@ -96,7 +96,7 @@ orchestration-architecture v1.5 §18.10.1
    - chain 深度截断 (连续 axis6≠None 节点数 ≤ `max_chain_depth`)
    - 嵌套 Search 预算 (`max_nested_search_iterations=30`, R3)
    - 改进停机 (best_reward **绝对改进** < `min_eval_improvement` 即停, 绝对值口径)
-   - commit_chain: `governor_->authorize()` 前置 — accepted → `axis6.commit`, denied → `axis6.revert` (Oracle B3 统一)
+   - commit_chain: `governor_->commit(ctx).approved` 前置 — approved → `axis6.commit`, denied → `axis6.revert` (Oracle B3 + B1 修复: 实装 API 是 propose/commit, 无 authorize)
 
 3. **`tests/test_mcts_workflow_search_axis6.cpp`** (新建, ≥6 cases):
    - Axis6 enum 序列化 round-trip
@@ -121,7 +121,7 @@ orchestration-architecture v1.5 §18.10.1
 
 - **不变量 1**: v1.0 17 cases / 65 assertions 测试基线 0 回归 (`tests/test_mcts_workflow_search.cpp` 必须全 pass)
 - **不变量 2**: `enable_axis6 = false` (默认) 行为 100% 等同 v1.0 (无 silent behavior change)
-- **不变量 3**: `axis6.commit` 必须先经 `governor_->authorize()` L1 接受, 再 emit (L2+ deferred V2)
+- **不变量 3**: `axis6.commit` 必须先经 `governor_->commit(ctx)` 返回 `MutationDecision{approved=true}` L1 接受, 再 emit (L2+ deferred V2)
 - **不变量 4**: `max_chain_depth` 默认 3, 图中连续 axis6≠None 节点数硬上限 + `max_nested_search_iterations=30` 嵌套预算 (R3)
 - **不变量 5**: cognitive_domain specialists 来自 §十四 M5 `register_domain_handler("cognitive", ...)` 注册项, **不可在 MCTSWorkflowSearch 内硬编码 specialist 实现**
 - **不变量 6**: `tools/adr_lint.py` + `docs_drift_audit.py` + `openspec validate --strict` 全 PASS
@@ -135,7 +135,7 @@ orchestration-architecture v1.5 §18.10.1
 | **R2 cognitive_domain specialists 硬编码** | 与 §十四 M5 注册机制脱节 | 不变量 5: 通过 `available_specialists` 参数注入, code review 重点 |
 | **R3 嵌套 Search 成本爆炸** | 100³ = 百万迭代 | `max_nested_search_iterations=30` 嵌套预算 (30³ ≈ 2.7万) + `max_chain_depth` 硬上限 |
 | **R4 Meta-Cognitive 概念复活** | ADR-0085 §决策 5 被绕过 | 决策 8: 显式声明 Axis6 通过分布式机制实现, 无需 MetaAgent 类 |
-| **R5 L1/L2+ 授权混淆** | commit 无授权 | 澄清: Phase 0 `axis6.commit` = L1 搜索审计 (governor authorize accepted 后 emit); L2+ workflow variants 生效属 V2 |
+| **R5 L1/L2+ 授权混淆** | commit 无授权 | 澄清: Phase 0 `axis6.commit` = L1 搜索审计 (governor `commit(ctx).approved` 后 emit); L2+ workflow variants 生效属 V2 |
 | **R6 §十四 M5 未实施** | Axis6 无法获取 specialists | 兜底: `available_specialists` 空/仅 None → emit `axis6.degraded` + 行为等同 v1.0 |
 | **R7 ADR-0086 未立项** | Phase 1 触发条件无 owner | **Phase 1 启动前置显式声明: ADR-0086 信用分配契约立项** |
 | **R8 事件主题未注册** | axis6.* 成幻影主题 (违反 ADR-0068) | **ADR-0068 Appendix A v1.8 amendment 同步 ship** (v1.7 已被 capture-mode 占用, 3 个 axis6.* 主题注册, tasks §3 必含) |

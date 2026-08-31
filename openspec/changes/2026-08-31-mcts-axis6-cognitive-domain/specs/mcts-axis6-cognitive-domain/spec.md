@@ -1,6 +1,6 @@
 # MCTS Axis6 cognitive_domain composition chain Specification
 
-> **v2 (Oracle 评审 5 blocker 修复后)**: B1 实装 API 对齐 (`SearchResult search(const TaskSpec&)` + ctor 注入) / B2 chain 语义 (节点级属性, 图级形态) / B3 commit-revert 触发统一 (governor authorize 前置) / B4 ADR-0068 v1.8 主题注册 / B5 兜底 Scenario + 绝对值口径
+> **v2.1 (Oracle 评审 5 blocker + 3 阻塞修复后)**: B1 实装 API 对齐 (`SearchResult search(const TaskSpec&)` + ctor 注入) / B2 chain 语义 (节点级属性, 图级形态) / B3 commit-revert 触发统一 (governor commit 前置, `MutationDecision{approved}` 判定) / B4 ADR-0068 v1.8 主题注册 (本 change owns v1.8) / B5 兜底 Scenario + 绝对值口径 + W4 双发射语义分离 (axis6.* 为搜索层审计, 不替代 mutation.*)
 
 ## Purpose
 
@@ -163,24 +163,29 @@ axis6=Search 节点的嵌套 MCTS 迭代 MUST 受 `max_nested_search_iterations`
 - **WHEN** 构造 chain_config `{enable_axis6=true, available_specialists={None}}`, 运行 search()
 - **THEN** emit `axis6.degraded` 事件, 行为等同 v1.0
 
-### Requirement: commit/revert 触发统一 (governor authorize 前置)
+### Requirement: commit/revert 触发统一 (governor commit 前置)
 
-`axis6.commit` MUST 仅在 `governor_->authorize()` L1 返回 accepted 后 emit; `axis6.revert` MUST 仅在 authorize() denied 后 emit (不再混用 "eval 下降" 触发器)。
+`axis6.commit` MUST 仅在 `governor_->commit()` 返回 `MutationDecision{approved=true}` 后 emit; `axis6.revert` MUST 仅在 `governor_->commit()` 返回 `MutationDecision{approved=false}` 后 emit (不再混用 "eval 下降" 触发器; 语义由 governor approve/deny 决定)。
 
-#### Scenario: authorize accepted → commit
+#### Scenario: governor approved → axis6.commit
 
-- **WHEN** governor_->authorize(chain) 返回 accepted
-- **THEN** emit `axis6.commit` 事件 (payload `{chain, eval_score, depth, iterations_used}`)
+- **WHEN** `governor_->commit(MutationContext{chain_ref, eval_refs:[], version_id:chain.id})` 返回 `MutationDecision{approved=true}`
+- **THEN** emit `axis6.commit` 事件 (payload `{chain, eval_score, depth, iterations_used}`); `governor` 内部已 emit `mutation.committed` (MCTS 层不替代, 仅追加搜索层审计)
 
-#### Scenario: authorize denied → revert
+#### Scenario: governor denied → axis6.revert
 
-- **WHEN** governor_->authorize(chain) 返回 denied
-- **THEN** emit `axis6.revert` 事件 (payload `{chain, prev_eval_score, denial_reason}`)
+- **WHEN** `governor_->commit(MutationContext{chain_ref, eval_refs:[], version_id:chain.id})` 返回 `MutationDecision{approved=false}` (denial_reason 非空)
+- **THEN** emit `axis6.revert` 事件 (payload `{chain, prev_eval_score, denial_reason}`); `governor` 内部已 emit `mutation.denied` (MCTS 层不替代)
 
-#### Scenario: authorize 调用先于 emit
+#### Scenario: 轴 6 主题不替代 mutation.* 主题 (W4 修复)
+
+- **WHEN** 静态检查 `src/modules/cognitive/mcts_workflow_search.cpp` 事件发射
+- **THEN** 仅 emit `axis6.commit`/`axis6.revert`/`axis6.degraded`/`axis6.commit_denied` (V1); 不 emit `mutation.committed`/`mutation.denied` 等 governance 主题 (governor 专属)
+
+#### Scenario: governor commit 调用先于 emit
 
 - **WHEN** 静态检查 `src/modules/cognitive/mcts_workflow_search.cpp` commit_chain 实现
-- **THEN** `governor_->authorize()` 调用在 `bus_->emit(axis6.commit)` 之前
+- **THEN** `governor_->commit()` 调用在 `bus_->emit(axis6.commit)` 之前 (governor 内部已 emit `mutation.committed`/`mutation.denied`, MCTS 层只追加 `axis6.commit`/`axis6.revert` 作为搜索层审计)
 
 ### Requirement: Axis6 specialists 通过注册项注入, 不硬编码
 

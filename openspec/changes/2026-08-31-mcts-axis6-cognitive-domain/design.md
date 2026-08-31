@@ -107,11 +107,11 @@ MCTSWorkflowSearch(evaluator, governor, regression_gate,
 
 | 事件 | 触发 (唯一定义) | payload |
 |------|----------------|---------|
-| `axis6.commit` | 新 chain 通过改进阈值 **且** `governor_->authorize()` (L1) accepted | `{chain, eval_score, depth, iterations_used}` |
-| `axis6.revert` | `governor_->authorize()` (L1) denied (统一由 governor 拒绝定义, 不再混用 "eval 下降") | `{chain, prev_eval_score, denial_reason}` |
+| `axis6.commit` | 新 chain 通过改进阈值 **且** `governor_->commit()` 返回 `MutationDecision{approved=true}` (L1) | `{chain, eval_score, depth, iterations_used}` |
+| `axis6.revert` | `governor_->commit()` 返回 `MutationDecision{approved=false}` (L1, denial_reason 非空) | `{chain, prev_eval_score, denial_reason}` |
 | `axis6.degraded` | `available_specialists` 为空/仅 None (R6 兜底) | `{reason: "empty_specialists"}` |
 
-**governor 调用是 commit 的前置** (不变量 3): 伪代码必须 `if (governor_->authorize(chain) == accepted) emit(commit); else emit(revert);`
+**governor 调用是 commit 的前置** (不变量 3): 伪代码必须 `if (governor_->commit(ctx).approved) emit(commit); else emit(revert);`。`governor` 内部已 emit `mutation.committed`/`mutation.denied`, MCTS 层只追加 `axis6.commit`/`axis6.revert` 作为搜索层审计。
 
 ### 决策 7 — 事件主题注册 (Oracle B4 修复)
 
@@ -211,12 +211,16 @@ void MCTSWorkflowSearch::expand_children(node) {
 
 // commit/revert (决策 6):
 void MCTSWorkflowSearch::commit_chain(chain, eval_score) {
-  if (governor_->authorize(chain) == MutationDecision::Accepted) {
+  MutationContext ctx{/* mutation_id: 链唯一 ID, source_id: MCTS, mutation_kind: L2_dsl, subject_ref: chain_ref, proposed_change: chain_summary, parent_ref: old_chain_ref, version_id: chain.id, mode: MutationMode::Agent, evaluation_refs: {latest eval_id} */};
+  MutationDecision decision = governor_->commit(ctx);
+  if (decision.approved) {
     if (bus_) bus_->emit(EventBuilder("axis6.commit")
         .meta({{"chain", ...}, {"eval_score", eval_score}, {"depth", chain.size()}}).build());
+    // governor 已 emit mutation.committed, MCTS 层不重复 emit governance 主题 (W4 修复)
   } else {
     if (bus_) bus_->emit(EventBuilder("axis6.revert")
-        .meta({{"chain", ...}, {"prev_eval_score", ...}, {"denial_reason", ...}}).build());
+        .meta({{"chain", ...}, {"prev_eval_score", ...}, {"denial_reason", decision.denial_reason}}).build());
+    // governor 已 emit mutation.denied, MCTS 层不重复 emit
   }
 }
 ```
@@ -242,7 +246,7 @@ TEST_CASE("R6 空 available_specialists → axis6.degraded 事件 + 行为等同
 | "UCB1 5 维特征向量 → 6 维 ordinal 编码" 叙述 | Oracle B2: UCB1 是 per-child q/visits 树选择, 不是特征向量; axis6 是节点采样属性 |
 | 独立 `search_chain` 算法 | Oracle B2: chain 是图级形态, 由 MCTS 树自然生成, 不存在独立 chain 搜索 |
 | `understanding_evaluator` Phase 0 死字段 | Oracle 建议: 移至 Phase 1 (本设计已移除该字段, 改为 Phase 1 集成) |
-| commit 事件不经 governor authorize 直接 emit | Oracle B3: 不变量 3 强制 authorize 前置 |
+| commit 事件不经 governor commit 直接 emit | Oracle B1 修复: 不变量 3 强制 `governor->commit(ctx).approved` 前置 |
 | ADR-0068 主题未注册即 emit | Oracle B4: 附录 A v1.8 amendment 随 Phase 0 同步 ship |
 | min_eval_improvement 称 "5%" (相对) | Oracle B5: 统一为绝对差 0.05 |
 | 新增 `MetaCognitiveAgent` 类 | ADR-0085 §决策 5 + 决策 9 |

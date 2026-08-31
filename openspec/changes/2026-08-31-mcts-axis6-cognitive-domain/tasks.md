@@ -50,7 +50,7 @@
   - chain 深度截断: 连续 axis6≠None 节点数 ≤ max_chain_depth
   - 嵌套 Search 预算: axis6=Search 节点嵌套迭代 ≤ max_nested_search_iterations (30)
   - 改进停机: best_reward 绝对改进 < min_eval_improvement (0.05 绝对值) 即停
-  - commit_chain: `if (governor_->authorize(chain) == accepted) emit(axis6.commit) else emit(axis6.revert)` (authorize 前置)
+  - commit_chain: `if (governor_->commit(ctx).approved) emit(axis6.commit) else emit(axis6.revert)` (commit 前置, B1 修复)
 - [ ] 2.3 新建 `tests/test_mcts_workflow_search_axis6.cpp` (≥6 cases):
   - `enum_serialization` — Axis6 6 值 round-trip
   - `ctor_delegation_unchanged` — 原 ctor 调用行为等同 v1.0 (verify v1.0 17 cases 0 回归)
@@ -65,10 +65,12 @@
   - 命令: `./build/tests/test_mcts_workflow_search --reporter compact`
   - 预期: 17 cases / 65 assertions all pass
 
-## 3. Phase 0 — ADR-0068 Appendix A v1.8 主题注册 (Oracle B4 修复)
+## 3. Phase 0 — ADR-0068 Appendix A v1.8 主题注册 (Oracle B4 修复, **本 change owns v1.8**)
+
+> **W4 修复**: 4 个 change (本 + T1 + T2 + T3) 均计划 amend Appendix A 且自称"v1.8"——并行分支必然冲突。**本 change 唯一 owns v1.8**, 后续 T1/T2/T3 必须使用 **v1.9 或更高** 版本号, 避免附录 A 并行冲突。
 
 - [ ] 3.1 编辑 `docs/adr/adr-0068-event-emission-contract.md` Appendix A:
-  - 新增 v1.8 amendment 注记: "Appendix A v1.8 amendment (2026-XX-XX, mcts-axis6-cognitive-domain Phase 0 ship): 新增 3 个 `axis6.*` 主题 (MCTSWorkflowSearch cognitive 模块, axis6.commit / axis6.revert / axis6.degraded, 全部为 emit 审计 + chain 生命周期)"
+  - 新增 v1.8 amendment 注记: "Appendix A v1.8 amendment (2026-XX-XX, mcts-axis6-cognitive-domain Phase 0 ship): 新增 3 个 `axis6.*` 主题 (MCTSWorkflowSearch cognitive 模块, axis6.commit / axis6.revert / axis6.degraded, 全部为 emit 审计 + chain 生命周期; **W4 修复: 不替代 governor 自带的 mutation.committed/mutation.denied, 仅追加搜索层审计**)"
   - 附录 A 表格新增 3 行: `axis6.commit` / `axis6.revert` / `axis6.degraded` (owner=MCTSWorkflowSearch cognitive 模块, payload 对齐决策 6)
 - [ ] 3.2 验证 3 主题注册
   - 命令: `grep -c "axis6.commit\|axis6.revert\|axis6.degraded" docs/adr/adr-0068-event-emission-contract.md`
@@ -130,7 +132,7 @@
     -m "Phase 0 ship: MCTS 节点模板新增第 6 个属性维度 (Axis6CognitiveDomain: None/Reflect/Search/Compile/Reason/Meta_Select), WorkflowNode 可标注 cognitive_domain specialist, MCTS 生成的 WorkflowGraph 可描述 cognitive_domain composition chain (orchestration-architecture v1.5 §14 M5 + §18.10.1)。" \
     -m "对齐实装 API (Oracle B1 修复): ctor 重载 (evaluator, governor, regression_gate, SearchConfig, CognitiveDomainChainConfig, bus), 原 ctor 委托新 ctor 默认值 (enable_axis6=false 行为 100% 等同 v1.0, 17 cases / 65 assertions 0 回归)。search() 签名 SearchResult search(const TaskSpec&) 不变。" \
     -m "chain 语义 (Oracle B2 修复): Axis6 是 WorkflowNode 节点级属性 (非独立 chain 搜索算法), chain 是图级形态 (MCTS 树自然生成, 复用 v1.0 UCB1 per-child, 无特征向量叙述)。" \
-    -m "事件语义统一 (Oracle B3 修复): axis6.commit 仅 governor authorize accepted 后 emit, axis6.revert 仅 denied 后 emit (不再混用 eval 下降), axis6.degraded 空 specialists 兜底 (R6)。" \
+    -m "事件语义统一 (Oracle B3 修复): axis6.commit 仅 governor commit(ctx).approved 后 emit, axis6.revert 仅 denied 后 emit (不再混用 eval 下降), axis6.degraded 空 specialists 兜底 (R6)。" \
     -m "ADR-0068 Appendix A v1.8 amendment (Oracle B4 修复): 注册 3 个 axis6.* 主题 (v1.7 已被 capture-mode 占用)。停机判据: max_iterations / max_chain_depth=3 / max_nested_search_iterations=30 (R3) / min_eval_improvement=0.05 绝对值 (B5)。" \
     -m "6 新测试 (test_mcts_workflow_search_axis6.cpp): enum serialization / ctor delegation / depth limit / nested budget / improvement stop / empty degraded。Meta-Cognitive Agent 仍不需要 (决策 8 分布式实现, ADR-0085 §决策 5 兼容)。" \
     -m "Oracle 评审: session ses_fad1df19effezRRly8ZxHJsp2P (Conditional-Go, 5 blocker 全部修复)。Phase 1 启动前置: ADR-0086 信用分配契约立项 (显式 blocker 声明)。" \
