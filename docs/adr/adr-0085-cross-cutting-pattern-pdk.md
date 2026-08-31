@@ -4,6 +4,8 @@
 **父主题**: HydraForge 横切架构工作文档 `docs/architecture/cross-cutting-hooks-architecture-2026-08.md` v1.2
 **状态**: ✅ **Approved** (2026-08-28 — Oracle 3 轮复审全部通过, GitHub issue #15 Self-Review 决议)
 
+> **⏳ tracking: pending — ADR-TRACKING-01 豁免 (B6 修正, 2026-08-31)**: ADR-0085 ✅ Approved 24h+ 无 tracking OpenSpec change。理由: V1 (4 Pattern + Orchestrator + DSL schema) 已 ship 经 `pdk-cross-cutting-patterns` change (估时 ~2.2 sprint, Sprint 24 规划内) 但实施载体 OpenSpec change 命名待建 (per Oracle session #15 self-review)。Ship 证据已记录 (line 9-12)。待 `2026-08-XX-pdk-cross-cutting-patterns` tracking change 立项时关联。详见 `tools/adr_lint.py` 警告关联 commit `1f25821`。
+
 > **V1 范围**: 4 个独立 PDK Pattern class + `CrossCuttingOrchestrator` 编排器 + `ICrossCuttingPattern` 抽象接口 + 横切功能 DSL 格式（`*.cc.md`）。**V1 不实施**：横切功能 Agent 自管理（可选高级特性，V2 deferred）。
 
 > **Ship 证据 (2026-08-28)**: 

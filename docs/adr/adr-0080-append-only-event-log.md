@@ -6,6 +6,8 @@
 > **修订记录**：v1.1 amendment 针对 Agent 蒸馏与自进化的数据需求修订 D2/D6/D9，
 > 追加 D10（模型可见字节条件捕获）与附录 E（消费侧边界）。**v1 决策不变**。
 
+> **⏳ tracking: pending — ADR-TRACKING-01 豁免 (B6 修正, 2026-08-31)**: ADR-0080 ✅ Approved 24h+ 无 tracking OpenSpec change。理由: EventLog + EventBuilder + CaptureMode + IDistillationWriter (Phase 1) 全部 ship 经多 change  (capcap § §一 # #31 Distillation Data 1 ship 2026-08-29; ADR-0068 v1.2.2 已注册 27+ 主题含 bus_event bus + capture_mode capture 相关; 阶段 1 Phase 2 deferred per v1.1 amendment D10). 待 Phase 2 启动时补 `2026-09-XX-adr-0080-eventlog-phase-2` tracking change. 详见 `tools/adr_lint.py` 警告关联 commit `1f25821`.
+
 ## 上下文
 
 ### 为什么需要 EventLog
