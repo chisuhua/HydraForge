@@ -184,6 +184,90 @@ MCTSWorkflowSearch::MCTSWorkflowSearch(
       bus_(std::move(bus)),
       config_(std::move(config)) {}
 
+// T2 + T6 ctor overload: budget_controller 注入
+MCTSWorkflowSearch::MCTSWorkflowSearch(
+    std::shared_ptr<IEvaluator> evaluator,
+    std::shared_ptr<IMutationGovernor> governor,
+    std::shared_ptr<BehavioralRegressionGate> regression_gate,
+    SearchConfig config,
+    std::shared_ptr<IInteractionBus> bus,
+    std::shared_ptr<IBudgetController> budget_controller)
+    : evaluator_(std::move(evaluator)),
+      governor_(std::move(governor)),
+      regression_gate_(std::move(regression_gate)),
+      bus_(std::move(bus)),
+      budget_controller_(std::move(budget_controller)),
+      config_(std::move(config)) {}
+
+// T2 commit API: chain 单主体归因 (source_id=MCTS, decision 5)
+MCTSWorkflowSearch::CommitResult MCTSWorkflowSearch::commit_chain(
+    const std::vector<WorkflowNode::Axis6CognitiveDomain>& chain) {
+  CommitResult cr;
+  cr.failure_mode = "unknown";
+  cr.mutation_id = "axis6:" + std::to_string(reinterpret_cast<uintptr_t>(&chain));
+
+  // 决策 5 兜底: chain 为空或 None
+  if (chain.empty() || (chain.size() == 1 && chain[0] == WorkflowNode::Axis6CognitiveDomain::None)) {
+    cr.failure_mode = "empty_chain_or_all_none";
+    cr.approved = false;
+    emit_event(bus_, "axis6.degraded",
+               {{"reason", cr.failure_mode}, {"chain_size", static_cast<int>(chain.size())}});
+    return cr;
+  }
+
+  // 决策 5: max_chain_depth 硬截断 (per cognitive_domain_chain config)
+  int max_depth = cognitive_domain_chain_.max_chain_depth > 0 ? cognitive_domain_chain_.max_chain_depth : 3;
+  if (static_cast<int>(chain.size()) > max_depth) {
+    cr.failure_mode = "chain_depth_exceeded";
+    cr.approved = false;
+    emit_event(bus_, "axis6.degraded",
+               {{"reason", cr.failure_mode},
+                {"requested_depth", static_cast<int>(chain.size())},
+                {"max_depth", max_depth}});
+    return cr;
+  }
+
+  // emit started (W4: MCTS 层 emit, governance 层 emit 由 governor 负责)
+  emit_event(bus_, "axis6.search.started",
+             {{"chain", nlohmann::json(chain)},
+              {"source_id", "MCTS"}});
+
+  // B1 修复: governor->commit(ctx).approved 判定
+  // 单主体归因: source_id=MCTS (决策 5)
+  MutationContext ctx;
+  ctx.source_id = "MCTS";
+  ctx.subject_ref = "WorkflowNode";
+  ctx.proposed_change = "axis6 chain: " + std::to_string(chain.size()) + " steps";
+  ctx.mode = MutationMode::Agent;
+  cr.mutation_id = ctx.mutation_id;
+  if (!governor_) {
+    cr.failure_mode = "no_governor";
+    cr.approved = false;
+    emit_event(bus_, "axis6.commit.reverted",
+               {{"mutation_id", cr.mutation_id}, {"reason", "no_governor"}});
+    return cr;
+  }
+  auto decision = governor_->commit(ctx);
+  cr.approved = decision.approved;
+  if (decision.approved) {
+    cr.failure_mode = "";
+    emit_event(bus_, "axis6.commit.committed",
+               {{"mutation_id", cr.mutation_id},
+                {"chain_size", static_cast<int>(chain.size())}});
+  } else {
+    cr.failure_mode = decision.denial_reason;
+    emit_event(bus_, "axis6.commit.reverted",
+               {{"mutation_id", cr.mutation_id},
+                {"reason", decision.denial_reason}});
+  }
+  return cr;
+}
+
+// T2 can_execute: check axis6 是否可执行
+bool MCTSWorkflowSearch::can_execute(const WorkflowNode& node) const {
+  return node.axis6 != WorkflowNode::Axis6CognitiveDomain::None;
+}
+
 MCTSWorkflowSearch::SearchResult MCTSWorkflowSearch::search(
     const TaskSpec& spec) {
   SearchResult result;

@@ -18,6 +18,7 @@
 #include "agenticdsl/contract/imutation_governance.h"
 #include "agenticdsl/contract/iinteraction_bus.h"
 #include "agenticdsl/testing/behavioral_regression.h"
+#include "modules/budget/budget_controller.h"
 #include "agenticdsl/types/execution_trace.h"
 #include "core/types/tool_result.h"
 
@@ -41,13 +42,14 @@ struct TaskSpec {
 
 // ============================================================================
 // WorkflowNode — 5 轴模板实例化 (ADR-0061-08 §决策 1)
-// ============================================================================
+// T2 amendment: 第 6 轴 Axis6CognitiveDomain (cognitive domain composition chain)
 struct WorkflowNode {
   enum class Axis1Template { Linear, Branching, Loop, Parallel };
   enum class Axis2Param { Temperature, MaxTokens, TopP };
   enum class Axis3Tool { None, Calculator, Search, Custom };
   enum class Axis4Control { Sequential, Parallel, Loop };
   enum class Axis5Error { Retry, Fallback, Abort };
+  enum class Axis6CognitiveDomain { None, Reflect, Search, Compile, Meta_Select, Reason };
 
   std::string id;
   Axis1Template axis1 = Axis1Template::Linear;
@@ -55,6 +57,7 @@ struct WorkflowNode {
   Axis3Tool axis3 = Axis3Tool::None;
   Axis4Control axis4 = Axis4Control::Sequential;
   Axis5Error axis5 = Axis5Error::Retry;
+  Axis6CognitiveDomain axis6 = Axis6CognitiveDomain::None;
 };
 
 // ============================================================================
@@ -158,6 +161,27 @@ class MCTSWorkflowSearch {
                      SearchConfig config,
                      std::shared_ptr<IInteractionBus> bus = nullptr);
 
+  // T2 + T6 ctor overload: budget_controller 注入
+  MCTSWorkflowSearch(std::shared_ptr<IEvaluator> evaluator,
+                     std::shared_ptr<IMutationGovernor> governor,
+                     std::shared_ptr<BehavioralRegressionGate> regression_gate,
+                     SearchConfig config,
+                     std::shared_ptr<IInteractionBus> bus,
+                     std::shared_ptr<IBudgetController> budget_controller);
+
+  // T2 commit API (单主体归因 source_id=MCTS)
+  struct CognitiveDomainChainConfig {
+    std::vector<WorkflowNode::Axis6CognitiveDomain> specialists;
+    int max_chain_depth = 3;  // 决策 5: 硬截断
+  };
+  struct CommitResult {
+    bool approved = false;
+    std::string failure_mode;
+    std::string mutation_id;
+  };
+  CommitResult commit_chain(const std::vector<WorkflowNode::Axis6CognitiveDomain>& chain);
+  bool can_execute(const WorkflowNode& node) const;
+
   SearchResult search(const TaskSpec& spec);
 
  private:
@@ -165,6 +189,8 @@ class MCTSWorkflowSearch {
   std::shared_ptr<IMutationGovernor> governor_;
   std::shared_ptr<BehavioralRegressionGate> regression_gate_;
   std::shared_ptr<IInteractionBus> bus_;
+  std::shared_ptr<IBudgetController> budget_controller_;
+  CognitiveDomainChainConfig cognitive_domain_chain_;
   SearchConfig config_;
 };
 
