@@ -233,3 +233,10 @@ Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = 
 | `mcts.search.completed` | MCTSWorkflowSearch (cognitive) | 搜索成功 (终态, 与 failed 互斥) | `search_id`, `best_workflow`, `best_reward`, `iterations_used` | ✅ (T20 ship, 2026-08-28) |
 | `mcts.search.failed` | MCTSWorkflowSearch (cognitive) | 任一失败路径 (终态, 与 completed 互斥) | `search_id`, `failure_reason` | ✅ (T20 ship, 2026-08-28) |
 | `event_log.capture_mode_downgrade` | EventLog (CaptureMode 配置校验) | Online→Training 静默降级检测 + 路径不匹配检测 (V1: 仅启动校验) | `original_mode`, `detected_mode`, `reason` (`path_mismatch` / `agent_id_empty` / `missing_train_substring`) | ✅ (capture-mode-and-distillation-writer-v1 active, 2026-08-29, Appendix A v1.7) |
+| `budget.evolution_cycle.started` | BudgetController (modules/budget) | 进化周期进入 (T3 evolution-budget-cap ship) | `cycle_id` | ✅ (T3, 2026-08-31, Appendix A v1.8) |
+| `budget.evolution_cycle.ended` | BudgetController (modules/budget) | 进化周期退出 (success/fail) | `cycle_id`, `success` | ✅ (T3, 2026-08-31, Appendix A v1.8) |
+| `mcts.budget_exceeded` | MCTSWorkflowSearch (cognitive) | 进化周期预算超限 break | `search_id`, `reason` | ✅ (T6 gepa-mcts-budget-integration, 2026-08-31, Appendix A v1.9) |
+| `axis6.search.started` | MCTSWorkflowSearch (cognitive) | axis6 chain 评估开始 (T2 ship) | `chain`, `source_id` | ✅ (T2, 2026-08-31, Appendix A v2.0) |
+| `axis6.commit.committed` | MCTSWorkflowSearch (cognitive) | chain 通过 governance approve (单主体归因) | `mutation_id`, `chain_size` | ✅ (T2, 2026-08-31, Appendix A v2.0) |
+| `axis6.commit.reverted` | MCTSWorkflowSearch (cognitive) | chain governance deny (governance 层 emit mutation.denied) | `mutation_id`, `reason` | ✅ (T2, 2026-08-31, Appendix A v2.0) |
+| `axis6.degraded` | MCTSWorkflowSearch (cognitive) | chain 空/None 或 max_chain_depth 超限 | `reason` (`empty_chain_or_all_none` / `chain_depth_exceeded`), `chain_size`, `requested_depth`, `max_depth` | ✅ (T2, 2026-08-31, Appendix A v2.0) |
