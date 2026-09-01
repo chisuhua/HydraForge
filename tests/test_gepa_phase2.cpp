@@ -412,3 +412,94 @@ TEST_CASE("gepa_e2e_regression_decline_aborts", "[gepa][phase2][phase3]") {
   REQUIRE(result.failure_mode == "commit_denied");
   REQUIRE(governor->commit_calls == 1);
 }
+
+// T6 gepa-mcts-budget-integration: 进化预算闸集成测试
+#include "modules/budget/budget_controller.h"
+
+TEST_CASE("gepa_budget_t6_nullptr_baseline_compatible", "[gepa][budget][t6]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
+  auto governor = std::make_shared<StubMutationGovernor>();
+  auto llm = std::make_shared<MockLLMProvider>();
+  GEPALoop loop(evaluator, governor, llm, GEPALoop::Config{});
+  // budget_controller_ 默认 nullptr, 零回归兼容
+  const auto result = loop.reflect_and_commit(make_failed_trace("t6_nullptr"));
+  REQUIRE(result.failure_mode.empty());  // 失败模式为空 = 完全成功
+  REQUIRE(result.success);
+}
+
+TEST_CASE("gepa_budget_t6_exhausted_breaks_gracefully", "[gepa][budget][t6]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
+  auto governor = std::make_shared<StubMutationGovernor>();
+  auto llm = std::make_shared<MockLLMProvider>();
+
+  // cap=0: 第 1 次迭代即超限, break 失败
+  ExecutionBudget budget;
+  budget.max_evolution_llm_calls = 0;
+  std::optional<ExecutionBudget> budget_opt;
+  budget_opt.emplace(std::move(budget));
+  BudgetController controller(std::move(budget_opt));
+  auto budget_iface = std::shared_ptr<IBudgetController>(&controller, [](IBudgetController*){});
+
+  GEPALoop::Config config;
+  config.max_iterations = 5;
+  GEPALoop loop(evaluator, governor, budget_iface, llm, config);
+
+  const auto result = loop.reflect_and_commit(make_failed_trace("t6_exhausted"));
+  REQUIRE_FALSE(result.success);
+  REQUIRE(result.failure_mode == "evolution_budget_exceeded");
+  REQUIRE(controller.evolution_budget_exceeded());
+}
+
+TEST_CASE("gepa_budget_t6_exhausted_emits_event", "[gepa][budget][t6]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
+  auto governor = std::make_shared<StubMutationGovernor>();
+  auto llm = std::make_shared<MockLLMProvider>();
+  auto bus = std::make_shared<RecordingBus>();
+
+  ExecutionBudget budget;
+  budget.max_evolution_llm_calls = 0;  // 第 1 次即超限
+  std::optional<ExecutionBudget> budget_opt;
+  budget_opt.emplace(std::move(budget));
+  BudgetController controller(std::move(budget_opt));
+  auto budget_iface = std::shared_ptr<IBudgetController>(&controller, [](IBudgetController*){});
+
+  GEPALoop::Config config;
+  config.max_iterations = 3;
+  GEPALoop loop(evaluator, governor, budget_iface, llm, config, bus);
+
+  loop.reflect_and_commit(make_failed_trace("t6_event"));
+
+  // 验证 emit gepa.reflection.failed with reason=evolution_budget_exceeded
+  bool found = false;
+  for (const auto& e : bus->events) {
+    if (e.topic == "gepa.reflection.failed" &&
+        e.payload.data.contains("reason") &&
+        e.payload.data["reason"].get<std::string>() == "evolution_budget_exceeded") {
+      found = true;
+      break;
+    }
+  }
+  REQUIRE(found);
+}
+
+TEST_CASE("gepa_budget_t6_unlimited_baseline", "[gepa][budget][t6]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
+  auto governor = std::make_shared<StubMutationGovernor>();
+  auto llm = std::make_shared<MockLLMProvider>();
+
+  // 默认 max_evolution_llm_calls = -1 (无限制)
+  BudgetController controller;
+  auto budget_iface = std::shared_ptr<IBudgetController>(&controller, [](IBudgetController*){});
+
+  GEPALoop::Config config;
+  config.max_iterations = 3;
+  GEPALoop loop(evaluator, governor, budget_iface, llm, config);
+
+  const auto result = loop.reflect_and_commit(make_failed_trace("t6_unlimited"));
+  REQUIRE(result.success);  // budget 不限, 跑完 3 次迭代
+  REQUIRE_FALSE(controller.evolution_budget_exceeded());
+}

@@ -41,12 +41,26 @@ GEPALoop::GEPALoop(std::shared_ptr<IEvaluator> evaluator,
     : GEPALoop(std::move(evaluator), std::move(governor), std::move(llm), Config{}, nullptr) {}
 
 GEPALoop::GEPALoop(std::shared_ptr<IEvaluator> evaluator,
-                   std::shared_ptr<IMutationGovernor> governor,
-                   std::shared_ptr<ILLMProvider> llm,
-                   Config config,
-                   std::shared_ptr<IInteractionBus> bus)
+                    std::shared_ptr<IMutationGovernor> governor,
+                    std::shared_ptr<ILLMProvider> llm,
+                    Config config,
+                    std::shared_ptr<IInteractionBus> bus)
     : evaluator_(std::move(evaluator)),
       governor_(std::move(governor)),
+      llm_(std::move(llm)),
+      bus_(std::move(bus)),
+      config_(std::move(config)) {}
+
+// T6 gepa-mcts-budget-integration: budget controller ctor overload
+GEPALoop::GEPALoop(std::shared_ptr<IEvaluator> evaluator,
+                    std::shared_ptr<IMutationGovernor> governor,
+                    std::shared_ptr<IBudgetController> budget_controller,
+                    std::shared_ptr<ILLMProvider> llm,
+                    Config config,
+                    std::shared_ptr<IInteractionBus> bus)
+    : evaluator_(std::move(evaluator)),
+      governor_(std::move(governor)),
+      budget_controller_(std::move(budget_controller)),
       llm_(std::move(llm)),
       bus_(std::move(bus)),
       config_(std::move(config)) {}
@@ -64,6 +78,16 @@ GEPALoop::ReflectionResult GEPALoop::reflect_and_commit(
   const std::string trajectory_hash = ir::TrajectoryIR::hash(trajectory_snapshot);
 
   for (int iteration = 0; iteration < config_.max_iterations; ++iteration) {
+    // T6 gepa-mcts-budget-integration: 进化预算闸
+    if (budget_controller_ && !budget_controller_->try_consume_evolution_llm_call()) {
+      result.failure_mode = "evolution_budget_exceeded";
+      nlohmann::json budget_payload;
+      budget_payload["reason"] = result.failure_mode;
+      budget_payload["iterations_used"] = iteration;
+      emit_event(bus_, "gepa.reflection.failed", budget_payload);
+      // T6 graceful break: evolution budget exceeded, 退出循环
+      break;
+    }
     const std::string reflection_id = make_reflection_id(failed_trace, iteration);
     emit_event(bus_, "gepa.reflection.started",
                {{"reflection_id", reflection_id}, {"trajectory_ir_hash", trajectory_hash}});
