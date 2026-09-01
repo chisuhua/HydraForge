@@ -541,7 +541,7 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 | 维度 | 内容 | 改动规则 |
 |---|---|---|
 | **架构契约层**（ADR 治理）| IInteractionBus / ILLMProvider / IToolRegistry / IAgentRegistry / IAgentHookRegistry / IAgentComposition / IEnvBackend / IApprovalHandler / LayeredContext 5 层 / ToolResult + 17 ErrorCode / Session 4-scope / EventLog schema + EventBuilder 主题注册表（ADR-0068）/ **D10 Distillation Capture**（ADR-0080 v1.1：prompt_text/response_text 字段 + capture_prompt_bytes + fail-closed agent_id）| **改它需要新 ADR 或 ADR amendment** |
-| **工程实现层**（可替换）| InMemoryBus / MockLLMProvider / LlamaAdapter / SecureToolRegistry / 3 个 model_router 策略 .so / SkillInterpreter posix_spawn 后端（ADR-0066 允许换隔离机制）/ LocalEnv/DockerBackend / pdk_chat_demo 全部接线 / MockBus fixture | **实现可换，不需要 ADR** |
+| **工程实现层**（可替换）| InMemoryBus / MockLLMProvider / LlamaAdapter / SecureToolRegistry / 4 个 model_router 策略 .so (CostModelRouterPolicy + QualityModelRouterPolicy + LatencyModelRouterPolicy + SLMModelRouterPolicy v1.2) / SkillInterpreter posix_spawn 后端（ADR-0066 允许换隔离机制）/ LocalEnv/DockerBackend / pdk_chat_demo 全部接线 / MockBus fixture | **实现可换，不需要 ADR** |
 
 ### 8.2 两个最小闭环 readiness（替代 60%/30% 粗评估）
 
@@ -557,9 +557,9 @@ grep "✅ APPROVED Sprint" docs/architecture/capability-application-map-2026-08.
 | 4. 训练管线 | ADR-0078 LoRA | 🔍 Proposed | ❌ 无 | 🔒 外部阻塞：AgenticMind 项目 4-6 周 |
 | 5. 模型服务 | ADR-0034 model_router + llama_engine | ✅ Approved | ✅ 已 ship | 无 |
 | 6. 等价性回归门 | ADR-0061-02 行为回归 | ✅ Approved | ✅ T14 ship (v1.2, 6 cases / 13 assertions) | 工程任务 T14 |
-| 7. 蒸馏输出格式 | ADR-0061-13 | ✅ Approved (2026-08-25) | ❌ IDistillationWriter 类代码不存在 (grep 0 命中, 2026-08-26 自审识别) | G15 状态需补 OpenSpec task ship 输出格式类 |
+| 7. 蒸馏输出格式 | ADR-0061-13 | ✅ Approved (2026-08-25) | ✅ Phase 0-2 ship (2026-08-29, capture-mode-and-distillation-writer-v1 archived, 21 cases PASS, IDistillationWriter + CaptureMode + TrajectoryIR bridge) | G15: ✅ Closed |
 
-**闭环状态**: **7 环中 4 环仍断裂**（采集未启用 + 训练管线外部阻塞 + 蒸馏输出代码未 ship + 运行时接线未完成）；评估信号环已 ship（2026-08-26），契约多数已 Approved 但其余代码 ship 不充分，自进化方向"60% 评估"**仍高估**。
+**闭环状态**: **7 环中 3 环仍断裂**（采集未启用 + 训练管线外部阻塞 + 运行时接线未完成）；评估信号环 (2026-08-26) + 蒸馏输出环 (2026-08-29) + 等价性回归门 (2026-08-25) 已 ship，自进化方向"60% 评估"**仍高估**（与实际 ship 比例不符，#31 能力 + 蒸馏 Writer + Evidence Gate 均已落地）。
 
 **Oracle 路径建议**: 先用 pdk_chat_demo SessionManager JSONL 作**临时数据源**（不依赖 D10 启用），同时启动 T14（行为回归门禁）+ ADR-0071/0074 评审会。
 

@@ -123,7 +123,7 @@ docs/
 | `adr-0061-10-formal-lint.md` | λ_A-style Config 结构完整性检查 | P2 | 🔍 Proposed (2026-09-01 审计: 无明确外部触发, 前置 ADR-0052~0058 已 ship, 建议维持 🔍 Proposed) |
 | `adr-0061-11-dsl-wasm.md` | DSL→Wasm Bytecode 编译器 | P2 | 🔍 Proposed (2026-09-01 审计: 阻塞于 ADR-0056 wasm-runtime (V2 deferred Phase 8+), 维持 🔍 Proposed) |
 | `adr-0061-12-webllm.md` | 浏览器端 WebLLM 集成 | P2 | 🔍 Proposed (2026-09-01 审计: 阻塞于 ADR-0056 + ADR-0061-11, 完全依赖 wasm 路线, 维持 🔍 Proposed) |
-| `adr-0061-13-distillation-output-format.md` | 蒸馏输出格式 (IDistillationWriter + DistillationRecord + trajectory/policy/meta 三文件分离) | P0 | ✅ Approved (评审通过 2026-08-25, Oracle G15, 7 环闭环最后 1 环) ⏳ 代码 ship: Pending |
+| `adr-0061-13-distillation-output-format.md` | 蒸馏输出格式 (IDistillationWriter + DistillationRecord + trajectory/policy/meta 三文件分离) | P0 | ✅ Approved + Phase 0-2 Shipped 2026-08-29 (capture-mode-and-distillation-writer-v1 archived, 21 cases PASS) |
 | `adr-0061-06-v1-1-amendment-trajectory-ir-decouple.md` | Trajectory IR 独立序列化视图 (不改 ParsedGraph, v1 标题耦合修正) | P1 | ✅ Approved + Shipped (T15 ship 2026-08-27, 9 cases / 55 assertions, ParsedGraph 零修改) |
 | `adr-0061-08-v1-1-amendment-axis6.md` | MCTS Axis6 cognitive_domain composition chain (第 6 轴 + CognitiveDomainChainConfig + 单主体 commit 路径 + ADR-0068 v1.8 归口 + W4 双发射语义分离) | P2 | ✅ Approved 2026-08-31 (B1-B3/W4 修复 commits bc157fb + 283591f + 06ddd13; 实施载体 `openspec/changes/2026-08-31-mcts-axis6-cognitive-domain/` v2.1) |
 
