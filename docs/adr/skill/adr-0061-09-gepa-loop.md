@@ -1,7 +1,7 @@
 # ADR-0061-09: GEPA-style 反思循环
 
 **日期**: 2026-07-16
-**状态**: 🔍 Proposed (P2, v2 候选)
+**状态**: ✅ Approved + V1 Shipped 2026-08-27 (T19 GEPALoop) — V2 deferred
 **父 ADR**: [../adr-0061-agent-evolution-and-solidification.md](../adr-0061-agent-evolution-and-solidification.md)
 
 ---

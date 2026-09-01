@@ -541,7 +541,7 @@ Phase 7+ ──→ Phase 8+
 | 0061-06 | Trajectory IR 独立序列化视图 (v1.1) | ✅ Approved + Shipped | P1, T15 V1 ship 2026-08-27 (9 cases / 55 assertions, ParsedGraph 零修改) |
 | 0061-07 | PASTE 推测执行 | 🔍 Proposed | P2 |
 | 0061-08 | MCTS 工作流搜索 | ✅ Approved | P2, T20 V1 ship 2026-08-28 (17 cases / 65 assertions, 既有 5 契约零修改) |
-| 0061-09 | GEPA 反思循环 | 🔍 Proposed | P2 |
+| 0061-09 | GEPA 反思循环 | ✅ Approved + V1 Shipped 2026-08-27 (T19 GEPALoop) | P2 |
 | 0061-10 | Config 结构检查 | 🔍 Proposed | P2 |
 | 0061-11 | DSL→Wasm 编译器 | 🔍 Proposed | P2 |
 | 0061-12 | WebLLM 集成 | 🔍 Proposed | P2 |
