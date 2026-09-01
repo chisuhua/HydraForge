@@ -73,6 +73,7 @@ struct WorkflowEdge {
 // WorkflowGraph — 搜索状态 (DAG 工作流图)
 // ============================================================================
 struct WorkflowGraph {
+  std::string task_id;              // 搜索任务标识 (T1 materializer 输出路径用)
   std::vector<WorkflowNode> nodes;
   std::vector<WorkflowEdge> edges;
 };
