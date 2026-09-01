@@ -90,7 +90,7 @@
 **总覆盖**: **31 项已 ship 能力 (含 #31 Distillation Data Plane V1 ✅ Shipped 2026-08-29)** = L0(5) + L1(5) + L2(4) + L3(5) + L4(12)
 **v1.1.2 新增**: L4 +1（行为回归套件 — Oracle 评审 "本周最高杠杆" T14 完成）
 **v1.3 新增**: L4 +1（SkillCompiler V1 — T17 ship, B7 自进化"变异对象生成器"落地, 闭环 2 第 4 环接通）
-**v1.9 新增**: L4 +1（Trajectory IR V1 — T15 ship, B6 蒸馏数据标准化落地, G14 闭环; ParsedGraph 独立视图, 单向 Converter 桥接）
+**v1.9 新增**: L4 +1（Trajectory IR V1 — T15 ship, B6 前置标准化数据格式落地 (G14 闭环), ParsedGraph 独立视图, 单向 Converter 桥接；B6 端到端教师→学生能力迁移未 ship）
 **v2.0 新增**: L4 +1（IEvaluator V2 — evaluator-v2-composite ship, BehavioralEquivalence (T14 集成) + Composite 多评估器聚合, G10 评估信号 V2 层落地）
 **v2.1 新增**: L4 +1（GEPALoop — T19 Phase 2 commit ship, B7 自进化基础应用解锁, 失败→反思→修订→回归→评估→授权提交全闭环落地）
 **v2.2 新增**: L4 +1（Prompt Evidence Gate — T21 ship, prompt 质量门控层落地, Wave 2 → Wave 3 Go/No-Go 客观标准就绪, B7 自进化 prompt 门控前置）
@@ -166,7 +166,7 @@
 | **B3** 真实分布式追踪 | T2 (OTel OTLP 客户端) | 1 sprint | ISpanSink → OTLP gRPC client + 批量处理 |
 | **B4** Streaming Agent (partial result 流) | T6 (ADR-0060 stream 模式) | 2-3 sprint | IGenerationStream 流式契约 + 背压控制 |
 | **B5** MCP Server 形态 (DSL-as-tool) | T7 (ADR-0076 ship) | 2 sprint | stdio/HTTP/SSE transport + capability 暴露 |
-| **B6** Agent 蒸馏环境（教师→学生能力迁移）| T14 (行为回归 ✅ 门禁) + T15 (Trajectory IR) + ADR-0071 + G10 评估契约 | | 2-3 sprint | 教师规划轨迹采集 + 学生行为克隆 + 等价性评估（依赖 IEvaluator 契约）|
+| **B6** Agent 蒸馏环境（教师→学生能力迁移）| T14 (行为回归 ✅ 门禁) + T15 (Trajectory IR) + ADR-0061-13 (DistillationRecord/IDistillationWriter ✅) + G10 评估契约 + ADR-0071 | 🟡 蒸馏数据采集 ship, 端到端训练未 ship (缺学生模型训练 + serving) | 2-3 sprint | 教师规划轨迹采集 ✅ + 学生行为克隆 + 等价性评估（依赖 IEvaluator 契约）|
 | **B7** Agent 自进化基础（GEPA 反思循环 MVP）| T14 + T15 + T19 (GEPA spike Phase 2 committed 2026-08-27) + G10 ✅/G11 ✅ Closed (V1 code ship, 2026-08-26) 契约 | | 2-3 sprint | 失败→反思→修订 prompt + 回归门禁 + 变异授权（T19 Phase 2 committed 2026-08-27, B7 → ✅ Completed）|
 
 ### 🟠 C 类：1-3 月工程后可构建（4 个应用类型）

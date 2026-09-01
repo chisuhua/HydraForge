@@ -244,7 +244,9 @@ std::vector<SessionNode> SessionManager::load_jsonl() {
             placeholder.branch_id = node.branch_id;
             placeholder.name = node.branch_id;
             placeholder.forked_from_node = "";
-            placeholder.created_at = "";
+            placeholder.created_at = std::to_string(
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::system_clock::now().time_since_epoch()).count());
             branches_[node.branch_id] = placeholder;
           }
           result.push_back(node);
