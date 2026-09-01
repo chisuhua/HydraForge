@@ -32,17 +32,28 @@
 
 ## 二、活跃变更一览
 
-### 🔵 当前活跃 (4 个)
+### 🔵 当前活跃 (3 个)
 
 > **Phase 6c** 当前活跃 3 个 OpenSpec changes（Wave 2/3/4 待启动）。Wave 1 已完成 ✅ ship + archived 2026-08-18:
 > - `from-roadmap-phase-6c-execution-baseline` (C1+C2+C3 ADR-0074 D1/D2/D3, baseline 数据 handoff to evidence-gate)
 > - `from-roadmap-phase-6c-schema-complete` (C9 ADR-0073 D3, 4-step sanitization pipeline)
 > - `from-roadmap-phase-6c-execution-envbackend` (C11-C13 ADR-0075 D1+D2+D3+D5, local+docker env backends)
 >
-> **Sprint 24 启动周新增** 1 个 OpenSpec change（ADR-0071 评审通过后启动）:
-> - `2026-08-24-adr-0061-03-skill-compiler` (T17 SkillCompiler 骨架, ADR-0061-03 实施)
+> 剩余 Wave 2 (`evidence-gate` 依赖 baseline handoff ✅) / Wave 3 (`execution-dsl` 依赖 Wave 2 PASS) / Wave 4 (`control-plane-eval` 3/6 条件 FAIL) 等待启动。
 >
-> 剩余 Wave 2 (`evidence-gate` 依赖 baseline) / Wave 3 (`execution-dsl`) / Wave 4 (`control-plane-eval`) 等待启动。
+> **T1-T7 归档 2026-09-01** (commit `c79b4bf`):
+> Sprint 24 启动周期间累积的 9 个 OpenSpec changes 已 ship + archive:
+> - `2026-09-01-analysis-status-snapshot-sync` (✓ Complete 纯文档)
+> - `2026-09-01-adr-0080-and-bus-api-alignment` (✓ Complete 纯文档)
+> - `2026-09-01-2026-08-30-meta-cognitive-coordination-doc` (§十八 文档沉淀, 🟢 Oracle Go)
+> - `2026-09-01-2026-08-31-workflow-materializer-v1` (T1 ship + test_workflow_materializer PASS)
+> - `2026-09-01-2026-08-31-signature-validation-real-impl` (T4 ship + test_signature_validation PASS)
+> - `2026-09-01-2026-08-31-mcts-axis6-cognitive-domain` (T2 ship + test_mcts_axis6 PASS)
+> - `2026-09-01-2026-08-31-evolution-budget-cap` (T3 ship + test_budget_evolution_cap PASS)
+> - `2026-09-01-2026-08-31-cognitive-specialists-as-tools` (T5 ship + test_cognitive_specialists_tools PASS)
+> - `2026-09-01-2026-08-31-gepa-mcts-budget-integration` (T6 ship, 测试覆盖于 test_budget_evolution_cap + test_gepa_phase2)
+>
+> 上述 9 changes 在 ship 时 tasks.md 复选框未同步勾选, 但代码 + 测试均已 ship。
 >
 > **G11 跟踪（✅ Closed 2026-08-26）**:
 > - GitHub issue #14 ✅ Approved (2026-08-26): G11 变异治理契约方向批准, 6 项 Oracle 修订 + 16 项 Self-Review Checklist 全 ✅ — **issue #14 已 Closed (2026-08-26)**
