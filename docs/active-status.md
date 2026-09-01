@@ -14,11 +14,11 @@
 | **Total ctest** | **211/211** 配置总数 (2026-09-01 `ctest -N` → Total Tests: 211; 自 2026-08-31 T1-T7 全 ship 后 +5: T3 evolution-budget-cap 6 cases + T2 mcts-axis6 6 cases + T4 signature-validation 7 cases + T5 cognitive-tools 4 cases + T1 workflow-materializer 5 cases; +Sprint 24 审计补全 2 cases: test_generate_subgraph_callback 3 cases (含多图) + test_t1_t7_integration_chain 1 case; 210/211 PASS 99.5%, 1 pre-existing timing flake per AGENTS.md; LastTest.log 为空壳) — ✅ Sprint 24 认知/领域演化系列 T1-T7 全部 ship 完成, ctest baseline 192 → 211 (+19) |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
-| **OpenSpec active** | **3** (~~Sprint 24 启动周 T17 SkillCompiler~~ `2026-08-24-adr-0061-03-skill-compiler` ✅ ship + archived 2026-08-27; ~~T15 TrajectoryIR~~ `t15-trajectory-ir` ✅ ship + archived 2026-08-27 [9 cases / 55 assertions, ParsedGraph 零修改]; 剩余 3 个 Phase 6c 后续 Wave 待启动: `from-roadmap-phase-6c-evidence-gate` [Wave 2, 依赖 execution-baseline handoff] + `from-roadmap-phase-6c-execution-dsl` [Wave 3, 依赖 Evidence Gate PASS] + `from-roadmap-phase-6c-control-plane-eval` [Wave 4, 依赖 6 项条件全部 PASS]) |
+| **OpenSpec active** | **2** (~~Sprint 24 启动周 T17 SkillCompiler~~ `2026-08-24-adr-0061-03-skill-compiler` ✅ ship + archived 2026-08-27; ~~T15 TrajectoryIR~~ `t15-trajectory-ir` ✅ ship + archived 2026-08-27 [9 cases / 55 assertions, ParsedGraph 零修改]; 剩余 2 个 Phase 6c 后续 Wave 待启动: `from-roadmap-phase-6c-execution-dsl` [Wave 3, 依赖 Evidence Gate PASS] + `from-roadmap-phase-6c-control-plane-eval` [Wave 4, 依赖 6 项条件全部 PASS]) |
 
 **Phase 6c Wave 启动条件摘要**（2026-09-01 审计补全，per 3 个 OpenSpec change proposal）:
 
-- **Wave 2 `evidence-gate`** — 启动: 消费 C3 baseline 数据 (ADR-0074 D1/D2/D3 ship 2026-08-18 已完成), 执行 3 阈值决策树 (parse-valid ≥85% + task-success L1 ≥70%)。阻塞条件: 无（baseline 已 ship）。预期估时: 1 sprint。
+- **Wave 2 `evidence-gate`** ✅ **ship + archived 2026-09-02** (commit `a625b84` + `ce85536`) — 消费 C3 baseline 数据, 3 阈值决策树执行完成; 决议 **Conditional** (parse-valid 88.24% ∈ [85, 90) 临界带, mock_mode=true 不构成真实结论); 真实 3 模型 baseline 决议推迟 Sprint 25+。
 - **Wave 3 `execution-dsl`** — 启动: Evidence Gate PASS (parse-valid 测量 ≥85% 触发 C6+C7, <85% 触发 C5+C6+C7)。阻塞条件: Wave 2 PASS。预期估时: 1-2 sprint (条件性)。
 - **Wave 4 `control-plane-eval`** — 启动: 6 项条件全 PASS (①AgentForge ≥2 agent ②Solo Dev ≥2 人/≥80h双周 ③ADR-0068 附录 A 主题 ✅ 2026-08-13 archived ④ADR-0073 完整 ship ⑤Evidence Gate PASS ⑥ADR-0075 EnvBackend ship — Local+Docker 已 ship 2026-08-18)。当前 **3/6 FAIL（①②⑤）**，预期估时: 0.5 sprint (纯脚本+决议文档)。条件 ⑥ 与 L202 Phase 7 启动条件一致标 PASS。
 | **ADR Approved** | **58** (主 50: Phase 0-5 16 + Phase 6 18 [0050/0051/0052-0065/0067] + **ADR-0068** Wave 1 收官 + **ADR-0073** ✅ Approved 2026-08-18 (Phase 6c C9 D2+D3+D4 全 ship) + **ADR-0074** ✅ Approved 2026-08-18 (Phase 6c C1+C2+C3, D1/D2/D3 ship, baseline 数据 handoff to evidence-gate) + **ADR-0075** ✅ Approved 2026-08-18 (Phase 6c C11-C13 D1+D2+D3+D5 全 ship) + **ADR-0081** ✅ Approved 2026-08-22 (Batch 2 P3) + **ADR-0082** ✅ Approved 2026-08-22 (Batch 2 P7) + **ADR-0061-08 v1.1 amendment** ✅ Approved 2026-08-31 (commit `0f19997` flip; Axis6 cognitive_domain composition chain 单主体归因 commit API); plugin 1; skill 子项 7 含 0061-08-v1-1) |
@@ -34,12 +34,12 @@
 
 ### 🔵 当前活跃 (3 个)
 
-> **Phase 6c** 当前活跃 3 个 OpenSpec changes（Wave 2/3/4 待启动）。Wave 1 已完成 ✅ ship + archived 2026-08-18:
+> **Phase 6c** 当前活跃 2 个 OpenSpec changes（Wave 3/4 待启动）。Wave 1 ✅ ship + archived 2026-08-18 + **Wave 2 Evidence Gate ✅ ship + archived 2026-09-02**:
 > - `from-roadmap-phase-6c-execution-baseline` (C1+C2+C3 ADR-0074 D1/D2/D3, baseline 数据 handoff to evidence-gate)
 > - `from-roadmap-phase-6c-schema-complete` (C9 ADR-0073 D3, 4-step sanitization pipeline)
 > - `from-roadmap-phase-6c-execution-envbackend` (C11-C13 ADR-0075 D1+D2+D3+D5, local+docker env backends)
 >
-> **C4 Evidence Gate v1 ship (2026-09-02)** (OpenSpec `from-roadmap-phase-6c-evidence-gate`):
+> **C4 Evidence Gate v1 ship + archived (2026-09-02)** (OpenSpec `from-roadmap-phase-6c-evidence-gate`, commits `a625b84` + `ce85536`):
 > - `src/common/prompts/evidence_gate.h` (62 行, header-only, no IO, `enum class GateStatus { Pass, Fail, Conditional, Abort }` + `evaluate_gate(parse_valid, l1, l2, l3)` 纯函数)
 > - `tests/test_evidence_gate.cpp` (7 TEST_CASEs: 4 boundary + 1 Abort + 1 regression + 1 to_string, all PASS, registered tests/CMakeLists.txt:121)
 > - `docs/audits/2026-09-02-evidence-gate-v1.md` 决议文档 (X 路线 per MOMUS REJECT 修正: mock baseline 88.24% Conditional placeholder, 真实 3 模型 baseline 推迟 Sprint 25+)
