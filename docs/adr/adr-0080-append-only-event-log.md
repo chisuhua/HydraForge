@@ -60,7 +60,7 @@ ADR-0068 定义了：
 EventLog 行格式：
 
 ```jsonl
-{"v":1, "event_id":"evt-<ts>-<counter>", "ts":1737281400, "topic":"llm.request", "agent_id":"agent-abc", "session_id":"ses-xyz", "payload":{...}}
+{"v":1, "event_id":"evt-1737281400123-001", "ts_wall":1737281400123, "causal_time":1, "topic":"llm.request", "agent_id":"agent-abc", "session_id":"ses-xyz", "payload":{...}}
 ```
 
 **字段说明**：
@@ -218,33 +218,14 @@ struct GenerationRequest {
 
 ### 决策 D9：Topic 命名约定
 
-| Event Topic | 触发时机 | 文件 |
-|---|---|---|
-| `llm.request` | LLM 调用开始 | TracingDecorator |
-| `llm.response` | LLM 调用返回 | TracingDecorator |
-| `llm.token` | 流式 token | stream_to_bus |
-| `llm.token.done` | 流式完成 | stream_to_bus |
-| `llm.token.error` | 流式错误 | stream_to_bus |
-| `tool.execution.start` | 工具调用开始 | NodeExecutor |
-| `tool.execution.end` | 工具调用返回 | NodeExecutor |
-| `tool.audit.invoked` | 审计点触发 | ToolCoordinator |
-| `dsl.call.started` | DSL 节点执行开始 | NodeExecutor |
-| `dsl.call.completed` | DSL 节点执行完成 | NodeExecutor |
-| `attempt.started` | Agent 循环开始 | PlanExecuteLoop/ReactLoop |
-| `attempt.ended` | Agent 循环结束 | PlanExecuteLoop/ReactLoop |
-| `phase.completed` | Plan/Execute/Verify 阶段完成 | PlanExecuteLoop |
-| `branch.created` | 分支创建 | ForkJoinLoop |
-| `execution` | 图执行开始/完成 | TopoScheduler |
-| `convergence` | 收敛决策 | ConvergenceManager |
-| `conversation.user_message` | 用户输入 | ChatSession |
-| `conversation.assistant_message` | Agent 响应 | ChatSession |
+**主题规范以 [ADR-0068 附录 A（Canonical Topic Registry）](../adr-0068-event-emission-contract.md#附录-acanonical-topic-registry) 为单一事实源。** EventLog 以 `bus_->subscribe("*")` 全量订阅；SessionWriter 的会话子集主题见 [ADR-0079 §决策 D6](../adr-0079-unified-session-4scope.md#决策-d6事件到-jsonl-映射)。
 
-**原则**：
-- 所有 Topic 遵循 `<module>.<verb>` 格式
+**命名原则**（沿用 ADR-0046 `<module>.<verb>` dot 分隔约定）：
 - Topic 不含 agent_id / session_id（通过 event 字段传递）
 - EventLog 和 SessionWriter 通过 `payload` 字段区分事件类型
+- 新增/修改主题必须走 ADR-0068 附录 A amendment（其 §决策 5 保持 additive-only 兼容政策）
 
-**v1.1 修订**：新增 `llm.token` / `llm.token.done` / `llm.token.error` 三行（v1 时已 ship 于 `stream_to_bus.cpp`，D9 表漏列，v1.1 补齐以保证 EventLog 订阅 `"*"` 时不漏记）
+**⚠️ 机制缺口（有消费者、零发射方）**：以下 SessionWriter 会话子集主题当前**无生产发射方**——`attempt.*` / `conversation.*` / `phase.completed` / `branch.created` / `attempt.converged`（`src/core/session_writer.cpp:30-47` whitelist 订阅但零 emit 调用点）。修复需在 loop 循环（ReactLoop/PlanExecuteLoop/ForkJoinLoop）与 ChatSession 增加真实发射点，发射归口后回填 ADR-0068 附录 A；在此之前不可按"D9 表视为已发射"实现事件消费。
 
 ---
 
@@ -280,7 +261,7 @@ struct EventLogConfig {
 ```
 
 `capture_prompt_bytes=false` 时行为与 v1 完全一致（仅 hash），**无需 scrubbing**（无字节落盘）。
-开启后依赖 ADR-0081 pre-step hook 在 emit 前 scrub（先 scrub 后落盘）——**未 ship 时不暴露**。
+开启后依赖 ADR-0081 pre-step hook 在 emit 前 scrub（先 scrub 后落盘）——**Online 模式**：scrub 后暴露；**Training 模式**：fail-open（详见 [v1.2 amendment](../adr-0080-v1-2-amendment-d10-decouple.md) 引入的 CaptureMode 三态 + Training fail-open 三重保护，2026-08-25 评审通过 + 2026-08-29 完整 ship，Oracle G12 解锁原 ADR-0081→0082 死锁）。
 
 **fail-closed**：未配置 `agent_id` = EventLog 不启用（见 D6 修订）。
 
@@ -377,15 +358,6 @@ if (config.event_log_enabled) {
 6. **Step 0 前置**：EventLog 实现前，必须先完成 `BusEvent` 信封扩展（决策 D7）和 `GenerationRequest.purpose`（决策 D8）
 7. **capture-off 默认**：v1 行为零变化，所有现有测试与 examples 不需修改（v1.1 D10.5）
 
-## 不变量
-
-1. **追加-only**：EventLog 文件只追加，不修改已写入行
-2. **原子性**：每条事件一次 `write()` + `fsync()`（批量模式下每 100ms 一次 fsync）
-3. **事件顺序**：日志顺序按 `causal_time` 单调不减，写入端负责排序；不假设 bus FIFO 分发顺序。排序键：`(causal_time, event_id)`
-4. **事件完整性**：每条事件包含 `event_id`、`ts_wall`、`causal_time`、`topic`、`agent_id`（v1.1 修订）
-5. **Agent 隔离**：不同 agent 的事件写入不同文件
-6. **Step 0 前置**：EventLog 实现前，必须先完成 `BusEvent` 信封扩展（决策 D7）和 `GenerationRequest.purpose`（决策 D8）
-
 ## 后果
 
 ### 正面后果
@@ -451,12 +423,14 @@ if (config.event_log_enabled) {
 
 ## 附录 A：EventLog JSONL 示例
 
+> **字段对齐说明**：本示例与 §决策 D2 schema v1.1 一致（`ts_wall` 单位毫秒、必填 `causal_time`），且符合 D10.6 审计防线（`tool.execution.start/end` payload 不含 `args` 值）。实际序列化由 `src/core/event_log.cpp:183`（`ts_wall` 字段写入）实证。
+
 ```jsonl
-{"v":1, "event_id":"evt-1737281400-001", "ts":1737281400, "topic":"llm.request", "agent_id":"agent-abc", "session_id":"ses-xyz", "payload":{"model":"deepseek-chat", "purpose":"plan"}}
-{"v":1, "event_id":"evt-1737281401-002", "ts":1737281401, "topic":"llm.response", "agent_id":"agent-abc", "session_id":"ses-xyz", "payload":{"ok":true, "tokens":150}}
-{"v":1, "event_id":"evt-1737281402-003", "ts":1737281402, "topic":"tool.execution.start", "agent_id":"agent-abc", "session_id":"ses-xyz", "payload":{"tool":"file.write", "args":{"path":"/tmp/test.py"}}}
-{"v":1, "event_id":"evt-1737281403-004", "ts":1737281403, "topic":"tool.execution.end", "agent_id":"agent-abc", "session_id":"ses-xyz", "payload":{"tool":"file.write", "ok":true}}
-{"v":1, "event_id":"evt-1737281404-005", "ts":1737281404, "topic":"attempt.ended", "agent_id":"agent-abc", "session_id":"ses-xyz", "payload":{"attempt_id":"attempt-1737281400-001", "ok":true, "steps":3}}
+{"v":1, "event_id":"evt-1737281400123-001", "ts_wall":1737281400123, "causal_time":1, "topic":"llm.request", "agent_id":"agent-abc", "session_id":"ses-xyz", "payload":{"model":"deepseek-chat", "purpose":"plan"}}
+{"v":1, "event_id":"evt-1737281401124-002", "ts_wall":1737281401124, "causal_time":2, "topic":"llm.response", "agent_id":"agent-abc", "session_id":"ses-xyz", "payload":{"ok":true, "tokens":150}}
+{"v":1, "event_id":"evt-1737281402125-003", "ts_wall":1737281402125, "causal_time":3, "topic":"tool.execution.start", "agent_id":"agent-abc", "session_id":"ses-xyz", "payload":{"tool":"file.write", "layer":"workflow", "ok":true, "duration_ms":0}}
+{"v":1, "event_id":"evt-1737281403126-004", "ts_wall":1737281403126, "causal_time":4, "topic":"tool.execution.end", "agent_id":"agent-abc", "session_id":"ses-xyz", "payload":{"tool":"file.write", "layer":"workflow", "ok":true, "duration_ms":42}}
+{"v":1, "event_id":"evt-1737281404127-005", "ts_wall":1737281404127, "causal_time":5, "topic":"attempt.ended", "agent_id":"agent-abc", "session_id":"ses-xyz", "payload":{"attempt_id":"attempt-1737281400-001", "ok":true, "steps":3}}
 ```
 
 ## 附录 B：批量写入配置
@@ -477,7 +451,7 @@ struct EventLogConfig {
 |---|---|---|
 | 目的 | 审计/分析/学习 | 会话恢复/context 构建 |
 | 写入时机 | 实时（批量刷写） | 会话结束时 |
-| 事件覆盖 | 全量 bus 事件 | 会话结构事件（15 个 topic） |
+| 事件覆盖 | 全量 bus 事件 | 会话结构事件（13 个 topic，见 ADR-0079 §决策 D6） |
 | 文件格式 | JSONL（单 agent） | JSONL（单 session） |
 | 压缩 | rotation | compact_session() |
 | 查询 | 内存过滤（小日志）| 离线工具 |
