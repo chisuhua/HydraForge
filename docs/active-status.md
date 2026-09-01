@@ -2,7 +2,7 @@
 
 > **焦点**: 当前活跃的 OpenSpec changes | **更新**: 每日
 > **Master Plan**: [`docs/superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md`](superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md)
-> **架构决策**: [`docs/adr/`](adr/) — 82 ADR (含 0083/0084/0085 新增 + adr-0061-08 v1.1 amendment 2026-08-31 flip, 2026-08-31 `tools/doc_metrics.py` 校准), 58 Approved (+ADR-0083/0084 2026-08-26, +ADR-0061-08 T20 V1 ship 2026-08-28, +ADR-0085 T26 V1 ship 2026-08-28, +ADR-0061-08 v1.1 amendment 2026-08-31), adr_lint 零错误 (2026-08-22 校准, Batch 2 收官后 ADR-0081/0082 状态格式修正; ADR-0081/0082 均 ✅ Approved per Batch 2 P3+P7 `adr-0081/0082-promote-to-approved`; 2 个 ADR-TRACKING-01 warning: ADR-0080 + ADR-0085 Approved 24h+ 无 tracking change 目录, 待 B6 修正)
+> **架构决策**: [`docs/adr/`](adr/) — 82 ADR (含 0083/0084/0085 新增 + adr-0061-08 v1.1 amendment 2026-08-31 flip, 2026-08-31 `tools/doc_metrics.py` 校准), 58 Approved (+ADR-0083/0084 2026-08-26, +ADR-0061-08 T20 V1 ship 2026-08-28, +ADR-0085 T26 V1 ship 2026-08-28, +ADR-0061-08 v1.1 amendment 2026-08-31, +ADR-0061-13 Distillation Data Plane V1 ship 2026-08-29), adr_lint 零错误 (2026-08-22 校准, Batch 2 收官后 ADR-0081/0082 状态格式修正; ADR-0081/0082 均 ✅ Approved per Batch 2 P3+P7 `adr-0081/0082-promote-to-approved`; **1 个 ADR-TRACKING-01 warning**: ADR-0085 Approved 24h+ 无 tracking change 目录 — ADR-0080 warning 已于 9b69c2b 由 capture-mode-and-distillation-writer-v1 解除)
 > **Phase**: 6 — Agent-as-Plugin (2026-07-15 ~ 至今, Phase 5 ✅ 收官)
 
 ---
