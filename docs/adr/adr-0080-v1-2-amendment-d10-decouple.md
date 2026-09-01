@@ -6,6 +6,8 @@
 ⏳ **tracking: shipped** — see `openspec/changes/archive/2026-08-29-capture-mode-and-distillation-writer-v1/` (archived 2026-08-29)
 **父 ADR**: [adr-0080-append-only-event-log.md](adr-0080-append-only-event-log.md) v1.1
 
+> **主文档引用**：本 amendment 修订 ADR-0080 §决策 D10.3 的解耦语义（CaptureMode 三态 + Training fail-open），主文档已加指回本文件的指针。请同步阅读 [adr-0080-append-only-event-log.md §决策 D10.3](../adr-0080-append-only-event-log.md#决策-d10模型可见字节的条件持久化distillation-capture)。
+
 ## 状态
 
 ✅ Approved (评审通过 2026-08-25, 详见头部状态字段) — Oracle 评审识别为架构层缺口, capability-application-map §八 G12
