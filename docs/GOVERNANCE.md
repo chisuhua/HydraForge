@@ -65,7 +65,7 @@ proposals/ ──提升──▶ docs/architecture/ ──结论吸收──▶ 
 |----|------|
 | 定位 | ADR 的**证据输入**。分析文档的结论必须提升为 ADR 才具备执行效力 |
 | 合并条件 | ① 头部四字段 (生成日期/最后验证/作者/状态) ② 计数类数据可用命令复现 (优先 `tools/doc_metrics.py`) ③ 不与现有 ADR 冲突 |
-| 数据纪律 | ADR 状态唯一事实源 = `adr-implementation-status-gap-analysis.md`；其他文档禁止维护状态副本表，只留指针 |
+| 数据纪律 | ADR 状态权威参照 = `adr-implementation-status-gap-analysis.md`（滚动视图层，最终以 `docs/adr/*.md` 各自 `## 状态` 字段为准）；其他文档禁止维护状态副本表，只留指针 |
 | 生命周期 | 结论被 ADR 吸收 → 标注承接关系保留；被替代 → ⛔ Superseded → 当 Sprint 归档 `docs/archive/architecture/` |
 | 审查节奏 | 每月 1 次 (本目录月度档) + Sprint 收官检查 Last-Verified ≤ 30 天 |
 | 索引与规范 | [`architecture/README.md`](architecture/README.md) |

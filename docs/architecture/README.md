@@ -14,7 +14,7 @@
 | ~~`agent-as-plugin-architecture-v1.2.md`~~ → [`../specs/architecture.md`](../specs/architecture.md) | Agent-as-Plugin 五层架构规范 (L0~L4 + R1~R5) | ✅ Approved — **已晋升为 specs 契约层** (2026-07-31, D1 决议) | 2026-07-31 | 层模型变更 / 新 ADR 影响 R1~R5 |
 | `agent-evolution-pipeline.md` | Agent 四阶段进化管线 (SKILL→DSL→C++→Wasm) | ✅ Approved — **ADR-0061 设计附件** (2026-07-31 D6；§八 路线图已切除, 排期归 active-status) | 2026-07-31 | ADR-0061 子项实施推进 |
 | `application-layer-sota-positioning-v2.md` | 应用层 SOTA 定位分析 v2 | 🟡 Proposed | 2026-07-16 | SOTA 调研刷新 / 应用层新插件 |
-| `adr-implementation-status-gap-analysis.md` | ADR 实施状态基线 (**ADR 状态唯一事实源**) | 🔄 滚动更新 | 2026-07-30 | 任何 ADR 状态翻转 / ship gate |
+| `adr-implementation-status-gap-analysis.md` | ADR 实施状态基线 (**ADR 状态权威参照**，最终以 `docs/adr/*.md` `## 状态` 为准；本表为滚动视图层) | 🔄 滚动更新 | 2026-09-01 | 任何 ADR 状态翻转 / ship gate |
 | `layer-based-missing-capabilities-analysis.md` | 五层缺失能力分析 + Wave 1-4 执行计划 | ✅ v1.2.1 (数据修正版) | 2026-07-31 | Wave 1 完成 / 缺失能力 ship |
 | ~~`defect-truth-table-2026-08.md`~~ → [`archive/architecture/defect-truth-table-2026-08.md`](../../archive/architecture/defect-truth-table-2026-08.md) | 架构缺陷真相表（**已归档** 2026-08-24 — 11 真实缺陷 + 3 盲点 × 代码 × ADR 真相） | ⛛ Superseded → `capability-application-map-2026-08.md` | 2026-08-24 | 历史审计追溯，不再维护 |
 | `capability-application-map-2026-08.md` | 架构能力-应用地图（**23 项已 ship 能力** + 15 项 open gap + 17 类应用场景 + 22 个工程任务 T1-T22 解锁映射 + Oracle 评审蒸馏+自进化专题 §八） | ✅ Active (v1.6) | 2026-08-26 | 新增能力 ship / open gap 闭合 / 新应用类型立项 / Oracle 评审输入 / 自进化架构边界与 T14-T22 推进 / ADR-0083 状态修正 + ADR-0084 文件创建 |

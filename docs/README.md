@@ -79,7 +79,7 @@ docs/
 | `adr-0067-layered-plugin-architecture-split.md` | L2/L3/L4 分层插件架构拆分 | ✅ Approved (追溯性正式化, 2026-07-23, 源自 `docs/specs/architecture.md` §2.3) |
 | `adr-0068-event-emission-contract.md` | 事件发射契约 (Canonical Topic Registry + 7 幻影主题强制发射点 + EventBuilder) | ✅ Approved (2026-08-03 — Wave 1 §1-§5 ship + Appendix A v1.2.2, 2026-08-27) |
 | `adr-0069-tool-coordinator-hooks.md` | ToolCoordinator Hook 注入点 (pre/post 双列表 + IToolHookRegistry + HookErrorPolicy) | 🟡 Partial (2026-08-04 — middleware 改造 + budget_agent pre-hook + 5 类测试已 ship; 待 HookErrorPolicy amendment) |
-| `adr-0070-declare-command.md` | PDK Plugin 命令/快捷键注册 (Command≠Tool + DECLARE_COMMAND + ICommandRegistry) | 🔍 Proposed (2026-07-31, D4 立项, 实施排期 Wave 1) |
+| `adr-0070-declare-command.md` | PDK Plugin 命令/快捷键注册 (Command≠Tool + DECLARE_COMMAND + ICommandRegistry) | 🟡 Partial (2026-08-04, D4 立项 + 实施排期 Wave 1) |
 | `adr-0071-llm-native-agenticdsl-architecture.md` | LLM-native AgenticDSL 架构 (LLM 作为 DSL 作者, 3 平面 Operator/DSL/Backend, 派生 6 个子 ADR/Change) | ✅ Approved (评审通过 2026-08-25, Promotion, 顶层方向 ADR, 锚定 Phase 6+ 演化) |
 | `adr-0073-tool-json-schema-contract.md` | Tool JSON Schema 契约 (JSON Schema 2020-12, input_schema/output_schema 字段 + nlohmann validator + DECLARE_TOOL 自动生成) | 🟡 Partial (Phase 6a manifest 边界部分采纳, 详见 adr-0073-impl-scope-audit.md; D2/D3/D4 属 Phase 6c C8/C9) |
 | `adr-0074-prompt-evidence-gate.md` | Prompt Engineering + Evidence Gate (D1 30+ few-shot + D2 50+ golden + D3 3 模型 baseline + D4 Evidence Gate + D5 两阶段注入 ≤8k + D6 JSONL + D7 失败事件) | ✅ Approved (评审通过 2026-08-25, Promotion, Wave 2 Phase 2.2, 派生自 ADR-0071 §D5) |
@@ -119,7 +119,7 @@ docs/
 | `adr-0061-06-trajectory-ir.md` | AgentIR-style Trajectory IR 升级 ParsedGraph | P1 | ⛔ Superseded (v1.1 amendment 2026-08-25, 见下行; v1.1 ✅ Shipped 2026-08-27) |
 | `adr-0061-07-paste-speculation.md` | PASTE-style 推测执行 | P2 | 🔍 Proposed |
 | `adr-0061-08-aflow-search.md` | AFlow-style MCTS 工作流搜索 | P2 | ✅ Approved + V1 Shipped 2026-08-28 (T20 MCTSWorkflowSearch ship) |
-| `adr-0061-09-gepa-loop.md` | GEPA-style 反思循环 | P2 | 🔍 Proposed |
+| `adr-0061-09-gepa-loop.md` | GEPA-style 反思循环 | P2 | ✅ Approved + V1 Shipped 2026-08-27 (T19 GEPALoop) — V2 deferred |
 | `adr-0061-10-formal-lint.md` | λ_A-style Config 结构完整性检查 | P2 | 🔍 Proposed |
 | `adr-0061-11-dsl-wasm.md` | DSL→Wasm Bytecode 编译器 | P2 | 🔍 Proposed |
 | `adr-0061-12-webllm.md` | 浏览器端 WebLLM 集成 | P2 | 🔍 Proposed |
@@ -149,7 +149,7 @@ docs/
 | ~~`agent-as-plugin-architecture-v1.2.md`~~ → [`specs/architecture.md`](specs/architecture.md) | Agent-as-Plugin 五层架构规范 (L0~L4 + R1~R5) | ✅ Approved — 已晋升 specs 契约层 (2026-07-31 D1) |
 | `agent-evolution-pipeline.md` | Agent 四阶段进化管线 (SKILL→DSL→C++→Wasm) | 🔍 Proposed (管线已由 ADR-0061 承接) |
 | `application-layer-sota-positioning-v2.md` | 应用层 SOTA 定位分析 v2 | 🟡 Proposed (v1 已归档至 `archive/architecture/`) |
-| `adr-implementation-status-gap-analysis.md` | ADR 实施状态基线 (**ADR 状态唯一事实源**) | 🔄 滚动更新 (2026-07-30) |
+| `adr-implementation-status-gap-analysis.md` | ADR 实施状态基线 (**ADR 状态权威参照**，最终以 `docs/adr/*.md` `## 状态` 为准；本表为滚动视图层) | 🔄 滚动更新 (2026-09-01) |
 | `layer-based-missing-capabilities-analysis.md` | 五层缺失能力分析 + Wave 1-4 执行计划 | ✅ v1.2.1 (2026-07-31 数据修正版) |
 
 > 归档版本（v1.0/v1.1 架构、v1 SOTA 定位）见 [archive/architecture/](archive/architecture/)。
