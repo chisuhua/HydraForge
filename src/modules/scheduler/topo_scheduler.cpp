@@ -659,7 +659,11 @@ void TopoScheduler::rebuild_dynamic_graph(DagState& state) {
     node_map_.clear();
     reverse_edges_.clear();
     in_degree_.clear();
-    all_nodes_ = std::move(all_nodes_copy);
+    all_nodes_.clear();
+    // register_node 重建 node_map_ + all_nodes_（build_dag 依赖 node_map_ 校验 next 边）
+    for (auto& n : all_nodes_copy) {
+        register_node(std::move(n));
+    }
     build_dag();
     // Sprint 18 D-5: 复用 copy_dag_state_to helper (替代原 7 行内联迁移)
     copy_dag_state_to(state);
