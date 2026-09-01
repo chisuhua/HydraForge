@@ -19,6 +19,7 @@ add_library(agenticdsl_modules_cognitive STATIC
     composite_evaluator.cpp      # evaluator-v2-composite T1: 多评估器聚合
     gepa_loop.cpp                # Sprint 24 T19: GEPA 反思循环编排器 (ADR-0071)
     mcts_workflow_search.cpp     # Sprint 24 T20: AFlow MCTS 工作流搜索 (ADR-0061-08)
+    cognitive_tools.cpp          # T5 cognitive-specialists-as-tools
 )
 
 target_link_libraries(agenticdsl_modules_cognitive PUBLIC
