@@ -3,7 +3,7 @@
 > 本文件由 `tools/adr_relationships.py` 自动生成，**请勿手动编辑**。
 > 任何手动修改会在下次运行时被覆盖。
 > 最后更新: 由 `tools/adr_relationships.py` 生成（运行时刻见 git commit 时间戳）
-> ADR 总数: 84
+> ADR 总数: 102
 
 ---
 
@@ -13,6 +13,7 @@
 |-----|------|------|------|---------|
 | adr-0001 | ADR-0001 Implementation Scope Audit | ✅ Approved | Unknown |  |
 | adr-0001 | ILLMProvider 流式接口设计 | ✅ Approved | 2026-05-28 |  |
+| adr-0002 | ADR-0002 EventBus 有界队列 实施范围审计 | ❌ Not Implemented | Unknown |  |
 | adr-0002 | EventBus 有界队列架构 | ❌ Not Implemented | 2026-06-13 |  |
 | adr-0002 | ADR-0002 实现范围审计 (Implementation Scope Audit) | 📋 Reserved | 2026-06-13 |  |
 | adr-0003 | ADR-0003 Implementation Scope Audit | ✅ Approved | Unknown |  |
@@ -32,6 +33,7 @@
 | adr-0019 | IInteractionBus 接口与 TUI Chat MVP 架构 | 🟡 Partial | Unknown | 替代 adr-0006 |
 | adr-0020 | ADR-0020 Implementation Scope Audit | ✅ Approved | Unknown |  |
 | adr-0020 | 多智能体线程模型与隔离策略 | ✅ Approved | Unknown | 替代 adr-0006 |
+| adr-0021 | ADR-0021 PDK Design 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0021 | Plugin Development Kit (PDK) 设计 | ✅ Approved | 2026-08-01 |  |
 | adr-0022 | ADR-0022 Implementation Scope Audit | ✅ Approved | Unknown |  |
 | adr-0022 | 插件加载机制 | ✅ Approved | Unknown |  |
@@ -57,17 +59,26 @@
 | adr-0050 | Phase 6 战略方向评估 — 从服务化到 PDK 生产化 | ✅ Approved | Unknown |  |
 | adr-0051 | Phase 6 PDK Composition Spike | ✅ Approved | Unknown |  |
 | adr-0052 | Agent Plugin Manifest 规范 | ✅ Approved | Unknown |  |
+| adr-0053 | ADR-0053 Agent Descriptor Interface 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0053 | AgentDescriptor 与 `pdk_register_agent` 接口 | ✅ Approved | Unknown |  |
+| adr-0054 | ADR-0054 Capability Discovery 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0054 | Capability-Based Agent Discovery | ✅ Approved | Unknown |  |
 | adr-0055 | SKILL.md 执行与隔离模型 | ✅ Approved | Unknown |  |
+| adr-0056 | ADR-0056 WASM Runtime 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0056 | WebAssembly Agent 运行时 | ✅ Approved | Unknown |  |
+| adr-0057 | ADR-0057 Agent Lifecycle 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0057 | Agent 生命周期管理 | ✅ Approved | Unknown |  |
+| adr-0058 | ADR-0058 Tool Schema Validation 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0058 | Tool Input/Output Schema 强制校验 | ✅ Approved | Unknown |  |
+| adr-0059 | ADR-0059 Cross-Process Protocol 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0059 | 跨进程/跨网络 Agent 协议 | ✅ Approved | Unknown |  |
 | adr-0060 | Agent 组合协议与声明式编排 | ✅ Approved | Unknown |  |
 | adr-0061 | Agent 进化与固化（Solidification） | ✅ Approved | Unknown |  |
+| adr-0062 | ADR-0062 Agent Marketplace 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0062 | Agent Marketplace 与包格式 | ✅ Approved | Unknown |  |
+| adr-0063 | ADR-0063 OpenTelemetry Tracing 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0063 | OpenTelemetry / Distributed Tracing 集成 | ✅ Approved | Unknown |  |
+| adr-0064 | ADR-0064 PDK Conformance Test Suite 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0064 | PDK Conformance Test Suite | ✅ Approved | Unknown |  |
 | adr-0065 | 多语言 PDK 支持（仅 Python → Wasm） | ✅ Approved | Unknown |  |
 | adr-0066 | SkillInterpreter 模块架构 | 🟡 Partial | Unknown |  |
@@ -75,17 +86,23 @@
 | adr-0068 | 事件发射契约 (Event Emission Contract) | ✅ Approved | 2026-08-13 |  |
 | adr-0069 | ToolCoordinator Hook 注入点 (Tool Call Interception Hooks) | 🟡 Partial | Unknown |  |
 | adr-0070 | PDK Plugin 命令/快捷键注册 (DECLARE_COMMAND) | 🟡 Partial | Unknown |  |
+| adr-0071 | ADR-0071 LLM-native AgenticDSL Architecture 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0071 | LLM-native AgenticDSL 架构 (LLM as DSL Author) | ✅ Approved | 2026-08-02 |  |
 | adr-0072 | DSL 节点扩展 (stream: / $var / declarative style / backend:) | 🔍 Proposed | 2026-08-03 |  |
 | adr-0073 | ADR-0073 实现范围审计 (Implementation Scope Audit) | 🟡 Partial | 2026-08-13 |  |
+| adr-0073 | ADR-0073 Tool JSON Schema Contract 实施范围审计 | 🟡 Partial | Unknown |  |
 | adr-0073 | Tool JSON Schema 契约 (JSON Schema 2020-12) | ✅ Approved | 2026-08-02 |  |
 | adr-0074 | Prompt Engineering + Evidence Gate | ✅ Approved | 2026-08-03 |  |
+| adr-0075 | ADR-0075 Env Backend Local Docker 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0075 | EnvBackend 多环境执行 (Local + Docker) | ✅ Approved | 2026-08-03 |  |
 | adr-0076 | DSL Engine as MCP Server (控制面, MCP 2025-11-25) | 🔍 Proposed | 2026-08-03 |  |
 | adr-0077 | gRPC Data Plane (High-Throughput Channels) | 🔍 Proposed | 2026-08-03 |  |
 | adr-0078 | Fine-tune 基模选型与训练管线 | 🔍 Proposed | 2026-08-03 |  |
+| adr-0079 | ADR-0079 Unified Session 4-Scope 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0079 | 统一会话模型与 4-Scope 存储 | ✅ Approved | Unknown |  |
+| adr-0080 | ADR-0080 AppendOnly Event Log 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0080 | AppendOnlyEventLog as Core Fact Source | ✅ Approved | Unknown |  |
+| adr-0080 | ADR-0080 v1.2 Amendment D10 Decouple 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0080 | ADR-0080 v1.2 amendment: D10 Capture 与 Scrub Hook 解耦 | ✅ Approved | Unknown |  |
 | adr-0081 | Pre-Step Hook Contract（Agent 级拦截点） | ✅ Approved | Unknown |  |
 | adr-0082 | ADR-0082 实现范围审计 (Implementation Scope Audit) | Unknown | Unknown |  |
@@ -94,6 +111,7 @@
 | adr-0083 | 评估/奖励信号契约 (IEvaluator & RewardSignal) | ✅ Approved | Unknown |  |
 | adr-0084 | Mutation Governance 契约 (变异治理 / 授权契约) | ✅ Approved | 2026-08-26 |  |
 | adr-0085 | Cross-Cutting Pattern PDK (横切功能 PDK 模式) | 🔍 Proposed | Unknown |  |
+| adr-0086 | ADR-0086 Credit Assignment Contract 实施范围审计 | 🔍 Proposed | Unknown |  |
 | adr-0086 | 信用分配契约 (Credit Assignment Contract) | ✅ Approved | Unknown |  |
 
 ---
@@ -104,6 +122,7 @@
 graph TD
     adr_0001["adr-0001: ADR-0001 Implementation Scope Audit"]
     adr_0001["adr-0001: ILLMProvider 流式接口设计"]
+    adr_0002["adr-0002: ADR-0002 EventBus 有界队列 实施范围审计"]
     adr_0002["adr-0002: EventBus 有界队列架构"]
     adr_0002["adr-0002: ADR-0002 实现范围审计 (Implementation Scope Au"]
     adr_0003["adr-0003: ADR-0003 Implementation Scope Audit"]
@@ -123,6 +142,7 @@ graph TD
     adr_0019["adr-0019: IInteractionBus 接口与 TUI Chat MVP 架构"]
     adr_0020["adr-0020: ADR-0020 Implementation Scope Audit"]
     adr_0020["adr-0020: 多智能体线程模型与隔离策略"]
+    adr_0021["adr-0021: ADR-0021 PDK Design 实施范围审计"]
     adr_0021["adr-0021: Plugin Development Kit (PDK) 设计"]
     adr_0022["adr-0022: ADR-0022 Implementation Scope Audit"]
     adr_0022["adr-0022: 插件加载机制"]
@@ -148,17 +168,26 @@ graph TD
     adr_0050["adr-0050: Phase 6 战略方向评估 — 从服务化到 PDK 生产化"]
     adr_0051["adr-0051: Phase 6 PDK Composition Spike"]
     adr_0052["adr-0052: Agent Plugin Manifest 规范"]
+    adr_0053["adr-0053: ADR-0053 Agent Descriptor Interface 实施范围"]
     adr_0053["adr-0053: AgentDescriptor 与 `pdk_register_agent` 接"]
+    adr_0054["adr-0054: ADR-0054 Capability Discovery 实施范围审计"]
     adr_0054["adr-0054: Capability-Based Agent Discovery"]
     adr_0055["adr-0055: SKILL.md 执行与隔离模型"]
+    adr_0056["adr-0056: ADR-0056 WASM Runtime 实施范围审计"]
     adr_0056["adr-0056: WebAssembly Agent 运行时"]
+    adr_0057["adr-0057: ADR-0057 Agent Lifecycle 实施范围审计"]
     adr_0057["adr-0057: Agent 生命周期管理"]
+    adr_0058["adr-0058: ADR-0058 Tool Schema Validation 实施范围审计"]
     adr_0058["adr-0058: Tool Input/Output Schema 强制校验"]
+    adr_0059["adr-0059: ADR-0059 Cross-Process Protocol 实施范围审计"]
     adr_0059["adr-0059: 跨进程/跨网络 Agent 协议"]
     adr_0060["adr-0060: Agent 组合协议与声明式编排"]
     adr_0061["adr-0061: Agent 进化与固化（Solidification）"]
+    adr_0062["adr-0062: ADR-0062 Agent Marketplace 实施范围审计"]
     adr_0062["adr-0062: Agent Marketplace 与包格式"]
+    adr_0063["adr-0063: ADR-0063 OpenTelemetry Tracing 实施范围审计"]
     adr_0063["adr-0063: OpenTelemetry / Distributed Tracing 集成"]
+    adr_0064["adr-0064: ADR-0064 PDK Conformance Test Suite 实施范围"]
     adr_0064["adr-0064: PDK Conformance Test Suite"]
     adr_0065["adr-0065: 多语言 PDK 支持（仅 Python → Wasm）"]
     adr_0066["adr-0066: SkillInterpreter 模块架构"]
@@ -166,17 +195,23 @@ graph TD
     adr_0068["adr-0068: 事件发射契约 (Event Emission Contract)"]
     adr_0069["adr-0069: ToolCoordinator Hook 注入点 (Tool Call Inte"]
     adr_0070["adr-0070: PDK Plugin 命令/快捷键注册 (DECLARE_COMMAND)"]
+    adr_0071["adr-0071: ADR-0071 LLM-native AgenticDSL Architect"]
     adr_0071["adr-0071: LLM-native AgenticDSL 架构 (LLM as DSL Aut"]
     adr_0072["adr-0072: DSL 节点扩展 (stream: / $var / declarative s"]
     adr_0073["adr-0073: ADR-0073 实现范围审计 (Implementation Scope Au"]
+    adr_0073["adr-0073: ADR-0073 Tool JSON Schema Contract 实施范围审"]
     adr_0073["adr-0073: Tool JSON Schema 契约 (JSON Schema 2020-12"]
     adr_0074["adr-0074: Prompt Engineering + Evidence Gate"]
+    adr_0075["adr-0075: ADR-0075 Env Backend Local Docker 实施范围审计"]
     adr_0075["adr-0075: EnvBackend 多环境执行 (Local + Docker)"]
     adr_0076["adr-0076: DSL Engine as MCP Server (控制面, MCP 2025-"]
     adr_0077["adr-0077: gRPC Data Plane (High-Throughput Channel"]
     adr_0078["adr-0078: Fine-tune 基模选型与训练管线"]
+    adr_0079["adr-0079: ADR-0079 Unified Session 4-Scope 实施范围审计"]
     adr_0079["adr-0079: 统一会话模型与 4-Scope 存储"]
+    adr_0080["adr-0080: ADR-0080 AppendOnly Event Log 实施范围审计"]
     adr_0080["adr-0080: AppendOnlyEventLog as Core Fact Source"]
+    adr_0080["adr-0080: ADR-0080 v1.2 Amendment D10 Decouple 实施范"]
     adr_0080["adr-0080: ADR-0080 v1.2 amendment: D10 Capture 与 S"]
     adr_0081["adr-0081: Pre-Step Hook Contract（Agent 级拦截点）"]
     adr_0082["adr-0082: ADR-0082 实现范围审计 (Implementation Scope Au"]
@@ -185,10 +220,16 @@ graph TD
     adr_0083["adr-0083: 评估/奖励信号契约 (IEvaluator & RewardSignal)"]
     adr_0084["adr-0084: Mutation Governance 契约 (变异治理 / 授权契约)"]
     adr_0085["adr-0085: Cross-Cutting Pattern PDK (横切功能 PDK 模式)"]
+    adr_0086["adr-0086: ADR-0086 Credit Assignment Contract 实施范围"]
     adr_0086["adr-0086: 信用分配契约 (Credit Assignment Contract)"]
 
     adr_0031 --> adr_0002
     adr_0031 --> adr_0019
+    adr_0056 --> adr_0061
+    adr_0059 --> adr_0077
+    adr_0062 --> adr_0059
+    adr_0064 --> adr_0062
+    adr_0071 --> adr_0076
     adr_0080 --> adr_0081
     adr_0080 --> adr_0081
     adr_0081 --> adr_0079
@@ -197,7 +238,7 @@ graph TD
     adr_0020 -.->|supersedes| adr_0006
 ```
 
-> 图中包含 84 个节点、6 条依赖边、2 条替代边。
+> 图中包含 102 个节点、11 条依赖边、2 条替代边。
 > 渲染说明：实线 (`-->`) 表示依赖关系；虚线带标签 (`-.->|supersedes|`) 表示替代关系。
 
 ---
@@ -210,6 +251,11 @@ graph TD
 | adr-0006 | adr-0019 (supersedes), adr-0020 (supersedes) |
 | adr-0019 | adr-0031 (depends-on) |
 | adr-0031 | adr-0085 (depends-on) |
+| adr-0059 | adr-0062 (depends-on) |
+| adr-0061 | adr-0056 (depends-on) |
+| adr-0062 | adr-0064 (depends-on) |
+| adr-0076 | adr-0071 (depends-on) |
+| adr-0077 | adr-0059 (depends-on) |
 | adr-0079 | adr-0081 (depends-on) |
 | adr-0081 | adr-0080 (depends-on), adr-0080 (depends-on) |
 
@@ -219,11 +265,11 @@ graph TD
 
 | 状态 | 数量 |
 |------|------|
-| ✅ Approved | 60 |
-| 🟡 Partial | 9 |
-| ❌ Not Implemented | 1 |
+| ✅ Approved | 75 |
+| 🟡 Partial | 10 |
+| ❌ Not Implemented | 2 |
 | ⛔ Superseded | 1 |
-| 🔍 Proposed | 10 |
+| 🔍 Proposed | 11 |
 | 📋 Reserved | 2 |
 | ❓ Unknown | 1 |
 
