@@ -1,5 +1,6 @@
 // modules/executor/src/node_executor.cpp
 #include "executor/node_executor.h"
+#include "agenticdsl/executor/signature_validator.h"
 #include "common/llm/llm_types.h" // C₁.2: 需要完整定义（生成 GenerationRequest/ILLMProvider）
 #include "common/log/log.h"  // agenticdsl::log facade
 #include "common/utils/template_renderer.h" // 引入 InjaTemplateRenderer (for rendering)
@@ -303,24 +304,29 @@ Context NodeExecutor::execute_generate_subgraph(const GenerateSubgraphNode* node
         std::vector<std::string> dynamic_paths; // Collect paths of generated graphs
         for (auto& graph : new_graphs) {
             if (graph.path.rfind("/dynamic/", 0) == 0) { // Ensure it's dynamic
-                // 4. Validate signature if present (v3.1)
+                // 4. Validate signature if present (T4 signature-validation-real-impl)
                 if (graph.signature.has_value()) {
-                    // Perform validation based on signature_validation policy
-                    bool is_valid = true; // Placeholder for actual validation logic
-                    if (!is_valid && node->signature_validation == "strict") {
-                         if (node->on_signature_violation.has_value()) {
-                             // Trigger jump to on_signature_violation path
-                             // This requires scheduler logic to handle jumps
-                             // For now, throw error
-                             throw std::runtime_error("Signature validation failed (strict mode) for generated graph: " + graph.path);
-                         } else {
-                             // Default behavior for strict violation without jump path
-                             throw std::runtime_error("Signature validation failed (strict mode) for generated graph: " + graph.path);
-                         }
-                    } else if (!is_valid && node->signature_validation == "warn") {
-                        // Log warning but continue
-                        LOG_WARN("Signature validation failed (warn mode) for generated graph: " << graph.path);
-                    } // ignore: do nothing
+                    using agenticdsl::executor::SignatureMode;
+                    using agenticdsl::executor::SignatureValidator;
+                    SignatureMode mode = SignatureMode::Strict;
+                    if (node->signature_validation == "warn") mode = SignatureMode::Warn;
+                    else if (node->signature_validation == "ignore") mode = SignatureMode::Ignore;
+
+                    SignatureValidator validator(mode);
+                    bool is_valid = true;
+                    try {
+                        validator.parse_signature_ast(graph.signature.value());
+                    } catch (const std::exception& e) {
+                        is_valid = false;
+                        if (node->on_signature_violation.has_value()) {
+                            throw std::runtime_error("Signature violation: " + std::string(e.what())
+                                + " (jump target: " + node->on_signature_violation.value() + " not yet supported)");
+                        }
+                        throw std::runtime_error("GenerateSubGraphNode execution failed: " + std::string(e.what()));
+                    }
+                    if (!is_valid && mode == SignatureMode::Warn) {
+                        LOG_WARN("Signature validation warning (already thrown in strict mode)");
+                    }
                 }
                 dynamic_paths.push_back(graph.path);
                 // 5. Register new graph (This logic belongs in the scheduler/engine)

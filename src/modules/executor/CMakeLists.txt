@@ -1,6 +1,7 @@
 add_library(agenticdsl_modules_executor STATIC
     node_executor.cpp
     node.cpp
+    signature_validator.cpp  # T4 signature-validation-real-impl
     yield_stream_bridge.cpp
     # ... 其他 executor 源文件 ...
 )
