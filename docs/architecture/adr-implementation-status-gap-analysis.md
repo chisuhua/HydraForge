@@ -1,9 +1,12 @@
 # ADR 实施状态差距分析
 
+> ⚠️ **本文档为滚动快照**。ADR 状态以 `docs/adr/*.md` 各自状态行为准；本表滞后风险自负。
+> 数据修订记录见 `git log docs/architecture/adr-implementation-status-gap-analysis.md`。本表文档定位降级为"**ADR 状态权威参照**"（最终以 `docs/adr/*.md` 状态字段为准）。
+
 **生成日期**: 2026-08-03
-**最后更新**: 2026-08-28 — 集成 `cross-cutting-hooks-architecture-2026-08.md` v1.2 + Oracle 3 轮复审 (session `ses_fb9839be4ffeEdO0T7O6SfFUSi`) + ADR-0085 Cross-Cutting Pattern PDK ✅ Approved (2026-08-28) + T20 AFlow MCTS V1 ship (2026-08-28) + T21 payload redact ship (2026-08-28, PII 防御)
-**分析范围**: 73 个 ADR（47 主 + 6 新 LLM-native + 1 plugin + 12 skill 子项 + 7 archive）vs 代码库实施状态
-**数据源**: `docs/adr/` 目录、AGENTS.md Recent Changes、Oracle session `ses_037e12115ffeLkeR1QTIko0BHb`、代码库架构扫描、`docs/active-status.md §四`、code-review-graph、git log 2026-07-23~08-03
+**最后更新**: 2026-09-01 — 与 OpenSpec change `analysis-status-snapshot-sync` 同步：状态清扫（ADR-0068 ✅/0069 🟡/0070 🟡/0074 ✅/0075 ✅）+ Header 快照横幅 + 措辞降级（详见 §一 总览 + §2.3）
+**分析范围**: 102 个 ADR（67 主 + 1 plugin + 15 skill 子项 + 19 archive）vs 代码库实施状态；可复现命令 `python3 tools/adr_lint.py`
+**数据源**: `docs/adr/` 目录、`tools/adr_lint.py` 输出、AGENTS.md Recent Changes、Oracle session `ses_037e12115ffeLkeR1QTIko0BHb`、代码库架构扫描、`docs/active-status.md §四`、code-review-graph
 
 ---
 
@@ -11,15 +14,18 @@
 
 | 状态 | 计数 | 占比 | 备注 |
 |------|:---:|:----:|------|
-| ✅ Approved — 已批准且实施完成 | 33 | 45.8% | (含 Phase 6 架构评审 0052-0064 13 个, 大多数无代码; +ADR-0084 2026-08-26; +ADR-0061-06 v1.1 T15 ship 2026-08-27; +ADR-0061-08 T20 V1 ship 2026-08-28; **+ADR-0085 2026-08-28 — Cross-Cutting Pattern PDK, Oracle 3 轮复审通过, 实施载体 OpenSpec change `pdk-cross-cutting-patterns` 后续创建**) |
-| 🟡 Partial — 已批准但实施不完整 | 8 | 11.1% | 含 ADR-0073 待翻牌 (Phase 5 Sprint 21 ship, 见 §2.1) |
-| 🔍 Proposed — 提议阶段，未批准 | 13 | 18.1% | 含 **6 个新起草 LLM-native** (0072/0074/0075/0076/0077/0078) |
-| ❌ Not Implemented — 未实施（含已归档） | 18 | 25.0% | 12 归档 + 6 永久 (0002/0030V1/0036×2/0073V1待翻) |
-| ⛔ Superseded — 被替代 | 1 | 1.4% | ADR-0006 → ADR-0020 |
-| 📦 Archived (已实施后归档) | 1 | 1.4% | ADR-0032 (CostCollector) |
-| **总计** | **73** | **100%** | （G11 ADR-0084 ✅ Approved (V1 ship 2026-08-26, commit `a2b2d52`, G11 ✅ Closed), **+ADR-0085 ✅ Approved (2026-08-28, Oracle 3 轮复审通过)**, 已计入 ✅ Approved 段）|
+| ✅ Approved — 已批准且实施完成 | 52 | 51.0% | (Phase 6 架构评审 0052-0065 14 个 + ADR-0084 2026-08-26 + ADR-0061-06 v1.1 T15 ship + ADR-0061-08 T20 V1 ship + ADR-0068/0071/0074/0075/0085 评审通过 + ADR-0080 v1.1/v1.2 + 0061-13 等 — 详见 ADR 文件 `## 状态` 字段) |
+| 🟡 Partial — 已批准但实施不完整 | 10 | 9.8% | 含 **ADR-0068 v1.1-v2.0 持续修订**、ADR-0069/0070/0073 翻牌、ADR-0066 SkillInterpreter V1、ADR-0067/0068/0069/0070 等 |
+| 🔍 Proposed — 提议阶段，未批准 | 12 | 11.8% | 含 **4 个新起草 LLM-native** (0072/0076/0077/0078) + ADR-0042/0045/0046/0038/0039/0085(已 Approved, 见备注) — 最终权威见 ADR 文件 |
+| ❌ Not Implemented — 未实施（含已归档） | 18 | 17.6% | 12 归档 (0010-0018 + 0030V1 + 0036×2) + 6 永久 (0002/0030V1/0036×2/0073V1待翻) |
+| ⛔ Superseded — 被替代 | 2 | 2.0% | ADR-0006 → ADR-0020, ADR-0036 → ADR-0045 |
+| 📦 Archived (已实施后归档) | 1 | 1.0% | ADR-0032 (CostCollector) |
+| 📋 Reserved — 编号预留 | 2 | 2.0% | (占位文件 0024/0028; 编号 0024-0028 预留) |
+| **总计** | **102** | **100%** | （含 ADR-0084 ✅ Approved + ADR-0085 ✅ Approved 已计入 ✅ Approved 段；可复现命令 `python3 tools/adr_lint.py`）|
 
-> ① `docs/archive/adr/` 12 个归档 ADR（0010-0018 + 0030 V1 + 0036×2）计入 `❌ Not Implemented`。② ADR-0032 已实施后归档, 单列 `📦 Archived`。③ ADR-0002 未实施但文件仍在主目录, 计入 `❌`。④ ADR-0037 于 2026-07-27 从 🔍 提升为 🟡 Partial (CausalClock ship)。⑤ **本会话 6 个新 ADR (0072/0074/0075/0076/0077/0078) 全部 🔍 Proposed, 6/6 引用 0071/0073 作为父 ADR**。⑥ ADR-0073 内部 🔍 Proposed vs docs/README.md 显示 ✅ Approved — **状态不一致待对齐**。
+> ① `docs/archive/adr/` 19 个归档 ADR（0010-0018 + 0030 V1 + 0036×2 + 其他）计入 `❌ Not Implemented`。② ADR-0032 已实施后归档, 单列 `📦 Archived`。③ ADR-0002 未实施但文件仍在主目录, 计入 `❌`。④ ADR-0037 于 2026-07-27 从 🔍 提升为 🟡 Partial (CausalClock ship)。⑤ **LLM-native 8 ADR (0071-0078) 当前状态**：0071 ✅ Approved (2026-08-25), 0072 🔍 Proposed, 0073 🟡 Partial (翻牌), 0074 ✅ Approved (2026-08-25), 0075 ✅ Approved (2026-08-18), 0076-0078 🔍 Proposed — 最终权威见 `docs/adr/*.md` 各自状态行。⑥ **ADR-0073 三重状态已统一**：内部 🔍 → 翻牌 🟡 Partial（实施率约 30%，见 §2.1）。
+
+**📌 ADR 状态权威源声明**（重要）：本文档为滚动快照，**不**再以"唯一事实源"自我定位。ADR 状态唯一事实源 = 各 `docs/adr/*.md` 文件 `## 状态` 字段；本表为视图层（按维度组织的状态汇总），与 ADR 文件冲突时**以 ADR 文件为准**。`docs/README.md` ADR 表、`tools/adr_lint.py` 输出、`tools/adr_relationships.py` 生成的 `docs/adr-management/relationships.md` 同样为视图层。
 
 ---
 
@@ -163,9 +169,9 @@
 | **ADR-0063** (OpenTelemetry) | 零代码 — 分布式追踪未集成 |
 | **ADR-0064** (Conformance Suite) | 零代码 — PDK 兼容性测试套件未建立 |
 | **ADR-0065** (Python PDK) | 零代码 — Wasm 多语言支持未启动 |
-| **ADR-0068** (Event Emission Contract) | 🔍 Proposed (Wave 1 在审), 但**附录 A 主题注册**问题: 14 个 LLM-native ADR 候选主题待注册 |
-| **ADR-0069** (ToolCoordinator Hooks) | 🔍 Proposed (Wave 1 在审), 衔接 ADR-0075 D5 EnvValidationHook |
-| **ADR-0070** (DECLARE_COMMAND) | 🔍 Proposed (Wave 1 在审), 与 LLM-native 正交 |
+| **ADR-0068** (Event Emission Contract) | ✅ Approved (2026-08-03, 经 v1.1-v2.0 持续修订); Wave 1 §1-§5 ship + 7 幻影主题已真实发射（OpenSpec change `2026-08-03-adr-0068-event-emission-contract` + `2026-08-03-promote-event-builder-fulltoolresult-support` 已 archived）。附录 A 当前版本 v2.0（2026-08-31）含 60+ 注册主题（详见 `docs/adr/adr-0068-event-emission-contract.md`）。剩余候选主题（0074/0075/0076/0077 14 个）已通过 ADR-0068 附录 A amendment 持续注册 |
+| **ADR-0069** (ToolCoordinator Hooks) | 🟡 Partial (2026-08-04); middleware 改造 + budget_agent pre-hook + 5 类测试 ship，待 HookErrorPolicy amendment（衔接 ADR-0075 D5 EnvValidationHook） |
+| **ADR-0070** (DECLARE_COMMAND) | 🟡 Partial (2026-08-04); D4 立项 + 实施排期 Wave 1，与 LLM-native 正交 |
 
 ### 2.4 已归档/未实施 ADR
 

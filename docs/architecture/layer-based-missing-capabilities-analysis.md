@@ -1,13 +1,16 @@
 # HydraForge/PDK 缺失能力分层分析（v1.2 五层模型）
 
+> ⚠️ **本文档为 2026-07-31 数据基线 v1.2.1 快照**。后续 ship 见 `docs/architecture/capability-application-map-2026-08.md`（当前架构现状权威）。本表为滚动视图，**不**再以"唯一事实源"自我定位；最终权威 = ADR 文件 `## 状态` 字段。
+
 **生成日期**: 2026-07-31
-**最后验证**: 2026-07-31（数据修正版 v1.2.1，验证命令见附录 B）
+**最后验证**: 2026-07-31（数据修正版 v1.2.1，验证命令见附录 B；OpenSpec change `analysis-status-snapshot-sync` 仅做落地标注 + 快照横幅 + ADR-0085 引用, 不重做分析）
 **作者**: Architecture Working Group
 **关联文档**:
-- `docs/architecture/adr-implementation-status-gap-analysis.md`（2026-07-30）— ADR 实施状态基线
+- `docs/architecture/adr-implementation-status-gap-analysis.md`（2026-09-01 同步状态）— ADR 实施状态权威参照
 - `docs/specs/architecture.md`（2026-07-31 晋升, 原 v1.2）— 五层架构规范
 - `docs/architecture/agent-evolution-pipeline.md` — Agent 进化路径
 - `docs/research/pi-agent-vs-pdk-chat-demo-analyze.md`（2026-07-31 修订版）— pi-agent 借鉴路径
+- [`ADR-0085 — Cross-Cutting Pattern PDK`](../adr/adr-0085-cross-cutting-pattern-pdk.md) ✅ Approved (2026-08-28) — 横切功能 DSL `*.cc.md` 替代方案，与本节 L1-2 hook 机制**互补**（非替代）
 
 **分析范围**: HydraForge 框架层（L0+L1）+ PDK 契约与生态层（L2+L3）+ Agent 应用服务示例层（pdk_chat_demo / L4）三层视域下的缺失能力。
 **数据源**: 截至 2026-07-31 的 **106/106 ctest** 通过版本（2026-07-31 实测 `cd build && ctest`；初稿"93/93"已修正）；59 个 ADR 状态（`tools/doc_metrics.py --adr` 实测：40 Approved / 6 Partial / 11 Proposed / 1 NI / 1 Superseded）；10 个 PDK 插件代码扫描；事件总线 emit 调用点全量 grep（2026-07-31 复核 28 处，X1 节已修正）。
@@ -199,7 +202,7 @@ L1 提供跨 Plugin 共享基础设施。是**横向贯通缺口 X1/X2 的主要
 **位置**: `include/agenticdsl/contract/iinteraction_bus.h` + 各 emitter 调用点
 **关联 ADR**: ADR-0019（🟡 Partial）+ 新增 Event Emission Contract ADR
 **现状**:
-- ✅ IInteractionBus + InMemoryBus MPMC + BusEvent 公开契约 + subscribe_glob 通配符订阅 + CausalClock 全部 ship (2026-07-26~27)
+- ✅ IInteractionBus + InMemoryBus MPMC + BusEvent 公开契约 + subscribe() 通配符订阅 + CausalClock 全部 ship (2026-07-26~27)
 - ❌ **缺统一发射契约**——8 个缺失主题的 emit 未在任何模块实现
 - ❌ 各模块"自愿调用"，无强制约束
 **建议**: 新增 ADR-0068 "Event Emission Contract"：
@@ -208,6 +211,8 @@ L1 提供跨 Plugin 共享基础设施。是**横向贯通缺口 X1/X2 的主要
 - 规定 backward compat 政策（新增主题 vs 修改 payload）
 - 引入 EventBuilder helper 统一构造 BusEvent
 **估时**: 1 Sprint（ADR + 8 个 emit 补齐 + EventBuilder helper + 测试）
+
+> **→ 已落地**: ADR-0068 ✅ Approved (2026-08-03, Wave 1 §1-§5 ship, 7 幻影主题真实发射, Appendix A v2.0)。建议项 1+2+3+4 全部 ship（详见 `docs/adr/adr-0068-event-emission-contract.md`）。残余机制缺口（6 个会话子集主题 `attempt.*/conversation.*/phase.completed/branch.created/attempt.converged` 有消费者零发射方）属 `adr-0080-and-bus-api-alignment` change 标注范围，需独立 code change。
 
 ### L1-2. ToolCoordinator Hook 注入点（横向 X2 的承载）
 **位置**: `src/common/tools/tool_coordinator.{h,cpp}`
@@ -226,6 +231,9 @@ ToolCoordinator:
 ```
 PDK plugin 通过 `IToolRegistry::register_tool_pre_hook(name, fn)` 注册
 **估时**: 1 Sprint（middleware 架构 + 注册 API + 测试）
+
+> **→ 已落地**: ADR-0069 🟡 Partial (2026-08-04, middleware 改造 + budget_agent pre-hook + 5 类测试 ship, 待 HookErrorPolicy amendment)。建议项 1+2 部分 ship；3（transformContext）属后续 amendment。
+> **另见**: [ADR-0085 Cross-Cutting Pattern PDK](../adr/adr-0085-cross-cutting-pattern-pdk.md) ✅ Approved (2026-08-28) 提供**横切 DSL `*.cc.md` 替代方案**（无状态 dispatcher + `ICrossCuttingPattern` 统一抽象），与本节 hook 机制**互补**（横切 PDK 不依赖 hook middleware；两者可叠加）。
 
 ### L1-3. Session 生命周期事件总线契约（横向 X2 的承载）
 **位置**: `include/agenticdsl/contract/iinteraction_bus.h` + `src/core/types/session.h`
@@ -797,13 +805,13 @@ v1.2 五层模型在概念层面**完整且清晰**（L0~L4 职责分明 + R1~R5
 
 ## 十三、附录：ADR 状态交叉引用
 
-> **单一事实源原则**（2026-07-31 治理修正）：ADR 状态的唯一权威来源是 `adr-implementation-status-gap-analysis.md` + 各 ADR 文件头。本节**不再维护状态副本**（初稿的状态表已删除，避免双份事实源漂移），仅保留本文档独有的"缺口 → ADR"映射指针：
+> **ADR 状态权威参照原则**（2026-07-31 治理修正，2026-09-01 措辞降级）：ADR 状态的权威参照来源 = 各 ADR 文件头 `## 状态` 字段（最终权威） + `adr-implementation-status-gap-analysis.md`（滚动视图）。本节**不再维护状态副本**（初稿的状态表已删除，避免双份事实源漂移），仅保留本文档独有的"缺口 → ADR"映射指针：
 
 | 缺失能力 | 关联 ADR |
 |---------|---------|
-| **X1 / L1-1** 事件发射契约 | ADR-0019 + 拟新增 ADR-0068 |
-| **X2 / L1-2** ToolCoordinator Hook | ADR-0031 + 拟新增 ADR-0069 |
-| **X3 / L3-3** 命令/快捷键注册 | 拟新增 ADR-0070 |
+| **X1 / L1-1** 事件发射契约 | ADR-0019 + **ADR-0068 ✅ Approved (2026-08-03)** |
+| **X2 / L1-2** ToolCoordinator Hook | ADR-0031 + **ADR-0069 🟡 Partial (2026-08-04, middleware ship)** |
+| **X3 / L3-3** 命令/快捷键注册 | **ADR-0070 🟡 Partial (2026-08-04)** |
 | **L0-1 / L1-3 / L2-2** SessionManager | ADR-0033 |
 | **L0-2** NodeExecutor 工具并行 | ADR-0030 V2（DomainWorkerPool 已 ship 未整合） |
 | **L0-3 / L4-5** ContextCompactor | ADR-0007 |
