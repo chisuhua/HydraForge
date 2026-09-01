@@ -39,7 +39,15 @@
 > - `from-roadmap-phase-6c-schema-complete` (C9 ADR-0073 D3, 4-step sanitization pipeline)
 > - `from-roadmap-phase-6c-execution-envbackend` (C11-C13 ADR-0075 D1+D2+D3+D5, local+docker env backends)
 >
-> 剩余 Wave 2 (`evidence-gate` 依赖 baseline handoff ✅) / Wave 3 (`execution-dsl` 依赖 Wave 2 PASS) / Wave 4 (`control-plane-eval` 3/6 条件 FAIL) 等待启动。
+> **C4 Evidence Gate v1 ship (2026-09-02)** (OpenSpec `from-roadmap-phase-6c-evidence-gate`):
+> - `src/common/prompts/evidence_gate.h` (62 行, header-only, no IO, `enum class GateStatus { Pass, Fail, Conditional, Abort }` + `evaluate_gate(parse_valid, l1, l2, l3)` 纯函数)
+> - `tests/test_evidence_gate.cpp` (7 TEST_CASEs: 4 boundary + 1 Abort + 1 regression + 1 to_string, all PASS, registered tests/CMakeLists.txt:121)
+> - `docs/audits/2026-09-02-evidence-gate-v1.md` 决议文档 (X 路线 per MOMUS REJECT 修正: mock baseline 88.24% Conditional placeholder, 真实 3 模型 baseline 推迟 Sprint 25+)
+> - **决议状态: Conditional** (🟡) — mock baseline 88.24% 在临界带 [85.0, 90.0); mock_mode=true 不构成真实 LLM 能力结论; 真实决议推迟 Sprint 25+
+> - ADR-0074 §决策 D5 实证字段: 2026-09-02 决议记录追加 (file:line 引用 baseline v3 yaml)
+> - **Phase 7 启动条件项 #1**: 🟡 Conditional (本决议 placeholder, 待真实 baseline 重测; Wave 3 启动条件需 Evidence Gate 真实 PASS)
+>
+> 剩余 Wave 3 (`execution-dsl` 依赖 Wave 2 真实 PASS) / Wave 4 (`control-plane-eval` 3/6 条件 FAIL) 等待启动。
 >
 > **T1-T7 归档 2026-09-01** (commit `c79b4bf`):
 > Sprint 24 启动周期间累积的 9 个 OpenSpec changes 已 ship + archive:

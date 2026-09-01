@@ -603,6 +603,34 @@ Stage 2 必须含至少 1 个 few-shot example (从 D1)
 - **Wave 3 MCP server ship 时**: 交叉验证 MCP `inputSchema` ↔ D3 baseline 任务
 - **Wave 5+ Fine-tune ship 时**: 交叉验证 JSONL → Fine-tune API round-trip
 
+### Evidence Gate 决议实证记录 (2026-09-02 C4 ship)
+
+**决议来源**: OpenSpec `from-roadmap-phase-6c-evidence-gate` ✅ ship 2026-09-02 → 决议文档 [`docs/audits/2026-09-02-evidence-gate-v1.md`](../audits/2026-09-02-evidence-gate-v1.md)
+
+**决议状态**: **Conditional** (🟡)
+
+**决议依据**:
+- 消费 baseline [`docs/audits/2026-08-18-execution-baseline-v1.yaml`](../audits/2026-08-18-execution-baseline-v1.yaml) 数据:
+  - parse_valid_rate = **0.8824** (88.24%) — 临界带 [85.0%, 90.0%) 左闭右开
+  - task_success L1 = 0.8500 (mock baseline)
+  - task_success L2 = 0.6000 (mock baseline)
+  - task_success L3 = 0.1818 (mock baseline)
+  - **mock_mode = true** (file:16) — 不构成真实 LLM 能力结论 (per MOMUS REJECT 修正 X 路线)
+- `evaluate_gate(0.8824, 0.85, 0.60, 0.1818)` → `GateStatus::Conditional` (per `src/common/prompts/evidence_gate.h:26` D-3 数据完整性 + D-4 左闭右开判定)
+- Conditional 触发 ADR-0072 D3 declarative style (C6, 4h P0*) — 但决议文档仅记录建议，C5/C6 启动需独立 OpenSpec change + 人类评审 (per proposal Impact §MUST NOT)
+
+**决议不变量保持**:
+- ADR-0074 状态保持 ✅ Approved (2026-08-03 Promotion, per design D-5 修正: 不实施 🔍 Proposed → 🟡 Partial 翻牌;该目标状态不存在)
+- Phase 7 启动条件项 #1 状态: 🟡 Conditional (active-status.md §四, 24h 同步)
+- Evidence Gate 不可绕过 (per ADR-0074 §不变量 4: 任何 Wave 推进必须附 Gate 决议文档)
+
+**决议后续**:
+- 真实 3 模型 baseline 决议推迟至 Sprint 25+ (X 路线 ship 后由独立 OpenSpec change 实施)
+- ADR-0074 §决策 D5 v2 amendment (task_success L1/L2/L3 完整判定) 推迟至 Sprint 25+
+- Wave 3 (`from-roadmap-phase-6c-execution-dsl`) 启动条件: Evidence Gate 真实 PASS (parse-valid ≥85% + task-success L1 ≥70% from real LLM baseline)
+
+**决议可审计性**: 所有数值引用具体 file:line 证据（如 `execution-baseline-v1.md:42`, `evaluation-baseline-v1.yaml:16`），详见决议文档 §决议字段表。
+
 ---
 
 *文档版本: v1.0*
