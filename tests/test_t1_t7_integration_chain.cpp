@@ -1,6 +1,6 @@
 // tests/test_t1_t7_integration_chain.cpp
-// Sprint 24 审计补全：B6 集成闭环验证 — 串行 4 个 Sprint 24 change 真实接口
-// T4 signature-validation + T1C append_graphs_callback + T3 evolution-budget hook 联动
+// Sprint 24 审计补全：B6 集成闭环验证 — 串行 Sprint 24 change 真实接口
+// 当前覆盖 T1C append_graphs_callback (核心冒烟); T4/T3/T5 各自已有独立测试, 不重复。
 
 #include "catch_amalgamated.hpp"
 #include "modules/executor/node_executor.h"
@@ -32,11 +32,8 @@ nodes:
 ```
 )";
 
-// 测试目标：B6 闭环链路 —— T4 signature-validation + T1C append_graphs_callback + T5
-// cognitive-tools metadata 一致性 + T3 evolution-budget 接入（通过 std::shared_ptr<IBudgetController>）。
-// 不验证 MCTS chain 搜索 (那是 T20) 或 distillation writer (那是 T0) — 那些有独立测试。
-TEST_CASE("Sprint 24 B6 chain: signature validate + dynamic callback + budget hook",
-          "[executor][integration][sprint24][b6]") {
+TEST_CASE("T1C append_graphs_callback chain smoke test",
+          "[executor][integration][stage0]") {
   ToolRegistry registry;
   MockLLMProvider mock;
   mock.set_fixed_response(kIntegrationDynamicDsl);
