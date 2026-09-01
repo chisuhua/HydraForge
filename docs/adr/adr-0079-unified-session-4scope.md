@@ -1,10 +1,11 @@
 # ADR-0079: 统一会话模型与 4-Scope 存储
 
 ## 状态
-✅ Approved（v1.1 amendment 2026-08-12，原始 v1 文本 2026-01-19）
+✅ Approved（v1.1 amendment 2026-08-12，v1.2 amendment 2026-08-20，原始 v1 文本 2026-01-19）
 
 > **修订记录**：v1.1 amendment 针对 Agent 蒸馏需求修订附录 A（step schema 加 `event_ref`），
 > 在 §上下文加现行 defect 声明（`SessionStore::trunc` bug 已修复）。
+> **v1.2 amendment 2026-08-20**：§决策 D7-D10（node-id 稳定寻址 / branch cursor 持久化 / path-extraction fork / 4 套存储命名空间分配）。
 > **v1 决策不变**——4-Scope 模型、ConvergenceEntry、文件布局全部保留。
 
 ## 上下文

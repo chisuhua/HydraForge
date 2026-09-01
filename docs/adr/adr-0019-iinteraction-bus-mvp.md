@@ -2,13 +2,11 @@
 
 ## 状态
 
-**🟡 Partial** (2026-07-06 更新 — P0 review 触发扩展, 待 follow-up PR ship `subscribe_topic` 扩展)
-- ✅ Original: V2.1 ship (2026-06-24, Sprint 5)
-- 🟡 New: 计划扩展 `subscribe_topic(topic_pattern, callback)` per [ADR-0046 §2.1](../adr-0046-plugin-communication-protocol.md) — PDK plugin 间通信需要 topic-based subscribe, 而当前接口仅 session-based (`subscribe_events(session_id, callback)`)
+**🟡 Partial** (2026-07-06 更新 — glob 通配符订阅已 ship：`subscribe(event_type, callback)` 支持 `*` / `?` 通配符，`InMemoryBus` 内部 `has_wildcard()` 分类到 `wildcard_subscribers_` map，Change B 2026-07-27；详见 ADR-0068 §决策 1 表格。带 layer 检查的独立 `subscribe_topic(topic_pattern, callback)` API 当前零消费者，DEFER。`subscribe_events(session_id, callback)` 与 `push_token/push_event` 高层接口已由 Change A 2026-07-26 BusEvent 迁移替代，旧接口仅在历史版本存在。)
 
 > **2026-06-08 截至 (commit f07a4b4)**：`IInteractionBus` 与 `InMemoryBus` 的公共头文件迁移到 `include/agenticdsl/contract/`，实现文件 (`inmemory_bus.cpp`) 与 `CMakeLists.txt` 保留在 `src/common/contract/`。`events.h` 在 M5.2 简化跳过，Event/Token/Session 类型内联到 `IInteractionBus` 头文件。
 
-> **2026-07-06 P0 Review 触发扩展** (per [Oracle review ses_0c9e97925ffete0oXvgRmpLo12](../adversarial-reviews/architecture-overview-two-plugin-communication.md)): ADR-0046 Event Layer 需要 topic-based subscribe, 而 IInteractionBus 当前接口仅支持 session-based. 扩展方案见 §IInteractionBus 接口扩展.
+> **2026-07-06 P0 Review 触发扩展** (per [Oracle review ses_0c9e97925ffete0oXvgRmpLo12](../adversarial-reviews/architecture-overview-two-plugin-communication.md)): ADR-0046 Event Layer 需要 topic-based subscribe, 而 IInteractionBus 当前接口仅支持 session-based. 扩展方案见 §IInteractionBus 接口扩展. **历史记录**：2026-07-27 InMemoryBus Change B 落地后，`subscribe(event_type, callback)` 已支持 glob 通配符订阅（详见 L5 状态行与 ADR-0068 §决策 1），原计划的独立 `subscribe_topic` API 因零消费者 DEFER。本节以下 `subscribe_topic` 接口草案保留作为演进历史参考。
 
 ---
 

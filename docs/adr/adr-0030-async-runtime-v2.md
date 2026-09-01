@@ -322,7 +322,7 @@ N + M + K = ~2 + 16 + 8 = 26 (8核机器, M 可配置)
 - [ADR-0002: EventBus 有界队列架构](./adr-0002-eventbus-bounded-queue.md)
 - [ADR-0019: IInteractionBus 接口与 TUI Chat MVP 架构](./adr-0019-iinteraction-bus-mvp.md)
 - [ADR-0020: 多智能体线程模型与隔离策略](./adr-0020-thread-model-isolation.md)
-- [ADR-0025: 并行子任务](./adr-0025-parallel-subtasks.md) — Fleet 协议依据
+- Fleet 并行执行：预留编号 ADR-0025（未创建）；FleetOrchestrator 已 DEFER，见 [`adr-implementation-status-gap-analysis` §2.1 ADR-0030](../architecture/adr-implementation-status-gap-analysis.md) — 本 change 清理原悬空链接，FleetOrchestrator 当前无代码实施
 - [ADR-0036: 混合内核架构总纲](../archive/adr/adr-0036-three-layer-service-protocol.md) (⛔ Superseded 2026-07-08, 被 ADR-0045 替代)
 - [Slice 00 验证报告](../implementation-roadmap.md#slice-00--基础设施验证) — Taskflow + async_simple 引入
 - OpenSpec change: `2026-06-26-doc-alignment-adr-states` (本 V2 产出)
