@@ -300,7 +300,14 @@ Context NodeExecutor::execute_generate_subgraph(const GenerateSubgraphNode* node
         // Stage 4 Task 20: 通过 IParser 抽象调用；IParser::parse 返回单 ParsedGraph，包装为 vector 以兼容下游 for-range
         // 注意：ParsedGraph 禁止拷贝（仅可移动），故不能使用 initializer_list 构造；改用 push_back 走移动路径
         std::vector<ParsedGraph> new_graphs;
-        new_graphs.push_back(parser_->parse(generated_dsl));
+        {
+            auto* md_parser = dynamic_cast<MarkdownParser*>(parser_.get());
+            if (md_parser) {
+                new_graphs = md_parser->parse_from_string(generated_dsl);
+            } else {
+                new_graphs.push_back(parser_->parse(generated_dsl));
+            }
+        }
         std::vector<std::string> dynamic_paths; // Collect paths of generated graphs
         for (auto& graph : new_graphs) {
             if (graph.path.rfind("/dynamic/", 0) == 0) { // Ensure it's dynamic
@@ -329,8 +336,19 @@ Context NodeExecutor::execute_generate_subgraph(const GenerateSubgraphNode* node
                     }
                 }
                 dynamic_paths.push_back(graph.path);
-                // 5. Register new graph (This logic belongs in the scheduler/engine)
-                // g_current_engine->append_graphs({std::move(graph)}); // Placeholder - requires access to engine/scheduler
+                if (append_graphs_callback_) {
+                    try {
+                        std::vector<agenticdsl::ParsedGraph> to_register;
+                        to_register.push_back(std::move(graph));
+                        append_graphs_callback_(std::move(to_register));
+                    } catch (const std::exception& cb_err) {
+                        LOG_ERROR("GenerateSubGraphNode: append_graphs_callback_ threw for graph '"
+                                  << graph.path << "': " << cb_err.what());
+                    }
+                } else {
+                    LOG_WARN("GenerateSubGraphNode: append_graphs_callback_ not set, graph '"
+                             << graph.path << "' dropped (call ExecutionSession::set_append_graphs_callback first)");
+                }
             }
         }
 
