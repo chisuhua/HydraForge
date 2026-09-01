@@ -22,7 +22,7 @@ L1 OS Services / 事件总线应用语义层 / 运行时生命周期事件治理
 
 ### 问题
 
-事件总线**基础设施层是健康的**（BusEvent 信封 + InMemoryBus MPMC + subscribe_glob + CausalClock 均已 ship），但**应用语义层无契约**，2026-07-31 全量复核确认三个实证缺口：
+事件总线**基础设施层是健康的**（BusEvent 信封 + InMemoryBus MPMC + subscribe() 通配符支持 + CausalClock 均已 ship），但**应用语义层无契约**，2026-07-31 全量复核确认三个实证缺口：
 
 **缺口 1 — 发射端无治理，三种构造方言并存。** 生产代码 28 处 emit 调用点（`python3 tools/doc_metrics.py --emit`），同一信封三种惯用法：
 
@@ -61,7 +61,7 @@ demo 渲染管线为永不发射的事件接线；测试伪造生产行为——
 
 | ADR | 管辖范围 | 本 ADR 关系 |
 |-----|---------|------------|
-| ADR-0019 | 总线**机制**（emit/subscribe/subscribe_glob/CausalClock 接口与实现） | 不重复管辖；本 ADR 只定义"在何处必须调用 emit" |
+| ADR-0019 | 总线**机制**（emit/subscribe（通配符支持）/CausalClock 接口与实现） | 不重复管辖；本 ADR 只定义"在何处必须调用 emit" |
 | **ADR-0068** (本) | **运行时生命周期事件**：`loop.*` / `llm.*` / `tool.execution.*` / `session.*` / `context.compact.*` / `user.input` / `app.*`（L0/L1 运行时 → L4 应用） | — |
 | ADR-0046 | **插件域事件**：`inference.*` / `temporal.*` / 未来插件自定义域（L2 插件 ↔ L2 插件 / L4） | 其命名约定 (`<module>.<verb>` dot 分隔) 与频率策略 (严禁高频指标推送) 被本 ADR **引用沿用**，不重新定义 |
 | ADR-0037 | 因果排序 (causal_time 填充) | 正交，本 ADR 不涉及 |
@@ -77,7 +77,7 @@ demo 渲染管线为永不发射的事件接线；测试伪造生产行为——
 - **Payload schema**：字段表，沿用 ADR-0023 ToolResult P2-P4（`error_code` enum / `trace_id` / `meta`）；
 - **兼容政策**：additive-only（见 §决策 5）。
 
-首批收录：12 个已订阅主题 + 10 个已发射主题 + 7 个幻影主题（去重后 22 个）。Registry 的维护方式：作为本 ADR 附录 A 的表格，**新增/修改主题必须 PR 修订本附录**（轻量仪式，Phase 6 plan+commit 模式下为 commit 内同步更新）。
+首批收录：12 个已订阅主题 + 10 个已发射主题 + 7 个幻影主题（v1 初始去重后 22 个；截至 Appendix A v2.0 共 N 个，可用 `grep -c "^| \`" docs/adr/adr-0068-event-emission-contract.md` 复现）。Registry 的维护方式：作为本 ADR 附录 A 的表格，**新增/修改主题必须 PR 修订本附录**（轻量仪式，Phase 6 plan+commit 模式下为 commit 内同步更新）。
 
 ### 3. 幻影主题强制发射点指定
 
@@ -148,7 +148,7 @@ Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = 
 ### 转 ✅ Approved 条件
 
 1. 7 个幻影主题全部有真实发射 + 发射测试通过 — **✅ 满足** (Wave 1 §2-§4 ship 5 个 + `fix-loop-agent-bypass` ship 3 个 `loop.*` = 7/7)
-2. 附录 A Registry 22 个主题登记完成 — **✅ 满足** (附录 A 22 个主题全部登记)
+2. 附录 A Registry v1 初始 22 个主题（截至 v2.0 共 N 个，含后续 amendment 增量）登记完成 — **✅ 满足** (附录 A v1 22 个主题全部登记；后续 amendment 已通过本 ADR 头部状态行追踪)
 3. EventBuilder 落地且 ≥80% 现有 emit 完成迁移 — **✅ 满足** (V2 扩展后 100% 迁移, §5.11 grep 0 行)
 4. `test_e2e_mock.cpp` 伪造事件全部移除 — **✅ 满足** (Sprint 19/20 `fix-loop-agent-bypass` ship 全面重写)
 
@@ -171,7 +171,7 @@ Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = 
 
 ---
 
-## 附录 A：Canonical Topic Registry (v1.6, 2026-08-28)
+## 附录 A：Canonical Topic Registry (v2.0, 2026-08-31)
 
 > 维护规则：新增/修改主题必须同步修订本表。状态列：✅ 已注册 / 👻 幻影 (零生产 emit) / 📡 已发射但无注册订阅方 (本 amendment 后已全部注册)。
 
@@ -186,6 +186,9 @@ Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = 
 | `loop.error` | ChatSession / loop_agent | 循环异常 | `error_code`, `message` | ✅ |
 | `llm.request` | L1 Decorator 链 | generate() 前 | `model`, `prompt_hash` | ✅ |
 | `llm.response` | L1 Decorator 链 | generate() 后 | `tokens`, `duration_ms`, `error_code?` | ✅ |
+| `llm.token` | stream_to_bus | 流式 token | `session_id`, `token`, `index` | ✅ (真实发射, stream_to_bus.cpp, 2026-08-01 v1.4 补登) |
+| `llm.token.done` | stream_to_bus | 流式完成 | `total_tokens` | ✅ (真实发射, stream_to_bus.cpp, 2026-08-01 v1.4 补登) |
+| `llm.token.error` | stream_to_bus | 流式错误 | `error_code`, `message` | ✅ (真实发射, stream_to_bus.cpp, 2026-08-01 v1.4 补登) |
 | `tool.execution.start` | ToolCoordinator | call_tool 入口 | `tool`, `layer` | ✅ |
 | `tool.execution.end` | ToolCoordinator | call_tool 返回 | `tool`, `ok`, `duration_ms` | ✅ |
 | `session.persist_request` | ChatSession | 持久化请求发出 | `session_id` | ✅ |
