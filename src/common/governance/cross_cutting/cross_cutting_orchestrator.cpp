@@ -12,6 +12,8 @@
 #include "agenticdsl/pdk/cross_cutting/composition_pattern.h"
 #include "agenticdsl/pdk/cross_cutting/bus_pattern.h"
 
+#include "common/log/log.h"
+
 #include <stdexcept>
 
 namespace hydraforge::pdk {
@@ -59,11 +61,11 @@ void CrossCuttingOrchestrator::dispatch(const nlohmann::json& config) {
                 pattern->apply(config_obj, ctx_);
             } catch (const std::exception& e) {
                 // FailOpen: 记录警告但继续
-                // TODO: Log warning
+                LOG_WARN("CrossCuttingOrchestrator: pattern '" << type << "' apply failed (fail-open): " << e.what());
             }
         } else {
             // 未知 pattern: FailOpen (log warning + skip)
-            // TODO: Log warning
+            LOG_WARN("CrossCuttingOrchestrator: unknown pattern type='" << type << "' (fail-open skip)");
         }
     }
 }

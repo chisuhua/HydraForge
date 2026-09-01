@@ -11,6 +11,8 @@
 #include "agenticdsl/contract/iagent_hook_registry.h"
 #include "agenticdsl/policy/iapproval_handler.h"
 
+#include "common/log/log.h"
+
 #include <stdexcept>
 
 namespace hydraforge::pdk {
@@ -97,7 +99,7 @@ void HookPattern::apply(const nlohmann::json& pattern_config,
             ctx.approval_handler->process_request(meta, ctx_tool, preview);
         } else {
             // 未知 target：跳过 (FailOpen)
-            // TODO: Log warning
+            LOG_WARN("HookPattern: unknown target='" << target << "' (fail-open skip)");
         }
     }
 }

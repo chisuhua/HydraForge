@@ -9,6 +9,8 @@
 #include "agenticdsl/pdk/cross_cutting/decorator_pattern.h"
 #include "agenticdsl/contract/i_llm_provider_decorator.h"
 
+#include "common/log/log.h"
+
 #include <stdexcept>
 
 namespace hydraforge::pdk {
@@ -78,7 +80,7 @@ void DecoratorPattern::apply(const nlohmann::json& pattern_config,
                 });
         } else {
             // 未知 decorator：跳过 (FailOpen)
-            // TODO: Log warning
+            LOG_WARN("DecoratorPattern: unknown decorator name='" << name << "' (fail-open skip)");
         }
     }
 
