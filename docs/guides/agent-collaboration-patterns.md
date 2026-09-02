@@ -1,15 +1,19 @@
-# Agent 间协作模式架构指南
+# Agent 协作与运行时架构指南
 
-> **目的**：快速理解 HydraForge 中 **Agent 与 Agent 之间** 的协作模式架构、协议抽象与设计取舍。
-> **范围**：覆盖 6 种协作模式、4 通道 Plugin 通信、3 种 Agent Loop 协作、Phase 6 服务组合探索、Hook/横切/归因/进化协作。
-> **关系**：与 [`plugin-and-agent-architecture.md`](./plugin-and-agent-architecture.md) 配套 —— 后者讲"Plugin 与 Agent 是什么/怎么构建"，本指南讲"多个 Agent 如何协作"。
-> **依据**：ADR-0060（协作模式）/ ADR-0046（Plugin 通信协议）/ ADR-0045（编排 Plugin）/ ADR-0021（Agent Loop）/ ADR-0051（Phase 6 服务组合）/ ADR-0081（Hook）/ ADR-0083（评估契约）/ ADR-0085（横切）/ ADR-0086（信用分配）/ ADR-0061（进化）/ ADR-0068（事件契约）/ ADR-0071（LLM-native）。
+> **目的**：快速理解 HydraForge 中 **Agent 与 Agent 之间** 的协作模式架构、协议抽象、运行时基底与设计取舍。
+> **范围**：
+> - **抽象层**：6 种协作模式（ADR-0060）+ 4 通道 Plugin 协议（ADR-0046）+ 3 种 Agent Loop（ADR-0021）
+> - **运行时基底**：CognitiveWorker ↔ DomainWorkerPool 双 worker 模型（ADR-0020）+ 动态子图生成（`GenerateSubgraphNode` + `PlanExecuteLoop`）+ 进程/线程隔离
+> - **横切治理**：Hook（ADR-0081/0085/0086）+ Phase 6 服务组合（ADR-0051）+ LLM-native（ADR-0071）
+> - **自进化协作**：MCTS（ADR-0061-08）/ GEPA（ADR-0061-09）/ SkillCompiler（ADR-0061-03）/ Distillation（ADR-0061-13）等与基础模式的耦合关系
+> **关系**：与 [`plugin-and-agent-architecture.md`](./plugin-and-agent-architecture.md) 配套 —— 后者讲"Plugin 与 Agent 是什么/怎么构建"，本指南讲"多个 Agent 如何协作 + 在什么运行时基底上执行 + 如何自进化"。
+> **依据**：ADR-0019（IInteractionBus）/ ADR-0020（线程模型）/ ADR-0021（PDK）/ ADR-0033（Session 层级）/ ADR-0045（编排 Plugin）/ ADR-0046（Plugin 通信）/ ADR-0060（协作模式）/ ADR-0061（自进化系列）/ ADR-0066（SkillInterpreter 物理隔离）/ ADR-0068（事件契约）/ ADR-0071（LLM-native）/ ADR-0079（Session 4-Scope）/ ADR-0080（AppendOnlyEventLog）/ ADR-0081（Hook）/ ADR-0083（评估契约）/ ADR-0084（Mutation Governance）/ ADR-0085（横切）/ ADR-0086（信用分配）。
 
 ---
 
 ## 一、核心结论
 
-Agent 间协作不是单一抽象，而是**多层、6 维度**的体系：
+Agent 协作不是单一抽象，而是**多层、9 维度**的体系（含运行时基底 + 自进化）：
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -22,10 +26,14 @@ Agent 间协作不是单一抽象，而是**多层、6 维度**的体系：
 │ 执行层：3 种 Agent Loop（ADR-0021）                     │
 │   React / PlanExecute / ForkJoin                       │
 ├────────────────────────────────────────────────────────┤
-│ 并发原语：DomainWorkerPool（jthread + FIFO 队列）       │
+│ 动态子图：GenerateSubgraphNode（v3.1, §5A）             │
+│   LLM 实时生成 + signature_validation（strict/warn/ignore）│
 ├────────────────────────────────────────────────────────┤
-│ 服务层：Phase 6 PDK Composition（ADR-0051）             │
-│   G1↔G3 reference impl + 5 escalation triggers         │
+│ 运行时基底：双 Worker 模型（ADR-0020 §3.1 + §2.2.1, §6A）│
+│   CognitiveWorker（思考/单线程） + DomainWorkerPool（执行/N jthread）│
+│   + SkillInterpreter 子进程（ADR-0066, §6A.6）         │
+├────────────────────────────────────────────────────────┤
+│ Session：三层模型（ADR-0033）+ 4-Scope（ADR-0079, §6C） │
 ├────────────────────────────────────────────────────────┤
 │ 拦截层：Agent Hook（ADR-0081）                          │
 │   pre-step / post-step + agent_glob 路由               │
@@ -36,17 +44,19 @@ Agent 间协作不是单一抽象，而是**多层、6 维度**的体系：
 │ 归因层：Credit Assignment（ADR-0086）                   │
 │   VersionPairDiff + 4 态判定                           │
 ├────────────────────────────────────────────────────────┤
-│ 进化层：MCTS / GEPA / Trajectory IR（ADR-0061）         │
+│ 自进化层：MCTS / GEPA / SkillCompiler / Trajectory IR    │
+│   （ADR-0061 系列，§6B，正交于 §6A 运行时基底）         │
 └────────────────────────────────────────────────────────┘
 ```
 
 **关键设计哲学**：
 
 1. **统一抽象**：Agent 开发者只需学一次 `IToolRegistry` API，路由层透明选择后端（**v1 进程内 backend 已 ship；进程间/跨框架 backend 为 Phase 2 目标，依赖 ADR-0059 未落地**）
-2. **正交分层**：Tool Hook vs Agent Hook / Tool Layer vs Event Layer —— 每一层独立，避免双标准
-3. **物理 vs 逻辑隔离**：v1 进程内协作 + jthread per-agent 线程隔离；Phase 2+ 进程/容器隔离
+2. **正交分层**：Tool Hook vs Agent Hook / Tool Layer vs Event Layer / **§6A 业务运行时 vs §6B 自进化治理** —— 每一层独立，避免双标准
+3. **物理 vs 逻辑隔离**：v1 = 双 Worker 逻辑隔离（jthread） + SkillInterpreter 进程级物理隔离（seccomp 已 ship）；Phase 2+ 容器级隔离待 Phase 6+ 触发
 4. **安全优先**：fail-closed 默认 + 5 escalation triggers + RAII guard 嵌套防护 + ToolCoordinator 审批
 5. **可演进**：从 v1 同步 RPC → 异步 → pub/sub → 父子 → 并行 → 流式，逐步开放能力
+6. **正交架构层**：§6A（业务运行时）与 §6B（自进化治理）通过 IEvaluator/IMutationGovernor/IInteractionBus 共享事件流与评估语义，但不共享线程模型
 
 ---
 
@@ -356,11 +366,89 @@ DEFINE_AGENT(parallel_analyzer, AgentLoopType::ForkJoin);    // 多 worker 并�
 
 完整说明参见 [`plugin-and-agent-architecture.md`](./plugin-and-agent-architecture.md) §3.3。
 
+### 5A. 动态子图生成（GenerateSubgraphNode）— LLM 驱动协作的物质载体
+
+> **本节是协作的关键补充**：§5.1 描述了 `PlanExecuteLoop` 的状态机，但**未说明其 "Planning 阶段" 的核心机制是 LLM 实时生成新子图，再由 DSLEngine 解析执行**。这正是 §11 自进化（AFlow MCTS / GEPA）的物理载体。
+
+#### 5A.1 GenerateSubgraphNode 定义（`src/core/types/node.h:198-207`）
+
+```cpp
+struct GenerateSubgraphNode : public Node {
+    std::string prompt_template;                              // 提示模板（含目标 + 上下文占位符）
+    std::vector<std::string> output_keys;                     // e.g., ["generated_graph_path"]
+    std::string signature_validation = "strict";              // strict | warn | ignore
+    std::optional<NodePath> on_signature_violation;           // 违反时跳转路径
+    LayeredContext execute(LayeredContext& ctx) override;     // 实现 in NodeExecutor
+};
+```
+
+| 字段 | 语义 |
+|---|---|
+| `prompt_template` | 拼装 LLM 调用 prompt（`Goal` + `Context.dump()` + 节点占位符） |
+| `output_keys` | 生成子图写入 `LayeredContext.working[output_keys[i]]`（典型：`generated_graph_path`） |
+| `signature_validation` | 三态：strict（违反则 fail）/ warn（警告并继续）/ ignore（不校验） |
+| `on_signature_violation` | strict 模式下违反契约时跳转的备选节点路径 |
+
+**NodeType 枚举**：`NodeType::GENERATE_SUBGRAPH`（v3.1 引入，与 ForkNode/JoinNode 同代）
+
+#### 5A.2 实际调用链：`PlanExecuteLoop::execute_phase` 是核心消费者
+
+> **重要修正（Oracle session `ses_f9e927788ffeFwJ26EQHrm8YT7` 实证）**：PlanExecuteLoop 路径**不经过 GenerateSubgraphNode**。两者仅共享 `engine_->continue_with_generated_dsl()` 入口——PlanExecuteLoop 调用该方法解析 + append markdown（`plan_execute_loop.h:232-235` 明示「不实际 engine_->run()」），而 GenerateSubgraphNode 的 signature 校验只在运行时 NodeExecutor 路径执行（`node_executor.cpp:314-320`）。
+
+```
+PlanExecuteLoop::plan_phase()                           // ① LLM 生成 DSL markdown
+  ↓ LLM 返回 markdown 字符串
+PlanExecuteLoop::execute_phase(generated_dsl)           // ② 动态注入新子图
+  ↓ engine_->continue_with_generated_dsl(generated_dsl) // ③ DSLEngine 仅 parse + append（`engine.cpp:390-399` 注释「signature 校验暂略」）
+DSLEngine::continue_with_generated_dsl()                // ④ append 到 graph registry
+  ↓
+PlanExecuteLoop::verify_phase()                         // ⑤ LLM yes/no 验证
+
+// 注：GenerateSubgraphNode 的 signature_validation 仅在 NodeExecutor 运行时路径触发
+// （独立路径，与 PlanExecuteLoop 无关）
+```
+
+**关键代码实证**（`include/agenticdsl/pdk/agent_loops/plan_execute_loop.h:232-248`）：
+
+```cpp
+bool execute_phase(const std::string& generated_dsl, ...) {
+    try {
+        engine_->continue_with_generated_dsl(generated_dsl);  // ← 动态子图入口
+        result.final_context.working["meta"]["plan_appended"] = true;
+        return true;
+    } catch (const std::exception& e) {
+        result.final_context.working["meta"]["execute_error"] = e.what();
+        return false;
+    }
+}
+// 注：本实现仅调用 engine_->continue_with_generated_dsl (parse + append)，
+// 不实际 engine_->run(). 因为 LLM 生成的 DSL 通常是新子图 (例如 /plan_1)，
+// 与初始 /main 不冲突; 实际 run 由调用方在 verify 之后决定.
+```
+
+#### 5A.3 与 §5.1 的关系修正
+
+**之前**：§5.1 表格描述 "PlanExecute: execute phase 可调用其他 Agent 工具"
+
+**修正**：PlanExecuteLoop **不是通过工具调用其他 Agent**（这是 ReactLoop 的特征），而是通过 **LLM 实时生成子图**（这是 ReactLoop 完全没有的能力）。这是 PlanExecuteLoop 与 ReactLoop 的本质区分。
+
+#### 5A.4 与 §6B 自进化的衔接
+
+`GenerateSubgraphNode` + `engine_->continue_with_generated_dsl()` 入口是以下组件的共同物质基础：
+
+- **AFlow MCTS（ADR-0061-08, T20 ship 2026-08-28）**：通过 `Materializer::materialize_to_dsl()`（`workflow_materializer.h:19`）产出 DSL 文本 → `continue_with_generated_dsl`，**不经 GenerateSubgraphNode 节点运行时路径**
+- **GEPA Loop（ADR-0061-09, T19 ship 2026-08-27）**：反思候选通过 SkillCompiler + MutationGovernor 治理，**与 GenerateSubgraphNode 无直接耦合**
+- **SkillCompiler（ADR-0061-03, T17 ship 2026-08-27）**：SKILL.md → 纯函数式 CompiledSkill（**不构建 ParsedGraph**，V1 不走 GenerateSubgraphNode 路径）
+
+**唯一直接触发 GenerateSubgraphNode 节点运行时路径的场景**：DSL workflow 中显式声明 `type: generate_subgraph` 节点时，NodeExecutor::execute_generate_subgraph（`node_executor.cpp:314-320`）按 `signature_validation` 模式校验。
+
+详见 [§6B](#6b-自进化与协作模式的关系分析)。
+
 ---
 
 ## 六、DomainWorkerPool 并发原语
 
-**Sprint 3（ADR-0020 §2.2.1 ✅ Resolved）**：`DomainWorkerPool` 是 `ForkJoinLoop` + `PlanExecuteLoop` 并行分支的底层并发原语。
+**Sprint 3（ADR-0020 §2.2.1 ✅ Resolved）**：`DomainWorkerPool` 是 `ForkJoinLoop` + `PlanExecuteLoop` 并行分支的底层并发原语，也是 [§6A](#6a-cognitiveworker--domainworkerpool-协作运行时基底) 中 Domain 层的核心实现。
 
 ```cpp
 class DomainWorkerPool {
@@ -376,6 +464,268 @@ class DomainWorkerPool {
 - `ForkJoinLoop` 默认 4 worker，按 `num_threads` 参数注入
 - `PlanExecuteLoop` **无并行假设验证**：v1 实现为单次同步 `bool verify_phase(goal, result, llm, token)`（`include/agenticdsl/pdk/agent_loops/plan_execute_loop.h:254`），验证失败触发单条 Retry 路径，无 `DomainWorkerPool` 依赖（头文件 L17-21 include 列表可证）
 - Phase 6 PDK Composition 并行 fan-out（ADR-0051 spike 内 `parallel()` 编排为单一 agent 工具调用 + manual fan-out，非原生并行抽象）
+
+### 6A. CognitiveWorker ↔ DomainWorkerPool 协作（运行时基底）
+
+> **本节是协作的核心补充**：§六 仅把 `DomainWorkerPool` 当作"并发原语"描述，遗漏了 Agent 协作的真正运行时骨架 —— **双 worker 模型的协作模式**。本节依据 [ADR-0020](../adr/adr-0020-thread-model-isolation.md) §2.2.1 + §3.1 还原完整图景。
+
+#### 6A.1 双 Worker 模型对比表
+
+| 维度 | **CognitiveWorker**（思考层） | **DomainWorkerPool**（执行层） |
+|---|---|---|
+| **位置** | `include/agenticdsl/cognitive/cognitive_worker.h` | `include/agenticdsl/cognitive/domain_worker_pool.h` |
+| **ADR 定位** | ADR-0020 §3.1 | ADR-0020 §2.2.1 |
+| **Sprint** | Sprint 2 (2026-06-18) | Sprint 3 (2026-06-19) |
+| **状态机** | `idle / running / stopped`（atomic State） | `idle / running / stopped`（atomic State） |
+| **线程模型** | **单线程**消费任务队列 | **N 个 jthread worker**（默认 4，可配置）共享 FIFO（多消费者） |
+| **任务模型** | `(task_id, prompt)` 元组 | `DomainTask{domain, tool_name, arguments, output_key}` |
+| **每实例隔离** | **独占一个 DSLEngine**（per-agent 隔离） | 共享 N 个 worker + handler 注册表 |
+| **总线接入** | **构造时强制注入**（F7 顺序契约，立即 `set_interaction_bus` 到 engine） | **可选注入**（向后兼容：无 bus 版本仍可用） |
+| **可选评估器** | `set_evaluator(IEvaluator*)` —— 完成后发射 `evaluation.result` | `set_evaluator(IEvaluator*)` —— 同上 |
+| **事件主题** | `cognitive.task.{started,completed}` | `domain.task.{started,completed,failed}` |
+| **handler 签名** | 内置 `SimpleCognitiveOrchestrator::process(task_id, prompt)`（Sprint 2） | 注册 `nlohmann::json(const DomainTask&)` lambda |
+| **典型消费者** | v1 **零生产消费者**（grep 实证：src/ 仅 cognitive 模块自引用，examples/ 无使用；`ReactLoop` 直连 `SimpleCognitiveOrchestrator`，不经 CognitiveWorker） | `ForkJoinLoop` 分支执行（`fork_join_loop.h:45` num_threads=4）/ 自进化组件 v1 不经此路径（详见 §6B.3） |
+
+#### 6A.2 协作链：Thinking → Execution → Event 流
+
+```
+┌───────────────────────┐                                ┌──────────────────────────┐
+│  CognitiveWorker      │                                │  DomainWorkerPool        │
+│  (思考层)              │                                │  (执行层)                  │
+│                       │                                │                          │
+│  submit_task(         │                                │  submit_task(            │
+│    task_id, prompt)   │  ──── 单线程处理 ────▶         │    DomainTask{           │
+│  )                    │       ReactLoop.run()         │      "fs", "fs/read",   │
+│  ↓                    │       完成一次 ReAct           │      args, "result"     │
+│  engine_->run(ctx)    │                                │    }                     │
+│  ↓                    │                                │  )                       │
+│  emit("cognitive.     │                                │  ↓ worker 抢到           │
+│       task.started") │                                │  process_task()          │
+│  ↓                    │                                │  ↓                       │
+│  SimpleCognitive      │                                │  handler(args)           │
+│  Orchestrator::       │                                │  ↓                       │
+│  process()            │       (可选) subscribe          │  emit("domain.task.      │
+│  ↓                    │       "domain.task.*"          │       started")       │
+│  emit("cognitive.     │                                │  ↓                       │
+│       task.completed")│ ───────── bus ────────────▶   │  ...handler 异常隔离...  │
+│                       │                                │  ↓                       │
+│                       │                                │  emit("domain.task.      │
+│                       │                                │       completed/failed")│
+└───────────────────────┘                                └──────────────────────────┘
+```
+
+**协作的三种触发模式**（实证 `cognitive_worker.cpp` + `domain_worker_pool.cpp`）：
+
+1. **直接 submit 模式**：调用方自行决定何时向 DomainWorkerPool 提交 task（最常见）
+2. **事件订阅模式**：CognitiveWorker 通过 `bus_->subscribe("domain.task.*", ...)` 被动接收 DomainWorkerPool 事件（理论可行，代码未见显式接线）
+3. **混合模式**：`PlanExecuteLoop::execute_phase` 触发 DSL workflow 执行，DSL workflow 中的 `tool_call` 节点内部可调用 DomainWorkerPool
+
+#### 6A.3 IInteractionBus 共享的角色
+
+**F7 顺序契约**（`cognitive_worker.cpp:75-87`）：
+```cpp
+CognitiveWorker::CognitiveWorker(unique_ptr<DSLEngine> engine,
+                                 shared_ptr<IInteractionBus> bus)
+    : engine_(std::move(engine)), bus_(std::move(bus)) {
+    // ...
+    engine_->set_interaction_bus(bus_);  // 构造时立即注入
+}
+```
+
+**含义**：
+- CognitiveWorker 持有的 DSLEngine 与 CognitiveWorker 共享同一 `IInteractionBus`
+- 该 bus 与 DomainWorkerPool 共享 → **三层共享同一事件流**：
+  - CognitiveWorker 发射 `cognitive.task.*`
+  - DomainWorkerPool 发射 `domain.task.*`
+  - DSLEngine 发射 `dsl.call.*` / `tool.execution.*`
+- 任一消费者通过 `subscribe` 即可观察全局事件（审计、监控、Replay 场景）
+
+#### 6A.4 与 6 协作模式的衔接
+
+| 协作模式 | 与双 Worker 模型的衔接 |
+|---|---|
+| ① `call` | 调用方直接 `composition->call()` 同步阻塞 —— v1 未走 CognitiveWorker 路径 |
+| ② `call_async` | 通过 bus 实现异步回调（理论可由 CognitiveWorker 持有回调） |
+| ③ `emit` | DomainWorkerPool `emit("domain.task.*")` 即为 ③ emit 模式实例 |
+| ④ `delegate` | CognitiveWorker 持有子 CognitiveWorker（per-agent DSLEngine 链）即为 ④ delegate 实例 |
+| ⑤ `parallel` | ForkJoinLoop 默认 4 worker → 即为 ⑤ parallel + DomainWorkerPool 实例 |
+| ⑥ `open_stream` | Phase 2，未实现 |
+
+**核心洞察**：§2 的 6 协作模式是 **API 抽象**，而本节的双 Worker 模型是 **运行时实现**。两者正交：API 调用通过运行时基底落地，运行时基底暴露 API 给上层。
+
+#### 6A.5 物理 vs 逻辑隔离（ADR-0020 §2.2）
+
+> **修正（Oracle session `ses_f9e927788ffeFwJ26EQHrm8YT7` 实证）**：物理隔离相关 ADR 是 **ADR-0055/0066**（SkillInterpreter），非 ADR-0056（wasm 运行时）；且 SkillInterpreter V1 已 ship posix_spawn + IPC + seccomp(BPF)（Sprint 22），非 Phase 2+。
+
+| 隔离维度 | v1（ADR-0020 §2.2.1 + §3.1 + ADR-0066 V1 ship） | Phase 2+（容器级） |
+|---|---|---|
+| **进程边界** | 同一进程（共享地址空间） + SkillInterpreter 子进程例外 | 独立容器（K8s / Docker per agent） |
+| **线程模型** | CognitiveWorker 单线程 `std::thread` + DomainWorkerPool `std::jthread` × N | 进程 per agent |
+| **故障隔离** | `try-catch + catch(...)` 异常隔离 + event 失败事件 | seccomp(BPF)（已 ship via SkillInterpreter）+ namespace + cgroup |
+| **资源隔离** | `shared_mutex` 保护 handler 注册表 | cgroup 资源限制 |
+| **当前实证** | ADR-0051 G1↔G3 spike（同进程 jthread 协作） + SkillInterpreter（Sprint 22，posix_spawn + seccomp + 4 host functions） | K8s/Docker per-agent 编排（待 Phase 6+ 触发） |
+
+**结论**：v1 是**逻辑隔离**（共享进程 + jthread 隔离），**物理隔离已部分 ship**（SkillInterpreter 子进程边界 + seccomp）。完整容器级物理隔离待 Phase 6+ 触发。
+
+#### 6A.6 SkillInterpreter：唯一已 ship 的物理隔离组件（ADR-0066）
+
+> **本节依据 Oracle 评审建议补入**：SkillInterpreter 是全库**唯一已 ship**的物理隔离实现（posix_spawn + IPC + seccomp），但未在任何章节中充分描述。
+
+**位置**：`include/agenticdsl/skill/skill_interpreter.h` + `src/modules/skill_interpreter/skill_interpreter.cpp`
+
+**关键设计**（ADR-0055/0066）：
+- **进程隔离**：`posix_spawn` + `execve(/proc/self/exe, --skill-child)` 启动子进程执行 SKILL.md
+- **IPC**：pipe + BusEvent 信封序列化
+- **沙箱**：`seccomp(BPF)` 限制 syscall（实际已 ship，非 Phase 2+）
+- **4 host functions**（子进程通过 IPC 调用）：
+  1. `call_tool(name, args)`
+  2. `emit_event(topic, payload)`
+  3. `consume_budget(amount)`
+  4. `llm_generate(prompt)`
+
+**与 §6A 双 Worker 模型的关系**：
+- SkillInterpreter 是**子进程粒度**的隔离（vs CognitiveWorker/DomainWorkerPool 的**线程粒度**）
+- SkillInterpreter 子进程内**仍然使用** CognitiveWorker/DomainWorkerPool 编排业务逻辑（隔离层级在外）
+- 这是 ADR-0020 §2.2 「v1 = 逻辑隔离」**唯一例外**——SkillInterpreter 提供**进程级隔离**
+
+**与 §6B 自进化的关系**：
+- SkillCompiler 编译的 SKILL.md 通过 SkillInterpreter 执行（即 Phase 3 编译 → Phase 4 执行的真实路径）
+- 自进化组件可选择将生成的 Skill **通过 SkillInterpreter 隔离执行**以避免污染主进程
+
+### 6B. 自进化与协作模式的关系分析
+
+> **本节是协作的深度补充**：§十一仅列出 ADR-0061 子项的 ship 状态，**未揭示它们与前 6 章基础协作模式的双向耦合**。本节基于 [ADR-0061-03](../adr/skill/adr-0061-03-skill-compiler.md) / [0061-08](../adr/skill/adr-0061-08-aflow-search.md) / [0061-09](../adr/skill/adr-0061-09-gepa-loop.md) / [0061-13](../adr/skill/adr-0061-13-distillation-output-format.md) 状态行 + 实证代码还原完整图景。
+
+#### 6B.1 自进化管线的四阶段（ADR-0061 + ADR-0086）
+
+```
+┌────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│ Phase 1    │    │ Phase 2      │    │ Phase 3      │    │ Phase 4      │
+│ SKILL.md   │ →  │ DSL Workflow │ →  │ C++ Compile  │ →  │ Wasm Binary  │
+│ (Anthropic │    │ (Generate-   │    │ (Skill-      │    │ (wasi-sdk,   │
+│ Skills 对齐)│    │ Subgraph 生成)│   │ Compiler V1) │    │ ADR-0061-05) │
+│ ADR-0061-01│    │ ADR-0061-06+ │    │ ADR-0061-03  │    │ ADR-0061-11  │
+└────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
+       ↑                  ↑                  ↑
+       │ 自检              │ MCTS 搜索        │ 蒸馏
+       │ ADR-0061-02       │ ADR-0061-08      │ ADR-0061-13
+       │ (T14 ship)        │ (T20 ship)       │ (Phase 0-2 ship)
+       │                   │
+       └───────────────────┴── 反思 (GEPA, T19 ship, ADR-0061-09)
+```
+
+**关键洞察**：4 个阶段不是单向流水线，是**自反馈环**——Phase 2 的 MCTS 搜索结果会生成新的 DSL 候选，回流到 Phase 1 SKILL.md；Phase 3 编译后的 C++ 通过 `SkillCompiler` 重新生成 CompiledSkill，反哺 Phase 2 DSL 模板。
+
+#### 6B.2 自进化组件与基础协作模式的双向耦合矩阵
+
+> **本表区分「ADR-0060 协作模式」与「运行时宿主」两列的真实状态**：v1 自进化组件**全部为同步单进程实现**，**未通过 ⑤ parallel 多 worker 编排**（详见 §6B.3 注记）。
+
+| 自进化组件 | ADR | 调用方协作模式 | 内部协作模式 | 运行时宿主（v1 实证） |
+|---|---|---|---|---|
+| **SkillCompiler** | 0061-03 | 外部程序调用 `compile(skill_path)` 走 ① call | emit `skill.compilation.{started,succeeded,failed}`（ADR-0068 v1.2.2）| 纯函数式同步调用（`skill_compiler.h:3` "V1 pure functional"）；**无 CognitiveWorker**（grep 实证 src/ 中 CognitiveWorker 零引用） |
+| **MCTSWorkflowSearch** | 0061-08 | 外部程序调用 `search()` 走 ① call | emit `mcts.search.{started,iteration,completed,failed}`（ADR-0068 v1.5）| **同步单线程** `search()`（`mcts_workflow_search.h:186`）；**零 CognitiveWorker 引用 / 零 DomainWorkerPool 引用**（grep 实证） |
+| **GEPALoop** | 0061-09 | 外部程序调用 `reflection_loop()` 走 ① call | emit `gepa.reflection.{started,completed,failed}` + `gepa.commit.{proposed,committed,denied}`（**精确 6 主题**，ADR-0068 L225-230）| **同步单 agent** 反思循环（`gepa_loop.h:24` "single-agent sync reflection loop"）；**零 CognitiveWorker / DomainWorkerPool 引用** |
+| **MutationGovernor** | 0084 | 接受 `mutation.proposed` 事件 → 走 ④ commit 链路 | emit `mutation.{proposed,committed,reverted,denied}`（ADR-0068 v1.2） | 与总线共享 bus（独立模块，非 CognitiveWorker） |
+| **IEvaluator** | 0083 | 注入 CognitiveWorker / DomainWorkerPool → 任务完成后评估 | emit `evaluation.result`（ADR-0068 v1.2） | 通过 `set_evaluator()` 注入 worker（§6A 已 ship），自进化组件通过 `evaluator_->evaluate()` 调用 |
+| **SkillRegistry** | 0061-03 §决策 4 | 走 ③ emit/subscribe 注册/重载 | （V1 未实施，注册触发器 deferred V2） | 外部调用方编排 |
+| **Trajectory IR** | 0061-06 v1.1 | 走 ③ emit `dsl.call.*` 捕获轨迹 → 独立序列化 | `trajectory.*` 主题（ADR-0068 deferred，待 v1.1 完整注册） | DSLEngine 内部捕获 + AppendOnlyEventLog（ADR-0080） |
+| **DistillationWriter** | 0061-13 | 走 ③ emit 触发 capture → 写 JSONL | emit `event_log.capture_mode_downgrade`（ADR-0068 v1.7） | AppendOnlyEventLog 旁路；**CaptureMode 三态**：Online/Training/Off + Training fail-open（ADR-0080 v1.2 D10 解耦） |
+| **BehavioralRegression** | 0061-02 (T14) | 外部调用 `run_regression()` 走 ① call | （V1 简化为指纹比对，无独立事件主题）| **自由函数库**（`compute_fingerprint` + `hotelling_t2_test`，`tests/test_mcts_workflow_search.cpp` 调用）；无 worker 编排 |
+
+#### 6B.3 自进化与 §6A 双 Worker 模型的关系
+
+> **关键发现（2026-09-02 Oracle session `ses_f9e927788ffeFwJ26EQHrm8YT7` 实证）**：v1 自进化组件**未通过 CognitiveWorker / DomainWorkerPool 编排**——它们都是同步单线程实现，注入 IEvaluator / IMutationGovernor / IInteractionBus 即可。**§6A 双 Worker 模型与 §6B 自进化组件是正交关系**，不是「自进化子运行在子上子子」。
+
+| 自进化阶段 | 与 §6A 双 Worker 的实际关系 |
+|---|---|
+| **SkillCompiler.compile()** | 纯函数同步调用，**不持有** CognitiveWorker（`skill_compiler.h:3` 纯函数式，无 runtime）；5 轴 TemplateEngine **deferred V2**（[ADR-0061-03 §实施 L97](../adr/skill/adr-0061-03-skill-compiler.md)） |
+| **MCTSWorkflowSearch.search()** | 同步单线程编排（`mcts_workflow_search.h:186`）；通过 `evaluator_->evaluate()` + `governor_->commit()` 接入自进化基础设施，**无 worker 多实例** |
+| **GEPALoop.reflection_loop()** | 同步单 agent 反思（`gepa_loop.h:24`）；同 MCTS 模式 |
+| **MutationGovernor.commit()** | 总线监听 `mutation.proposed` → 走评估门 → emit `mutation.committed/reverted/denied`；与 CognitiveWorker 共享 bus 但不持有引用 |
+| **BehavioralRegression.run()** | 自由函数库；外部调用方可选择串行或 `std::async` 并行（**未与 §6A worker 集成**） |
+
+**关键洞察（修正）**：自进化组件通过 `IEvaluator` + `IMutationGovernor` + `IInteractionBus` **3 个独立接入点**（非 §6A worker 宿主）实现「评估门 + 治理门 + 事件审计」三道关卡。**§6A worker 与 §6B 自进化是正交架构层**——前者承载业务 Agent 运行时，后者承载 Agent 自身的演进治理。两者通过总线共享事件流，通过 IEvaluator 共享评估语义，但**不共享线程模型**。
+
+#### 6B.4 自进化的实施现状
+
+**已 ship 的组件**（截至 2026-08-29，与 active-status.md / README 一致）：
+
+| ADR | 组件 | Ship 日期 | 实证 | 文档位置 |
+|---|---|---|---|---|
+| 0061-02 | BehavioralRegression Suite | T14, 2026-08-25 | 6 cases / 13 assertions PASS | §11.6 ✅ |
+| 0061-03 | SkillCompiler V1 | T17, 2026-08-27 | 15 cases / 61 assertions PASS | §11.4 ✅ |
+| 0061-06 v1.1 | Trajectory IR | T15, 2026-08-27 | 9 cases / 55 assertions PASS | §11.3 ✅ |
+| 0061-08 | MCTSWorkflowSearch V1 | T20, 2026-08-28 | 17 cases / 65 assertions PASS | §11.1 ✅ |
+| 0061-09 | GEPALoop V1 | T19, 2026-08-27 | 14 cases（per ADR-0071 L696） | §11.2 ✅ |
+| 0061-13 | DistillationWriter V1 | Phase 0-2, 2026-08-29 | 21 cases PASS | §11.5 ✅ |
+
+所有 ADR-0061 ship 状态均在 §11.1-§11.6 覆盖；本轮同步增补 0061-02/0061-13 已消除先前文档脱钩。
+
+#### 6B.5 自进化的关键不变量（跨组件共享）
+
+1. **评估门不可绕过**：所有 mutation 在 commit 前必须通过 IEvaluator + BehavioralRegression Gate（ADR-0061-02 + ADR-0083 + ADR-0084）
+2. **事件审计完整**：所有自进化操作产生 ADR-0068 注册主题事件（emission-only + mutation 终态）
+3. **fail-closed 默认**：GEPALoop / MutationGovernor / SkillCompiler 失败时全部 fail-closed（无 silent skip）
+4. **人类可中断**：append-only event log + capture-mode 三态（ADR-0080 v1.2 D10 解耦：Online/Training/Off + Training fail-open 三重保护）保证所有自进化可被人类回滚
+5. **正交于 §6A 运行时**：自进化组件不自建线程模型，通过 IEvaluator + IMutationGovernor + IInteractionBus 3 个独立接入点与 CognitiveWorker/DomainWorkerPool 共享事件流与评估语义（详见 §6B.3）
+
+#### 6B.6 自进化的未来轴（ADR-0061-08-V1.1 Axis6 cognitive_domain composition chain）
+
+**Axis6 = 第 6 维度**（`ADR-0061-08-V1.1` 第 6 维度的 cognitive_domain composition chain）：
+- 前 5 轴已 ship：Axis1Template（工作流结构）/ Axis2Param（LLM 参数）/ Axis3Tool（工具选择）/ Axis4Control（控制流）/ Axis5Error（错误处理）——MCTS 搜索的 5 维度空间
+- Axis6 新增"认知域组合链"作为第 6 维度（节点级属性）
+- `CognitiveDomainChainConfig` 配置 + 单主体 commit 路径
+- 与 ADR-0068 v1.8 归口 + W4 双发射语义分离（governance `mutation.*` + axis6 专属 `axis6.*`）
+
+**含义**：未来自进化不仅在「模板实例化」层面搜索，还在「认知域组合顺序」层面搜索。即 MCTS 不只选工作流结构，还选 thinking 阶段的认知域组合。
+
+---
+
+### 6C. Session 层级与协作（运行时第三维度）
+
+> **本节简要补充**：§2.1 §2.2 多次引用 `SubtaskSession + ExecutionSession`，但**未说明 Session 层级在协作中的精确角色**。本节依据 [ADR-0033](../adr/adr-0033-session-hierarchy.md) + [ADR-0079](../adr/adr-0079-unified-session-4scope.md) v1.1 还原。
+
+#### 6C.1 三层 Session 模型（ADR-0033）
+
+| 层 | 抽象 | 角色 | 协作中的位置 |
+|---|---|---|---|
+| **UserSession** | 顶层用户会话 | 持有 `deque<TaskSession>` + `vector<ToolResult> messages` + `current_task_session_` | 跨 TaskSession 复用 |
+| **TaskSession** | 任务会话 | 持有 `deque<SubtaskSession>` + `shared_ptr<IExecutionPolicy>` + `failure_count_` | 失败重试：3 次 retry 后分裂 NewSession |
+| **SubtaskSession** | 原子执行单元 | POD-like，最小 Fork/Join 单位 | Fork/JoinLoop 分支 / ④ delegate 子 Agent |
+
+**容器选择 `std::deque`**（非 vector）：保证地址稳定性，避免 CognitiveWorker 持有的 DSLEngine 引用 SubtaskSession 时被 vector reallocation 失效（Metis F1/F2）。
+
+**失败重试模型**（Oracle R6）：
+- `failure_count_` 仅对**可重试错误**递增（`Retry / Timeout / ResourceExhausted`）
+- `<3` → KeepSession（同 TaskSession 重试）
+- `≥3` → NewSession（TaskSession 分裂，避免污染上下文）
+
+#### 6C.2 4-Scope 模型（ADR-0079 v1.1）— 与三层并存的层级
+
+`ADR-0079` v1.1 引入 `Conversation/Attempt/Step/Execution` 4-Scope + `ConvergenceEntry`，与 ADR-0033 三层**正交叠加**：
+- **Conversation 范围**：跨多个 UserSession（如同一用户多日协作）
+- **Attempt 范围**：单次 UserSession 内的多次尝试
+- **Step 范围**：单次 Attempt 内的多次 step
+- **Execution 范围**：单 step 内的多次 tool/LLM 调用
+- **ConvergenceEntry**：4-Scope 收敛点（用于跨 scope 信息共享）
+
+#### 6C.3 Session 与协作模式衔接
+
+| 协作模式 | Session 衔接 |
+|---|---|
+| ① `call` | 调用方 TaskSession 持有结果 `ToolResult` |
+| ② `call_async` | 调用方 TaskSession 持有 future + callback；callback 写入 SubtaskSession |
+| ③ `emit` | 事件可携带 `session_id` + `node_id` + `branch_id` + `timestamp`（ADR-0068 `session.persisted` 注册载荷） |
+| ④ `delegate` | 父 TaskSession 创建子 SubtaskSession（独立生命周期） |
+| ⑤ `parallel` | Fork/Join 创建 N 个 SubtaskSession 并行 → Join 合并 |
+| ⑥ `open_stream` | Session 持有流句柄（Phase 2） |
+
+#### 6C.4 Session 与 §6A 双 Worker 衔接
+
+- CognitiveWorker 持有 DSLEngine → DSLEngine 持有当前 TaskSession（per-agent isolation）
+- DomainWorkerPool worker 处理 `DomainTask.output_key` → 写入 result.data[output_key]（不直接持有 Session 引用）
+- Session 持久化走 `SessionManager`（独立组件，详见 [ADR-0079](../adr/adr-0079-unified-session-4scope.md) JSONL 树存储）
+- 事件审计走 [ADR-0080](../adr/adr-0080-append-only-event-log.md) `AppendOnlyEventLog`（与 SessionManager 正交：前者审计，后者持久化）
 
 ---
 
@@ -560,11 +910,11 @@ namespace hydraforge::pdk::cross_cutting_pattern {
 
 ## 十一、进化期协作（ADR-0061 Skill 子项）
 
-Agent 协作不仅是运行时，还有**进化期**协作。
+Agent 协作不仅是运行时，还有**进化期**协作。本章**仅列出 ship 状态**；与基础协作模式的双向耦合关系分析详见 [§6B](#6b-自进化与协作模式的关系分析)，运行时宿主（思考/执行层）映射详见 [§6B.3](#6b3-自进化与双-worker-模型的精确对应)。
 
 ### 11.1 MCTS Workflow Search（ADR-0061-08 + V1.1 Axis6）
 
-- `MCTSWorkflowSearch` (T20 ship, 2026-08-28)
+- `MCTSWorkflowSearch` (T20 ship, 2026-08-28, 17 cases / 65 assertions PASS)
 - 基于 Monte Carlo Tree Search 搜索工作流空间
 - Axis6 = 第 6 维度（cognitive_domain composition chain，节点级属性）
 - commit/revert 事件语义统一（[ADR-0061-08-V1.1 决策 6](../adr/skill/adr-0061-08-v1-1-amendment-axis6.md)）+ W4 双发射语义分离（governance 层 `mutation.*` + axis6 专属 `axis6.*`）
@@ -572,7 +922,7 @@ Agent 协作不仅是运行时，还有**进化期**协作。
 
 ### 11.2 GEPA Loop（ADR-0061-09）
 
-- `GEPALoop` (T19 ship, 2026-08-27)
+- `GEPALoop` (T19 ship, 2026-08-27, 14 cases PASS)
 - 反思循环：agent 自反思 → 改进策略 → 重试
 - 类比 GEPA（Genetic-Pareto）的多目标反思
 
@@ -580,12 +930,24 @@ Agent 协作不仅是运行时，还有**进化期**协作。
 
 - 独立的轨迹序列化视图
 - 不改 `ParsedGraph`（v1 标题耦合修正）
-- T15 ship 2026-08-27
+- T15 ship 2026-08-27（9 cases / 55 assertions PASS）
 
 ### 11.4 Skill Compiler（ADR-0061-03）
 
 - `SkillCompiler` 实施
 - T17 V1 ship 2026-08-27（15 cases / 61 assertions PASS）
+
+### 11.5 Distillation Output Format（ADR-0061-13）
+
+- `IDistillationWriter` + `DistillationRecord` + trajectory/policy/meta 三文件分离
+- Phase 0-2 ship 2026-08-29（21 cases PASS, OpenSpec `capture-mode-and-distillation-writer-v1` archived）
+- v1.7 事件 `event_log.capture_mode_downgrade` 注册于 ADR-0068 Appendix A
+
+### 11.6 Behavioral Regression Suite（ADR-0061-02）
+
+- AgentAssay-style 行为回归套件
+- T14 ship 2026-08-25（6 cases / 13 assertions PASS）
+- v1 简化为指纹比对，与 IEvaluator V2（ADR-0083）协同
 
 ---
 
@@ -666,18 +1028,22 @@ registry.parallel("code_review", [t1, t2, t3]);
 
 ## 十四、实施优先级建议
 
-| 优先级 | 模式 | 状态 | 适用场景 |
+| 优先级 | 模式 / 组件 | 状态 | 适用场景 |
 |---|---|---|---|
 | ⭐⭐⭐ | `call` + `emit` + `parallel` | v1 ✅（`parallel` 由 `ForkJoinLoop` + `DomainWorkerPool` 组合承担，非统一 `parallel()` 方法） | 几乎所有场景 |
 | ⭐⭐⭐ | 3 Agent Loop（React/PlanExec/ForkJoin） | ✅ Sprint 20 ship | 单 Agent 任务 |
+| ⭐⭐⭐ | CognitiveWorker ↔ DomainWorkerPool 双 worker 模型（§6A） | ✅ Sprint 2-3 ship | 运行时基底 |
 | ⭐⭐ | `call_async` | v1 ✅ | 长任务、防阻塞 |
 | ⭐⭐ | Agent Hook（ADR-0081） | ✅ 骨架（V1 ship；loop 集成推迟 Sprint 24+） | 跨 Loop 拦截、治理 |
 | ⭐⭐ | 4 通道 Plugin 通信（ADR-0046） | 🔍 提案 | 多 Plugin 协作 |
+| ⭐⭐ | GenerateSubgraphNode + PlanExecute 动态子图生成（§5A） | ✅ v3.1 ship | LLM 驱动协作 |
 | ⭐ | `delegate` | v1 ✅（仅 3 参数 `IAgentComposition::delegate`，无 monitor callback） | 父子任务、需要取消 |
 | ⭐ | Cross-Cutting Pattern（ADR-0085） | ✅ V1 ship 2026-08-28（T26，18 cases） | AOP 风格横切 |
-| ⭐ | MCTS / GEPA（ADR-0061） | ✅ V1 ship T15/T17/T19/T20 | Agent 进化期协作 |
+| ⭐ | MCTS / GEPA / SkillCompiler / TrajectoryIR / Distillation（ADR-0061） | ✅ V1 ship T14/T15/T17/T19/T20/Phase 0-2 | Agent 进化期协作 |
+| ⭐ | SkillCompiler 5 轴 TemplateEngine | 🔍 deferred V2（[ADR-0061-03 §实施 L97](../adr/skill/adr-0061-03-skill-compiler.md)；T17 V1 ship 仅含纯函数式编译 + 6 字段 metadata + IEvaluator 质量门 + G11 emit-only） | SKILL → DSL 编译 |
 | 🔮 | `open_stream` | Phase 2（`IAgentComposition::stream` 抛 `logic_error`） | LLM token 流 |
 | 🔮 | DECLARE_SERVICE | Phase 6 v2+，尚无独立 ADR 立项 | 跨进程服务化 |
+| 🔮 | Axis6 cognitive_domain composition chain | ADR-0061-08-V1.1 ✅；实施载体 v2.1 active | 第 6 维自进化 |
 
 ---
 
@@ -737,6 +1103,8 @@ registry.parallel("code_review", [t1, t2, t3]);
 | 2026-09-02 | 初始版本，基于 ADR-0060/0046/0045/0051/0081/0085/0086/0061/0071 综合 | |
 | 2026-09-02 | 一致性修正：5 🚨 严重错误 + 7 ⚠️ 中度问题 + 4 💡 轻量建议（详见 Oracle session `ses_f9f0033d5ffeBb7jHMzWPnhrdq`）。关键变更：① §2.1 区分 ADR 目标 API vs v1 实际 ship API（IAgentComposition 4 方法）；② §2.3 标注 4 路由类为 Phase 2 愿景；③ §8.2 删除 `HookErrorPolicy` 虚构 `LogAndContinue`；④ §六 删除 `PlanExecuteLoop verify_phase` 并行虚构；⑤ §九 删除 `DEFINE_CROSSCUTTING` 宏 / `CrossCuttingPatternType` 枚举虚构，补 V1 ship 2026-08-28（T26, 18 cases）注记；⑥ §十二 修正 ADR-0071 派生清单（0072-0077，0078 非派生）；⑦ §十四/§7.5 修复 `DECLARE_SERVICE/ADR-0052` 过期引用；⑧ §2.4 区分 ADR-0060 决策 3 逻辑字段 vs ADR-0068 Appendix A 注册载荷；⑨ §八/§十四 补 Hook V1 骨架 + loop 集成推迟披露；⑩ §十五 补 ADR-0083/ADR-0061-13 索引 | Oracle session `ses_f9f0033d5ffeBb7jHMzWPnhrdq` + 实测源文件 `iagent_composition.h` / `iagent_hook_registry.h` / `plan_execute_loop.h` |
 | 2026-09-02 | 二轮审查补漏（Oracle session `ses_f9ebfec9affeg7TSuR90WKBwjr`，评级 B）：① §2.2 修正 `IAgentRegistry` 表述 → v1 实际依赖 `TestDoubleAgentRegistry`（P8 test-double），ADR-0082 接线为后续工作；② §13.3 加 ⚠️ v1 限定标注，与 §2.1 严谨性对齐 | Oracle session `ses_f9ebfec9affeg7TSuR90WKBwjr` + `include/agenticdsl/contract/test_double_registry.h` |
+| 2026-09-02 | **三章新增 + 标题升级**（用户请求：A+A 实施补充 + 独立分析）：① 文档标题升级 `Agent 间协作模式架构指南` → `Agent 协作与运行时架构指南`，范围扩展到运行时基底 + 自进化；② **新增 §5A 动态子图生成**（`GenerateSubgraphNode` 定义 + `PlanExecuteLoop::execute_phase` 调用链 + 与 §5.1 关系修正 + 与 §6B 自进化衔接）；③ **新增 §6A CognitiveWorker ↔ DomainWorkerPool 协作**（双 Worker 对比表 + thinking→execution 协作链 + IInteractionBus F7 顺序契约 + 与 6 协作模式衔接 + 物理/逻辑隔离对比）；④ **新增 §6B 自进化与协作模式的关系分析**（4 阶段管线 + 9 组件 × 3 协作模式耦合矩阵 + 双 Worker 模型精确对应 + ship 现状与文档脱钩 + 5 条关键不变量 + Axis6 未来轴）；⑤ **新增 §6C Session 层级与协作**（ADR-0033 三层 + ADR-0079 4-Scope + 与协作模式衔接 + 与 §6A 双 Worker 衔接）；⑥ §十一 增补 ADR-0061-02/0061-13 ship 状态 + 11.5/11.6 新增子节；⑦ §十四 优先级表新增 4 行（双 Worker、GenerateSubgraph、SkillCompiler 5 轴、Axis6）；⑧ §六与 §6A 互相锚定链接 | 独立分析依据：`src/core/types/node.h:198-207` + `cognitive_worker.cpp:75-87` + `domain_worker_pool.cpp` + `adr-0061-02/03/06/08/09/13` + `adr-0033/0079` 状态行 |
+| 2026-09-02 | **三轮审查修正**（Oracle session `ses_f9e927788ffeFwJ26EQHrm8YT7`，评级 C → 修订后 B）：**🚨 严重（4 项）**：① §6B.2 矩阵 3 行虚构耦合——MCTS/GEPA/BehavioralRegression 实际均为同步单线程（`mcts_workflow_search.h:186` / `gepa_loop.h:24` / `compute_fingerprint` 自由函数库），不是「⑤ parallel + 双 Worker」编排；③ §5A.2 调用链叙事错误——PlanExecuteLoop 路径**不经过** GenerateSubgraphNode（两者仅共享 `engine_->continue_with_generated_dsl` 入口）；④ §6B.4 vs §11.5/11.6 自相矛盾——脱钩列改为「§11.5/§11.6 ✅」，删除原建议句；⑥ §十四 SkillCompiler 5 轴标为 deferred V2（[ADR-0061-03 L97](../adr/skill/adr-0061-03-skill-compiler.md)），非 T17 ship 内容；⑦ §6A.1 ReactLoop 不走 CognitiveWorker 实证披露；⑧ §6A.5 ADR-0056 误标——物理隔离属 ADR-0055/0066，SkillInterpreter V1 已 ship seccomp；⑨ §6C.4 SessionManager 是 ADR-0079 域，非 ADR-0080；⑩ §6B.6 五轴名称按 `ADR-0061-08-V1.1` 实证改为 Axis1Template/Axis2Param/Axis3Tool/Axis4Control/Axis5Error；⑪ **§6A.6 SkillInterpreter 物理隔离专拆**（采纳 Oracle 建议）；⑫ §一 核心图同步新增「动态子图 / 双 Worker 运行时基底 / Session 三层」3 行 | Oracle session `ses_f9e927788ffeFwJ26EQHrm8YT7` + `src/modules/cognitive/{mcts_workflow_search,gepa_loop}.{h,cpp}` + `include/agenticdsl/skill/skill_interpreter.h` + ADR-0061-03 §实施 L97 |
 
 > **维护责任**：架构组（Sprint 24 pre-launch governance）
 > **审查频率**：每 Sprint 启动时检查 ADR 状态变化（Proposed → Approved → Archived）
