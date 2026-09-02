@@ -1,0 +1,53 @@
+# Control Plane 启动条件评估决议文档 (v1)
+
+> **Date**: YYYY-MM-DD
+> **ADR**: [ADR-0076 — DSL Engine as MCP Server 控制面](../adr/adr-0076-dsl-engine-mcp-server.md) §启动条件 + ADR-0079 统一会话模型
+> **评估脚本**: [`scripts/control-plane-eval.py`](../../scripts/control-plane-eval.py)
+> **Author**: Solo Dev (Single-Developer Mode)
+> **Status**: ⏳ 决议状态 (RecommendStart / DescopeOrContinue / Conditional / Abort)
+
+---
+
+## §6 项条件状态 (含 file:line 引用)
+
+| 条件 | 状态 | 证据 (file:line) | 说明 |
+|------|:----:|------------------|------|
+| C1 AgentForge ≥2 agent | `<PASS/FAIL/PARTIAL/ABORT>` | `<file:line>` | 当前 `<N>` 个完整 agent |
+| C2 Solo Dev 容量 ≥2人/≥80h双周 | `<PASS/FAIL/PARTIAL/ABORT>` | `<file:line>` | 当前 `<N>` 人 `<H>h` |
+| C3 ADR-0068 附录 A amendment ship | `<PASS/FAIL>` | `<file:line>` | 2026-08-13 archived |
+| C4 ADR-0073 完整 ship D2+D3 | `<PASS/FAIL/PARTIAL>` | `<file:line>` | schema-complete change |
+| C5 Evidence Gate PASS | `<PASS/FAIL>` | `<file:line>` | 决议状态引用 |
+| C6 ADR-0075 EnvBackend ship | `<PASS/FAIL/PARTIAL>` | `<file:line>` | Local+Docker 2026-08-18 |
+
+> **运行命令**: `python3 scripts/control-plane-eval.py --dry-run`（自动检测）；人工覆盖用 `--override C2=true`
+
+---
+
+## §决策表 (Decision Table)
+
+**决策**: `<RecommendStart / DescopeOrContinue / Conditional / Abort>`
+
+| 分支 | 条件 | 结论 |
+|------|------|------|
+| 全 PASS | 6 项全 ✅ | `RecommendStart` — 建议立即启动 Phase 7a |
+| 阻塞 FAIL | C1/C2/C5/C6 任一 FAIL | `DescopeOrContinue` — 继续前置 ship |
+| 条件 3 ✅ + 其他 🟡 | C3 PASS + 其余非阻塞未全 PASS | `Conditional` — ship 剩余前置再决议 |
+| 数据缺失 | 任一条件无法判定 | `Abort` — 需人工 --override |
+
+---
+
+## §后续路径 (Subsequent Paths)
+
+| 路径 | 说明 | 估时 |
+|------|------|------|
+| A: 继续前置 ship | 补足 FAIL 条件（C5 需真实 baseline PASS；C1/C2 需容量/agent 增长） | `<估时>` |
+| B: descope | 拆分 Phase 7a/7b/7c 降级启动 | `<估时>` |
+| C: 暂缓 | 维持 ⏸ 顺延，待启动条件满足 | — |
+
+---
+
+## §决议 (Decision)
+
+**single-choice**: 启动 Phase 7a / descope / 继续前置 ship
+
+> 本决议需 human review 签字（per design D-5 human review only，脚本输出仅为建议）。
