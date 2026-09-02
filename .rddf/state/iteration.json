@@ -299,7 +299,7 @@
     {
       "name": "context-compactor",
       "status": "archived",
-      "phase": "wave-4 (re-activated 2026-08-12\uff0c\u539f wave-2 \u5ef6\u8fdf\u81f3\u524d\u7f6e\u6761\u4ef6 ship)",
+      "phase": "wave-4 (re-activated 2026-08-12，原 wave-2 延迟至前置条件 ship)",
       "category": "core-impl",
       "added_at": "2026-08-12T23:26:25+0800",
       "filled_at": null,
@@ -348,21 +348,35 @@
     },
     {
       "name": "from-roadmap-phase-6c-evidence-gate",
-      "status": "proposed",
+      "status": "archived",
       "phase": "phase-6c",
       "category": "evidence-gate",
       "added_at": "2026-08-17T23:10:26+0800",
       "proposed_at": "2026-08-17T17:15:27.387237+00:00",
-      "fill_completed": true
+      "fill_completed": true,
+      "archived_at": "2026-09-01T21:52:56+00:00",
+      "tasks_done": 37,
+      "tasks_total": 37,
+      "archive_commits": [
+        "a625b84",
+        "ce85536"
+      ]
     },
     {
       "name": "from-roadmap-phase-6c-execution-dsl",
-      "status": "proposed",
+      "status": "archived",
       "phase": "phase-6c",
       "category": "execution-dsl",
       "added_at": "2026-08-17T23:10:26+0800",
       "proposed_at": "2026-08-17T17:15:27.387237+00:00",
-      "fill_completed": true
+      "fill_completed": true,
+      "archived_at": "2026-09-02T03:47:16+00:00",
+      "tasks_done": 27,
+      "tasks_total": 27,
+      "archive_commits": [
+        "65a982a",
+        "c8293ef"
+      ]
     },
     {
       "name": "from-roadmap-phase-6c-schema-complete",
@@ -398,12 +412,19 @@
     },
     {
       "name": "from-roadmap-phase-6c-control-plane-eval",
-      "status": "proposed",
+      "status": "archived",
       "phase": "phase-6c",
       "category": "control-plane-eval",
       "added_at": "2026-08-17T23:10:28+0800",
       "proposed_at": "2026-08-17T17:15:27.387237+00:00",
-      "fill_completed": true
+      "fill_completed": true,
+      "archived_at": "2026-09-02T03:47:16+00:00",
+      "tasks_done": 34,
+      "tasks_total": 36,
+      "archive_commits": [
+        "2c85e73",
+        "c8293ef"
+      ]
     },
     {
       "name": "from-roadmap-phase-6c-validation-refinements",
