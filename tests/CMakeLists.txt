@@ -222,6 +222,25 @@ if(TEST test_prompt_evidence_gate)
 endif()
 
 # ─────────────────────────────────────────────────────────────
+# C6+C7 (from-roadmap-phase-6c-execution-dsl): dual_syntax_lint 独立可执行工具
+# C7 lint 工具: 检测 legacy 语法 → warning + 行级豁免 + 新文件 heuristic
+# 供 test_dsl_extensions 通过 TEST_DUAL_SYNTAX_LINT_PATH 调用
+# ─────────────────────────────────────────────────────────────
+add_executable(dual_syntax_lint
+    ${PROJECT_SOURCE_DIR}/src/modules/parser/dual_syntax_lint.cpp
+)
+target_include_directories(dual_syntax_lint PRIVATE
+    ${PROJECT_SOURCE_DIR}
+    ${PROJECT_SOURCE_DIR}/include
+)
+
+# test_dsl_extensions 注入 lint 二进制路径 (E2E 调用)
+if(TEST test_dsl_extensions)
+    target_compile_definitions(test_dsl_extensions PRIVATE
+        TEST_DUAL_SYNTAX_LINT_PATH="$<TARGET_FILE:dual_syntax_lint>")
+endif()
+
+# ─────────────────────────────────────────────────────────────
 # Sprint 7 Day 3 quick win (Oracle Top 2 - 推迟自 Day 2 spot-check):
 # 静态 grep 锁定 fork 状态契约, 防止 Day 1 fork dedup 回归。
 # 详见: tests/test_fork_static_contracts.sh

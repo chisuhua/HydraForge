@@ -1,5 +1,6 @@
 // modules/parser/src/markdown_parser.cpp
 #include "parser/markdown_parser.h"
+#include "parser/declarative_style.h"
 #include "agenticdsl/parser/node_factory.h"
 #include "common/utils/parser_utils.h"
 #include "common/log/log.h"  // agenticdsl::log facade
@@ -14,6 +15,45 @@
 #include <nlohmann/json.hpp>
 #include <yaml-cpp/yaml.h>
 #include <regex> // For parsing signature (if needed for output_schema)
+
+namespace {
+
+// C6: 从节点 JSON 提取 next 路径列表 (string 或 array), 供 exec: 展开复用
+// 与 node_factory.cpp parse_context 的 next 语义一致
+std::vector<std::string> extract_next_paths(const nlohmann::json& node_json) {
+  std::vector<std::string> next_paths;
+  if (node_json.contains("next")) {
+    const auto& next = node_json["next"];
+    if (next.is_string()) {
+      next_paths.push_back(next.get<std::string>());
+    } else if (next.is_array()) {
+      for (const auto& np : next) {
+        next_paths.push_back(np.get<std::string>());
+      }
+    }
+  }
+  return next_paths;
+}
+
+// C6: exec: declarative style 展开钩子 — 仅当节点 JSON 含 exec: key 时触发
+// 返回 true 表示该节点已被展开 (生成 1..N 个节点追加到 graph.nodes)
+bool try_expand_exec_node(const std::string& node_path,
+                          const nlohmann::json& node_json,
+                          agenticdsl::ParsedGraph& graph) {
+  if (!agenticdsl::DeclarativeStyleParser::has_exec_key(node_json)) {
+    return false;
+  }
+  agenticdsl::DeclarativeStyleParser parser;
+  auto next_paths = extract_next_paths(node_json);
+  auto metadata = node_json.value("metadata", nlohmann::json::object());
+  auto result = parser.expand_exec_array(node_path, node_json["exec"], next_paths, metadata);
+  for (auto& n : result.generated_nodes) {
+    graph.nodes.push_back(std::move(n));
+  }
+  return true;
+}
+
+} // namespace
 
 namespace agenticdsl {
 
@@ -121,6 +161,10 @@ std::vector<ParsedGraph> MarkdownParser::parse_from_string(const std::string& ma
                             throw std::runtime_error("Node in subgraph '" + path + "' missing 'id'");
                         }
                         NodePath node_path = path + "/" + id;
+                        // C6: exec: declarative style 分支钩子 — 仅当节点含 exec: key 时触发
+                        if (try_expand_exec_node(node_path, node_json, graph)) {
+                          continue; // 节点已展开，跳过常规 create_node_from_json
+                        }
                         auto node = create_node_from_json(node_path, node_json);
                         if (node) {
                             graph.nodes.push_back(std::move(node));
@@ -133,31 +177,37 @@ std::vector<ParsedGraph> MarkdownParser::parse_from_string(const std::string& ma
 
             // Handle single node (standalone block representing one node)
             if (json_doc.contains("type")) {
-                auto node = create_node_from_json(path, json_doc);
-                if (node) {
-                    ParsedGraph graph;
-                    graph.path = path;
-                    graph.metadata = json_doc.value("metadata", nlohmann::json::object());
-
-                    // 单节点图也可有 signature
-                    if (json_doc.contains("signature")) {
-                        graph.signature = json_doc["signature"].get<std::string>();
-                        // v3.1: Parse output_schema from signature
-                        graph.output_schema = parse_output_schema_from_signature(graph.signature.value());
-                    }
-                    if (json_doc.contains("permissions") && json_doc["permissions"].is_array()) {
-                        for (const auto& p : json_doc["permissions"]) {
-                            if (p.is_string()) {
-                                graph.permissions.push_back(p.get<std::string>());
-                            }
+                ParsedGraph graph;
+                graph.path = path;
+                graph.metadata = json_doc.value("metadata", nlohmann::json::object());
+                // 单节点图也可有 signature
+                if (json_doc.contains("signature")) {
+                    graph.signature = json_doc["signature"].get<std::string>();
+                    // v3.1: Parse output_schema from signature
+                    graph.output_schema = parse_output_schema_from_signature(graph.signature.value());
+                }
+                if (json_doc.contains("permissions") && json_doc["permissions"].is_array()) {
+                    for (const auto& p : json_doc["permissions"]) {
+                        if (p.is_string()) {
+                            graph.permissions.push_back(p.get<std::string>());
                         }
                     }
-                    graph.is_standard_library = (path.rfind("/lib/", 0) == 0);
+                }
+                graph.is_standard_library = (path.rfind("/lib/", 0) == 0);
 
+                // C6: exec: declarative style 分支钩子 — 单节点图同样支持 exec: 展开
+                if (try_expand_exec_node(path, json_doc, graph)) {
+                    graphs.push_back(std::move(graph));
+                    continue;
+                }
+                auto node = create_node_from_json(path, json_doc);
+                if (node) {
                     graph.nodes.push_back(std::move(node));
                     graphs.push_back(std::move(graph));
                 }
+                continue;
             }
+
         } catch (const YAML::ParserException& e) {
             throw std::runtime_error("YAML parse error in block '" + path + "': " + e.what());
         } catch (const std::exception& e) {

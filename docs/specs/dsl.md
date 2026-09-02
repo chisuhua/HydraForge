@@ -782,7 +782,149 @@ resources:
   - `speculative_decode` → `draft_model`, `max_speculative_tokens`
 - **降级机制**：若未声明所需能力，执行器应尝试使用基础三元组查询（`query_latest`），若完全不支持，返回 `ERR_UNSUPPORTED_CAPABILITY`
 
-### 6.5 `shell.exec` 节点 — `backend:` 字段（ADR-0075 D4 W5 前置提案）
+### 6.6 `exec:` declarative style（ADR-0072 D3 / Phase 6c C6）
+
+> **状态**：✅ **已实现**（2026-09-02，`from-roadmap-phase-6c-execution-dsl` C6 branch，Evidence Gate Conditional）。
+
+`exec: [...]` 是**并行子节点组的声明式语法糖**：等价于手写 `fork` + N 个并行子节点 + `join` 结构，供 LLM 以更紧凑形式表达并行工具调用。
+
+#### 语法
+
+`exec:` key 可出现在子图 `nodes` 列表的节点定义中，值为数组。每个数组元素可以是：
+
+1. **字符串简写**：工具名（如 `"shell/exec"`）→ 自动展开为 `tool_call` 节点
+2. **对象定义**：完整节点字段（`type` + 该类型的必填字段）→ 复用 NodeFactory 创建对应节点
+
+```yaml
+# --- BEGIN AgenticDSL ---
+graph_type: subgraph
+nodes:
+  - id: fan_out
+    exec: [shell/exec, fs/read, custom/tool]   # 字符串简写: 3 个并行 tool_call
+    next: [/main/after]
+  # 等价于手写:
+  # - id: fan_out_fork
+  #   type: fork
+  #   fork:
+  #     branches: [/main/fan_out/branch_0, /main/fan_out/branch_1, /main/fan_out/branch_2]
+  #   next: [/main/fan_out_join]
+  # - id: fan_out/branch_0
+  #   type: tool_call
+  #   tool: shell/exec
+  #   ...
+  # - id: fan_out/branch_1
+  #   type: tool_call
+  #   tool: fs/read
+  #   ...
+  # - id: fan_out/branch_2
+  #   type: tool_call
+  #   tool: custom/tool
+  #   ...
+  # - id: fan_out_join
+  #   type: join
+  #   join:
+  #     wait_for: [/main/fan_out/branch_0, /main/fan_out/branch_1, /main/fan_out/branch_2]
+  #   next: [/main/after]
+# --- END AgenticDSL ---
+```
+
+#### fork/join 展开规则
+
+`exec: [child_0, child_1, ..., child_N]`（N ≥ 2）在解析时展开为：
+
+1. **fork 节点**：`<base_path>_fork`，`branches` = 所有子节点路径，`next` = join 路径
+2. **N 个子节点**：`<base_path>/branch_<i>`，各自 `next` = join 路径
+3. **join 节点**：`<base_path>_join`，`wait_for` = 所有子节点路径，`next` = 原节点的 `next` 字段
+
+生成的 DAG 边集合与手写 fork/join **逐边等价**（单元测试断言 `extract_edges(exec_graph) == extract_edges(manual_graph)`）。
+
+#### 嵌套限制
+
+- **`max_exec_depth = 1`**：仅支持一层展开，`exec: [exec: [...]]` 嵌套 → 抛 `ParseError`（`'exec' nesting exceeds max_exec_depth=1`）
+- 递归展开留 Sprint 28+（design.md Open Question 1）
+
+#### 单元素优化
+
+`exec: [single_tool]` → **不生成 fork/join**，直接创建单个 `tool_call` 节点执行，零 DAG 开销（spec "exec with single item behaves like no-op fork/join"）。
+
+### 6.7 双语法共存期（ADR-0072 D5 / Phase 6c C7）
+
+> **状态**：✅ **已实现**（2026-09-02，`from-roadmap-phase-6c-execution-dsl` C7 branch）。
+
+D2/D3 ship 后进入**双语法共存期**：legacy 语法（`-> output_name` 边引用、手写 `type: fork`/`type: join`）与新版语法（`exec:`）可并存，**不强制迁移、不废弃旧语法**。
+
+#### 迁移原则（ADR-0072 §不变量 3）
+
+- 新旧语法 100% 向后兼容，现有 `.agent.md` 无修改通过解析
+- 新语法使用率 ≥ 50% 才评估废弃时机；**超前废弃视为违规**
+- 共存期 C7 lint 仅发 **warning（exit 0）**，不阻断 commit
+
+#### `# lint:disable dual-syntax` 注释规范
+
+用户可在 legacy 语法行**前一行**添加注释以豁免该行警告：
+
+```yaml
+- id: b
+  type: assign
+  assign:
+    # lint:disable dual-syntax
+    x: "-> output_name"   # 本行 legacy 引用不产生 lint 警告
+```
+
+规则：
+- 注释格式：行首 `# lint:disable dual-syntax`（`#` 后可跟任意空白）
+- **作用域**：抑制**下一行**的警告（spec "WHEN line 41 contains `# lint:disable dual-syntax` THEN no warning for line 42"）
+- 注释行自身不触发 lint 警告
+
+### 6.8 C7 lint 工具使用说明（`dual_syntax_lint`）
+
+> **状态**：✅ **已实现**（2026-09-02）。
+
+`dual_syntax_lint` 是独立可执行 lint 工具，检测 `.agent.md` 中的 legacy 语法并给出修复建议。
+
+#### CLI
+
+```bash
+dual_syntax_lint [options] <file...>
+
+Options:
+  --include-historical    Lint 所有文件（默认跳过历史文件）
+  --ship-timestamp <date> 覆盖 D2/D3 ship 时间戳（YYYY-MM-DD，默认 2026-09-02）
+  --help, -h              显示帮助
+```
+
+#### 输出格式
+
+```
+<file>:<line>: warning: legacy syntax '<match>'; consider '<suggestion>'
+```
+
+示例：
+```
+new_file.agent.md:11: warning: legacy syntax '-> output_name'; consider '$output_name'
+new_file.agent.md:8: warning: legacy syntax 'type: fork'; consider 'exec: [...]'
+```
+
+#### 检测规则
+
+| 模式 | 匹配 | 建议 |
+|------|------|------|
+| 边引用 | `-> identifier` / `→ identifier` | `$identifier` |
+| 手写并行 | `type: fork` / `type: join` | `exec: [...]` |
+
+#### 新文件 heuristic（D-4）
+
+默认仅检测**新提交**的 `.agent.md` 文件：
+- `is_new_file(path)` = 文件 mtime ≥ ship 时间戳 **且** git log 显示最近提交（或无 git 历史视为新文件）
+- 历史 shipped 文件（mtime 早于 ship 时间戳）**不重报**
+- `--include-historical` 手动覆盖（默认 off）
+
+#### CI 集成建议
+
+- lint 仅发 warning（exit 0），可在 CI 中作为**非阻塞**提示步骤运行
+- 可选集成 pre-commit hook（design.md Risks §双语法共存期 建议，非强制）
+
+
 
 > **状态**：🔮 Planned — 本节为前瞻示例，DSL 解析层由独立 W5 提案交付（Phase 6c 收官前）。Backend 抽象与 `EnvValidationHook` 已 ship（Wave 3-A `from-roadmap-phase-6c-execution-envbackend`）。
 

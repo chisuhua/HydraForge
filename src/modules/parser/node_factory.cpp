@@ -163,6 +163,7 @@ std::unique_ptr<Node> make_tool_call(const NodePath& path, const nlohmann::json&
       else if (value.is_number_integer()) args[key] = std::to_string(value.get<long long>());
       else if (value.is_number_float()) args[key] = std::to_string(value.get<double>());
       else if (value.is_boolean()) args[key] = value.get<bool>() ? "true" : "false";
+      else if (value.is_object() || value.is_array()) args[key] = value.dump();
       else throw std::runtime_error("Argument '" + key + "' has unsupported type");
     }
   }
