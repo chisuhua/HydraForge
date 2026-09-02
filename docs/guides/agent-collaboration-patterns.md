@@ -3,7 +3,7 @@
 > **目的**：快速理解 HydraForge 中 **Agent 与 Agent 之间** 的协作模式架构、协议抽象与设计取舍。
 > **范围**：覆盖 6 种协作模式、4 通道 Plugin 通信、3 种 Agent Loop 协作、Phase 6 服务组合探索、Hook/横切/归因/进化协作。
 > **关系**：与 [`plugin-and-agent-architecture.md`](./plugin-and-agent-architecture.md) 配套 —— 后者讲"Plugin 与 Agent 是什么/怎么构建"，本指南讲"多个 Agent 如何协作"。
-> **依据**：ADR-0060（协作模式）/ ADR-0046（Plugin 通信协议）/ ADR-0045（编排 Plugin）/ ADR-0021（Agent Loop）/ ADR-0051（Phase 6 服务组合）/ ADR-0081（Hook）/ ADR-0085（横切）/ ADR-0086（信用分配）/ ADR-0061（进化）/ ADR-0071（LLM-native）。
+> **依据**：ADR-0060（协作模式）/ ADR-0046（Plugin 通信协议）/ ADR-0045（编排 Plugin）/ ADR-0021（Agent Loop）/ ADR-0051（Phase 6 服务组合）/ ADR-0081（Hook）/ ADR-0083（评估契约）/ ADR-0085（横切）/ ADR-0086（信用分配）/ ADR-0061（进化）/ ADR-0068（事件契约）/ ADR-0071（LLM-native）。
 
 ---
 
@@ -42,7 +42,7 @@ Agent 间协作不是单一抽象，而是**多层、6 维度**的体系：
 
 **关键设计哲学**：
 
-1. **统一抽象**：Agent 开发者只需学一次 `IToolRegistry` API，路由层透明选择进程内/进程间/跨框架
+1. **统一抽象**：Agent 开发者只需学一次 `IToolRegistry` API，路由层透明选择后端（**v1 进程内 backend 已 ship；进程间/跨框架 backend 为 Phase 2 目标，依赖 ADR-0059 未落地**）
 2. **正交分层**：Tool Hook vs Agent Hook / Tool Layer vs Event Layer —— 每一层独立，避免双标准
 3. **物理 vs 逻辑隔离**：v1 进程内协作 + jthread per-agent 线程隔离；Phase 2+ 进程/容器隔离
 4. **安全优先**：fail-closed 默认 + 5 escalation triggers + RAII guard 嵌套防护 + ToolCoordinator 审批
@@ -54,33 +54,38 @@ Agent 间协作不是单一抽象，而是**多层、6 维度**的体系：
 
 **ADR-0060 决策 1**：协议无关的协作模式，由 `IToolRegistry` 透明路由。
 
-| # | 模式 | v1 实现 | 进程内机制 | 进程间机制 | 适合场景 |
+| # | 模式 | v1 实现 | 进程内机制（v1 真实 API） | 进程间机制 | 适合场景 |
 |---|---|:---:|---|---|---|
-| ① | `call(req) → response` | ✅ | `IToolRegistry::call_tool()` | MCP `tools/call` | 同步 RPC、叶子工具调用 |
-| ② | `call_async(req, cb)` | ✅ | `bus.emit + subscribe(req_id)` | MCP + notifications | 异步 RPC、回调式 |
-| ③ | `emit(topic, payload)` | ✅ | `IInteractionBus::emit/subscribe` | MCP `notifications` | pub/sub、多对多广播 |
-| ④ | `delegate(spec, monitor)` | ✅ | `SubtaskSession + ExecutionSession` | MCP `tasks/create + tasks/get` | 父子关系、长生命周期子 Agent |
-| ⑤ | `parallel(tasks, opts)` | ✅ | `DomainWorkerPool` + `execute_parallel` | MCP `tasks/create × N + tasks/get` | fork/join 并行聚合 |
-| ⑥ | `open_stream(handler)` | ⏳ Phase 2 | 流式订阅（token-by-token） | MCP + SSE streaming | LLM token 流 |
+| ① | `call(req) → response` | ✅ | `IAgentComposition::call` / `IToolRegistry::call_tool()` | MCP `tools/call` | 同步 RPC、叶子工具调用 |
+| ② | `call_async(req, cb)` | ✅ | `IAgentComposition::call_async` / `IInteractionBus::emit+subscribe` | MCP + notifications | 异步 RPC、回调式 |
+| ③ | `emit(topic, payload)` | ✅ | `IInteractionBus::emit/subscribe`（不在 IAgentComposition） | MCP `notifications` | pub/sub、多对多广播 |
+| ④ | `delegate(spec, monitor)` | 🟡 部分 | `IAgentComposition::delegate(agent_id, task, priority)`（v1 **无** monitor callback / max_lifetime_ms；仅返回 `TaskHandle{task_id, cancel}`） | MCP `tasks/create + tasks/get` | 父子关系、长生命周期子 Agent |
+| ⑤ | `parallel(tasks, opts)` | 🟡 部分 | **无统一 `parallel()` 方法**；`DomainWorkerPool` + `ForkJoinLoop` + 调用方手工聚合 | MCP `tasks/create × N + tasks/get` | fork/join 并行聚合 |
+| ⑥ | `open_stream(handler)` | ❌ Phase 2 | `IAgentComposition::stream` 占位（抛 `std::logic_error`） | MCP + SSE streaming | LLM token 流 |
 
-### 2.1 实际代码 API 形态
+### 2.1 API 形态（ADR 目标 vs v1 实际 ship）
+
+> ⚠️ **重要区分**：下列两组代码**不可混用**。第一组是 **ADR-0060 决策 1 的目标 API**（含 SubAgentSpec/ParallelOptions/monitor callback 等字段，仅作契约目标）；第二组是 **v1 已 ship 的真实 API**（来自 `include/agenticdsl/contract/iagent_composition.h`，Sprint 22 P8 ship，OpenSpec change `adr-0060-p2-p3-patterns`）。
+
+#### A. ADR-0060 决策 1 目标 API（Phase 2 部分字段未落地）
 
 ```cpp
-// ① 同步 RPC
+// ① 同步 RPC（v1 ✅ / Phase 2 同样语义）
 auto result = call_tool("loop/run", {prompt, tools});
 
 // ② 异步 RPC（进程内）
 bus->emit("chat.request", {prompt, tools, request_id});
 bus->subscribe("chat.response." + request_id, [this](auto& e) { ... });
 
-// ③ pub/sub
+// ③ pub/sub（直接走 IInteractionBus，不在 IAgentComposition 中）
 bus->emit("user.input", {text: "..."});
 bus->subscribe("user.input", [](auto& e) {
     auto result = call_tool("loop/run", {prompt: e["text"]});
     bus->emit("loop.response", result);
 });
 
-// ④ 委派子 Agent（父-子关系：父持有子句柄、监控生命周期）
+// ④ 委派子 Agent（ADR-0060 决策 1 目标：SubAgentSpec + monitor callback）
+//    ⚠️ v1 未落地：monitor callback / max_lifetime_ms 字段尚不存在
 auto sub_id = orchestrator.delegate(
     SubAgentSpec{.agent_id="code.review", .task={...}, .max_lifetime_ms=60000},
     [](auto& event) {
@@ -90,7 +95,8 @@ auto sub_id = orchestrator.delegate(
     }
 );
 
-// ⑤ fork/join 并行（任务对等：无父子关系）
+// ⑤ fork/join 并行（ADR-0060 决策 1 目标：ParallelOptions）
+//    ⚠️ v1 未落地：registry.parallel() 统一方法尚不存在
 auto results = registry.parallel(
     "code_review/run",
     {task1, task2, task3},
@@ -103,32 +109,84 @@ auto results = registry.parallel(
 );
 ```
 
-### 2.2 关键对比
+#### B. v1 实际 ship API（`include/agenticdsl/contract/iagent_composition.h`）
+
+```cpp
+// ① 同步 RPC（v1 ✅ IAgentComposition::call）
+auto composition = agenticdsl::make_agent_composition(registry);
+auto result = composition->call(
+    "react-loop-v1",                       // agent_id（必填）
+    "{prompt:\"review src/main.cpp\"}",    // args 序列化为字符串
+    std::chrono::seconds(30));             // timeout（默认 30s）
+// 返回 AgentResult<std::string> {ok, value, error_code?, message}
+
+// ② 异步 RPC（v1 ✅ IAgentComposition::call_async）
+auto fut = composition->call_async(
+    "react-loop-v1",
+    args,
+    [](agenticdsl::AgentResult<std::string> r) { /* 回调 */ },  // 可选 callback
+    std::chrono::seconds(30));
+auto result = fut.get();  // 或异步等待
+
+// ④ 委派子 Agent（v1 ✅ IAgentComposition::delegate — 注意：仅 3 参数）
+auto task_handle = composition->delegate(
+    "react-loop-v1",                       // agent_id
+    "review src/main.cpp",                 // task
+    "normal");                             // priority（默认 "normal"）
+// 返回 TaskHandle { task_id, cancel }
+// ⚠️ v1 不支持：monitor callback / max_lifetime_ms / event subscription
+//    取消语义通过 TaskHandle::cancel() 触发（无进度事件回调）
+
+// ⑤ fork/join 并行（v1 通过 ForkJoinLoop + DomainWorkerPool 组合，无统一 parallel()）
+//    参见 §六 + ADR-0020 §2.2.1：调用方手工组合 N 个 call_tool/call + 聚合
+//    ForkJoinLoop 接受多个分支字符串按逗号分隔作为输入
+auto results = fork_join_loop.run({"branch1 prompt", "branch2 prompt", "branch3 prompt"}, ctx);
+
+// ⑥ 流式通道（v1 ❌ Phase 2 — 当前实现抛 std::logic_error）
+auto stream_handle = composition->stream("react-loop-v1", args);
+// throws: "Phase 2 - stream not yet implemented"
+```
+
+**v1 ↔ 决策表对照**（[ADR-0060 决策 4](../adr/adr-0060-agent-composition.md#决策-4--v1-实现范围) 决策 4）：
+
+| 模式 | ADR 决策 4 标注 | v1 实际代码落地 |
+|---|---|---|
+| ① call | ✅ v1 | `IAgentComposition::call` ✅ |
+| ② call_async | ✅ v1 | `IAgentComposition::call_async` ✅ |
+| ③ emit/subscribe | ✅ v1 | `IInteractionBus::emit/subscribe` ✅（不在 `IAgentComposition` 内） |
+| ④ delegate | ✅ v1 | `IAgentComposition::delegate` ✅（但**仅 3 参数**，无 monitor/max_lifetime_ms） |
+| ⑤ parallel | ✅ v1 | **未提供统一 `parallel()` 方法**，由 `ForkJoinLoop` + `DomainWorkerPool` + 调用方编排承担 |
+| ⑥ open_stream | ❌ Phase 2 | `IAgentComposition::stream` 占位（抛 `logic_error`） |
+
+### 2.2 关键对比（v1 实际 ship 能力）
 
 | 维度 | ④ delegate | ⑤ parallel |
 |---|---|---|
-| 关系 | **父-子**（父持有子句柄） | **对等**（所有任务同级） |
-| 生命周期 | 长（max_lifetime_ms） | 短（每个任务完成即结束） |
-| 监控 | callback 接收 done/error/progress | `on_each_complete` 回调 |
-| 隔离 | 子 Agent 独立 TaskSession | 无独立 Session |
-| 适用 | 长任务、需监控、需取消 | 批量并行、独立子任务 |
+| 关系 | **父-子**（父持有 `TaskHandle`） | **对等**（所有任务同级） |
+| 生命周期 | 由 `TaskHandle::cancel()` 控制（**无 max_lifetime_ms**） | 短（每个任务完成即结束） |
+| 监控 | **无 callback / 无 event stream**；调用方通过 `TaskHandle::task_id` + bus 事件 `loop.done`/`loop.error` 自查（v1 限制） | 调用方手工编排（**无 `on_each_complete` 回调**；v1 通过 `ForkJoinLoop.run()` 同步聚合结果） |
+| 隔离 | 子 Agent 由 `IAgentComposition::delegate` 创建（v1 实际依赖 `TestDoubleAgentRegistry`——`include/agenticdsl/contract/test_double_registry.h` P8 test-double；与 ADR-0082 `IAgentRegistry` 的接线为后续工作） | 无独立 Session |
+| 适用 | 长任务、需取消（监控能力弱） | 批量并行、独立子任务 |
 
-### 2.3 透明路由（ADR-0060 决策 2）
+### 2.3 透明路由（ADR-0060 决策 2 — Phase 2 愿景）
+
+> ⚠️ **决策 2 为 Phase 2 目标架构**，当前 v1 **未实现**。下列伪码与 `CapabilityRegistry` / `RemoteRegistry` / `RemoteAgentAdapter` / `WasmRuntime` 等类**在全代码库零匹配**（仅存在 ADR-0060 决策 2 文本中）。v1 实际行为：所有 tool 调用走 `IToolRegistry::call_tool()` 直调（v1 进程内，ADR-0060 决策 4 明确"v1 全部在进程内实现，进程间等 ADR-0059 落地"）。
 
 ```cpp
+// ADR-0060 决策 2 目标架构（Phase 2 愿景，v1 未实现）
 ToolRegistry::call_tool(name, args):
-    1. CapabilityRegistry.query(name) → agent_id + metadata
-    2. RemoteRegistry.is_remote(agent_id) 判断 backend
+    1. CapabilityRegistry.query(name) → agent_id + metadata       // ⚠️ 类不存在
+    2. RemoteRegistry.is_remote(agent_id) 判断 backend             // ⚠️ 类不存在
     3. 本地 backend:
-       ├── PDK Plugin (C++) → 直接调用 .so
-       ├── SKILL → SkillInterpreter
-       └── Wasm → WasmRuntime::invoke
+       ├── PDK Plugin (C++) → 直接调用 .so                        // ✅ v1 可用
+       ├── SKILL → SkillInterpreter                               // ✅ v1 可用
+       └── Wasm → WasmRuntime::invoke                             // ⚠️ WasmRuntime 不存在（ADR-0056 V2 deferred Phase 8+）
     4. 远程 backend:
-       └── RemoteAgentAdapter::call_remote(agent_id, ...)
+       └── RemoteAgentAdapter::call_remote(agent_id, ...)         // ⚠️ 类不存在
     5. 返回 ToolResult
 ```
 
-调用方对 backend 完全无感 —— Agent A 写一次代码，路由自动选择。
+**v1 实际行为**：调用方对本地 PDK Plugin 直调透明（v1 已 ship），进程间/跨框架路由为 Phase 2 目标（依赖 ADR-0059，未启动）。Agent A 写一次代码（`call_tool("loop/run", args)`）在 v1 中**仅**透明选择本地 backend；远程 backend 调用需调用方手工编排（与 ADR-0060 决策 4 "v1 全部在进程内实现" 一致）。
 
 ### 2.4 Loop Agent 双重模型（ADR-0060 决策 3）
 
@@ -150,18 +208,20 @@ ToolRegistry::call_tool(name, args):
 
 **事件清单**：
 
-| 主题 | 时机 | 载荷 |
-|---|---|---|
-| `loop.turn.start` | 每步开始 | `{turn, step, loop_type}` |
-| `llm.token` | LLM 流式输出 | `{text, model}` |
-| `llm.response` | LLM 完成 | `{model, tokens_used, truncated}` |
-| `tool.execution.start` | 工具调用开始 | `{name, args_keys}`（不含 args 值） |
-| `tool.execution.end` | 工具调用结束 | `{name, duration_ms, ok}` |
-| `loop.turn.end` | 每步结束 | `{turn, decision}` |
-| `loop.done` | 循环完成 | `{response, total_steps, total_tokens}` |
-| `loop.error` | 循环出错 | `{error, step}` |
+| 主题 | 时机 | ADR-0060 决策 3 逻辑字段 | ADR-0068 Appendix A 注册载荷 |
+|---|---|---|---|
+| `loop.turn.start` | 每步开始 | `{turn, step, loop_type}` | `turn`, `step` |
+| `loop.turn.end` | 每步结束 | `{turn, decision}` | `turn`, `decision` |
+| `loop.decision` | 决策点 | （未列） | `decision`, `tool?` |
+| `loop.done` | 循环完成 | `{response, total_steps, total_tokens}` | `session_id` |
+| `loop.error` | 循环出错 | `{error, step}` | `error_code`, `message` |
+| `llm.request` | LLM 调用前 | （未列） | `model`, `prompt_hash` |
+| `llm.response` | LLM 完成 | `{model, tokens_used, truncated}` | `tokens`, `duration_ms`, `error_code?` |
+| `llm.token` | LLM 流式输出 | `{text, model}` | `session_id`, `token`, `index` |
+| `tool.execution.start` | 工具调用开始 | `{name, args_keys}`（不含 args 值） | `tool`, `layer` |
+| `tool.execution.end` | 工具调用结束 | `{name, duration_ms, ok}` | `tool`, `ok`, `duration_ms` |
 
-**关键事件清单源自 ADR-0068**（Canonical Topic Registry + 7 幻影主题强制发射点）。
+**关键事件清单源自 [ADR-0060 决策 3](../adr/adr-0060-agent-composition.md#决策-3--loop-agent-通信模型)**（Loop Agent 双重模型）。**运行时生命周期主题的注册载荷以 [ADR-0068 Appendix A](../adr/adr-0068-event-emission-contract.md#附录-acanonical-topic-registry-v20-2026-08-31) 为准**（Canonical Topic Registry + 7 幻影主题强制发射点）。上表"ADR-0060 决策 3 逻辑字段"列描述**业务含义**；"ADR-0068 Appendix A 注册载荷"列描述**真实契约 schema**（含字段重命名与省略差异，例如 `llm.token` 业务字段 `text` 在注册载荷中重命名为 `token`；`loop.done` 业务字段 `response/total_steps/total_tokens` 未出现在注册载荷中）。
 
 ---
 
@@ -202,7 +262,7 @@ ToolRegistry::call_tool(name, args):
 - **成功**：返回 `ToolResult(ok=true)` 或直接 `nlohmann::json`（由 ToolRegistry 包装）
 - **业务错误**：返回 `ToolResult.error(ErrorCode, message, meta)`（Per ADR-0023 P2 enum ErrorCode）
 - **协议错误**：由 ToolCoordinator 处理（工具未注册 → `ErrorCode::ToolNotRegistered`）
-- **不再使用**：嵌套 `{"error": {"code": ..., "message": ...}}` 格式（ADR-0023 §C.7 已修正）
+- **不再使用**：嵌套 `{"error": {"code": ..., "message": ...}}` 格式（[ADR-0023 §C.7](../adr/adr-0023-tool-result-standard.md#c7-已知遗留) 标注为**已知遗留**：实现采用扁平 `error_code`（顶层） + `meta.error_message`（兼容层），修正需独立 OpenSpec change）
 
 ### 3.3 Event Layer Topic 规范（ADR-0046 §2）
 
@@ -231,7 +291,8 @@ orchestration.audit.llm.generate         ← 编排 ILLMProvider → 推理 内�
 | **工具调用编排** | ✅ | ❌ | ❌ |
 | **Session 管理** | ✅ | 部分 | ✅ |
 | **负载均衡** | ✅ | ❌ | ❌ |
-| **ILLMProvider 桥接** | ✅（包装） | ✅（实现） | ❌ |
+| **超时/重试策略** | ✅ | ❌ | ❌ |
+| **LLM 调用**（ILLMProvider interface） | ✅（包装） | ✅（实现） | ❌ |
 
 ### 4.1 Dual Consumer Model（ADR-0045 §2.1）
 
@@ -313,8 +374,8 @@ class DomainWorkerPool {
 
 **应用**：
 - `ForkJoinLoop` 默认 4 worker，按 `num_threads` 参数注入
-- `PlanExecuteLoop` verify_phase 并行验证多个 hypothesis
-- Phase 6 PDK Composition 并行 fan-out
+- `PlanExecuteLoop` **无并行假设验证**：v1 实现为单次同步 `bool verify_phase(goal, result, llm, token)`（`include/agenticdsl/pdk/agent_loops/plan_execute_loop.h:254`），验证失败触发单条 Retry 路径，无 `DomainWorkerPool` 依赖（头文件 L17-21 include 列表可证）
+- Phase 6 PDK Composition 并行 fan-out（ADR-0051 spike 内 `parallel()` 编排为单一 agent 工具调用 + manual fan-out，非原生并行抽象）
 
 ---
 
@@ -372,15 +433,17 @@ G3 (knowledge_base, retrieval + LLM Q&A)
 | O-5 | LLM callback pattern copy-paste | 🟡 P2 |
 | O-6 | `call_tool` 签名保真度不足（string→json 无类型验证） | 🟠 P1 |
 
-**对设计的指导意义**：6 项共识发现推动 `DECLARE_SERVICE` 宏提案（推迟到 Phase 6 v2+，待 2+ 不同类别 awkward pattern 涌现触发）。
+**对设计的指导意义**：6 项共识发现推动 DECLARE_SERVICE 宏提案（推迟到 Phase 6 v2+，待 2+ 不同类别 awkward pattern 涌现触发；**注**：早期 ADR-0051 §T-5 前向引用编号 0052 给该提案，但实际 `docs/adr/adr-0052-agent-plugin-manifest.md` 是 Agent Plugin Manifest 规范，全文无 DECLARE_SERVICE 提及。当前 ADR 编号下 DECLARE_SERVICE 尚无独立 ADR 立项）。
 
 ---
 
 ## 八、Agent Hook 拦截模式（ADR-0081）
 
-**状态**：✅ Approved (2026-08-21)
+**状态**：✅ Approved (2026-08-21)，**V1 仅骨架 ship，Agent loop 集成推迟 Sprint 24+**
 
 **目的**：与 Tool Hook 正交的 Agent 级拦截点。
+
+> ⚠️ **实施现状**：[ADR-0081](../adr/adr-0081-pre-step-hook-contract.md) V1 仅交付 `IAgentHookRegistry` 契约层 + InMemory 参考实现 + 工厂函数（`make_in_memory_agent_hook_registry()`）；**Agent loop 集成（ReactLoop/PlanExecuteLoop/ForkJoinLoop 触发 hook 调用）推迟至 Sprint 24+**。当前代码可在 Agent 框架外独立测试 hook 调度逻辑，但运行 Agent 时 hook 不会被触发。
 
 ### 8.1 接口形态
 
@@ -420,7 +483,7 @@ public:
 - **拦截点不修改 core 行为**：hook 失败/异常不阻断主流程
 - **fail-closed 安全语义**：`Deny` 决策不可被后续 hook 覆盖
 - **agent_glob 通配**：如 `"react-loop/*"`、`"*"`（与 ADR-0043 tool_glob 约定一致）
-- **HookErrorPolicy 复用 ADR-0069**：避免双标准（FailOpen / FailClosed / LogAndContinue）
+- **HookErrorPolicy 复用 ADR-0069**：避免双标准。**当前枚举仅 2 值**（`include/agenticdsl/contract/itool_hook_registry.h:18` — `enum class HookErrorPolicy { FailClosed, FailOpen }`），未来若需 LogAndContinue 需独立 ADR 扩展。
 
 ### 8.3 与 ToolHookRegistry 的正交
 
@@ -436,21 +499,36 @@ Agent hook:   per-agent step（`agent/*`）
 
 ## 九、Cross-Cutting Pattern PDK（ADR-0085）
 
-**状态**：✅ Approved (2026-08-28)
+**状态**：✅ Approved (2026-08-28，Oracle 3 轮复审全部通过) + **V1 ship ✅ 2026-08-28（T26，18 cases PASS）**
 
 **目的**：4 种横切范式 PDK Pattern（类比 PDK Loop Agent 模式），AOP 风格的横切关注点统一抽象。
 
 ```cpp
-ICrossCuttingPattern     // 统一抽象
-CrossCuttingOrchestrator // 无状态 dispatcher
-*.cc.md                  // 横切功能 DSL
+// include/agenticdsl/pdk/cross_cutting/ — V1 已 ship
+ICrossCuttingPattern          // 统一抽象（name() + apply(json, ctx)）
+CrossCuttingOrchestrator       // 无状态 dispatcher（运行期 JSON 分发）
+decorator_pattern / hook_pattern / composition_pattern / bus_pattern   // 4 Pattern class
+*.cc.md                        // 横切功能 DSL（YAML 格式，类比 *.agent.md）
 ```
 
-**类比 Loop Agent**：
-- `AgentLoopType` 枚举（React/PlanExecute/ForkJoin） → 各种 Cross-CuttingPatternType 枚举
-- `DEFINE_AGENT(name, LoopType)` → `DEFINE_CROSSCUTTING(name, PatternType)`
+**与 Loop Agent 的真实类比**（[ADR-0085 §决策 5](../adr/adr-0085-cross-cutting-pattern-pdk.md#决策-5--v1-不强制-meta-agent-自管理)）：
+- `LoopResult` ↔ `ICrossCuttingPattern`（统一抽象接口）
+- `ReactLoop` / `PlanExecuteLoop` / `ForkJoinLoop` ↔ `DecoratorPattern` / `HookPattern` / `CompositionPattern` / `BusPattern`（4 独立 class）
+- `LoopDispatcher<>` 编译期模板特化 ↔ `CrossCuttingOrchestrator` 运行期 JSON 分发（关键差异：横切功能运行时按需启用，非编译期模板）
+- `*.agent.md` DSL ↔ `*.cc.md` DSL（YAML 格式，schema 校验复用 ADR-0073）
 
-**实施载体**：OpenSpec change `pdk-cross-cutting-patterns`（~2.2 sprint）
+**类型识别方式**：4 个 Pattern 通过**字符串常量**识别（[ADR-0085 §决策 1](../adr/adr-0085-cross-cutting-pattern-pdk.md#决策-1--4-范式独立-pdk-pattern-class)）：
+
+```cpp
+namespace hydraforge::pdk::cross_cutting_pattern {
+    constexpr const char* Decorator   = "decorator-v1";
+    constexpr const char* Hook        = "hook-v1";
+    constexpr const char* Composition = "composition-v1";
+    constexpr const char* Bus         = "bus-v1";
+}
+```
+
+> ⚠️ **注意**：不存在 `DEFINE_CROSSCUTTING` 宏，亦不存在 `CrossCuttingPatternType` 枚举。Orchestrator 通过运行时 JSON 配置中的 `type` 字段（值如 `"decorator-v1"`）匹配 Pattern，非编译期模板特化。代码位置：`include/agenticdsl/pdk/cross_cutting/{icross_cutting_pattern,decorator_pattern,hook_pattern,composition_pattern,bus_pattern,cross_cutting_orchestrator,cross_cutting_config}.h`（7 个头文件，V1 全 ship）。
 
 ---
 
@@ -488,8 +566,8 @@ Agent 协作不仅是运行时，还有**进化期**协作。
 
 - `MCTSWorkflowSearch` (T20 ship, 2026-08-28)
 - 基于 Monte Carlo Tree Search 搜索工作流空间
-- Axis6 = 第 6 维度（cognitive_domain composition chain）
-- 单主体 commit 路径 + W4 双发射语义分离
+- Axis6 = 第 6 维度（cognitive_domain composition chain，节点级属性）
+- commit/revert 事件语义统一（[ADR-0061-08-V1.1 决策 6](../adr/skill/adr-0061-08-v1-1-amendment-axis6.md)）+ W4 双发射语义分离（governance 层 `mutation.*` + axis6 专属 `axis6.*`）
 - 关联变更：`openspec/changes/2026-08-31-mcts-axis6-cognitive-domain/` v2.1
 
 ### 11.2 GEPA Loop（ADR-0061-09）
@@ -513,7 +591,7 @@ Agent 协作不仅是运行时，还有**进化期**协作。
 
 ## 十二、LLM-native 协作架构（ADR-0071）
 
-**状态**：✅ Approved (2026-08-25)
+**状态**：✅ Approved (2026-08-02 顶层方向 ADR；Promotion 评审通过 2026-08-25)
 
 **3 平面协作架构**：
 
@@ -525,14 +603,16 @@ DSL Plane        ─── 中间表示（LLM 生成的 DSL）
 Backend Plane    ─── 多 inference backend 协同
 ```
 
-派生 6 个子 ADR/Change，锚定 Phase 6+ 演化方向。
+派生 **6 个子 ADR**（[ADR-0071 §下游派生](../adr/adr-0071-llm-native-agenticdsl-architecture.md#下游派生-待创建-本-adr-列举) L29-35），锚定 Phase 6+ 演化方向：
 
-关联：
-- **ADR-0074** Prompt Engineering + Evidence Gate
-- **ADR-0075** EnvBackend 多环境执行
-- **ADR-0076** DSL Engine as MCP Server（控制面）
-- **ADR-0077** gRPC Data Plane（高吞吐通道）
-- **ADR-0078** Fine-tune 基模与训练管线
+- **ADR-0072** DSL 节点扩展（try/catch / `backend:` / `$var` / declarative style）— Wave 2 GATED
+- **ADR-0073** Tool JSON Schema 契约（JSON Schema 2020-12, nlohmann validator）— Wave 2 FIRST
+- **ADR-0074** Prompt Engineering + Evidence Gate — Wave 2 SECOND
+- **ADR-0075** EnvBackend 多环境执行（Local + Docker first）— Wave 3
+- **ADR-0076** DSL Engine as MCP Server（控制面）— Wave 3，gated by Candidate B 启动条件
+- **ADR-0077** gRPC Data Plane（数据面，**descoped pending consumer**）— Wave 4
+
+> ⚠️ **ADR-0078** Fine-tune 基模选型**不在 ADR-0071 派生清单内**——按 [ADR-0071 §D9](../adr/adr-0071-llm-native-agenticdsl-architecture.md#d9-训练基模延后决策) 决议，ADR-0078 需 AgenticMind 项目 fine-tune 探索完成后**独立新建**，不在 Wave 2-4 派生路径上。
 
 ---
 
@@ -561,11 +641,13 @@ auto result = remote.call_tool("loop/run", {prompt, tools}); // 同一 API
 
 ### 13.3 父子关系 vs 并行聚合
 
+> ⚠️ **代码示意 ADR-0060 决策 1 目标 API**；v1 实际签名与限制见 [§2.1 B](#21-api-形态adr-目标-vs-v1-实际-ship)（`delegate` 仅 3 参数无 monitor/max_lifetime_ms；无统一 `parallel()` 方法）。
+
 ```cpp
-// delegate: 长任务、监控、取消（父持有子句柄）
+// delegate: 长任务、监控、取消（父持有子句柄）—— 目标 API
 delegate(SubAgentSpec{.max_lifetime_ms=60000}, monitor);
 
-// parallel: 批量并行、独立任务（对等关系）
+// parallel: 批量并行、独立任务（对等关系）—— 目标 API
 registry.parallel("code_review", [t1, t2, t3]);
 ```
 
@@ -586,16 +668,16 @@ registry.parallel("code_review", [t1, t2, t3]);
 
 | 优先级 | 模式 | 状态 | 适用场景 |
 |---|---|---|---|
-| ⭐⭐⭐ | `call` + `emit` + `parallel` | v1 ✅ | 几乎所有场景 |
-| ⭐⭐⭐ | 3 Agent Loop（React/PlanExec/ForkJoin） | ✅ | 单 Agent 任务 |
+| ⭐⭐⭐ | `call` + `emit` + `parallel` | v1 ✅（`parallel` 由 `ForkJoinLoop` + `DomainWorkerPool` 组合承担，非统一 `parallel()` 方法） | 几乎所有场景 |
+| ⭐⭐⭐ | 3 Agent Loop（React/PlanExec/ForkJoin） | ✅ Sprint 20 ship | 单 Agent 任务 |
 | ⭐⭐ | `call_async` | v1 ✅ | 长任务、防阻塞 |
-| ⭐⭐ | Agent Hook（ADR-0081） | ✅ | 跨 Loop 拦截、治理 |
+| ⭐⭐ | Agent Hook（ADR-0081） | ✅ 骨架（V1 ship；loop 集成推迟 Sprint 24+） | 跨 Loop 拦截、治理 |
 | ⭐⭐ | 4 通道 Plugin 通信（ADR-0046） | 🔍 提案 | 多 Plugin 协作 |
-| ⭐ | `delegate` | v1 ✅ | 父子任务、需要监控 |
-| ⭐ | Cross-Cutting Pattern（ADR-0085） | ✅ | AOP 风格横切 |
-| ⭐ | MCTS / GEPA（ADR-0061） | ✅ | Agent 进化期协作 |
-| 🔮 | `open_stream` | Phase 2 | LLM token 流 |
-| 🔮 | DECLARE_SERVICE（ADR-0052） | Phase 6 v2+ | 跨进程服务化 |
+| ⭐ | `delegate` | v1 ✅（仅 3 参数 `IAgentComposition::delegate`，无 monitor callback） | 父子任务、需要取消 |
+| ⭐ | Cross-Cutting Pattern（ADR-0085） | ✅ V1 ship 2026-08-28（T26，18 cases） | AOP 风格横切 |
+| ⭐ | MCTS / GEPA（ADR-0061） | ✅ V1 ship T15/T17/T19/T20 | Agent 进化期协作 |
+| 🔮 | `open_stream` | Phase 2（`IAgentComposition::stream` 抛 `logic_error`） | LLM token 流 |
+| 🔮 | DECLARE_SERVICE | Phase 6 v2+，尚无独立 ADR 立项 | 跨进程服务化 |
 
 ---
 
@@ -623,13 +705,15 @@ registry.parallel("code_review", [t1, t2, t3]);
 | [ADR-0069](../adr/adr-0069-tool-coordinator-hooks.md) | ToolCoordinator Hook | 🟡 |
 | [ADR-0071](../adr/adr-0071-llm-native-agenticdsl-architecture.md) | LLM-native AgenticDSL 架构 | ✅ |
 | [ADR-0074](../adr/adr-0074-prompt-evidence-gate.md) | Prompt Engineering + Evidence Gate | ✅ |
-| [ADR-0075](../adr/adr-adr-0075-env-backend-local-docker.md) | EnvBackend 多环境执行 | ✅ |
-| [ADR-0081](../adr/adr-0081-pre-step-hook-contract.md) | Pre-Step Hook Contract | ✅ |
+| [ADR-0075](../adr/adr-0075-env-backend-local-docker.md) | EnvBackend 多环境执行 | ✅ |
+| [ADR-0081](../adr/adr-0081-pre-step-hook-contract.md) | Pre-Step Hook Contract（V1 骨架 ship，loop 集成推迟 Sprint 24+） | ✅ |
 | [ADR-0082](../adr/adr-0082-agent-first-class-registry.md) | Agent as First-Class Registry | ✅ |
+| [ADR-0083](../adr/adr-0083-evaluator-reward-contract.md) | IEvaluator/RewardSignal 评估契约（§十.1 引用） | ✅ |
 | [ADR-0085](../adr/adr-0085-cross-cutting-pattern-pdk.md) | Cross-Cutting Pattern PDK | ✅ |
 | [ADR-0086](../adr/adr-0086-credit-assignment-contract.md) | 信用分配契约 | 🔍 |
 | [ADR-0061-03](../adr/skill/adr-0061-03-skill-compiler.md) | Skill Compiler | ✅ |
-| [ADR-0061-06](../adr/skill/adr-0061-06-v1-1-amendment-trajectory-ir-decouple.md) | Trajectory IR | ✅ |
+| [ADR-0061-06](../adr/skill/adr-0061-06-v1-1-amendment-trajectory-ir-decouple.md) | Trajectory IR（v1.1 amendment；基准 ADR-0061-06 v1 ⛔ Superseded） | ✅ |
+| [ADR-0061-13](../adr/skill/adr-0061-13-distillation-output-format.md) | Distillation Output Format（IDistillationWriter + DistillationRecord） | ✅ |
 | [ADR-0061-08](../adr/skill/adr-0061-08-aflow-search.md) | AFlow MCTS 工作流搜索 | ✅ |
 | [ADR-0061-08-V1.1](../adr/skill/adr-0061-08-v1-1-amendment-axis6.md) | MCTS Axis6 cognitive_domain | ✅ |
 | [ADR-0061-09](../adr/skill/adr-0061-09-gepa-loop.md) | GEPA-style 反思循环 | ✅ |
@@ -650,7 +734,9 @@ registry.parallel("code_review", [t1, t2, t3]);
 
 | 日期 | 修订 | 依据 |
 |---|---|---|
-| 2026-09-02 | 初始版本，基于 ADR-0060/0046/0045/0051/0081/0085/0086/0061/0071 综合 |
+| 2026-09-02 | 初始版本，基于 ADR-0060/0046/0045/0051/0081/0085/0086/0061/0071 综合 | |
+| 2026-09-02 | 一致性修正：5 🚨 严重错误 + 7 ⚠️ 中度问题 + 4 💡 轻量建议（详见 Oracle session `ses_f9f0033d5ffeBb7jHMzWPnhrdq`）。关键变更：① §2.1 区分 ADR 目标 API vs v1 实际 ship API（IAgentComposition 4 方法）；② §2.3 标注 4 路由类为 Phase 2 愿景；③ §8.2 删除 `HookErrorPolicy` 虚构 `LogAndContinue`；④ §六 删除 `PlanExecuteLoop verify_phase` 并行虚构；⑤ §九 删除 `DEFINE_CROSSCUTTING` 宏 / `CrossCuttingPatternType` 枚举虚构，补 V1 ship 2026-08-28（T26, 18 cases）注记；⑥ §十二 修正 ADR-0071 派生清单（0072-0077，0078 非派生）；⑦ §十四/§7.5 修复 `DECLARE_SERVICE/ADR-0052` 过期引用；⑧ §2.4 区分 ADR-0060 决策 3 逻辑字段 vs ADR-0068 Appendix A 注册载荷；⑨ §八/§十四 补 Hook V1 骨架 + loop 集成推迟披露；⑩ §十五 补 ADR-0083/ADR-0061-13 索引 | Oracle session `ses_f9f0033d5ffeBb7jHMzWPnhrdq` + 实测源文件 `iagent_composition.h` / `iagent_hook_registry.h` / `plan_execute_loop.h` |
+| 2026-09-02 | 二轮审查补漏（Oracle session `ses_f9ebfec9affeg7TSuR90WKBwjr`，评级 B）：① §2.2 修正 `IAgentRegistry` 表述 → v1 实际依赖 `TestDoubleAgentRegistry`（P8 test-double），ADR-0082 接线为后续工作；② §13.3 加 ⚠️ v1 限定标注，与 §2.1 严谨性对齐 | Oracle session `ses_f9ebfec9affeg7TSuR90WKBwjr` + `include/agenticdsl/contract/test_double_registry.h` |
 
 > **维护责任**：架构组（Sprint 24 pre-launch governance）
 > **审查频率**：每 Sprint 启动时检查 ADR 状态变化（Proposed → Approved → Archived）
