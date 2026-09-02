@@ -13,7 +13,7 @@
 
 ## 一、核心结论
 
-Agent 协作不是单一抽象，而是**多层、9 维度**的体系（含运行时基底 + 自进化）：
+Agent 协作不是单一抽象，而是**多层、10 维度**的体系（含运行时基底 + 自进化）：
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -35,7 +35,7 @@ Agent 协作不是单一抽象，而是**多层、9 维度**的体系（含运�
 ├────────────────────────────────────────────────────────┤
 │ Session：三层模型（ADR-0033）+ 4-Scope（ADR-0079, §6C） │
 ├────────────────────────────────────────────────────────┤
-│ 拦截层：Agent Hook（ADR-0081）                          │
+│ 拦截层：Agent Hook（ADR-0081；V1 骨架 ship，loop 集成推迟 Sprint 24+）│
 │   pre-step / post-step + agent_glob 路由               │
 ├────────────────────────────────────────────────────────┤
 │ 横切层：Cross-Cutting Pattern（ADR-0085）               │
@@ -64,14 +64,16 @@ Agent 协作不是单一抽象，而是**多层、9 维度**的体系（含运�
 
 **ADR-0060 决策 1**：协议无关的协作模式，由 `IToolRegistry` 透明路由。
 
-| # | 模式 | v1 实现 | 进程内机制（v1 真实 API） | 进程间机制 | 适合场景 |
-|---|---|:---:|---|---|---|
-| ① | `call(req) → response` | ✅ | `IAgentComposition::call` / `IToolRegistry::call_tool()` | MCP `tools/call` | 同步 RPC、叶子工具调用 |
-| ② | `call_async(req, cb)` | ✅ | `IAgentComposition::call_async` / `IInteractionBus::emit+subscribe` | MCP + notifications | 异步 RPC、回调式 |
-| ③ | `emit(topic, payload)` | ✅ | `IInteractionBus::emit/subscribe`（不在 IAgentComposition） | MCP `notifications` | pub/sub、多对多广播 |
-| ④ | `delegate(spec, monitor)` | 🟡 部分 | `IAgentComposition::delegate(agent_id, task, priority)`（v1 **无** monitor callback / max_lifetime_ms；仅返回 `TaskHandle{task_id, cancel}`） | MCP `tasks/create + tasks/get` | 父子关系、长生命周期子 Agent |
-| ⑤ | `parallel(tasks, opts)` | 🟡 部分 | **无统一 `parallel()` 方法**；`DomainWorkerPool` + `ForkJoinLoop` + 调用方手工聚合 | MCP `tasks/create × N + tasks/get` | fork/join 并行聚合 |
-| ⑥ | `open_stream(handler)` | ❌ Phase 2 | `IAgentComposition::stream` 占位（抛 `std::logic_error`） | MCP + SSE streaming | LLM token 流 |
+| # | 模式 | ADR 决策 4 标注 | v1 实现 | 进程内机制（v1 真实 API） | 进程间机制 | 适合场景 |
+|---|---|:---:|:---:|---|---|---|
+| ① | `call(req) → response` | ✅ v1 | ✅ | `IAgentComposition::call` / `IToolRegistry::call_tool()` | MCP `tools/call` | 同步 RPC、叶子工具调用 |
+| ② | `call_async(req, cb)` | ✅ v1 | ✅ | `IAgentComposition::call_async` / `IInteractionBus::emit+subscribe` | MCP + notifications | 异步 RPC、回调式 |
+| ③ | `emit(topic, payload)` | ✅ v1 | ✅ | `IInteractionBus::emit/subscribe`（不在 IAgentComposition） | MCP `notifications` | pub/sub、多对多广播 |
+| ④ | `delegate(spec, monitor)` | ✅ v1 | ✅（受限） | `IAgentComposition::delegate(agent_id, task, priority)`（v1 **无** monitor callback / max_lifetime_ms；仅返回 `TaskHandle{task_id, cancel}`） | MCP `tasks/create + tasks/get` | 父子关系、长生命周期子 Agent |
+| ⑤ | `parallel(tasks, opts)` | ✅ v1 | ✅（受限） | **无统一 `parallel()` 方法**；`DomainWorkerPool` + `ForkJoinLoop` + 调用方手工聚合 | MCP `tasks/create × N + tasks/get` | fork/join 并行聚合 |
+| ⑥ | `open_stream(handler)` | ❌ Phase 2 | ❌ Phase 2 | `IAgentComposition::stream` 占位（抛 `std::logic_error`） | MCP + SSE streaming | LLM token 流 |
+
+> **状态列说明**：第二列「ADR 决策 4 标注」严格依据 [ADR-0060 决策 4 表](../adr/adr-0060-agent-composition.md#决策-4--v1-实现范围)（5 个 ✅ v1 + 1 个 ❌ Phase 2）。第三列「v1 实现」补充 v1 真实落地状态（与 §2.1 对照表 L164-168 对齐）：①/②/③ 完整可用；④/⑤ 仅部分能力落地（字段缺失或方法缺失，详见 §2.1 B）；⑥ Phase 2 占位。
 
 ### 2.1 API 形态（ADR 目标 vs v1 实际 ship）
 
@@ -149,7 +151,8 @@ auto task_handle = composition->delegate(
 
 // ⑤ fork/join 并行（v1 通过 ForkJoinLoop + DomainWorkerPool 组合，无统一 parallel()）
 //    参见 §六 + ADR-0020 §2.2.1：调用方手工组合 N 个 call_tool/call + 聚合
-//    ForkJoinLoop 接受多个分支字符串按逗号分隔作为输入
+//    ForkJoinLoop 直接接受 std::vector<std::string> 分支列表（fork_join_loop.h:138）
+//    备注：「按逗号分隔」语义属于 AgentRunner 适配层（配套指南 §3.2），非 run() 直 API
 auto results = fork_join_loop.run({"branch1 prompt", "branch2 prompt", "branch3 prompt"}, ctx);
 
 // ⑥ 流式通道（v1 ❌ Phase 2 — 当前实现抛 std::logic_error）
@@ -228,6 +231,8 @@ ToolRegistry::call_tool(name, args):
 | `llm.request` | LLM 调用前 | （未列） | `model`, `prompt_hash` |
 | `llm.response` | LLM 完成 | `{model, tokens_used, truncated}` | `tokens`, `duration_ms`, `error_code?` |
 | `llm.token` | LLM 流式输出 | `{text, model}` | `session_id`, `token`, `index` |
+| `llm.token.done` | 流式完成 | （未列，ADR-0060 决策 3 仅提 `loop.done`） | `total_tokens` |
+| `llm.token.error` | 流式错误 | （未列） | `error_code`, `message` |
 | `tool.execution.start` | 工具调用开始 | `{name, args_keys}`（不含 args 值） | `tool`, `layer` |
 | `tool.execution.end` | 工具调用结束 | `{name, duration_ms, ok}` | `tool`, `ok`, `duration_ms` |
 
@@ -982,13 +987,15 @@ Backend Plane    ─── 多 inference backend 协同
 
 ### 13.1 透明路由 vs 显式 backend
 
+> ⚠️ **「透明路由」v1 落地范围**：v1 仅在本地 backend 透明（`call_tool` 不感知 PDK Plugin vs SKILL 差异）；ADR-0060 决策 2 的全量路由（`CapabilityRegistry`/`RemoteRegistry`/`RemoteAgentAdapter`/`WasmRuntime`）属 Phase 2 愿景，全库零匹配，详见 [§2.3](#23-透明路由adr-0060-决策-2--phase-2-愿景)。
+
 ```cpp
-// 推荐：透明路由（ADR-0060 决策 2）
-auto result = call_tool("loop/run", args);  // 一致 API
+// 推荐：本地透明调用（v1 ✅，ADR-0060 决策 4 进程内范围）
+auto result = call_tool("loop/run", args);  // 一致 API（本地 backend 透明）
 
 // 不推荐：显式 backend 选择
 auto result = orchestrator.parallel("code_review", tasks);  // 与 call 重叠
-auto result = call_remote_agent("loop/run", args);          // 暴露 transport
+auto result = call_remote_agent("loop/run", args);          // Phase 2 才需暴露 transport
 ```
 
 ### 13.2 进程内 vs 进程间统一 API
@@ -1021,8 +1028,8 @@ registry.parallel("code_review", [t1, t2, t3]);
 
 ### 13.5 物理隔离 vs 逻辑隔离
 
-- **v1（ADR-0051 Spike）**：进程内协作 + jthread per-agent 线程隔离（ADR-0020）
-- **Phase 2+**：进程/容器隔离 + DECLARE_SERVICE 宏
+- **v1（ADR-0051 Spike）**：进程内协作 + jthread per-agent 线程隔离（ADR-0020）；**例外**：`SkillInterpreter` 提供进程级物理隔离（`include/agenticdsl/skill/skill_interpreter.h`，Sprint 22 V1 ship，ADR-0066 🟡 Partial，V2 deferred）—— SKILL.md 执行通过 `posix_spawn` + execve(/proc/self/exe, --skill-child) + seccomp(BPF) + pipe IPC 实现子进程隔离
+- **Phase 2+**：进程/容器隔离 + DECLARE_SERVICE 宏（**尚无独立 ADR 立项**，详见 [§7.5](#75-adr-0051-layer-3-dual-memos-共识发现) / [§十四](#十四实施优先级建议)）
 
 ---
 
@@ -1067,11 +1074,18 @@ registry.parallel("code_review", [t1, t2, t3]);
 | [ADR-0053](../adr/adr-0053-agent-descriptor-interface.md) | Agent Descriptor 接口 | ✅ |
 | [ADR-0054](../adr/adr-0054-capability-discovery.md) | Capability Discovery | ✅ |
 | [ADR-0060](../adr/adr-0060-agent-composition.md) | Agent 组合协议与声明式编排 | ✅ |
+| [ADR-0066](../adr/adr-0066-skill-interpreter-arch.md) | SkillInterpreter 架构（§13.5 物理隔离例外引用；V1 ship 2026-07-22, V2 deferred） | 🟡 |
 | [ADR-0068](../adr/adr-0068-event-emission-contract.md) | 事件发射契约 | ✅ |
 | [ADR-0069](../adr/adr-0069-tool-coordinator-hooks.md) | ToolCoordinator Hook | 🟡 |
 | [ADR-0071](../adr/adr-0071-llm-native-agenticdsl-architecture.md) | LLM-native AgenticDSL 架构 | ✅ |
+| [ADR-0072](../adr/adr-0072-dsl-node-extensions.md) | DSL 节点扩展（§十二 ADR-0071 派生；Wave 2 GATED by Evidence Gate） | 🔍 |
+| [ADR-0073](../adr/adr-0073-tool-json-schema-contract.md) | Tool JSON Schema 契约（§十二 ADR-0071 派生；JSON Schema 2020-12） | 🟡 |
 | [ADR-0074](../adr/adr-0074-prompt-evidence-gate.md) | Prompt Engineering + Evidence Gate | ✅ |
 | [ADR-0075](../adr/adr-0075-env-backend-local-docker.md) | EnvBackend 多环境执行 | ✅ |
+| [ADR-0076](../adr/adr-0076-dsl-engine-mcp-server.md) | DSL Engine as MCP Server 控制面（§十二 ADR-0071 派生；Wave 3, gated by Candidate B） | 🔍 |
+| [ADR-0077](../adr/adr-0077-grpc-data-plane.md) | gRPC Data Plane 数据面（§十二 ADR-0071 派生；Wave 4 descoped pending consumer） | 🔍 |
+| [ADR-0079](../adr/adr-0079-unified-session-4scope.md) | 统一会话模型与 4-Scope 存储（Conversation/Attempt/Step/Execution） | ✅ |
+| [ADR-0080](../adr/adr-0080-append-only-event-log.md) | AppendOnlyEventLog 作为核心审计日志（v1.1 D10 Distillation Capture） | ✅ |
 | [ADR-0081](../adr/adr-0081-pre-step-hook-contract.md) | Pre-Step Hook Contract（V1 骨架 ship，loop 集成推迟 Sprint 24+） | ✅ |
 | [ADR-0082](../adr/adr-0082-agent-first-class-registry.md) | Agent as First-Class Registry | ✅ |
 | [ADR-0083](../adr/adr-0083-evaluator-reward-contract.md) | IEvaluator/RewardSignal 评估契约（§十.1 引用） | ✅ |
@@ -1103,6 +1117,7 @@ registry.parallel("code_review", [t1, t2, t3]);
 | 2026-09-02 | 初始版本，基于 ADR-0060/0046/0045/0051/0081/0085/0086/0061/0071 综合 | |
 | 2026-09-02 | 一致性修正：5 🚨 严重错误 + 7 ⚠️ 中度问题 + 4 💡 轻量建议（详见 Oracle session `ses_f9f0033d5ffeBb7jHMzWPnhrdq`）。关键变更：① §2.1 区分 ADR 目标 API vs v1 实际 ship API（IAgentComposition 4 方法）；② §2.3 标注 4 路由类为 Phase 2 愿景；③ §8.2 删除 `HookErrorPolicy` 虚构 `LogAndContinue`；④ §六 删除 `PlanExecuteLoop verify_phase` 并行虚构；⑤ §九 删除 `DEFINE_CROSSCUTTING` 宏 / `CrossCuttingPatternType` 枚举虚构，补 V1 ship 2026-08-28（T26, 18 cases）注记；⑥ §十二 修正 ADR-0071 派生清单（0072-0077，0078 非派生）；⑦ §十四/§7.5 修复 `DECLARE_SERVICE/ADR-0052` 过期引用；⑧ §2.4 区分 ADR-0060 决策 3 逻辑字段 vs ADR-0068 Appendix A 注册载荷；⑨ §八/§十四 补 Hook V1 骨架 + loop 集成推迟披露；⑩ §十五 补 ADR-0083/ADR-0061-13 索引 | Oracle session `ses_f9f0033d5ffeBb7jHMzWPnhrdq` + 实测源文件 `iagent_composition.h` / `iagent_hook_registry.h` / `plan_execute_loop.h` |
 | 2026-09-02 | 二轮审查补漏（Oracle session `ses_f9ebfec9affeg7TSuR90WKBwjr`，评级 B）：① §2.2 修正 `IAgentRegistry` 表述 → v1 实际依赖 `TestDoubleAgentRegistry`（P8 test-double），ADR-0082 接线为后续工作；② §13.3 加 ⚠️ v1 限定标注，与 §2.1 严谨性对齐 | Oracle session `ses_f9ebfec9affeg7TSuR90WKBwjr` + `include/agenticdsl/contract/test_double_registry.h` |
+| 2026-09-02 | 三轮审查补漏（Oracle session `ses_f9e6abd56ffeCtK1u6e319zIHZ`，评级 A- → A）：① ⚠️ §二 顶表状态符号冲突：拆分「ADR 决策 4 标注」列与「v1 实现」列 + 脚注；② ⚠️ §13.1 补决策 2 Phase 2 限定（避免误导读者 ADR-0060 决策 2 是 v1）；③ ⚠️ §13.5 补 SkillInterpreter 物理隔离例外（ADR-0066 🟡）+ DECLARE_SERVICE 无立项限定；④ ⚠️ §十五 索引补 7 行：0066/0072/0073/0076/0077/0079/0080（§十二派生 + §6A.6 + §6C 引用）；⑤ 💡 §一「9 维度」→「10 维度」（架构栈图实际 10 框）；⑥ 💡 §一 拦截层补 ADR-0081 V1 骨架限定；⑦ 💡 §2.1 B L152 修正 ForkJoinLoop「按逗号分隔」错误注释 → 真实签名为 `std::vector<std::string>` 直传；⑧ 💡 §2.4 补 `llm.token.done` / `llm.token.error` 主题（ADR-0068 v1.4 真实发射） | Oracle session `ses_f9e6abd56ffeCtK1u6e319zIHZ` |
 | 2026-09-02 | **三章新增 + 标题升级**（用户请求：A+A 实施补充 + 独立分析）：① 文档标题升级 `Agent 间协作模式架构指南` → `Agent 协作与运行时架构指南`，范围扩展到运行时基底 + 自进化；② **新增 §5A 动态子图生成**（`GenerateSubgraphNode` 定义 + `PlanExecuteLoop::execute_phase` 调用链 + 与 §5.1 关系修正 + 与 §6B 自进化衔接）；③ **新增 §6A CognitiveWorker ↔ DomainWorkerPool 协作**（双 Worker 对比表 + thinking→execution 协作链 + IInteractionBus F7 顺序契约 + 与 6 协作模式衔接 + 物理/逻辑隔离对比）；④ **新增 §6B 自进化与协作模式的关系分析**（4 阶段管线 + 9 组件 × 3 协作模式耦合矩阵 + 双 Worker 模型精确对应 + ship 现状与文档脱钩 + 5 条关键不变量 + Axis6 未来轴）；⑤ **新增 §6C Session 层级与协作**（ADR-0033 三层 + ADR-0079 4-Scope + 与协作模式衔接 + 与 §6A 双 Worker 衔接）；⑥ §十一 增补 ADR-0061-02/0061-13 ship 状态 + 11.5/11.6 新增子节；⑦ §十四 优先级表新增 4 行（双 Worker、GenerateSubgraph、SkillCompiler 5 轴、Axis6）；⑧ §六与 §6A 互相锚定链接 | 独立分析依据：`src/core/types/node.h:198-207` + `cognitive_worker.cpp:75-87` + `domain_worker_pool.cpp` + `adr-0061-02/03/06/08/09/13` + `adr-0033/0079` 状态行 |
 | 2026-09-02 | **三轮审查修正**（Oracle session `ses_f9e927788ffeFwJ26EQHrm8YT7`，评级 C → 修订后 B）：**🚨 严重（4 项）**：① §6B.2 矩阵 3 行虚构耦合——MCTS/GEPA/BehavioralRegression 实际均为同步单线程（`mcts_workflow_search.h:186` / `gepa_loop.h:24` / `compute_fingerprint` 自由函数库），不是「⑤ parallel + 双 Worker」编排；③ §5A.2 调用链叙事错误——PlanExecuteLoop 路径**不经过** GenerateSubgraphNode（两者仅共享 `engine_->continue_with_generated_dsl` 入口）；④ §6B.4 vs §11.5/11.6 自相矛盾——脱钩列改为「§11.5/§11.6 ✅」，删除原建议句；⑥ §十四 SkillCompiler 5 轴标为 deferred V2（[ADR-0061-03 L97](../adr/skill/adr-0061-03-skill-compiler.md)），非 T17 ship 内容；⑦ §6A.1 ReactLoop 不走 CognitiveWorker 实证披露；⑧ §6A.5 ADR-0056 误标——物理隔离属 ADR-0055/0066，SkillInterpreter V1 已 ship seccomp；⑨ §6C.4 SessionManager 是 ADR-0079 域，非 ADR-0080；⑩ §6B.6 五轴名称按 `ADR-0061-08-V1.1` 实证改为 Axis1Template/Axis2Param/Axis3Tool/Axis4Control/Axis5Error；⑪ **§6A.6 SkillInterpreter 物理隔离专拆**（采纳 Oracle 建议）；⑫ §一 核心图同步新增「动态子图 / 双 Worker 运行时基底 / Session 三层」3 行 | Oracle session `ses_f9e927788ffeFwJ26EQHrm8YT7` + `src/modules/cognitive/{mcts_workflow_search,gepa_loop}.{h,cpp}` + `include/agenticdsl/skill/skill_interpreter.h` + ADR-0061-03 §实施 L97 |
 
