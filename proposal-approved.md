@@ -4,9 +4,6 @@
 
 ## 已批准提案
 
-| [name](.rddf/improvements/name.md) | priority | 来源 | 批准日期 | 批准人 |
-| --- | --- | --- | --- | --- |
-
 ## 已实施
 
 | [from-roadmap-phase-6c-validation-refinements](.rddf/improvements/from-roadmap-phase-6c-validation-refinements.md) | P1 | 2026-08-19 | [archived 2026-08-23](openspec/changes/archive/2026-08-23-from-roadmap-phase-6c-validation-refinements/) ✅ ship — ADR-0073 Wave-1 followup P1 closure (Oracle `ses_fec4689a4ffeZbJNK9LDO8iWlQ` review 发现 3 个 P1 语义缺口修复): P1#1 Warn-mode coercion 透明化 (tool_coordinator.cpp 直接修改 nlohmann::json 引用, 不 dump 重序列化); P1#2 不可转换输入 Warn-mode 处理 (nlohmann::json::parse 失败检测 + stderr warning + tool.audit.denied event reason="coercion_failed"); P1#3 enum coercion Strict 模式边界保留; DECLARE_TOOL_V3 默认值统一变更; 14 测试 cases 全 PASS (含 ctx session_id/trace_id audit 验证 + legacy V2 path); 43/43 tasks 完成, ctest 182/182 零回归; 同步 commit `e1422c8` (ADR-0073 §defect-truth-table v1.1.1) |
