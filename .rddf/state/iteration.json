@@ -428,10 +428,16 @@
     },
     {
       "name": "from-roadmap-phase-6c-validation-refinements",
-      "status": "planned",
+      "status": "archived",
       "phase": "wave-1-followup",
       "category": "debt",
-      "added_at": "2026-08-19T11:58:05+0800"
+      "added_at": "2026-08-19T11:58:05+0800",
+      "archived_at": "2026-08-24T05:03:38+00:00",
+      "tasks_done": 43,
+      "tasks_total": 43,
+      "archive_commits": [
+        "e1422c8"
+      ]
     }
   ]
 }
