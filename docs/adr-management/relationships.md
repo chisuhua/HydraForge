@@ -88,7 +88,7 @@
 | adr-0070 | PDK Plugin 命令/快捷键注册 (DECLARE_COMMAND) | 🟡 Partial | Unknown |  |
 | adr-0071 | ADR-0071 LLM-native AgenticDSL Architecture 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0071 | LLM-native AgenticDSL 架构 (LLM as DSL Author) | ✅ Approved | 2026-08-02 |  |
-| adr-0072 | DSL 节点扩展 (stream: / $var / declarative style / backend:) | 🔍 Proposed | 2026-08-03 |  |
+| adr-0072 | DSL 节点扩展 (stream: / $var / declarative style / backend:) | 🟡 Partial | 2026-09-02 | 2026-09-02 |
 | adr-0073 | ADR-0073 实现范围审计 (Implementation Scope Audit) | 🟡 Partial | 2026-08-13 |  |
 | adr-0073 | ADR-0073 Tool JSON Schema Contract 实施范围审计 | 🟡 Partial | Unknown |  |
 | adr-0073 | Tool JSON Schema 契约 (JSON Schema 2020-12) | ✅ Approved | 2026-08-02 |  |

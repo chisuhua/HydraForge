@@ -1,5 +1,7 @@
 # HydraForge 文档索引
 
+> **ADR 状态唯一事实源声明**（2026-09-02 同步，per Q3 α 修订）：**各 `docs/adr/*.md` 自身 `## 状态` 字段 = 权威状态**；**`python3 tools/adr_lint.py` 输出 = 可复现权威状态汇总**。本 README ADR 表、`docs/active-status.md`、`docs/architecture/adr-implementation-status-gap-analysis.md`、`docs/adr-management/relationships.md`（由 `tools/adr_relationships.py` 生成）均为视图层（按维度组织的状态汇总），与 ADR 文件冲突时**以 ADR 文件为准**。视图层滚动更新延迟 ≤ 1 Sprint。
+
 ## 目录结构
 
 ```
@@ -81,7 +83,8 @@ docs/
 | `adr-0069-tool-coordinator-hooks.md` | ToolCoordinator Hook 注入点 (pre/post 双列表 + IToolHookRegistry + HookErrorPolicy) | 🟡 Partial (2026-08-04 — middleware 改造 + budget_agent pre-hook + 5 类测试已 ship; 待 HookErrorPolicy amendment) |
 | `adr-0070-declare-command.md` | PDK Plugin 命令/快捷键注册 (Command≠Tool + DECLARE_COMMAND + ICommandRegistry) | 🟡 Partial (2026-08-04, D4 立项 + 实施排期 Wave 1) |
 | `adr-0071-llm-native-agenticdsl-architecture.md` | LLM-native AgenticDSL 架构 (LLM 作为 DSL 作者, 3 平面 Operator/DSL/Backend, 派生 6 个子 ADR/Change) | ✅ Approved (评审通过 2026-08-25, Promotion, 顶层方向 ADR, 锚定 Phase 6+ 演化) |
-| `adr-0073-tool-json-schema-contract.md` | Tool JSON Schema 契约 (JSON Schema 2020-12, input_schema/output_schema 字段 + nlohmann validator + DECLARE_TOOL 自动生成) | 🟡 Partial (Phase 6a manifest 边界部分采纳, 详见 adr-0073-impl-scope-audit.md; D2/D3/D4 属 Phase 6c C8/C9) |
+| `adr-0072-dsl-node-extensions.md` | DSL 节点扩展 (stream: / $var / declarative style / backend:) | 🟡 Partial (2026-09-02 翻牌 — D3+D5 已 ship per `from-roadmap-phase-6c-execution-dsl`; D1+D4 待实施; D2 条件未触发; D6 OFF; 治理异常"实施先于翻牌"已文档化) |
+| `adr-0073-tool-json-schema-contract.md` | Tool JSON Schema 契约 (JSON Schema 2020-12, input_schema/output_schema 字段 + nlohmann validator + DECLARE_TOOL 自动生成) | ✅ Approved (2026-08-18 — Phase 6c C9 `from-roadmap-phase-6c-schema-complete` ship: D2+D3+D4 全 ship; 详见 adr-0073-impl-scope-audit.md) |
 | `adr-0074-prompt-evidence-gate.md` | Prompt Engineering + Evidence Gate (D1 30+ few-shot + D2 50+ golden + D3 3 模型 baseline + D4 Evidence Gate + D5 两阶段注入 ≤8k + D6 JSONL + D7 失败事件) | ✅ Approved (评审通过 2026-08-25, Promotion, Wave 2 Phase 2.2, 派生自 ADR-0071 §D5) |
 | `adr-0075-env-backend-local-docker.md` | EnvBackend 多环境执行 (D1 IEnvBackend 接口 + D2 LocalBackend + D3 DockerBackend + D4 backend: 字段 + D5 EnvValidationHook) | ✅ Approved (2026-08-18 — Wave 3-A `from-roadmap-phase-6c-execution-envbackend` ship: D1+D2+D3+D5 全 ship) |
 | `adr-0076-dsl-engine-mcp-server.md` | DSL Engine as MCP Server 控制面 (D1 stdio+HTTP+SSE + D2 静态 token + D3-D7 capability 暴露 + D8 Stateless) | 🔍 Proposed (2026-08-03, Wave 3 末, **gated by active-status.md §四**, INTEGRATES WITH Phase 6 Candidate B) |
