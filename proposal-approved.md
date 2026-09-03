@@ -4,6 +4,8 @@
 
 ## 已批准提案
 
+| [adr-0072-flip-to-partial](.rddf/improvements/adr-0072-flip-to-partial.md) | P0 | 2026-09-02 | [Self-Review 12 项全勾选 + 24h cooling-off 完成, 2026-09-02 archive](openspec/changes/archive/2026-09-02-adr-0072-flip-to-partial/) ✅ — ADR-0072 翻牌 🟡 Partial 治理证据链补建 (Phase 6c 收官后治理异常"实施先于翻牌"关闭); proposal.md 翻牌决策记录 + design.md spec delta (ADR-0072 status update) + tasks.md 5 步结构 + specs/adr-0072/spec.md "status update" scenario; zero 代码改动 (纯治理动作) |
+
 ## 已实施
 
 | [from-roadmap-phase-6c-validation-refinements](.rddf/improvements/from-roadmap-phase-6c-validation-refinements.md) | P1 | 2026-08-19 | [archived 2026-08-23](openspec/changes/archive/2026-08-23-from-roadmap-phase-6c-validation-refinements/) ✅ ship — ADR-0073 Wave-1 followup P1 closure (Oracle `ses_fec4689a4ffeZbJNK9LDO8iWlQ` review 发现 3 个 P1 语义缺口修复): P1#1 Warn-mode coercion 透明化 (tool_coordinator.cpp 直接修改 nlohmann::json 引用, 不 dump 重序列化); P1#2 不可转换输入 Warn-mode 处理 (nlohmann::json::parse 失败检测 + stderr warning + tool.audit.denied event reason="coercion_failed"); P1#3 enum coercion Strict 模式边界保留; DECLARE_TOOL_V3 默认值统一变更; 14 测试 cases 全 PASS (含 ctx session_id/trace_id audit 验证 + legacy V2 path); 43/43 tasks 完成, ctest 182/182 零回归; 同步 commit `e1422c8` (ADR-0073 §defect-truth-table v1.1.1) |
