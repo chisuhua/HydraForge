@@ -1,6 +1,6 @@
 {
   "version": 6,
-  "updated_at": "2026-08-18T14:54:59+00:00",
+  "updated_at": "2026-09-03T09:30:00+00:00",
   "current_phase": "phase-6c",
   "changes": [
     {
@@ -438,6 +438,17 @@
       "archive_commits": [
         "e1422c8"
       ]
+    },
+    {
+      "added_at": "2026-09-02T18:00:00+00:00",
+      "name": "adr-0072-flip-to-partial",
+      "status": "archived",
+      "priority": "P0",
+      "plan_path": ".rddf/plans/adr-0072-flip-to-partial.md",
+      "tasks_total": 0,
+      "worktree_path": null,
+      "archived_at": "2026-09-03T09:30:00+00:00",
+      "filled_at": null
     }
   ]
 }
