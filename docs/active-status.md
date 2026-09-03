@@ -1,7 +1,7 @@
 # Active Status Board
 
 > **焦点**: 当前活跃的 OpenSpec changes | **更新**: 每日
-> **Master Plan**: [`docs/superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md`](superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md)
+> **Master Plan**: [`docs/superpowers/plans/2026-07-24-sprint-24-25-demo-driven-plan.md`](superpowers/plans/2026-07-24-sprint-24-25-demo-driven-plan.md)
 > **架构决策**: [`docs/adr/`](adr/) — 82 ADR (含 0083/0084/0085 新增 + adr-0061-08 v1.1 amendment 2026-08-31 flip, 2026-08-31 `tools/doc_metrics.py` 校准), 58 Approved (+ADR-0083/0084 2026-08-26, +ADR-0061-08 T20 V1 ship 2026-08-28, +ADR-0085 T26 V1 ship 2026-08-28, +ADR-0061-08 v1.1 amendment 2026-08-31, +ADR-0061-13 Distillation Data Plane V1 ship 2026-08-29), adr_lint 零错误 (2026-08-22 校准, Batch 2 收官后 ADR-0081/0082 状态格式修正; ADR-0081/0082 均 ✅ Approved per Batch 2 P3+P7 `adr-0081/0082-promote-to-approved`; **1 个 ADR-TRACKING-01 warning**: ADR-0085 Approved 24h+ 无 tracking change 目录 — ADR-0080 warning 已于 9b69c2b 由 capture-mode-and-distillation-writer-v1 解除; **2026-09-02 新增**: ADR-0072 🔍 Proposed → 🟡 Partial 翻牌, D3+D5 ship, 治理异常"实施先于翻牌"已文档化, 翻牌 OpenSpec change 待建 `2026-09-02-adr-0072-flip-to-partial`)
 > **Phase**: 6 — Agent-as-Plugin (2026-07-15 ~ 至今, Phase 5 ✅ 收官)
 
@@ -18,7 +18,50 @@
 | **Total ctest** | **211/211** 配置总数 (2026-09-01 `ctest -N` → Total Tests: 211; 自 2026-08-31 T1-T7 全 ship 后 +5: T3 evolution-budget-cap 6 cases + T2 mcts-axis6 6 cases + T4 signature-validation 7 cases + T5 cognitive-tools 4 cases + T1 workflow-materializer 5 cases; +Sprint 24 审计补全 2 cases: test_generate_subgraph_callback 3 cases (含多图) + test_t1_t7_integration_chain 1 case; 210/211 PASS 99.5%, 1 pre-existing timing flake per AGENTS.md; LastTest.log 为空壳) — ✅ Sprint 24 认知/领域演化系列 T1-T7 全部 ship 完成, ctest baseline 192 → 211 (+19) |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
-| **OpenSpec active** | **0** (2026-09-02 Phase 6c 收官: `from-roadmap-phase-6c-execution-baseline` ✅ archived 2026-08-18 + `from-roadmap-phase-6c-schema-complete` ✅ archived 2026-08-18 + `from-roadmap-phase-6c-execution-envbackend` ✅ archived 2026-08-18 + `from-roadmap-phase-6c-evidence-gate` ✅ archived 2026-09-02 + `from-roadmap-phase-6c-execution-dsl` ✅ archived 2026-09-02 + `from-roadmap-phase-6c-control-plane-eval` ✅ archived 2026-09-02; 6 个 Phase 6c OpenSpec changes 全 ship + archived) — **Phase 6c 收官后 0 个 active**, 真实 baseline 重测 + Phase 7a 启动评估留 Sprint 25+ carry-over |
+| **OpenSpec active** | **0** (2026-09-03 Sprint 25 收官: `adr-0072-flip-to-partial` ✅ archived + `control-plane-eval-c2-alignment` ✅ archived + `baseline-retest-wait-condition` ✅ archived + `adr-0072-d4-backend-parser` ✅ archived + `adr-0072-d1-stream-true-parser` ✅ archived + `adr-0042-state-alignment` ✅ archived; 6 个 Sprint 25 governance + parser changes 全 ship + archived; Sprint 25+ carry-over: 真实 3 模型 baseline 重测 + Phase 7a 启动评估 + ADR-0072 阶段 B IStreamHandle + ADR-0072 D6) — **Sprint 25 治理收官后 0 个 active** |
+
+## §Sprint 25 收官注记 (2026-09-03, 治理收官 Sprint)
+
+**战略定位**: post-6c 治理收口 Sprint，不做新功能，全部投入治理补建 + ADR-0072 契约闭环。
+
+**6 个 changes 全 ship + archived** (per Oracle session `ses_f9ab25dcfffetx4J5UFA7JYBKV` 优先级排序):
+
+| # | Change | 优先级 | Commit | 类别 |
+|---|--------|:---:|--------|------|
+| #1 | `adr-0072-flip-to-partial` | P0 | e02b3b8 + 7276173 + 59fb3db + a7c22cd | governance (12 项 Self-Review + honest cooling-off) |
+| #2 | `control-plane-eval-c2-alignment` | P0 | a742195 + 236deaf | Python + pytest (`--relaxed` flag, 20/20 PASS) |
+| #5 | `baseline-retest-wait-condition` | P1 | f1a6397 | governance (runbook 4 部分契约) |
+| #6 | `evidence-gate-conditional-banner` | P1 | (并入 #1) | governance |
+| #10 | `adr-0042-state-alignment` | P2 | 622b742 | governance (🔍→🟡 跨 4 文件同步) |
+| #3 | `adr-0072-d4-backend-parser` | P0 | ca03071 | C++ parser (4 类 W5 测试, 211/212 PASS) |
+| #4 | `adr-0072-d1-stream-true-parser` 阶段 A | P0 | c61a6d0 | C++ parser (3 类 W4 测试, 211/212 PASS) |
+
+**ADR-0072 实施度更新**: D4 1/6 → **2/6** (#3); D1 0/6 → **1/6** (#4 阶段 A 字段层)。
+
+**ADR-0075 EnvBackend 闭环**: parser 识别 `backend:` + `env:`/`env_vars:` 字段，ToolCoordinator 调度时可通过 EnvValidationHook 读取。
+
+**Evidence Gate Conditional 复评机制**: `--relaxed` 模式让 C2 (Solo Dev 容量, 外部组织约束) FAIL 不再触发 DescopeOrContinue，保住复评信号价值（per Change #2）。
+
+**真实 3 模型 baseline 重测**: `docs/runbooks/baseline-retest.md` 4 部分契约定义触发信号 + 重测 runbook + Evidence Gate 重跑 + 容量预算 (≤8h/次) + 失败 fallback（per Change #5）。
+
+**Sprint 25 carry-over (Sprint 25+)**:
+- U2 (Skill 集成, 6h, P2)
+- U3 (README, 6h, P2)
+- U4 (AgentForge 第 2 agent, 8h, P0 — Phase 7a C1 唯一代码解锁项)
+- **U6 ✅ closed (2026-09-03)** — ADR-0042 🔍 → 🟡 翻牌 ship (commit `622b742`)
+- W4 阶段 B (IStreamHandle 语义, 4h, P0)
+- W5 ✅ closed (2026-09-03) — ADR-0072 D4 `backend:` parser ship (commit `ca03071`)
+- W4 阶段 A ✅ closed (2026-09-03) — ADR-0072 D1 `stream:` 字段层 ship (commit `c61a6d0`)
+- ADR-0072 D6 (条件触发, Conditional 决议触发)
+- ADR-0062/0063/0064/0065/0071/0074/0075 Approved >24h 无 tracking change (drift 检测警告, 留 Sprint 25+ 跟踪)
+- Master Plan §十-§十三 4 章节缺失 (pre-existing drift, 已建 `fix-master-plan-review-gates-sections` tracking change)
+
+**Phase 7a 启动复评触发条件** (C1+C5 转 PASS 且 C2 不下降, per roadmap.md Q2b):
+- C1 (AgentForge ≥2 agents) — U4 ship 解锁
+- C5 (Evidence Gate 真实 PASS) — 真实 baseline 重测 + Evidence Gate 重跑解锁
+- C2 (Solo Dev ≥2 人 OR ≥80h/双周) — 外部约束, 不下降即可复评
+
+---
 
 **Phase 6c Wave 启动条件摘要**（2026-09-02 收官实况，per 6 个 OpenSpec change proposal）:
 
