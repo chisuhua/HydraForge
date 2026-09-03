@@ -1,5 +1,9 @@
 # from-roadmap-phase-6b-execution-envbackend
 
+> **status: SUPERSEDED by from-roadmap-phase-6c-execution-envbackend (2026-09-02)** — 2026-09-02 cleanup.
+> Phase 6c 版已 archived + ADR-0075 D1+D2+D3+D5 ship (per ADR-0075 ✅ Approved 2026-08-18).
+> 本文件保留作历史设计意图记录，详见 `proposal-suggestions.md` §3.2.
+
 **优先级**: P0 | **来源**: from-roadmap (phase-6b/execution-envbackend, ADR-0075 D2/D3/D5)
 **阶段**: phase-6b | **分类**: execution-envbackend
 **类型**: feature

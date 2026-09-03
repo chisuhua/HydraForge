@@ -1,5 +1,9 @@
 # from-roadmap-phase-6b-governance-rituals
 
+> **status: SUPERSEDED by 2026-07-10-phase5-sprint22-drift-strategic-gate ship (2026-09-02)** — 2026-09-02 cleanup.
+> 无 Phase 6c 升级版，但治理节奏实质 complete via [2026-07-10-phase5-sprint22-drift-strategic-gate](openspec/changes/archive/2026-07-10-phase5-sprint22-drift-strategic-gate/) ship + drift-gate.md template 已落地.
+> 本文件保留作历史设计意图记录，详见 `proposal-suggestions.md` §3.2.
+
 **优先级**: P1 | **来源**: from-roadmap (phase-6b/governance, ADR-0003 + ADR-0017 + 治理节奏)
 **阶段**: phase-6b | **分类**: governance
 **类型**: governance

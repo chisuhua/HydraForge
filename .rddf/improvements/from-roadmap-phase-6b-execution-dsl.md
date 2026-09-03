@@ -1,5 +1,9 @@
 # from-roadmap-phase-6b-execution-dsl
 
+> **status: SUPERSEDED by from-roadmap-phase-6c-execution-dsl (2026-09-02)** — 2026-09-02 cleanup.
+> Phase 6c 版已 archived + ADR-0072 D3+D5 ship (per ADR-0072 翻牌 🟡 Partial 2026-09-02).
+> 本文件保留作历史设计意图记录，详见 `proposal-suggestions.md` §3.2.
+
 **优先级**: P0 | **来源**: from-roadmap (phase-6b/execution-dsl, ADR-0072 D2/D3/D5)
 **阶段**: phase-6b | **分类**: execution-dsl
 **类型**: feature

@@ -1,5 +1,9 @@
 # from-roadmap-phase-6b-schema-complete
 
+> **status: SUPERSEDED by from-roadmap-phase-6c-schema-complete (2026-09-02)** — 2026-09-02 cleanup.
+> Phase 6c 版已 archived + ADR-0073 D2+D3+D4 ship (per ADR-0073 ✅ Approved 2026-08-18).
+> 本文件保留作历史设计意图记录，详见 `proposal-suggestions.md` §3.2.
+
 **优先级**: P0 | **来源**: from-roadmap (phase-6b/schema-complete, ADR-0073 D3)
 **阶段**: phase-6b | **分类**: schema-complete
 **类型**: feature

@@ -1,5 +1,9 @@
 # from-roadmap-phase-6b-evidence-gate
 
+> **status: SUPERSEDED by from-roadmap-phase-6c-evidence-gate (2026-09-02)** — 2026-09-02 cleanup.
+> Phase 6c 版已 archived (per `iteration.json` 8/8 archived + Phase 6c 2026-09-02 ship 收官).
+> 本文件保留作历史设计意图记录，详见 `proposal-suggestions.md` §3.2.
+
 **优先级**: P0 | **来源**: from-roadmap (phase-6b/evidence-gate, ADR-0074 D4)
 **阶段**: phase-6b | **分类**: evidence-gate
 **类型**: governance
