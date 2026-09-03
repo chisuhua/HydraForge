@@ -4,6 +4,7 @@
 
 ## 已批准提案
 
+| [adr-0072-d1-stream-true-parser](.rddf/improvements/adr-0072-d1-stream-true-parser.md) | P0 | 2026-09-03 | ✅ [archived 2026-09-03](openspec/changes/archive/2026-09-03-adr-0072-d1-stream-true-parser/) — ADR-0072 D1 `stream:` 字段接入 parser (阶段 A 仅透传, 阶段 B IStreamHandle 留 Sprint 26) + 3 类 W4 测试 + dsl.md REQ-W4-001; 3/3 W4 PASS (8 assertions), 211/212 全量 ctest (1 pre-existing perf fail), ADR-0072 D1 实施度 0/6→1/6 |
 | [adr-0072-d4-backend-parser](.rddf/improvements/adr-0072-d4-backend-parser.md) | P0 | 2026-09-03 | ✅ [archived 2026-09-03](openspec/changes/archive/2026-09-03-adr-0072-d4-backend-parser/) — ADR-0075 EnvBackend 闭环: parser 新增 `backend:` 字段 + `env:`→`env_vars:` 别名解析 (node_factory.cpp) + 4 类 W5 测试 (backend 字段 / env 别名 / env_vars 优先级 / 向后兼容) + dsl.md REQ-W5-001; 4/4 W5 PASS, 211/212 全量 ctest (1 pre-existing perf fail), ADR-0072 D4 实施度 1/6→2/6 |
 | [adr-0042-state-alignment](.rddf/improvements/adr-0042-state-alignment.md) | P2 | 2026-09-03 | [TBD] — ADR-0042 状态翻转 🔍 Proposed → 🟡 Partial (C16 部分实施已 ship: Decorator 链 / Dual Consumer / available_models / PluginLoader V2 / LlamaAdapter deprecated) + README 同步 + relationships 重新生成; zero 代码改动 (纯 governance 元数据) |
 | [baseline-retest-wait-condition](.rddf/improvements/baseline-retest-wait-condition.md) | P1 | 2026-09-03 | [TBD] — `docs/runbooks/baseline-retest.md` 完整 4 部分契约 (触发信号 + 重测 runbook + Evidence Gate 重跑 + 容量预算 ≤8h + 失败 fallback); interrupt-driven baseline 重测任务可触发 (per Oracle `ses_f9ab25dc...` P1 建议 + roadmap Q3); zero 代码改动 (纯文档) |

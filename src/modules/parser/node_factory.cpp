@@ -45,6 +45,10 @@ NodeContext parse_context(const nlohmann::json& json) {
   if (json.contains("env_vars")) {
     ctx.metadata["env_vars"] = json["env_vars"];
   }
+  // ADR-0072 D1: stream: 字段透传（阶段 A — 仅字段层；阶段 B IStreamHandle 语义留 Sprint 26）
+  if (json.contains("stream")) {
+    ctx.metadata["stream"] = json["stream"];
+  }
   if (json.contains("wait_for")) {
     ctx.metadata["wait_for"] = json["wait_for"];
   }

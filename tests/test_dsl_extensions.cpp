@@ -509,3 +509,78 @@ nodes:
   REQUIRE_FALSE(graph.nodes[0]->metadata.contains("backend"));
   REQUIRE_FALSE(graph.nodes[0]->metadata.contains("env_vars"));
 }
+
+// =====================================================================
+// W4: ADR-0072 D1 stream: 字段透传 (阶段 A, 3 case)
+// 设计依据: openspec/changes/adr-0072-d1-stream-true-parser/specs/adr-0072-stream-field/spec.md
+// 阶段 A 仅字段透传, 阶段 B IStreamHandle 语义留 Sprint 26
+// =====================================================================
+TEST_CASE("W4 stream: true field parsed into node.metadata", "[parser][dsl-ext][W4][stream-true]") {
+  MarkdownParser parser;
+  std::string markdown = R"(
+### AgenticDSL `/main`
+```yaml
+# --- BEGIN AgenticDSL ---
+graph_type: subgraph
+nodes:
+  - id: streaming_node
+    type: tool_call
+    tool: shell/exec
+    arguments:
+      cmd: "tail -f /var/log/syslog"
+    output_keys: ["log_line"]
+    stream: true
+# --- END AgenticDSL ---
+```)";
+
+  auto graph = parse_main_graph(markdown);
+  REQUIRE(graph.nodes.size() == 1);
+  REQUIRE(graph.nodes[0]->metadata.contains("stream"));
+  REQUIRE(graph.nodes[0]->metadata["stream"] == true);
+}
+
+TEST_CASE("W4 stream: false field parsed into node.metadata", "[parser][dsl-ext][W4][stream-false]") {
+  MarkdownParser parser;
+  std::string markdown = R"(
+### AgenticDSL `/main`
+```yaml
+# --- BEGIN AgenticDSL ---
+graph_type: subgraph
+nodes:
+  - id: non_streaming_node
+    type: tool_call
+    tool: shell/exec
+    arguments:
+      cmd: "echo done"
+    output_keys: ["result"]
+    stream: false
+# --- END AgenticDSL ---
+```)";
+
+  auto graph = parse_main_graph(markdown);
+  REQUIRE(graph.nodes.size() == 1);
+  REQUIRE(graph.nodes[0]->metadata.contains("stream"));
+  REQUIRE(graph.nodes[0]->metadata["stream"] == false);
+}
+
+TEST_CASE("W4 no stream field → metadata backward compatible", "[parser][dsl-ext][W4][backward-compat]") {
+  MarkdownParser parser;
+  std::string markdown = R"(
+### AgenticDSL `/main`
+```yaml
+# --- BEGIN AgenticDSL ---
+graph_type: subgraph
+nodes:
+  - id: plain_node
+    type: tool_call
+    tool: shell/exec
+    arguments:
+      cmd: "echo hi"
+    output_keys: ["result"]
+# --- END AgenticDSL ---
+```)";
+
+  auto graph = parse_main_graph(markdown);
+  REQUIRE(graph.nodes.size() == 1);
+  REQUIRE_FALSE(graph.nodes[0]->metadata.contains("stream"));
+}

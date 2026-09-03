@@ -1500,3 +1500,23 @@ class MockLLMProvider : public ILLMProvider {
 
 - **验证**: `tests/test_dsl_extensions.cpp::test_dsl_extensions[W5]`
 - **状态**: ✅ 已实现 (2026-09-03, Sprint 25 Change #3) — ADR-0072 D4 实施度从 1/6 升至 2/6
+
+### REQ-W4-001: 节点可声明流式执行模式 (stream: 字段, 阶段 A 仅透传)
+
+- **来源**: ADR-0072 D1 (阶段 A 解析层, 阶段 B IStreamHandle 语义留 Sprint 26)
+- **行为**: 节点 YAML 可声明 `stream: true` / `stream: false`，解析后存入 `Node::metadata["stream"]`。**阶段 A 仅字段透传**，运行时流式行为由阶段 B (`IStreamHandle` 新契约 + 3 类节点 tool_call / shell.exec / dsl_call 运行时实现 + stop_token 传播交互) 实施。
+- **缺省语义**: 不含 `stream` 字段时 `Node::metadata` 不含 `stream` key（区别于显式 `stream: false`）
+- **示例**:
+
+  ```yaml
+  - id: log_tail
+    type: tool_call
+    tool: shell/exec
+    arguments:
+      cmd: "tail -f /var/log/syslog"
+    output_keys: ["log_line"]
+    stream: true
+  ```
+
+- **验证**: `tests/test_dsl_extensions.cpp::test_dsl_extensions[W4]`
+- **状态**: ✅ 已实现阶段 A (2026-09-03, Sprint 25 Change #4) — ADR-0072 D1 实施度从 0/6 升至 1/6（仅字段层）；阶段 B 留 Sprint 26

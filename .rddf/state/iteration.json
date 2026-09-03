@@ -493,6 +493,17 @@
       "worktree_path": null,
       "archived_at": "2026-09-03T13:55:00+00:00",
       "filled_at": null
+    },
+    {
+      "added_at": "2026-09-03T14:00:00+00:00",
+      "name": "adr-0072-d1-stream-true-parser",
+      "status": "archived",
+      "priority": "P0",
+      "plan_path": null,
+      "tasks_total": 3,
+      "worktree_path": null,
+      "archived_at": "2026-09-03T14:10:00+00:00",
+      "filled_at": null
     }
   ]
 }
