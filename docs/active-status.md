@@ -47,7 +47,7 @@
 **Sprint 25 carry-over (Sprint 25+)**:
 - U2 (Skill 集成, 6h, P2)
 - U3 (README, 6h, P2)
-- U4 (AgentForge 第 2 agent, 8h, P0 — Phase 7a C1 唯一代码解锁项)
+- **U4 ✅ closed (2026-09-03)** — AgentForge 第 2 domain agent (`doc_writer`) ship (HydraForge 端 zero code change; 3 atomic commits in `/workspace/project/AgentForge` repo: `dfc6882` refactor + `7b4330c` agents + `2e10104` docs; 11/11 tests / 34 assertions pass) — **Phase 7a C1 解锁**
 - **U6 ✅ closed (2026-09-03)** — ADR-0042 🔍 → 🟡 翻牌 ship (commit `622b742`)
 - W4 阶段 B (IStreamHandle 语义, 4h, P0)
 - W5 ✅ closed (2026-09-03) — ADR-0072 D4 `backend:` parser ship (commit `ca03071`)
@@ -57,7 +57,7 @@
 - Master Plan §十-§十三 4 章节缺失（pre-existing drift）✅ closed 2026-09-03 — 已在 `docs/superpowers/plans/2026-07-24-sprint-24-25-demo-driven-plan.md` 补登并归档 change `2026-09-03-fix-master-plan-review-gates-sections`
 
 **Phase 7a 启动复评触发条件** (C1+C5 转 PASS 且 C2 不下降, per roadmap.md Q2b):
-- C1 (AgentForge ≥2 agents) — U4 ship 解锁
+- **C1 (AgentForge ≥2 agents) — ✅ PASS (2026-09-03 U4 ship)** `coding_assistant` + `doc_writer` 共存 (11/11 tests pass in AgentForge)
 - C5 (Evidence Gate 真实 PASS) — 真实 baseline 重测 + Evidence Gate 重跑解锁
 - C2 (Solo Dev ≥2 人 OR ≥80h/双周) — 外部约束, 不下降即可复评
 

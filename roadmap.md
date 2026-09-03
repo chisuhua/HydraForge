@@ -180,7 +180,7 @@ Phase 8b ───────Fine-tune ────────────┘ 
   - [x] `examples/pdk_chat_demo` 支持 3 种 Agent Loop (React / PlanExecute / ForkJoin；U1 archived 2026-08-14)
   - [ ] Code Review SKILL.md 通过 SkillInterpreter 隔离执行 (U2)
   - [ ] `include/agenticdsl/pdk/README.md` 完成 (U3)
-  - [ ] AgentForge 第 2 个领域 agent 可独立运行 (U4)
+  - [x] AgentForge 第 2 个领域 agent 可独立运行 (U4) — 2026-09-03 ship (`doc_writer`, AgentForge repo 3 atomic commits `dfc6882`/`7b4330c`/`2e10104`, 11/11 tests pass)
   - [ ] `.agent.md` 加载时有 schema 校验 (U5 核心 gate；demo-level parser 已部分 ship)
   - [x] **🎯 Execution Plane: ADR-0073 翻牌 🟡 Partial** (W1 archived 2026-08-13)
   - [ ] **🎯 ADR-0074 D3 baseline 第一次测量** (W2 carry-over；3 模型 × 50 tasks)
@@ -207,7 +207,7 @@ Phase 8b ───────Fine-tune ────────────┘ 
 | U1 | pdk_chat_demo: PlanExecuteLoop + ForkJoinLoop DSL 实现 | `demo-chat-v2` | 8h | P0 | Phase 6a |
 | U2 | pdk_chat_demo: Code Review SKILL.md 集成 SkillInterpreter | `demo-chat-v2` | 6h | P0 | ADR-0055 V1 |
 | U3 | PDK 开发者指南: `include/agenticdsl/pdk/README.md` | `platform` | 6h | P0 | — |
-| U4 | AgentForge 第 2 个领域 agent: 验证 PDK 复用性 | `platform` | 8h | P1 | U3 |
+| U4 | AgentForge 第 2 个领域 agent: 验证 PDK 复用性 | `platform` | 8h | P1 | U3 | ✅ Done (2026-09-03) — `doc_writer` ship; AgentForge 3 atomic commits; **Phase 7a C1 解锁** |
 | U5 | DSLValidator 增强: `.agent.md` schema 校验 | `architecture` | 6h | P1 | — |
 | U6 | ADR-0042 状态对齐 🔍 → 🟡 | `architecture` | 2h | P1 | — | commit `622b742` 2026-09-03 ship + cross-file 同步 (ADR/README/relationships/iteration.json) |
 | **W1** | **✅ ADR-0073 翻牌 🟡 Partial** (Phase 6a manifest schema 边界部分采纳 + 修正 docs/README.md + adr-0073-impl-scope-audit.md) → **2026-08-18 ✅ Approved** (D2+D3+D4 全 ship) | `execution-plane-wave2` | 2h | P0 | Phase 6a |
@@ -221,7 +221,7 @@ Phase 8b ───────Fine-tune ────────────┘ 
 > **实际执行回顾（2026-08-17）**: 原计划 64h / 44h 容量超额未在 08-05 前完成 descope 决策；phase-6b 实际 08-11 kickoff，已完成 21 个归档 changes，但仍有 8/11 gates 未满足。
 >
 > **carry-over 决策**:
-> 1. U2/U3/U4/U6 与 W2/W3/W4/W5 不再假设于 08-19 前完成，转为 Phase 6c 的显式前置队列。**状态更新 (2026-09-03)**：U6 已 ship (commit `622b742`)、W5 parser 已 ship (commit `ca03071`)、W4 阶段 A 字段层已 ship (commit `c61a6d0`)；当前真实未 ship = U2 + U3 + U4 + W4 阶段 B (IStreamHandle 语义, 4h) + ADR-0072 D6 (条件触发)。
+> 1. U2/U3/U4/U6 与 W2/W3/W4/W5 不再假设于 08-19 前完成，转为 Phase 6c 的显式前置队列。**状态更新 (2026-09-03)**：U6 已 ship (commit `622b742`)、W5 parser 已 ship (commit `ca03071`)、W4 阶段 A 字段层已 ship (commit `c61a6d0`)、**U4 (AgentForge 第 2 agent) 已 ship (AgentForge 3 atomic commits `dfc6882`/`7b4330c`/`2e10104`)**；当前真实未 ship = U2 + U3 + W4 阶段 B (IStreamHandle 语义, 4h) + ADR-0072 D6 (条件触发)。
 > 2. 历史 descope 选项已废止；U8 Phase 6 服务化重启评估继续维持 CUT。
 > 3. ADR-0074 few-shot/golden 工作与 W2 baseline 保持依赖链，不在未有 baseline 证据前强行宣称完成。
 >
@@ -238,7 +238,7 @@ Phase 8b ───────Fine-tune ────────────┘ 
 **周期**: 2026-08-19 ~ 2026-09-09 (3 周, ~80h 容量) — **2026-09-02 收官**
 **触发条件**: Phase 6b Sprint Review 通过 + 8 项 carry-over（U2/U3/U4/U6/W2/W3/W4/W5）在第一周内纳入
 
-> **实际可执行性（2026-09-02 收官实况，2026-09-03 Sprint 25 治理收官补登）**: Phase 6b 8 项 carry-over 中 **W2（baseline 工具）实际已 ship**（`tools/baseline/measure_prompt_baseline.py` + `tools/measure_prompt_baseline.cpp`）；**2026-09-03 Sprint 25 治理收官后真实剩余 carry-over = U2（code-review-run.skill.md 缺 .cpp 集成，6h）+ U3（`include/agenticdsl/pdk/README.md` 未创建，6h）+ U4（AgentForge 第 2 agent 未启动，8h）+ W4 阶段 B（ADR-0072 D1 IStreamHandle 语义，4h）+ ADR-0072 D6（条件触发）**。C12 DockerBackend **实际以 cpp-httplib 替代 libcurl**（降成本，避免 1 周节省缺口）。
+> **实际可执行性（2026-09-02 收官实况，2026-09-03 Sprint 25 治理收官补登）**: Phase 6b 8 项 carry-over 中 **W2（baseline 工具）实际已 ship**（`tools/baseline/measure_prompt_baseline.py` + `tools/measure_prompt_baseline.cpp`）、**U4（AgentForge 第 2 agent `doc_writer`）已 ship**（AgentForge 3 atomic commits `dfc6882`/`7b4330c`/`2e10104`，11/11 tests pass）；**2026-09-03 Sprint 25 治理收官后真实剩余 carry-over = U2（code-review-run.skill.md 缺 .cpp 集成，6h）+ U3（`include/agenticdsl/pdk/README.md` 未创建，6h）+ W4 阶段 B（ADR-0072 D1 IStreamHandle 语义，4h）+ ADR-0072 D6（条件触发）**。C12 DockerBackend **实际以 cpp-httplib 替代 libcurl**（降成本，避免 1 周节省缺口）。
 >
 > *2026-09-03 Sprint 25 已 ship 闭环清单：U6（ADR-0042 🔍→🟡 翻牌, commit `622b742`）、W5（ADR-0072 D4 `backend:` parser, commit `ca03071`）、W4 阶段 A（ADR-0072 D1 `stream:` 字段层, commit `c61a6d0`）。*
 
@@ -302,7 +302,7 @@ Phase 8b ───────Fine-tune ────────────┘ 
 
 | 启动条件 | 阈值 | 现状 (2026-09-03) | 评估 | 评估时点 |
 |---------|------|------------------|------|---------|
-| AgentForge 第 2 agent | 可独立运行 | ❌ U4 仍未启动（carry-over） | ❌ FAIL | Phase 7a 重新评估（人力 + 真实 baseline 重测通过后） |
+| AgentForge 第 2 agent | 可独立运行 | ✅ **U4 ship 2026-09-03** (`coding_assistant` + `doc_writer` 共存, 11/11 tests pass in AgentForge repo) | ✅ **PASS** | — |
 | Solo Dev 容量 | ≥2 人 OR ≥80h/双周 | ❌ 当前 1 人, ~27h/周；**Sprint 25 `control-plane-eval-c2-alignment` (commit `a742195`) ship `--relaxed` 模式 — C2 FAIL 不再触发 DescopeOrContinue，保住复评信号价值** | ❌ FAIL | 外部人力变化；每 Sprint 收官重跑 `scripts/control-plane-eval.py --relaxed` |
 | ADR-0068 §附录 A amendment PR | 14 候选主题 ship | ✅ 2026-08-13 archived（W6 已满足） | ✅ PASS | — |
 | ADR-0073 完整 ship | D2+D3+D4 ship | ✅ 2026-08-18 ✅ Approved（D2+D3+D4 全 ship） | ✅ PASS | — |
