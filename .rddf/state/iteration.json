@@ -460,6 +460,17 @@
       "worktree_path": null,
       "archived_at": "2026-09-03T12:50:00+00:00",
       "filled_at": null
+    },
+    {
+      "added_at": "2026-09-03T13:00:00+00:00",
+      "name": "baseline-retest-wait-condition",
+      "status": "archived",
+      "priority": "P1",
+      "plan_path": ".rddf/plans/baseline-retest-wait-condition.md",
+      "tasks_total": 0,
+      "worktree_path": null,
+      "archived_at": "2026-09-03T13:15:00+00:00",
+      "filled_at": null
     }
   ]
 }

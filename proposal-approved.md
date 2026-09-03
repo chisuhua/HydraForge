@@ -4,6 +4,7 @@
 
 ## 已批准提案
 
+| [baseline-retest-wait-condition](.rddf/improvements/baseline-retest-wait-condition.md) | P1 | 2026-09-03 | [TBD] — `docs/runbooks/baseline-retest.md` 完整 4 部分契约 (触发信号 + 重测 runbook + Evidence Gate 重跑 + 容量预算 ≤8h + 失败 fallback); interrupt-driven baseline 重测任务可触发 (per Oracle `ses_f9ab25dc...` P1 建议 + roadmap Q3); zero 代码改动 (纯文档) |
 | [control-plane-eval-c2-alignment](.rddf/improvements/control-plane-eval-c2-alignment.md) | P0 | 2026-09-03 | [TBD] — `scripts/control-plane-eval.py` 新增 `--relaxed` flag + 决策树 C2 从 blocking 降级为非阻塞 + 4 类 pytest (默认保持 + relaxed 3 case) + audit doc 更新; 保住复评机制信号价值 (per Oracle session `ses_f9ab25dcfffetx4J5UFA7JYBKV` P0 建议) |
 | [adr-0072-flip-to-partial](.rddf/improvements/adr-0072-flip-to-partial.md) | P0 | 2026-09-02 | [Self-Review 12 项全勾选 + cooling-off 追溯性证据补建 (per .rddf/state/adr-0072-cooling-off.txt), 2026-09-03 archive](openspec/changes/archive/2026-09-02-adr-0072-flip-to-partial/) ✅ — ADR-0072 翻牌 🟡 Partial 治理证据链补建 (Phase 6c 收官后治理异常"实施先于翻牌"关闭); proposal.md 翻牌决策记录 + design.md spec delta (ADR-0072 status update) + tasks.md 5 步结构 + specs/adr-0072-status-update/spec.md "status update" scenario; zero 代码改动 (纯治理动作) |
 
