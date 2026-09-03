@@ -2,7 +2,27 @@
 
 ## 状态
 
-🔍 Proposed (2026-08-03 — 派生自 ADR-0071 §决策 D3, Wave 2 Phase 2.4 ADR; **GATED** by ADR-0074 Evidence Gate D4; 衔接 ADR-0075 §决策 D4 (backend: 重命名) + ADR-0074 (Prompt parse-valid baseline); 待架构组评审; 实施 1-2 周, 触发后)
+🟡 **Partial** (2026-09-02 — 翻牌依据：D3 `declarative style` + D5 `双语法共存期基础设施` 在 ADR 仍 🔍 Proposed 时 ship，违反 [STATUS-GLOSSARY.md](../../adr-management/STATUS-GLOSSARY.md) "Proposed = 未到实施阶段" 定义；按本项目治理惯例 [ADR-0073 增量翻牌路径](./adr-0073-tool-json-schema-contract.md) 由 🔍 Proposed → 🟡 Partial；D1 `stream:true` + D4 `backend:` 字段未实施，D2 `$var` 因 Evidence Gate = Conditional 未触发维持 N/A)
+
+**翻牌时点状态分类**：
+| 决策 | 节点/字段 | 当前状态 | 备注 |
+|------|----------|:---:|------|
+| **D1** | `stream: true` 扩展到所有 tool_call/shell.exec/dsl_call | ❌ 未实施 | parser 无 `stream:` 全局支持证据；仅 LLM `dsl_call` 已 ship（[dsl.md §5.5.3](../../specs/dsl.md)）|
+| **D2** | `$var` 替代 `{{ }}` | ⏸ N/A | 触发条件 parse-valid < 85%；[2026-09-02 Evidence Gate 决议 = Conditional](../../audits/2026-09-02-evidence-gate-v1.md) (mock 88.24% ∈ [85,90)) → 未触发 |
+| **D3** | `declarative style` (`exec:` 语法糖) | ✅ **已 ship** | `src/modules/parser/declarative_style.{h,cpp}` (C6: ADR-0072 D3 标注) + `markdown_parser.cpp:164,198` 集成钩子 + `tests/test_dsl_extensions.cpp` |
+| **D4** | `backend:` 字段 | ❌ 未实施 | parser 无 `backend:` 字段证据；ADR-0075 D4 backend_policy.h 已 ship 但 DSL 解析器未对接 |
+| **D5** | 双语法共存期基础设施 | ✅ **已 ship (D3 arm)** | D3 arm (`exec: ↔ type: tool_call`) 共存基础设施已 ship（含 `dual_syntax_lint.cpp` C7 + `test_dsl_extensions.cpp` backward compat）；D2 arm（`$var ↔ {{}}`）未触发 N/A（等真实 3 模型 baseline FAIL）|
+| **D6** | `try/catch/finally` 节点族 | ⛔ OFF | ADR-0071 §3.C "默认不做"；不计入翻牌范围 |
+
+**翻牌触发**：2026-09-02 实施 `from-roadmap-phase-6c-execution-dsl` change（OpenSpec change，已 ship），翻牌 OpenSpec 待建：`2026-09-02-adr-0072-flip-to-partial`（per single-dev mode 治理：issue + Self-Review Checklist + 24h cooling-off）。
+
+**证据基础**：
+- D3 ship 实证：`src/modules/parser/declarative_style.cpp:2`（文件头注释 "C6: ADR-0072 D3 declarative style `exec: [...]` 解析"）+ `src/modules/parser/declarative_style.h:2`（同样注释）+ `src/modules/parser/CMakeLists.txt:4` 注册
+- D5 ship 实证：`src/modules/parser/markdown_parser.cpp:38,164,198` 三处 C6 集成钩子
+- 测试覆盖：`tests/test_dsl_extensions.cpp`（per ADR-0072 C6 spec "test_dsl_extensions 4 cases"）
+- 治理异常文档化：D3/D5 实施先于 ADR 翻牌（per single-dev mode 治理允许）
+
+**翻牌后保留 Proposed 属性的部分**：D1（强制必补）/ D4（强制必补）未 ship，ADR 维持 🟡 Partial 而非 ✅ Approved；后续 Evidence Gate 真实 3 模型重测（Sprint 25+ carry-over）若 FAIL 触发 D2，则 D5 双语法共存期需要 6 个月双语法过渡。
 
 ## 领域
 
@@ -391,7 +411,7 @@ DSL 解析器 MUST 支持以下语法 (v3.11):
 | 风险 | 缓解 |
 |------|------|
 | **D3 declarative style 用户偏好不明显** — 用户仍偏好 imperative | D3 触发条件之一是用户反馈; 不满足则不启用; 语法糖零成本 |
-| **D6 `try/catch` 永不触发** — 子图表达力始终足够 | 良性, 表明 stdlib 设计良好; ADR-0072 状态保持 🔍 Proposed |
+| **D6 `try/catch` 永不触发** — 子图表达力始终足够 | 良性, 表明 stdlib 设计良好; ADR-0072 状态保持 🟡 Partial (D1+D4 持续 N/A) |
 
 ---
 
@@ -497,14 +517,16 @@ DSL 解析器 MUST 支持以下语法 (v3.11):
 
 ## 复审节点
 
-- **Wave 2 Phase 2.4 Gating 检查时** (D2/D3/D6 触发评估): 本 ADR 状态从 🔍 Proposed → 🟡 Partial (D1+D4 已实施)
-- **D2 `$var` 触发时**: 本 ADR 状态保持 🟡 Partial; 新增 §后续 Phase 2.5 (D2 实施)
-- **D6 `try/catch` 触发时**: 本 ADR 状态从 🟡 Partial → ✅ Approved (D1-D6 全部 ship, gated 项触发后)
+- **2026-09-02 翻牌记录**: ADR-0072 状态从 🔍 Proposed → 🟡 Partial (D3 declarative style + D5 双语法共存期基础设施已 ship; D1+D4 待实施; D2 触发条件 Evidence Gate = Conditional 未达; D6 OFF; 治理异常"实施先于翻牌"已文档化)
+- **D1 `stream:` 必补完成时**: ADR-0072 状态保持 🟡 Partial
+- **D4 `backend:` 必补完成时**: ADR-0072 状态保持 🟡 Partial (D1+D4 全 ship 仅达到 §3.A 必补门槛)
+- **D2 `$var` 触发时** (Evidence Gate 真实 3 模型重测 FAIL 即 parse-valid < 85%): 本 ADR 状态保持 🟡 Partial; 新增 §后续 Phase 2.5 (D2 实施 + D5 6 个月双语法共存期启动)
+- **D1+D4+D2+D3+D5 全 ship + D6 维持 OFF** 时: ADR-0072 状态从 🟡 Partial → ✅ Approved
 - **DSL v3.11 ship 时**: spec 同步升级; Wave 3 Evidence Gate 复测
 
 ---
 
-*文档版本: v1.0*
+*文档版本: v1.1*
 *创建日期: 2026-08-03*
 *作者: HydraForge 架构组*
-*状态: 🔍 Proposed (Wave 2 Phase 2.4 ADR; GATED by ADR-0074 Evidence Gate; D1+D4 强制, D2/D3/D6 条件性触发; 衔接 ADR-0075; 待架构组评审)*
+*状态: 🟡 Partial (2026-09-02 翻牌 — D3+D5 已 ship per `from-roadmap-phase-6c-execution-dsl`, D1+D4 待实施, D2 因 Evidence Gate = Conditional 未触发维持 N/A, D6 per ADR-0071 §3.C 维持 OFF; 治理异常"实施先于翻牌"已文档化于头部状态行)*
