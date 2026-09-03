@@ -1,5 +1,8 @@
 # from-roadmap-phase-6b-platform
 
+> **status: SUPERSEDED (2026-09-02 cleanup)** — 已 archived in `iteration.json` (per dashboard 7b 区).
+> 详见 `proposal-suggestions.md` §3.2.
+
 **优先级**: P1 | **来源**: from-roadmap (phase-6b/platform)
 **阶段**: phase-6b | **分类**: platform
 **类型**: functional
