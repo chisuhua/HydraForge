@@ -4,7 +4,7 @@
 
 ## 已批准提案
 
-| [adr-0072-flip-to-partial](.rddf/improvements/adr-0072-flip-to-partial.md) | P0 | 2026-09-02 | [Self-Review 12 项全勾选 + 24h cooling-off 完成, 2026-09-02 archive](openspec/changes/archive/2026-09-02-adr-0072-flip-to-partial/) ✅ — ADR-0072 翻牌 🟡 Partial 治理证据链补建 (Phase 6c 收官后治理异常"实施先于翻牌"关闭); proposal.md 翻牌决策记录 + design.md spec delta (ADR-0072 status update) + tasks.md 5 步结构 + specs/adr-0072/spec.md "status update" scenario; zero 代码改动 (纯治理动作) |
+| [adr-0072-flip-to-partial](.rddf/improvements/adr-0072-flip-to-partial.md) | P0 | 2026-09-02 | [Self-Review 12 项全勾选 + cooling-off 追溯性证据补建 (per .rddf/state/adr-0072-cooling-off.txt), 2026-09-03 archive](openspec/changes/archive/2026-09-02-adr-0072-flip-to-partial/) ✅ — ADR-0072 翻牌 🟡 Partial 治理证据链补建 (Phase 6c 收官后治理异常"实施先于翻牌"关闭); proposal.md 翻牌决策记录 + design.md spec delta (ADR-0072 status update) + tasks.md 5 步结构 + specs/adr-0072-status-update/spec.md "status update" scenario; zero 代码改动 (纯治理动作) |
 
 ## 已实施
 
