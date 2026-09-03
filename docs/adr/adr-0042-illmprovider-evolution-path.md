@@ -11,7 +11,12 @@
 
 ## 状态
 
-🔍 Proposed (2026-07-06 — 架构方案讨论产出, 待 review); **2026-07-06 renumber**: 兄弟 ADR-0036 → ADR-0045 (编排 plugin), ADR-0037 → ADR-0046 (通信协议), 避免与旧 ADR-0036-三层服务协议 / ADR-0037-因果序冲突
+🟡 Partial (2026-09-03 — C16 部分决策已 ship: Decorator 链 / Dual Consumer / available_models pure virtual / PluginLoader V2 / LlamaAdapter deprecated; C17+ 演进路径待独立 change 跟踪)
+
+**状态变更历史**:
+- 2026-07-06: 🔍 Proposed (架构方案讨论产出, 待 review; renumber 避免与旧 ADR-0036/0037 冲突)
+- 2026-07-09: C16 增量决议 (ILLMProvider v2 ship, OpenSpec change `phase5-illmprovider-call-chain-v2` — 5 项决策部分实施)
+- 2026-09-03: 🟡 Partial (Sprint 25 Change #10 `adr-0042-state-alignment` governance 同步 — C16 ship 实证反映到状态字段)
 
 ## 领域
 

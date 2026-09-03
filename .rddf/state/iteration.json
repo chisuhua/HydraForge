@@ -471,6 +471,17 @@
       "worktree_path": null,
       "archived_at": "2026-09-03T13:15:00+00:00",
       "filled_at": null
+    },
+    {
+      "added_at": "2026-09-03T13:20:00+00:00",
+      "name": "adr-0042-state-alignment",
+      "status": "archived",
+      "priority": "P2",
+      "plan_path": null,
+      "tasks_total": 0,
+      "worktree_path": null,
+      "archived_at": "2026-09-03T13:30:00+00:00",
+      "filled_at": null
     }
   ]
 }

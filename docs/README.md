@@ -58,7 +58,7 @@ docs/
 | `adr-0037-causal-ordering.md` | 因果排序 (CausalClock) | 🟡 Partial (2026-07-27 提升, CausalClock + emit auto-tick ship; 分布式向量时钟 defer) |
 | `adr-0038-dynamic-config-interface.md` | 动态配置接口 | 🔍 Proposed |
 | `adr-0039-performance-metadata-contract.md` | 性能元数据契约 | 🔍 Proposed |
-| `adr-0042-illmprovider-evolution-path.md` | ILLMProvider 演进路径 | 🔍 Proposed (C16 部分决策已 ship) |
+| `adr-0042-illmprovider-evolution-path.md` | ILLMProvider 演进路径 | 🟡 Partial (C16 部分 ship) |
 | `adr-0045-orchestration-plugin-spec.md` | 编排 Plugin 规范 | 🔍 Proposed |
 | `adr-0046-plugin-communication-protocol.md` | 插件间通信协议 | 🔍 Proposed (~35% 实施率) |
 | `adr-0050-phase6-strategic-evaluation.md` | Phase 6 战略评估 | ✅ Approved (2026-07-23 — Solo Dev 重估, Candidate B) |

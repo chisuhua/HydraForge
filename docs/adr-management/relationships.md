@@ -1,6 +1,5 @@
-# ADR 关联性分析（自动生成）
-
-> 本文件由 `tools/adr_relationships.py` 自动生成，**请勿手动编辑**。
+✓ 已写入 docs/adr-management/relationships.md（102 个 ADR，15123 字节）
+` 自动生成，**请勿手动编辑**。
 > 任何手动修改会在下次运行时被覆盖。
 > 最后更新: 由 `tools/adr_relationships.py` 生成（运行时刻见 git commit 时间戳）
 > ADR 总数: 102
@@ -51,7 +50,7 @@
 | adr-0039 | 推理引擎性能元数据契约 | 🔍 Proposed | Unknown |  |
 | adr-0040 | 推理引擎 Plugin 构建与交付策略 | ✅ Approved | Unknown |  |
 | adr-0041 | PluginLoader 生命周期扩展 (pdk_plugin_init / fini 钩子) | ✅ Approved | Unknown |  |
-| adr-0042 | ILLMProvider 演进路径 | 🔍 Proposed | Unknown |  |
+| adr-0042 | ILLMProvider 演进路径 | 🟡 Partial | Unknown |  |
 | adr-0043 | PDK 工具命名约定规范 | ✅ Approved | Unknown |  |
 | adr-0044 | 推理引擎 Plugin 安全模型 | ✅ Approved | Unknown |  |
 | adr-0045 | 编排 PDK Plugin 规范 | 🔍 Proposed | Unknown |  |
@@ -88,7 +87,7 @@
 | adr-0070 | PDK Plugin 命令/快捷键注册 (DECLARE_COMMAND) | 🟡 Partial | Unknown |  |
 | adr-0071 | ADR-0071 LLM-native AgenticDSL Architecture 实施范围审计 | ✅ Approved | Unknown |  |
 | adr-0071 | LLM-native AgenticDSL 架构 (LLM as DSL Author) | ✅ Approved | 2026-08-02 |  |
-| adr-0072 | DSL 节点扩展 (stream: / $var / declarative style / backend:) | 🟡 Partial | 2026-09-02 | 2026-09-02 |
+| adr-0072 | DSL 节点扩展 (stream: / $var / declarative style / backend:) | 🔍 Proposed | 2026-08-03 |  |
 | adr-0073 | ADR-0073 实现范围审计 (Implementation Scope Audit) | 🟡 Partial | 2026-08-13 |  |
 | adr-0073 | ADR-0073 Tool JSON Schema Contract 实施范围审计 | 🟡 Partial | Unknown |  |
 | adr-0073 | Tool JSON Schema 契约 (JSON Schema 2020-12) | ✅ Approved | 2026-08-02 |  |
@@ -266,10 +265,10 @@ graph TD
 | 状态 | 数量 |
 |------|------|
 | ✅ Approved | 75 |
-| 🟡 Partial | 10 |
+| 🟡 Partial | 11 |
 | ❌ Not Implemented | 2 |
 | ⛔ Superseded | 1 |
-| 🔍 Proposed | 11 |
+| 🔍 Proposed | 10 |
 | 📋 Reserved | 2 |
 | ❓ Unknown | 1 |
 
