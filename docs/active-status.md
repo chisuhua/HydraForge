@@ -54,7 +54,7 @@
 - W4 阶段 A ✅ closed (2026-09-03) — ADR-0072 D1 `stream:` 字段层 ship (commit `c61a6d0`)
 - ADR-0072 D6 (条件触发, Conditional 决议触发)
 - ADR-0062/0063/0064/0065/0071/0074/0075 Approved >24h 无 tracking change (drift 检测警告, 留 Sprint 25+ 跟踪)
-- Master Plan §十-§十三 4 章节缺失 (pre-existing drift, 已建 `fix-master-plan-review-gates-sections` tracking change)
+- Master Plan §十-§十三 4 章节缺失（pre-existing drift）✅ closed 2026-09-03 — 已在 `docs/superpowers/plans/2026-07-24-sprint-24-25-demo-driven-plan.md` 补登并归档 change `2026-09-03-fix-master-plan-review-gates-sections`
 
 **Phase 7a 启动复评触发条件** (C1+C5 转 PASS 且 C2 不下降, per roadmap.md Q2b):
 - C1 (AgentForge ≥2 agents) — U4 ship 解锁
