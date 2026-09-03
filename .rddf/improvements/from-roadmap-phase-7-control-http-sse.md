@@ -1,5 +1,9 @@
 # from-roadmap-phase-7-control-http-sse
 
+> **status: GATED by Phase 7c descoped (2026-09-02)** — 2026-09-02 cleanup.
+> Phase 7c 已被 descoped per Phase 6c 评估. 不复评, 保留作历史.
+> 详见 `proposal-suggestions.md` §3.3.
+
 **优先级**: P2 | **来源**: from-roadmap (phase-7/control-http-sse) ⏸ Phase 7c descoped
 **阶段**: phase-7 | **分类**: control-http-sse
 **类型**: feature

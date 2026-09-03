@@ -1,5 +1,10 @@
 # from-roadmap-phase-7-control-client
 
+> **status: GATED by Phase 7a + 7b (2026-09-02, 3/6 FAIL)** — 2026-09-02 cleanup.
+> Phase 7b 本身 gated by Phase 7a 不启动. 外部 MCP client 依赖 7a 启动.
+> 复评时机: 7a 完成后才评估 7b.
+> 详见 `proposal-suggestions.md` §3.3.
+
 **优先级**: P1 | **来源**: from-roadmap (phase-7/control-client) ⏸ Phase 7b gated
 **阶段**: phase-7 | **分类**: control-client
 **类型**: feature

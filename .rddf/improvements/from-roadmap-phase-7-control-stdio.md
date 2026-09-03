@@ -1,5 +1,10 @@
 # from-roadmap-phase-7-control-stdio
 
+> **status: GATED by Phase 7a 不启动 (2026-09-02, 3/6 FAIL)** — 2026-09-02 cleanup.
+> Phase 7a 启动条件 C1+C2+C5 FAIL (AgentForge 1-agent / Solo Dev 27h/周 / Evidence Gate Conditional).
+> 复评时机: Sprint 25+ U4 (AgentForge 第 2 agent) 完成后.
+> 详见 `proposal-suggestions.md` §3.3.
+
 **优先级**: P0 | **来源**: from-roadmap (phase-7/control-stdio)
 **阶段**: phase-7 | **分类**: control-stdio
 **类型**: feature

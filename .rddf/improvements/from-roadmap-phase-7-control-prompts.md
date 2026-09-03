@@ -1,5 +1,10 @@
 # from-roadmap-phase-7-control-prompts
 
+> **status: GATED by Phase 7a 不启动 (2026-09-02, 3/6 FAIL)** — 2026-09-02 cleanup.
+> MCP prompts schema 依赖 Phase 7a 启动.
+> 复评时机: Sprint 25+ U4 完成后.
+> 详见 `proposal-suggestions.md` §3.3.
+
 **优先级**: P0 | **来源**: from-roadmap (phase-7/control-prompts) ⏸ Phase 7b gated
 **阶段**: phase-7 | **分类**: control-prompts
 **类型**: feature
