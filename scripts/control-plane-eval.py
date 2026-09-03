@@ -379,7 +379,7 @@ def detect_c6_adr0075_env_backend() -> ConditionResult:
 # 决策树 (per design D-4)
 # ----------------------------------------------------------------------------
 
-def evaluate_control_plane(conditions: list) -> EvalResult:
+def evaluate_control_plane(conditions: list, relaxed: bool = False) -> EvalResult:
     """决策树公式化 (design D-4):
     - 6 项全 PASS → RecommendStart
     - 任一数据缺失 (ABORT) → Abort (需人工 override)
@@ -388,6 +388,13 @@ def evaluate_control_plane(conditions: list) -> EvalResult:
     - 其余 (≥2 FAIL 含阻塞) → DescopeOrContinue
     """
     statuses = {c.name: c.status for c in conditions if c.name in CONDITION_NAMES}
+
+    # --relaxed 模式: 为 C2 FAIL details 添加标记 (per Oracle P0)
+    # 标记让 reviewer 看清 C2 实际状态 + 决策依据
+    if relaxed:
+        for c in conditions:
+            if c.name == "C2" and c.status == STATUS_FAIL:
+                c.details = c.details + " (relaxed mode: not blocking)"
     # 缺失条件 → Abort
     missing = [n for n in CONDITION_NAMES if n not in statuses]
     if missing:
@@ -412,7 +419,10 @@ def evaluate_control_plane(conditions: list) -> EvalResult:
             summary="6 项条件全部 PASS — 建议立即启动 Phase 7a",
         )
     # 阻塞条件 FAIL (C1/C2/C5/C6) → DescopeOrContinue
-    blocking = [n for n in ("C1", "C2", "C5", "C6") if statuses.get(n) == STATUS_FAIL]
+    # per Oracle session ses_f9ab25dcfffetx4J5UFA7JYBKV P0 建议 + roadmap.md Q2b 决策树放松口径:
+    # --relaxed 模式下 C2 (Solo Dev 容量, 外部组织约束) 从 blocking 集合降级为非阻塞
+    blocking_set = ("C1", "C2", "C5", "C6") if not relaxed else ("C1", "C5", "C6")
+    blocking = [n for n in blocking_set if statuses.get(n) == STATUS_FAIL]
     if len(blocking) >= 1:
         return EvalResult(
             conditions=conditions,
@@ -488,6 +498,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true",
         help="仅输出决策表, 不写任何文件",
     )
+    parser.add_argument(
+        "--relaxed", action="store_true",
+        help="(per Oracle session ses_f9ab25dcfffetx4J5UFA7JYBKV P0 + roadmap.md Q2b) 让 C2 (Solo Dev 容量, 外部组织约束) 从决策树 blocking 集合降级为非阻塞。C2 状态仍 FAIL 真实状态, 仅不阻塞决策。默认 OFF (向后兼容)。",
+    )
     return parser
 
 
@@ -528,7 +542,8 @@ def main(argv=None) -> int:
                 details=f"检测异常: {exc}",
             ))
 
-    result = evaluate_control_plane(conditions)
+    # --relaxed 模式下 C2 details 标记在 evaluate_control_plane 内部统一应用
+    result = evaluate_control_plane(conditions, relaxed=args.relaxed)
     result.generated_at = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     result.repo_root = str(REPO_ROOT)
 

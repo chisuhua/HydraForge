@@ -51,3 +51,46 @@
 **single-choice**: **继续前置 ship（路径 A）** — Phase 7 维持 ⏸ 顺延，等待 C1/C2/C5 满足后重跑评估脚本再决议。
 
 > 本决议基于 `scripts/control-plane-eval.py` 自动检测输出（exit 1），经 human review 签字确认（per design D-5 human review only）。下次重评估触发点: Evidence Gate 真实 PASS（Sprint 25+ 真实 baseline 决议后）。
+
+---
+
+## §--relaxed 模式说明 (Sprint 25 Change #2 治理补建, 2026-09-03)
+
+`scripts/control-plane-eval.py` 新增 `--relaxed` opt-in flag，让 C2 (Solo Dev 容量) FAIL 从决策树 blocking 集合降级为非阻塞，与 `roadmap.md` Q2b 决策树放松口径对齐。
+
+### 语义
+
+- **`--relaxed` OFF（默认）**: C2 FAIL 仍触发 "DescopeOrContinue"（向后兼容，sprint-closeout 自动跑不变）
+- **`--relaxed` ON**: C2 FAIL 从 blocking 集合移除，但 C2 状态仍 FAIL（真实状态不掩盖），决策树判定为 "Conditional"（若其他条件满足）
+- **exit code**: 仍 EXIT_FAIL (1)，避免 sprint-closeout 误判 Phase 7a 可启动
+
+### 使用场景
+
+- Sprint 25+ 收官重跑复评（区分"代码可解锁 FAIL"与"组织不可控 FAIL"）
+- U4 (AgentForge 第 2 agent) ship 后，验证 C1 PASS 但 C2 仍 FAIL 的真实信号
+- Solo Dev 永久 1 人（外部约束，无解药）下保住复评机制信号价值
+
+### 与 `--override C2=true` 区别
+
+| 维度 | `--override C2=true` | `--relaxed` |
+|------|----------------------|-------------|
+| C2 状态 | 显示 PASS（人工假装） | 仍 FAIL（真实状态） |
+| 阻塞判定 | 排除 C2 | 排除 C2 |
+| 适用场景 | 应急 override / 测试 | Sprint 25+ 复评 |
+| 可疑性 | 需 human review 签字 | opt-in flag 自动 |
+
+### 不要使用场景
+
+- C1/C5/C6 失败也想绕过（`--relaxed` 仅限 C2，其他条件不在 scope）
+- 默认模式行为验证（保持 backward compat）
+- 生产 Phase 7a 启动决议（仍需 6 项全 PASS）
+
+### 实现位置
+
+- `scripts/control-plane-eval.py:evaluate_control_plane(conditions, relaxed: bool = False)`
+- `scripts/control-plane-eval.py:detect_c2_solo_dev_capacity` 不变（仍读 active-status.md）
+- `tests/test_control_plane_eval_relaxed.py` 5 类测试覆盖关键路径
+
+### 复评触发点（仍按 §决议）
+
+下次重评估触发点: Evidence Gate 真实 PASS（Sprint 25+ 真实 baseline 决议后）+ AgentForge 第 2 agent ship + `--relaxed` 模式下决策 = Conditional / RecommendStart。

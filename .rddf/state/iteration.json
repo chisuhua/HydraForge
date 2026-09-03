@@ -449,6 +449,17 @@
       "worktree_path": null,
       "archived_at": "2026-09-03T09:30:00+00:00",
       "filled_at": null
+    },
+    {
+      "added_at": "2026-09-03T12:35:00+00:00",
+      "name": "control-plane-eval-c2-alignment",
+      "status": "archived",
+      "priority": "P0",
+      "plan_path": ".rddf/plans/control-plane-eval-c2-alignment.md",
+      "tasks_total": 5,
+      "worktree_path": null,
+      "archived_at": "2026-09-03T12:50:00+00:00",
+      "filled_at": null
     }
   ]
 }
