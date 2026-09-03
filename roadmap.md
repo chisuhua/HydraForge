@@ -3,20 +3,20 @@
 > **驱动计划**: [`docs/superpowers/plans/2026-07-24-sprint-24-25-demo-driven-plan.md`](docs/superpowers/plans/2026-07-24-sprint-24-25-demo-driven-plan.md)
 > **核心原则**: Demo 驱动 > 架构文档驱动 — 每个 Demo 是独立可交付物，反馈循环快，适合 Solo Dev
 > **Phase**: 6 — Agent-as-Plugin (2026-07-15 ~ 至今, Phase 5 ✅ 收官)
-> **路线图 v3** (2026-08-03 重写): 整合 **三平面架构** (Execution/Control/Data) + 6 个新 LLM-native ADR (0072/0074/0075/0076/0077/0078) + Oracle 容量审查 (session `ses_037e12115ffeLkeR1QTIko0BHb`) + active-status.md §四 Candidate B 结构性暂缓
+> **路线图 v3** (2026-08-03 重写): 整合 **三平面架构** (Execution/Control/Data) + 7 个新 LLM-native ADR (0072-0078) + Oracle 容量审查 (session `ses_037e12115ffeLkeR1QTIko0BHb`) + active-status.md §四 Candidate B 结构性暂缓
 
 ## 元信息
-- **版本**: 3 (2026-08-03 重写, 三平面架构)
+- **版本**: 3.1 (2026-09-02 修订: Phase 6c 状态闭环 + ADR-0072 翻牌 🟡 Partial 同步 + ADR-0073 ✅ Approved 状态修正 + Phase 7 启动条件实测 3/6 FAIL 决议)
 - **创建时间**: 2026-07-24T00:00:00+08:00
-- **最后更新**: 2026-08-17 — roadmap-state-phase6b-sync ship; Phase 6b/7 状态校准 (per Oracle audit)
-- **当前阶段**: phase-6b (2026-08-11 ~ 2026-08-19, 44h 容量) — 🔄 partial ship + carry-over (21/21 changes completed, 3/11 gates satisfied, 8 gates remain)
-- **下一阶段**: phase-6c (2026-08-19 ~ 09-09, ~80h 容量)
+- **最后更新**: 2026-09-02 — Phase 6c 状态闭环归档 + ADR-0072 翻牌同步 (per Oracle session `ses_f9e000cb4ffeeYPcLW4j0QKviI`)
+- **当前阶段**: phase-6c 收官期 (2026-08-19 ~ 09-09, ~80h 容量) — 🟢 实质 ship (11/13 任务完成 + C5 N/A + C4 Conditional 决议，真实 3 模型 baseline 重测 defer Sprint 25+)
+- **下一阶段**: phase-7 (2026-09+ 起, gated by 启动条件 3/6 FAIL — 结构性条件不满足，本 Sprint 内不启动 Phase 7a)
 - **阶段规划**:
-  - **Phase 6c** (2026-08-19 ~ 09-09, ~80h) — **Execution Plane 完整 ship**
-  - **Phase 7** (2026-09+ 起, gated) — **Control Plane (MCP)**
-  - **Phase 8a** (Phase 8 启动评估) — **Data Plane (gRPC)**
+  - **Phase 6c** (2026-08-19 ~ 09-09, ~80h) — 🟢 实质 ship 完成（仅真实 baseline 重测 carry-over）
+  - **Phase 7** (2026-09+ 起, gated) — ⏸ Phase 7a **不启动**（3/6 FAIL 决议；结构性条件 1-agent + 1-人 ~27h/周 不满足）
+  - **Phase 8a** (Phase 8 启动评估) — **Data Plane (gRPC)**（保持 gated by Phase 7a ship ≥3 月）
   - **Phase 8b** (条件触发) — **Execution Plane 支撑 (Fine-tune)**
-- **治理节奏**: 2026-08-11 Sprint 25 kickoff → 2026-08-19 Sprint 25 收官 + Drift Gate → Phase 6c 启动评估 → 2026-09-09 Phase 6c 收官 + Evidence Gate 决议 + Control Plane 启动评估
+- **治理节奏**: 2026-08-11 Sprint 25 kickoff → 2026-08-19 Sprint 25 收官 + Drift Gate → 2026-08-19 ~ 09-09 Phase 6c (实质 ship 完成) → 2026-09-02 Phase 7 启动条件实测 (3/6 FAIL, 不启动 Phase 7a) → Sprint 25+ 待真实 3 模型 baseline 重测 → Phase 7 启动条件复评
 
 ---
 
@@ -210,11 +210,11 @@ Phase 8b ───────Fine-tune ────────────┘ 
 | U4 | AgentForge 第 2 个领域 agent: 验证 PDK 复用性 | `platform` | 8h | P1 | U3 |
 | U5 | DSLValidator 增强: `.agent.md` schema 校验 | `architecture` | 6h | P1 | — |
 | U6 | ADR-0042 状态对齐 | `architecture` | 2h | P1 | — |
-| **W1** | **✅ ADR-0073 翻牌 🟡 Partial** (Phase 6a manifest schema 边界部分采纳 + 修正 docs/README.md + adr-0073-impl-scope-audit.md) | `execution-plane-wave2` | 2h | P0 | Phase 6a |
-| **W2** | **🎯 ADR-0074 D3 baseline 测量** (`tools/measure_prompt_baseline` + 50 golden tasks YAML + V0 prompt + 3 模型) | `execution-plane-wave2` | 10h | P0 | — |
-| **W3** | **🎯 ADR-0074 D6 JSONL 训练数据结构** (data/training/ + schema_snapshot_hash) | `execution-plane-wave2` | 4h | P0 | — |
-| **W4** | **🎯 ADR-0072 D1 `stream: true` 扩展** (tool_call/shell.exec/dsl_call 3 处 + IStreamHandle) | `execution-plane-wave2` | 6h | P0 | — |
-| **W5** | **🎯 ADR-0072 D4 `backend:` 字段** (DSL 解析器 + `env:` → `env_vars:` 别名) | `execution-plane-wave2` | 2h | P0 | — |
+| **W1** | **✅ ADR-0073 翻牌 🟡 Partial** (Phase 6a manifest schema 边界部分采纳 + 修正 docs/README.md + adr-0073-impl-scope-audit.md) → **2026-08-18 ✅ Approved** (D2+D3+D4 全 ship) | `execution-plane-wave2` | 2h | P0 | Phase 6a |
+| **W2** | **✅ ADR-0074 D3 baseline 测量** (`tools/baseline/measure_prompt_baseline.py` + 50 golden tasks YAML + V0 prompt + mock 模型) | `execution-plane-wave2` | 10h | P0 | — |
+| **W3** | **✅ ADR-0074 D6 JSONL 训练数据结构** (实际路径 `lib/prompt/{few_shots,golden}/` + `tools/prompt/export_training_data.py` + `schema_snapshot_hash`; 原规划 `data/training/` 路径已废弃) | `execution-plane-wave2` | 4h | P0 | — |
+| **W4** | **⏸ ADR-0072 D1 `stream: true` 扩展** (tool_call/shell.exec/dsl_call 3 处 + IStreamHandle) — **2026-09-02 翻牌 🟡 Partial 后仍未 ship**, parser 仅 LLM `dsl_call` 支持 | `execution-plane-wave2` | 6h | P0 | — |
+| **W5** | **⏸ ADR-0072 D4 `backend:` 字段** (DSL 解析器 + `env:` → `env_vars:` 别名) — **2026-09-02 翻牌 🟡 Partial 后仍未 ship**, ADR-0075 backend_policy.h 已 ship 但 parser 未对接 | `execution-plane-wave2` | 2h | P0 | — |
 | **W6** | **🎯 ADR-0068 §附录 A amendment PR 起草** (14 候选主题注册) | `execution-plane-prep` | 4h | P0 | — |
 | U8 | ~~Phase 6 服务化重启评估~~ — **CUT per Oracle 修复 #1** | (削减) | — | — | — |
 
@@ -232,59 +232,61 @@ Phase 8b ───────Fine-tune ────────────┘ 
 ### Phase 8: Sprint 26-27 — Execution Plane 完整 ship (phase-6c)
 
 **目标**: Execution Plane 完整 ship (Wave 2 全部 + Wave 2.5 EnvBackend 启动) + Evidence Gate 决议 + Control Plane 启动评估
-**平面范围**: 🎯 **AgenticDSL Execution Plane** (6 个 ADR: 0071 顶层 + 0072/0073/0074/0075/0078)
-**状态**: ⏸ 未开始 (Phase 6b carry-over 队列先行)
+**平面范围**: 🎯 **AgenticDSL Execution Plane** (7 个 ADR: 0071 顶层 + 0072/0073/0074/0075/0076/0077 派生；0078 Wave 5+ descoped)
+**状态**: 🟢 实质 ship 完成 (2026-09-02 闭环归档) — 11/13 任务 ✅ ship + C5 N/A（Gate Conditional 未触发 D2）+ C4 Conditional 决议（mock 88.24%，非真实 PASS）；真实 3 模型 baseline 重测 defer Sprint 25+ carry-over
 **前置阶段**: phase-6b (partial ship)
-**周期**: 2026-08-19 ~ 2026-09-09 (3 周, ~80h 容量)
+**周期**: 2026-08-19 ~ 2026-09-09 (3 周, ~80h 容量) — **2026-09-02 收官**
 **触发条件**: Phase 6b Sprint Review 通过 + 8 项 carry-over（U2/U3/U4/U6/W2/W3/W4/W5）在第一周内纳入
 
-> **实际可执行性（2026-08-17 评估）**: Phase 6b 8 项 carry-over 合计约 44h（明细以 U2/U3/U4/U6/W2/W3/W4/W5 任务表为准）；若不在第一周（~27h）前完成，phase-6c 核心 C1-C4 Evidence Gate 依赖链将断裂。C8（ADR-0073 D2/D4，`adr-0073-d2-declare-tool-v3`）已于 2026-08-14 提前 ship，6c 自身剩余任务约 80h；carry-over 与 6c 合计约 124h，明显超过 80h 容量。
+> **实际可执行性（2026-09-02 收官实况）**: Phase 6b 8 项 carry-over 中 **W2（baseline 工具）实际已 ship**（`tools/baseline/measure_prompt_baseline.py` + `tools/measure_prompt_baseline.cpp`）；真实剩余 carry-over = U2（code-review-run.skill.md 缺 .cpp 集成）+ U3（`include/agenticdsl/pdk/README.md` 未创建）+ U4（AgentForge 第 2 agent 未启动）+ U6（ADR-0042 仍 🔍 Proposed）+ W4（parser 无 `stream:` 全局支持）+ W5（parser 无 `backend:` 字段）。C12 DockerBackend **实际以 cpp-httplib 替代 libcurl**（降成本，避免 1 周节省缺口）。
 
-**完成条件**:
-  - [ ] ADR-0074 baseline V1/V2/V3 prompt 完整 ship (含 few-shot 30+ + golden 50+)
-  - [ ] **Evidence Gate 第一次决议** (per ADR-0074 D4): parse-valid ≥85% + task-success L1 ≥70%
-  - [ ] ADR-0072 D2 `$var` 实施 (条件: parse-valid < 85% 触发)
-  - [ ] ADR-0072 D3 declarative style (条件: `85% ≤ parse-valid < 90%` 临界带)
-  - [ ] ADR-0072 D5 双语法共存期启动 (D2+D3 触发后强制)
-  - [x] ADR-0073 D2 ToolMetadata V3 / DECLARE_TOOL V3 部分 ship（2026-08-14；D2/D4 完成，D3 仍待 C9）
-  - [ ] ADR-0073 D3 运行时校验 (ToolCoordinator 4 步 sanitization pipeline)
-  - [ ] **🆕 ADR-0075 Phase 1: LocalBackend ship** (fork + execve + 超时 + 输出截断)
-  - [ ] **🆕 ADR-0075 Phase 2: DockerBackend ship** (libcurl + Docker REST API)
-  - [ ] **🆕 ADR-0075 D5 EnvValidationHook + BackendPolicy ship** (ToolCoordinator pre-hook)
-  - [ ] Control Plane 启动决策树输出 (per active-status.md §四)
+**完成条件 (2026-09-02 实况)**:
+  - [x] **C1** ADR-0074 D1 few-shot examples 30+ 采集（实际 32 文件 `lib/prompt/few_shots/`）✅ 2026-08-28 ship (T21)
+  - [x] **C2** ADR-0074 D2 held-out golden suite 50 tasks（实际 54 文件 `lib/prompt/golden/`）✅ 2026-08-28 ship (T21)
+  - [x] **C3** ADR-0074 D3 V1/V2/V3 prompt 实施 + mock baseline 测量（mock_mode=true parse-valid 88.24%）✅ 2026-08-28 ship (T21)
+  - [x] **C4** Evidence Gate 第一次决议：**Conditional**（mock 88.24% ∈ [85,90) 不触发 D2，触发 D3；真实 3 模型重测 defer Sprint 25+）✅ 2026-09-02 ship (`docs/audits/2026-09-02-evidence-gate-v1.md`)
+  - [N/A] **C5** ADR-0072 D2 `$var` 实施 — **Conditional 决议**触发 D3 不触发 D2，N/A
+  - [x] **C6** ADR-0072 D3 declarative style (`exec:` 语法糖) — Conditional 触发 ✅ 2026-09-02 ship (`from-roadmap-phase-6c-execution-dsl`；`src/modules/parser/declarative_style.{h,cpp}` + `test_dsl_extensions.cpp` 4 cases)
+  - [x] **C7** ADR-0072 D5 双语法共存期基础设施（D3 arm `exec: ↔ type: tool_call` 共存 + `dual_syntax_lint.cpp` C7）✅ 2026-09-02 ship (同 C6 change)
+  - [x] **C8** ADR-0073 D2 ToolMetadata V3 / DECLARE_TOOL V3 自动生成 ✅ 2026-08-14 提前 ship
+  - [x] **C9** ADR-0073 D3 ToolCoordinator 4 步 sanitization pipeline 集成 ✅ 2026-08-18 ship (Wave 1 followup 2026-08-23)
+  - [x] **C11** ADR-0075 D2 LocalBackend ship（fork + execve + 超时 + 输出截断）✅ 2026-08-18 ship (Wave 3-A)
+  - [x] **C12** ADR-0075 D3 DockerBackend ship（cpp-httplib REST API）✅ 2026-08-18 ship (Wave 3-A)
+  - [x] **C13** ADR-0075 D5 EnvValidationHook + BackendPolicy ship（ToolCoordinator pre-hook）✅ 2026-08-18 ship (Wave 3-A)
+  - [x] **C10** Control Plane 启动评估文档 (`docs/audits/2026-09-02-control-plane-eval-v1.md`) — 决议 3/6 FAIL，Phase 7a 不启动
 
 #### 任务分类
 
 | 分类ID | 名称 | 描述 | 优先级 | 预期改进方向 |
 |--------|------|------|:------:|-------------|
-| `execution-baseline` | Prompt baseline 完整化 | V1 schema 约束 + V2 few-shot + V3 两阶段注入 | P0 | few-shot examples；golden suite；V1/V2/V3 prompt |
-| `evidence-gate` | Evidence Gate 第一次决议 | baseline 数据 + Go/No-Go 阈值 | P0 | Evidence Gate决议；parse-valid阈值；task-success阈值 |
-| `execution-dsl` | DSL 节点扩展条件性 ship | D2 `$var` + D3 declarative + D5 共存期 (条件触发) | P0 | $var变量；declarative语法糖；双语法共存 |
-| `schema-complete` | Tool JSON Schema 完整 ship | DECLARE_TOOL V3 自动生成 + 校验层 | P0 | DECLARE_TOOL V3自动生成；ToolCoordinator校验层 |
-| `execution-envbackend` | 🆕 EnvBackend ship | LocalBackend + DockerBackend + EnvValidationHook | P0 | LocalBackend；DockerBackend；EnvValidationHook |
-| `control-plane-eval` | Control Plane 启动评估 | 4 项启动条件逐项检查 + 决策树 | P1 | 启动条件评估；Control Plane决策树 |
+| `execution-baseline` | Prompt baseline 完整化 | V1 schema 约束 + V2 few-shot + V3 两阶段注入 | P0 | ✅ mock baseline 88.24%；真实重测 defer |
+| `evidence-gate` | Evidence Gate 第一次决议 | baseline 数据 + Conditional 决议 | P0 | ✅ Conditional 决议 ship |
+| `execution-dsl` | DSL 节点扩展条件性 ship | D3 declarative style + D5 D3 arm 共存 ship；D2 N/A | P0 | ✅ D3+D5 ship (C6+C7)；D2 N/A (C5) |
+| `schema-complete` | Tool JSON Schema 完整 ship | DECLARE_TOOL V3 + ToolCoordinator 4 步 pipeline | P0 | ✅ D2+D3+D4 全 ship (C8+C9) |
+| `execution-envbackend` | EnvBackend ship | LocalBackend + DockerBackend + EnvValidationHook | P0 | ✅ D2+D3+D5 全 ship (C11-C13) |
+| `control-plane-eval` | Control Plane 启动评估 | 6 项启动条件实测 → 3/6 FAIL 决议 | P0 | ✅ C10 ship FAIL 决议 |
 
-#### 任务明细
+#### 任务明细（2026-09-02 收官实况）
 
-| ID | 任务 | 分类 | 估时 | 优先级 | 依赖 |
-|:---|------|------|:----:|:------:|------|
-| C1 | ADR-0074 D1 few-shot examples 30+ 采集 (4 维度 × 8 examples) | `execution-baseline` | 12h | P0 | W2 (baseline 测量) |
-| C2 | ADR-0074 D2 held-out golden suite 50 tasks YAML | `execution-baseline` | 10h | P0 | W2 |
-| C3 | ADR-0074 D3 V1/V2/V3 prompt 实施 + 测量 | `execution-baseline` | 8h | P0 | C1, C2 |
-| C4 | ADR-0074 D4 Evidence Gate 第一次决议 (`docs/audits/<date>-evidence-gate-v1.md`) | `evidence-gate` | 4h | P0 | C3 |
-| C5 | ADR-0072 D2 `$var` 实施 (条件: parse-valid < 85%) | `execution-dsl` | 8h | P0* | C4 (Gate 决议) |
-| C6 | ADR-0072 D3 declarative style (`exec:` 语法糖, 条件: `85% ≤ x < 90%`) | `execution-dsl` | 4h | P0* | C4 |
-| C7 | ADR-0072 D5 双语法共存期基础设施 (lint + 警告) | `execution-dsl` | 4h | P0 | C5, C6 |
-| C8 | ~~ADR-0073 D2 DECLARE_TOOL V3 自动生成 (C++ 类型反射)~~ — **提前 ship 2026-08-14** (`adr-0073-d2-declare-tool-v3`; D2/D4 Partial) | `schema-complete` | 8h | P0 | W1 (已满足) |
-| C9 | ADR-0073 D3 ToolCoordinator 校验层集成 (4 步 sanitization pipeline) | `schema-complete` | 6h | P0 | C8 (D2/D4 已提前 ship) |
-| **C11** | **🆕 ADR-0075 D2 LocalBackend ship** (fork + execve + 超时 + 输出截断) | `execution-envbackend` | 8h | P0 | W5 (`backend:` 字段) |
-| **C12** | **🆕 ADR-0075 D3 DockerBackend ship** (libcurl + Docker REST API) | `execution-envbackend` | 8h | P0 | C11 |
-| **C13** | **🆕 ADR-0075 D5 EnvValidationHook + BackendPolicy ship** (ToolCoordinator pre-hook) | `execution-envbackend` | 6h | P0 | C11 |
-| C10 | Control Plane 启动评估文档 (per active-status.md §四 4 项条件) | `control-plane-eval` | 2h | P1 | C4 |
+| ID | 任务 | 分类 | 状态 | Ship 时间 | 备注 |
+|:---|------|------|:----:|-----------|------|
+| C1 | ADR-0074 D1 few-shot examples 30+ 采集 | `execution-baseline` | ✅ | 2026-08-28 | 32 文件于 `lib/prompt/few_shots/` |
+| C2 | ADR-0074 D2 held-out golden suite 50 tasks | `execution-baseline` | ✅ | 2026-08-28 | 54 文件于 `lib/prompt/golden/` |
+| C3 | ADR-0074 D3 V1/V2/V3 prompt 实施 + mock 测量 | `execution-baseline` | ✅ | 2026-08-28 | `tools/baseline/measure_prompt_baseline.py` |
+| C4 | Evidence Gate 决议（Conditional） | `evidence-gate` | ✅ Conditional | 2026-09-02 | `2026-09-02-evidence-gate-v1.md`；mock 88.24% ∈ [85,90) |
+| C5 | ADR-0072 D2 `$var` | `execution-dsl` | [N/A] | — | Conditional 决议不触发 D2 |
+| C6 | ADR-0072 D3 declarative style | `execution-dsl` | ✅ | 2026-09-02 | Conditional 触发；`from-roadmap-phase-6c-execution-dsl` |
+| C7 | ADR-0072 D5 双语法共存期 D3 arm | `execution-dsl` | ✅ | 2026-09-02 | 同 C6 change；`dual_syntax_lint.cpp` C7 |
+| C8 | ADR-0073 D2 DECLARE_TOOL V3 | `schema-complete` | ✅ | 2026-08-14 | 提前 ship；`adr-0073-d2-declare-tool-v3` |
+| C9 | ADR-0073 D3 ToolCoordinator 4 步 pipeline | `schema-complete` | ✅ | 2026-08-18 | Wave 1 followup 2026-08-23 修 P1 语义缺口 |
+| C11 | ADR-0075 D2 LocalBackend | `execution-envbackend` | ✅ | 2026-08-18 | Wave 3-A `from-roadmap-phase-6c-execution-envbackend` |
+| C12 | ADR-0075 D3 DockerBackend | `execution-envbackend` | ✅ | 2026-08-18 | cpp-httplib REST API（**替代 libcurl**，降成本） |
+| C13 | ADR-0075 D5 EnvValidationHook + BackendPolicy | `execution-envbackend` | ✅ | 2026-08-18 | ToolCoordinator pre-hook |
+| C10 | Control Plane 启动评估 | `control-plane-eval` | ✅ FAIL | 2026-09-02 | `2026-09-02-control-plane-eval-v1.md` 3/6 FAIL |
 
-> **容量重估（2026-08-17）**: 原估 ~88h / ~80h；C8（ADR-0073 D2/D4）已于 2026-08-14 提前 ship，6c 自身剩余任务约 ~80h。另需先处理 6b carry-over 约 44h，总需求约 ~124h；即使 C5/C6/C7 条件性跳过（最多节省约 16h）仍超约 28h。09-09 收官需追加显式 descope（建议 U4 延后、C12 DockerBackend 推迟、U2 降级 mock-only），否则日期顺延至 09-16+。
+> **事后容量复盘（2026-09-02 收官实况）**: 原估 ~124h（80h + 44h carry-over）超 ~28h。**实际通过 C5 N/A 省 8h + C12 改用 cpp-httplib 降成本 + Phase 6b W2 baseline 工具提前 ship 缓解 carry-over**——在 ~80h 容量内 ship。证据：13 任务 11 完成 + C5 N/A + C4 Conditional；C12 实施细节见 ADR-0075 ship commit。
 >
-> *C5+C6 条件性: Evidence Gate PASS (parse-valid ≥85%) → C5 跳过; parse-valid ≥90% → C6 也跳过
+> *C5 条件性: Evidence Gate PASS (parse-valid ≥85%) → C5 跳过; parse-valid ≥90% → C6 也跳过（**实测 C4 Conditional 触发 C6 不触发 C5**，与设计一致）*
 
 ---
 
@@ -292,20 +294,25 @@ Phase 8b ───────Fine-tune ────────────┘ 
 
 **目标**: 启动 **📡 MCP 控制面** — DSL Engine 暴露为 MCP server (stdio + HTTP+SSE)
 **平面范围**: 📡 **MCP Control Plane** (1 个 ADR: 0076)
-**状态**: ⏸ **gated** (Phase 6c 收官时启动条件评估；当前人力与 Evidence Gate 均不满足)
-**周期**: TBD（原估 2026-09-09 ~ 2026-11-04；实际启动取决于 Phase 6c 收官和人力条件）
-**前置条件** (2026-08-17 Oracle 审计校准):
+**状态**: ⏸ **gated + Phase 7a 不启动** (2026-09-02 实测 3/6 启动条件 FAIL，**结构性条件 1-agent + 1-人 ~27h/周 不满足**，文档工作无法改变；Phase 7a 本 Sprint 内不启动)
+**周期**: TBD（原估 2026-09-09 ~ 2026-11-04；**实际启动取决于 (1) 真实 3 模型 baseline 重测 PASS + (2) AgentForge 第 2 agent 上线 + (3) 人力扩张至 ≥2 人**）
+**前置条件** (2026-09-02 实测 6 项启动条件):
 
-| 启动条件 | 阈值 | 现状 (2026-08-17) | 评估时点 |
-|---------|------|------------------|---------|
-| AgentForge 第 2 agent | 可独立运行 | ❌ 当前无第 2 agent（U4 carry-over 至 6c） | Phase 6c 收官 |
-| Solo Dev 容量 | ≥2 人 OR ≥80h/双周 | ❌ 当前 1 人, ~27h/周（不满足 ≥80h/双周）| Phase 6c 收官 + 外部人力变化 |
-| ADR-0068 §附录 A amendment PR | 14 候选主题 ship | ✅ 2026-08-13 archived（W6 已满足） | — |
-| ADR-0073 完整 ship | D2+D3 ship | 🟡 D2 部分 ship（2026-08-14）；D3 为 Phase 6c C9 | Phase 6c 收官 |
-| Evidence Gate PASS | parse-valid ≥85% + task-success L1 ≥70% | ❌ W2 baseline 未完成（carry-over；待 C4 决议） | Phase 6c 第二周 |
-| ADR-0075 EnvBackend ship | Local+Docker ship | ❌ Phase 6c C11-C13 | Phase 6c 收官 |
+| 启动条件 | 阈值 | 现状 (2026-09-02) | 评估 | 评估时点 |
+|---------|------|------------------|------|---------|
+| AgentForge 第 2 agent | 可独立运行 | ❌ U4 仍未启动（carry-over） | ❌ FAIL | Phase 7a 重新评估（人力 + 真实 baseline 重测通过后） |
+| Solo Dev 容量 | ≥2 人 OR ≥80h/双周 | ❌ 当前 1 人, ~27h/周 | ❌ FAIL | 外部人力变化 |
+| ADR-0068 §附录 A amendment PR | 14 候选主题 ship | ✅ 2026-08-13 archived（W6 已满足） | ✅ PASS | — |
+| ADR-0073 完整 ship | D2+D3+D4 ship | ✅ 2026-08-18 ✅ Approved（D2+D3+D4 全 ship） | ✅ PASS | — |
+| Evidence Gate PASS | parse-valid ≥85% + task-success L1 ≥70% | 🟡 Conditional（mock 88.24%，非真实 PASS） | ❌ FAIL | Sprint 25+ 真实 3 模型重测 |
+| ADR-0075 EnvBackend ship | Local+Docker ship | ✅ 2026-08-18 Wave 3-A ship (C11+C12+C13) | ✅ PASS | — |
 
-> **循环依赖修正（Oracle 审计）**: Evidence Gate 依赖链（W2→C1→C3→C4）需等到 Phase 6c 第二周才能完成，因 W2 baseline 是 6b carry-over。Phase 7 启动最早时点为 Phase 6c 收官 + 人力条件满足（≥2 人 OR ≥80h/双周），推断为 2026-10 起或更晚。
+> **实测决议 (2026-09-02)**：3/6 FAIL（AgentForge 第 2 agent / Solo Dev 容量 / Evidence Gate PASS），3/6 PASS（ADR-0068 / ADR-0073 / ADR-0075）。**结构性 FAIL 项（1-agent + 1-人 ~27h/周）无文档解药**，Phase 7a 不启动；Evidence Gate FAIL 项需 Sprint 25+ 真实 3 模型 baseline 重测。Phase 7 启动最早时点 = 三项 FAIL 全部转 PASS（详见 `docs/audits/2026-09-02-control-plane-eval-v1.md`）。
+>
+> **决策树（per C10 决议）**：
+> - 2026-09-02 当前：Phase 7a **不启动**
+> - 触发 Phase 7a 评估：3 项 FAIL 中**至少 AgentForge 第 2 agent + Evidence Gate PASS** 两项转 PASS，且 Solo Dev 容量无下降
+> - 评估机制：每 Sprint 收官时重跑 `control-plane-eval-v1.md` 检查表
 
 **完成条件** (全部启动条件满足后):
   - [ ] ADR-0076 D1 stdio transport ship (JSON-RPC 2.0 over pipe)
@@ -471,9 +478,12 @@ pkm_temporal_demo:
 | 2026-08-12 | Sprint Review + Wave 2 强制决策中期评估 | U1-U3 进度 | **未形成独立 Sprint Review artifact；Gate 顺延至 6b 收官** |
 | 2026-08-19 | Sprint 25 收官 + Drift Gate | U6 + W1-W6 | ADR ↔ spec 映射 + LLM-native ADR 整合；**实际为 partial ship + carry-over** |
 | 2026-08-26 | Phase 6c 启动评估 | C10 | carry-over 纳入检查 + Control Plane 启动决策树 |
-| 2026-09-02 | Phase 6c 中期: Evidence Gate 数据 preview | C3 进度 | baseline V3 prompt 数据 |
-| 2026-09-09 | Phase 6c 收官 + Evidence Gate 决议 | C4 + C9 + C11-C13 | Go/No-Go 决议 + Control Plane 启动评估（取决于 carry-over） |
-| 2026-09-16+ | Phase 7a 启动评估 | C10 (Control Plane 评估) | **启动条件 6/6 检查；当前仅部分满足，不能预先承诺日期** |
+| 2026-09-02 | **Phase 6c 收官 + Evidence Gate 决议** ✅ | C4 + C9 + C11-C13 + C6 + C7 | `2026-09-02-evidence-gate-v1.md` (Conditional 决议) + `2026-09-02-control-plane-eval-v1.md` (3/6 FAIL) + `from-roadmap-phase-6c-execution-dsl` (ADR-0072 D3+D5 ship) |
+| **2026-09-02** | **ADR-0072 翻牌 🟡 Partial** | — | `docs/adr/adr-0072-dsl-node-extensions.md` 状态变更；治理异常"实施先于翻牌"文档化 |
+| **2026-09-02** | **Phase 7a 不启动决议** | C10 | DescopeOrContinue 决议入 active-status.md；3 项 FAIL 中 2 项为结构性（无文档解药）|
+| Sprint 25+ | 真实 3 模型 baseline 重测（carry-over） | — | 触发条件：外部模型窗口可用 + Evidence Gate 重跑 |
+| Sprint 25+ | Phase 7a 启动复评 | C10 重跑 | 每 Sprint 收官重跑 `control-plane-eval-v1.md` 6 项检查 |
+| Phase 7a ship 后 ≥3 个月 | Phase 7a 稳定窗口 | — | Phase 8a (Data Plane) 启动评估 |
 | Phase 7a ship 后 ≥3 个月 | Phase 7a 稳定窗口 | — | Phase 8a (Data Plane) 启动评估 |
 | 2026-12+ | Phase 8a 启动评估 | — | gRPC 4 service 实施 |
 
@@ -508,9 +518,14 @@ pkm_temporal_demo:
 7. **启动条件 6 项显式**: Phase 7 启动条件从 4 项扩至 6 项 (新增 ADR-0075 EnvBackend ship + ADR-0073 完整 ship)
 8. **依赖链 ASCII 图**: 三平面依赖链视觉化
 
-**Active 状态**: Phase 6a 已于 2026-08-11 完成；Phase 6b 为 partial ship + carry-over；Phase 6c/7/8 全部 gated by Phase 6b/6c/7 ship 评估。
+**Active 状态**: Phase 6a 已于 2026-08-11 完成；Phase 6b 为 partial ship + carry-over（部分任务已 ship 缓解）；**Phase 6c 已于 2026-09-02 实质 ship 收官**（11/13 任务 + C5 N/A + C4 Conditional）；**Phase 7a 决议不启动**（3/6 FAIL 实测）；Phase 8a/8b 仍 gated by Phase 7a ship。
 
-> **ADR 前置声明（2026-08-17）**: Phase 6b/6c/7 引用的 ADR-0072/0074/0075/0076/0077/0078 当前仍为 🔍 Proposed（待架构组评审）；相关实施排期以对应 ADR 评审通过为前提，不将 Proposed 误记为 Approved。
+> **ADR 前置声明（2026-09-02 更新）**: Phase 6b/6c/7 引用 ADR 状态（截至 2026-09-02）：
+> - **✅ Approved（已 ship）**：ADR-0071（08-25 Promotion）、ADR-0073（08-18 D2+D3+D4 全 ship）、ADR-0074（08-25 Promotion）、ADR-0075（08-18 Wave 3-A 全 ship）
+> - **🟡 Partial**：ADR-0072（**2026-09-02 翻牌**——D3 declarative style + D5 D3 arm 共存 ship；D1+D4 待实施；D2 N/A；D6 OFF；治理异常"实施先于翻牌"已文档化）
+> - **🔍 Proposed（待评审/排期）**：ADR-0076（Phase 7 gated）、ADR-0077（Phase 8a descoped docs-only）、ADR-0078（Phase 8b Wave 5+ descoped）
+>
+> ⚠️ **治理异常文档化**：ADR-0072 的 D3+D5 实现 ship 早于 ADR 评审通过（per `from-roadmap-phase-6c-execution-dsl` 2026-09-02 change），按 single-dev mode 治理（issue + 24h cooling-off）允许实施先于翻牌，但翻牌 OpenSpec 待建 `2026-09-02-adr-0072-flip-to-partial`。
 
 **关键决策** (供用户审阅):
 - **A**: Phase 6b 已采用 carry-over，而非过期 descope 选项；详见 L221-L228。
