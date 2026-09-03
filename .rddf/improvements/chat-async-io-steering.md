@@ -1,5 +1,8 @@
 # chat-async-io-steering (decomposed — see sub-proposals)
 
+> **status: ALREADY-DECOMPOSED (2026-08-08, 7 子 change ship + archived)** — 2026-09-02 清理 dashboard stale。
+> 详见 `proposal-suggestions.md` §3.1 + 原始改进提案分解为 Phase 0/A/B×5/C 7 个子 change，全部 ship + archived。
+
 **优先级**: P2 | **来源**: layer-based-missing-capabilities-analysis.md §八 L4-2 + §五 L1-4（中断/切换模型原语）
 **阶段**: wave-3 | **分类**: demo-chat-v2
 **类型**: feature
