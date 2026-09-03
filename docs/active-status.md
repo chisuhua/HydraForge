@@ -2,8 +2,12 @@
 
 > **焦点**: 当前活跃的 OpenSpec changes | **更新**: 每日
 > **Master Plan**: [`docs/superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md`](superpowers/plans/2026-07-16-pdk-chat-demo-implementation.md)
-> **架构决策**: [`docs/adr/`](adr/) — 82 ADR (含 0083/0084/0085 新增 + adr-0061-08 v1.1 amendment 2026-08-31 flip, 2026-08-31 `tools/doc_metrics.py` 校准), 58 Approved (+ADR-0083/0084 2026-08-26, +ADR-0061-08 T20 V1 ship 2026-08-28, +ADR-0085 T26 V1 ship 2026-08-28, +ADR-0061-08 v1.1 amendment 2026-08-31, +ADR-0061-13 Distillation Data Plane V1 ship 2026-08-29), adr_lint 零错误 (2026-08-22 校准, Batch 2 收官后 ADR-0081/0082 状态格式修正; ADR-0081/0082 均 ✅ Approved per Batch 2 P3+P7 `adr-0081/0082-promote-to-approved`; **1 个 ADR-TRACKING-01 warning**: ADR-0085 Approved 24h+ 无 tracking change 目录 — ADR-0080 warning 已于 9b69c2b 由 capture-mode-and-distillation-writer-v1 解除)
+> **架构决策**: [`docs/adr/`](adr/) — 82 ADR (含 0083/0084/0085 新增 + adr-0061-08 v1.1 amendment 2026-08-31 flip, 2026-08-31 `tools/doc_metrics.py` 校准), 58 Approved (+ADR-0083/0084 2026-08-26, +ADR-0061-08 T20 V1 ship 2026-08-28, +ADR-0085 T26 V1 ship 2026-08-28, +ADR-0061-08 v1.1 amendment 2026-08-31, +ADR-0061-13 Distillation Data Plane V1 ship 2026-08-29), adr_lint 零错误 (2026-08-22 校准, Batch 2 收官后 ADR-0081/0082 状态格式修正; ADR-0081/0082 均 ✅ Approved per Batch 2 P3+P7 `adr-0081/0082-promote-to-approved`; **1 个 ADR-TRACKING-01 warning**: ADR-0085 Approved 24h+ 无 tracking change 目录 — ADR-0080 warning 已于 9b69c2b 由 capture-mode-and-distillation-writer-v1 解除; **2026-09-02 新增**: ADR-0072 🔍 Proposed → 🟡 Partial 翻牌, D3+D5 ship, 治理异常"实施先于翻牌"已文档化, 翻牌 OpenSpec change 待建 `2026-09-02-adr-0072-flip-to-partial`)
 > **Phase**: 6 — Agent-as-Plugin (2026-07-15 ~ 至今, Phase 5 ✅ 收官)
+
+> **ADR 状态唯一事实源声明**（2026-09-02 同步，per Q3 α 修订）：**ADR 状态权威 = 各 `docs/adr/*.md` 自身 `## 状态` 字段 + `tools/adr_lint.py` 输出**。本表状态计数与 ADR 文件冲突时以 ADR 文件为准；视图层滚动更新延迟 ≤ 1 Sprint。
+> 
+> **本表计数口径**（2026-09-02）："82 ADR" = `docs/adr/` 活跃目录计数（含 `plugin/` 与 `skill/` 子目录）**不含** `docs/archive/adr/` 19 个归档 ADR；"58 Approved" = ✅ Approved 状态 ADR 计数（含主 + plugin + skill + 0061-08 v1.1 amendment）。如需全量计数（含归档），见 [`docs/architecture/adr-implementation-status-gap-analysis.md`](architecture/adr-implementation-status-gap-analysis.md) §一（口径差异已显式注释）。
 
 ---
 
@@ -14,40 +18,57 @@
 | **Total ctest** | **211/211** 配置总数 (2026-09-01 `ctest -N` → Total Tests: 211; 自 2026-08-31 T1-T7 全 ship 后 +5: T3 evolution-budget-cap 6 cases + T2 mcts-axis6 6 cases + T4 signature-validation 7 cases + T5 cognitive-tools 4 cases + T1 workflow-materializer 5 cases; +Sprint 24 审计补全 2 cases: test_generate_subgraph_callback 3 cases (含多图) + test_t1_t7_integration_chain 1 case; 210/211 PASS 99.5%, 1 pre-existing timing flake per AGENTS.md; LastTest.log 为空壳) — ✅ Sprint 24 认知/领域演化系列 T1-T7 全部 ship 完成, ctest baseline 192 → 211 (+19) |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
-| **OpenSpec active** | **2** (~~Sprint 24 启动周 T17 SkillCompiler~~ `2026-08-24-adr-0061-03-skill-compiler` ✅ ship + archived 2026-08-27; ~~T15 TrajectoryIR~~ `t15-trajectory-ir` ✅ ship + archived 2026-08-27 [9 cases / 55 assertions, ParsedGraph 零修改]; 剩余 2 个 Phase 6c 后续 Wave 待启动: `from-roadmap-phase-6c-execution-dsl` [Wave 3, 依赖 Evidence Gate PASS] + `from-roadmap-phase-6c-control-plane-eval` [Wave 4, 依赖 6 项条件全部 PASS]) |
+| **OpenSpec active** | **0** (2026-09-02 Phase 6c 收官: `from-roadmap-phase-6c-execution-baseline` ✅ archived 2026-08-18 + `from-roadmap-phase-6c-schema-complete` ✅ archived 2026-08-18 + `from-roadmap-phase-6c-execution-envbackend` ✅ archived 2026-08-18 + `from-roadmap-phase-6c-evidence-gate` ✅ archived 2026-09-02 + `from-roadmap-phase-6c-execution-dsl` ✅ archived 2026-09-02 + `from-roadmap-phase-6c-control-plane-eval` ✅ archived 2026-09-02; 6 个 Phase 6c OpenSpec changes 全 ship + archived) — **Phase 6c 收官后 0 个 active**, 真实 baseline 重测 + Phase 7a 启动评估留 Sprint 25+ carry-over |
 
-**Phase 6c Wave 启动条件摘要**（2026-09-01 审计补全，per 3 个 OpenSpec change proposal）:
+**Phase 6c Wave 启动条件摘要**（2026-09-02 收官实况，per 6 个 OpenSpec change proposal）:
 
-- **Wave 2 `evidence-gate`** ✅ **ship + archived 2026-09-02** (commit `a625b84` + `ce85536`) — 消费 C3 baseline 数据, 3 阈值决策树执行完成; 决议 **Conditional** (parse-valid 88.24% ∈ [85, 90) 临界带, mock_mode=true 不构成真实结论); 真实 3 模型 baseline 决议推迟 Sprint 25+。
-- **Wave 3 `execution-dsl`** — 启动: Evidence Gate PASS (parse-valid 测量 ≥85% 触发 C6+C7, <85% 触发 C5+C6+C7)。阻塞条件: Wave 2 PASS。预期估时: 1-2 sprint (条件性)。
-- **Wave 4 `control-plane-eval`** — 启动: 6 项条件全 PASS (①AgentForge ≥2 agent ②Solo Dev ≥2 人/≥80h双周 ③ADR-0068 附录 A 主题 ✅ 2026-08-13 archived ④ADR-0073 完整 ship ⑤Evidence Gate PASS ⑥ADR-0075 EnvBackend ship — Local+Docker 已 ship 2026-08-18)。当前 **3/6 FAIL（①②⑤）**，预期估时: 0.5 sprint (纯脚本+决议文档)。条件 ⑥ 与 L202 Phase 7 启动条件一致标 PASS。
+- **Wave 1 `execution-baseline`** ✅ ship + archived 2026-08-18 (T21) — ADR-0074 D1/D2/D3 V1/V2/V3 prompt builders + 32 few-shot + 54 golden + measure_prompt_baseline CLI, ADR-0074 🔍 Proposed → ✅ Approved
+- **Wave 1 `schema-complete`** ✅ ship + archived 2026-08-18 (C9) — ADR-0073 D3 ToolCoordinator 4 步 sanitization pipeline 落地, ADR-0073 🟡 Partial → ✅ Approved
+- **Wave 1 `execution-envbackend`** ✅ ship + archived 2026-08-18 (C11-C13) — ADR-0075 D1+D2+D3+D5 全 ship, ADR-0075 🔍 Proposed → ✅ Approved
+- **Wave 2 `evidence-gate`** ✅ ship + archived 2026-09-02 (commit `a625b84` + `ce85536`) — 决议 **Conditional** (parse-valid 88.24% ∈ [85, 90) 临界带, mock_mode=true 不构成真实结论); 真实 3 模型 baseline 决议推迟 Sprint 25+
+- **Wave 3 `execution-dsl`** ✅ **ship + archived 2026-09-02** — Conditional 决议触发 ADR-0072 D3 declarative style + D5 双语法共存期基础设施; ADR-0072 🔍 Proposed → 🟡 Partial 翻牌（治理异常"实施先于翻牌"已文档化）; `src/modules/parser/declarative_style.{h,cpp}` + `test_dsl_extensions.cpp` 4 cases + `dual_syntax_lint.cpp` C7
+- **Wave 4 `control-plane-eval`** ✅ **ship + archived 2026-09-02** — 6 项启动条件实测 → **3/6 FAIL**（①②⑤ FAIL, ③/④/⑥ PASS）; 决议 **Phase 7a 不启动**（结构性 FAIL 项 1-agent + 1-人 ~27h/周 无文档解药）; `docs/audits/2026-09-02-control-plane-eval-v1.md`
 | **ADR Approved** | **58** (主 50: Phase 0-5 16 + Phase 6 18 [0050/0051/0052-0065/0067] + **ADR-0068** Wave 1 收官 + **ADR-0073** ✅ Approved 2026-08-18 (Phase 6c C9 D2+D3+D4 全 ship) + **ADR-0074** ✅ Approved 2026-08-18 (Phase 6c C1+C2+C3, D1/D2/D3 ship, baseline 数据 handoff to evidence-gate) + **ADR-0075** ✅ Approved 2026-08-18 (Phase 6c C11-C13 D1+D2+D3+D5 全 ship) + **ADR-0081** ✅ Approved 2026-08-22 (Batch 2 P3) + **ADR-0082** ✅ Approved 2026-08-22 (Batch 2 P7) + **ADR-0061-08 v1.1 amendment** ✅ Approved 2026-08-31 (commit `0f19997` flip; Axis6 cognitive_domain composition chain 单主体归因 commit API); plugin 1; skill 子项 7 含 0061-08-v1-1) |
 | **ADR 🔍 Proposed** | **17** (主 11: 0038/0039/0042/0045/0046/0070/0071/0076/0077/0078/0083; skill 子项 6: 0061-07~12) — ADR-0068 (D2) **已转 ✅ Approved** (2026-08-03 V2 收官); ADR-0070 (D4) 仍 Proposed; ADR-0081/0082 均 已转 ✅ Approved (Batch 2 P3+P7) |
 | **Completed Phase 0-4** | ✅ 100% |
 | **Phase 5** | ✅ 收官 (C9-C18 全部 ✅ shipped + archived) |
-| **Phase 6** | 🟡 服务化暂缓 (Candidate B 启动条件 🔒 4/4 未满足); Phase 6a (PDK 生产化) 启动评估 ready (Wave 3-A 完成提供前置); Phase 6c 重评触发条件明确; **Phase 6c C1+C2+C3 `from-roadmap-phase-6c-execution-baseline` ✅ ship 2026-08-18** (ADR-0074 D1/D2/D3 V1/V2/V3 prompt builders + 32 few-shot + 51 golden + measure_prompt_baseline CLI, ADR-0074 🔍 Proposed → ✅ Approved, baseline 数据 handoff to evidence-gate); **Phase 6c C9 `from-roadmap-phase-6c-schema-complete` ✅ ship 2026-08-18** (ADR-0073 D3 ToolCoordinator 4 步校验层落地, ADR-0073 🟡 Partial → ✅ Approved); **Phase 6c C11-C13 `from-roadmap-phase-6c-execution-envbackend` ✅ ship 2026-08-18** (ADR-0075 D1+D2+D3+D5 全 ship, ADR-0075 🔍 Proposed → ✅ Approved) |
+| **Phase 6** | 🟡 服务化暂缓 (Candidate B 启动条件 🔒 4/4 未满足); Phase 6a (PDK 生产化) 启动评估 ready (Wave 3-A 完成提供前置); **Phase 6c 已收官 (2026-09-02)**; **Phase 6c C1+C2+C3 `from-roadmap-phase-6c-execution-baseline` ✅ ship 2026-08-18** (ADR-0074 D1/D2/D3 V1/V2/V3 prompt builders + 32 few-shot + 54 golden + measure_prompt_baseline CLI, ADR-0074 🔍 Proposed → ✅ Approved, baseline 数据 handoff to evidence-gate); **Phase 6c C9 `from-roadmap-phase-6c-schema-complete` ✅ ship 2026-08-18** (ADR-0073 D3 ToolCoordinator 4 步校验层落地, ADR-0073 🟡 Partial → ✅ Approved); **Phase 6c C11-C13 `from-roadmap-phase-6c-execution-envbackend` ✅ ship 2026-08-18** (ADR-0075 D1+D2+D3+D5 全 ship, ADR-0075 🔍 Proposed → ✅ Approved) |
 | **架构规范** | `docs/specs/architecture.md` = 五层模型 (原 v1.2 晋升, **D1 决议 2026-07-31**)；v2.2 八层规范已归档。**D1b 宣告**: "第二大脑"产品愿景 (Persona/Contract/ZK/App Market/brain-frontend) 自 2026-07-31 起正式归档, 不构成当前路线图承诺 |
 
 ---
 
 ## 二、活跃变更一览
 
-### 🔵 当前活跃 (3 个)
+### 🔵 当前活跃 (0 个 — Phase 6c 已于 2026-09-02 收官)
 
-> **Phase 6c** 当前活跃 2 个 OpenSpec changes（Wave 3/4 待启动）。Wave 1 ✅ ship + archived 2026-08-18 + **Wave 2 Evidence Gate ✅ ship + archived 2026-09-02**:
-> - `from-roadmap-phase-6c-execution-baseline` (C1+C2+C3 ADR-0074 D1/D2/D3, baseline 数据 handoff to evidence-gate)
-> - `from-roadmap-phase-6c-schema-complete` (C9 ADR-0073 D3, 4-step sanitization pipeline)
-> - `from-roadmap-phase-6c-execution-envbackend` (C11-C13 ADR-0075 D1+D2+D3+D5, local+docker env backends)
+> **Phase 6c 收官实况 (2026-09-02)**：6 个 OpenSpec changes 全 ship + archived，0 个 active carry-over；详见下方「Wave 1-4 启动条件摘要」§一。**待 Sprint 25+ carry-over**：真实 3 模型 baseline 重测（per Evidence Gate Conditional 决议）。
 >
-> **C4 Evidence Gate v1 ship + archived (2026-09-02)** (OpenSpec `from-roadmap-phase-6c-evidence-gate`, commits `a625b84` + `ce85536`):
+> 1. `from-roadmap-phase-6c-execution-baseline` (C1+C2+C3 ADR-0074 D1/D2/D3) ✅ ship + archived 2026-08-18
+> 2. `from-roadmap-phase-6c-schema-complete` (C9 ADR-0073 D3, 4 步 sanitization pipeline) ✅ ship + archived 2026-08-18
+> 3. `from-roadmap-phase-6c-execution-envbackend` (C11-C13 ADR-0075 D1+D2+D3+D5) ✅ ship + archived 2026-08-18
+> 4. `from-roadmap-phase-6c-evidence-gate` (C4, Conditional 决议) ✅ ship + archived 2026-09-02
+> 5. `from-roadmap-phase-6c-execution-dsl` (C6+C7, ADR-0072 D3+D5, **触发 ADR-0072 翻牌 🟡 Partial**) ✅ ship + archived 2026-09-02
+> 6. `from-roadmap-phase-6c-control-plane-eval` (C10, **Phase 7a 不启动决议**) ✅ ship + archived 2026-09-02
+>
+> **Evidence Gate v1 ship 摘要 (2026-09-02)** (`from-roadmap-phase-6c-evidence-gate`, commits `a625b84` + `ce85536`):
 > - `src/common/prompts/evidence_gate.h` (62 行, header-only, no IO, `enum class GateStatus { Pass, Fail, Conditional, Abort }` + `evaluate_gate(parse_valid, l1, l2, l3)` 纯函数)
 > - `tests/test_evidence_gate.cpp` (7 TEST_CASEs: 4 boundary + 1 Abort + 1 regression + 1 to_string, all PASS, registered tests/CMakeLists.txt:121)
 > - `docs/audits/2026-09-02-evidence-gate-v1.md` 决议文档 (X 路线 per MOMUS REJECT 修正: mock baseline 88.24% Conditional placeholder, 真实 3 模型 baseline 推迟 Sprint 25+)
 > - **决议状态: Conditional** (🟡) — mock baseline 88.24% 在临界带 [85.0, 90.0); mock_mode=true 不构成真实 LLM 能力结论; 真实决议推迟 Sprint 25+
 > - ADR-0074 §决策 D5 实证字段: 2026-09-02 决议记录追加 (file:line 引用 baseline v3 yaml)
-> - **Phase 7 启动条件项 #1**: 🟡 Conditional (本决议 placeholder, 待真实 baseline 重测; Wave 3 启动条件需 Evidence Gate 真实 PASS)
+> - **Phase 7 启动条件项 #5**: 🟡 Conditional (本决议 placeholder, 待真实 baseline 重测; Wave 3 启动条件需 Evidence Gate 真实 PASS)
 >
-> 剩余 Wave 3 (`execution-dsl` 依赖 Wave 2 真实 PASS) / Wave 4 (`control-plane-eval` 3/6 条件 FAIL) 等待启动。
+> **ADR-0072 翻牌记录 (2026-09-02)**：
+> - D3 declarative style + D5 D3 arm 共存 ship 先于 ADR 翻牌
+> - 状态 🔍 Proposed → 🟡 Partial（per ADR-0073 增量翻牌先例 + STATUS-GLOSSARY.md 定义兼容）
+> - D1+D4 待实施；D2 N/A（Conditional 不触发）；D6 OFF（per ADR-0071 §3.C）
+> - 翻牌 OpenSpec change 待建 `2026-09-02-adr-0072-flip-to-partial`
+>
+> **Phase 7 启动决议 (2026-09-02)**：
+> - **Phase 7a 不启动**（3/6 FAIL：①AgentForge 1-agent ❌ ②Solo Dev 1-人 ~27h/周 ❌ ⑤Evidence Gate Conditional ❌）
+> - 结构性 FAIL 项无文档解药，需人力扩张 + AgentForge 第 2 agent + 真实 baseline 重测
+> - Phase 7 启动条件每 Sprint 收官重跑 `scripts/control-plane-eval.py`
+> - **Phase 8a (gRPC Data Plane) 仍 gated** by Phase 7a ship ≥3 个月
 >
 > **T1-T7 归档 2026-09-01** (commit `c79b4bf`):
 > Sprint 24 启动周期间累积的 9 个 OpenSpec changes 已 ship + archive:
@@ -79,7 +100,7 @@
 > - **IEvaluator V2** ✅ ship 2026-08-27 (OpenSpec `evaluator-v2-composite` — BehavioralEquivalenceEvaluator [T14 fingerprint + Hotelling T²] + CompositeEvaluator [多评估器加权聚合]; test_evaluator +8 cases / 18 assertions PASS, IEvaluator 接口零修改, V1 零回归; cap-map v2.0 #26 能力落地)
 >
 > **T21 跟踪（✅ ship 2026-08-28）**:
-> - **Prompt Evidence Gate V1** ✅ ship 2026-08-28 (OpenSpec `t21-prompt-evidence-gate` — 质量门控层: `PromptEvidenceGate` Go/Conditional/No-Go 阈值 [≥90%/80-89%/<80%] + IEvaluator V2 CompositeEvaluator 集成 + `PromptAssembler` 两阶段注入 ≤8k tokens + baseline 测量 [3 MockLLM × 2 指标] + JSONL 导出; 30 few-shot `lib/prompt/few_shots/` + 54 golden `lib/prompt/golden/` 实际生成; ADR-0068 附录 A v1.4 注册 3 主题; test_prompt_evidence_gate 19 cases / 338 assertions PASS, 全量 ctest 动态基线 0 回归, 既有 7 契约零修改; cap-map v2.2 #28 能力 + §八 T21 → ✅ SHIP; Wave 2 → Wave 3 Go/No-Go 门控就绪)
+> - **Prompt Evidence Gate V1** ✅ ship 2026-08-28 (OpenSpec `t21-prompt-evidence-gate` — 质量门控层: `PromptEvidenceGate` Go/Conditional/No-Go 阈值 [≥90%/80-89%/<80%] + IEvaluator V2 CompositeEvaluator 集成 + `PromptAssembler` 两阶段注入 ≤8k tokens + baseline 测量 [3 MockLLM × 2 指标] + JSONL 导出; 32 few-shot `lib/prompt/few_shots/` + 54 golden `lib/prompt/golden/` 实际生成; ADR-0068 附录 A v1.4 注册 3 主题; test_prompt_evidence_gate 19 cases / 338 assertions PASS, 全量 ctest 动态基线 0 回归, 既有 7 契约零修改; cap-map v2.2 #28 能力 + §八 T21 → ✅ SHIP; Wave 2 → Wave 3 Go/No-Go 门控就绪)
 >
 > **T20 跟踪（✅ ship 2026-08-28）**:
 > - **AFlow MCTS V1** ✅ ship 2026-08-28 (OpenSpec `t20-aflow-mcts` — `MCTSWorkflowSearch` 搜索编排层: 5 轴模板实例化搜索空间 + UCB1 选择/扩展/模拟/反向传播 + IEvaluator V2 (CompositeEvaluator) 奖励 + BehavioralRegressionGate 回归门 + MutationGovernor L1 workflow variants 授权 + 4 个 `mcts.*` 事件发射; V1 边界: Mock 模板实例化不触发真实 LLM, AFlow 改进 + L2+ variants deferred V2; test_mcts_workflow_search 17 cases / 65 assertions PASS [10 契约骨架 + 3 UCB1 算法 + 3 V2 集成 + 1 事件发射], 全量 ctest 动态基线 0 回归, 既有 5 契约零修改; ADR-0068 附录 A v1.5 注册 4 个 `mcts.*` 主题; ADR-0061-08 🔍 Proposed → ✅ Approved (V1 ship 2026-08-28); cap-map v2.3 #29 能力 + §八 T20 → ✅ SHIP 2026-08-28; C2 自进化高级工作流搜索解锁)
@@ -218,7 +239,7 @@
 | 顺延项 | 影响 | 启动条件 | 处理方式 |
 |--------|------|:--------:|---------|
 | ⏸ **Phase 6 服务化 (Candidate B)** | **结构性暂缓** — ADR-0050 §启动条件 #4 Solo Dev 容量 + #5 AgentForge 非真正"外部" 双重不满足 | (1) PDK 生产化达 Sprint 25 末里程碑; (2) AgentForge MVP 验证; (3) 服务化范围文档 ≤1 周可完成 (Solo dev 适配) | ADR-0050 Solo Dev 重新评估 (2026-07-15) + 新 plan `2026-07-15-phase6-agentforge-mvp.md` |
-| ⏸ **Phase 7 Control Plane (MCP Server)** | **结构性暂缓** — 依赖 Execution Plane 完整 ship (Phase 6c 收官); **评估: 3/6 条件 FAIL** (C1 AgentForge 1 agent ❌, C2 Solo Dev 1人~27h/周 ❌, C5 Evidence Gate Conditional ❌) per [`2026-09-02-control-plane-eval-v1.md`](audits/2026-09-02-control-plane-eval-v1.md) | (1) Phase 6c Evidence Gate PASS; (2) ADR-0073 完整 ship ✅; (3) ADR-0075 EnvBackend ship ✅ (2026-08-18); (4) AgentForge ≥2 agent (当前 1) ❌; (5) Solo Dev ≥2 人 (当前 1) ❌; (6) ADR-0068 §附录 A amendment ship ✅ | 评估脚本 [`scripts/control-plane-eval.py`](../scripts/control-plane-eval.py) 自动检测 + 决策表; 继续前置 ship (路径 A) 直至 6/6 PASS 再启动 Phase 7a |
+| ⏸ **Phase 7 Control Plane (MCP Server)** | **结构性暂缓 + Phase 7a 不启动** — **Phase 6c 已于 2026-09-02 收官**（Execution Plane ship 完毕，依赖项 #1-3 + #6 已 ✅ PASS）；**实测: 3/6 条件 FAIL** (C1 AgentForge 1 agent ❌, C2 Solo Dev 1人~27h/周 ❌, C5 Evidence Gate Conditional ❌) per [`2026-09-02-control-plane-eval-v1.md`](audits/2026-09-02-control-plane-eval-v1.md); **2026-09-02 决议: Phase 7a 不启动**（结构性 FAIL 项无文档解药） | (1) Phase 6c Evidence Gate 真实 PASS（需 Sprint 25+ 真实 3 模型 baseline 重测）; (2) ADR-0073 完整 ship ✅ (2026-08-18); (3) ADR-0075 EnvBackend ship ✅ (2026-08-18); (4) AgentForge ≥2 agent (当前 1) ❌; (5) Solo Dev ≥2 人 (当前 1) ❌; (6) ADR-0068 §附录 A amendment ship ✅ | 评估脚本 [`scripts/control-plane-eval.py`](../scripts/control-plane-eval.py) 自动检测 + 决策表; **每 Sprint 收官重跑**, 待 3/6 FAIL 项中**至少 AgentForge 第 2 agent + Evidence Gate 真实 PASS** 两项转 PASS 且 Solo Dev 容量无下降时, 启动 Phase 7a 重新评估 |
 | ⏸ **Phase 8a Data Plane (gRPC)** | **结构性暂缓** — 依赖 Control Plane ship ≥3 个月 + 路由阈值实测校准需求 | (1) Phase 7 ship ≥3 个月 + 零 critical bug; (2) MCP 路由阈值实测校准需求; (3) 分布式部署需求 OR LLMDataPlane 高频需求 | 路线图 v3 Phase 8a 启动评估 (per ADR-0077 D8) |
 | ➡️ C16 §5 Cloud plugin 顺延 | 持续关注 | 外部触发 (CloudLLMProvider 实施需求) | 独立 OpenSpec change `phase5-illmprovider-call-chain-v3` 跟踪 (受 Phase 6 暂缓影响) |
 | ➡️ C17 排除 ADR-0030 V2 顺延 | Fleet 实施需求 | FleetOrchestrator 解除延迟 (Oracle 2026-06-27 决议) | C19 或后续 ship 时迁移至 🟡 Partial |
@@ -272,28 +293,35 @@
 
 ## 六、下一步行动 (按当前焦点)
 
-> **2026-07-15 方向重定向**: Phase 6 (服务化) 结构性暂缓 (见 ADR-0050 §决策 Solo Developer 重新评估段); 转向 PDK 生产化 + AgentForge MVP 路径 (新 plan: `docs/superpowers/plans/2026-07-15-phase6-agentforge-mvp.md`).
+> **2026-09-02 路线图更新**: **Phase 6c 已收官**（11/13 任务 ship + C5 N/A + C4 Conditional 决议，Evidence Gate = Conditional mock 88.24%）；**Phase 7a 不启动**（3/6 FAIL 实测：①AgentForge 1-agent ②Solo Dev 1-人 ~27h/周 ⑤Evidence Gate Conditional FAIL，结构性项无文档解药）；**真实 3 模型 baseline 重测 + Phase 7a 启动评估**留 Sprint 25+ carry-over。
 
-### Sprint 24 (2026-07-15 ~ 2026-07-29, 2 周)
+### Sprint 24-26 历史收官 (2026-07-15 ~ 2026-09-02)
 
-1. **本周 (Day 1-2)**: 创建 `agentforge/` 独立项目脚手架
-   - 拷贝 `examples/agent_basic/` 作为种子
-   - 实现 1 个微型领域 agent (任何领域都行, 目标是建立 PDK 连接)
-   - 验证 `DSLEngine::set_llm_provider()` + DECLARE_TOOL 调用成功
-   - **边界**: 不超过 4 小时; 不要追求完美
-2. **Week 1**: SafeExec 重写 (PDK 最高风险修复) ✅ **shipped 2026-08-10**
-   - `std::async` + `wait_for` → `std::jthread` + `stop_token` (已完成, OpenSpec `2026-08-10-pdk-safe-exec-tests` archived)
-   - TDD 5 步完成: 8 test cases (timeout_returns_quickly / stop_token / leak / grace / types / exception / defaults / chain)
-   - BACKWARD 兼容: 现有 test_pdk_macros 5 cases 零修改通过 (含 1 case 测试 sleep 时长微调)
-3. **Week 2**: PDK README + 真实 LLM 路由示例
-   - `include/agenticdsl/pdk/README.md` (~2 页贯穿示例)
-   - Demo: AgentForge agent 通过 `ILLMProvider` (非 Mock) 调用
+✅ **Sprint 24 (2026-07-15 ~ 2026-07-29)** — AgentForge MVP + Phase 6a PDK 生产化（T1-T8 全部 ship, ctest baseline 184 → 192）
+✅ **Sprint 25 (2026-07-29 ~ 2026-08-12)** — Phase 6b partial ship + carry-over + Wave 3-A chat-async-io 完整 ship（ctest baseline 192 → 211）
+✅ **Phase 6c (2026-08-19 ~ 2026-09-02)** — **实质 ship 收官**：
+  - Wave 1 `execution-baseline` (C1-C3) ✅ ship 2026-08-18
+  - Wave 1 `schema-complete` (C8-C9) ✅ ship 2026-08-14/18
+  - Wave 1 `execution-envbackend` (C11-C13) ✅ ship 2026-08-18
+  - Wave 2 `evidence-gate` (C4) ✅ Conditional 决议 ship 2026-09-02
+  - Wave 3 `execution-dsl` (C6+C7) ✅ Conditional 触发 ship 2026-09-02（**触发 ADR-0072 翻牌 🟡 Partial**）
+  - Wave 4 `control-plane-eval` (C10) ✅ 3/6 FAIL 决议 ship 2026-09-02（**Phase 7a 不启动**）
 
-### Sprint 25 (2026-07-29 ~ 2026-08-12, 2 周)
+### Sprint 25+ (2026-09 起, carry-over)
 
-4. **PDK 开发者指南完整化**: 文档 + 3 个 agent loop 示例
-5. **AgentForge 第 2 个领域 agent**: 验证 PDK 复用性
-6. **Sprint 24 末决策点**: 评估 Phase 6 服务化是否重新启动
+1. **真实 3 模型 baseline 重测** — Conditional 决议 placeholder, 触发条件 = 外部模型窗口可用
+   - 重跑 `tools/baseline/measure_prompt_baseline.py` + 3 模型 (GPT-4 / Claude 3.5+ / DeepSeek) × 50 tasks held-out suite
+   - 决议 pass → 触发 ADR-0072 D2 `$var` 实施 + Phase 7a 重评
+   - 决议 fail → 维持 Conditional / No-Go, 6b carry-over（U2/U3/U4/U6/W4/W5）继续推进
+2. **Phase 7a 启动复评** — 触发条件 = 3 项 FAIL 中**至少 AgentForge 第 2 agent + Evidence Gate 真实 PASS** 两项转 PASS
+3. **Phase 6b carry-over 真实剩余**（per 2026-09-02 收官盘点）：
+   - U2 code-review-run.skill.md → SkillInterpreter .cpp 集成（mock-only 或全功能）
+   - U3 `include/agenticdsl/pdk/README.md` 完整开发者指南
+   - U4 AgentForge 第 2 个领域 agent
+   - U6 ADR-0042 状态对齐（仍 🔍 Proposed）
+   - W4 ADR-0072 D1 `stream: true` 全局扩展（仅 LLM `dsl_call` 已支持）
+   - W5 ADR-0072 D4 `backend:` 字段（ADR-0075 backend_policy.h 已 ship, parser 未对接）
+4. **ADR-0072 翻牌 OpenSpec change 落地** — `2026-09-02-adr-0072-flip-to-partial`（single-dev mode: issue + 24h cooling-off + Self-Review Checklist）
 
 ### 架构缺失能力治理 Wave 1 (2026-07-31 挂接, 与 Sprint 24/25 并行)
 
