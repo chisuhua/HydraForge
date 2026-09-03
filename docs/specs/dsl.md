@@ -1476,3 +1476,27 @@ class MockLLMProvider : public ILLMProvider {
 - **行为**: `SkillInterpreter::run()` 通过 `posix_spawn` + `seccomp(BPF)` + `pipe IPC` 执行 SKILL.md
 - **验证**: `tests/test_skill_interpreter.cpp::test_basic_execution`
 - **状态**: ✅ 已实现 (2026-07-22)
+
+### REQ-W5-001: 节点可声明执行环境 (backend: 字段)
+
+- **来源**: ADR-0072 D4 + ADR-0075 EnvBackend
+- **行为**: 节点 YAML 可声明 `backend:`（值 ∈ {"local", "docker", 自定义 backend 名}）和 `env_vars:`（key→string 映射）。解析后存入 `Node::metadata["backend"]` / `Node::metadata["env_vars"]`，供运行时 `ToolCoordinator` + `EnvValidationHook` 读取并应用 BackendPolicy。
+- **向后兼容别名**: `env:` 字段作为 `env_vars:` 的旧名（向后兼容既有 DSL 写法）。两者并存时 `env_vars:` 优先。
+- **未知 backend 容错**: 未知 backend 名（如 `backend: custom_xyz`）不抛解析异常，仅存入 metadata，由运行时 `EnvValidationHook` 决策。
+- **示例**:
+
+  ```yaml
+  - id: my_docker_task
+    type: tool_call
+    tool: shell/exec
+    arguments:
+      cmd: "echo hello"
+    output_keys: ["result"]
+    backend: docker
+    env_vars:
+      DB_HOST: localhost
+      DB_PORT: "5432"
+  ```
+
+- **验证**: `tests/test_dsl_extensions.cpp::test_dsl_extensions[W5]`
+- **状态**: ✅ 已实现 (2026-09-03, Sprint 25 Change #3) — ADR-0072 D4 实施度从 1/6 升至 2/6

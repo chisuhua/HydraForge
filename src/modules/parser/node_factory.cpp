@@ -33,6 +33,18 @@ NodeContext parse_context(const nlohmann::json& json) {
     }
   }
   ctx.metadata = json.value("metadata", nlohmann::json::object());
+  // ADR-0072 D4: backend: 字段接入 (per ADR-0075 EnvBackend) — 节点声明执行环境
+  if (json.contains("backend")) {
+    ctx.metadata["backend"] = json["backend"];
+  }
+  // env: 作为 env_vars: 旧别名（向后兼容既有 DSL 写法）
+  if (json.contains("env")) {
+    ctx.metadata["env_vars"] = json["env"];
+  }
+  // env_vars: 规范名，优先级覆盖 env:（两者并存时 env_vars 胜出）
+  if (json.contains("env_vars")) {
+    ctx.metadata["env_vars"] = json["env_vars"];
+  }
   if (json.contains("wait_for")) {
     ctx.metadata["wait_for"] = json["wait_for"];
   }

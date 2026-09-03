@@ -405,3 +405,107 @@ TEST_CASE("Backward compat: existing .agent.md files parse unchanged", "[parser]
     REQUIRE_NOTHROW(parser.parse_from_file(f.string()));
   }
 }
+
+// =====================================================================
+// W5: ADR-0072 D4 backend:/env_vars: 字段解析 (≥4 case)
+// 设计依据: openspec/changes/adr-0072-d4-backend-parser/specs/adr-0072-backend-field/spec.md
+// =====================================================================
+TEST_CASE("W5 backend: docker field parsed into node.metadata", "[parser][dsl-ext][W5][backend]") {
+  MarkdownParser parser;
+  std::string markdown = R"(
+### AgenticDSL `/main`
+```yaml
+# --- BEGIN AgenticDSL ---
+graph_type: subgraph
+nodes:
+  - id: docker_node
+    type: tool_call
+    tool: shell/exec
+    arguments:
+      cmd: "echo hello"
+    output_keys: ["result"]
+    backend: docker
+# --- END AgenticDSL ---
+```)";
+
+  auto graph = parse_main_graph(markdown);
+  REQUIRE(graph.nodes.size() == 1);
+  REQUIRE(graph.nodes[0]->metadata.contains("backend"));
+  REQUIRE(graph.nodes[0]->metadata["backend"] == "docker");
+}
+
+TEST_CASE("W5 env: alias mapped to env_vars in metadata", "[parser][dsl-ext][W5][env-alias]") {
+  MarkdownParser parser;
+  std::string markdown = R"(
+### AgenticDSL `/main`
+```yaml
+# --- BEGIN AgenticDSL ---
+graph_type: subgraph
+nodes:
+  - id: aliased_node
+    type: tool_call
+    tool: shell/exec
+    arguments:
+      cmd: "echo hi"
+    output_keys: ["result"]
+    env:
+      DB_HOST: localhost
+      API_TOKEN: secret_abc123
+# --- END AgenticDSL ---
+```)";
+
+  auto graph = parse_main_graph(markdown);
+  REQUIRE(graph.nodes.size() == 1);
+  REQUIRE(graph.nodes[0]->metadata.contains("env_vars"));
+  REQUIRE(graph.nodes[0]->metadata["env_vars"]["DB_HOST"] == "localhost");
+  REQUIRE(graph.nodes[0]->metadata["env_vars"]["API_TOKEN"] == "secret_abc123");
+}
+
+TEST_CASE("W5 env_vars: takes priority over env: when both present", "[parser][dsl-ext][W5][env-priority]") {
+  MarkdownParser parser;
+  std::string markdown = R"(
+### AgenticDSL `/main`
+```yaml
+# --- BEGIN AgenticDSL ---
+graph_type: subgraph
+nodes:
+  - id: priority_node
+    type: tool_call
+    tool: shell/exec
+    arguments:
+      cmd: "echo hi"
+    output_keys: ["result"]
+    env:
+      KEY: old_string_value
+    env_vars:
+      KEY: new_string_value
+# --- END AgenticDSL ---
+```)";
+
+  auto graph = parse_main_graph(markdown);
+  REQUIRE(graph.nodes.size() == 1);
+  REQUIRE(graph.nodes[0]->metadata["env_vars"]["KEY"] == "new_string_value");
+}
+
+TEST_CASE("W5 no backend/env fields → metadata backward compatible", "[parser][dsl-ext][W5][backward-compat]") {
+  MarkdownParser parser;
+  std::string markdown = R"(
+### AgenticDSL `/main`
+```yaml
+# --- BEGIN AgenticDSL ---
+graph_type: subgraph
+nodes:
+  - id: plain_node
+    type: tool_call
+    tool: shell/exec
+    arguments:
+      cmd: "echo hi"
+    output_keys: ["result"]
+# --- END AgenticDSL ---
+```)";
+
+  auto graph = parse_main_graph(markdown);
+  REQUIRE(graph.nodes.size() == 1);
+  REQUIRE_FALSE(graph.nodes[0]->metadata.contains("backend"));
+  REQUIRE_FALSE(graph.nodes[0]->metadata.contains("env_vars"));
+}

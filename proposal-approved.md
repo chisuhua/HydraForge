@@ -4,6 +4,7 @@
 
 ## 已批准提案
 
+| [adr-0072-d4-backend-parser](.rddf/improvements/adr-0072-d4-backend-parser.md) | P0 | 2026-09-03 | ✅ [archived 2026-09-03](openspec/changes/archive/2026-09-03-adr-0072-d4-backend-parser/) — ADR-0075 EnvBackend 闭环: parser 新增 `backend:` 字段 + `env:`→`env_vars:` 别名解析 (node_factory.cpp) + 4 类 W5 测试 (backend 字段 / env 别名 / env_vars 优先级 / 向后兼容) + dsl.md REQ-W5-001; 4/4 W5 PASS, 211/212 全量 ctest (1 pre-existing perf fail), ADR-0072 D4 实施度 1/6→2/6 |
 | [adr-0042-state-alignment](.rddf/improvements/adr-0042-state-alignment.md) | P2 | 2026-09-03 | [TBD] — ADR-0042 状态翻转 🔍 Proposed → 🟡 Partial (C16 部分实施已 ship: Decorator 链 / Dual Consumer / available_models / PluginLoader V2 / LlamaAdapter deprecated) + README 同步 + relationships 重新生成; zero 代码改动 (纯 governance 元数据) |
 | [baseline-retest-wait-condition](.rddf/improvements/baseline-retest-wait-condition.md) | P1 | 2026-09-03 | [TBD] — `docs/runbooks/baseline-retest.md` 完整 4 部分契约 (触发信号 + 重测 runbook + Evidence Gate 重跑 + 容量预算 ≤8h + 失败 fallback); interrupt-driven baseline 重测任务可触发 (per Oracle `ses_f9ab25dc...` P1 建议 + roadmap Q3); zero 代码改动 (纯文档) |
 | [control-plane-eval-c2-alignment](.rddf/improvements/control-plane-eval-c2-alignment.md) | P0 | 2026-09-03 | [TBD] — `scripts/control-plane-eval.py` 新增 `--relaxed` flag + 决策树 C2 从 blocking 降级为非阻塞 + 4 类 pytest (默认保持 + relaxed 3 case) + audit doc 更新; 保住复评机制信号价值 (per Oracle session `ses_f9ab25dcfffetx4J5UFA7JYBKV` P0 建议) |

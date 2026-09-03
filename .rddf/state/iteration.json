@@ -482,6 +482,17 @@
       "worktree_path": null,
       "archived_at": "2026-09-03T13:30:00+00:00",
       "filled_at": null
+    },
+    {
+      "added_at": "2026-09-03T13:40:00+00:00",
+      "name": "adr-0072-d4-backend-parser",
+      "status": "archived",
+      "priority": "P0",
+      "plan_path": ".rddf/plans/adr-0072-d4-backend-parser.md",
+      "tasks_total": 4,
+      "worktree_path": null,
+      "archived_at": "2026-09-03T13:55:00+00:00",
+      "filled_at": null
     }
   ]
 }
