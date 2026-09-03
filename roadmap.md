@@ -6,9 +6,9 @@
 > **路线图 v3** (2026-08-03 重写): 整合 **三平面架构** (Execution/Control/Data) + 7 个新 LLM-native ADR (0072-0078) + Oracle 容量审查 (session `ses_037e12115ffeLkeR1QTIko0BHb`) + active-status.md §四 Candidate B 结构性暂缓
 
 ## 元信息
-- **版本**: 3.1 (2026-09-02 修订: Phase 6c 状态闭环 + ADR-0072 翻牌 🟡 Partial 同步 + ADR-0073 ✅ Approved 状态修正 + Phase 7 启动条件实测 3/6 FAIL 决议)
+- **版本**: 3.2 (2026-09-03 修订: Sprint 25 治理收官补登 — ADR-0042 🔍→🟡 翻牌同步 + ADR-0072 D1 阶段 A `stream:` 字段层 ship + ADR-0072 D4 `backend:`/`env_vars:` parser ship + ctest baseline 192→211 + Phase 7 启动复评机制精化 + baseline-retest runbook 引用)
 - **创建时间**: 2026-07-24T00:00:00+08:00
-- **最后更新**: 2026-09-02 — Phase 6c 状态闭环归档 + ADR-0072 翻牌同步 (per Oracle session `ses_f9e000cb4ffeeYPcLW4j0QKviI`)
+- **最后更新**: 2026-09-03 — Sprint 25 治理收官 6 changes ship + archived (per Oracle sessions `ses_f9e000cb4ffeeYPcLW4j0QKviI` + `ses_f9a5905a`)
 - **当前阶段**: phase-6c 收官期 (2026-08-19 ~ 09-09, ~80h 容量) — 🟢 实质 ship (11/13 任务完成 + C5 N/A + C4 Conditional 决议，真实 3 模型 baseline 重测 defer Sprint 25+)
 - **下一阶段**: phase-7 (2026-09+ 起, gated by 启动条件 3/6 FAIL — 结构性条件不满足，本 Sprint 内不启动 Phase 7a)
 - **阶段规划**:
@@ -184,9 +184,9 @@ Phase 8b ───────Fine-tune ────────────┘ 
   - [ ] `.agent.md` 加载时有 schema 校验 (U5 核心 gate；demo-level parser 已部分 ship)
   - [x] **🎯 Execution Plane: ADR-0073 翻牌 🟡 Partial** (W1 archived 2026-08-13)
   - [ ] **🎯 ADR-0074 D3 baseline 第一次测量** (W2 carry-over；3 模型 × 50 tasks)
-  - [ ] **🎯 ADR-0072 D1+D4 强制决策 ship** (W4/W5 carry-over；`stream: true` + `backend:`)
+  - [x] **🎯 ADR-0072 D1+D4 强制决策 ship** (W5 `backend:`/`env_vars:` parser 完整 ship + W4 D1 阶段 A `stream:` 字段层 ship; **W4 阶段 B IStreamHandle 语义 4h 仍 carry-over to Sprint 25+**)
   - [x] **🎯 ADR-0068 §附录 A amendment PR** (W6 archived 2026-08-13；14 候选主题注册)
-  - [ ] ADR-0042 状态不匹配已解决 (U6)
+  - [x] ADR-0042 状态不匹配已解决 (U6, commit `622b742` 2026-09-03 翻牌 🔍 → 🟡; C16 5 项决策已 ship: Decorator 链 / Dual Consumer / available_models pure virtual / PluginLoader V2 / LlamaAdapter deprecated)
   - [ ] Sprint Review Gate: ctest/ASan 数字验证通过 (Sprint Review artifact 尚未完成)
 
 #### 任务分类
@@ -197,7 +197,7 @@ Phase 8b ───────Fine-tune ────────────┘ 
 | `platform` | PDK 平台化 | 开发者指南 + AgentForge 第 2 领域 agent | P0 | PDK开发者指南；AgentForge第二领域agent |
 | **`execution-plane-wave2`** | **🎯 Execution Plane Wave 2 强制决策** | ADR-0073 翻牌 + ADR-0074 baseline + ADR-0072 D1+D4 | **P0** | ADR-0073 schema契约；ADR-0074 prompt baseline；ADR-0072 stream扩展；ADR-0072 backend字段 |
 | `execution-plane-prep` | Execution Plane 准备 | ADR-0068 amendment PR + Phase 6c 准备 | P0 | canonical topic registry；Evidence Gate准备 |
-| `architecture` | 架构对齐 | ADR-0042 状态 + 服务化评估 (U8 削减) | P1 | ADR-0042状态对齐；服务化评估 |
+| `architecture` | 架构对齐 | ADR-0042 状态 ✅ ship + 服务化评估 (U8 削减) | P1 | ADR-0042状态对齐（已 ship, commit `622b742` 2026-09-03 🔍 → 🟡）；服务化评估 |
 | `governance` | 治理节奏 | Sprint Review + Drift Gate 准备 | P1 | Sprint Review；Drift Gate；ADR与spec对齐 |
 
 #### 任务明细
@@ -209,19 +209,19 @@ Phase 8b ───────Fine-tune ────────────┘ 
 | U3 | PDK 开发者指南: `include/agenticdsl/pdk/README.md` | `platform` | 6h | P0 | — |
 | U4 | AgentForge 第 2 个领域 agent: 验证 PDK 复用性 | `platform` | 8h | P1 | U3 |
 | U5 | DSLValidator 增强: `.agent.md` schema 校验 | `architecture` | 6h | P1 | — |
-| U6 | ADR-0042 状态对齐 | `architecture` | 2h | P1 | — |
+| U6 | ADR-0042 状态对齐 🔍 → 🟡 | `architecture` | 2h | P1 | — | commit `622b742` 2026-09-03 ship + cross-file 同步 (ADR/README/relationships/iteration.json) |
 | **W1** | **✅ ADR-0073 翻牌 🟡 Partial** (Phase 6a manifest schema 边界部分采纳 + 修正 docs/README.md + adr-0073-impl-scope-audit.md) → **2026-08-18 ✅ Approved** (D2+D3+D4 全 ship) | `execution-plane-wave2` | 2h | P0 | Phase 6a |
 | **W2** | **✅ ADR-0074 D3 baseline 测量** (`tools/baseline/measure_prompt_baseline.py` + 50 golden tasks YAML + V0 prompt + mock 模型) | `execution-plane-wave2` | 10h | P0 | — |
 | **W3** | **✅ ADR-0074 D6 JSONL 训练数据结构** (实际路径 `lib/prompt/{few_shots,golden}/` + `tools/prompt/export_training_data.py` + `schema_snapshot_hash`; 原规划 `data/training/` 路径已废弃) | `execution-plane-wave2` | 4h | P0 | — |
-| **W4** | **⏸ ADR-0072 D1 `stream: true` 扩展** (tool_call/shell.exec/dsl_call 3 处 + IStreamHandle) — **2026-09-02 翻牌 🟡 Partial 后仍未 ship**, parser 仅 LLM `dsl_call` 支持 | `execution-plane-wave2` | 6h | P0 | — |
-| **W5** | **⏸ ADR-0072 D4 `backend:` 字段** (DSL 解析器 + `env:` → `env_vars:` 别名) — **2026-09-02 翻牌 🟡 Partial 后仍未 ship**, ADR-0075 backend_policy.h 已 ship 但 parser 未对接 | `execution-plane-wave2` | 2h | P0 | — |
+| **W4** | **✅ ADR-0072 D1 `stream:` 字段层 ship（阶段 A）** (`src/modules/parser/node_factory.cpp` `parse_context` 新增 stream 字段提取 + `tests/test_dsl_extensions.cpp` 3 类 W4 测试 PASS) — commit `c61a6d0` 2026-09-03; **阶段 B IStreamHandle 语义 4h 仍待 ship**（carry-over to Sprint 25+） | `execution-plane-wave2` | 6h (含阶段 B 4h) | P0 | — |
+| **W5** | **✅ ADR-0072 D4 `backend:`/`env_vars:` 字段 parser 接入 ship** (`node_factory.cpp` parse_context 提取 backend/env/env_vars + `tests/test_dsl_extensions.cpp` 4 类 W5 测试 PASS + `docs/specs/dsl.md REQ-W5-001` 章节 + `env:` 作 `env_vars:` 别名) — commit `ca03071` 2026-09-03; ADR-0075 backend_policy.h ↔ parser **闭环** | `execution-plane-wave2` | 2h | P0 | ✅ Done |
 | **W6** | **🎯 ADR-0068 §附录 A amendment PR 起草** (14 候选主题注册) | `execution-plane-prep` | 4h | P0 | — |
 | U8 | ~~Phase 6 服务化重启评估~~ — **CUT per Oracle 修复 #1** | (削减) | — | — | — |
 
 > **实际执行回顾（2026-08-17）**: 原计划 64h / 44h 容量超额未在 08-05 前完成 descope 决策；phase-6b 实际 08-11 kickoff，已完成 21 个归档 changes，但仍有 8/11 gates 未满足。
 >
 > **carry-over 决策**:
-> 1. U2/U3/U4/U6 与 W2/W3/W4/W5 不再假设于 08-19 前完成，转为 Phase 6c 的显式前置队列。
+> 1. U2/U3/U4/U6 与 W2/W3/W4/W5 不再假设于 08-19 前完成，转为 Phase 6c 的显式前置队列。**状态更新 (2026-09-03)**：U6 已 ship (commit `622b742`)、W5 parser 已 ship (commit `ca03071`)、W4 阶段 A 字段层已 ship (commit `c61a6d0`)；当前真实未 ship = U2 + U3 + U4 + W4 阶段 B (IStreamHandle 语义, 4h) + ADR-0072 D6 (条件触发)。
 > 2. 历史 descope 选项已废止；U8 Phase 6 服务化重启评估继续维持 CUT。
 > 3. ADR-0074 few-shot/golden 工作与 W2 baseline 保持依赖链，不在未有 baseline 证据前强行宣称完成。
 >
@@ -238,7 +238,9 @@ Phase 8b ───────Fine-tune ────────────┘ 
 **周期**: 2026-08-19 ~ 2026-09-09 (3 周, ~80h 容量) — **2026-09-02 收官**
 **触发条件**: Phase 6b Sprint Review 通过 + 8 项 carry-over（U2/U3/U4/U6/W2/W3/W4/W5）在第一周内纳入
 
-> **实际可执行性（2026-09-02 收官实况）**: Phase 6b 8 项 carry-over 中 **W2（baseline 工具）实际已 ship**（`tools/baseline/measure_prompt_baseline.py` + `tools/measure_prompt_baseline.cpp`）；真实剩余 carry-over = U2（code-review-run.skill.md 缺 .cpp 集成）+ U3（`include/agenticdsl/pdk/README.md` 未创建）+ U4（AgentForge 第 2 agent 未启动）+ U6（ADR-0042 仍 🔍 Proposed）+ W4（parser 无 `stream:` 全局支持）+ W5（parser 无 `backend:` 字段）。C12 DockerBackend **实际以 cpp-httplib 替代 libcurl**（降成本，避免 1 周节省缺口）。
+> **实际可执行性（2026-09-02 收官实况，2026-09-03 Sprint 25 治理收官补登）**: Phase 6b 8 项 carry-over 中 **W2（baseline 工具）实际已 ship**（`tools/baseline/measure_prompt_baseline.py` + `tools/measure_prompt_baseline.cpp`）；**2026-09-03 Sprint 25 治理收官后真实剩余 carry-over = U2（code-review-run.skill.md 缺 .cpp 集成，6h）+ U3（`include/agenticdsl/pdk/README.md` 未创建，6h）+ U4（AgentForge 第 2 agent 未启动，8h）+ W4 阶段 B（ADR-0072 D1 IStreamHandle 语义，4h）+ ADR-0072 D6（条件触发）**。C12 DockerBackend **实际以 cpp-httplib 替代 libcurl**（降成本，避免 1 周节省缺口）。
+>
+> *2026-09-03 Sprint 25 已 ship 闭环清单：U6（ADR-0042 🔍→🟡 翻牌, commit `622b742`）、W5（ADR-0072 D4 `backend:` parser, commit `ca03071`）、W4 阶段 A（ADR-0072 D1 `stream:` 字段层, commit `c61a6d0`）。*
 
 **完成条件 (2026-09-02 实况)**:
   - [x] **C1** ADR-0074 D1 few-shot examples 30+ 采集（实际 32 文件 `lib/prompt/few_shots/`）✅ 2026-08-28 ship (T21)
@@ -296,16 +298,16 @@ Phase 8b ───────Fine-tune ────────────┘ 
 **平面范围**: 📡 **MCP Control Plane** (1 个 ADR: 0076)
 **状态**: ⏸ **gated + Phase 7a 不启动** (2026-09-02 实测 3/6 启动条件 FAIL，**结构性条件 1-agent + 1-人 ~27h/周 不满足**，文档工作无法改变；Phase 7a 本 Sprint 内不启动)
 **周期**: TBD（原估 2026-09-09 ~ 2026-11-04；**实际启动取决于 (1) 真实 3 模型 baseline 重测 PASS + (2) AgentForge 第 2 agent 上线 + (3) 人力扩张至 ≥2 人**）
-**前置条件** (2026-09-02 实测 6 项启动条件):
+**前置条件** (2026-09-03 Sprint 25 治理收官后实测 6 项启动条件；治理接入 baseline-retest runbook + `--relaxed` 模式):
 
-| 启动条件 | 阈值 | 现状 (2026-09-02) | 评估 | 评估时点 |
+| 启动条件 | 阈值 | 现状 (2026-09-03) | 评估 | 评估时点 |
 |---------|------|------------------|------|---------|
 | AgentForge 第 2 agent | 可独立运行 | ❌ U4 仍未启动（carry-over） | ❌ FAIL | Phase 7a 重新评估（人力 + 真实 baseline 重测通过后） |
-| Solo Dev 容量 | ≥2 人 OR ≥80h/双周 | ❌ 当前 1 人, ~27h/周 | ❌ FAIL | 外部人力变化 |
+| Solo Dev 容量 | ≥2 人 OR ≥80h/双周 | ❌ 当前 1 人, ~27h/周；**Sprint 25 `control-plane-eval-c2-alignment` (commit `a742195`) ship `--relaxed` 模式 — C2 FAIL 不再触发 DescopeOrContinue，保住复评信号价值** | ❌ FAIL | 外部人力变化；每 Sprint 收官重跑 `scripts/control-plane-eval.py --relaxed` |
 | ADR-0068 §附录 A amendment PR | 14 候选主题 ship | ✅ 2026-08-13 archived（W6 已满足） | ✅ PASS | — |
 | ADR-0073 完整 ship | D2+D3+D4 ship | ✅ 2026-08-18 ✅ Approved（D2+D3+D4 全 ship） | ✅ PASS | — |
-| Evidence Gate PASS | parse-valid ≥85% + task-success L1 ≥70% | 🟡 Conditional（mock 88.24%，非真实 PASS） | ❌ FAIL | Sprint 25+ 真实 3 模型重测 |
-| ADR-0075 EnvBackend ship | Local+Docker ship | ✅ 2026-08-18 Wave 3-A ship (C11+C12+C13) | ✅ PASS | — |
+| Evidence Gate PASS | parse-valid ≥85% + task-success L1 ≥70% | 🟡 Conditional（mock 88.24%，非真实 PASS）；**Sprint 25 `baseline-retest-wait-condition` (commit `f1a6397`) ship `docs/runbooks/baseline-retest.md` 4 部分契约 — 触发信号 + runbook + Evidence Gate 重跑 + 容量预算 ≤8h/次 + 失败 fallback** | ❌ FAIL | Sprint 25+ 真实 3 模型重测（per runbook §1 触发条件） |
+| ADR-0075 EnvBackend ship | Local+Docker ship | ✅ 2026-08-18 Wave 3-A ship (C11+C12+C13) + **Sprint 25 W5 parser 闭环 (commit `ca03071`)** | ✅ PASS | — |
 
 > **实测决议 (2026-09-02)**：3/6 FAIL（AgentForge 第 2 agent / Solo Dev 容量 / Evidence Gate PASS），3/6 PASS（ADR-0068 / ADR-0073 / ADR-0075）。**结构性 FAIL 项（1-agent + 1-人 ~27h/周）无文档解药**，Phase 7a 不启动；Evidence Gate FAIL 项需 Sprint 25+ 真实 3 模型 baseline 重测。Phase 7 启动最早时点 = 三项 FAIL 全部转 PASS（详见 `docs/audits/2026-09-02-control-plane-eval-v1.md`）。
 >
@@ -480,6 +482,7 @@ pkm_temporal_demo:
 | 2026-08-26 | Phase 6c 启动评估 | C10 | carry-over 纳入检查 + Control Plane 启动决策树 |
 | 2026-09-02 | **Phase 6c 收官 + Evidence Gate 决议** ✅ | C4 + C9 + C11-C13 + C6 + C7 | `2026-09-02-evidence-gate-v1.md` (Conditional 决议) + `2026-09-02-control-plane-eval-v1.md` (3/6 FAIL) + `from-roadmap-phase-6c-execution-dsl` (ADR-0072 D3+D5 ship) |
 | **2026-09-02** | **ADR-0072 翻牌 🟡 Partial** | — | `docs/adr/adr-0072-dsl-node-extensions.md` 状态变更；治理异常"实施先于翻牌"文档化 |
+| **2026-09-03** | **Sprint 25 治理收官** ✅ (per Oracle session `ses_f9a5905a` 优先级排序) | U6 + W4 阶段 A + W5 + governance | 6 个 OpenSpec changes 全 ship + archived：`adr-0072-flip-to-partial` (12 项 Self-Review + 24h cooling-off, commits `e02b3b8`/`7276173`/`59fb3db`/`a7c22cd`)、`control-plane-eval-c2-alignment` (`--relaxed` mode, commits `a742195`/`236deaf`)、`baseline-retest-wait-condition` (runbook, commit `f1a6397`)、`adr-0042-state-alignment` (🔍→🟡, commit `622b742`)、`adr-0072-d4-backend-parser` (commit `ca03071`)、`adr-0072-d1-stream-true-parser` 阶段 A (commit `c61a6d0`)。ADR-0072 实施度 D1 0/6→1/6 + D4 1/6→2/6；ctest baseline 192→211 (+19, T1-T7 evolution-budget/mcts-axis6/signature-validation/cognitive-tools/workflow-materializer)。**Phase 7a 启动复评触发条件** = C1 + C5 转 PASS 且 C2 不下降 |
 | **2026-09-02** | **Phase 7a 不启动决议** | C10 | DescopeOrContinue 决议入 active-status.md；3 项 FAIL 中 2 项为结构性（无文档解药）|
 | Sprint 25+ | 真实 3 模型 baseline 重测（carry-over） | — | 触发条件：外部模型窗口可用 + Evidence Gate 重跑 |
 | Sprint 25+ | Phase 7a 启动复评 | C10 重跑 | 每 Sprint 收官重跑 `control-plane-eval-v1.md` 6 项检查 |
@@ -493,7 +496,7 @@ pkm_temporal_demo:
 
 | 风险 | 概率 | 影响 | 缓解 |
 |------|:---:|------|------|
-| **Phase 6b 容量超额**（原计划 64h vs 44h；实际 8 项 carry-over） | **已发生** | 6b partial ship；U2/U3/U4/U6/W2/W3/W4/W5 carry-over 至 6c | 显式 descope：U4 可延后；C5/C6/C7 按 Evidence Gate 条件性执行 |
+| **Phase 6b 容量超额**（原计划 64h vs 44h；实际 8 项 carry-over） | **已发生** | 6b partial ship；U2/U3/U4/U6/W2/W3/W4/W5 carry-over 至 6c；**2026-09-03 Sprint 25 收官**部分闭环：U6 (ADR-0042 🔍→🟡)、W5 (`backend:` parser)、W4 阶段 A (`stream:` 字段层) — 仍余 U2/U3/U4 + W4 阶段 B + ADR-0072 D6 | 显式 descope：U4 可延后；C5/C6/C7 按 Evidence Gate 条件性执行 |
 | **ADR-0068 §附录 A PR 阻塞 Wave 2 实施** (14 主题未注册) | **已闭环** | W6 已于 2026-08-13 ship | — |
 | **Solo Dev 容量 3.5-5x 超额** (Phase 7 6-8 周 vs Solo Dev 1 人) | **高** | Phase 7/8 部分 descope | Phase 7a/7b/7c 拆分 descope 路径 |
 | **Wave 3 启动条件未满足** (6 项均依赖 Phase 6c 收官) | 中 | Phase 7 暂缓 | 启动条件 6 项显式评估 (per active-status.md §四) |
@@ -520,12 +523,25 @@ pkm_temporal_demo:
 
 **Active 状态**: Phase 6a 已于 2026-08-11 完成；Phase 6b 为 partial ship + carry-over（部分任务已 ship 缓解）；**Phase 6c 已于 2026-09-02 实质 ship 收官**（11/13 任务 + C5 N/A + C4 Conditional）；**Phase 7a 决议不启动**（3/6 FAIL 实测）；Phase 8a/8b 仍 gated by Phase 7a ship。
 
-> **ADR 前置声明（2026-09-02 更新）**: Phase 6b/6c/7 引用 ADR 状态（截至 2026-09-02）：
-> - **✅ Approved（已 ship）**：ADR-0071（08-25 Promotion）、ADR-0073（08-18 D2+D3+D4 全 ship）、ADR-0074（08-25 Promotion）、ADR-0075（08-18 Wave 3-A 全 ship）
-> - **🟡 Partial**：ADR-0072（**2026-09-02 翻牌**——D3 declarative style + D5 D3 arm 共存 ship；D1+D4 待实施；D2 N/A；D6 OFF；治理异常"实施先于翻牌"已文档化）
+> **ADR 前置声明（2026-09-03 更新）**: Phase 6b/6c/7 引用 ADR 状态（截至 2026-09-03）：
+> - **✅ Approved（已 ship）**：ADR-0071（08-25 Promotion）、ADR-0073（08-18 D2+D3+D4 全 ship）、ADR-0074（08-25 Promotion）、ADR-0075（08-18 Wave 3-A 全 ship + parser 闭环）
+> - **🟡 Partial**：ADR-0042（**2026-09-03 翻牌**——C16 5 项决策 ship: Decorator 链 / Dual Consumer / available_models pure virtual / PluginLoader V2 / LlamaAdapter deprecated；C17+ 演进路径待独立 change 跟踪, commit `622b742`）、ADR-0072（**2026-09-02 翻牌**——D3 declarative style + D5 D3 arm 共存 ship；**2026-09-03 增量 ship**: D1 阶段 A 字段层 (`c61a6d0`) + D4 `backend:` 字段 (`ca03071`)；阶段 B IStreamHandle + D2 N/A + D6 OFF；治理异常"实施先于翻牌"已文档化）
 > - **🔍 Proposed（待评审/排期）**：ADR-0076（Phase 7 gated）、ADR-0077（Phase 8a descoped docs-only）、ADR-0078（Phase 8b Wave 5+ descoped）
 >
 > ⚠️ **治理异常文档化**：ADR-0072 的 D3+D5 实现 ship 早于 ADR 评审通过（per `from-roadmap-phase-6c-execution-dsl` 2026-09-02 change），按 single-dev mode 治理（issue + 24h cooling-off）允许实施先于翻牌，但翻牌 OpenSpec 待建 `2026-09-02-adr-0072-flip-to-partial`。
+
+**v3.2 关键改进** (2026-09-03 Sprint 25 治理收官补登):
+1. **ADR-0042 翻牌 🔍 → 🟡 Partial 同步**: C16 5 项决策已 ship (Decorator 链 / Dual Consumer / available_models pure virtual / PluginLoader V2 / LlamaAdapter deprecated), commit `622b742` 跨 4 文件一致性 (ADR/README/relationships/iteration.json); C17+ 演进路径保留独立 change 跟踪 — **关闭 Phase 6b carry-over U6**
+2. **ADR-0072 D1 阶段 A 字段层 ship**: commit `c61a6d0` `src/modules/parser/node_factory.cpp` `parse_context` 新增 `stream:` 字段提取 + `tests/test_dsl_extensions.cpp` 3 类 W4 测试 PASS; 实施度 D1 0/6 → 1/6; **阶段 B IStreamHandle 语义 4h 仍 carry-over**
+3. **ADR-0072 D4 parser 字段接入 ship**: commit `ca03071` `backend:`/`env:`/`env_vars:` 解析 + 4 类 W5 测试 PASS + `docs/specs/dsl.md REQ-W5-001` 章节 + `env:` 作 `env_vars:` 别名; 实施度 D4 1/6 → 2/6; **ADR-0075 ↔ parser 闭环**
+4. **Phase 7 启动条件精化**: Sprint 25 治理接入（commit `a742195` + `f1a6397`）
+   - C2 Solo Dev `--relaxed` 模式（`scripts/control-plane-eval.py --relaxed`）— C2 FAIL 不再触发 DescopeOrContinue，保住复评信号价值
+   - C5 Evidence Gate `docs/runbooks/baseline-retest.md` 4 部分契约 — 触发信号 + 重测 runbook + Evidence Gate 重跑 + 容量预算 ≤8h/次 + 失败 fallback
+5. **ctest baseline 更新 192 → 211 (+19)**: T1-T7 evolution-budget 6 / mcts-axis6 6 / signature-validation 7 / cognitive-tools 4 / workflow-materializer 5 + Sprint 24 审计补全 2; **210/211 PASS (1 pre-existing timing flake per AGENTS.md)**
+6. **ASan pre-existing 跟踪**: `test_skill_interpreter` (ADR-0066 V1 ship, 但 ASan-only 功能失败, debug PASS) — 建议独立 OpenSpec change 跟踪修复; 持续 follow-up
+7. **Sprint 25 治理异常修复**: 24h cooling-off `adr-0072-flip-to-partial` change 由 Oracle `ses_f9ab25dcfffetx4J5UFA7JYBKV` 纠偏为 honest cooling-off record (commits `a7c22cd` + `236deaf`) — 治理节奏收紧
+
+**Active 状态更新**: Phase 6c 已于 2026-09-02 实质 ship 收官 (11/13 任务 + C5 N/A + C4 Conditional)；**Sprint 25 治理收官 6 changes 全 ship + archived 2026-09-03**（ADR-0042 翻牌 + ADR-0072 D1 阶段 A + D4 parser + governance flywheel）；**Phase 7a 决议不启动**（3/6 FAIL 实测 + `--relaxed` + baseline-retest runbook 接入复评机制）；**Phase 7a 启动复评触发条件** = C1 (AgentForge ≥2 agents) + C5 (Evidence Gate 真实 PASS) 两项转 PASS 且 C2 (Solo Dev) 不下降；Phase 8a/8b 仍 gated by Phase 7a ship + ≥3 个月稳定窗口。
 
 **关键决策** (供用户审阅):
 - **A**: Phase 6b 已采用 carry-over，而非过期 descope 选项；详见 L221-L228。
