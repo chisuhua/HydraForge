@@ -1078,8 +1078,8 @@ registry.parallel("code_review", [t1, t2, t3]);
 | [ADR-0068](../adr/adr-0068-event-emission-contract.md) | 事件发射契约 | ✅ |
 | [ADR-0069](../adr/adr-0069-tool-coordinator-hooks.md) | ToolCoordinator Hook | 🟡 |
 | [ADR-0071](../adr/adr-0071-llm-native-agenticdsl-architecture.md) | LLM-native AgenticDSL 架构 | ✅ |
-| [ADR-0072](../adr/adr-0072-dsl-node-extensions.md) | DSL 节点扩展（§十二 ADR-0071 派生；Wave 2 GATED by Evidence Gate） | 🔍 |
-| [ADR-0073](../adr/adr-0073-tool-json-schema-contract.md) | Tool JSON Schema 契约（§十二 ADR-0071 派生；JSON Schema 2020-12） | 🟡 |
+| [ADR-0072](../adr/adr-0072-dsl-node-extensions.md) | DSL 节点扩展（§十二 ADR-0071 派生；2026-09-02 翻牌 🟡 Partial — D3+D5 ship） | 🟡 |
+| [ADR-0073](../adr/adr-0073-tool-json-schema-contract.md) | Tool JSON Schema 契约（§十二 ADR-0071 派生；JSON Schema 2020-12；2026-08-18 ✅ Approved D2+D3+D4） | ✅ |
 | [ADR-0074](../adr/adr-0074-prompt-evidence-gate.md) | Prompt Engineering + Evidence Gate | ✅ |
 | [ADR-0075](../adr/adr-0075-env-backend-local-docker.md) | EnvBackend 多环境执行 | ✅ |
 | [ADR-0076](../adr/adr-0076-dsl-engine-mcp-server.md) | DSL Engine as MCP Server 控制面（§十二 ADR-0071 派生；Wave 3, gated by Candidate B） | 🔍 |
