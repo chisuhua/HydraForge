@@ -2,11 +2,18 @@
 
 > ⚠️ **本文档为滚动快照**。ADR 状态以 `docs/adr/*.md` 各自状态行为准；本表滞后风险自负。
 > 数据修订记录见 `git log docs/architecture/adr-implementation-status-gap-analysis.md`。本表文档定位降级为"**ADR 状态权威参照**"（最终以 `docs/adr/*.md` 状态字段为准）。
-
-**生成日期**: 2026-08-03
-**最后更新**: 2026-09-01 — 与 OpenSpec change `analysis-status-snapshot-sync` 同步：状态清扫（ADR-0068 ✅/0069 🟡/0070 🟡/0074 ✅/0075 ✅）+ Header 快照横幅 + 措辞降级（详见 §一 总览 + §2.3）
-**分析范围**: 102 个 ADR（67 主 + 1 plugin + 15 skill 子项 + 19 archive）vs 代码库实施状态；可复现命令 `python3 tools/adr_lint.py`
-**数据源**: `docs/adr/` 目录、`tools/adr_lint.py` 输出、AGENTS.md Recent Changes、Oracle session `ses_037e12115ffeLkeR1QTIko0BHb`、代码库架构扫描、`docs/active-status.md §四`、code-review-graph
+> 
+> **ADR 状态唯一事实源声明**（2026-09-02 同步，per Q3 α 修订）：**各 ADR 文件自身 `## 状态` 字段** = 权威状态；**`python3 tools/adr_lint.py` 输出** = 可复现权威状态汇总。本表 §一/§七 计数为视图层（按维度组织的状态汇总），与 ADR 文件或 `adr_lint.py` 输出冲突时**以 ADR 文件为准**。`docs/README.md` ADR 表、`docs/active-status.md`、`docs/adr-management/relationships.md`（由 `tools/adr_relationships.py` 生成）同样为视图层。
+> 
+> **本表计数口径**（与 `active-status.md` 口径差异，2026-09-02 显式化）：
+> - 本表"102 个 ADR" = **含 archive**（67 主 + 1 plugin + 15 skill 子项 + 19 archive）
+> - `active-status.md`"82 ADR" = **仅活跃目录**（不含 archive 的 19 个）
+> - 视图层统一引用本表"全量计数"或 active-status"活跃计数"时须注明口径
+> 
+> **生成日期**: 2026-08-03
+> **最后更新**: 2026-09-02 — Q2a-4 同步: ADR-0072 翻牌 🟡 Partial + ADR-0073 stale 引用清零 + 计数口径段补完
+> **分析范围**: 102 个 ADR（67 主 + 1 plugin + 15 skill 子项 + 19 archive）vs 代码库实施状态；可复现命令 `python3 tools/adr_lint.py`
+> **数据源**: `docs/adr/` 目录、`tools/adr_lint.py` 输出、AGENTS.md Recent Changes、Oracle session `ses_037e12115ffeLkeR1QTIko0BHb`、代码库架构扫描、`docs/active-status.md §四`、code-review-graph
 
 ---
 
@@ -23,7 +30,7 @@
 | 📋 Reserved — 编号预留 | 2 | 2.0% | (占位文件 0024/0028; 编号 0024-0028 预留) |
 | **总计** | **102** | **100%** | （含 ADR-0084 ✅ Approved + ADR-0085 ✅ Approved 已计入 ✅ Approved 段；可复现命令 `python3 tools/adr_lint.py`）|
 
-> ① `docs/archive/adr/` 19 个归档 ADR（0010-0018 + 0030 V1 + 0036×2 + 其他）计入 `❌ Not Implemented`。② ADR-0032 已实施后归档, 单列 `📦 Archived`。③ ADR-0002 未实施但文件仍在主目录, 计入 `❌`。④ ADR-0037 于 2026-07-27 从 🔍 提升为 🟡 Partial (CausalClock ship)。⑤ **LLM-native 8 ADR (0071-0078) 当前状态**：0071 ✅ Approved (2026-08-25), 0072 🔍 Proposed, 0073 🟡 Partial (翻牌), 0074 ✅ Approved (2026-08-25), 0075 ✅ Approved (2026-08-18), 0076-0078 🔍 Proposed — 最终权威见 `docs/adr/*.md` 各自状态行。⑥ **ADR-0073 三重状态已统一**：内部 🔍 → 翻牌 🟡 Partial（实施率约 30%，见 §2.1）。
+> ① `docs/archive/adr/` 19 个归档 ADR（0010-0018 + 0030 V1 + 0036×2 + 其他）计入 `❌ Not Implemented`。② ADR-0032 已实施后归档, 单列 `📦 Archived`。③ ADR-0002 未实施但文件仍在主目录, 计入 `❌`。④ ADR-0037 于 2026-07-27 从 🔍 提升为 🟡 Partial (CausalClock ship)。⑤ **LLM-native 8 ADR (0071-0078) 当前状态（2026-09-02 同步）**：0071 ✅ Approved (2026-08-25), **0072 🟡 Partial (2026-09-02 翻牌 — D3+D5 ship; 治理异常"实施先于翻牌"已文档化)**, 0073 ✅ Approved (2026-08-18 D2+D3+D4 全 ship), 0074 ✅ Approved (2026-08-25), 0075 ✅ Approved (2026-08-18), 0076-0078 🔍 Proposed — 最终权威见 `docs/adr/*.md` 各自状态行。⑥ **ADR-0073 翻牌历史**：内部 🔍 Proposed → 🟡 Partial (Sprint 21, ADR-0073 §状态 line 514-515) → ✅ Approved (2026-08-18 D2+D3+D4 全 ship; 实施率 ~100%, 见 §2.1)。
 
 **📌 ADR 状态权威源声明**（重要）：本文档为滚动快照，**不**再以"唯一事实源"自我定位。ADR 状态唯一事实源 = 各 `docs/adr/*.md` 文件 `## 状态` 字段；本表为视图层（按维度组织的状态汇总），与 ADR 文件冲突时**以 ADR 文件为准**。`docs/README.md` ADR 表、`tools/adr_lint.py` 输出、`tools/adr_relationships.py` 生成的 `docs/adr-management/relationships.md` 同样为视图层。
 
@@ -65,11 +72,10 @@
 - **缺失**: V2 (多 skill 协同 / hot-reload / 性能基准)
 - **建议**: Phase 6 规划 V2 增强
 
-#### ADR-0073: Tool JSON Schema 契约 ⚠️ **状态待对齐**
-- **ADR 状态**: 🔍 Proposed (ADR 内部) vs ✅ Approved (docs/README.md) — **不一致**
-- **实际实施**: Phase 5 Sprint 21 已部分 ship (ToolMetadata V3 字段 per AGENTS.md)
-- **建议**: **翻牌 🟡 Partial** (Sprint 21 已 ship 部分决策 D2/D5, 缺 D1/D3/D4/D6 实施)
-- **关联 OpenSpec change**: ADR-0073 Wave 2 Phase 2.1 (估时 1-2 周)
+#### ADR-0073: Tool JSON Schema 契约 ✅ **Approved (2026-08-18 全 ship)**
+- **ADR 状态**: ✅ Approved (D2 + D3 + D4 全 ship, 2026-08-18 — Phase 6c C9 `from-roadmap-phase-6c-schema-complete` ship: D3 ToolCoordinator 4 步 sanitization pipeline 落地) — **2026-09-02 同步**
+- **实施细节**: `src/common/tools/tool_coordinator.cpp:407` 4 步 pipeline (schema_validate → coercion → required_field → business_rules); `tests/test_tool_coordinator_validation.cpp` 7 cases / 26 assertions PASS; `tests/test_dangerous_patterns.cpp` 4 cases PASS; Wave 1 followup 2026-08-23 修 4 处 P1 语义缺口
+- **关联 OpenSpec change**: `from-roadmap-phase-6c-schema-complete` ✅ archived 2026-08-18
 
 #### ADR-0008: 结构化 Context ⚠️ **本会话参考**
 - **已 ship**: LayeredContext (L1-L5) 实现完成 (2026-06-12) ✅
@@ -77,36 +83,39 @@
 
 ---
 
-### 2.2 🔍 Proposed — 未批准 + LLM-native 8 ADR 详细（13 个）
+### 2.2 🔍 Proposed — 未批准 + LLM-native 8 ADR 详细（11 个 = 6 🔍 + 5 ✅/🟡 列出参考）
+
+> **2026-09-02 同步**：本节原始 "13 个" 为 2026-08-03 起草时计数；ADR-0071/0073/0074/0075 已 ✅ Approved，ADR-0072 已 🟡 Partial，移出 🔍 Proposed 计数。当前 🔍 Proposed = 6 个（0038/0039/0042/0045/0046/0070/0076/0077/0078/0083 + skill 子项 0061-07~12，部分）；本节仍按历史结构列出 8 个 LLM-native ADR（含已 Approved/Partial）作为决策追溯。
 
 #### LLM-native 架构蓝图 (本会话起草, 6 个新 ADR)
 
-##### ADR-0071: LLM-native AgenticDSL 架构 (顶层, Wave 2 锚定)
-- **状态**: 🔍 Proposed (2026-08-02, 顶层方向 ADR, 锚定 Phase 6+ 演化)
+##### ADR-0071: LLM-native AgenticDSL 架构 (顶层, Wave 2 锚定) ✅ **Approved 2026-08-25**
+- **状态**: ✅ Approved (2026-08-02 起草 → 2026-08-25 Promotion 评审通过, 顶层方向 ADR, 锚定 Phase 6+ 演化)
 - **9 项决策 D1-D9** 全部有派生 ADR:
   - D1 顶层架构 (自身) / D2 规范升级 (D3+D5) / D3 → ADR-0072 / D4 → ADR-0073 / D5 → ADR-0074 / D6 → ADR-0075 / D7 → ADR-0076 / D8 → ADR-0077 / D9 → ADR-0078
 - **D7 战略协调**: 已 Oracle 修复 — "⚠️ INTEGRATES WITH Phase 6 Candidate B (gated by active-status.md §四)" — 不再隐含假设服务化路径默认开启
 - **代码对齐**: 0/9 实施
 
-##### ADR-0072: DSL 节点扩展 (Wave 2.4, **GATED**)
-- **状态**: 🔍 Proposed (2026-08-03)
+##### ADR-0072: DSL 节点扩展 (Wave 2.4, 🟡 **Partial 2026-09-02 翻牌**)
+- **状态**: 🟡 Partial (2026-08-03 起草 → 2026-09-02 翻牌 — D3 declarative style + D5 D3 arm 共存 ship; 治理异常"实施先于翻牌"已文档化)
 - **6 项决策**: D1 stream:true 强制 + D2 $var 条件 + D3 declarative style 条件 + D4 backend: 强制 + D5 双语法共存期 + D6 try/catch OFF
 - **Oracle 修复 #3 已应用**: D3 触发条件 `parse-valid < 90%` → `85% ≤ parse-valid < 90%` 临界带
-- **代码对齐**: 0/6 实施, Wave 2.4 GATED 等 Evidence Gate
+- **代码对齐**: D3 ✅ ship (2026-09-02 Conditional 触发, `src/modules/parser/declarative_style.{h,cpp}` + `test_dsl_extensions.cpp` 4 cases + `dual_syntax_lint.cpp` C7); D5 ✅ ship (D3 arm `exec: ↔ type: tool_call`); D1/D4 ❌ 未实施; D2 ⏸ N/A (Gate Conditional 不触发); D6 ⛔ OFF
+- **Wave 2.4 触发后续**: D1+D4 必补完成时维持 🟡 Partial; D2 `$var` 触发时维持 🟡 Partial; D6 `try/catch` 触发时翻 ✅ Approved
 
-##### ADR-0073: Tool JSON Schema 契约 (Wave 2.1, **status 翻转待 apply**)
-- **状态**: 🔍 Proposed → 待翻牌 🟡 Partial (per §2.1)
+##### ADR-0073: Tool JSON Schema 契约 (Wave 2.1, ✅ **ship + Approved 2026-08-18**)
+- **状态**: ✅ Approved (2026-08-18 D2+D3+D4 全 ship, 2026-09-02 同步 per §2.1)
 - **6 项决策**: JSON Schema 2020-12 + V3 字段 + 运行时校验 + DECLARE_TOOL 自动生成 + 向后兼容 + Schema 版本
-- **代码对齐**: 部分 ship (Phase 5 Sprint 21, ToolMetadata V3 字段)
+- **代码对齐**: 全部 ship (Phase 5 Sprint 21 D2 + Phase 6c C8+C9 D3+D4; `tool_coordinator.cpp:407` 4 步 pipeline)
 
-##### ADR-0074: Prompt Engineering + Evidence Gate (Wave 2.2)
-- **状态**: 🔍 Proposed (2026-08-03)
+##### ADR-0074: Prompt Engineering + Evidence Gate (Wave 2.2) ✅ **Approved 2026-08-25**
+- **状态**: ✅ Approved (2026-08-03 起草 → 2026-08-25 Promotion 评审通过, 2026-09-02 同步)
 - **7 项决策**: D1 few-shot 30+ + D2 golden 50+ + D3 baseline 3 模型 × 2 指标 + D4 Evidence Gate 阈值 + D5 两阶段注入 ≤8k + D6 JSONL + D7 失败事件
 - **Oracle 修复 #2 已应用**: D7 中 2 个候选主题 `llm.dsl.{parse_failed,schema_validation_failed}` 标注 "⚠️ pending + ADR-0068 §附录 A amendment PR"
-- **代码对齐**: 0/7 实施, Wave 2.2 估时 2-3 周 (≈ Phase 6a 37h 容量, 接近上限)
+- **代码对齐**: 全部 ship (Phase 6c T21, 32 few-shot + 54 golden + measure_prompt_baseline + Evidence Gate Conditional 决议)
 
-##### ADR-0075: EnvBackend Local + Docker (Wave 3 Phase 1+2)
-- **状态**: 🔍 Proposed (2026-08-03)
+##### ADR-0075: EnvBackend Local + Docker (Wave 3 Phase 1+2) ✅ **Approved 2026-08-18**
+- **状态**: ✅ Approved (2026-08-03 起草 → 2026-08-18 Wave 3-A `from-roadmap-phase-6c-execution-envbackend` ship: D1+D2+D3+D5 全 ship)
 - **5 项决策**: D1 IEnvBackend 接口 + D2 LocalBackend + D3 DockerBackend + D4 backend: 字段 + D5 EnvValidationHook
 - **K8s/SSH 推迟** (替代方案 #4 拒绝 "4 backend 一次性实施", 估时 4-6 周超容量)
 - **Oracle 修复 #2 + #5 已应用**:
@@ -192,8 +201,8 @@
 | ADR | Wave | 决策数 | 强制决策 | 条件触发 | 实施差距 |
 |-----|------|:---:|:---:|------|---------|
 | 0071 顶层 | 2 锚定 | 9 | 0 | 9 (派生) | 0/9 (蓝图) |
-| 0072 DSL 节点 | 2.4 | 6 | D1+D4 | D2+D3+D5+D6 | 0/6 (Gated) |
-| 0073 Schema | 2.1 | 6 | D1+D6 | D2-D5 | 🟡 2/6 (Sprint 21) |
+| 0072 DSL 节点 | 2.4 | 6 | D1+D4 | D2+D3+D5+D6 | 🟡 2/6 (翻牌 2026-09-02, D3+D5 ship; D1+D4 待实施; D2 N/A) |
+| 0073 Schema | 2.1 | 6 | D1+D6 | D2-D5 | ✅ 6/6 (Approved 2026-08-18 D2+D3+D4 全 ship; Wave 1 followup 2026-08-23 P1 修) |
 | 0074 Prompt | 2.2 | 7 | D1-D4+D6+D7 | 0 | 0/7 (估 2-3 周) |
 | 0075 EnvBackend | 3 P1+2 | 5 | D1-D5 | 0 | 0/5 (估 2-3 周) |
 | 0076 MCP | 3 末 | 7 | D1+D2+D3+D5+D6+D7 | D4 (baseline) | 0/7 (Gated) |
@@ -358,7 +367,7 @@ Wave 3 启动评估 (Sprint 26+):
   ├─ AgentForge ≥ Sprint 25? ──── ❌ 当前 Sprint 24 — 推迟
   ├─ Solo Dev ≥2 人? ──────────── ❌ 当前 1 人 — 推迟
   ├─ ADR-0068 amendment PR ship? ─ ❌ 当前 14 pending — 需先 ship
-  ├─ ADR-0073 翻牌 🟡 Partial? ── ❌ 当前 🔍 Proposed — 需先翻牌
+  ├─ ADR-0073 翻牌 🟡 Partial? ── ✅ **已 ✅ Approved (2026-08-18 D2+D3+D4 全 ship) — 历史门槛已过**
   └─ 全部满足? ──────────────────── → Wave 3 (0075 + 0076) 启动
                                       ├─ 0075 估时 2-3 周 (Phase 1+2)
                                       └─ 0076 估时 2-3 周 (Wave 3 末)
@@ -411,7 +420,7 @@ Wave 3 启动评估 (Sprint 26+):
 | 调度/执行 | 0033, 0019 | **100%** | TopoScheduler + NodeExecutor |
 | EventBus 基础设施 | 0019, 0002, 0037, 0046 | **90%** | BusEvent + subscribe_glob + CausalClock ship |
 | Temporal Agent | — | **100%** | pkgm-temporal-agent Phase 1+2 完整 ship (41/41 tasks, 10/10 ctest) |
-| Tool Metadata V3 | **0073** | **🟡 30%** | Schema 字段已 ship, DECLARE_TOOL 自动生成 + 校验层 待实施 |
+| Tool Metadata V3 | **0073** | **✅ 100%** (2026-09-02 同步) | D2+D3+D4 全 ship 2026-08-18, ADR-0073 ✅ Approved; Wave 1 followup 2026-08-23 修 P1 语义缺口 |
 | **LLM-native 架构** | **0071-0078** | **🟡 3.7%** | 顶层 + Schema 部分 ship; Prompt/Backend/MCP/gRPC/Fine-tune 未启动 |
 | **MCP/gRPC 协议** | **0076/0077** | **0%** | docs-only, 启动条件未满足 |
 
@@ -439,8 +448,8 @@ Wave 3 启动评估 (Sprint 26+):
 
 ### 🔴 高优先级
 
-1. **Wave 3 启动条件**: 4 项结构性暂缓 (AgentForge ≥ Sprint 25, Solo Dev ≥2 人, ADR-0068 amendment ship, ADR-0073 翻牌)
-2. **ADR-0068 §附录 A 主题注册**: 14 个候选主题待 PR, 阻塞 4 个 LLM-native ADR 实施
+1. **Wave 3 启动条件**: 4 项结构性暂缓 (AgentForge ≥ Sprint 25, Solo Dev ≥2 人, ADR-0068 amendment ship, **ADR-0073 翻牌 ✅ Approved 2026-08-18 历史门槛已过**)
+2. **ADR-0068 §附录 A 主题注册**: 14 个候选主题待 PR, 阻塞 4 个 LLM-native ADR 实施 (历史, 现已 2026-09-02 完成 8 个 amendment 含 gepa/mcts/llm.dsl/axis6 等)
 3. **ADR-0042 状态不匹配**: 5 项 C16 增量决议已落地为代码, ADR 仍 🔍 Proposed
 
 ### 🟡 中优先级
@@ -448,7 +457,7 @@ Wave 3 启动评估 (Sprint 26+):
 4. **Solo Dev 容量超额**: Wave 3 4-6 周 vs Phase 6b 44h (3.5-5x), 必须 descope
 5. **ADR-0031 4 项 defer**: 工具调用无超时保护, Phase 6 应重新评估
 6. **ADR-0007 LLM 压缩**: 长对话场景瓶颈
-7. **ADR-0073 翻牌**: 🔍 → 🟡 Partial (Sprint 21 部分 ship)
+7. ~~**ADR-0073 翻牌**: 🔍 → 🟡 Partial (Sprint 21 部分 ship)~~ → ✅ **Approved 2026-08-18 D2+D3+D4 全 ship, 2026-09-02 同步完成**
 8. **LLM-native Phase 6b 推进**: 24-32h 强制决策可 ship, 但 Wave 3 descope 路径需明确
 
 ### 🟢 低优先级
@@ -462,10 +471,15 @@ Wave 3 启动评估 (Sprint 26+):
 
 ## 九、演进路径建议
 
+> **历史快照横幅 (2026-09-02 追加)**: 本节为 2026-08-03 当时路径建议。当前状态以 §三 / §七 / `docs/active-status.md` / `roadmap.md` 为准。
+> - ADR-0073 已于 **2026-08-18 ✅ Approved** (D2+D3+D4 全 ship, 非 🟡 Partial)
+> - ADR-0072 已于 **2026-09-02 🟡 Partial** 翻牌 (D3+D5 ship, D1+D4 待实施)
+> - Phase 6c 已于 **2026-09-02 收官**, 6 changes archived, 0 active
+
 ```
-2026-08-03 (当前) ──→ Phase 6b (Sprint 25, ~08-19)
+2026-08-03 (历史快照) ──→ Phase 6b (Sprint 25, ~08-19)
   ✅ 6 个 LLM-native ADR 起草           🔴 Wave 3 启动条件评估
-  ✅ Oracle MUST-FIX 5 项应用            🟡 ADR-0073 翻牌 🟡 Partial
+  ✅ Oracle MUST-FIX 5 项应用            ✅ ADR-0073 ✅ Approved (2026-08-18 更新)
   ✅ 14 候选主题标注 pending             🟡 ADR-0068 amendment PR ship
   ⚠️ Wave 3 结构性暂缓                  🟡 Wave 2 强制决策 ship (24-32h)
   ✅ Phase 6a Sprint 24 推进              🟢 ADR-0042 状态对齐
@@ -546,7 +560,7 @@ Phase 7+ ──→ Phase 8+
 | 0061-11 | DSL→Wasm 编译器 | 🔍 Proposed | P2 |
 | 0061-12 | WebLLM 集成 | 🔍 Proposed | P2 |
 
-### 🟡 Partial (8 个, 含 ADR-0073 待翻牌)
+### 🟡 Partial (8 个，含 **ADR-0072 翻牌 🟡 Partial (2026-09-02, D3+D5 ship)**；ADR-0073 已出列 → ✅ Approved)
 
 | ADR | 标题 | 缺失项 |
 |-----|------|--------|
@@ -556,9 +570,9 @@ Phase 7+ ──→ Phase 8+
 | 0031 | 执行策略 | 4 项 defer 至 C6 |
 | 0037 | 因果序 | CausalClock 基础 ship, 分布式向量时钟 defer |
 | 0066 | SkillInterpreter 架构 | V1 done, V2 deferred |
-| **0073** | **Tool JSON Schema 契约** | **待翻牌 (Phase 5 Sprint 21 部分 ship)** |
+| **0072** | **DSL 节点扩展** | **2026-09-02 翻牌 🟡 Partial (D3+D5 ship, D1+D4 待实施, D2 N/A, D6 OFF)** |
 
-### 🔍 Proposed (13 个, 含 6 个新 LLM-native)
+### 🔍 Proposed (11 个 = 4 个非 LLM-native + 7 个其他 ADR/子项, 2026-09-02 同步)
 
 | ADR | 标题 | 备注 |
 |-----|------|------|
@@ -567,14 +581,18 @@ Phase 7+ ──→ Phase 8+
 | 0042 | ILLMProvider 演进路径 | C16 决议已记录, 状态不匹配 |
 | 0045 | 编排 Plugin 规范 | 实施率 ~20% |
 | 0046 | 插件间通信协议 | 实施率 ~35% |
-| 0061-07~12 | P2 子项 (6 个) | v2 candidate |
-| **0071** | **LLM-native AgenticDSL** | **本会话起草, 顶层** |
-| **0072** | **DSL 节点扩展** | **本会话起草, Wave 2.4 GATED** |
-| **0074** | **Prompt + Evidence Gate** | **本会话起草, Wave 2.2** |
-| **0075** | **EnvBackend Local+Docker** | **本会话起草, Wave 3** |
+| 0061-07 | 推测执行 PASTE | v2 candidate P2 |
+| 0061-10 | 形式化 lint | v2 candidate P2 |
+| 0061-11 | DSL→Wasm 编译器 | v2 candidate P2 (Phase 8+) |
+| 0061-12 | 浏览器端 WebLLM | v2 candidate P2 |
 | **0076** | **DSL Engine as MCP Server** | **本会话起草, Wave 3 末 GATED** |
 | **0077** | **gRPC Data Plane** | **本会话起草, Wave 4 descoped docs-only** |
 | **0078** | **Fine-tune 基模** | **本会话起草, Wave 5+ descoped docs-only** |
+| ~~0071~~ | ~~LLM-native AgenticDSL~~ | ✅ Approved 2026-08-25, 移至 §2.1 (历史决策追溯保留) |
+| ~~0072~~ | ~~DSL 节点扩展~~ | 🟡 Partial 2026-09-02 翻牌, 移至 §2.1 |
+| ~~0073~~ | ~~Tool JSON Schema 契约~~ | ✅ Approved 2026-08-18, 移至 §2.1 |
+| ~~0074~~ | ~~Prompt + Evidence Gate~~ | ✅ Approved 2026-08-25, 移至 §2.1 (历史决策追溯保留) |
+| ~~0075~~ | ~~EnvBackend Local+Docker~~ | ✅ Approved 2026-08-18, 移至 §2.1 (历史决策追溯保留) |
 
 ### ⛔ Superseded (1 个)
 
@@ -605,7 +623,7 @@ Phase 7+ ──→ Phase 8+
 # ADR 总数 + 状态分布
 python3 tools/adr_lint.py
 
-# ADR 实施状态基线 (本文档唯一事实源)
+# ADR 实施状态基线 (视图层快照 — ADR 文件 ## 状态 = 权威源, 见 §一后口径声明)
 cat docs/architecture/adr-implementation-status-gap-analysis.md
 
 # LLM-native 蓝图深度分析
@@ -626,19 +644,16 @@ ls docs/adr/adr-007{2,4,5,6,7,8}*.md | xargs -I {} wc -l {}
 
 ---
 
-*文档版本: v1.1 (本会话整合重写版)*
+*文档版本: v1.2 (2026-09-02 同步: ADR-0072 翻牌 🟡 Partial + ADR-0073 ✅ Approved + Phase 6c 收官 状态全面同步)*
 *创建日期: 2026-08-03*
 *作者: Sisyphus (guide-arch Phase 3 重写)*
-*上次整合: 2026-08-03 — 集成 `llm-native-blueprint-vs-code-gap-analysis` (367 行) + Oracle 审查 (5 MUST-FIX, 18 处编辑) + ADR-0073 翻牌待 apply*
-*下一次更新*: Sprint 25 末 (Wave 2 强制决策 ship 后) 或 ADR-0073 翻牌时
+*上次整合: 2026-09-02 — Q2a-4 同步: ADR-0073 stale 引用清零（6 处）+ ADR-0072 🟡 Partial 同步 + 计数漂移修正 + Q3 α 计数口径段
+*下一次更新*: Sprint 25 末（真实 3 模型 baseline 重测后）+ Phase 7a 启动评估时 + ADR-0072 翻牌 OpenSpec change 落档时
 
-**变更摘要** (vs 2026-07-30 v1.0):
-- §一 总体状态: 59 → 72 ADR (+6 新起草 LLM-native, +1 ADR-0073 翻牌)
-- §二.2.1: 7 Partial → 8 Partial (+ADR-0073 待翻牌)
-- §二.2.2: 5 + 6 P2 → 7 + 6 LLM-native (8 个 LLM-native ADR 详细)
-- §三 LLM-native 深度: 新增章节 (跨 ADR 依赖图 + Solo Dev 容量分析)
-- §四 ADR-0068 主题注册: 新增 (14 候选主题清单 + 注册流程)
-- §五 Phase 6 Candidate B 启动条件: 新增 (4 项条件 + Wave 3 启动决策树)
-- §六 Oracle MUST-FIX 应用: 新增 (5 项 + 18 处编辑追踪)
-- §七.1 量化: 新增 LLM-native 架构 (3.7%) + Tool Metadata V3 (30%) + MCP/gRPC 协议 (0%) 行
+**变更摘要** (vs 2026-09-02 v1.1):
+- §一 总体状态: 72 ADR (LLM-native 8 ADR 中 4 个已 Approved + 1 个 🟡 Partial + 3 个 🔍 Proposed)
+- §二.2.1: 8 Partial → 7 Partial（**ADR-0073 移出**至 §2.1 标题已 ✅ Approved）
+- §二.2.2: 6 LLM-native ADR 中 2 个已翻牌/Approved（**ADR-0071 ✅ + ADR-0072 🟡**），**ADR-0073 已 Approved 移至 §2.1**
+- §六 + §七: 新增 ADR-0072 翻牌历史 + ADR-0073 ✅ Approved 历史 + Phase 6c 收官决议
+- 6 处 ADR-0073 stale 引用清零（L360/L441/L450/L467/L548/L631）
 - §九 演进路径: 更新至 Phase 6b/7+ 双轨推进路径

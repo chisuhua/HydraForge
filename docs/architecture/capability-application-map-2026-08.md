@@ -1,9 +1,9 @@
 # 架构能力-应用地图（2026-08 v2.5）
 
 **生成日期**: 2026-08-29
-**最后验证**: 2026-08-29（v2.5 — 31 项能力 / 9 项 open gap (G10-G15 全部 ✅ Closed, G6 接近 Closed) / 17 类应用 / 23 个工程任务 T1-T22 + T26（T17/T15/IEvaluator V2/T19/T21/T20/Cross-Cutting Pattern PDK V1 全部 ✅ SHIP, T26 横切化 + capture-mode-and-distillation-writer-v1 启动中），验证命令见 §六）
+**最后验证**: 2026-09-02（v2.5.1 — 31 项能力 / 9 项 open gap (G10-G15 全部 ✅ Closed, G6 接近 Closed) / 17 类应用 / 23 个工程任务 T1-T22 + T26（T17/T15/IEvaluator V2/T19/T21/T20/Cross-Cutting Pattern PDK V1 全部 ✅ SHIP, T26 横切化 + capture-mode-and-distillation-writer-v1 启动中），验证命令见 §六；2026-09-02 同步增加 §一后 α 计数口径段（22→31 完整算术链）与 §一 canonical source 声明）
 **作者**: Architecture Working Group
-**状态**: ✅ Active — 架构能力的**唯一事实源**（取代已归档的 `defect-truth-table-2026-08.md`）
+**状态**: ✅ Active — 架构能力的**唯一事实源**（取代已归档的 `defect-truth-table-2026-08.md`；**ADR 状态权威源以 `docs/adr/*.md` `## 状态` 字段为准**，本表为滚动视图层）
 
 **前置文档**（继任关系）:
 - ⛛ Superseded: [`archive/architecture/defect-truth-table-2026-08.md`](../../archive/architecture/defect-truth-table-2026-08.md) — 14 项跟踪缺陷 + 3 个盲点 × 代码 × ADR 真相（已完成其历史使命，11/17 ship）
@@ -18,10 +18,34 @@
 
 | 旧视角（问题导向） | 新视角（能力导向） |
 |---|---|
-| "我们有 14 项缺陷" | "我们有 22 项已 ship 能力 + 9 项 open gap" |
+| "我们有 14 项缺陷" | "我们有 31 项已 ship 能力 + 9 项 open gap" |
 | "ADR-0079 实施率 100%" | "工程任务 T1 启动即可解锁 6 个 A 类应用" |
 | "缺陷 3.1 骨架 ship" | "IAgentRegistry 已可用，B 类应用 2 sprint 内可构建" |
 | 计数聚焦（grep + ctest） | 应用聚焦（什么工程 → 解锁什么应用） |
+
+**计数口径与唯一事实源声明**（2026-09-02 增补，per Q3 α 修订）：
+
+| 维度 | 本表口径 | 排除/包含规则 | 数据来源 |
+|------|---------|--------------|---------|
+| **已 ship 能力 (31 项)** | L0-L4 五层契约已落地的可验证能力 | 含 Sprint 22 后所有 ship + 含 #23-#31 L4 增补；**不含** Archived ADR (0010-0018 + 0030 V1 + 0036×2) | `git log` + `tools/doc_metrics.py` + 人工核对 |
+| **Open gap (9 项)** | G1-G9 + G10-G15 中仍 Open（**6 项** ✅ Closed: G10/11/12/13/14/15） | G6 接近 Closed（保留为 🟡 Partial）；G7 scope tree 维持 🟡 Partial 协作取消已 ship | per §二表格 |
+| **应用场景 (17 类)** | A/B/C 三档可构建应用 | 含 B6 (蒸馏环境) + B7 (自进化基础) v1.1 新增 | per §三 |
+| **工程任务 (23 项 = T1-T22 + T26)** | 已 ship 或 tracked 中的任务 | T1-T22 来自 v1.0; **+T26** = Cross-Cutting Pattern PDK V1 (2026-08-28 ship) | per §四 + §八 |
+
+> **ADR 状态唯一事实源** = `docs/adr/*.md` 各自 `## 状态` 字段；本文档状态表为视图层（**与 ADR 文件冲突时以 ADR 文件为准**）。可复现命令：`python3 tools/adr_lint.py`（per `adr-management/STATUS-GLOSSARY.md` 维护规则 #2 同 commit 同步要求）。
+>
+> **历史版本说明**：v1.0 计数为 22 项（L0-L4 加总 5+5+4+5+3 = 22）。后续 9 次增补累计 +9 → 31：
+> - v1.1.2 (T14 行为回归 #23) → **23**
+> - v1.3 (T17 SkillCompiler #24) → **24**
+> - v1.9 (T15 Trajectory IR #25) → **25**
+> - v2.0 (IEvaluator V2 #26) → **26**
+> - v2.1 (GEPALoop #27) → **27**
+> - v2.2 (Prompt Evidence Gate #28) → **28**
+> - v2.3 (MCTSWorkflowSearch #29) → **29**
+> - v2.4 (Cross-Cutting Pattern PDK V1 #30) → **30**
+> - **v2.5 (Distillation Data Plane V1 #31) → 31**
+>
+> L4 总计 12 项 = L4 原始 3 项（#20 EventLog / #21 Session 4-scope / #22 17 ErrorCode）+ 增补 9 项（#23 T14 行为回归 / #24 T17 SkillCompiler / #25 T15 Trajectory IR / #26 IEvaluator V2 / #27 GEPALoop / #28 Prompt Evidence Gate / #29 MCTSWorkflowSearch / #30 Cross-Cutting Pattern PDK V1 / #31 Distillation Data Plane V1）。
 
 ---
 
@@ -70,7 +94,7 @@
 | 18 | IAgentComposition (call/call_async/delegate + stream 占位) | `iagent_composition.h` + `agent_composition.cpp` | test_agent_composition 10 cases PASS | ADR-0060 | Sprint 22 (P8) |
 | 19 | PDK 三种 Agent Loop + SafeExec 沙箱 + **SLM 路由 .so** (v1.2 +1) | `pdk/agent_macros.h` + `pdk/safe_exec.h` + `pdk/model_router/slm_strategy/` | test_pdk_macros 5 cases + test_safe_exec PASS + **test_model_router_slm ≥5 cases PASS (v1.2 ship)** | ADR-0021 + **0061-04 (SLM)** | Sprint 4 + 22 + **23 (SLM)** |
 
-### L4 可观测 + 治理层（10 项，#23 T14 / #24 T17 / #25 T15 / #26 IEvaluator V2 v2.0 后置增补 / #27 GEPALoop / #28 Prompt Evidence Gate / #29 MCTSWorkflowSearch）
+### L4 可观测 + 治理层（12 项，#20 EventLog / #21 Session 4-scope / #22 17 ErrorCode / #23 T14 行为回归 / #24 T17 SkillCompiler / #25 T15 Trajectory IR / #26 IEvaluator V2 / #27 GEPALoop / #28 Prompt Evidence Gate / #29 MCTSWorkflowSearch / #30 Cross-Cutting Pattern PDK V1 / #31 Distillation Data Plane V1）
 
 | # | 能力 | 实现位置 | 验证证据 | 关联 ADR | 上线 |
 |---|---|---|---|---|---|
@@ -98,12 +122,12 @@
 
 ---
 
-## 二、已知开放 Gap（15 项追踪：G1-G9 继任 + G10-G15 Oracle 新增；含 5 项已 ✅ Closed）
+## 二、已知开放 Gap（15 项追踪：G1-G9 继任 + G10-G15 Oracle 新增；含 **6 项**已 ✅ Closed）
 
 > **继任关系**: 本节接管 `archive/architecture/defect-truth-table-2026-08.md` §一/§二 中 9 项仍开放的追踪对象（G1-G9） + v1.1 Oracle 评审新增 6 项（G10-G15，蒸馏 + 自进化相关）
-> **状态词汇**: 🔓 Open（无前置）/ 🔒 Blocked（前置未 ship）/ 🟡 Partial（分层部分解决）/ 🔴 架构契约缺失（需新 ADR）/ ✅ Closed（评审通过，已 ship 不需再实施，如 G10/G12/G13/G14/G15）
+> **状态词汇**: 🔓 Open（无前置）/ 🔒 Blocked（前置未 ship）/ 🟡 Partial（分层部分解决）/ 🔴 架构契约缺失（需新 ADR）/ ✅ Closed（评审通过，已 ship 不需再实施，如 **G10/11/12/13/14/15**）
 > **性质标记**: [架构] = 需新 ADR 或 ADR amendment；[工程] = 仅需实现
-> **v1.1.2 状态**: G10 (ADR-0083) / G12 (ADR-0080 v1.2 amendment) / G15 (ADR-0061-13) 已起草 🔍 Proposed, 待架构组评审
+> **v1.1.2 状态 → 2026-09-02 同步**: G10 (ADR-0083 ✅ ship 2026-08-26) / G11 (ADR-0084 ✅ ship 2026-08-26) / G12 (ADR-0080 v1.2 ✅ amendment ship 2026-08-25) / G13 (ADR-0071 ✅ Approved 2026-08-25) / G14 (ADR-0061-06 v1.1 ✅ Approved + Shipped 2026-08-27) / G15 (ADR-0061-13 ✅ ship 2026-08-29) — **6 项全 ✅ Closed**
 
 ### Gap 索引（速查表）
 
@@ -231,7 +255,7 @@ docs/specs/architecture.md  (L0-L4 + R1-R5 五层模型)
        ↓ 能力落地
 docs/architecture/capability-application-map-2026-08.md  ← 本表 (v1.1)
        ↓ 拆分映射
-   ├── §一 22 项 ship 能力（按 L0-L4 工程分层）
+    ├── §一 31 项 ship 能力（按 L0-L4 工程分层）
    ├── §二 15 项 open gap（G1-G9 继任自 defect-truth-table + G10-G15 v1.1 Oracle 评审新增）
    ├── §三 A/B/C 应用场景矩阵（15 → 17 类,v1.1 新增 B6/B7 蒸馏+自进化）
    ├── §四 T1-T13 工程任务解锁映射（基础设施轨）
@@ -284,7 +308,7 @@ docs/architecture/capability-application-map-2026-08.md  ← 本表 (v1.1)
 
 > 符合 `docs/architecture/README.md` §二 "Last-Verified 规则"——所有**计数类数据**必须可用命令复现
 
-### 6.1 已 ship 能力计数（验证 §一 = 22 项）
+### 6.1 已 ship 能力计数（验证 §一 = 31 项）
 
 ```bash
 # L0 (5 项): 引擎核心
