@@ -253,3 +253,107 @@ Sprint 25 收官时需在 AGENTS.md 追加以下 ship 记录：
 ---
 
 **下一步**: 基于本计划开始 Sprint 24 任务实施，或先讨论优先级调整。
+
+---
+
+## 十、Architecture Drift Log
+
+> **追踪 ADR 偏离事件**，每行一条。Drift Gate 触发时新增；Sprint Review Gate 发现 ADR 偏离时也新增。本节为 2026-09-03 Sprint 25 治理收官补登（per OpenSpec change `fix-master-plan-review-gates-sections`）。
+
+### 10.1 历史 Drift 事件
+
+| 日期 | Change | 偏离类型 | 偏离描述 | 响应 Change | 状态 |
+|------|--------|---------|---------|-----------|------|
+| 2026-08-19 | Phase 6b 8 项 carry-over | 🔁 容量超额 | Phase 6b 原计划 64h vs Solo Dev 容量 44h 超额未在 08-05 前完成 descope 决策；8 项 carry-over (U2/U3/U4/U6/W2/W3/W4/W5) 转入 Phase 6c 前置队列 | Phase 6c Wave 1-4 启动条件纳入 | ✅ **partial resolved (2026-09-03)** — W2 baseline 工具 / U6 (commit `622b742`) / W5 parser (commit `ca03071`) / W4 阶段 A (commit `c61a6d0`) 已闭环；仍余 U2 + U3 + U4 + W4 阶段 B + ADR-0072 D6 carry-over to Sprint 25+ |
+| 2026-09-02 | Phase 6c `from-roadmap-phase-6c-evidence-gate` | ⏸ Conditional 决议 | Evidence Gate 决议 parse-valid = mock 88.24% ∈ [85, 90) 临界带；mock_mode=true 不构成真实 LLM 能力结论 | `baseline-retest-wait-condition` + `control-plane-eval-c2-alignment` | 🟡 **Conditional (待真实 3 模型 baseline 重测)** — 触发 ADR-0072 D3 declarative style 但不触发 D2 `$var`；重测触发条件 per `docs/runbooks/baseline-retest.md` §1 |
+| 2026-09-02 | `adr-0072-flip-to-partial` | 📋 治理异常 | ADR-0072 D3 declarative style + D5 D3 arm 共存 ship 早于 ADR 评审通过，违反 STATUS-GLOSSARY "Proposed = 未到实施阶段" 定义 | per single-dev mode 治理（issue + 24h cooling-off）允许实施先于翻牌 + OpenSpec `adr-0072-flip-to-partial` change | ✅ **resolved (2026-09-03)** — 4 commits (`e02b3b8`/`7276173`/`59fb3db`/`a7c22cd`) ship + 24h cooling-off (含 honest cooling-off record per Oracle `ses_f9ab25dcfffetx4J5UFA7JYBKV`) + archive |
+
+### 10.2 待填充模板
+
+```markdown
+| <YYYY-MM-DD> | <change 名> | <fix/retro/redirect/governance> | <具体偏离描述> | <响应 change 名> | <状态> |
+```
+
+---
+
+## 十一、Change Adjustment Log
+
+> **追踪占位 change 的内容调整**。当 Dependency Refresh Gate 发现占位假设错误时，记录调整内容。本节为 2026-09-03 Sprint 25 治理收官补登。
+
+### 11.1 历史调整
+
+| 日期 | 原占位 Change | 调整原因 | 调整内容 | 状态 |
+|------|--------------|---------|---------|------|
+| 2026-07-10 | C17 `phase5-adr-states-final-sync` | Metis 审查（session `ses_0b02706b7ffepKdYy3qxnmOzXy`）发现 12 个 ADR flip 范围超出容量 | 范围 12 → 5 ADR FLIP（实施率 ≥50% ship 证据的 5 个），剩余 7 个排除（0030 V2/0037/0038/0039/0042/0045/0046）并文档化排除原因 | ✅ **resolved (2026-07-10)** — C17 ship + archive，per master plan §十一.3 |
+| 2026-08-18 | C16 `phase5-illmprovider-call-chain-v2` §5 Cloud plugin | 阶段交付时间窗口 + CloudLLMProvider 实施依赖未到位 | §5 Cloud plugin 顺延至独立 OpenSpec change `phase5-illmprovider-call-chain-v3`；C16 ship §1-§4 + §6-§9 完整 + ADR-0001/0035/0038/0042/0045/0005 修订 | ✅ **resolved (2026-08-18)** — C16 ship + archive；§5 列入顺延项跟踪 |
+| 2026-09-02 | `adr-0072-flip-to-partial` | ADR-0072 D3+D5 ship 先于 ADR 评审通过（治理异常） | 按 STATUS-GLOSSARY "Proposed → Partial" 增量翻牌路径处理（per ADR-0073 先例）；D1+D4 待实施，D2 N/A，D6 OFF；治理异常"实施先于翻牌"文档化于 ADR 头部 | ✅ **resolved (2026-09-03)** — 翻牌 ship + 4 commits + 24h cooling-off |
+
+### 11.2 待填充模板
+
+```markdown
+| <YYYY-MM-DD> | <占位 change 名> | <Oracle 咨询结果 / 前置 change 实际产出> | <proposal/design/tasks/spec 调整点> | <状态> |
+```
+
+---
+
+## 十二、Strategic Pivots Log
+
+> **追踪重大战略转向**。Strategic Alignment Gate 触发时新增；通常伴随新 Master plan 创建。本节为 2026-09-03 Sprint 25 治理收官补登。
+
+### 12.1 历史 Pivot
+
+| 日期 | 原方向 | 新方向 | 影响 Changes | 决策依据 |
+|------|--------|--------|-------------|---------|
+| 2026-07-15 | ADR-0050 Phase 6 服务化路径（Candidate B） | **AgentForge MVP 替代路径**（plan `2026-07-15-phase6-agentforge-mvp.md`） | ADR-0050 状态 🔍 Proposed；Phase 6-Redirect 替代 Phase 6 服务化；`phase6-service-ification-v1` C19 ship + archive 但范围缩小 | (1) Solo Dev 1 人 + 容量受限；(2) AgentForge MVP 验证优先于服务化；(3) per ADR-0051 §决策 Solo Dev 重评 |
+| 2026-09-02 | Phase 7a MCP Control Plane 启动 | **Phase 7a 不启动决议**（6 项启动条件 3/6 FAIL 维持） | C10 `from-roadmap-phase-6c-control-plane-eval` 决议入 active-status.md §四；Phase 8a (gRPC Data Plane) 仍 gated by Phase 7a ship ≥3 月 | (1) C1 AgentForge 1-agent ❌（结构性，U4 仍未启动）；(2) C2 Solo Dev 1 人 ~27h/周 ❌（结构性）；(3) C5 Evidence Gate Conditional ❌（mock baseline 待真实 3 模型重测）；3 项 FAIL 中 2 项结构性无文档解药；详见 `docs/audits/2026-09-02-control-plane-eval-v1.md` |
+
+### 12.2 待填充模板
+
+```markdown
+| <YYYY-MM-DD> | <原 phase/目标> | <新 phase/目标> | <哪些占位 changes 调整/取消/新增> | <决策依据 (Oracle 咨询/团队决策/业务需求)> |
+```
+
+---
+
+## 十三、3 种响应 Change 类型（Review Gate 发现问题时触发）
+
+> 沿用 `2026-06-26-sprint-11-to-18-roadmap.md` §13 工作流（同款，不重定义）。本节为 2026-09-03 Sprint 25 治理收官补登。
+
+| 类型 | 触发场景 | 估时 | 命名规范 | 示例 |
+|------|---------|------|---------|------|
+| **🔧 fix change** | 单一偏离，范围明确 | 1-3 天 | `fix-<module>-<issue>` | `fix-tool-registry-signal-handler-shutdown` (2026-08-08) |
+| **🔁 retro change** | 多项偏离，需回归测试 | 1-2 Sprint | `<date>-<sprint>-retro` | `chat-async-io-cancellation-chain` (2026-08-09 partial ship) |
+| **↪️ redirect change** | 战略调整，影响后续占位 change | 2-5 天 | `<date>-redirect-<reason>` | `adr-0072-flip-to-partial` (2026-09-02 governance redirect) |
+
+### 13.1 Type 选择决策树
+
+```
+Review Gate 发现问题
+  ↓
+评估类型 (fix / retro / redirect)
+  ↓
+如果可在当前 Sprint 立即修复（实际代码 bug / 测试失败 / 立即可处理 drift）→ Type 1 (fix):
+  - 创建新 OpenSpec change
+  - 优先级 P0
+  - 同步追加到 §十 Drift Log
+  ↓
+如果当前 Sprint 不可达（容量受限 / 外部依赖未到位 / 实施风险过高）→ Type 2 (cancel):
+  - 决策记录入 active-status.md §四 顺延项
+  - 维持 ADR 暂不修改
+  ↓
+如果需跨 Sprint 推迟（pre-existing drift / 结构性条件 / 启动条件未满足）→ Type 3 (defer):
+  - 加入下一 Sprint 启动条件
+  - ADR 状态维持
+  - 期满复评（每 Sprint 收官重跑相应 Gate）
+```
+
+### 13.2 Sprint 25 治理收官实测响应 chain
+
+| Drift 触发 | 响应 Type | 实际 Change | 状态 |
+|------------|-----------|------------|------|
+| ADR-0042 状态对齐（carry-over U6） | Type 1 (fix) | `adr-0042-state-alignment` (commit `622b742`) | ✅ resolved |
+| ADR-0072 D1/D4 parser 接入 | Type 1 (fix) | `adr-0072-d4-backend-parser` (commit `ca03071`) + `adr-0072-d1-stream-true-parser` 阶段 A (commit `c61a6d0`) | ✅ resolved（D1 阶段 B 仍 carry-over）|
+| ADR-0072 翻牌治理异常 | Type 2 (governance) | `adr-0072-flip-to-partial` (4 commits 含 honest cooling-off) | ✅ resolved |
+| Solo Dev 容量外部约束（Phase 7a 启动） | Type 2 (cancel) | `control-plane-eval-c2-alignment` (`--relaxed` mode) + 决策入 active-status.md §四 | ✅ resolved（保住复评信号）|
+| 真实 baseline 重测触发条件 | Type 3 (defer) | `baseline-retest-wait-condition` (runbook `docs/runbooks/baseline-retest.md`) | ⏸ 待外部模型窗口可用 |
+| Master Plan §10-§13 4 章节缺失（pre-existing drift） | Type 1 (fix) | `fix-master-plan-review-gates-sections` (本 plan §10-§13 补登) | ✅ resolved (2026-09-03 本节补登完成) |
