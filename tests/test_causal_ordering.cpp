@@ -274,7 +274,7 @@ TEST_CASE("DomainWorkerPool A→B 因果链 (DomainTask.parent_trace 透传)",
     task_a.domain = "echo";
     task_a.tool_name = "echo::test";
     task_a.arguments = nlohmann::json{{"msg", "A"}};
-    task_a.output_key = "out_a";
+    task_a.output_key = "domain-task-a";
     pool.submit_task(task_a);
 
     DomainTask task_b = task_a;
