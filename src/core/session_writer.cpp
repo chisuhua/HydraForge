@@ -108,6 +108,9 @@ void SessionWriter::flush_sync() {
       buffer_.pop();
     }
   }
+  // 必须在检查 snapshot.empty() 之前获取 file_mutex_，否则 flush_loop 已
+  // 抢走本次批次的 buffer 时，flush_sync 返回但文件写入未完成 (race)。
+  std::lock_guard<std::mutex> file_lock(file_mutex_);
   if (!file_.is_open() || snapshot.empty()) return;
   for (const auto& r : snapshot) {
     auto line = serialize_record(r.type, r.role, r.payload, now_unix_ms());
@@ -165,6 +168,7 @@ void SessionWriter::flush_loop() {
       }
     }
     if (!file_.is_open() || snapshot.empty()) continue;
+    std::lock_guard<std::mutex> file_lock(file_mutex_);
     for (const auto& r : snapshot) {
       auto line = serialize_record(r.type, r.role, r.payload, now_unix_ms());
       file_ << line << "\n";
