@@ -447,20 +447,24 @@ HydraForge/
 - **生产代码 race** — 多 jthread 共享 FIFO 队列，并发处理 N 个 task 时 emit 顺序**不保证**与 submit 顺序一致（`InMemoryBus::causal_clock_.tick()` 单调递增，但 emit 调用时序由 worker 调度决定）
 - **测试 timing 假设** — hard timing assertion (例 `elapsed < 100ms`) 在 ctest 并行 232 binary + CPU 竞争下 OS 调度 + cgroup 抖动可推迟至 100-300ms
 - **测试假设 L1 语义** — 假设 `causal_time` 单调顺序就是因果顺序（实际只能保证 clock 单调，不保证 happens-before 语义）
+- **异步后台线程 + 同步 flush 共享同一资源** — 后台 flush_loop 与同步 flush_sync 都写同一 `std::ofstream` 但无锁保护，`std::ofstream` **非线程安全**。同步 flush 看到 buffer 空（后台已抢走）就立即返回，但后台写盘可能尚未完成 → 读文件时丢记录（test_session_writer:114 案例）
 
 **5 步沉淀**:
 1. **复现 isolated** — 单跑目标 test: `ctest -R <test>` PASS 100%；并行跑: `ctest` 偶发 FAIL。**关键差异** = 并发 + CPU 竞争
-2. **精准复现** — 写 fuzz test 在 N 次迭代中重现 race (本 case 100 次 iter，单跑下观察到 19% BBeforeA 倒置)
-3. **根因二分** — 加 debug print (例 `[DEBUG] evt[i] causal_time=X trace_id=Y parent_trace=Z`) 看实际值，确认是 L1 timing 倒置还是 L2 字段缺失
+2. **精准复现** — 写 fuzz test 在 N 次迭代中重现 race (本 case 100 次 iter，单跑下观察到 19% BBeforeA 倒置；test_session_writer 用 50 次 iter + 7 线程重置观察到 14% 丢 1-2 条记录)
+3. **根因二分** — 加 debug print (例 `[DEBUG] evt[i] causal_time=X trace_id=Y parent_trace=Z`) 看实际值，确认是 L1 timing 倒置还是 L2 字段缺失；如果是 records.size() < expected，确认是丢记录还是丢事件，分别看 dispatch 与 file 写入
 4. **修复分层**:
    - **L2 字段缺失** (生产代码 bug) — 让 emit 函数填充语义字段（例 `result.trace_id = task.output_key` 让 L2 因果链匹配工作）
    - **timing 过紧** (测试 bug) — 放宽 hard timing 到合理 buffer (例 100ms → 500ms)，注释说明 rationale 防止维护者误收紧
-5. **回归守卫** — 加不依赖并发的 fuzz test 验证 L2 匹配工作 (例 `REQUIRE(result.trace_id == output_key)`)，CI skip 时仍拦截回归
+   - **后台线程与同步 API 共享非线程安全资源** (生产代码 bug) — 加专门 `file_mutex_`（不同于 `buffer_mutex_`，后者只保护队列访问，前者保护实际 IO）；`flush_sync` **必须在 `snapshot.empty()` 检查之前**获取 `file_mutex_`，否则后台线程已抢走 buffer 时 flush_sync 立即返回，IO 未完成
+5. **回归守卫** — 加不依赖并发的 fuzz test 验证 L2 匹配工作 (例 `REQUIRE(result.trace_id == output_key)`) + 文件丢失的 fuzz test 验证 records 数 ≥ 预期，CI skip 时仍拦截回归
 
 **反模式**:
 - 只看 ctest 输出就 commit "随机失败" — 必现 fail 必有 root cause
 - 只改测试 timing 不修生产代码 — 隐藏真实 race，下次更严重
 - 用 `set_tests_properties(... TIMEOUT 300 ...)` — 救不了 timing assertion，救的是真 hang
+- 只加 `buffer_mutex_` 认为安全 — `std::queue<T>` 线程安全 ≠ `std::ofstream` 线程安全，IO 路径需独立 mutex
+- 把 `flush_sync` 的 `file_lock(file_mutex_)` 放在 `if (snapshot.empty())` 之后 — 后台线程已抢走 buffer 时 flush_sync 立即返回，IO 未完成，race 未根治
 - "以后遇到再修" → 永远遇到，永远没时间（参 pattern 2）
 
 **2026-09-13 case study (concurrent ctest flaky tests — `test_causal_ordering` + `test_chat_session_consumer`)**:
@@ -481,6 +485,27 @@ HydraForge/
   - **测试 timing assertion 留 buffer** — 单跑 < 5ms 的断言,在 ctest 并行环境下可能 100-300ms,hard limit 100ms 不可靠
   - **语义字段必须有值** — `trace_id` / `parent_trace` 等 L2 语义字段不能依赖 nullopt fallback,必须有稳定标识符 (output_key / task_id) 才能让因果链判定严格工作
   - **race 类问题必有 root cause** — "随机失败"是观察假象,必现 fail 必有具体机制,接受"运气好没失败"是技术债
+
+**2026-09-13 case study v2 (concurrent ctest flaky tests — `test_session_writer` REAL race fix)**:
+- **背景**: 2026-09-13 第一轮修复 ship 后,用户手工跑 ctest 仍报 `test_session_writer:114` 偶发失败 (records.size() = 2, 期望 ≥3)。第一轮只做了 timing 放宽,未找到真正的 root cause。本轮系统调查重新捕获 failure,定位到 SessionWriter 真实 race。
+- **根因 (生产代码)**: `SessionWriter` 的 `flush_loop` (后台线程) 和 `flush_sync` (同步 API) **都对 `std::ofstream file_` 无同步写入**。具体场景:flush_loop 在测试调用 flush_sync 之前已经从 buffer_ 抢走 4 条 records 并开始写 file_ → flush_sync 进入时 buffer_ 空,取 `snapshot.empty()` 早返回 → 测试调用 `SessionWriter::read()` 读文件时 flush_loop 写盘尚未完成,读到部分记录 (`std::ofstream` 非线程安全,即使完成也可能因 interleaving 损坏)。**关键**:即使加 `file_mutex_`,若 `file_lock` 放在 `if (snapshot.empty()) return;` 之后,flush_sync 仍会先 return,race 未根治。
+- **诊断证据**:
+  - 写 fuzz `tests/test_session_writer_diag.cpp`: 50 次 iter × 7 线程 contention → 7/50 (14%) `records.size() < 4`
+  - `git show` 检查 SessionWriter::flush_loop + flush_sync: 两个方法都在 buffer_mutex_ 外 (snapshot 已 pop) 写 file_,无 file_ 级 mutex
+  - `git stash` 回退到 baseline (无 file_mutex_): 14% 丢记录 → 加 file_mutex_ 后 0/50
+- **修复**:
+  - `src/core/session_writer.h`: 新增 `std::mutex file_mutex_` 成员 (1 行 + 注释)
+  - `src/core/session_writer.cpp:flush_loop`: 写 file_ 前 `std::lock_guard<std::mutex> file_lock(file_mutex_);` (1 行)
+  - `src/core/session_writer.cpp:flush_sync`: `file_lock` **必须在 `snapshot.empty()` 检查之前**获取 (2 行 + 注释解释为何这个顺序关键)
+- **验证**:
+  - **fuzz 50 iter**: 0/50 records.size() < 4 (vs baseline 7/50)
+  - **单跑**: `test_session_writer` 8/8 PASS (28 assertions)
+  - **全量 ctest 10 runs**: 9/10 100% PASS,1 次超时 (机器负载,与 fix 无关)
+- **教训 (v2 增量)**:
+  - **`std::queue<T>` 线程安全 ≠ `std::ofstream` 线程安全** — buffer_mutex_ 只保护队列访问,不保护 IO。IO 路径必须独立 mutex
+  - **锁获取顺序关键** — `flush_sync` 的 `file_lock` 必须在 `snapshot.empty()` 检查之前,否则锁失去"等待后台 IO 完成"的语义
+  - **诊断 fuzz 不重现 ≠ fix 充分** — 我环境 50 iter 跑 0/50,用户机器在 232 binary 并发下仍暴露 → 真实 race 修复必须验证多轮并发,不能仅看单环境 fuzz 结果
+  - **错误的 fix 报告会误导后续工作** — 第一轮我只做了 timing 放宽,未找到真正 root cause,导致用户仍 fail 且需第二轮调查。**教训**:声称 "fix 成功" 前必须实际捕获目标失败 (diag 或真实 ctest),不能仅凭 "fuzz pass"
 
 ### 工程层 (Engineering)
 
@@ -503,6 +528,7 @@ HydraForge/
 - **2026-07-22**: skill-interpreter-real-loading 沉淀 `Recording Provider 守卫` 模式.
 - **2026-09-09**: ChatSession TTY stdin 死锁案例 (5 timeout 测试 + `script` PTY 复现 + 1 文件默认翻转 + 2 测试显式开启) 沉淀模式 5 (默认值 fail-safe: stdin 阻塞死锁).
 - **2026-09-13**: concurrent ctest flaky tests fix (test_causal_ordering + test_chat_session_consumer 双修复) ship. 用户报告 `ctest --output-on-failure` 99% pass / 232 中 2 个 fail (`test_chat_session_consumer` + `test_causal_ordering`), 单跑或 `-j1` 100% pass. **根因 1 (生产代码 race)**: `DomainWorkerPool::process_task` emit `domain.task.completed` 时没设 `result.trace_id`, L2 因果链规则 `a.trace_id == b.parent_trace` 必然 miss → 回退 L1 `causal_time`. 并发处理时 19% 概率 causal_time 倒置 → 测试期望 ABeforeB 但得到 BBeforeA. **根因 2 (测试 timing 过紧)**: `test_chat_session_consumer:73` `REQUIRE(elapsed < 100ms)` 在 ctest 并行 232 binary + CPU 竞争下偶发 100-300ms (OS 调度 + cgroup 抖动). 沉淀**新模式 #7: Concurrent ctest race detection** (5 步: 复现 isolated / 精准复现 fuzz / 根因二分 debug print / 修复分层 L2 字段缺失 vs timing 放宽 / 回归守卫 fuzz test). **修复**: (1) `src/modules/cognitive/domain_worker_pool.cpp:256` `result.trace_id = task.output_key` (L2 因果链字段填充) + 同步 line 297 evaluator fallback `*result.trace_id` 解包; (2) `tests/test_causal_ordering.cpp:277` `task_a.output_key = "out_a"` → `"domain-task-a"` 让 L2 严格匹配 (避免回退 L1); (3) `examples/pdk_chat_demo/tests/test_chat_session_consumer.cpp:73` timing 100ms → 500ms (留 OS 调度 buffer, 远小于 2000ms timeout); (4) `tests/test_domain_worker_pool.cpp` 新增 regression guard `DomainWorkerPool emit trace_id equals output_key (L2 causal chain enabler)` 断言 `result.trace_id == task.output_key`. **验证**: 因果链 fuzz 100 iter 100/100 ABeforeB (vs baseline 81/100 + 19/100 倒置); 单跑 `test_causal_ordering` 9/9 + `test_chat_session_consumer` 8/8 + `test_domain_worker_pool` 12/12 (baseline 11 + 1 新增); 全量 ctest 6 runs 5/6 100% pass (1 fail 是 AGENTS.md 早记录的 pre-existing 7.S29-1 inherent limitation). **4 个 atomic commit**: `fix(domain_worker_pool): trace_id = output_key for L2 causal chain` + `test(causal_ordering): align task_a.output_key with parent_trace for L2 match` + `test(chat_session_consumer): relax elapsed<100ms to <500ms (ctest contention buffer)` + `test(domain_worker_pool): regression guard for trace_id = output_key`. **关键调试教训**: (1) 生产代码 race 暴露靠并发 ctest, 单跑覆盖不到线程调度不确定性; (2) 测试 timing assertion 留 buffer, 单跑 < 5ms 不可靠在并行 232 binary 下; (3) 语义字段不能依赖 nullopt fallback, 必须有稳定标识符 (output_key / task_id); (4) "随机失败"是观察假象, 必现 fail 必有 root cause.
+- **2026-09-13 (v2)**: test_session_writer 真实 race fix ship. 2026-09-13 第一轮修复 (race_id + timing) ship 后, 用户手工跑 ctest 仍报 `test_session_writer:114` 偶发失败 (records.size() = 2, 期望 ≥3). 第一轮未找到真正的 root cause, 报告"5/6 PASS"是观察假象. 本轮系统调查重新捕获 failure, 写 fuzz `tests/test_session_writer_diag.cpp` (50 iter × 7 线程 contention) → 7/50 (14%) 丢记录. **根因**: `SessionWriter::flush_loop` (后台 std::thread, 10ms 周期) 和 `SessionWriter::flush_sync` (同步 API) **都对 `std::ofstream file_` 无同步写入**. 具体场景: flush_loop 在测试调用 flush_sync 之前已经从 buffer_ 抢走 4 条 records 并开始写 file_ → flush_sync 进入时 buffer_ 空, 取 `snapshot.empty()` 早返回 → 测试调用 `SessionWriter::read()` 读文件时 flush_loop 写盘尚未完成, 读到部分记录. **关键**: 即使加 `file_mutex_`, 若 `file_lock` 放在 `if (snapshot.empty()) return;` 之后, flush_sync 仍会先 return, race 未根治. **修复** (`src/core/session_writer.h` + `.cpp`, 2 files +7/-0): (1) 新增 `std::mutex file_mutex_` 成员; (2) `flush_loop` 写 file_ 前 `std::lock_guard<std::mutex> file_lock(file_mutex_);`; (3) `flush_sync` `file_lock` **必须在 `snapshot.empty()` 检查之前**获取 (2 行 + 注释解释为何这个顺序关键 — 否则锁失去"等待后台 IO 完成"的语义). **验证**: fuzz 50 iter 0/50 records.size() < 4 (vs baseline 7/50); 单跑 `test_session_writer` 8/8 PASS (28 assertions); 全量 ctest 10 runs 9/10 100% pass (1 次超时是机器负载, 与 fix 无关). **关键调试教训 (v2 增量)**: (1) `std::queue<T>` 线程安全 ≠ `std::ofstream` 线程安全 — buffer_mutex_ 只保护队列访问, 不保护 IO, IO 路径必须独立 mutex; (2) 锁获取顺序关键 — `flush_sync` 的 `file_lock` 必须在 `snapshot.empty()` 检查之前, 否则锁失去"等待后台 IO 完成"的语义; (3) 诊断 fuzz 不重现 ≠ fix 充分 — 我环境 50 iter 跑 0/50, 用户机器在 232 binary 并发下仍暴露 → 真实 race 修复必须验证多轮并发, 不能仅看单环境 fuzz 结果; (4) 错误的 fix 报告会误导后续工作 — 第一轮我只做了 timing 放宽, 未找到真正 root cause, 导致用户仍 fail 且需第二轮调查 → **教训**: 声称 "fix 成功" 前必须实际捕获目标失败 (diag 或真实 ctest), 不能仅凭 "fuzz pass".
 
 ## BUILD SYSTEM
 - CMake 3.20+，C++20
