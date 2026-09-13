@@ -194,6 +194,41 @@ TEST_CASE("DomainWorkerPool submit_task(DomainTask.parent_trace) propagates to p
   REQUIRE(*completed_events[0].parent_trace == "task-P-1");
 }
 
+// ADR-0037 §6.3 regression guard: trace_id = output_key 让 L2 因果链匹配, 否则并发下 flaky
+TEST_CASE("DomainWorkerPool emit trace_id equals output_key (L2 causal chain enabler)",
+          "[domain_worker_pool][causal_ordering][regression_guard]") {
+  auto bus = std::make_shared<InMemoryBus>();
+  DomainWorkerPool pool(2, bus);
+
+  std::mutex completed_mutex;
+  std::vector<ToolResult> completed_events;
+  bus->subscribe("domain.task.completed", [&](const BusEvent& e) {
+    std::lock_guard<std::mutex> lock(completed_mutex);
+    completed_events.push_back(e.payload);
+  });
+
+  pool.register_domain_handler("echo", make_echo_handler());
+  pool.start();
+
+  DomainTask task;
+  task.domain = "echo";
+  task.tool_name = "echo::test";
+  task.arguments = nlohmann::json{{"k", "v"}};
+  task.output_key = "my-output-key-12345";
+  pool.submit_task(std::move(task));
+
+  wait_until([&] {
+    std::lock_guard<std::mutex> lock(completed_mutex);
+    return !completed_events.empty();
+  });
+  pool.stop();
+
+  std::lock_guard<std::mutex> lock(completed_mutex);
+  REQUIRE(completed_events.size() == 1);
+  REQUIRE(completed_events[0].trace_id.has_value());
+  REQUIRE(*completed_events[0].trace_id == "my-output-key-12345");
+}
+
 // =====================================================================
 // Test 3: 1000x 并发 submit (10 thread × 100 task, 零 data race)
 // =====================================================================
