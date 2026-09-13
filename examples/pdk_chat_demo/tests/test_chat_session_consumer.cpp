@@ -65,12 +65,13 @@ TEST_CASE("pop_next_input returns promptly when input thread shutdown (EOF)",
     // Test env: stdin already EOF → input thread sets stop_input_thread_
     // immediately → pop_next_input returns nullopt. Real blocking is exercised
     // by Phase 9 E2E tests (test_pdk_chat_demo_stdin_e2e) with live stdin pipe.
+    // ⚠️ 500ms 上限 (vs 单跑 < 5ms): ctest 并行 232 binary 时 OS 调度 + cgroup CPU 竞争可推迟至 100-300ms
     auto start = std::chrono::steady_clock::now();
     auto msg = session.pop_next_input(2000ms);
     auto elapsed = std::chrono::steady_clock::now() - start;
 
     REQUIRE_FALSE(msg.has_value());
-    REQUIRE(elapsed < 100ms);
+    REQUIRE(elapsed < std::chrono::milliseconds(500));
 }
 
 TEST_CASE("§7.4 regression: timeout returns nullopt WITHOUT shutdown (no input thread)",
