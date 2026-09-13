@@ -253,6 +253,9 @@ void DomainWorkerPool::process_task(std::size_t worker_id, DomainTask task) {
   result.meta["output_key"] = task.output_key;
   result.meta["worker_id"] = worker_id;
 
+  // trace_id 不可省略: ADR-0037 L2 因果链匹配依赖此字段 (nullopt 会回退 L1 并发 flaky)
+  result.trace_id = task.output_key;
+
   // ADR-0037 L2: parent_trace 透传至 emit 事件 payload (顶层 ToolResult 字段)
   if (task.parent_trace.has_value()) {
     result.parent_trace = *task.parent_trace;
@@ -291,7 +294,7 @@ void DomainWorkerPool::process_task(std::size_t worker_id, DomainTask task) {
     try {
       ExecutionTrace trace;
       trace.final_result = result;
-      trace.trace_id = result.trace_id.value_or(task.tool_name);
+      trace.trace_id = *result.trace_id;
       const RewardSignal signal = evaluator_->evaluate(trace);
       bus_->emit(evaluation::build_evaluation_result_event(
           typeid(*evaluator_).name(), trace, signal));
