@@ -439,6 +439,49 @@ HydraForge/
 - **设计原则 (Wave 4.7 最终)**: D1 timeout 防护 = worker thread + cv.wait_for + 正确顺序 join/detach (先检查 done) + heap-allocated shared state + SIGPIPE 防护 + Abort/Crash 语义区分. 5 层防护, 缺一不可
 - **模式 #6 真正闭环**: Sprint 28 TimerService 抽象 → Sprint 29 SkillInterceptor 集成 → Sprint 30/31/32 ChatSession 集成 (含模式 #5 死锁修复) → Wave 4.5 D1 LLM timeout → Wave 4.6 partial fix → **Wave 4.7 Oracle verdict 真正修复**. 跨 5 个 sprint + 3 个 wave 的 microkernel 蓝图配套基础设施沉淀完成
 
+#### 7. Concurrent ctest race detection (生产代码 + 测试假设在并行环境下双重失效)
+
+**触发**: 用户报告 `ctest --output-on-failure` 偶发 1-2 个失败，但单跑 `ctest -R <test>` 或 `-j1` 100% PASS。
+
+**陷阱**:
+- **生产代码 race** — 多 jthread 共享 FIFO 队列，并发处理 N 个 task 时 emit 顺序**不保证**与 submit 顺序一致（`InMemoryBus::causal_clock_.tick()` 单调递增，但 emit 调用时序由 worker 调度决定）
+- **测试 timing 假设** — hard timing assertion (例 `elapsed < 100ms`) 在 ctest 并行 232 binary + CPU 竞争下 OS 调度 + cgroup 抖动可推迟至 100-300ms
+- **测试假设 L1 语义** — 假设 `causal_time` 单调顺序就是因果顺序（实际只能保证 clock 单调，不保证 happens-before 语义）
+
+**5 步沉淀**:
+1. **复现 isolated** — 单跑目标 test: `ctest -R <test>` PASS 100%；并行跑: `ctest` 偶发 FAIL。**关键差异** = 并发 + CPU 竞争
+2. **精准复现** — 写 fuzz test 在 N 次迭代中重现 race (本 case 100 次 iter，单跑下观察到 19% BBeforeA 倒置)
+3. **根因二分** — 加 debug print (例 `[DEBUG] evt[i] causal_time=X trace_id=Y parent_trace=Z`) 看实际值，确认是 L1 timing 倒置还是 L2 字段缺失
+4. **修复分层**:
+   - **L2 字段缺失** (生产代码 bug) — 让 emit 函数填充语义字段（例 `result.trace_id = task.output_key` 让 L2 因果链匹配工作）
+   - **timing 过紧** (测试 bug) — 放宽 hard timing 到合理 buffer (例 100ms → 500ms)，注释说明 rationale 防止维护者误收紧
+5. **回归守卫** — 加不依赖并发的 fuzz test 验证 L2 匹配工作 (例 `REQUIRE(result.trace_id == output_key)`)，CI skip 时仍拦截回归
+
+**反模式**:
+- 只看 ctest 输出就 commit "随机失败" — 必现 fail 必有 root cause
+- 只改测试 timing 不修生产代码 — 隐藏真实 race，下次更严重
+- 用 `set_tests_properties(... TIMEOUT 300 ...)` — 救不了 timing assertion，救的是真 hang
+- "以后遇到再修" → 永远遇到，永远没时间（参 pattern 2）
+
+**2026-09-13 case study (concurrent ctest flaky tests — `test_causal_ordering` + `test_chat_session_consumer`)**:
+- **根因 1 (生产代码)**: `DomainWorkerPool::process_task` emit `domain.task.completed` 时**没设 `result.trace_id`**。L2 因果链规则 `a.trace_id == b.parent_trace` 因 `evt_a.trace_id = nullopt` 必然 miss → 回退到 L1 `causal_time`。多个 worker 并发处理 task_a 和 task_b 时,两个事件的 causal_time 顺序不严格与 submit 顺序一致 → 19% 概率 BBeforeA（vs 期望 ABeforeB）。
+- **根因 2 (测试 timing)**: `test_chat_session_consumer:73` `REQUIRE(elapsed < 100ms)` 在 ctest 并行 232 binary 时,OS 线程调度 + cgroup CPU 竞争可推迟至 100-300ms。
+- **诊断证据**: 5 次完整 ctest 跑观察到 `test_causal_ordering:313` + `test_chat_session_consumer:73` 偶发同时失败;`-j1` 串行 100% PASS;`git stash` 回退到 baseline 后 `test_skill_interpreter 7.S29-1` 同样偶发失败（pre-existing, AGENTS.md 早记录 inherent limitation）。
+- **修复**:
+  - `src/modules/cognitive/domain_worker_pool.cpp`: `result.trace_id = task.output_key` (1 行) + 同步改 line 294 evaluator fallback `*result.trace_id` 解包 (因 trace_id 现在必有值,fallback 走不到)
+  - `tests/test_causal_ordering.cpp:277`: `task_a.output_key = "out_a"` → `"domain-task-a"` 让 L2 因果链匹配工作
+  - `examples/pdk_chat_demo/tests/test_chat_session_consumer.cpp:73`: timing 100ms → 500ms,加注释说明 rationale
+  - `tests/test_domain_worker_pool.cpp`: 新增 regression guard `DomainWorkerPool emit trace_id equals output_key (L2 causal chain enabler)`,断言 `result.trace_id == task.output_key`
+- **验证**:
+  - **因果链 fuzz 100 iter**: 100/100 ABeforeB (vs baseline 81/100 + 19/100 BBeforeA 倒置) — race 完全消除
+  - **单跑**: `test_causal_ordering` 9/9 PASS + `test_chat_session_consumer` 8/8 PASS + `test_domain_worker_pool` 12/12 PASS (baseline 11 + 1 新增 regression guard)
+  - **全量 ctest 6 runs**: 5/6 100% PASS,1 fail 是 `test_skill_interpreter 7.S29-1` (AGENTS.md 早记录的 pre-existing inherent limitation,与本 fix 无关)
+- **教训**:
+  - **生产代码 race 暴露靠并发 ctest** — 单跑测试覆盖不到线程调度不确定性,必须验证 `-j$(nproc)` 才算完整 ship gate
+  - **测试 timing assertion 留 buffer** — 单跑 < 5ms 的断言,在 ctest 并行环境下可能 100-300ms,hard limit 100ms 不可靠
+  - **语义字段必须有值** — `trace_id` / `parent_trace` 等 L2 语义字段不能依赖 nullopt fallback,必须有稳定标识符 (output_key / task_id) 才能让因果链判定严格工作
+  - **race 类问题必有 root cause** — "随机失败"是观察假象,必现 fail 必有具体机制,接受"运气好没失败"是技术债
+
 ### 工程层 (Engineering)
 
 > 工程层模式沉淀在 `tests/AGENTS.md` (测试目录专属) + `src/common/llm/AGENTS.md` (LLM 模块专属).
@@ -459,6 +502,7 @@ HydraForge/
 - **2026-08-04**: chat-real-llm-coverage ship 沉淀 `helper 三态分离` (模式工程层).
 - **2026-07-22**: skill-interpreter-real-loading 沉淀 `Recording Provider 守卫` 模式.
 - **2026-09-09**: ChatSession TTY stdin 死锁案例 (5 timeout 测试 + `script` PTY 复现 + 1 文件默认翻转 + 2 测试显式开启) 沉淀模式 5 (默认值 fail-safe: stdin 阻塞死锁).
+- **2026-09-13**: concurrent ctest flaky tests fix (test_causal_ordering + test_chat_session_consumer 双修复) ship. 用户报告 `ctest --output-on-failure` 99% pass / 232 中 2 个 fail (`test_chat_session_consumer` + `test_causal_ordering`), 单跑或 `-j1` 100% pass. **根因 1 (生产代码 race)**: `DomainWorkerPool::process_task` emit `domain.task.completed` 时没设 `result.trace_id`, L2 因果链规则 `a.trace_id == b.parent_trace` 必然 miss → 回退 L1 `causal_time`. 并发处理时 19% 概率 causal_time 倒置 → 测试期望 ABeforeB 但得到 BBeforeA. **根因 2 (测试 timing 过紧)**: `test_chat_session_consumer:73` `REQUIRE(elapsed < 100ms)` 在 ctest 并行 232 binary + CPU 竞争下偶发 100-300ms (OS 调度 + cgroup 抖动). 沉淀**新模式 #7: Concurrent ctest race detection** (5 步: 复现 isolated / 精准复现 fuzz / 根因二分 debug print / 修复分层 L2 字段缺失 vs timing 放宽 / 回归守卫 fuzz test). **修复**: (1) `src/modules/cognitive/domain_worker_pool.cpp:256` `result.trace_id = task.output_key` (L2 因果链字段填充) + 同步 line 297 evaluator fallback `*result.trace_id` 解包; (2) `tests/test_causal_ordering.cpp:277` `task_a.output_key = "out_a"` → `"domain-task-a"` 让 L2 严格匹配 (避免回退 L1); (3) `examples/pdk_chat_demo/tests/test_chat_session_consumer.cpp:73` timing 100ms → 500ms (留 OS 调度 buffer, 远小于 2000ms timeout); (4) `tests/test_domain_worker_pool.cpp` 新增 regression guard `DomainWorkerPool emit trace_id equals output_key (L2 causal chain enabler)` 断言 `result.trace_id == task.output_key`. **验证**: 因果链 fuzz 100 iter 100/100 ABeforeB (vs baseline 81/100 + 19/100 倒置); 单跑 `test_causal_ordering` 9/9 + `test_chat_session_consumer` 8/8 + `test_domain_worker_pool` 12/12 (baseline 11 + 1 新增); 全量 ctest 6 runs 5/6 100% pass (1 fail 是 AGENTS.md 早记录的 pre-existing 7.S29-1 inherent limitation). **4 个 atomic commit**: `fix(domain_worker_pool): trace_id = output_key for L2 causal chain` + `test(causal_ordering): align task_a.output_key with parent_trace for L2 match` + `test(chat_session_consumer): relax elapsed<100ms to <500ms (ctest contention buffer)` + `test(domain_worker_pool): regression guard for trace_id = output_key`. **关键调试教训**: (1) 生产代码 race 暴露靠并发 ctest, 单跑覆盖不到线程调度不确定性; (2) 测试 timing assertion 留 buffer, 单跑 < 5ms 不可靠在并行 232 binary 下; (3) 语义字段不能依赖 nullopt fallback, 必须有稳定标识符 (output_key / task_id); (4) "随机失败"是观察假象, 必现 fail 必有 root cause.
 
 ## BUILD SYSTEM
 - CMake 3.20+，C++20
