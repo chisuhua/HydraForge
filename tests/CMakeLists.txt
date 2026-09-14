@@ -193,6 +193,11 @@ function(add_catch_test TEST_NAME)
 
     # session-manager-jsonl-v2 (2026-08-05): session_manager.cpp 已在 agenticdsl_core 生产库,
     # 4 个 test target 通过 link agenticdsl_core 自动获得, 无需单独 target_sources.
+    # chat-session-pdk-lift Change 1/2 (2026-09-14): lifted ChatSession +
+    # CancellationRegistry 实现位于 pdk/chat_session (STATIC lib).
+    if(TEST_NAME MATCHES "^test_pdk_chat_session")
+        target_link_libraries(${TEST_NAME} PRIVATE pdk_chat_session)
+    endif()
 endfunction()
 
 # ================================
