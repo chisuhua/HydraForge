@@ -111,6 +111,8 @@ add_library(agenticdsl_common STATIC
     src/common/utils/template_renderer.cpp
     src/common/utils/yaml_json.cpp
     src/common/utils/timer_service.cpp  # Sprint 28 kernel-timer-service: ITimerService 默认实现 (cv + jthread)
+    src/common/io/stderr_logger.cpp     # chat-session-pdk-lift C1: ILogger 生产实现 (桥接 agenticdsl::log)
+    src/common/io/stdin_input_source.cpp # chat-session-pdk-lift C1: IInputSource 生产实现 (self-pipe + poll2)
     src/core/types/tool_result.cpp
 )
 # Sprint 28 microkernel migration: agenticdsl_common now linked into
