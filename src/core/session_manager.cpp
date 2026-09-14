@@ -590,11 +590,15 @@ std::string SessionManager::migrate_legacy_json(
     }
   }
 
-  // 写 main branch meta
+  // 写 main branch meta — BranchMeta 在 index_mutex_ 下快照, 锁外调
+  // flush_append_internal 保持全局 write→index 锁序, 消除与 flush_append
+  // 的 ABBA 死锁 (TSan #191); 与 fork() L349-355 同模式
+  BranchMeta main_meta;
   {
     std::lock_guard<std::mutex> lock(index_mutex_);
-    flush_append_internal(branches_["main"]);
+    main_meta = branches_["main"];
   }
+  flush_append_internal(main_meta);
 
   return session_id;
 }
