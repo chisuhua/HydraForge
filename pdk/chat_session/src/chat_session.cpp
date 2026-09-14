@@ -207,7 +207,11 @@ public:
     std::string persist_dir_expanded;
 
     // Cancellation state (Phase B: chat-async-io-cancellation-chain)
+    // current_cancellation_id_ / current_token_ 由 chat() 线程写, request_stop() 任意
+    // 线程读 → 需 mutex 保护 (2026-09-14 TSan 暴露的 pre-existing data race,
+    // baseline examples/pdk_chat_demo/chat_session.cpp:348/384 同缺陷)。
     std::shared_ptr<CancellationRegistry> cancellation_registry_;
+    mutable std::mutex cancellation_mutex_;
     std::string current_cancellation_id_;
     std::stop_token current_token_;
 
@@ -243,6 +247,12 @@ public:
     std::unique_ptr<agenticdsl::IInputSource> input_;
     std::unique_ptr<agenticdsl::ILogger> logger_;
 
+    // === chat-session-pdk-lift C2: SessionManager 集成 ===
+    agenticdsl::SessionManager* session_manager_ = nullptr;
+    std::string current_branch_id_ = "main";
+    std::string last_node_id_;   // 分支链尾, 供 append 挂 parent_id
+    std::string active_session_id_;  // SessionManager 侧 session_id (JSONL 文件名)
+
     Impl(
         agenticdsl::DSLEngine* e,
         std::shared_ptr<agenticdsl::IInteractionBus> b,
@@ -252,7 +262,9 @@ public:
         std::shared_ptr<CancellationRegistry> registry_arg,
         agenticdsl::ITimerService* timer,
         std::unique_ptr<agenticdsl::IInputSource> input,
-        std::unique_ptr<agenticdsl::ILogger> logger
+        std::unique_ptr<agenticdsl::ILogger> logger,
+        agenticdsl::SessionManager* session_manager,
+        std::optional<agenticdsl::ResumeToken> resume
     ) : engine(e), bus(std::move(b)), registry(r), agent_cfg(a), session_cfg(s),
         provider_mode(a.provider),
         persist_dir_expanded(expand_home(s.persist_dir)),
@@ -261,9 +273,13 @@ public:
         cancellation_registry_(registry_arg ? registry_arg : std::make_shared<CancellationRegistry>()),
         // Pattern 5 fail-safe: 显式注入才用替身, 否则生产默认实现
         input_(input ? std::move(input) : std::make_unique<agenticdsl::StdinInputSource>()),
-        logger_(logger ? std::move(logger) : std::make_unique<agenticdsl::StderrLogger>()) {
+        logger_(logger ? std::move(logger) : std::make_unique<agenticdsl::StderrLogger>()),
+        session_manager_(session_manager) {
         if (!persist_dir_expanded.empty()) {
             ensure_dir_0700(persist_dir_expanded);
+        }
+        if (resume.has_value() && session_manager_ != nullptr) {
+            hydrate_from_resume(*resume);
         }
         if (session_cfg.enable_input_thread) {
             input_thread_ = std::thread([this]() { input_thread_main(); });
@@ -294,6 +310,20 @@ public:
 
 private:
     void input_thread_main();
+
+public:
+    // Change 2 (Task 3): 从 ResumeToken 恢复 messages (经 SessionManager)
+    // 注: 这三个 helper 必须对 ChatSession 可见 (外层类无法访问嵌套类 private 成员),
+    // 故放 public 段; Impl 本身是私有实现细节, 不对外暴露。
+    void hydrate_from_resume(const agenticdsl::ResumeToken& token);
+
+    // Change 2 (Task 4): 一轮对话落 JSONL (user + assistant 两节点)
+    void persist_turn(const std::string& user_input, const std::string& assistant_input,
+                      const std::string& session_id);
+
+    // A5.6: topic 分级发射 — persist=true 时标记 meta.persist 供 AppendOnlyEventLog 订阅者识别
+    void emit_topic(const std::string& topic, nlohmann::json args, nlohmann::json meta,
+                    bool persist);
 };
 
 // --- ChatSession ---
@@ -307,9 +337,12 @@ ChatSession::ChatSession(
     std::shared_ptr<CancellationRegistry> registry_arg,
     agenticdsl::ITimerService* timer,
     std::unique_ptr<agenticdsl::IInputSource> input,
-    std::unique_ptr<agenticdsl::ILogger> logger
+    std::unique_ptr<agenticdsl::ILogger> logger,
+    agenticdsl::SessionManager* session_manager,
+    std::optional<agenticdsl::ResumeToken> resume
 ) : impl_(std::make_unique<Impl>(engine, std::move(bus), registry, agent_cfg, session_cfg,
-                                 registry_arg, timer, std::move(input), std::move(logger))) {
+                                 registry_arg, timer, std::move(input), std::move(logger),
+                                 session_manager, std::move(resume))) {
     // 生成 session ID (UUID 简化版)
     std::random_device rd;
     std::mt19937_64 gen(rd());
@@ -330,12 +363,21 @@ ChatSession::ChatSession(
 ChatSession::~ChatSession() = default;
 
 void ChatSession::request_stop() {
-  if (impl_->current_cancellation_id_.empty()) return;
-  auto source = impl_->cancellation_registry_->resolve_source(
-      impl_->current_cancellation_id_);
+  // 锁内只复制 id, 锁外做 resolve/request_stop/notify (避免持锁回调)
+  std::string cancellation_id;
+  {
+    std::lock_guard<std::mutex> lock(impl_->cancellation_mutex_);
+    cancellation_id = impl_->current_cancellation_id_;
+  }
+  if (cancellation_id.empty()) return;
+  auto source = impl_->cancellation_registry_->resolve_source(cancellation_id);
   if (source) source->request_stop();
   // §2.3: wake any blocked pop_next_input (cheap, idempotent)
   impl_->input_cv_.notify_all();
+  impl_->emit_topic("session.disconnected",
+                    nlohmann::json{{"session_id", session_id_},
+                                   {"reason", "request_stop"}},
+                    nlohmann::json{{"session_id", session_id_}}, /*persist=*/true);
 }
 
 bool ChatSession::request_model_switch(const std::string& provider_name) {
@@ -362,13 +404,32 @@ ChatResult ChatSession::chat(const std::string& user_input) {
 ChatResult ChatSession::chat(const std::string& user_input, std::stop_token token) {
     ChatResult result;
 
+    // D8 锁顺序契约 (chat-session-pdk-lift Change 2 acceptance):
+    //   1. steering_mutex_ / follow_up_mutex_  (双队列锁)
+    //   2. input_cv_mutex_                     (pop_next_input 等待)
+    //   3. SessionManager write_mutex_         (flush_append, 经 persist_turn)
+    // 禁止反向持有。SessionManager 内部另有 index_mutex_, 其自身顺序为
+    // write_mutex_ → index_mutex_ (open/flush_append 路径); 反向路径
+    // (index → write) 仅存在于 migrate_legacy_json 的 branch-meta 写入,
+    // 属 baseline pre-existing (见 plan Task 11.4 known-issue), 本 change 不触碰。
+
+    // A5.6 分级: turn/steering/followup/resumed/disconnected = slow-path (persist=true),
+    // 由 AppendOnlyEventLog 订阅者按 meta.persist 落地。
+    impl_->emit_topic("chat.turn.start",
+               nlohmann::json{{"session_id", session_id_},
+                              {"turn_count", static_cast<int>(impl_->messages.size() / 2)}},
+               nlohmann::json{{"session_id", session_id_}}, /*persist=*/true);
+
     // §4.0.5: ALWAYS build stop_source + register, regardless of token.stop_possible()
     std::string cancellation_id;
     auto source = std::make_shared<std::stop_source>();
     cancellation_id = impl_->cancellation_registry_->register_source(source);
-    impl_->current_cancellation_id_ = cancellation_id;
-    if (token.stop_possible()) {
-        impl_->current_token_ = token;
+    {
+        std::lock_guard<std::mutex> lock(impl_->cancellation_mutex_);
+        impl_->current_cancellation_id_ = cancellation_id;
+        if (token.stop_possible()) {
+            impl_->current_token_ = token;
+        }
     }
 
     // 2. 追加用户消息到历史
@@ -406,6 +467,7 @@ ChatResult ChatSession::chat(const std::string& user_input, std::stop_token toke
         // Cleanup cancellation state
         if (!cancellation_id.empty()) {
             impl_->cancellation_registry_->unregister(cancellation_id);
+            std::lock_guard<std::mutex> lock(impl_->cancellation_mutex_);
             impl_->current_token_ = std::stop_token{};
             impl_->current_cancellation_id_.clear();
         }
@@ -478,6 +540,17 @@ ChatResult ChatSession::chat(const std::string& user_input, std::stop_token toke
             .meta(nlohmann::json{{"session_id", session_id_}})
             .build());
     }
+
+    // Change 2 (Task 4): 一轮结束落 JSONL (经 SessionManager) — 断线恢复的持久化来源
+    if (impl_->session_manager_ != nullptr) {
+        impl_->persist_turn(user_input, result.response, session_id_);
+    }
+
+    impl_->emit_topic("chat.turn.end",
+               nlohmann::json{{"session_id", session_id_},
+                              {"turn_count", static_cast<int>(impl_->messages.size() / 2)},
+                              {"ok", result.success}},
+               nlohmann::json{{"session_id", session_id_}}, /*persist=*/true);
 
     return result;
 }
@@ -822,6 +895,10 @@ void ChatSession::Impl::input_thread_main() {
                 steering_queue_.push(line);
                 // §3.1 push + count + notify in same mutex scope (C3 ordering fix)
                 pending_input_count_.fetch_add(1, std::memory_order_release);
+                emit_topic("chat.steering.enqueued",
+                           nlohmann::json{{"session_id", active_session_id_},
+                                          {"line_preview", line.substr(0, 64)}},
+                           nlohmann::json::object(), /*persist=*/false);
             } else {
                 // §3.3 overflow: do NOT increment count, do NOT notify (no spurious wakeup)
                 logger_->log(agenticdsl::LogLevel::kWarn,
@@ -834,6 +911,10 @@ void ChatSession::Impl::input_thread_main() {
             if (follow_up_queue_.size() < capacity_) {
                 follow_up_queue_.push(line);
                 pending_input_count_.fetch_add(1, std::memory_order_release);
+                emit_topic("chat.followup.enqueued",
+                           nlohmann::json{{"session_id", active_session_id_},
+                                          {"line_preview", line.substr(0, 64)}},
+                           nlohmann::json::object(), /*persist=*/false);
             } else {
                 logger_->log(agenticdsl::LogLevel::kWarn,
                              "[chat] follow_up queue overflow, rejected length="
@@ -844,6 +925,83 @@ void ChatSession::Impl::input_thread_main() {
         // §3.1/§3.2 notify OUTSIDE mutex (avoids holding mutex during wake; reduces contention)
         input_cv_.notify_one();
     }
+}
+
+// === chat-session-pdk-lift Change 2: SessionManager 集成 ===
+
+void ChatSession::Impl::hydrate_from_resume(const agenticdsl::ResumeToken& token) {
+    // 真实 API (session_manager.h): open(session_id) → SessionHandle (struct),
+    // load_jsonl() 无参填充索引, build_context_entries(leaf_node_id) 为 SessionManager 成员。
+    session_manager_->open(token.session_id);
+    session_manager_->load_jsonl();
+    active_session_id_ = token.session_id;
+
+    const auto entries = session_manager_->build_context_entries(token.leaf_node_id);
+    for (const auto& node : entries) {
+        if (node.content.is_object()) {
+            messages.push_back(node.content);
+        }
+    }
+    last_node_id_ = token.leaf_node_id;
+    if (!entries.empty() && !entries.back().branch_id.empty()) {
+        current_branch_id_ = entries.back().branch_id;
+    }
+
+    // model 一致性: 记录 token.model, 不覆盖本次构造的 provider_mode (D4 裁决: 不持久化 provider)
+    if (!token.model.empty()) {
+        provider_mode = agent_cfg.provider;
+    }
+
+    if (bus) {
+        bus->emit(agenticdsl::EventBuilder("session.resumed")
+                      .args(nlohmann::json{{"session_id", token.session_id},
+                                           {"leaf_node_id", token.leaf_node_id},
+                                           {"messages_count",
+                                            static_cast<int>(messages.size())}})
+                      .meta(nlohmann::json{{"session_id", token.session_id}})
+                      .build());
+    }
+    (void)token.budget_used;  // 由 BudgetController 承担, ChatSession 不重复记账
+}
+
+void ChatSession::Impl::persist_turn(const std::string& user_input,
+                                     const std::string& assistant_input,
+                                     const std::string& sid) {
+    // SessionNode 真实字段: {id, parent_id, branch_id, content}
+    // flush_append 返回 void; append_to_branch 是 1 参数且只接受消息字符串,
+    // 故此处用 next_node_id() + flush_append 显式构造两节点 (保留 role 语义)。
+    const std::string user_node_id = session_manager_->next_node_id();
+    agenticdsl::SessionNode user_node;
+    user_node.id = user_node_id;
+    user_node.parent_id = last_node_id_;
+    user_node.branch_id = current_branch_id_.empty() ? "main" : current_branch_id_;
+    user_node.content = nlohmann::json{{"role", "user"},
+                                       {"content", user_input},
+                                       {"session_id", sid}};
+    session_manager_->flush_append(user_node);
+    last_node_id_ = user_node_id;
+
+    const std::string assistant_node_id = session_manager_->next_node_id();
+    agenticdsl::SessionNode assistant_node;
+    assistant_node.id = assistant_node_id;
+    assistant_node.parent_id = last_node_id_;
+    assistant_node.branch_id = user_node.branch_id;
+    assistant_node.content = nlohmann::json{{"role", "assistant"},
+                                            {"content", assistant_input},
+                                            {"session_id", sid}};
+    session_manager_->flush_append(assistant_node);
+    last_node_id_ = assistant_node_id;
+}
+
+void ChatSession::Impl::emit_topic(const std::string& topic, nlohmann::json args,
+                                   nlohmann::json meta, bool persist) {
+    if (!bus) return;
+    // A5.6 分级: fast-path (steering/followup enqueue) 只走 bus 内存分发;
+    // slow-path 额外标记 meta.persist=true, 供 AppendOnlyEventLog 订阅者识别并落地。
+    if (persist) {
+        meta["persist"] = true;
+    }
+    bus->emit(agenticdsl::EventBuilder(topic).args(std::move(args)).meta(std::move(meta)).build());
 }
 
 }  // namespace hydraforge::pdk
