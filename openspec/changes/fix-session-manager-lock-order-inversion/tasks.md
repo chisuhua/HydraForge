@@ -8,7 +8,7 @@
 
 ## Commit 1: Critical 1 — BranchMeta 快照（仅源码修复，无 API 变化）
 
-- [ ] **T1.1** `src/core/session_manager.cpp` 修改 `migrate_legacy_json` 末段
+- [x] **T1.1** `src/core/session_manager.cpp` 修改 `migrate_legacy_json` 末段
   - **Anchor**: 注释 `// 写 main branch meta` 下方 (L593-597)
   - **Before**:
     ```cpp
@@ -31,18 +31,18 @@
     flush_append_internal(main_meta);
     ```
 
-- [ ] **T1.2** Functional 编译验证 (应已 PASS, 0 error)
+- [x] **T1.2** Functional 编译验证 (应已 PASS, 0 error)
   ```bash
   cmake --build build -j$(nproc)
   ```
 
-- [ ] **T1.3** TSan 部分验证（仅 #191 应翻绿）
+- [x] **T1.3** TSan 部分验证（仅 #191 应翻绿）
   ```bash
   ctest --test-dir build-tsan -R '^test_session_manager_legacy$' --output-on-failure
   # 预期: 0 warning, exit 0
   ```
 
-- [ ] **T1.4** Commit 1
+- [x] **T1.4** Commit 1
   ```bash
   git add src/core/session_manager.cpp
   git commit -m "fix(session_manager): BranchMeta snapshot in migrate_legacy_json (TSan #191)
@@ -70,7 +70,7 @@
 
 ## Commit 2: Critical 2 + 测试 + 验收（删 `legacy_path` 参数 + 新并发测试 + 静态断言）
 
-- [ ] **T2.1** `src/core/session_manager.h` 修改 `open()` 签名
+- [x] **T2.1** `src/core/session_manager.h` 修改 `open()` 签名
   - **Anchor**: `session_manager.h:157`
   - **Before**:
     ```cpp
@@ -83,7 +83,7 @@
     ```
   - 同时更新 Doxygen 注释 (L110-156) 删 legacy_path 段落, 提示 "use migrate_legacy_json() explicitly"
 
-- [ ] **T2.2** `src/core/session_manager.cpp` 修改 `open()` 实现
+- [x] **T2.2** `src/core/session_manager.cpp` 修改 `open()` 实现
   - 删除 L62-65 `legacy_path` 参数检查 (已删参数, 实际无需改)
   - **删除 L80-87 legacy 分支**（6 行）:
     ```cpp
@@ -96,7 +96,7 @@
   - 函数体剩余部分保持不变
   - 更新函数体注释 (L46-58) 描述新版"显式 migrate"语义
 
-- [ ] **T2.3** 新建 `tests/test_session_manager_lock_order.cpp` (~120 行, GLOB 自动注册)
+- [x] **T2.3** 新建 `tests/test_session_manager_lock_order.cpp` (~120 行, GLOB 自动注册)
   - **顶部**:
     ```cpp
     // 编译期断言: open() 必须不含 legacy_path 参数 (R2 不变量)
@@ -122,13 +122,13 @@
   - **Header order**: `catch_amalgamated.hpp` + `core/session_manager.h` + `<type_traits>` + `<thread>` + `<atomic>` + `<filesystem>` + `nlohmann/json.hpp`
   - Helper: 复用 `test_session_manager_legacy.cpp` 的 `TempDirGuard` / `write_legacy_json` 模式（简化版，in-file）
 
-- [ ] **T2.4** 验证 CMake 自动注册（**无需**改 `tests/CMakeLists.txt`）
+- [x] **T2.4** 验证 CMake 自动注册（**无需**改 `tests/CMakeLists.txt`）
   ```bash
   cmake ..  # 重新 configure 让 GLOB 捕获新 .cpp
   ```
   验证: `grep test_session_manager_lock_order build-tsan/tests/CTestTestfile.cmake` 应显示目标已注册
 
-- [ ] **T2.5** Commit 2
+- [x] **T2.5** Commit 2
   ```bash
   git add src/core/session_manager.h
   git add src/core/session_manager.cpp
@@ -164,49 +164,49 @@
 
 ## Phase 3: 验证 (Acceptance)
 
-- [ ] **T3.1** A1 源码 grep (migrate 末段无 index_mutex_ 包裹)
+- [x] **T3.1** A1 源码 grep (migrate 末段无 index_mutex_ 包裹)
   ```bash
   grep -B 1 -A 3 "flush_append_internal" src/core/session_manager.cpp
   # 预期: L596 flush_append_internal 在锁外调用
   ```
 
-- [ ] **T3.2** A2 头文件 grep (open 参数已删)
+- [x] **T3.2** A2 头文件 grep (open 参数已删)
   ```bash
   grep -n "legacy_path" src/core/session_manager.h
   # 预期: 0 行
   ```
 
-- [ ] **T3.3** A3 全库零两参 `open()` 调用
+- [x] **T3.3** A3 全库零两参 `open()` 调用
   ```bash
   grep -rn "open(.*,.*legacy\|open(.*legacy" --include="*.cpp" --include="*.h" examples/ src/ tests/ pdk/
   # 预期: 0 行
   ```
 
-- [ ] **T3.4** A4 全量编译
+- [x] **T3.4** A4 全量编译
   ```bash
   cmake --build build -j$(nproc)
   # 预期: 0 error (全 targets)
   ```
 
-- [ ] **T3.5** A5 functional ctest
+- [x] **T3.5** A5 functional ctest
   ```bash
   ctest --test-dir build -j4 --timeout 180
   # 预期: 235 tests, 234 PASS (允许 test_skill_interpreter pre-existing flaky)
   ```
 
-- [ ] **T3.6** A6 TSan #191 翻绿
+- [x] **T3.6** A6 TSan #191 翻绿
   ```bash
   ctest --test-dir build-tsan -R '^test_session_manager_legacy$' --output-on-failure
   # 预期: PASS, 0 ThreadSanitizer warning
   ```
 
-- [ ] **T3.7** A7 新并发测试 PASS
+- [x] **T3.7** A7 新并发测试 PASS
   ```bash
   ctest --test-dir build-tsan -R '^test_session_manager_lock_order$' --output-on-failure
   # 预期: PASS, 0 ThreadSanitizer warning
   ```
 
-- [ ] **T3.8** A8 基线回归
+- [x] **T3.8** A8 基线回归
   ```bash
   ctest --test-dir build-tsan -R 'session|causal|domain_worker|concurrent' 2>&1 | grep -E 'FAILED|tests passed'
   # 预期: 仅 #85 + #199 + #1 + #15 + #195 fail (5 项 pre-existing KI)
@@ -218,12 +218,12 @@
 
 ## Phase 4: 收尾
 
-- [ ] **T4.1** OpenSpec archive
+- [x] **T4.1** OpenSpec archive
   ```bash
   openspec archive fix-session-manager-lock-order-inversion
   ```
 
-- [ ] **T4.2** AGENTS.md 登记新发现的 KI
+- [x] **T4.2** AGENTS.md 登记新发现的 KI
   - 在 Recent Changes 追加: "2026-09-15 (Sprint 33 / fix-session-manager-lock-order-inversion, ship)" + commit hashes
   - 在 Recent Changes 追加: "2026-09-15 TSan baseline update: 6 项 pre-existing KI（#85 + #199 + #1 + #15 + #195 + #191 已修; 新增 #1 + #15 = chat_session.cpp:291/296 in ~Impl 待独立 follow-up）"
 
