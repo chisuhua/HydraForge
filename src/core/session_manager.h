@@ -140,22 +140,21 @@ class SessionManager {
   /**
    * @brief 创建或打开指定 session
    * @param session_id session 标识 (作为 <dir>/<session_id>.jsonl 文件名)
-   * @param legacy_path 可选 — 旧版线性 JSON 文件路径; 当 JSONL 文件不存在且
-   *                    legacy_path 已提供时, 自动调用 migrate_legacy_json
-   *                    从 legacy_path 迁移内容到新建的 JSONL 文件
-   *                    (Task 6 完整迁移逻辑已实现, 本参数仅是 open-time 钩子)
    * @return SessionHandle — 描述打开的 session
    *
    * 行为:
    *   1. 若 <dir> 不存在, std::filesystem::create_directories(dir)
    *   2. 若 <dir>/<session_id>.jsonl 不存在, 以 O_WRONLY|O_CREAT 模式 touch 空文件
-   *   3. 若文件不存在 且 legacy_path 已提供 且 legacy_path 文件存在 → 调 migrate_legacy_json
-   *   4. 记录 current_session_id_ + current_path_ 供后续 flush_append 使用
+   *   3. 记录 current_session_id_ + current_path_ 供后续 flush_append 使用
+   *
+   * 旧版线性 JSON 迁移: 调用方需先 open(session_id), 再显式调用
+   * migrate_legacy_json(legacy_path)。旧版 open() 曾含 legacy_path 参数自动
+   * 触发迁移, 但那会在持 write_mutex_ 时重入取 write_mutex_ 的路径
+   * (migrate_legacy_json 内部调 open()), 该参数已删除以构造性消除此风险。
    *
    * 线程安全: 与 flush_append 共用 write_mutex_, 避免 open 与并发 append 冲突
    */
-  SessionHandle open(const std::string& session_id,
-                     std::optional<std::string> legacy_path = std::nullopt);
+  SessionHandle open(const std::string& session_id);
 
   /**
    * @brief 追加单条 SessionNode 到当前 session JSONL 文件

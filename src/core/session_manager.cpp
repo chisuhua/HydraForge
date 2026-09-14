@@ -56,8 +56,7 @@ SessionManager::SessionManager(std::filesystem::path dir)
 
 SessionManager::~SessionManager() = default;
 
-SessionHandle SessionManager::open(const std::string& session_id,
-                                     std::optional<std::string> legacy_path) {
+SessionHandle SessionManager::open(const std::string& session_id) {
   std::lock_guard<std::mutex> lock(write_mutex_);
 
   if (session_id.empty()) {
@@ -74,17 +73,6 @@ SessionHandle SessionManager::open(const std::string& session_id,
   std::filesystem::create_directories(dir_);
 
   const auto path = dir_ / (session_id + kSessionFileExt);
-
-  const bool jsonl_existed = std::filesystem::exists(path);
-
-  if (!jsonl_existed && legacy_path.has_value() &&
-      std::filesystem::exists(*legacy_path)) {
-    migrate_legacy_json(*legacy_path);
-    SessionHandle h;
-    h.session_id = current_session_id_;
-    h.jsonl_path = current_path_;
-    return h;
-  }
 
   std::lock_guard<std::mutex> idx_lock(index_mutex_);
   if (branches_.find("main") == branches_.end()) {
