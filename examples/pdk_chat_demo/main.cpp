@@ -18,6 +18,9 @@
 #include "dsl_validator.h"
 #include "event_handler.h"
 
+#include <common/io/stderr_logger.h>
+#include <common/io/stdin_input_source.h>
+
 // HydraForge AgenticOS 核心
 #include <core/engine.h>
 #include <agenticdsl/types/layered_context.h>
@@ -445,14 +448,17 @@ int main(int argc, char* argv[]) {
     // §4.0.3: 设 g_cancellation_registry (shared with loop_agent)
     // ============================================================
     config.session.enable_input_thread = true;
-    pdk_chat_demo::g_cancellation_registry = std::make_shared<CancellationRegistry>();
+    pdk_chat_demo::g_cancellation_registry = std::make_shared<pdk_chat_demo::CancellationRegistry>();
     // T1.9: 启动时清理 >24h 的 stale session 文件
     pdk_chat_demo::ChatSession::cleanup_stale(config.session.persist_dir);
 
     pdk_chat_demo::ChatSession session(
         engine.get(), bus, &engine->get_tool_registry(),
         config.agent, config.session,
-        pdk_chat_demo::g_cancellation_registry  // §4.0.3 shared registry
+        pdk_chat_demo::g_cancellation_registry,  // §4.0.3 shared registry
+        nullptr,                                  // timer: D9 lazy (main loop 不自注册 periodic)
+        std::make_unique<agenticdsl::StdinInputSource>(),
+        std::make_unique<agenticdsl::StderrLogger>()
     );
 
     // T1.4: --session <id> 从磁盘恢复

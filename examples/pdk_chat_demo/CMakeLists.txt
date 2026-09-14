@@ -5,7 +5,6 @@
 
 # --- Source files (shared between demo and tests) ---
 set(SOURCES
-    chat_session.cpp
     event_handler.cpp
     dsl_validator.cpp
     cli_args_parser.cpp

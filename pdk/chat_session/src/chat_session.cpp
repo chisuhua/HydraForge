@@ -1,8 +1,18 @@
-// chat_session.cpp - Chat Session 实现
-// 关联: chat_session.h, docs/adr/adr-0060-agent-composition.md
-//      openspec/changes/pdk-chat-demo-v1-recap/design.md (T1: 持久化 + Budget 告警)
+// pdk/chat_session/src/chat_session.cpp
+// ChatSession 实现 (PDK lift)
+// 关联: agenticdsl/pdk/chat_session.h, docs/adr/adr-0060-agent-composition.md
+// 日期: 2026-09-11
+//
+// Lift 溯源: examples/pdk_chat_demo/chat_session.cpp (namespace pdk_chat_demo)。
+// 本次 lift 相对原实现的两处结构性变更 (§6.1 + A3):
+//   1. std::cin/std::cerr 直连 → IInputSource/ILogger 注入 (可测试)
+//   2. Self-pipe 所有权从 Impl 移到 IInputSource —
+//      Impl 不再持有 pipe_read_fd_/pipe_write_fd_/pipe2(),
+//      timer callback 改调 input_->wake() (幂等唤醒, 不关闭输入源)。
+//      Sprint 31 语义保留: poll 多 fd + 100ms clamp + EINTR 重试仍在
+//      StdinInputSource::read_line 内 (A3 禁止回退裸 getline)。
 
-#include "chat_session.h"
+#include "agenticdsl/pdk/chat_session.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -21,14 +31,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <sys/stat.h>
-
-// Sprint 31: self-pipe + poll(2) for timer-driven read interrupt (D1/D2/D3)
-// - poll.h: poll(2) 多 fd 监听 (POSIX, Linux/macOS/BSD)
-// - unistd.h: read/write/pipe2/close (POSIX)
-// - fcntl.h: O_CLOEXEC | O_NONBLOCK flags
-#include <poll.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <utility>
 
 #include <core/engine.h>
@@ -38,18 +40,20 @@
 #include <agenticdsl/contract/bus_event.h>
 #include <agenticdsl/contract/event_builder.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
+#include <agenticdsl/contract/ilogger.h>
+#include <agenticdsl/contract/iinput_source.h>
+#include <agenticdsl/contract/timer_service.h>
 #include <modules/budget/budget_controller.h>
 
-// Sprint 30: timer_service.h 提供 ITimerService complete type (Impl 成员访问需完整类型),
-// 仅在 chat_session.cpp include (header 用 void* PIMPL 避开 namespace pollution)
-#include <agenticdsl/contract/timer_service.h>
+// I/O 默认实现 (生产 fallback)
+#include "common/io/stdin_input_source.h"
+#include "common/io/stderr_logger.h"
 
-
-namespace pdk_chat_demo {
+namespace hydraforge::pdk {
 
 namespace {
 
-static std::string ptr_to_str(void* p) {
+std::string ptr_to_str(void* p) {
     std::ostringstream ss;
     ss << reinterpret_cast<uintptr_t>(p);
     return ss.str();
@@ -230,21 +234,14 @@ public:
     std::thread input_thread_;
     std::atomic<bool> stop_input_thread_{false};
 
-    // === Sprint 30 timer migration (D1/D3/D5/D9) ===
-    // timer_: 观察者指针 (从 void* handle cast, PIMPL void* 模式避开 namespace pollution)
-    // periodic_id_: input_thread 注册的 periodic timer id
-    // shutdown_check_pending_: timer callback → 主循环通信 (acquire/release 序)
+    // === Sprint 30 timer (D9 lazy) ===
     agenticdsl::ITimerService* timer_ = nullptr;
     agenticdsl::ITimerService::TimerId periodic_id_ = 0;
     std::atomic<bool> shutdown_check_pending_{false};
 
-    // === Sprint 31 self-pipe + poll (D1/D3) ===
-    // self-pipe trick: timer callback 写 pipe_write_fd_ → 主循环 poll([stdin, pipe_read_fd]) 立即返回
-    // 实现 timer 真正中断 std::getline 阻塞读 (Sprint 30 治标 → Sprint 31 治本)
-    // - pipe_write_fd_ = -1: pipe 创建失败或未启用 input_thread
-    // - pipe_read_fd_ = -1: 同上
-    int pipe_read_fd_ = -1;
-    int pipe_write_fd_ = -1;
+    // === chat-session-pdk-lift C1: I/O 注入 (取代 Impl 自有 self-pipe + std::cin/cerr) ===
+    std::unique_ptr<agenticdsl::IInputSource> input_;
+    std::unique_ptr<agenticdsl::ILogger> logger_;
 
     Impl(
         agenticdsl::DSLEngine* e,
@@ -253,35 +250,27 @@ public:
         const AgentConfig& a,
         const SessionConfig& s,
         std::shared_ptr<CancellationRegistry> registry_arg,
-        // Sprint 32: ITimerService* 直接类型 (消除 Sprint 30 PIMPL void* workaround)
-        // - nullptr 默认 D9 lazy (Impl 不创建 jthread, input_thread 入口 fallback)
-        // - 调用方保证 type 正确 (无需 static_cast)
-        agenticdsl::ITimerService* timer = nullptr
+        agenticdsl::ITimerService* timer,
+        std::unique_ptr<agenticdsl::IInputSource> input,
+        std::unique_ptr<agenticdsl::ILogger> logger
     ) : engine(e), bus(std::move(b)), registry(r), agent_cfg(a), session_cfg(s),
         provider_mode(a.provider),
         persist_dir_expanded(expand_home(s.persist_dir)),
-        // Sprint 32: 直接类型, 无需 cast
         timer_(timer),
         // §4.0.2/§4.0.9 NC3: shared registry if provided, else fallback self-owned
-        cancellation_registry_(registry_arg ? registry_arg : std::make_shared<CancellationRegistry>()) {
+        cancellation_registry_(registry_arg ? registry_arg : std::make_shared<CancellationRegistry>()),
+        // Pattern 5 fail-safe: 显式注入才用替身, 否则生产默认实现
+        input_(input ? std::move(input) : std::make_unique<agenticdsl::StdinInputSource>()),
+        logger_(logger ? std::move(logger) : std::make_unique<agenticdsl::StderrLogger>()) {
         if (!persist_dir_expanded.empty()) {
             ensure_dir_0700(persist_dir_expanded);
         }
-        // Sprint 31 (D1): 创建 self-pipe for timer-driven read interrupt
-        // - pipe2(O_CLOEXEC | O_NONBLOCK): 不被 exec 子进程继承 + write 不阻塞
-        // - 失败时 fd 保持 -1 (防御性 default, 主循环检查 fd >= 0 后才加入 poll)
         if (session_cfg.enable_input_thread) {
-            int fds[2] = {-1, -1};
-            if (::pipe2(fds, O_CLOEXEC | O_NONBLOCK) == 0) {
-                pipe_read_fd_ = fds[0];
-                pipe_write_fd_ = fds[1];
-            }
             input_thread_ = std::thread([this]() { input_thread_main(); });
         }
     }
 
     ~Impl() {
-        // Sprint 31 D4: 五步析构顺序 (Sprint 30 D8 扩展):
         // ① 防御性 cancel periodic timer (idempotent, RAII guard 已 cancel 时 id=0)
         if (periodic_id_ != 0 && timer_) {
             timer_->cancel(periodic_id_);
@@ -289,25 +278,18 @@ public:
         }
         // ② timer_=nullptr
         timer_ = nullptr;
-        // ③ close pipe_write_fd_ (Sprint 31 新增, ~Impl 体内先于 join 避免 timer
-        //   callback 在 pipe 已关时仍 try write)
-        if (pipe_write_fd_ >= 0) {
-            ::close(pipe_write_fd_);
-            pipe_write_fd_ = -1;
-        }
-        // ④ close pipe_read_fd_ (Sprint 31 新增, 设 -1 防 double-close)
-        if (pipe_read_fd_ >= 0) {
-            ::close(pipe_read_fd_);
-            pipe_read_fd_ = -1;
-        }
-
+        // ③ stop_input_thread_ 置位 + 唤醒 (让阻塞在 read_line 的 input thread 退出)
         stop_input_thread_.store(true);
-        // §2.3/§3.4: notify cv so any blocked pop_next_input wakes and returns nullopt
+        if (input_) {
+            input_->close();
+        }
+        // ④ notify cv so any blocked pop_next_input wakes and returns nullopt
         input_cv_.notify_all();
         if (input_thread_.joinable()) {
             input_thread_.join();
         }
-        // ⑤ no-op child/pipes (ChatSession 无子进程/Sprint 30 保留)
+        // ⑤ input_/logger_ unique_ptr 自动析构
+        //    (self-pipe fd 关在 ~StdinInputSource 内, Sprint 31 D4 语义保留)
     }
 
 private:
@@ -323,8 +305,11 @@ ChatSession::ChatSession(
     const AgentConfig& agent_cfg,
     const SessionConfig& session_cfg,
     std::shared_ptr<CancellationRegistry> registry_arg,
-    agenticdsl::ITimerService* timer
-) : impl_(std::make_unique<Impl>(engine, std::move(bus), registry, agent_cfg, session_cfg, registry_arg, timer)) {
+    agenticdsl::ITimerService* timer,
+    std::unique_ptr<agenticdsl::IInputSource> input,
+    std::unique_ptr<agenticdsl::ILogger> logger
+) : impl_(std::make_unique<Impl>(engine, std::move(bus), registry, agent_cfg, session_cfg,
+                                 registry_arg, timer, std::move(input), std::move(logger))) {
     // 生成 session ID (UUID 简化版)
     std::random_device rd;
     std::mt19937_64 gen(rd());
@@ -356,8 +341,8 @@ void ChatSession::request_stop() {
 bool ChatSession::request_model_switch(const std::string& provider_name) {
   if (provider_name.empty()) return false;
   if (impl_->provider_mode == "mock" && provider_name != "mock") {
-    std::cerr << "[chat] mock mode rejects provider: " << provider_name
-              << std::endl;
+    impl_->logger_->log(agenticdsl::LogLevel::kWarn,
+                        "[chat] mock mode rejects provider: " + provider_name);
     return false;
   }
   std::lock_guard<std::mutex> lock(impl_->next_model_mutex_);
@@ -522,7 +507,8 @@ bool ChatSession::load_from_disk(const std::string& session_id) {
 
     std::ifstream f(path);
     if (!f.is_open()) {
-        std::cerr << "[session/load] cannot open: " << path << std::endl;
+        impl_->logger_->log(agenticdsl::LogLevel::kWarn,
+                            "[session/load] cannot open: " + path.string());
         return false;
     }
 
@@ -530,18 +516,23 @@ bool ChatSession::load_from_disk(const std::string& session_id) {
     try {
         f >> j;
     } catch (const nlohmann::json::parse_error& e) {
-        std::cerr << "[session/load] invalid JSON: " << path << std::endl;
+        (void)e;
+        impl_->logger_->log(agenticdsl::LogLevel::kWarn,
+                            "[session/load] invalid JSON: " + path.string());
         return false;
     } catch (const std::exception& e) {
-        std::cerr << "[session/load] error: " << path << ": " << e.what() << std::endl;
+        impl_->logger_->log(agenticdsl::LogLevel::kWarn,
+                            "[session/load] error: " + path.string() + ": " + e.what());
         return false;
     }
 
     // schema 版本校验
     int sv = j.value("schema_version", 0);
     if (sv != kSessionSchemaVersion) {
-        std::cerr << "[session/load] unsupported schema_version " << sv
-                  << " (expected " << kSessionSchemaVersion << "): " << path << std::endl;
+        impl_->logger_->log(agenticdsl::LogLevel::kWarn,
+                            "[session/load] unsupported schema_version "
+                            + std::to_string(sv) + " (expected "
+                            + std::to_string(kSessionSchemaVersion) + "): " + path.string());
         return false;
     }
 
@@ -584,7 +575,8 @@ bool ChatSession::save_to_disk() {
     {
         std::ofstream f(tmp);
         if (!f.is_open()) {
-            std::cerr << "[session/save] cannot write tmp: " << tmp << std::endl;
+            impl_->logger_->log(agenticdsl::LogLevel::kWarn,
+                                "[session/save] cannot write tmp: " + tmp.string());
             return false;
         }
         f << j.dump(2);
@@ -593,7 +585,8 @@ bool ChatSession::save_to_disk() {
     std::error_code ec;
     fs::rename(tmp, path, ec);
     if (ec) {
-        std::cerr << "[session/save] rename failed: " << ec.message() << std::endl;
+        impl_->logger_->log(agenticdsl::LogLevel::kWarn,
+                            "[session/save] rename failed: " + ec.message());
         std::error_code rm_ec;
         fs::remove(tmp, rm_ec);
         return false;
@@ -678,7 +671,9 @@ size_t ChatSession::queue_size(QueueKind kind) const {
 bool ChatSession::try_push_steering_for_test(const std::string& msg) {
     std::lock_guard<std::mutex> lock(impl_->steering_mutex_);
     if (impl_->steering_queue_.size() >= impl_->capacity_) {
-        std::cerr << "[chat] steering queue overflow, rejected length=" << msg.size() << std::endl;
+        impl_->logger_->log(agenticdsl::LogLevel::kWarn,
+                            "[chat] steering queue overflow, rejected length="
+                            + std::to_string(msg.size()));
         return false;
     }
     impl_->steering_queue_.push(msg);
@@ -691,7 +686,9 @@ bool ChatSession::try_push_steering_for_test(const std::string& msg) {
 bool ChatSession::try_push_follow_up_for_test(const std::string& msg) {
     std::lock_guard<std::mutex> lock(impl_->follow_up_mutex_);
     if (impl_->follow_up_queue_.size() >= impl_->capacity_) {
-        std::cerr << "[chat] follow_up queue overflow, rejected length=" << msg.size() << std::endl;
+        impl_->logger_->log(agenticdsl::LogLevel::kWarn,
+                            "[chat] follow_up queue overflow, rejected length="
+                            + std::to_string(msg.size()));
         return false;
     }
     impl_->follow_up_queue_.push(msg);
@@ -778,23 +775,18 @@ bool ChatSession::is_input_thread_shutdown() const {
 }
 
 void ChatSession::Impl::input_thread_main() {
-    // Sprint 30 (D2 + D5): register periodic timer (50ms) for shutdown responsiveness.
-    // Sprint 31 (D3): timer callback 额外写 self-pipe wake-up byte,让 poll 立即返回
-    // - shutdown_check_pending_ flag: 主循环 acquire-load 检查 (Sprint 30)
-    // - pipe_write: 1 byte write 唤醒 poll (Sprint 31 真正中断 read)
-    // D9 fallback: if timer_==nullptr, create per-thread TimerService (D9 lazy).
-    // RAII guard cancels timer on all exit paths (EOF break / catch / normal return).
+    // Sprint 30 (D2/D5) + Sprint 31 (D3): periodic timer (50ms) 唤醒 input 等待。
+    // C1 lift 后改写: timer callback 不再直接写自有 pipe fd, 而是调 input_->wake()
+    // 让 IInputSource 内部的 self-pipe 完成 poll 中断 (self-pipe 所有权已下沉)。
+    // D9 fallback: timer_==nullptr 时不注册 (IInputSource 自身 100ms poll clamp 兜底)。
+    // RAII guard cancels timer on all exit paths (EOF break / catch / normal return)。
     if (timer_ != nullptr) {
         periodic_id_ = timer_->register_periodic(
             std::chrono::milliseconds(50),
             [this] {
                 shutdown_check_pending_.store(true, std::memory_order_release);
-                // Sprint 31: 写 self-pipe wake-up byte, 让 poll() 立即返回
-                // (EAGAIN 容忍: 1 byte/50ms vs 64KB pipe buffer, 不会满)
-                if (pipe_write_fd_ >= 0) {
-                    char c = 'x';
-                    ssize_t r = ::write(pipe_write_fd_, &c, 1);
-                    (void)r;  // EAGAIN acceptable
+                if (input_) {
+                    input_->wake();
                 }
             });
     }
@@ -809,64 +801,19 @@ void ChatSession::Impl::input_thread_main() {
         }
     } timer_guard{timer_, &periodic_id_};
 
-    std::string line;
     while (!stop_input_thread_.load(std::memory_order_acquire)) {
-        // Sprint 30 (D3): 周期性 timer callback 已 set shutdown_check_pending_,
-        // Sprint 31 (D2): poll 多 fd 监听 [STDIN_FILENO, pipe_read_fd_],
-        //   pfds[0] 就绪 → 读 stdin, pfds[1] 就绪 → 读 wake-up byte
-        pollfd pfds[2];
-        int nfds = 0;
-        pfds[nfds].fd = STDIN_FILENO;
-        pfds[nfds].events = POLLIN;
-        ++nfds;
-        if (pipe_read_fd_ >= 0) {
-            pfds[nfds].fd = pipe_read_fd_;
-            pfds[nfds].events = POLLIN;
-            ++nfds;
-        }
-
-        // poll EINTR 重试 + 100ms clamp (Sprint 30 / SkillInterpreter §6.3 §3.3 模式)
-        int n;
-        do {
-            n = ::poll(pfds, nfds, 100);
-        } while (n < 0 && errno == EINTR);
-
-        if (n < 0) {
-            // poll error (非 EINTR): SIGKILL 类似处理, 设 shutdown 让线程退出
-            stop_input_thread_.store(true, std::memory_order_release);
-            input_cv_.notify_all();
-            break;
-        }
-
-        // 处理 wake-up byte (Sprint 31 D3): 读 1 byte 清空, 不做业务逻辑
-        if (pipe_read_fd_ >= 0 && (pfds[1].revents & POLLIN)) {
-            char drain[16];
-            ssize_t dr;
-            do {
-                dr = ::read(pipe_read_fd_, drain, sizeof(drain));
-            } while (dr < 0 && errno == EINTR);
-            // 字节累积无业务副作用, 仅清空 buffer
-        }
-
-        // 处理 stdin (Sprint 31 D2): pfds[0] POLLIN → 读一行 (Sprint 30 getline)
-        if (pfds[0].revents & (POLLIN | POLLHUP)) {
-            if (!std::getline(std::cin, line)) {
-                // §3.4 NH2 fix: EOF must signal shutdown AND wake any blocked pop_next_input
+        // 阻塞读 (timeout 100ms) — 实际 poll 多 fd + EINTR 重试在 IInputSource 内
+        auto line_opt = input_->read_line(std::chrono::milliseconds(100));
+        if (!line_opt.has_value()) {
+            if (input_->at_eof() || stop_input_thread_.load(std::memory_order_acquire)) {
+                // §3.4 NH2 fix: EOF 必须 signal shutdown AND wake blocked pop_next_input
                 stop_input_thread_.store(true, std::memory_order_release);
                 input_cv_.notify_all();
                 break;
             }
-        } else {
-            // poll wake-up 但 stdin 不可读 (只有 wake-up byte)
-            // 检查 shutdown_check_pending_ 决定是否退出
-            if (shutdown_check_pending_.load(std::memory_order_acquire)) {
-                // Sprint 30: timer 周期性 fire 已 set flag
-                // 注意: 此处不直接 break, 让业务循环自然 continue 到下次迭代
-                // (避免 timer 周期 fire 立即退出, 假设业务还有 stdin 输入未处理)
-            }
-            continue;
+            continue;  // timeout / 仅 wake-up byte
         }
-
+        std::string line = std::move(*line_opt);
         if (line.empty()) continue;
 
         if (line.front() == '/') {
@@ -877,7 +824,9 @@ void ChatSession::Impl::input_thread_main() {
                 pending_input_count_.fetch_add(1, std::memory_order_release);
             } else {
                 // §3.3 overflow: do NOT increment count, do NOT notify (no spurious wakeup)
-                std::cerr << "[chat] steering queue overflow, rejected length=" << line.size() << std::endl;
+                logger_->log(agenticdsl::LogLevel::kWarn,
+                             "[chat] steering queue overflow, rejected length="
+                             + std::to_string(line.size()));
                 continue;
             }
         } else {
@@ -886,7 +835,9 @@ void ChatSession::Impl::input_thread_main() {
                 follow_up_queue_.push(line);
                 pending_input_count_.fetch_add(1, std::memory_order_release);
             } else {
-                std::cerr << "[chat] follow_up queue overflow, rejected length=" << line.size() << std::endl;
+                logger_->log(agenticdsl::LogLevel::kWarn,
+                             "[chat] follow_up queue overflow, rejected length="
+                             + std::to_string(line.size()));
                 continue;
             }
         }
@@ -895,4 +846,4 @@ void ChatSession::Impl::input_thread_main() {
     }
 }
 
-}  // namespace pdk_chat_demo
+}  // namespace hydraforge::pdk

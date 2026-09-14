@@ -8,6 +8,7 @@
 # 改为 STATIC 库: target_link_libraries 传递语义可靠, 与 agenticdsl_common 同模式。
 add_library(pdk_chat_session STATIC
     src/cancellation_registry.cpp
+    src/chat_session.cpp
 )
 
 target_include_directories(pdk_chat_session PUBLIC
