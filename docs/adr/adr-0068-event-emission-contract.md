@@ -2,7 +2,7 @@
 
 ## 状态
 
-✅ Approved (2026-08-03 — Wave 1 §1-§5 全部 ship + V2 EventBuilder 扩展覆盖 8 处 operation-result 事件. 7 个幻影主题全部真实发射, §5.11 grep 验收返回 0 行, EventBuilder 100% 覆盖生产代码 emit, `test_e2e_mock.cpp` 全面重写完成. 变更依据: `openspec/changes/archive/2026-08-03-adr-0068-event-emission-contract/` + `openspec/changes/archive/2026-08-03-promote-event-builder-fulltoolresult-support/`; **Appendix A v1.1 amendment (2026-08-13): 14 个 📡 主题注册完成, 状态更新为 ✅ registered**; **Appendix A v1.2 amendment (2026-08-26): 新增 5 个主题 (1 evaluation.result + 4 mutation.*) 用于 ADR-0083/ADR-0084 契约**; **Appendix A v1.2.1 修正 (2026-08-26, ADR-0084 V1 ship): mutation.* 4 行 payload schema 对齐 design D4 + `mutation.approved` 行修正为 `mutation.reverted` (design D6 终态事件集为 proposed/committed/reverted/denied, 无 approved)**; **Appendix A v1.2.2 amendment (2026-08-27, ADR-0061-03 T17 ship): 新增 3 个 `skill.compilation.{started,succeeded,failed}` 主题 (emit-only 模式, 不触发 MutationGovernor)**; **Appendix A v1.3 amendment (2026-08-27, T19 GEPA Phase 2 ship): 新增 6 个 `gepa.*` 主题 (GEPALoop 编排层, owner=GEPALoop cognitive 模块, 全部为 emit 审计 + 反思/提交生命周期)**; **Appendix A v1.4 amendment (2026-08-28, T21 Prompt Evidence Gate ship): 新增 3 个主题 — `llm.dsl.parse_failed` + `llm.dsl.schema_validation_failed` (owner=PromptEvidenceGate) + `prompt.token_limit_exceeded` (owner=PromptAssembler), 3 主题全部为 emit 审计)**; **Appendix A v1.5 amendment (2026-08-28, T20 AFlow MCTS ship): 新增 4 个 `mcts.*` 主题 (MCTSWorkflowSearch 搜索编排层, owner=MCTSWorkflowSearch cognitive 模块, 全部为 emit 审计 + 搜索生命周期)**; **Appendix A v1.6 amendment (2026-08-28, T21 payload redact ship): 3 主题 payload 字段 hash-only (per ADR-0080 D10 PII 约束, G11 mutation.* hash 范式 — `llm.dsl.parse_failed` + `llm.dsl.schema_validation_failed` + `prompt.token_limit_exceeded`)**); **Appendix A v1.7 amendment (2026-08-29, capture-mode-and-distillation-writer-v1 active): 新增 1 主题 `event_log.capture_mode_downgrade` (owner=event_log, 用于 Online→Training 静默降级审计事件, payload `original_mode` + `detected_mode` + `reason`, 详见 capture-mode-and-distillation-writer-v1 spec.md Requirement "capture_mode_downgrade 审计事件")**) 
+✅ Approved (2026-08-03 — Wave 1 §1-§5 全部 ship + V2 EventBuilder 扩展覆盖 8 处 operation-result 事件. 7 个幻影主题全部真实发射, §5.11 grep 验收返回 0 行, EventBuilder 100% 覆盖生产代码 emit, `test_e2e_mock.cpp` 全面重写完成. 变更依据: `openspec/changes/archive/2026-08-03-adr-0068-event-emission-contract/` + `openspec/changes/archive/2026-08-03-promote-event-builder-fulltoolresult-support/`; **Appendix A v1.1 amendment (2026-08-13): 14 个 📡 主题注册完成, 状态更新为 ✅ registered**; **Appendix A v1.2 amendment (2026-08-26): 新增 5 个主题 (1 evaluation.result + 4 mutation.*) 用于 ADR-0083/ADR-0084 契约**; **Appendix A v1.2.1 修正 (2026-08-26, ADR-0084 V1 ship): mutation.* 4 行 payload schema 对齐 design D4 + `mutation.approved` 行修正为 `mutation.reverted` (design D6 终态事件集为 proposed/committed/reverted/denied, 无 approved)**; **Appendix A v1.2.2 amendment (2026-08-27, ADR-0061-03 T17 ship): 新增 3 个 `skill.compilation.{started,succeeded,failed}` 主题 (emit-only 模式, 不触发 MutationGovernor)**; **Appendix A v1.3 amendment (2026-08-27, T19 GEPA Phase 2 ship): 新增 6 个 `gepa.*` 主题 (GEPALoop 编排层, owner=GEPALoop cognitive 模块, 全部为 emit 审计 + 反思/提交生命周期)**; **Appendix A v1.4 amendment (2026-08-28, T21 Prompt Evidence Gate ship): 新增 3 个主题 — `llm.dsl.parse_failed` + `llm.dsl.schema_validation_failed` (owner=PromptEvidenceGate) + `prompt.token_limit_exceeded` (owner=PromptAssembler), 3 主题全部为 emit 审计)**; **Appendix A v1.5 amendment (2026-08-28, T20 AFlow MCTS ship): 新增 4 个 `mcts.*` 主题 (MCTSWorkflowSearch 搜索编排层, owner=MCTSWorkflowSearch cognitive 模块, 全部为 emit 审计 + 搜索生命周期)**; **Appendix A v1.6 amendment (2026-08-28, T21 payload redact ship): 3 主题 payload 字段 hash-only (per ADR-0080 D10 PII 约束, G11 mutation.* hash 范式 — `llm.dsl.parse_failed` + `llm.dsl.schema_validation_failed` + `prompt.token_limit_exceeded`)**); **Appendix A v1.7 amendment (2026-08-29, capture-mode-and-distillation-writer-v1 active): 新增 1 主题 `event_log.capture_mode_downgrade` (owner=event_log, 用于 Online→Training 静默降级审计事件, payload `original_mode` + `detected_mode` + `reason`, 详见 capture-mode-and-distillation-writer-v1 spec.md Requirement "capture_mode_downgrade 审计事件")**; **Appendix A v2.1 amendment (2026-09-14, chat-session-pdk-lift Change 2): 新增 6 个主题 — `chat.turn.{start,end}` + `chat.{steering,followup}.enqueued` + `session.{resumed,disconnected}` (owner=ChatSession, PDK `hydraforge::pdk`)。其中 `chat.turn.*` + `session.*` 为 slow-path (`meta.persist=true`), `chat.*.enqueued` 为 fast-path (仅 bus 内存分发, 见 §A5.6 分级)**) 
 
 ## 领域
 
@@ -77,7 +77,7 @@ demo 渲染管线为永不发射的事件接线；测试伪造生产行为——
 - **Payload schema**：字段表，沿用 ADR-0023 ToolResult P2-P4（`error_code` enum / `trace_id` / `meta`）；
 - **兼容政策**：additive-only（见 §决策 5）。
 
-首批收录：12 个已订阅主题 + 10 个已发射主题 + 7 个幻影主题（v1 初始去重后 22 个；截至 Appendix A v2.0 共 N 个，可用 `grep -c "^| \`" docs/adr/adr-0068-event-emission-contract.md` 复现）。Registry 的维护方式：作为本 ADR 附录 A 的表格，**新增/修改主题必须 PR 修订本附录**（轻量仪式，Phase 6 plan+commit 模式下为 commit 内同步更新）。
+首批收录：12 个已订阅主题 + 10 个已发射主题 + 7 个幻影主题（v1 初始去重后 22 个；截至 Appendix A v2.1 共 N 个，可用 `grep -c "^| \`" docs/adr/adr-0068-event-emission-contract.md` 复现）。Registry 的维护方式：作为本 ADR 附录 A 的表格，**新增/修改主题必须 PR 修订本附录**（轻量仪式，Phase 6 plan+commit 模式下为 commit 内同步更新）。
 
 ### 3. 幻影主题强制发射点指定
 
@@ -171,7 +171,7 @@ Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = 
 
 ---
 
-## 附录 A：Canonical Topic Registry (v2.0, 2026-08-31)
+## 附录 A：Canonical Topic Registry (v2.1, 2026-09-14)
 
 > 维护规则：新增/修改主题必须同步修订本表。状态列：✅ 已注册 / 👻 幻影 (零生产 emit) / 📡 已发射但无注册订阅方 (本 amendment 后已全部注册)。
 
@@ -243,3 +243,9 @@ Wave 1 ship 阶段因 `EventBuilder` API 限制 (`build()` 强制 `payload.ok = 
 | `axis6.commit.committed` | MCTSWorkflowSearch (cognitive) | chain 通过 governance approve (单主体归因) | `mutation_id`, `chain_size` | ✅ (T2, 2026-08-31, Appendix A v2.0) |
 | `axis6.commit.reverted` | MCTSWorkflowSearch (cognitive) | chain governance deny (governance 层 emit mutation.denied) | `mutation_id`, `reason` | ✅ (T2, 2026-08-31, Appendix A v2.0) |
 | `axis6.degraded` | MCTSWorkflowSearch (cognitive) | chain 空/None 或 max_chain_depth 超限 | `reason` (`empty_chain_or_all_none` / `chain_depth_exceeded`), `chain_size`, `requested_depth`, `max_depth` | ✅ (T2, 2026-08-31, Appendix A v2.0) |
+| `chat.turn.start` | ChatSession (pdk/chat_session) | `chat()` 入口 (每轮开始) | `session_id`, `turn_count` | ✅ (chat-session-pdk-lift C2, 2026-09-14, Appendix A v2.1) |
+| `chat.turn.end` | ChatSession (pdk/chat_session) | `chat()` 出口 (成功/失败均发射) | `session_id`, `turn_count`, `ok` | ✅ (chat-session-pdk-lift C2, 2026-09-14, Appendix A v2.1) |
+| `chat.steering.enqueued` | ChatSession (pdk/chat_session) | steering queue 入队 (input thread, `'/'` 前缀) | `session_id`, `line_preview` | ✅ (chat-session-pdk-lift C2, 2026-09-14, Appendix A v2.1) |
+| `chat.followup.enqueued` | ChatSession (pdk/chat_session) | follow-up queue 入队 (input thread) | `session_id`, `line_preview` | ✅ (chat-session-pdk-lift C2, 2026-09-14, Appendix A v2.1) |
+| `session.resumed` | ChatSession (pdk/chat_session) | ResumeToken 加载成功 (构造期) | `session_id`, `leaf_node_id`, `messages_count` | ✅ (chat-session-pdk-lift C2, 2026-09-14, Appendix A v2.1) |
+| `session.disconnected` | ChatSession (pdk/chat_session) | `request_stop()` 成功传播到 in-flight source | `session_id`, `reason` | ✅ (chat-session-pdk-lift C2, 2026-09-14, Appendix A v2.1) |

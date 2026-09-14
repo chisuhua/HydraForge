@@ -447,6 +447,29 @@ int main(int argc, char* argv[]) {
     //                 撤销 c30b2b3 的 isatty 守卫 — race 已通过 single-reader 消除
     // §4.0.3: 设 g_cancellation_registry (shared with loop_agent)
     // ============================================================
+    auto session_manager = std::make_unique<agenticdsl::SessionManager>(
+        fs::path(config.session.persist_dir));
+    // --session <id> 优先，否则使用 "default" session
+    const std::string resolved_session_id =
+        session_id_to_load.empty() ? std::string("default") : session_id_to_load;
+    if (!session_id_to_load.empty() &&
+        (session_id_to_load.find('/') != std::string::npos ||
+         session_id_to_load.find('\\') != std::string::npos ||
+         session_id_to_load == "." || session_id_to_load == "..")) {
+        std::cerr << "[main] Error: --session '" << session_id_to_load
+                  << "' is not a valid session id" << std::endl;
+        std::cerr << "Use --help for usage." << std::endl;
+        return 1;
+    }
+    try {
+        session_manager->open(resolved_session_id);
+    } catch (const std::exception& e) {
+        std::cerr << "[main] Failed to open session '" << resolved_session_id
+                  << "': " << e.what() << std::endl;
+        return 1;
+    }
+    pdk_chat_demo::g_session_manager = session_manager.get();
+
     config.session.enable_input_thread = true;
     pdk_chat_demo::g_cancellation_registry = std::make_shared<pdk_chat_demo::CancellationRegistry>();
     // T1.9: 启动时清理 >24h 的 stale session 文件
@@ -458,7 +481,8 @@ int main(int argc, char* argv[]) {
         pdk_chat_demo::g_cancellation_registry,  // §4.0.3 shared registry
         nullptr,                                  // timer: D9 lazy (main loop 不自注册 periodic)
         std::make_unique<agenticdsl::StdinInputSource>(),
-        std::make_unique<agenticdsl::StderrLogger>()
+        std::make_unique<agenticdsl::StderrLogger>(),
+        session_manager.get()  // Change 2: JSONL 持久化/恢复 (观察者, 不持有)
     );
 
     // T1.4: --session <id> 从磁盘恢复
@@ -500,29 +524,6 @@ int main(int argc, char* argv[]) {
     pdk_chat_demo::g_command_coordinator = coord_ptr;
     pdk_chat_demo::g_command_session = &session;
     pdk_chat_demo::g_command_registry = &command_registry;
-
-    auto session_manager = std::make_unique<agenticdsl::SessionManager>(
-        fs::path(config.session.persist_dir));
-    // --session <id> 优先，否则使用 "default" session
-    const std::string resolved_session_id =
-        session_id_to_load.empty() ? std::string("default") : session_id_to_load;
-    if (!session_id_to_load.empty() &&
-        (session_id_to_load.find('/') != std::string::npos ||
-         session_id_to_load.find('\\') != std::string::npos ||
-         session_id_to_load == "." || session_id_to_load == "..")) {
-        std::cerr << "[main] Error: --session '" << session_id_to_load
-                  << "' is not a valid session id" << std::endl;
-        std::cerr << "Use --help for usage." << std::endl;
-        return 1;
-    }
-    try {
-        session_manager->open(resolved_session_id);
-    } catch (const std::exception& e) {
-        std::cerr << "[main] Failed to open session '" << resolved_session_id
-                  << "': " << e.what() << std::endl;
-        return 1;
-    }
-    pdk_chat_demo::g_session_manager = session_manager.get();
 
     pdk_chat_demo::register_provider_switch_stub_tool(engine->get_tool_registry());
     pdk_chat_demo::register_session_fork_tool(engine->get_tool_registry());

@@ -32,9 +32,11 @@
 #include <agenticdsl/contract/iinput_source.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <agenticdsl/contract/itool_registry.h>
+#include <agenticdsl/contract/resume_token.h>
 #include <agenticdsl/contract/timer_service.h>
 #include <agenticdsl/pdk/cancellation_registry.h>
 #include <core/engine.h>
+#include <core/session_manager.h>
 
 namespace hydraforge::pdk {
 
@@ -143,7 +145,12 @@ public:
         // nullptr → Impl 内部 fallback 到 StdinInputSource / StderrLogger,
         // 保持 lift 前行为 (Pattern 5 fail-safe: 显式注入才启用测试替身)。
         std::unique_ptr<agenticdsl::IInputSource> input = nullptr,
-        std::unique_ptr<agenticdsl::ILogger> logger = nullptr
+        std::unique_ptr<agenticdsl::ILogger> logger = nullptr,
+        // Change 2 (§4, Task 0): 观察者指针, nullptr = 不做 JSONL 持久化/恢复。
+        // 生命周期由调用方保证 (ChatSession 不持有)。
+        agenticdsl::SessionManager* session_manager = nullptr,
+        // Change 2 (§6.3): 断线恢复上下文。nullopt = 全新会话。
+        std::optional<agenticdsl::ResumeToken> resume = std::nullopt
     );
 
     ~ChatSession();
