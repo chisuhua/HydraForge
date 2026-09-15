@@ -66,6 +66,8 @@ class InMemoryInputSource : public IInputSource {
 
   bool at_eof() const override { return at_eof_.load(std::memory_order_acquire); }
 
+  void wake() override { cv_.notify_all(); }
+
   void close() override {
     {
       std::lock_guard<std::mutex> lock(mtx_);

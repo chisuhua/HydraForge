@@ -47,15 +47,17 @@ StdinInputSource::~StdinInputSource() {
   }
 }
 
-void StdinInputSource::close() {
-  shutdown_requested_.store(true, std::memory_order_release);
-  // self-pipe trick: 写 1 byte wake-up byte 让阻塞的 poll 立即返回
-  // (EAGAIN 容忍: 1 byte/周期 vs 64KB pipe buffer, 不会满)
+void StdinInputSource::wake() {
   if (pipe_write_fd_ >= 0) {
     char byte = 'x';
     ssize_t r = ::write(pipe_write_fd_, &byte, 1);
-    (void)r;  // EAGAIN acceptable
+    (void)r;
   }
+}
+
+void StdinInputSource::close() {
+  shutdown_requested_.store(true, std::memory_order_release);
+  wake();
 }
 
 bool StdinInputSource::has_input() const {

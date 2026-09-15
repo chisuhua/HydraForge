@@ -26,6 +26,7 @@ class StdinInputSource : public IInputSource {
       std::chrono::milliseconds timeout) override;
   bool has_input() const override;
   bool at_eof() const override;
+  void wake() override;
   void close() override;
 
  private:

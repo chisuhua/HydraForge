@@ -7,6 +7,8 @@ build/
 /compile_commands.json
 # ThreadSanitizer build directory (rebuild with: cmake -B build_tsan -DAGENTICDSL_ENABLE_TSAN=ON)
 build_tsan/
+# Alternate TSan build directory (per-machine ephemeral; same purpose as build_tsan/)
+build-tsan/
 # ctest temporary files (cost data, last test log, etc.)
 Testing/Temporary/
 
