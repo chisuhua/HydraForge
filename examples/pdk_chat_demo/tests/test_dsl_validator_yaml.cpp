@@ -15,7 +15,7 @@
 #include <unordered_set>
 #include <vector>
 
-using namespace pdk_chat_demo;
+using namespace pdk_chat_demo;   // DslValidator is examples-app-specific (not PDK)
 
 namespace {
 

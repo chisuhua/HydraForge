@@ -4,7 +4,7 @@
 
 #include "catch_amalgamated.hpp"
 
-#include "chat_session.h"
+#include <agenticdsl/pdk/chat_session.h>
 
 #include <atomic>
 #include <chrono>
@@ -27,7 +27,7 @@
 #include <modules/budget/budget_controller.h>
 #include <common/llm/mock_provider.h>
 
-using namespace pdk_chat_demo;
+using namespace hydraforge::pdk;
 
 namespace {
 

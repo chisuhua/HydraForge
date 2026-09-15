@@ -5,7 +5,7 @@
 // CATCH_CONFIG_MAIN 由 main_test_runner.cpp 提供 (链接到所有 test executables)
 #include "catch_amalgamated.hpp"
 
-#include "chat_session.h"
+#include <agenticdsl/pdk/chat_session.h>
 #include "event_handler.h"
 #include "agenticdsl/contract/event_builder.h"
 
@@ -27,7 +27,13 @@
 #include <agenticdsl/plugin/plugin_loader.h>
 #include <agenticdsl/contract/itool_registry.h>
 
+// pdk-chat-session-shim-cleanup: this file uses BOTH namespaces:
+//  - pdk_chat_demo::EventHandler (examples-app-specific)
+//  - hydraforge::pdk::{ChatSession, AgentConfig, SessionConfig, ...} (lifted to PDK)
+// The proposal's blanket sed replaced `using namespace pdk_chat_demo;` with
+// `hydraforge::pdk`, but that breaks EventHandler lookup. We use both here.
 using namespace pdk_chat_demo;
+using namespace hydraforge::pdk;
 namespace fs = std::filesystem;
 
 // 从 test_loop_agent_plugin.cpp 复用: 定位 LoopAgent .so 并设置 plugin path

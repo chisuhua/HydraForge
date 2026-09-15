@@ -23,10 +23,11 @@
 #include <agenticdsl/types/layered_context.h>
 #include <core/engine.h>
 
-// §4.0.4 chat-async-io-consumer-loop: use SHARED CancellationRegistry from pdk_chat_demo
+// §4.0.4 chat-async-io-consumer-loop: use SHARED CancellationRegistry from hydraforge::pdk
 // (was: file-static g_loop_registry; now: g_cancellation_registry global, same identity as ChatSession)
-#include "cancellation_registry.h"
-#include "commands/cancellation_globals.h"
+// pdk-chat-session-shim-cleanup: cancellation_globals now lives in PDK
+#include <agenticdsl/pdk/cancellation_registry.h>
+#include <agenticdsl/pdk/cancellation_globals.h>
 
 namespace fs = std::filesystem;
 
@@ -106,7 +107,7 @@ std::string load_agent_file(const std::string& loop_type) {
 static thread_local ::agenticdsl::ILLMProvider* tls_parent_provider = nullptr;
 
 // §4.0.4 chat-async-io-consumer-loop: REMOVED file-static g_loop_registry
-// Now uses pdk_chat_demo::g_cancellation_registry (same identity as ChatSession)
+// Now uses hydraforge::pdk::g_cancellation_registry (same identity as ChatSession)
 
 // --- pdk_plugin_info ---
 extern "C" const hydraforge::PluginInfo pdk_plugin_info = {
@@ -204,9 +205,9 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
             // Null-guard: nullptr global → non-cancellable-but-executable (no error, no crash)
             std::string cancellation_id = str_arg(args, "cancellation_id");
             std::stop_token cancellation_token;
-            if (!cancellation_id.empty() && pdk_chat_demo::g_cancellation_registry) {
+            if (!cancellation_id.empty() && hydraforge::pdk::g_cancellation_registry) {
                 cancellation_token =
-                    pdk_chat_demo::g_cancellation_registry->resolve_token(cancellation_id);
+                    hydraforge::pdk::g_cancellation_registry->resolve_token(cancellation_id);
             }
 
             // Mock fallback when parent provider not set (Q3/Q7)

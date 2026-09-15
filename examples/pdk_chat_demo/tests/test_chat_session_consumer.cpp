@@ -3,7 +3,7 @@
 // 关联: openspec/changes/chat-async-io-consumer-loop
 
 #include "catch_amalgamated.hpp"
-#include "chat_session.h"
+#include <agenticdsl/pdk/chat_session.h>
 
 #include <atomic>
 #include <chrono>
@@ -11,7 +11,7 @@
 #include <iostream>
 #include <thread>
 
-using namespace pdk_chat_demo;
+using namespace hydraforge::pdk;
 using namespace std::chrono_literals;
 
 namespace {

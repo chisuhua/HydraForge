@@ -6,9 +6,9 @@
 
 #include "catch_amalgamated.hpp"
 
-#include "chat_session.h"
+#include <agenticdsl/pdk/chat_session.h>
 
-using namespace pdk_chat_demo;
+using namespace hydraforge::pdk;
 
 TEST_CASE("ChatConfig::from_json parses valid config", "[chat_session]") {
     // Config path relative to build directory (where ctest runs)

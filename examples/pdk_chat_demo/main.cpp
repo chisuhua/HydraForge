@@ -13,7 +13,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "chat_session.h"
+#include <agenticdsl/pdk/chat_session.h>
 #include "cli_args_parser.h"
 #include "dsl_validator.h"
 #include "event_handler.h"
@@ -53,7 +53,7 @@
 #include "commands/fork_command.h"
 #include "commands/clone_command.h"
 #include "commands/cancel_command.h"
-#include "commands/cancellation_globals.h"
+#include <agenticdsl/pdk/cancellation_globals.h>
 #include "tools/provider_switch_stub.h"
 #include "tools/session_fork.h"
 #include "tools/session_clone.h"
@@ -160,9 +160,9 @@ int main(int argc, char* argv[]) {
     // ============================================================
     // 1. 解析配置
     // ============================================================
-    pdk_chat_demo::ChatConfig config;
+    hydraforge::pdk::ChatConfig config;
     try {
-        config = pdk_chat_demo::ChatConfig::from_json("config.json");
+        config = hydraforge::pdk::ChatConfig::from_json("config.json");
         if (!cli_options.provider.empty()) config.agent.provider = cli_options.provider;
         config.validate();
         if (mock_mode) {
@@ -471,14 +471,14 @@ int main(int argc, char* argv[]) {
     pdk_chat_demo::g_session_manager = session_manager.get();
 
     config.session.enable_input_thread = true;
-    pdk_chat_demo::g_cancellation_registry = std::make_shared<pdk_chat_demo::CancellationRegistry>();
+    hydraforge::pdk::g_cancellation_registry = std::make_shared<hydraforge::pdk::CancellationRegistry>();
     // T1.9: 启动时清理 >24h 的 stale session 文件
-    pdk_chat_demo::ChatSession::cleanup_stale(config.session.persist_dir);
+    hydraforge::pdk::ChatSession::cleanup_stale(config.session.persist_dir);
 
-    pdk_chat_demo::ChatSession session(
+    hydraforge::pdk::ChatSession session(
         engine.get(), bus, &engine->get_tool_registry(),
         config.agent, config.session,
-        pdk_chat_demo::g_cancellation_registry,  // §4.0.3 shared registry
+        hydraforge::pdk::g_cancellation_registry,  // §4.0.3 shared registry
         nullptr,                                  // timer: D9 lazy (main loop 不自注册 periodic)
         std::make_unique<agenticdsl::StdinInputSource>(),
         std::make_unique<agenticdsl::StderrLogger>(),
@@ -576,7 +576,7 @@ int main(int argc, char* argv[]) {
         const std::string& input = msg->text;
 
         // §7.5.1: Steering → command path (e.g. /cancel, /help, /model)
-        if (msg->kind == pdk_chat_demo::QueueKind::Steering) {
+        if (msg->kind == hydraforge::pdk::QueueKind::Steering) {
             if (input == pdk_chat_demo::kExitCommand ||
                 input.rfind(std::string(pdk_chat_demo::kExitCommand) + " ", 0) == 0) {
                 break;
@@ -643,7 +643,7 @@ int main(int argc, char* argv[]) {
     // 跳出局部 scope 以销毁 ChatSession 和 DSLEngine
     //（它们的析构函数会清理 ToolRegistry 中的 plugin 引用）
     {
-        pdk_chat_demo::ChatSession discard(nullptr, nullptr, nullptr, {}, {});
+        hydraforge::pdk::ChatSession discard(nullptr, nullptr, nullptr, {}, {});
         guard.reset_engine();
     }
     unload_all_plugins(loader);

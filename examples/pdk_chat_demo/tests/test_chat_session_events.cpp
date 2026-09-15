@@ -5,7 +5,7 @@
 
 #include "catch_amalgamated.hpp"
 
-#include "chat_session.h"
+#include <agenticdsl/pdk/chat_session.h>
 
 #include <agenticdsl/contract/bus_event.h>
 #include <agenticdsl/contract/event_builder.h>
@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-using namespace pdk_chat_demo;
+using namespace hydraforge::pdk;
 
 namespace {
 

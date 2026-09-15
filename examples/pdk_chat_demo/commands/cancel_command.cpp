@@ -1,7 +1,7 @@
 #include "commands/cancel_command.h"
 
 #include "commands/command_globals.h"
-#include "chat_session.h"
+#include <agenticdsl/pdk/chat_session.h>
 
 namespace pdk_chat_demo {
 

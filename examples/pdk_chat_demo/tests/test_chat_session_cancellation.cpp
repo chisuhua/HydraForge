@@ -11,11 +11,11 @@
 #include <catch_amalgamated.hpp>
 #include <nlohmann/json.hpp>
 
-#include "cancellation_registry.h"
+#include <agenticdsl/pdk/cancellation_registry.h>
 #include "common/llm/llm_types.h"
 #include "mock_blocking_provider.h"
 
-using namespace pdk_chat_demo;
+using namespace hydraforge::pdk;
 using namespace pdk_chat_demo::testing;
 using agenticdsl::GenerationRequest;
 using agenticdsl::ILLMProvider;

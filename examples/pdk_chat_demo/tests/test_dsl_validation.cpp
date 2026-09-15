@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-using namespace pdk_chat_demo;
+using namespace pdk_chat_demo;   // DslValidator is examples-app-specific (not PDK)
 
 namespace {
 

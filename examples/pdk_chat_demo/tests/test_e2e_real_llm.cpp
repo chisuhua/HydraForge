@@ -4,7 +4,7 @@
 
 #include "catch_amalgamated.hpp"
 
-#include "chat_session.h"
+#include <agenticdsl/pdk/chat_session.h>
 #include "event_handler.h"
 #include "test_helpers/real_llm_env.h"
 
@@ -31,7 +31,7 @@
 #include <common/llm/llm_types.h>
 #include <agenticdsl/types/layered_context.h>
 
-using namespace pdk_chat_demo;
+using namespace hydraforge::pdk;
 namespace fs = std::filesystem;
 
 static std::string find_loop_agent_so() {

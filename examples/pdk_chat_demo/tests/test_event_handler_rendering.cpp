@@ -9,7 +9,7 @@
 #include <iostream>
 #include <sstream>
 
-using namespace pdk_chat_demo;
+using namespace pdk_chat_demo;   // EventHandler is examples-app-specific (not PDK)
 using namespace agenticdsl;
 
 namespace {

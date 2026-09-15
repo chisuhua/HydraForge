@@ -3,10 +3,10 @@
 // 关联: openspec/changes/chat-async-io-queue-infra
 
 #include "catch_amalgamated.hpp"
-#include "chat_session.h"
+#include <agenticdsl/pdk/chat_session.h>
 #include <iostream>
 
-using namespace pdk_chat_demo;
+using namespace hydraforge::pdk;
 
 TEST_CASE("queue_size reflects enqueue count", "[chat_session][queue]") {
   ChatSession session(nullptr, nullptr, nullptr, {}, {});

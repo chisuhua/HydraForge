@@ -7,9 +7,9 @@
 #include <catch_amalgamated.hpp>
 #include <nlohmann/json.hpp>
 
-#include "chat_session.h"
+#include <agenticdsl/pdk/chat_session.h>
 
-using namespace pdk_chat_demo;
+using namespace hydraforge::pdk;
 
 namespace {
 

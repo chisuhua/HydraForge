@@ -3,10 +3,10 @@
 
 #include "catch_amalgamated.hpp"
 
-#include "cancellation_registry.h"
+#include <agenticdsl/pdk/cancellation_registry.h>
 
 TEST_CASE("CancellationRegistry register/resolve round-trip", "[cancel_registry]") {
-  CancellationRegistry reg;
+  hydraforge::pdk::CancellationRegistry reg;
   auto source = std::make_shared<std::stop_source>();
   std::string id = reg.register_source(source);
   REQUIRE(source != nullptr);
@@ -21,13 +21,13 @@ TEST_CASE("CancellationRegistry register/resolve round-trip", "[cancel_registry]
 }
 
 TEST_CASE("CancellationRegistry resolve unknown id returns empty", "[cancel_registry]") {
-  CancellationRegistry reg;
+  hydraforge::pdk::CancellationRegistry reg;
   auto token = reg.resolve_token("nonexistent");
   REQUIRE_FALSE(token.stop_possible());
 }
 
 TEST_CASE("CancellationRegistry unregister removes entry", "[cancel_registry]") {
-  CancellationRegistry reg;
+  hydraforge::pdk::CancellationRegistry reg;
   auto source = std::make_shared<std::stop_source>();
   std::string id = reg.register_source(source);
   reg.unregister(id);
@@ -35,7 +35,7 @@ TEST_CASE("CancellationRegistry unregister removes entry", "[cancel_registry]") 
 }
 
 TEST_CASE("CancellationRegistry resolve_source returns shared_ptr", "[cancel_registry]") {
-  CancellationRegistry reg;
+  hydraforge::pdk::CancellationRegistry reg;
   auto source = std::make_shared<std::stop_source>();
   std::string id = reg.register_source(source);
 

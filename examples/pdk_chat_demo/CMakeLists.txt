@@ -9,7 +9,6 @@ set(SOURCES
     dsl_validator.cpp
     cli_args_parser.cpp
     commands/command_globals.cpp
-    commands/cancellation_globals.cpp
     commands/help_command.cpp
     commands/compact_command.cpp
     commands/model_command.cpp
@@ -24,13 +23,11 @@ set(SOURCES
 )
 
 set(HEADERS
-    chat_session.h
     event_handler.h
     dsl_validator.h
     cli_options.h
     cli_args_parser.h
     commands/command_globals.h
-    commands/cancellation_globals.h
     commands/help_command.h
     commands/compact_command.h
     commands/model_command.h

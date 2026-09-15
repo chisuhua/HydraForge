@@ -12,11 +12,11 @@
 #include <catch_amalgamated.hpp>
 #include <iostream>
 
-#include "cancellation_registry.h"
-#include "chat_session.h"
-#include "commands/cancellation_globals.h"
+#include <agenticdsl/pdk/cancellation_registry.h>
+#include <agenticdsl/pdk/chat_session.h>
+#include <agenticdsl/pdk/cancellation_globals.h>
 
-using namespace pdk_chat_demo;
+using namespace hydraforge::pdk;
 
 namespace {
 struct CinEofGuard {
@@ -28,8 +28,8 @@ struct CinEofGuard {
 TEST_CASE("Default-constructed ChatSession works without g_cancellation_registry",
           "[pdk_chat_demo][null_registry][4.0.13]") {
     CinEofGuard eof;
-    auto saved = pdk_chat_demo::g_cancellation_registry;
-    pdk_chat_demo::g_cancellation_registry = nullptr;
+    auto saved = hydraforge::pdk::g_cancellation_registry;
+    hydraforge::pdk::g_cancellation_registry = nullptr;
 
     // §4.0.9 NC3 fix: ChatSession ctor accepts nullptr registry and self-fallbacks
     ChatSession session(nullptr, nullptr, nullptr, {}, {}, nullptr);
@@ -37,17 +37,17 @@ TEST_CASE("Default-constructed ChatSession works without g_cancellation_registry
     session.request_stop();
     SUCCEED("default ChatSession + null g_cancellation_registry does not crash");
 
-    pdk_chat_demo::g_cancellation_registry = saved;
+    hydraforge::pdk::g_cancellation_registry = saved;
 }
 
 TEST_CASE("Non-cancellable-but-executable: stop_token {} flows through loop_agent",
           "[pdk_chat_demo][null_registry][4.0.13]") {
     CinEofGuard eof;
-    auto saved = pdk_chat_demo::g_cancellation_registry;
-    pdk_chat_demo::g_cancellation_registry = nullptr;
+    auto saved = hydraforge::pdk::g_cancellation_registry;
+    hydraforge::pdk::g_cancellation_registry = nullptr;
 
     // Simulate the pdk_entry.cpp null-guard path:
-    //   if (!cancellation_id.empty() && pdk_chat_demo::g_cancellation_registry) {
+    //   if (!cancellation_id.empty() && hydraforge::pdk::g_cancellation_registry) {
     //       cancellation_token = g_cancellation_registry->resolve_token(id);
     //   }
     //   // else: cancellation_token stays default-empty → non-cancellable
@@ -56,25 +56,25 @@ TEST_CASE("Non-cancellable-but-executable: stop_token {} flows through loop_agen
     std::stop_token cancellation_token;  // default empty token
 
     // The null-guard path: skip resolve when global is nullptr
-    if (pdk_chat_demo::g_cancellation_registry) {
+    if (hydraforge::pdk::g_cancellation_registry) {
         cancellation_token =
-            pdk_chat_demo::g_cancellation_registry->resolve_token(cancellation_id);
+            hydraforge::pdk::g_cancellation_registry->resolve_token(cancellation_id);
     }
 
     // Default empty token — never cancellable, no error, no crash
     CHECK_FALSE(cancellation_token.stop_possible());
     CHECK_FALSE(cancellation_token.stop_requested());
 
-    pdk_chat_demo::g_cancellation_registry = saved;
+    hydraforge::pdk::g_cancellation_registry = saved;
 }
 
 TEST_CASE("Restoring shared registry enables cancellation after null phase",
           "[pdk_chat_demo][null_registry][4.0.13]") {
     CinEofGuard eof;
-    auto saved = pdk_chat_demo::g_cancellation_registry;
+    auto saved = hydraforge::pdk::g_cancellation_registry;
 
     // Phase 1: null global — request_stop is a no-op
-    pdk_chat_demo::g_cancellation_registry = nullptr;
+    hydraforge::pdk::g_cancellation_registry = nullptr;
     {
         ChatSession session(nullptr, nullptr, nullptr, {}, {}, nullptr);
         session.request_stop();
@@ -82,7 +82,7 @@ TEST_CASE("Restoring shared registry enables cancellation after null phase",
 
     // Phase 2: restore shared registry — cancellation flow works again
     auto shared = std::make_shared<CancellationRegistry>();
-    pdk_chat_demo::g_cancellation_registry = shared;
+    hydraforge::pdk::g_cancellation_registry = shared;
     {
         ChatSession session(nullptr, nullptr, nullptr, {}, {}, shared);
         // Register an external cancellation source for this session
@@ -95,5 +95,5 @@ TEST_CASE("Restoring shared registry enables cancellation after null phase",
         CHECK(token.stop_requested());
     }
 
-    pdk_chat_demo::g_cancellation_registry = saved;
+    hydraforge::pdk::g_cancellation_registry = saved;
 }

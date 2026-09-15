@@ -4,7 +4,7 @@
 
 #include "catch_amalgamated.hpp"
 
-#include "chat_session.h"
+#include <agenticdsl/pdk/chat_session.h>
 
 #include <chrono>
 #include <cstdio>
@@ -24,7 +24,7 @@
 #include <core/types/tool_result.h>
 #include "test_helpers/mock_bus.h"
 
-using namespace pdk_chat_demo;
+using namespace hydraforge::pdk;
 
 namespace {
 
