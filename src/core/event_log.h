@@ -89,6 +89,11 @@ class EventLogWriter {
 
   std::ofstream file_;
   std::mutex buffer_mutex_;
+  // file_mutex_ 序列化 flush_loop 与 flush_sync 对 file_ 的写入 (std::ofstream 非线程安全)。
+  // flush_sync 返回前必持有 file_mutex_，确保 flush_loop 当前批次的写已完成。
+  // 锁顺序: buffer_mutex_ 先 (取 snapshot) → file_mutex_ 后 (写 file_)。
+  // 参考 fix-session-writer-file_mutex (commit 1456752) 同模式。
+  std::mutex file_mutex_;
   std::queue<BusEvent> buffer_;
   std::condition_variable buffer_cv_;
   std::atomic<bool> running_{true};

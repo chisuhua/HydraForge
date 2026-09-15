@@ -110,7 +110,20 @@ void EventLogWriter::stop() {
   if (flush_thread_.joinable()) {
     flush_thread_.join();
   }
+  // fix-tsan-residual-2026-09-15: drain bus 排队 callback — InMemoryBus 的
+  // dispatch_thread_ 在外部 bus 仍 alive 时会继续派发 on_bus_event → buffer_cv_
+  // notify_one. 若 bus 未排空, ~buffer_cv_() (此函数返回后成员析构) 与 dispatch
+  // thread 的 notify_one race → TSan pthread_cond_destroy vs pthread_cond_signal。
+  // 锁顺序: flush_loop join → bus drain → flush_sync → file_lock
+  if (bus_) {
+    bus_->wait_for_drain();
+  }
   flush_sync();
+  // file_.flush() + close() 仍需 file_mutex_ — 否则其他线程并发 flush_sync()
+  // (持 file_lock 写 file_) 与本 stop() (无锁 close()) 产生 race。join 只保证
+  // flush_loop 退出, 不保证 flush_sync() 退出。锁顺序: flush_sync 持 file_lock
+  // 期间, 本 stop() 在 file_.flush() 前等同一锁。
+  std::lock_guard<std::mutex> file_lock(file_mutex_);
   if (file_.is_open()) {
     file_.flush();
     file_.close();
@@ -127,6 +140,10 @@ void EventLogWriter::flush_sync() {
       buffer_.pop();
     }
   }
+  // 必须在 snapshot.empty() 检查之前获取 file_mutex_，否则 flush_loop 已抢走本次
+  // 批次 buffer 时, flush_sync 立即返回但 flush_loop 写 file_ 未完成 → race。
+  // 锁顺序: buffer_mutex_ 先 (取 snapshot) → file_mutex_ 后 (写 file_).
+  std::lock_guard<std::mutex> file_lock(file_mutex_);
   if (!file_.is_open() || snapshot.empty()) return;
   for (const auto& e : snapshot) {
     auto line = serialize(e);
@@ -158,7 +175,7 @@ void EventLogWriter::flush_loop() {
     {
       std::unique_lock<std::mutex> lock(buffer_mutex_);
       buffer_cv_.wait_for(lock, config_.flush_interval,
-                           [this] { return !buffer_.empty() || !running_.load(); });
+                          [this] { return !buffer_.empty() || !running_.load(); });
       snapshot.reserve(buffer_.size());
       while (!buffer_.empty()) {
         snapshot.push_back(std::move(buffer_.front()));
@@ -166,6 +183,7 @@ void EventLogWriter::flush_loop() {
       }
     }
     if (!file_.is_open() || snapshot.empty()) continue;
+    std::lock_guard<std::mutex> file_lock(file_mutex_);
     for (const auto& e : snapshot) {
       auto line = serialize(e);
       file_ << line << "\n";

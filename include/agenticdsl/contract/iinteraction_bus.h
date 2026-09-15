@@ -57,6 +57,17 @@ class IInteractionBus {
    * @param token subscribe() 返回的 token
    */
   virtual void unsubscribe(size_t token) = 0;
+
+  /**
+   * @brief 阻塞直到 queue 排空且所有 in-flight callback 完成
+   *
+   * 用途 (fix-tsan-residual-2026-09-15): consumer 析构前确保 bus 不再派发
+   * callback 到已订阅的 handler — 否则 handler 访问已销毁成员 (cv/cv.notify
+   * vs ~cv race → TSan pthread_cond_destroy vs pthread_cond_signal)。
+   *
+   * 默认实现 no-op (sync bus 无 in-flight)。异步 bus (InMemoryBus) override。
+   */
+  virtual void wait_for_drain() {}
 };
 
 } // namespace agenticdsl
