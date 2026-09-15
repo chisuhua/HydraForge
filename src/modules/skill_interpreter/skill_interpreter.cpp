@@ -179,6 +179,29 @@ class SkillInterpreter::Impl {
     // (见上方注释, Sprint 30+ 改进方向)
   }
 
+  // skill-interpreter-ipc-realllm E.1: test-only 公共入口, 直接调 dispatch_llm_generate.
+  // LLMTestResult 是 namespace agenticdsl 类型 (在 skill_interpreter.h 定义), 不暴露
+  // IPCResponse (Impl 嵌套类型, 保留为实现细节). 构造 IPCRequest 内部填 params.prompt,
+  // model 不填 (Wave 1 #1 fix 在 dispatch_llm_generate 内 req.params.model.clear(),
+  // 让 adapter fallback factory 设置的真实 model). 走完整 D1 worker + cv.wait_for + kill
+  // 路径, 行为等价于 IPC dispatch.
+  LLMTestResult call_llm_generate_for_test(const std::string& prompt,
+                                          const SkillCapability& cap,
+                                          std::stop_token token) {
+    IPCRequest req;
+    req.method = "llm_generate";
+    req.params = {{"prompt", prompt}};
+    auto resp = dispatch_llm_generate(req, cap, token);
+    LLMTestResult result;
+    result.ok = resp.ok;
+    if (resp.ok && resp.result.is_object() && resp.result.contains("content")) {
+      result.content = resp.result["content"].get<std::string>();
+    } else {
+      result.error = resp.error;
+    }
+    return result;
+  }
+
   ~Impl() {
     // D8 四步析构顺序 (Oracle session ses_f6f25fd0bffeX5P4rs1hvHOYXQ 决议):
     // ① 防御性 cancel deadline timer (idempotent, RAII guard 已 cancel 时 id=0)
@@ -924,6 +947,12 @@ SkillResult SkillInterpreter::run(const std::string& skill_path,
                                    const SkillCapability& cap,
                                    std::stop_token token) {
   return impl_->run(skill_path, cap, token);
+}
+
+LLMTestResult SkillInterpreter::call_llm_generate_for_test(
+    const std::string& prompt, const SkillCapability& cap,
+    std::stop_token token) {
+  return impl_->call_llm_generate_for_test(prompt, cap, token);
 }
 
 }  // namespace agenticdsl

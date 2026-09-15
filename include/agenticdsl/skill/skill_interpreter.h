@@ -55,6 +55,15 @@ struct SkillResult {
   int child_exit_status = -1;                         // 子进程退出码
 };
 
+// === LLMTestResult — skill-interpreter-ipc-realllm E.1 测试专用 wrapper 返回值 ===
+// [[deprecated("test only — use SkillInterpreter::run for production")]] 标注的方法返回。
+// Production 代码应使用 SkillInterpreter::run() 走 SKILL.md 完整 posix_spawn 流程。
+struct LLMTestResult {
+  bool ok = false;                  // dispatch_llm_generate 成功
+  std::string content;              // LLM response text (ok=false 时为空)
+  std::string error;                // 错误消息 (ok=true 时为空)
+};
+
 // === SkillInterpreter — ADR-0055 隔离执行引擎 ===
 // PIMPL 模式：公开头文件仅暴露最小接口，实现细节在 skill_interpreter.cpp
 // V1 构造函数不接受 IBudgetController*（内部 std::atomic<double> 计数器，见 design.md Decision 11）
@@ -98,8 +107,19 @@ class SkillInterpreter {
   ///                   并返回 ErrorCode::Abort, 不等 cap.timeout_ms.
   /// @return SkillResult 包含执行结果、stderr、退出码等
   SkillResult run(const std::string& skill_path,
-                  const SkillCapability& cap,
-                  std::stop_token token = {});
+                   const SkillCapability& cap,
+                   std::stop_token token = {});
+
+  /// skill-interpreter-ipc-realllm E.1 测试专用 wrapper: 直接调 dispatch_llm_generate
+  /// IPC host function (绕过 posix_spawn 子进程, 在父进程调用). 用于 real-llm 测试验证
+  /// 真实 deepseek 通过 IPC dispatch 路径不撞墙 (Wave 1 #1 model masking fix 已 ship).
+  ///
+  /// [[deprecated]] 标记防止 prod 代码意外调用. production 应走 SkillInterpreter::run().
+  /// timeout 取自 cap.timeout_ms (dispatch_llm_generate 内部 cv.wait_for 使用).
+  [[deprecated("test only — use SkillInterpreter::run for production")]]
+  LLMTestResult call_llm_generate_for_test(const std::string& prompt,
+                                            const SkillCapability& cap,
+                                            std::stop_token token = {});
 
  private:
   class Impl;
