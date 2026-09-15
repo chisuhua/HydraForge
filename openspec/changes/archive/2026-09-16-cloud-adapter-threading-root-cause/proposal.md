@@ -1,3 +1,5 @@
+> **Status 2026-09-16**: 本 scaffold 已被 [ADR-0087 root cause upgrade](../adr-0087-root-cause-upgrade/) 完整 supersede — ADR-0087 Step 1-4 (Sprint 24-27) 已 ship root cause 修复 (OpenSSL 3.0 + httplib 0.54.1 + Authorization header fix + 默认 SerializingDecorator 移除). Step 4 验证 4-worker real deepseek PASS 12.56s. 本 scaffold 的 gdb backtrace 与根因分析作为历史追溯保留在 archive (供未来类似问题 reference). 即将归档.
+
 ## Why
 
 `fix-cloud-adapter-multithreading` (Wave 1 #2) 通过工厂层 `SerializingDecorator`
