@@ -45,12 +45,15 @@ Phase B 前置 P0)。telemetry 副作用: decorator 链 (cost/compliance/tracing
 
 - [x] B.1 扩展 `tests/test_domain_worker_pool.cpp` 加 LLM 并发 case
 - [ ] B.2 测试: N=4 worker 各自 submit task → 共享真实 deepseek → 4 个结果返回
-      — **KNOWN ISSUE (deferred, SKIP'd)**: 当前环境 CloudLLMAdapter + httplib::Client
-      多线程并发到 https (带 Authorization header) → `create_client_socket` SIGSEGV
-      (socket_options_ 栈 corruption; 根因: OpenSSL/SSL_CTX 多线程 init 或 httplib
-      Authorization header 栈处理 bug). 单线程 pool(1) PASS; 无 Authorization 的
-      mock 路径 PASS; A.2 (CognitiveWorker 单线程真实 deepseek) 已 ship PASS.
-      跟进 change `fix-cloud-adapter-multithreading` 修复后启用.
+      — **Status update 2026-09-16**: test code 已在 `tests/test_domain_worker_pool.cpp:572-643`
+        实施 (Phase A/B ship 时由 ADR-0087 Step 4 联动更新), **不再 SKIP'd** — 直接跑
+        4 worker 共享真实 deepseek provider. require_real_llm_env() + real_llm_env_skipped()
+        守卫. 无 key 时 SUCCEED skip, key set 时 4 worker 并发跑 120s 超时.
+      — **历史 KNOWN ISSUE (已解决)**: 旧 PRD 引用 fix-cloud-adapter-multithreading
+        (SerializingDecorator workaround). ADR-0087 Step 4 (commit de79309, Sprint 27)
+        root cause 修复 ship — OpenSSL 3.0 + httplib 0.54.1 + Authorization header 栈
+        bug 全部修, factory 默认无 SerializingDecorator. ADR-0087 step 4 验证
+        4-worker real deepseek PASS 12.56s. 本 test 现仅需真实 key 跑验证 (Day 3 实弹日).
 - [x] B.3 测试: 1 worker × 共享 mock provider × 100 task 串行 → 验证共享 provider 无 race
       — 注: 用 MockLLMProvider (零延迟确定性), 真实 LLM 100 串行需 5-15 分钟不合理;
       并发真实安全性由 B.2 覆盖 (待跟进)
