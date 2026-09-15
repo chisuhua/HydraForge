@@ -8,12 +8,15 @@
 # 改为 STATIC 库: target_link_libraries 传递语义可靠, 与 agenticdsl_common 同模式。
 add_library(pdk_chat_session STATIC
     src/cancellation_registry.cpp
+    src/cancellation_globals.cpp
     src/chat_session.cpp
 )
 
 target_include_directories(pdk_chat_session PUBLIC
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/src
+    # pdk-chat-session-shim-cleanup: cancellation_globals.h now in PDK include/
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 target_link_libraries(pdk_chat_session PUBLIC
