@@ -36,6 +36,10 @@ class ChatSession {
 - 静态成员为 `std::unique_ptr<agenticdsl::ILogger>`, 不裸指针
 - 无锁访问 (假设 set 与 get 不并发; main 启动期 set, 之后只读)
 
+**NOTE (指针生命周期)**: `get_default_logger()` 返回的裸指针**仅在**当前没有并发的 `set_default_logger()` / `clear_default_logger()` 调用期间有效。调用方必须保证: (a) 持有指针期间不调 set/clear; (b) 在持有指针前完成一次 `get_default_logger()` 调用取快照; (c) 多线程场景下使用原子读写或外部同步。本约束的典型应用模式: main 启动期 `set_default_logger(make_unique<StderrLogger>())` 一次性设置, 之后所有线程只读 (本项目当前模式); 测试 setup/teardown 严格串行 (Catch2 单 binary 顺序执行)。
+
+**NOTE (singleton per binary)**: Meyers singleton 存在于每个 link 单元独立。`pdk_chat_session` 是 STATIC+PIC，host binary + `libLoopAgent.so` 各自持有副本。当前 host binary 是唯一调用方; 若未来 `.so` 内调 `cleanup_stale`，需在 `.so` 内独立 set。
+
 **SCENARIO R1.1**: 设置非 nullptr logger
 - **GIVEN** `ChatSession::set_default_logger(make_unique<CapturingLogger>(...))`
 - **WHEN** 调用 `get_default_logger()`
@@ -54,20 +58,21 @@ class ChatSession {
 - **AND** logger_A 被析构 (无泄漏)
 
 **SCENARIO R1.4**: 线程安全一次性初始化
-- **GIVEN** 多个线程同时首次调用 `get_default_logger()`
+- **GIVEN** 多个线程 (N=8) 同时首次调用 `get_default_logger()`
 - **WHEN** 每个线程观察到结果
 - **THEN** 均返回同一指针 (Meyers singleton 语义)
+- **由** `tests/test_pdk_chat_session_static_logger.cpp` `TEST_CASE "concurrent first call returns same pointer"` 验证 (8 jthread 并发 `get_default_logger()`, 断言全部 raw 指针相等)。
 
 ### R2: 4 处 std::cerr 静态上下文走 default logger
 
-`ensure_dir_0700` 与 `cleanup_stale` 内的 4 处诊断输出**优先**走 `default_logger` 路径，未设置时 fallback `std::cerr`。
+`ensure_dir_0700` 与 `cleanup_stale` 内的 4 处诊断输出经 `detail::log_static_diag(level, msg)` 路由 helper 统一管理: 已 set logger 时走 ILogger, 未 set 时 fallback `std::cerr`。
 
-**SCENARIO R2.1**: ensure_dir_0700 失败 → log path
-- **GIVEN** 已 set default logger (CapturingLogger)
-- **AND** `ensure_dir_0700("/proc/1/protected")` (无写权限触发失败)
-- **THEN** CapturingLogger 收到 ≥ 1 条 `LogLevel::kError` 级日志
-- **AND** 消息含 `[session] create_directories failed: /proc/1/protected`
-- **AND** `std::cerr` **不**输出该消息 (避免双写)
+**SCENARIO R2.1**: 路由 helper — set 路径走 ILogger
+- **GIVEN** 已 set CapturingLogger 作为 default logger
+- **WHEN** 调用 `detail::log_static_diag(kError, "[session] create_directories failed: /x")`
+- **THEN** CapturingLogger 收到 1 条 `LogLevel::kError` 级日志 + 消息精确等于输入
+- **由** `TEST_CASE "log_static_diag routes to ILogger when set"` 单测验证 (确定性强, 不依赖失败注入)
+- **注**: 原始 spec R2.1 GIVEN 直接调 `ensure_dir_0700("/proc/1/protected")` 触发失败 — 该函数在 `chat_session.cpp` anonymous namespace，测试不可达; tasks T1.4 已决策 Option A (不导出)。本 SCENARIO 改走 detail helper 直接单测路由逻辑，等价覆盖。
 
 **SCENARIO R2.2**: cleanup_stale stat failed → log path
 - **GIVEN** 已 set default logger

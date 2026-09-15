@@ -439,6 +439,12 @@ int main(int argc, char* argv[]) {
     // ============================================================
     // 6. 订阅事件 → 终端输出
     // ============================================================
+    // chat-session-static-logger-injection: 启动期 set 进程级 default logger,
+    // 覆盖 ensure_dir_0700 与 cleanup_stale 的 4 处 std::cerr (lift 残余)。
+    // 必须在 cleanup_stale (L476) 与 ChatSession 构造 (L478) 之前调用。
+    hydraforge::pdk::ChatSession::set_default_logger(
+        std::make_unique<agenticdsl::StderrLogger>());
+
     pdk_chat_demo::EventHandler handler(bus);
 
     // ============================================================

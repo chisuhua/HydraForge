@@ -40,6 +40,12 @@
 
 namespace hydraforge::pdk {
 
+namespace detail {
+// 路由 helper (Oracle C2 抽离): 静态上下文统一入口。set 时走 ILogger, 未 set 时
+// fallback std::cerr。测试通过此公开声明直接单测路由逻辑 (无需 chmod/root 失败注入)。
+void log_static_diag(agenticdsl::LogLevel level, const std::string& msg);
+}  // namespace detail
+
 struct AgentConfig {
     std::string loop_type = "react";
     std::string provider = "mock";
@@ -217,10 +223,19 @@ public:
     // 检查并消费 budget alert (主线程调用, 返回 true 表示有告警需渲染)
     bool consume_budget_alert();
 
+    // chat-session-static-logger-injection: 进程级 default logger, 用于 ensure_dir_0700
+    // / cleanup_stale 等无 Impl 实例的静态上下文。线程安全约束: main 启动期 set 一次,
+    // 之后只读; 测试串行 set/clear。Meyers singleton per-binary (每个 link 单元独立副本)。
+    static void set_default_logger(std::unique_ptr<agenticdsl::ILogger> logger);
+    static agenticdsl::ILogger* get_default_logger();
+    static void clear_default_logger();  // 显式 reset (测试 teardown)
+
 private:
     class Impl;
     std::unique_ptr<Impl> impl_;
     std::string session_id_;
+
+    static std::unique_ptr<agenticdsl::ILogger>& default_logger_slot();
 };
 
 }  // namespace hydraforge::pdk

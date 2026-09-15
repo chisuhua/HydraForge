@@ -75,12 +75,14 @@ bool ensure_dir_0700(const std::filesystem::path& dir) {
     std::error_code ec;
     fs::create_directories(dir, ec);
     if (ec) {
-        std::cerr << "[session] create_directories failed: " << dir
-                  << " (" << ec.message() << ")" << std::endl;
+        const std::string msg = "[session] create_directories failed: " + dir.string()
+                              + " (" + ec.message() + ")";
+        detail::log_static_diag(agenticdsl::LogLevel::kError, msg);
         return false;
     }
     if (chmod(dir.c_str(), 0700) != 0) {
-        std::cerr << "[session] chmod 0700 failed: " << dir << std::endl;
+        const std::string msg = "[session] chmod 0700 failed: " + dir.string();
+        detail::log_static_diag(agenticdsl::LogLevel::kError, msg);
     }
     return true;
 }
@@ -714,7 +716,8 @@ void ChatSession::cleanup_stale(const std::string& persist_dir, long long max_ag
 
         auto lwt = entry.last_write_time(ec);
         if (ec) {
-            std::cerr << "[session/cleanup] stat failed: " << entry.path() << std::endl;
+            const std::string msg = "[session/cleanup] stat failed: " + entry.path().string();
+            detail::log_static_diag(agenticdsl::LogLevel::kWarn, msg);
             continue;
         }
         auto age = std::chrono::duration_cast<std::chrono::seconds>(now - lwt).count();
@@ -722,8 +725,9 @@ void ChatSession::cleanup_stale(const std::string& persist_dir, long long max_ag
             std::error_code rm_ec;
             fs::remove(entry.path(), rm_ec);
             if (rm_ec) {
-                std::cerr << "[session/cleanup] remove failed: " << entry.path()
-                          << ": " << rm_ec.message() << std::endl;
+                const std::string msg = "[session/cleanup] remove failed: " + entry.path().string()
+                                      + ": " + rm_ec.message();
+                detail::log_static_diag(agenticdsl::LogLevel::kWarn, msg);
             }
         }
     }
@@ -1002,6 +1006,35 @@ void ChatSession::Impl::emit_topic(const std::string& topic, nlohmann::json args
         meta["persist"] = true;
     }
     bus->emit(agenticdsl::EventBuilder(topic).args(std::move(args)).meta(std::move(meta)).build());
+}
+
+// === chat-session-static-logger-injection: 进程级 default logger (Meyers singleton) ===
+
+std::unique_ptr<agenticdsl::ILogger>& ChatSession::default_logger_slot() {
+    static std::unique_ptr<agenticdsl::ILogger> slot;  // C++11 magic statics 线程安全初始化
+    return slot;
+}
+
+void ChatSession::set_default_logger(std::unique_ptr<agenticdsl::ILogger> logger) {
+    default_logger_slot() = std::move(logger);
+}
+
+agenticdsl::ILogger* ChatSession::get_default_logger() {
+    return default_logger_slot().get();
+}
+
+void ChatSession::clear_default_logger() {
+    default_logger_slot().reset();
+}
+
+namespace detail {
+void log_static_diag(agenticdsl::LogLevel level, const std::string& msg) {
+    if (auto* logger = ChatSession::get_default_logger()) {
+        logger->log(level, msg);
+    } else {
+        std::cerr << msg << std::endl;
+    }
+}
 }
 
 }  // namespace hydraforge::pdk
