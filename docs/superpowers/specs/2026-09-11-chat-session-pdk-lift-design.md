@@ -9,7 +9,7 @@
 
 ## 1. 背景与目标
 
-`examples/pdk_chat_demo/chat_session.{h,cpp}`(629 行)是 PDK Chat Demo 应用的核心,已 ship 28 个测试二进制(其中 1 个 `[realllm]` 真实 LLM 测试)。但 ChatSession 留在 examples 树,**不可被外部 PDK 消费者复用**,违背 ADR-0021 §3.5 "PDK 头文件可独立分发"的契约。
+`examples/pdk_chat_demo/chat_session.{h,cpp}`(**实测 218 + 897 = 1115 行**, 2026-09-11 校对; 原 629 行估算错)是 PDK Chat Demo 应用的核心,已 ship 28 个测试二进制(其中 1 个 `[realllm]` 真实 LLM 测试)。但 ChatSession 留在 examples 树,**不可被外部 PDK 消费者复用**,违背 ADR-0021 §3.5 "PDK 头文件可独立分发"的契约。
 
 **目标**:把 ChatSession 提取到 PDK,作为 PDK 原语,外部消费者可通过 `find_package(hydraforge_pdk)` 链接复用。同时**抽象 I/O 边界**(解 std::cin TTY 死锁, Pattern 5 fail-safe 默认值),**复用既有 contract 层**(`IAgentComposition`/`IInteractionBus`/`SessionManager`),**不引入新的抽象类型**。
 
@@ -120,15 +120,19 @@ ChatSession::chat() 入口锁顺序:
 
 ### D9. 最小核心 API(YAGNI 边界)(Oracle D 节)
 
-| P0(必须 lift, 12 个方法) | P1(后续 Sprint, 5 个) | 丢弃(5 个) |
+> **2026-09-11 Momus 修订**: `try_push_*_for_test` 从"丢弃"列**回移 P0**(test-only helper 保留)。原因:`InMemoryInputSource::push_for_test` 经异步 input thread 消费,overflow 时序不可控,无法确定性测试有界队列的 capacity=32 拒绝行为。原 2 个既有测试(`test_chat_session_consumer.cpp` + `test_chat_session_queues.cpp`)+ Change 1 Task 13 overflow 测试必须保留直接 push shim。
+
+| P0(必须 lift, 14 个方法) | P1(后续 Sprint, 5 个) | 丢弃(4 个) |
 |---|---|---|
-| 构造签名(7 参数) | `request_model_switch` / `next_model` | `try_push_*_for_test`(迁 InMemoryInputSource) |
-| `chat(input, stop_token)` | `queue_size` / `try_clear_queue` | `cleanup_stale`(挪运维工具) |
-| `request_stop` | `load_from_disk` / `save_to_disk` | `~/.hydraforge/` 默认值(改必填) |
-| `session_id` | `consume_budget_alert` | `list_sessions`(改 SessionManager::list_sessions) |
-| `history` | `try_pop_input` 系列 | `provider_switch_stub` tool |
+| 构造签名(7 参数) | `request_model_switch` / `next_model` | `cleanup_stale`(挪运维工具) |
+| `chat(input, stop_token)` | `queue_size` / `try_clear_queue` | `~/.hydraforge/` 默认值(改必填) |
+| `request_stop` | `load_from_disk` / `save_to_disk` | `list_sessions`(改 SessionManager::list_sessions) |
+| `session_id` | `consume_budget_alert` | `provider_switch_stub` tool |
+| `history` | `try_pop_input` 系列 | |
 | `is_input_thread_shutdown` | | |
 | `load_from_disk`(归 ResumeToken 后再删) | | |
+| **`try_push_steering_for_test`**(test-only,[[deprecated]]) | | |
+| **`try_push_follow_up_for_test`**(test-only,[[deprecated]]) | | |
 
 ---
 
@@ -189,7 +193,7 @@ ChatSession::chat() 入口锁顺序:
 | **新增** | `include/agenticdsl/contract/iinput_source.h` | `IInputSource` 接口(见 §6.1) |
 | **新增** | `include/agenticdsl/contract/ilogger.h` | `ILogger` 接口(仅供测试注入,见 §6.1 A1) |
 | **新增** | `src/common/io/stdin_input_source.h/.cpp` | 默认实现:**保留 self-pipe + `poll(2)` 多 fd 架构**(Sprint 31 死锁修复不能回退,见 §6.1 A3) |
-| **新增** | `src/common/io/stderr_logger.h/.cpp` | 默认实现:桥接到 `agenticdsl::log::info/warn/error`(避免双日志门面漂移) |
+| **新增** | `src/common/io/stderr_logger.h/.cpp` | 默认实现:桥接到 `agenticdsl::log::emit(Level, std::string)`(`log.h:52` 单一入口,无 log::info/warn/error/debug 自由函数) |
 | **新增** | `tests/test_helpers/in_memory_input_source.h` | **A2 修订**:测试 double 放 tests/test_helpers/(Pattern #5 + http_mock_server.h 惯例),**不放 `src/common/io/`** |
 | **新增** | `tests/test_helpers/capturing_logger.h` | 同上,捕获 log 调用 |
 | **保留** | `examples/pdk_chat_demo/tests/test_helpers/real_llm_env.h` | Frozen 副本不动(Pattern #5 双维护策略) |
@@ -201,18 +205,18 @@ ChatSession::chat() 入口锁顺序:
 | **修改** | `include/agenticdsl/pdk/pdk.h` | 添加 `#include <agenticdsl/pdk/chat_session.h>` |
 | **修改** | `examples/pdk_chat_demo/main.cpp` | 构造时显式传 `make_unique<StdinInputSource>()` + `make_unique<StderrLogger>()` |
 | **修改** | `examples/pdk_chat_demo/commands/command_globals.{h,cpp}` | `g_command_session` → `hydraforge::pdk::g_chat_session`(兼容 1 Sprint,加 `[[deprecated]]`) |
-| **新增** | `tests/test_chat_session.cpp` | L1 mock-first 测试(10 个 case,见 §7.2) |
+| **新增** | `tests/test_pdk_chat_session.cpp`(**2026-09-11 Momus 复核 Item 9 修订**: 加 `pdk_` 前缀避免与 examples 同名 target 冲突) | L1 mock-first 测试(10 个 case,见 §7.2) |
 
 ### Change 2: 横切集成 + 断线恢复(估时 0.5-1d, ≤ 400 行 diff)
 
 | 新增/修改 | 路径 | 内容 |
 |-----------|------|------|
 | **新增** | `include/agenticdsl/contract/resume_token.h` | `ResumeToken{session_id, leaf_node_id, model, budget_used}` |
-| **修改** | `include/agenticdsl/pdk/chat_session.h` | 构造签名加 `optional<ResumeToken> resume = nullopt`(Change 1 中预留,Change 2 启用) |
-| **修改** | `pdk/chat_session/src/chat_session.cpp` | `chat()` 完成后自动调 `SessionManager::append_to_branch` + 写 `trace_id/model` 到 `SessionNode::content` |
-| **修改** | `docs/adr/adr-0068-event-emission-contract.md` Appendix A | **A4 修订**:追加 6 个新 chat.* topic 到 canonical registry,**不新建** `event_topic_registry.h` 平行 registry |
-| **修改** | `chat_session.cpp` | 在 `chat()` 入口 emit `chat.turn.start`,出口 emit `chat.turn.end`(EventBuilder 模式,见 §11 A4) |
-| **新增** | `tests/test_chat_session_recovery.cpp` | L1 E2E 测试(3 个 case,见 §7.3) |
+| **修改** | `include/agenticdsl/pdk/chat_session.h` | 构造签名加 `agenticdsl::SessionManager* session_manager = nullptr`(Change 2 Task 0) + `optional<ResumeToken> resume = nullopt` |
+| **修改** | `pdk/chat_session/src/chat_session.cpp` | `chat()` 完成后自动调 `SessionManager::flush_append(SessionNode)` + 写 `trace_id/model` 到 `SessionNode::content`(SessionNode 字段为 `id`/`parent_id`/`branch_id`/`content`,见 session_manager.h:46-60) |
+| **修改** | `docs/adr/adr-0068-event-emission-contract.md` Appendix A | **A4 修订**:追加 6 个新 chat.* topic 到 canonical registry(**Appendix A v2.1**),**不新建** `event_topic_registry.h` 平行 registry |
+| **修改** | `chat_session.cpp` | 在 `chat()` 入口 emit `chat.turn.start`,出口 emit `chat.turn.end`(**EventBuilder 模式,见 §11 A4 + Step 5.4 grep 验收**) |
+| **新增** | `tests/test_pdk_chat_session_recovery.cpp`(**2026-09-11 Momus 复核 Item 9 修订**: 加 `pdk_` 前缀) | L1 E2E 测试(3 个 case,见 §7.3) |
 
 ---
 
@@ -402,11 +406,17 @@ class ILogger {
 class StderrLogger : public ILogger {
  public:
   void log(LogLevel level, std::string_view message) override {
+    // **A1 修订**: `agenticdsl::log` 命名空间只暴露 `emit(Level, std::string)`
+    // 单一函数 + `LOG_INFO/WARN/ERROR/DEBUG` 四个**宏**(见 `src/common/log/log.h:52,88-103`)。
+    // `log::info/warn/error/debug` 自由函数不存在——必须用 `emit`。
+    auto emit = [&](agenticdsl::log::Level lvl) {
+      agenticdsl::log::emit(lvl, std::string("[chat] ") + std::string(message));
+    };
     switch (level) {
-      case LogLevel::kDebug: agenticdsl::log::debug("[chat] ", message); break;
-      case LogLevel::kInfo:  agenticdsl::log::info("[chat] ",  message); break;
-      case LogLevel::kWarn:  agenticdsl::log::warn("[chat] ",  message); break;
-      case LogLevel::kError: agenticdsl::log::error("[chat] ", message); break;
+      case LogLevel::kDebug: emit(agenticdsl::log::Level::kDebug); break;
+      case LogLevel::kInfo:  emit(agenticdsl::log::Level::kInfo);  break;
+      case LogLevel::kWarn:  emit(agenticdsl::log::Level::kWarn);  break;
+      case LogLevel::kError: emit(agenticdsl::log::Level::kError); break;
     }
   }
 };
@@ -421,12 +431,15 @@ namespace hydraforge::pdk {
 
 class ChatSession {
  public:
-  // Change 1 签名(支持 resume, Change 2 启用)
+  // **2026-09-11 Momus 复核 Item 5 修订**: AgentConfig / SessionConfig / ChatResult / QueueKind / InputMessage
+  // 5 个公开类型在 PDK 命名空间 `hydraforge::pdk` (D6.1 落实), 不在 `agenticdsl`。
+  // Change 1 + Change 2 完整签名(Change 2 Task 0 加 SessionManager* 观察者指针):
   ChatSession(agenticdsl::DSLEngine* engine,
               std::shared_ptr<agenticdsl::IInteractionBus> bus,
               agenticdsl::IToolRegistry* registry,
-              agenticdsl::AgentConfig agent_cfg,
-              agenticdsl::SessionConfig session_cfg,
+              agenticdsl::SessionManager* session_manager,                  // **Change 2 Task 0**, 默认 nullptr = 不持久化
+              AgentConfig agent_cfg,
+              SessionConfig session_cfg,
               std::shared_ptr<CancellationRegistry> cancellation_registry = nullptr,
               std::unique_ptr<agenticdsl::IInputSource> input = nullptr,  // 默认:nullptr (fail-safe,不启动 input thread)
               std::unique_ptr<agenticdsl::ILogger> logger = nullptr,      // 默认:nullptr (fail-safe,不输出)
@@ -435,8 +448,8 @@ class ChatSession {
   ~ChatSession();
 
   // P0 API(lift):
-  agenticdsl::ChatResult chat(std::string_view input,
-                              std::stop_token token = {});
+  ChatResult chat(std::string_view input,
+                  std::stop_token token = {});
   void request_stop();
   const std::string& session_id() const;
   std::vector<nlohmann::json> history() const;
@@ -544,7 +557,7 @@ constexpr const char* kSessionDisconnected = "session.disconnected";
 | 风险 | 缓解 |
 |------|------|
 | PR 1 超 500 行 | Oracle 已建议拆分;若仍超,进一步拆 IInputSource 与 ILogger 为独立 change |
-| `try_push_*_for_test` 删除破坏 4 个既有测试 | 迁移到 `InMemoryInputSource::push_for_test()`(同一语义,统一接口) |
+| `try_push_*_for_test` 删除破坏既有测试(实测 2 个文件: `test_chat_session_consumer.cpp` + `test_chat_session_queues.cpp`,非 4 个) | **2026-09-11 Momus 修订**: 保留 `try_push_steering_for_test` + `try_push_follow_up_for_test` 作为 lift 后的 test-only helper (标 `[[deprecated]]`), 1 Sprint 内迁 InMemoryInputSource; overflow 测试需直接 push shim 才能确定性验证 capacity=32 拒绝行为 |
 | `std::cin` 硬编码 → TTY 死锁风险 | IInputSource 默认 nullptr = 不启动输入线程(Pattern 5 fail-safe);main.cpp 显式 opt-in |
 | CancellationRegistry 提升 PDK 破坏已有全局变量 | 全局名 `hydraforge::pdk::g_cancellation_registry`,保留 `examples/pdk_chat_demo::g_cancellation_registry` 为 type alias 兼容期 1 个 Sprint |
 | ChatSession 构造签名 BREAKING | Change 1 加 `[[deprecated]]` 重载 + 编译期 warning;Change 2 移除旧签名 |
@@ -567,14 +580,14 @@ constexpr const char* kSessionDisconnected = "session.disconnected";
 
 ## 9.5 后续任务优先级与依赖(Oracle 审计 2026-09-11,含二轮审查修订)
 
-### 任务排序(4-6 周,二轮审查修订后)
+### 任务排序(4-6 周,二轮审查修订后;2026-09-11 Momus review 后 P0-3 提前到 P0-0)
 
 | 优先级 | Change | 理由 |
 |---|---|---|
+| **P0-0** | chat-session-pdk-lift **ADR-0088 立卷** | **2026-09-11 Momus 修订**: D1-D6 决策先于代码, 符合 "OpenSpec Change as Decision Log" 治理惯例(避免 implementation 跑在未批准的 design 上)。先 `python3 tools/adr_lint.py` 确认 ADR 编号 (实测最大 0087), 分配 ADR-0088; 同步 `docs/active-status.md` 视图层 |
 | **P0-1** | chat-session-pdk-lift **Change 1** (I/O 抽象 + lift) | 一切的地基;与 `chat-real-llm-coverage` 有 tests 目录协调点 |
 | **P0-2** | chat-session-pdk-lift **Change 2** (ResumeToken + SessionManager) | 紧接 Change 1;**新增 TSan acceptance**(§11 Change 2 #5);ResumeToken 4-Scope 对齐 ADR-0079(D7) |
-| **P0-3** | chat-session-pdk-lift **ADR 立卷** | D1-D6 立卷为 **ADR-0088**(先 `tools/adr_lint.py` 确认,实测最大 0087);同步 active-status.md 视图层 |
-| **P0-4** | **TSan 锁顺序契约** | D8 锁顺序规范落 ShipGate:`-DAGENTICDSL_BUILD_TSAN=ON` 下跑 test_chat_session_recovery,零 race |
+| **P0-3** | **TSan 锁顺序契约** | D8 锁顺序规范落 ShipGate:`-DAGENTICDSL_BUILD_TSAN=ON` 下跑 test_chat_session_recovery,零 race |
 | **P1** | chat-session-pdk-lift **Change 3** (真实 LLM) | 排在 `cloud-adapter-threading-root-cause` (adr-0087) ship 之后;复用 `skill-interpreter-ipc-realllm` 模式 |
 | **P2-1** | AgentMailboxInputSource | IAgentComposition 仅 V1 骨架,集成测试不成熟 |
 | **P2-2** | 多租户 session 池 | 推迟至 ADR-0050 Candidate B service-ification 真正启动 |
@@ -613,42 +626,56 @@ constexpr const char* kSessionDisconnected = "session.disconnected";
 
 ## 10. 文件清单与依赖
 
-### 新增文件(8 个)
+> **A2/A4 修订后(2026-09-11 Momus review)**: 删除 §10 中两条与 §4/§11 矛盾的行——
+> (1) `src/common/contract/event_topic_registry.h` 与 A4 "不新建平行 registry" 冲突,删除;
+> (2) `src/common/io/{in_memory_input_source,capturing_logger}.{h,cpp}` 与 A2 "测试 double 在 tests/test_helpers/" 冲突,改为 `tests/test_helpers/`。
+
+### 新增文件(11 个)
 
 ```
+# Contract 层(2)
 include/agenticdsl/contract/iinput_source.h
 include/agenticdsl/contract/ilogger.h
 include/agenticdsl/contract/resume_token.h                        (Change 2)
-include/agenticdsl/pdk/cancellation_registry.h                    (从 examples 迁)
-include/agenticdsl/pdk/chat_session.h                             (从 examples 迁)
+
+# PDK 头(2,从 examples 迁)
+include/agenticdsl/pdk/cancellation_registry.h
+include/agenticdsl/pdk/chat_session.h
+
+# Production 默认实现(2)
 src/common/io/stdin_input_source.h/.cpp
 src/common/io/stderr_logger.h/.cpp
-src/common/io/in_memory_input_source.h/.cpp                       (测试)
-src/common/io/capturing_logger.h/.cpp                             (测试)
-src/common/contract/event_topic_registry.h                        (Change 2)
+
+# 测试 double(2,**A2 修订后放 tests/test_helpers/**)
+tests/test_helpers/in_memory_input_source.h
+tests/test_helpers/capturing_logger.h
+
+# PDK 编译目标(2)
 pdk/chat_session/CMakeLists.txt
-pdk/chat_session/src/chat_session.cpp                             (从 examples 迁)
-tests/test_chat_session.cpp                                       (10 cases)
-tests/test_chat_session_recovery.cpp                              (3 cases, Change 2)
+pdk/chat_session/src/chat_session.cpp                             (从 examples 迁,包含 cancellation_registry.cpp 内联实现,**保证有 CMake target 编译**,非 orphan)
+
+# 测试(2,**避免与 examples 测试同名 target 冲突**)
+tests/test_pdk_chat_session.cpp                                   (10 cases, 替代原 test_chat_session.cpp 命名)
+tests/test_pdk_chat_session_recovery.cpp                          (3 cases, Change 2)
 ```
 
 ### 修改文件(7 个)
 
 ```
 include/agenticdsl/pdk/pdk.h                                      # 加 chat_session.h include
-include/agenticdsl/pdk/CMakeLists.txt                             # 加 chat_session 头引用
 pdk/CMakeLists.txt                                                # add_subdirectory(chat_session)
 examples/pdk_chat_demo/main.cpp                                   # 显式传 StdinInputSource + StderrLogger
-examples/pdk_chat_demo/commands/command_globals.h                 # type alias 兼容
-examples/pdk_chat_demo/commands/command_globals.cpp               # 同上
-examples/pdk_chat_demo/chat_session.{h,cpp}                       # 删除(迁移完成)
+examples/pdk_chat_demo/commands/command_globals.{h,cpp}           # type alias 兼容(1 Sprint shim)
+# 兼容期 shim(新增):examples/pdk_chat_demo/chat_session.h → 3 行转发到 hydraforge::pdk
+examples/pdk_chat_demo/chat_session.h                             # **保留为 3 行 shim**,内部 include 新 PDK 头 + namespace alias,避免 17 个旧 includer 一次断链
 ```
 
-### 删除文件(2 个)
+### 删除文件(1 个)
 
 ```
-examples/pdk_chat_demo/cancellation_registry.h                   # 已迁到 PDK
-examples/pdk_chat_demo/cancellation_registry.cpp                 # 已迁到 PDK
+examples/pdk_chat_demo/cancellation_registry.h                   # 已迁到 PDK(被 shim include 间接提供)
+examples/pdk_chat_demo/cancellation_registry.cpp                 # 已迁到 PDK(内联到 pdk/chat_session/src/chat_session.cpp)
+examples/pdk_chat_demo/chat_session.cpp                           # 主体迁到 PDK;旧 chat_session.h 保留为 shim 1 Sprint
 ```
 
 ---
@@ -658,19 +685,19 @@ examples/pdk_chat_demo/cancellation_registry.cpp                 # 已迁到 PDK
 ### Change 1
 
 1. ✅ `include/agenticdsl/pdk/chat_session.h` namespace `hydraforge::pdk` 编译通过
-2. ✅ `tests/test_chat_session.cpp` 10 个 case 全部 PASS,核心 0 回归
+2. ✅ `tests/test_pdk_chat_session.cpp` 10 个 case 全部 PASS,核心 0 回归(测试命名带 `pdk_` 前缀避免与 `examples/pdk_chat_demo/tests/test_chat_session.cpp` 冲突;`tests/CMakeLists.txt` 自动 file(GLOB) 已注册到 `test_chat_session` target → 新文件**必须**改名)
 3. ✅ `examples/pdk_chat_demo` 既有 28 个测试二进制全部 PASS,零回归
 4. ✅ `pdk/CMakeLists.txt` 加入 `chat_session` 子目录,`hydraforge_pdk` INTERFACE lib 链接成功
 5. ✅ `script -qec "ctest" /dev/null` TTY 环境下所有测试 PASS(Pattern 5 fail-safe 验证)
 6. ✅ `clangd --check` 关键文件 0 errors(LSP discipline per `scripts/check-lsp-discipline.sh`)
-7. ✅ **A3 acceptance**: `StdinInputSource::read_line()` 实现保留 self-pipe + `poll([STDIN_FILENO, pipe_read_fd_], timeout)` 语义(同 `chat_session.cpp:719+` Sprint 31 修复);`script -qec "ctest --test-dir build" /dev/null` 232/232 PASS,无 SIGTERM-then-`std::terminate` 死锁回归
+7. ✅ **A3 acceptance**(修订后): `StdinInputSource::read_line()` 实现保留 self-pipe + `poll([STDIN_FILENO, pipe_read_fd_], timeout)` 语义。`pipe2(O_CLOEXEC | O_NONBLOCK)` + poll + callback 写 wake-up byte 的核心代码取自 `examples/pdk_chat_demo/chat_session.cpp` 的 `input_thread_main` 块(**实际行号 817-853**,非 §6.1 误标的 719+)。同时**删除** `ChatSession::Impl` 中的 `pipe2/pipe_read_fd_/pipe_write_fd_` 成员 + timer callback 写字节逻辑(Sprint 31 死锁修复的 wake-up byte 路径改为 `timer_->` 回调调 `input_->close()`,由 StdinInputSource 自有 pipe 接收)——避免 lift 后双 self-pipe 所有权混乱导致 timer 唤醒字节进死 fd。`script -qec "ctest --test-dir build" /dev/null` 232/232 PASS,无 SIGTERM-then-`std::terminate` 死锁回归
 8. ✅ **A2 acceptance**: 测试 double `InMemoryInputSource` / `CapturingLogger` 路径在 `tests/test_helpers/`,不在 `src/common/io/`(Pattern #5)
-9. ✅ **A1 acceptance**: `StderrLogger::log()` 内部委托 `agenticdsl::log::info/warn/error`,无新建 `LOG_INFO` 自由函数,grep `LOG_INFO`/`LOG_WARN` 0 行
+9. ✅ **A1 acceptance**(修订后): `StderrLogger::log()` 内部**仅**委托 `agenticdsl::log::emit(Level, std::string)`(`src/common/log/log.h:52`),不调用任何 `log::info/warn/error/debug` 自由函数(后者在 `agenticdsl::log` 中**不存在**——只有 `LOG_*` 宏,见 log.h:88-103)。验收 grep: `grep -rn "log::info\|log::warn\|log::error\|log::debug" src/common/io/stderr_logger.cpp` 0 行(`log.h` 自身定义 4 个宏,全库 grep 必 ≥4,不能用作验收)
 
 ### Change 2
 
-1. ✅ 6 个新 chat.* topic **追加到 ADR-0068 Appendix A**(canonical registry),**不**新建 `event_topic_registry.h` 平行 registry;grep `bus_->emit(BusEvent{` 0 处(ADR-0068 §5.11 语义,EventBuilder 模式合法)
-2. ✅ `tests/test_chat_session_recovery.cpp` 3 个 E2E 全部 PASS
+1. ✅ 6 个新 chat.* topic **追加到 ADR-0068 Appendix A** (canonical registry), **不** 新建 `event_topic_registry.h` 平行 registry。所有 bus 发射走 EventBuilder 模式 (`bus_->emit(EventBuilder(...).build())`), 禁止 raw `BusEvent` 字面量。验收 grep (修订后, named-variable 写法会绕过 `BusEvent{` 关键字): `grep -rn "bus_->emit" pdk/chat_session/src/ | grep -v "EventBuilder"` 0 行 (任何 bus 发射都必须经 EventBuilder 构造, named-variable BusEvent 也算违规)
+2. ✅ `tests/test_pdk_chat_session_recovery.cpp` 3 个 E2E **真实实现全部 PASS**(修订后: 禁止 `REQUIRE(true)` 占位; E2E 必须用真实 `SessionManager` (`src/core/session_manager.{h,cpp}`, 已 ship API: `open/load_jsonl/build_context_entries/flush_append`), 共享 persist_dir 跨两次 ChatSession 构造模拟 kill+restart; 截断行/分支隔离/1000-turn baseline 全部用真数据驱动)
 3. ✅ 现有 chat_session 28 测试二进制 PASS,零回归
 4. ✅ ResumeToken 在 SessionManager JSONL 中可解析,断线后 leaf_node_id 正确恢复
 5. ✅ **D8 acceptance**: CMake TSan preset (`-DAGENTICDSL_BUILD_TSAN=ON`) 下 `test_chat_session_recovery` PASS,零 data race 警告 — 锁顺序契约(steering/follow_up_queue.mtx → messages.mtx → session_writer.file_mutex_,禁止反向持有)验证
