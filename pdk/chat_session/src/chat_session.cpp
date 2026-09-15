@@ -242,8 +242,17 @@ public:
 
     // === Sprint 30 timer (D9 lazy) ===
     agenticdsl::ITimerService* timer_ = nullptr;
-    agenticdsl::ITimerService::TimerId periodic_id_ = 0;
+    // fix-tsan-residual-2026-09-15: periodic_id_ 改 atomic。~Impl() (line 295) 与
+    // input_thread_main TimerGuard 析构 (line 879) 并发 write-write race → TSan 报告。
+    std::atomic<agenticdsl::ITimerService::TimerId> periodic_id_{0};
     std::atomic<bool> shutdown_check_pending_{false};
+    // fix-tsan-residual-2026-09-15: timer callback `[this]` capture 在
+    // timer_->cancel() 返回后仍可能 in-flight (per ITimerService contract line 86
+    // "cancel 与 callback 不互斥")。~Impl() 必须 barrier wait 保证 callback 结束前
+    // 不进入 step ② timer_=nullptr. 计数 + cv 同步模式。
+    std::atomic<int> in_flight_callbacks_{0};
+    std::mutex in_flight_mutex_;
+    std::condition_variable in_flight_cv_;
 
     // === chat-session-pdk-lift C1: I/O 注入 (取代 Impl 自有 self-pipe + std::cin/cerr) ===
     std::unique_ptr<agenticdsl::IInputSource> input_;
@@ -289,12 +298,25 @@ public:
     }
 
     ~Impl() {
-        // ① 防御性 cancel periodic timer (idempotent, RAII guard 已 cancel 时 id=0)
-        if (periodic_id_ != 0 && timer_) {
-            timer_->cancel(periodic_id_);
-            periodic_id_ = 0;
+        // fix-tsan-residual-2026-09-15: 5 步析构顺序 + step ①.5 barrier wait
+        // (per ITimerService contract line 86 "cancel 与 callback 不互斥"
+        //  + "外部注入 timer 必须自行保证生命周期").
+        //
+        // ① cancel periodic timer (atomic exchange 0)
+        auto id = periodic_id_.exchange(0, std::memory_order_acq_rel);
+        if (id != 0 && timer_) {
+            timer_->cancel(id);
         }
-        // ② timer_=nullptr
+        // ①.5 barrier wait: cancel 不互斥 callback, 必须等所有 in-flight 结束
+        // 否则 callback 进入 body 访问 this->shutdown_check_pending_ / this->input_
+        // 时 Impl 可能已开始销毁 → UB. in_flight_callbacks_ RAII decrement by callback.
+        {
+            std::unique_lock<std::mutex> lock(in_flight_mutex_);
+            in_flight_cv_.wait(lock, [this] {
+                return in_flight_callbacks_.load(std::memory_order_acquire) == 0;
+            });
+        }
+        // ② timer_=nullptr (现在安全, 因为所有 callback 已结束)
         timer_ = nullptr;
         // ③ stop_input_thread_ 置位 + 唤醒 (让阻塞在 read_line 的 input thread 退出)
         stop_input_thread_.store(true);
@@ -857,23 +879,38 @@ void ChatSession::Impl::input_thread_main() {
     // 让 IInputSource 内部的 self-pipe 完成 poll 中断 (self-pipe 所有权已下沉)。
     // D9 fallback: timer_==nullptr 时不注册 (IInputSource 自身 100ms poll clamp 兜底)。
     // RAII guard cancels timer on all exit paths (EOF break / catch / normal return)。
+    //
+    // fix-tsan-residual-2026-09-15: timer callback 用 RAII 计数 + notify 追踪 in-flight
+    // (per ITimerService contract line 86 "cancel 与 callback 不互斥"). ~Impl()
+    // 在 timer_=nullptr 之前 wait in-flight == 0 保证 callback 结束前成员存活。
     if (timer_ != nullptr) {
-        periodic_id_ = timer_->register_periodic(
+        periodic_id_.store(timer_->register_periodic(
             std::chrono::milliseconds(50),
             [this] {
+                in_flight_callbacks_.fetch_add(1, std::memory_order_acq_rel);
+                // RAII: 即使 body 抛异常, 析构仍 decrement + notify (避免 deadlock)
+                struct CallbackGuard {
+                    std::atomic<int>* ctr;
+                    std::condition_variable* cv;
+                    ~CallbackGuard() {
+                        ctr->fetch_sub(1, std::memory_order_acq_rel);
+                        cv->notify_all();
+                    }
+                } guard{&in_flight_callbacks_, &in_flight_cv_};
                 shutdown_check_pending_.store(true, std::memory_order_release);
                 if (input_) {
                     input_->wake();
                 }
-            });
+            }), std::memory_order_release);
     }
     struct TimerGuard {
         agenticdsl::ITimerService* timer;
-        agenticdsl::ITimerService::TimerId* id_ptr;
+        std::atomic<agenticdsl::ITimerService::TimerId>* id_ptr;
         ~TimerGuard() {
-            if (timer && *id_ptr != 0) {
-                timer->cancel(*id_ptr);
-                *id_ptr = 0;
+            auto id = id_ptr->load(std::memory_order_acquire);
+            if (timer && id != 0) {
+                timer->cancel(id);
+                id_ptr->store(0, std::memory_order_release);
             }
         }
     } timer_guard{timer_, &periodic_id_};
