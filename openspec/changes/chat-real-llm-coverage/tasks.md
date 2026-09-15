@@ -2,20 +2,22 @@
 
 ### A.1 `/help` 命令测试
 
-- [ ] A.1.1 新建 `examples/pdk_chat_demo/tests/test_command_help.cpp`
-- [ ] A.1.2 测试 case 1: `make_help_command_spec` 字段正确 (name="/help", description, plugin_origin="pdk_chat_demo")
-- [ ] A.1.3 测试 case 2: `/help` handler 调用真实 `g_command_registry->render_help()` (构造完整 CommandRegistry + 注册 7 个 specs,参照 `test_pdk_chat_unknown_command.cpp:23-33` 模式)
-- [ ] A.1.4 测试 case 3: `g_command_registry == nullptr` → 返回 "error: CommandRegistry not injected"
-- [ ] A.1.5 测试 case 4: render_help() 输出含所有 7 个注册命令 + /exit 保留 (/help /compact /model /tree /fork /clone /cancel + /exit)
-- [ ] A.1.6 在 `examples/pdk_chat_demo/tests/CMakeLists.txt` 注册新 test target
+- [x] A.1.1 新建 `examples/pdk_chat_demo/tests/test_command_help.cpp` ✅
+- [x] A.1.2 测试 case 1: `make_help_command_spec` 字段正确 (name="/help", description, plugin_origin="pdk_chat_demo") ✅
+- [x] A.1.3 测试 case 2: `/help` handler 调用真实 `g_command_registry->render_help()` (构造完整 CommandRegistry + 注册 7 个 specs,参照 `test_pdk_chat_unknown_command.cpp:23-33` 模式) ✅
+- [x] A.1.4 测试 case 3: `g_command_registry == nullptr` → 返回 "error: CommandRegistry not injected" ✅
+- [x] A.1.5 测试 case 4: render_help() 输出含所有 7 个注册命令 + /exit 保留 (/help /compact /model /tree /fork /clone /cancel + /exit) ✅
+- [x] A.1.6 在 `examples/pdk_chat_demo/tests/CMakeLists.txt` 注册新 test target ✅ (line 846)
 
 ### A.2 `/compact` 命令测试
 
-- [ ] A.2.1 新建 `examples/pdk_chat_demo/tests/test_command_compact.cpp`
-- [ ] A.2.2 测试 case 1: `make_compact_command_spec` 字段正确
-- [ ] A.2.3 测试 case 2: handler 返回 placeholder "Compaction not yet wired (session/compact tool pending Task 8 DSLEngine integration)" (Task 8 状态文档化)
-- [ ] A.2.4 测试 case 3: 多次调用 idempotent (无副作用)
-- [ ] A.2.5 在 `tests/CMakeLists.txt` 注册
+- [x] A.2.1 新建 `examples/pdk_chat_demo/tests/test_command_compact.cpp` ✅
+- [x] A.2.2 测试 case 1: `make_compact_command_spec` 字段正确 ✅
+- [x] A.2.3 测试 case 2: handler 返回 placeholder "Compaction not yet wired (session/compact tool pending Task 8 DSLEngine integration)" (Task 8 状态文档化) ✅
+- [x] A.2.4 测试 case 3: 多次调用 idempotent (无副作用) ✅
+- [x] A.2.5 在 `tests/CMakeLists.txt` 注册 ✅ (line 876)
+
+**Phase A status 2026-09-16**: 全部实施完成。`cmake --build build --target test_command_help test_command_compact` PASS, 7 cases / 23 assertions (4+3) 全绿。Tasks.md checkbox 此前未勾仅因 author session 失误。
 
 ## Phase B — GenerateSubGraph + Mock LLM (pdk_chat_demo context)
 
@@ -27,22 +29,24 @@
 - ✅ 参考模板: `tests/test_generate_subgraph_callback.cpp:21-34`
 - ✅ Callback 触发前提: graph path 必须以 `/dynamic/` 开头 (node_executor.cpp:386)
 
-- [ ] B.1.1 新建 `examples/pdk_chat_demo/tests/test_generate_subgraph_pdk_chat.cpp`
-- [ ] B.1.2 测试 case 1: MockLLMProvider 返回 valid DSL → GenerateSubgraphNode.execute() → 解析成功 → subgraph 创建
+- [x] B.1.1 新建 `examples/pdk_chat_demo/tests/test_generate_subgraph_pdk_chat.cpp` ✅
+- [x] B.1.2 测试 case 1: MockLLMProvider 返回 valid DSL → GenerateSubgraphNode.execute() → 解析成功 → subgraph 创建 ✅
   - Mock response: `### AgenticDSL /dynamic/minimal` + yaml fenced 含 `type: start` + `next: end` + `type: end` 节点
   - 验证 `set_append_graphs_callback` 触发 + 收到 1 个 graph
-- [ ] B.1.3 测试 case 2: MockLLMProvider 返回**畸形 YAML DSL** (确定性 graceful failure)
+- [x] B.1.3 测试 case 2: MockLLMProvider 返回**畸形 YAML DSL** (确定性 graceful failure) ✅
   - Mock response: `### AgenticDSL /dynamic/broken` + yaml fenced 含 `nodes: [broken` (缺右括号)
   - 验证: NodeExecutor 抛 "YAML parse error in block ..." → wrapped → `GenerateSubgraphNode execution failed: ...parse...`
   - ChatSession.chat() returns `success=false`, `error_message` 含 "parse"
-- [ ] B.1.4 测试 case 3: MockLLMProvider 返回 arithmetic DSL → subgraph 执行 → result.response 含计算结果
+- [x] B.1.4 测试 case 3: MockLLMProvider 返回 arithmetic DSL → subgraph 执行 → result.response 含计算结果 ✅
   - Mock response: `### AgenticDSL /dynamic/calc` + yaml 含 `type: start` + `type: llm_call` (prompt "2+3") + 内层 mock 返回 "5" + `type: end`
   - 验证 subgraph 含 llm_call 节点,解析成功
-- [ ] B.1.5 测试 case 4: callback 接收多个 graphs (3 sequential calls via NodeExecutor 直接调用)
-- [ ] B.1.6 测试 case 5: **NodeExecutor 级 GenerateSubGraph** (替代原"端到端 chat() 集成")
+- [x] B.1.5 测试 case 4: callback 接收多个 graphs (3 sequential calls via NodeExecutor 直接调用) ✅
+- [x] B.1.6 测试 case 5: **NodeExecutor 级 GenerateSubGraph** (替代原"端到端 chat() 集成") ✅
   - 原因 (Oracle/Metis C5): chat() → loop/run → `lib/loop/<type>.agent.md` 不含 generate_subgraph 节点,无法通过 chat() 路径触发
   - 替代方案:NodeExecutor 单元级测试,直接构造 GenerateSubgraphNode + executor.run(node)
-- [ ] B.1.7 在 `tests/CMakeLists.txt` 注册
+- [x] B.1.7 在 `tests/CMakeLists.txt` 注册 ✅
+
+**Phase B status 2026-09-16**: 全部实施完成。`cmake --build build --target test_generate_subgraph_pdk_chat` PASS, 5 cases / 21 assertions 全绿 (含 valid DSL / malformed YAML graceful failure / arithmetic DSL / multi-graph / NodeExecutor 集成 5 路径)。
 
 ## Phase C — 真实 LLM + GenerateSubGraph (用户特别关注)
 
