@@ -13,6 +13,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -49,10 +50,16 @@ class WorkflowCallbackChannel {
   //   (cancel 不等待已收集但未执行的 callback, [this] 捕获可能触发 UAF).
   // - 推荐: 调用方先 stop() (cancel periodic timer), 再析构 timer.
   // - 默认 nullptr 路径安全 (unique_ptr<ITimerService> owned_timer_ RAII 自动 join).
+  //
+  // fix-timer-callback-dtor-race-2026-09-16: stop() 内部加 in-flight callback barrier wait
+  // (per ITimerService contract line 86 + AGENTS.md 模式 #5/#9 + Day 1 ChatSession fix 模式):
+  // cancel timer 后, wait in_flight_callbacks_ == 0 保证 callback 结束前不进入
+  // members 析构. 显式同步即使 caller 已遵循推荐顺序, 仍消除调用方误用 race.
   void start_polling(std::shared_ptr<ITemporalBackend> backend,
                      agenticdsl::ITimerService* timer = nullptr);
 
-  // 停止轮询 (cancel periodic timer)
+  // 停止轮询 (cancel periodic timer + wait in-flight callback barrier).
+  // 安全可重复调用 (idempotent).
   void stop();
 
   // 是否正在轮询
@@ -73,9 +80,19 @@ class WorkflowCallbackChannel {
   // timer_ 是观察者指针 (由 owned_timer_ 或外部传入 timer 初始化)
   std::unique_ptr<agenticdsl::ITimerService> owned_timer_;
   agenticdsl::ITimerService* timer_{nullptr};
-  agenticdsl::ITimerService::TimerId periodic_id_{0};
+  // fix-timer-callback-dtor-race-2026-09-16: periodic_id_ 改 atomic — stop()
+  // 与 input_thread 路径 (ChatSession 修复同模式) 不会并发写同一内存。
+  std::atomic<agenticdsl::ITimerService::TimerId> periodic_id_{0};
 
   std::atomic<bool> running_{false};
+
+  // fix-timer-callback-dtor-race-2026-09-16: in-flight callback barrier (复用 Day 1
+  // ChatSession 修复同模式). poll_once 由 timer callback 调用, 持有 [this] 引用.
+  // 取消 timer 不等待 in-flight callback, stop() 必须 barrier 等 poll_once 结束前
+  // 才能让 members 析构 (backend_/handlers_/workflow_id_ 都会被 callback 访问).
+  std::atomic<int> in_flight_callbacks_{0};
+  std::mutex in_flight_mutex_;
+  std::condition_variable in_flight_cv_;
 
   static constexpr auto kPollInterval = std::chrono::milliseconds(50);
 };
