@@ -132,3 +132,17 @@ TEST_CASE("ChatSession: ok=false Cancelled 错误码", "[chat_session][loop_resu
     REQUIRE(result.success == false);
     REQUIRE(result.error_message == "cancelled");
 }
+
+TEST_CASE("ChatSession: registry 'Tool not found' 错误信封 remap 到 ToolNotRegistered (Major #2 修正)", "[chat_session][loop_result]") {
+    // Per Oracle review Major #2: registry-level 错误信封缺 error_code 字段,
+    // 默认 "Unknown" 错失语义. ChatSession 应基于 error_message 前缀 remap.
+    std::vector<BusEvent> captured;
+    ChatSessionFixtureEmpty fx;
+    fx.bus->subscribe("loop.error", [&](const BusEvent& e) { captured.push_back(e); });
+    auto result = fx.session->chat("test input");
+    REQUIRE(result.success == false);
+    REQUIRE(result.error_message == "Tool not found: loop/run");
+    REQUIRE(captured.size() == 1);
+    REQUIRE(captured[0].payload.data["error"] == "Tool not found: loop/run");
+    REQUIRE(captured[0].payload.data["error_code"] == "ToolNotRegistered");
+}

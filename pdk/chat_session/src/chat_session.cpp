@@ -580,10 +580,18 @@ ChatResult ChatSession::chat(const std::string& user_input, std::stop_token toke
             // C3 新增: 错误路径分支 (loop_result.ok == false)
             // 不追加 assistant 消息 (保持 history 干净)
             // emit loop.error (替代原成功路径的 loop.done)
+            // Major #2 修正 (Oracle review): registry "Tool not found" 错误信封
+            // 不带 error_code 字段, 默认 "Unknown" 错失语义信息. 在此 remap
+            // "Tool not found" 前缀为 "ToolNotRegistered" 对齐 ADR-0023.
+            std::string remapped_error_code = loop_result.value("error_code", std::string{"Unknown"});
+            if (remapped_error_code == "Unknown" &&
+                result.error_message.rfind("Tool not found", 0) == 0) {
+                remapped_error_code = "ToolNotRegistered";
+            }
             impl_->bus->emit(agenticdsl::EventBuilder("loop.error")
                 .args(nlohmann::json{
                     {"error", result.error_message},
-                    {"error_code", loop_result.value("error_code", "Unknown")}
+                    {"error_code", remapped_error_code}
                 })
                 .meta(nlohmann::json{{"session_id", session_id_}})
                 .build());
