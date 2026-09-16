@@ -101,18 +101,17 @@
 - ✅ E.2 改 `AuthenticationError`,E.3 + E.4 改 `NetworkError`
 - ✅ E.3 标注: 超时无专属码,cpp-httplib 超时映射为 NetworkError (cloud_adapter.cpp:322)
 
-- [ ] G.1 新建 `examples/pdk_chat_demo/tests/test_e2e_real_llm_errors.cpp`
-- [ ] G.2 测试 case 1: **错误 API key → AuthenticationError**
+- [x] G.1 新建 `examples/pdk_chat_demo/tests/test_e2e_real_llm_errors.cpp` ✅ (commit c1703cd)
+- [x] G.2 测试 case 1: **错误 API key → AuthenticationError** ✅ (ScopedEnv restore 原值, 2 cases / 6 assertions PASS)
   - 设 `DEEPSEEK_API_KEY=invalid_key_for_test` (save/restore 原始值)
   - 调用 generate → `result.has_value()==false`
   - `result.error().code == LLMError::Code::AuthenticationError`
-- [ ] G.3 测试 case 2: **Timeout (短 timeout + max_retries=0) → NetworkError**
+- [ ] G.3 测试 case 2: **Timeout (短 timeout + max_retries=0) → NetworkError** (deferred — 短超时与 max_retries=0 交互在 cloud adapter 实现中需进一步验证, 不阻塞本 batch)
   - 设 `LLMConfig{timeout_seconds=1, max_retries=0}` (max_retries 重要: 默认 3 次会变成 3s+ 等待)
   - 调用 generate with 50KB prompt
   - `result.has_value()==false`
   - `result.error().code == LLMError::Code::NetworkError` (cpp-httplib 超时映射)
-- [ ] G.4 测试 case 3: **Network unreachable → NetworkError**
-  - api_url = "https://nonexistent.invalid.host"
+- [x] G.4 测试 case 3: **Network unreachable → NetworkError** ✅ (Scoping: `api_url = "https://nonexistent.invalid.host")
   - 调用 generate → `result.has_value()==false`
   - `result.error().code == LLMError::Code::NetworkError`
 - [ ] G.5 在 `tests/CMakeLists.txt` 注册
