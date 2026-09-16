@@ -138,6 +138,7 @@ HydraForge/
 | SkillInterpreter | class | include/agenticdsl/skill/skill_interpreter.h | SKILL.md 隔离执行引擎 (posix_spawn + IPC, ADR-0055/0060, Sprint 22) |
 | SessionManager | class | src/core/session_manager.h | JSONL 树状会话存储 (open/fork/branch/compact/build_context/migrate) — 事件发射已 ship (v2, ADR-0068) |
 | LlamaEngine plugin | plugin | pdk/llama_engine/ | 首个 PDK 推理引擎 plugin (12 工具: engine/model/arch, C14 Phase 5) |
+| **ChatSession (PDK 入口)** | class | **include/agenticdsl/pdk/chat_session.h** | **多轮对话编排器 PDK 入口 — "how to use" 见头文件顶部 doc block. Sprint 32-33 lift 自 examples, examples/pdk_chat_demo 与 tests/test_pdk_chat_session.cpp 完整 reference implementation** |
 
 ## CONVENTIONS
 - **2 空格缩进**，中文注释（避免中英混杂）

@@ -13,6 +13,76 @@
 // Sprint 32 教训保留: 用完整 include 而非 forward decl block —
 //   forward decl 在 commands/*.cpp 被嵌套 include 时会变成 pdk_chat_demo::agenticdsl,
 //   导致类型不可见 (Sprint 30 的 PIMPL void* workaround 根因)。
+//
+// === ChatSession PDK 入口 (how to use) ===
+//
+// 本头文件是 pdk/chat_session 的 canonical 入口, 也是 "如何在 PDK 应用中集成
+// ChatSession" 的参考. 典型用法:
+//
+//   #include <agenticdsl/pdk/chat_session.h>
+//   using hydraforge::pdk::ChatSession;
+//   using hydraforge::pdk::AgentConfig;
+//   using hydraforge::pdk::SessionConfig;
+//   using hydraforge::pdk::ChatResult;
+//
+//   // 1. 构造: 必填 engine + bus + registry + 两个 config; 可选 cancellation/timer/i/o/logger/session_manager/resume
+//   auto session = std::make_unique<ChatSession>(
+//       engine.get(), bus, &engine->get_tool_registry(),
+//       AgentConfig{},   // loop_type="react", provider="mock", model="test" 等默认
+//       SessionConfig{}, // persist_dir="~/.hydraforge/sessions/", enable_input_thread=false (fail-safe)
+//       /*cancellation_registry*/ nullptr,
+//       /*timer*/                nullptr,  // D9 lazy: 默认 nullptr, input source 内部 100ms poll clamp
+//       /*input*/                 nullptr,  // 默认 StdinInputSource (或 test 注入 InMemoryInputSource)
+//       /*logger*/                nullptr,  // 默认 StderrLogger (或 test 注入 CapturingLogger)
+//       /*session_manager*/       nullptr,  // 默认 nullptr: 不做 JSONL 持久化
+//       /*resume*/                std::nullopt
+//   );
+//
+//   // 2. 单轮对话
+//   ChatResult result = session->chat("Hello, world!");
+//   if (result.success) { /* render result.response */ }
+//
+//   // 3. 多轮 (可选 token cancellation)
+//   ChatResult result2 = session->chat("Follow-up", cancel_token);
+//
+//   // 4. 持久化 (T1 Session 持久化)
+//   if (session->save_to_disk()) { /* atomic tmp + rename */ }
+//
+// 完整示例参见 examples/pdk_chat_demo/main.cpp (生产 CLI app, 含 IInputSource/ILogger
+// 注入, multi-turn chat + 命令系统 + 会话管理).
+// 最小可运行示例: tests/test_pdk_chat_session.cpp (mock-first 单线程测试, 28 cases / 88 assertions).
+//
+// === 架构概览 ===
+//
+//   ┌─────────────────────────────────────────────────┐
+//   │             ChatSession (public PIMPL)            │
+//   ├─────────────────────────────────────────────────┤
+//   │  • 持有 UserSession (ADR-0033 3 层 session)       │
+//   │  • 每轮: emit user.input → loop/run tool → result │
+//   │  • 持久化: load/save JSON + atomic rename          │
+//   │  • 队列: steering/follow-up bounded (Phase A)    │
+//   │  • 线程: input_thread + budget alert poll         │
+//   └─────────────────────────────────────────────────┘
+//                  ↓ uses ↓
+//   ┌─────────────────────────────────────────────────┐
+//   │  DSLEngine (loop/run → LLM 工具链)               │
+//   │  IInteractionBus (事件总线)                       │
+//   │  IToolRegistry (tool/register/loop)                │
+//   │  IInputSource (stdin / mock / pipe, Phase 5 注入)│
+//   │  ILogger (stderr / capturer, Phase 5 注入)       │
+//   │  ITimerService (optional, input thread wake-up)    │
+//   │  SessionManager (optional, JSONL persistence)     │
+//   └─────────────────────────────────────────────────┘
+//
+// === 关键设计决策 (D6.x) ===
+//
+// D6.1 (Sprint 32): 从 examples 提升到 pdk/, 引入 IInputSource/ILogger 注入
+// D6.2 (Sprint 33): agenticdsl::DSLEngine 集成, "loop/run" 工具路径
+// D6.3 (Sprint 33+): ResumeToken 序列化恢复 (optional)
+// D6.4 (Sprint 33): 输入线程生命周期 (启动时 input_thread_, 停止时 join)
+// D6.5 (Sprint 33): Static logger injection for static-context 路径
+//                    (ensure_dir_0700 / cleanup_stale 等无 Impl 实例处)
+// D6.6 (Sprint 34+): chat-async-io-consumer-loop 队列 API (steering/follow-up)
 
 #pragma once
 
