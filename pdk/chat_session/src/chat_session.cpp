@@ -11,6 +11,16 @@
 //      timer callback 改调 input_->wake() (幂等唤醒, 不关闭输入源)。
 //      Sprint 31 语义保留: poll 多 fd + 100ms clamp + EINTR 重试仍在
 //      StdinInputSource::read_line 内 (A3 禁止回退裸 getline)。
+//
+// 锁顺序契约 (per 2026-09-16 fix-loop-run-return-contract, 文档化 pre-existing):
+//   1. steering_mutex_ /  follow_up_mutex_   (双队列锁, Impl 内部)
+//   2. input_cv_mutex_                       (pop_next_input 等待)
+//   3. cancellation_mutex_                   (chat() line 452, 494 — 本 change 触及路径)
+//   4. SessionManager write_mutex_           (flush_append, 经 persist_turn)
+//   5. SessionManager index_mutex_           (open/flush_append 内部路径, SessionManager 自身保证)
+// 禁止反向持有。SessionManager 内部 index → write  反向路径属
+// fix-session-manager-lock-order-inversion (archive) pre-existing known-issue,
+// 本 change 不触碰。
 
 #include "agenticdsl/pdk/chat_session.h"
 
@@ -496,11 +506,24 @@ ChatResult ChatSession::chat(const std::string& user_input, std::stop_token toke
             impl_->current_cancellation_id_.clear();
         }
 
+        // C3 三层 fallback (per openspec/changes/2026-09-16-fix-loop-run-return-contract):
+        //   1. 新契约: 优先读 "ok" 字段
+        //   2. 旧 loop/run: 缺 "ok" 时回落到 "success" 字段
+        //   3. Registry 错误信封: 两者都缺时,若含 "error" 字段则视为失败
+        //   4. 真正兼容: 缺所有字段时视为成功, 保持 legacy happy path
+        bool loop_ok = loop_result.value(
+            "ok",
+            loop_result.value(
+                "success",
+                !loop_result.contains("error")));
         result.response = loop_result.value("response", "");
         result.total_steps = loop_result.value("steps", 0);
         result.total_tokens = loop_result.value("tokens_used", 0);
         result.cost_usd = loop_result.value("cost_usd", 0.0);
-        result.success = true;
+        result.success = loop_ok;
+        if (!loop_ok) {
+            result.error_message = loop_result.value("error", "Unknown loop failure");
+        }
 
         if (result.success) {
             // 4. 追加 assistant 消息到历史
@@ -524,6 +547,8 @@ ChatResult ChatSession::chat(const std::string& user_input, std::stop_token toke
                 .build());
 
             // T1 Budget 告警: 每轮后轮询 engine budget controller
+            // M5 修正: budget 信息只进 budget.checked 事件, 不覆盖 result.success/error_message
+            // (成功路径下 budget 超额仍标 success=true, 仅通过事件事件告知 UI)
             if (impl_->engine) {
                 const auto& bc = impl_->engine->get_budget_controller();
                 if (bc.exceeded()) {
@@ -539,10 +564,6 @@ ChatResult ChatSession::chat(const std::string& user_input, std::stop_token toke
                         })
                         .meta(nlohmann::json{{"session_id", session_id_}})
                         .build());
-                    result.success = false;
-                    result.error_message = "[budget] cost_limit exceeded (used="
-                        + std::to_string(used) + ", limit="
-                        + std::to_string(limit) + ")";
                 }
             }
 
@@ -555,12 +576,49 @@ ChatResult ChatSession::chat(const std::string& user_input, std::stop_token toke
                 // T1: 同步落盘 (原子写入) - 确保跨进程可恢复
                 save_to_disk();
             }
+        } else {
+            // C3 新增: 错误路径分支 (loop_result.ok == false)
+            // 不追加 assistant 消息 (保持 history 干净)
+            // emit loop.error (替代原成功路径的 loop.done)
+            impl_->bus->emit(agenticdsl::EventBuilder("loop.error")
+                .args(nlohmann::json{
+                    {"error", result.error_message},
+                    {"error_code", loop_result.value("error_code", "Unknown")}
+                })
+                .meta(nlohmann::json{{"session_id", session_id_}})
+                .build());
+
+            // 错误路径下也检查 budget, 但不覆盖 result.error_message (M5)
+            // (budget 信息独立事件化, 不污染 loop 错误主因)
+            if (impl_->engine) {
+                const auto& bc = impl_->engine->get_budget_controller();
+                if (bc.exceeded()) {
+                    double used = bc.get_total_cost_usd();
+                    double limit = impl_->agent_cfg.budget_limit_usd;
+                    impl_->bus->emit(agenticdsl::EventBuilder("budget.checked")
+                        .args(nlohmann::json{
+                            {"limit", limit},
+                            {"used", used},
+                            {"unit", "llm_calls"},
+                            {"reason", "cost_limit"},
+                            {"ok", false}
+                        })
+                        .meta(nlohmann::json{{"session_id", session_id_}})
+                        .build());
+                }
+            }
         }
     } catch (const std::exception& e) {
+        // catch 路径与 ok=false 路径合并: 统一 emit loop.error, 含 error_code="Unknown"
         result.success = false;
-        result.error_message = e.what();
+        if (result.error_message.empty()) {
+            result.error_message = e.what();
+        }
         impl_->bus->emit(agenticdsl::EventBuilder("loop.error")
-            .args(nlohmann::json{{"error", result.error_message}})
+            .args(nlohmann::json{
+                {"error", result.error_message},
+                {"error_code", "Unknown"}
+            })
             .meta(nlohmann::json{{"session_id", session_id_}})
             .build());
     }

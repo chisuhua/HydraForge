@@ -219,6 +219,36 @@ set_tests_properties(test_loop_agent_plugin PROPERTIES
     ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk:${CMAKE_BINARY_DIR}/pdk"
 )
 
+# test_chat_session_loop_result_ok — fix-loop-run-return-contract (5 cases)
+# C2: CMake 显式 add_executable (非 GLOB, 必须注册)
+add_executable(test_chat_session_loop_result_ok
+    test_chat_session_loop_result_ok.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_chat_session_loop_result_ok PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_chat_session_loop_result_ok PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+target_compile_definitions(test_chat_session_loop_result_ok PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_chat_session_loop_result_ok
+    COMMAND test_chat_session_loop_result_ok
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 # test_session_persistence - T1: session save/restore, corrupted JSON, stale cleanup
 add_executable(test_session_persistence
     test_session_persistence.cpp

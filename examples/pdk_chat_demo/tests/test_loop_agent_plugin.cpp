@@ -57,6 +57,7 @@ TEST_CASE("loop/set_parent_provider callable", "[loop-agent][plugin]") {
 }
 
 TEST_CASE("loop/run mock fallback when no provider", "[loop-agent][plugin][fallback]") {
+    // 5 路径 return #2 (mock fallback, parent provider 未设) — M1 升级: 验证 ok/error_code 字段
     ensure_plugin_path_env();
     hydraforge::PluginLoader loader;
     auto engine = std::make_unique<DSLEngine>(std::vector<ParsedGraph>{});
@@ -64,10 +65,15 @@ TEST_CASE("loop/run mock fallback when no provider", "[loop-agent][plugin][fallb
     auto result = engine->get_tool_registry().call_tool("loop/run",
         std::unordered_map<std::string, std::string>{{"loop_type", "react"}, {"prompt", "test"}});
     REQUIRE(result.contains("response"));
+    // C1: 成功路径必须含 ok=true (语义对齐 ToolResult.ok)
+    REQUIRE(result.value("ok", false) == true);
+    // C1: 成功路径 error_code 必须为 null 或字段不存在
+    REQUIRE(!result.contains("error_code") || result["error_code"].is_null());
     engine.reset();
 }
 
 TEST_CASE("loop/run rejects invalid loop_type", "[loop-agent][plugin][validation]") {
+    // 5 路径 return #1 (Invalid loop_type) — M1 升级: 验证 ok/error_code 字段
     ensure_plugin_path_env();
     hydraforge::PluginLoader loader;
     auto engine = std::make_unique<DSLEngine>(std::vector<ParsedGraph>{});
@@ -78,6 +84,10 @@ TEST_CASE("loop/run rejects invalid loop_type", "[loop-agent][plugin][validation
     auto result = engine->get_tool_registry().call_tool("loop/run",
         std::unordered_map<std::string, std::string>{{"loop_type", "invalid"}, {"prompt", "x"}});
     REQUIRE(result.value("success", false) == false);
+    // C1: 错误路径必须含 ok=false
+    REQUIRE(result.value("ok", true) == false);
+    // C1 remap: error_code 必须为 "InvalidParams" (对齐 ToolResult::ErrorCode)
+    REQUIRE(result.value("error_code", "") == "InvalidParams");
     engine.reset();
 }
 
@@ -85,6 +95,7 @@ TEST_CASE("loop/run file-not-found error path covered by catch block", "[loop-ag
     // load_agent_file("nonexistent") throws → caught by try-catch → returns {success:false, error:"..."}
     // But "nonexistent" hits loop_type validation first. Verify the catch path via
     // structural guarantee: if load_agent_file throws, catch returns error JSON.
+    // M1 升级: 验证 catch 路径的 ok/error_code 字段 (5 路径 return #5)
     ensure_plugin_path_env();
     hydraforge::PluginLoader loader;
     auto engine = std::make_unique<DSLEngine>(std::vector<ParsedGraph>{});
@@ -98,6 +109,11 @@ TEST_CASE("loop/run file-not-found error path covered by catch block", "[loop-ag
         std::unordered_map<std::string, std::string>{{"loop_type", "nonexistent"}, {"prompt", "test"}});
     REQUIRE(result.value("success", false) == false);
     REQUIRE(!result.value("error", "").empty());
+    // C1: catch 路径必须含 ok=false (success=false 双字段一致)
+    REQUIRE(result.value("ok", true) == false);
+    // C1 remap: error_code 必须为 "InvalidParams" (因为 nonexistent 也命中 loop_type 校验)
+    // 注: 若 load_agent_file 真抛, catch 路径 error_code 应为 "Unknown" — 触发需注入假 loop_type 通过校验
+    REQUIRE(result.value("error_code", "") == "InvalidParams");
     engine.reset();
 }
 

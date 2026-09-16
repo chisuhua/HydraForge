@@ -185,7 +185,9 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
 
             // loop_type 合法性校验 (Q7: 仅 react/plan_execute/fork_join)
             if (loop_type != "react" && loop_type != "plan_execute" && loop_type != "fork_join") {
-                return {{"success", false},
+                return {{"ok", false},
+                        {"success", false},
+                        {"error_code", "InvalidParams"},
                         {"error", "Invalid loop_type: '" + loop_type +
                          "'. Must be one of: react, plan_execute, fork_join"}};
             }
@@ -221,6 +223,8 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                 output["tokens_used"] = 42;
                 output["cost_usd"] = 0.001;
                 output["success"] = true;
+                output["ok"] = true;
+                output["error_code"] = nullptr;
                 return output;
             }
 
@@ -228,6 +232,8 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
             if (cancellation_token.stop_requested()) {
                 nlohmann::json cancelled_result;
                 cancelled_result["success"] = false;
+                cancelled_result["ok"] = false;
+                cancelled_result["error_code"] = "Cancelled";
                 cancelled_result["error"] = "cancelled";
                 cancelled_result["response"] = "";
                 cancelled_result["steps"] = 0;
@@ -303,6 +309,8 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
 
                 nlohmann::json output;
                 output["success"] = result.success;
+                output["ok"] = result.success;
+                output["error_code"] = result.success ? nullptr : std::string("Unknown");
                 output["error"]   = result.success ? "" : result.message;
                 std::string response_text;
                 for (const char* k : {"response", "output",
@@ -322,7 +330,8 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                 output["cost_usd"]    = 0.0;
                 return output;
             } catch (const std::exception& e) {
-                return {{"success", false}, {"error", e.what()},
+                return {{"ok", false}, {"success", false}, {"error_code", "Unknown"},
+                        {"error", e.what()},
                         {"response", ""}, {"steps", 0}, {"tokens_used", 0}, {"cost_usd", 0.0}};
             }
         }
