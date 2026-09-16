@@ -2,7 +2,7 @@
 
 > **焦点**: 当前活跃的 OpenSpec changes | **更新**: 每日
 > **Master Plan**: [`docs/superpowers/plans/2026-07-24-sprint-24-25-demo-driven-plan.md`](superpowers/plans/2026-07-24-sprint-24-25-demo-driven-plan.md)
-> **架构决策**: [`docs/adr/`](adr/) — 83 ADR (含 0083/0084/0085/0087 新增 + adr-0061-08 v1.1 amendment 2026-08-31 flip, 2026-09-08 `tools/doc_metrics.py` 校准), 59 Approved (+ADR-0083/0084 2026-08-26, +ADR-0061-08 T20 V1 ship 2026-08-28, +ADR-0085 T26 V1 ship 2026-08-28, +ADR-0061-08 v1.1 amendment 2026-08-31, +ADR-0061-13 Distillation Data Plane V1 ship 2026-08-29, +ADR-0087 cloud-adapter-threading-model 2026-09-08, 注: ADR-0087 当前 🔍 Proposed 状态 — Approved 计数差异来自 doc_metrics.py 计入 Approved+ 实验性 [experimental] 子状态), adr_lint 零错误 (2026-08-22 校准, Batch 2 收官后 ADR-0081/0082 状态格式修正; ADR-0081/0082 均 ✅ Approved per Batch 2 P3+P7 `adr-0081/0082-promote-to-approved`; **1 个 ADR-TRACKING-01 warning**: ADR-0085 Approved 24h+ 无 tracking change 目录 — ADR-0080 warning 已于 9b69c2b 由 capture-mode-and-distillation-writer-v1 解除; **2026-09-02 新增**: ADR-0072 🔍 Proposed → 🟡 Partial 翻牌, D3+D5 ship, 治理异常"实施先于翻牌"已文档化, 翻牌 OpenSpec change 待建 `2026-09-02-adr-0072-flip-to-partial`)
+> **架构决策**: [`docs/adr/`](adr/) — 83 ADR (含 0083/0084/0085/0087 新增 + adr-0061-08 v1.1 amendment 2026-08-31 flip, 2026-09-08 `tools/doc_metrics.py` 校准), 60 Approved (+ADR-0083/0084 2026-08-26, +ADR-0061-08 T20 V1 ship 2026-08-28, +ADR-0085 T26 V1 ship 2026-08-28, +ADR-0061-08 v1.1 amendment 2026-08-31, +ADR-0061-13 Distillation Data Plane V1 ship 2026-08-29, +ADR-0087 cloud-adapter-threading-model 2026-09-08, +ADR-0087 ✅ Approved 2026-09-16 commit `54b046d` [step 5.1 benchmark 4-worker 3.3× 加速实证], 注: ADR-0087 当前 ✅ Approved 状态 — Approved 计数差异来自 doc_metrics.py 计入 Approved+ 实验性 [experimental] 子状态), adr_lint 零错误 (2026-08-22 校准, Batch 2 收官后 ADR-0081/0082 状态格式修正; ADR-0081/0082 均 ✅ Approved per Batch 2 P3+P7 `adr-0081/0082-promote-to-approved`; **1 个 ADR-TRACKING-01 warning**: ADR-0085 Approved 24h+ 无 tracking change 目录 — ADR-0080 warning 已于 9b69c2b 由 capture-mode-and-distillation-writer-v1 解除; **2026-09-02 新增**: ADR-0072 🔍 Proposed → 🟡 Partial 翻牌, D3+D5 ship, 治理异常"实施先于翻牌"已文档化, 翻牌 OpenSpec change 待建 `2026-09-02-adr-0072-flip-to-partial`)
 > **Phase**: 6 — Agent-as-Plugin (2026-07-15 ~ 至今, Phase 5 ✅ 收官)
 
 > **ADR 状态唯一事实源声明**（2026-09-02 同步，per Q3 α 修订）：**ADR 状态权威 = 各 `docs/adr/*.md` 自身 `## 状态` 字段 + `tools/adr_lint.py` 输出**。本表状态计数与 ADR 文件冲突时以 ADR 文件为准；视图层滚动更新延迟 ≤ 1 Sprint。
@@ -15,10 +15,10 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **232/232** 配置总数 (2026-09-12 `ctest --test-dir build` → Total Tests: 232; 自 2026-09-08 校准后 +3: Sprint 25 upgrade-httplib-0541 +1 test binary (test_httplib_version, 2 cases) + 2026-09-10 adr-0037-causal-ordering-completion +1 test binary (test_causal_ordering, 9 cases) + 2026-09-12 P2.9 SHIP-with-fixes +1 test binary (test_temporal_agent_workflow_callback_timer_injection, 3 cases); 2026-09-11 Sprint 27 cognitive_worker fix (5a09c76) +1 回归守卫 TEST_CASE; 2026-09-12 Sprint 28 TimerService ship (188bd8c + bc8d751 + f145a97 P2.9 SHIP-with-fixes) +1 test binary (test_timer_service, 11 cases) — **catch2 v3.7.0 + std::jthread reporter bug (KI-1)** 标记导致 binary exit 0 + 实际 body PASS 但 catch2 误报 FAILED, ctest `-E test_timer_service` 排除运行; 228/228 → 229 → 230 → 231 → 232 baseline (含 test_timer_service + injection test) → 230 (-E test_timer_service 排除时); -j1 全量 ctest 0 FAIL — ✅ Wave 1 #1+#2 real-llm P0 followups + Wave 2 Phase C ship + Wave 4 token passthrough + Sprint 27 ADR-0087 step 4 ship + cognitive_worker 真实 LLM 依赖 fix + Sprint 28 TimerService ship + temporal_agent 迁移 + P2.9 SHIP-with-fixes (Oracle 复核 1 Major + 1 Minor 2 修正) 完成 |
+| **Total ctest** | **243/243** 配置总数 (2026-09-16 `ctest -N --test-dir build` → Total Tests: 243; 自 2026-09-12 232 基线 +11: Day 1-2 TSan residual + WorkflowCallbackChannel dtor barrier 回归守卫 + chat-session-static-logger-injection 6 cases + 2026-09-16 Day 3 实弹验证 8 真实 LLM tester binaries (chat-real-llm-coverage Phase C.2/D.2/G: test_e2e_real_llm_generate_subgraph / _multi_turn / _errors; real-llm-core-coverage Phase C/D/E/F/G: test_plan_execute_realllm / test_adr_0087_step5_1_benchmark 等); **KI-1 RESOLVED**: `catch2 v3.7.0 + std::jthread` reporter bug 原标记 (Sprint 28) 已被 `897b147` (fix-timer-service-destructor-hang) 证实为 TimerService dtor hang bug — `~TimerService()` 显式 `cv_.notify_all()` 修复, test_timer_service 13/13 PASS (131 assertions), `-E test_timer_service` 排除不再需要; — Day 1-5 投资计划 ship (TSan residual + real-LLM 测试落地 + ADR-0087 benchmark 3.3× + batch archive) 完成 |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
-| **OpenSpec active** | **4** (2026-09-16 Day 2 update: `skill-interpreter-ipc-realllm` + `cloud-adapter-threading-root-cause` 2 archived; `chat-session-static-logger-injection` + `fix-tsan-residual-2026-09-15` 2 新近 ship→archive; 6 → **3** after Day 3 实弹日完成 real-llm 3 changes):<br/>1. `adr-0087-root-cause-upgrade` (Draft parent, **Sprint 27 step 4 已 ship** — `de79309` + `9d6d6a6` + `bd1c893` + `a146711` merged to main; step 5 benchmark + OPT-IN 文档待真实 baseline 触发)<br/>2. `chat-real-llm-coverage` (Draft, Phase A+B 待 mock 测试实施, Day 2.4 计划)<br/>3. `real-llm-core-coverage` (Phase A+B ship, B.2 test code 已就位仅待 Day 3 实弹验证, Phase C-G 等 Day 3)<br/>**2026-09-16 解耦决策记录**: real-LLM 3 changes (chat-real-llm-coverage Phase C, real-llm-core-coverage Phase C-G, ADR-0087 step 5.1 benchmark) 均只需本地 DEEPSEEK_API_KEY, 不需要 3 模型 baseline window (baseline-retest.md §1 仅 Evidence Gate 3 模型重测需要). Day 3 实弹日独立 ship 三 changes.<br/>**已 archived (Sprint 33+ Day 1-2)**: `chat-session-static-logger-injection` (2026-09-15 archive, commit `adc7579`), `fix-tsan-residual-2026-09-15` (Day 1 ship, 2 atomic commits `be2f103` + `d5e5d3a`), `skill-interpreter-ipc-realllm` (2026-09-16 archive, commit `50c2dd3`), `cloud-adapter-threading-root-cause` (2026-09-16 archive, superseded by ADR-0087). 累计: Day 1-2 共 4 changes archived. |
+| **OpenSpec active** | **0** (2026-09-16 Day 3-5 实弹验证收官: real-LLM 3 changes 全部 ship + archive; Day 1-2 已 4 changes archived; 合计 **7 changes 全部 archived**, 0 active carry-over):<br/>**Day 1-2 archived** (Sprint 33+): `chat-session-static-logger-injection` (commit `adc7579`), `fix-tsan-residual-2026-09-15` (Day 1, commits `be2f103` + `d5e5d3a`), `skill-interpreter-ipc-realllm` (commit `50c2dd3`), `cloud-adapter-threading-root-cause` (superseded by ADR-0087).<br/>**Day 3 archived** (实弹验证): `adr-0087-root-cause-upgrade` (commit `54b046d` — ADR-0087 🔍 Proposed → ✅ Approved + step 5.1 benchmark 3.3× 加速), `real-llm-core-coverage` (Phase C/D/E/F/G 全覆盖, commit `3f644d9` + `4026584` archive fix), `chat-real-llm-coverage` (Phase C.2/D.2/G 真实 LLM tests, commits `c1703cd` + `9ccb1c2` + `efa578b`).<br/>**Day 5 archive fix**: `4026584` 补全 real-llm-core-coverage archive 5 内容文件 (Oracle + Metis 审查发现). 累计: Day 1-5 共 7 changes archived, 0 active. |
 
 ## §Sprint 25 收官注记 (2026-09-03, 治理收官 Sprint)
 
@@ -953,6 +953,42 @@ TimerService contract 层抽象在 3 种线程模型 (PDK plugin / fork+exec / s
 - 全项目其他 cv_ + jthread 模式审计 (Sprint 33+ backlog)
 
 **🎯 模式 #6 真正闭环补完**: Sprint 28 TimerService 抽象 → Sprint 29-32 3-consumer 集成 → Wave 4.5/4.6/4.7 SkillInterceptor LLM timeout → **fix-timer-service-destructor-hang TimerService 自身 dtor 修復**. microkernel 蓝图核心组件自身 + 集成路径都稳定.
+
+---
+
+## §Sprint 33+ Day 1-5 收官注记 (2026-09-16, TSan residual + real-LLM 实弹验证投资计划)
+
+**战略定位**: 5 天投资计划 — Day 1-2 TSan 残留修复 + real-LLM 测试基础铺设; Day 3 实弹验证 (DEEPSEEK_API_KEY 本地, ADR-0087 benchmark + real-llm-core-coverage + chat-real-llm-coverage Phase C/D/G); Day 3.4 batch archive; Day 5 Oracle + Metis 双审查 + 收官.
+
+**7 changes 全部 ship + archived**:
+
+| # | Change | Day | Commit(s) | 关键 ship |
+|---|--------|:---:|-----------|---------|
+| 1 | `fix-tsan-residual-2026-09-15` | Day 1 | `be2f103` + `d5e5d3a` | EventLogWriter file_mutex_ 序列化 + IInteractionBus::wait_for_drain() contract drain API (模式 #9); chat_session ~Impl() in_flight barrier + RAII guard |
+| 2 | `fix-timer-callback-dtor-race` | Day 2 | `cde7713` | WorkflowCallbackChannel timer callback dtor barrier (模式 #9 audit item) |
+| 3 | `skill-interpreter-ipc-realllm` | Day 2 | `50c2dd3` | `call_llm_generate_for_test` wrapper + LLMTestResult 公开类型 (E.1 真实 LLM 路径验证) |
+| 4 | `cloud-adapter-threading-root-cause` | Day 2 | archive | scaffold 被 ADR-0087 step 1-4 ship supersede (gdb backtrace 历史追溯保留) |
+| 5 | `adr-0087-root-cause-upgrade` | Day 3.1 | `13ac53f` + `54b046d` | **step 5.1 benchmark: 4-worker vs 1-worker 真实 deepseek, 2834ms→858ms (3.3× 加速)**; ADR-0087 🔍 Proposed → ✅ Approved + archive |
+| 6 | `real-llm-core-coverage` | Day 3.2 | `3f644d9` | Phase C (PlanExecute verify) / D (CostTracking) / E (ContextCompactor) / F / G 全覆盖 real-LLM tests (31 assertions) |
+| 7 | `chat-real-llm-coverage` | Day 3.3 | `c1703cd` + `9ccb1c2` + `efa578b` | Phase C.2 (real GenerateSubGraph) / D.2 (multi-turn) / G (error 2 cases) — 5 binaries / 53 assertions |
+
+**Day 3.4 batch archive** (`b11b772`) + **Day 5 archive fix** (`4026584`): Oracle + Metis 双审查发现 `real-llm-core-coverage` archive 不完整 (仅 .openspec.yaml, 5 内容文件丢失), 从 HEAD 恢复 + git mv 补全. 这是模式 #8 (pre-implementation dual-agent review) 在**收盘阶段**的变体应用 — 审查归档正确性而非设计.
+
+**验证结果** (Day 5):
+- 全量 ctest `-N`: **243/243** (+11 since 232 baseline; Day 3 新增 8 真实 LLM tester binaries)
+- `tools/adr_lint.py` → 0 errors
+- `tools/docs_drift_audit.py` → 0 DRIFT
+- git status → clean (archive fix 后)
+- LSP discipline → 全部通过
+
+**关键调试教训** (Day 5 沉淀, 直接产出 AGENTS.md 模式 #8 收盘变体):
+1. **`openspec archive` 命令对多文件 change 的 .openspec.yaml-only 陷阱**: b11b772 batch archive 时 `git mv` 只移动了 .openspec.yaml (可能因为 openspec CLI 对非标准 4-file 结构 change 的处理), 导致 proposal/design/tasks/spec 5 内容文件从工作区删除但未入 archive. **教训**: batch archive 后必须 `git ls-files openspec/changes/archive/<name>/` 验证 6 文件完整 (vs 只验证 .openspec.yaml).
+2. **收盘阶段也要 dual-agent review**: Oracle (物理可行性: archive 完整性 + ctest 计数 + KI-1 状态) + Metis (意图 gap: active-status 三处 stale + AGENTS.md Day 3 条目缺失 + checkbox 漂移). 双视角独立命中同一 Critical (archive 不完整) = 最高置信度.
+
+**后续 follow-ups** (不在本 5 天计划范围):
+- G.3 (Timeout→NetworkError 测试) 显式 deferred — 短 timeout + max_retries=0 交互需 cloud adapter 进一步验证
+- TSan re-sweep 全量验证 (Day 5 机器性能受限, 超时跳过) — 留独立 follow-up
+- microkernel 蓝图后续组件 (PipeBus / UserAgentLoader / procfs)
 
 ---
 

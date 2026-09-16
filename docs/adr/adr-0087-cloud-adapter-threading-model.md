@@ -293,7 +293,7 @@ if (backend == "openai" || ...) {
 - ✅ Q1 OpenSSL 3.0 ABI break 影响面 = 0 LOC (回答: 0)
 - ✅ Q2 httplib upstream fix 是否已 merged = 是 (PR #701, in v0.8.0+);**但 PR #701 存在不证明根因已修** (Oracle 修订)
 - 🆕 Q2-extra httplib 4 个 client 侧 security advisories — v0.54.1 覆盖 (Oracle 补充)
-- ⏳ Q3 4 worker benchmark 预期 ~4× 加速 — 待 Sprint 28 实证 (前置 v0.54.1 升级)
+- ✅ Q3 **4 worker benchmark 实测加速: 3.3×** (2834ms → 858ms, 2026-09-16 commit `13ac53f`). 非理想 ~4× 因 OpenSSL syscall 仍有局部串化, CPU 绑定 4 核 vs 4 worker 调度波动.
 - ✅ Q4 是否需同步升级 `external/async_simple/demo_example/CMakeLists.txt` OpenSSL 引用 = 否 (demo 路径)
 - 🆕 Q6 (新) Sprint 25 升级 httplib 时是否需要 fork upstream PR — 否,直接用 v0.54.1 official tag
 - 🆕 Q7 (新) 是否需要为 httplib v0.52.0 `Headers` insertion-ordered ABI break 做适配 — 待 Sprint 25 实施前编译验证 (本项目用法面窄,预计无影响)

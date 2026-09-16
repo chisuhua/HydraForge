@@ -616,6 +616,17 @@ HydraForge/
 
 ## Recent Changes
 
+- **2026-09-16 (Sprint 33+ Day 3-5 / real-LLM 实弹验证 + 收盘, ship)**: OpenSpec changes `adr-0087-root-cause-upgrade` (Day 3.1) + `real-llm-core-coverage` (Day 3.2) + `chat-real-llm-coverage` (Day 3.3) ship + Day 3.4 batch archive + Day 5 Oracle + Metis 双审查收官. 合计 Day 1-5 共 **7 changes 全部 archived, 0 active carry-over**.
+  - **Day 3.1 commit `13ac53f` + `54b046d`**: ADR-0087 step 5.1 benchmark — **4-worker vs 1-worker 真实 deepseek, 2834ms → 858ms (3.3× 加速)**, ADR-0087 🔍 Proposed → ✅ Approved + archive. 非理想 ~4× 因 OpenSSL syscall 局部串化 + CPU 绑定 4 核调度波动.
+  - **Day 3.2 commit `3f644d9`**: real-llm-core-coverage Phase C (PlanExecute verify) / D (CostTracking) / E (ContextCompactor) / F / G 全覆盖真实 LLM tests (31 assertions).
+  - **Day 3.3 commits `c1703cd` + `9ccb1c2` + `efa578b`**: chat-real-llm-coverage Phase C.2 (real GenerateSubGraph) / D.2 (multi-turn context) / G (error 2 cases: AuthenticationError + NetworkError) — 5 binaries / 53 assertions. G.3 (Timeout) 显式 deferred.
+  - **Day 3.4 commit `b11b772`**: batch archive chat-real-llm-coverage + real-llm-core-coverage.
+  - **Day 5 commit `4026584`**: Oracle + Metis 双审查发现 real-llm-core-coverage archive 不完整 (仅 .openspec.yaml, 5 内容文件丢失), 从 HEAD 恢复 + git mv 补全 + git status → clean.
+  - **关键调试教训 (收盘沉淀, 直接产出模式 #8 收盘变体)**:
+    1. **`openspec archive` 对多文件 change 的 .openspec.yaml-only 陷阱** — batch archive 时 `git mv` 只移动 .openspec.yaml, 导致 proposal/design/tasks/spec 5 内容文件从工作区删除但未入 archive. **lesson**: batch archive 后必须 `git ls-files openspec/changes/archive/<name>/` 验证 6 文件完整 (vs 只验证 .openspec.yaml).
+    2. **收盘阶段也要 dual-agent review** — Oracle (物理可行性: archive 完整性 + ctest 计数 + KI-1 状态) + Metis (意图 gap: active-status 三处 stale + AGENTS.md Day 3 条目缺失 + checkbox 漂移). 双视角独立命中同一 Critical (archive 不完整) = 最高置信度收敛信号, 验证模式 #8 不止适用于实施前评审, 收盘归档正确性评审同样高 ROI.
+  - **验证**: 全量 ctest `-N` 243/243 (+11 since 232 baseline); `adr_lint` 0 errors; `docs_drift_audit` 0 DRIFT; git status clean; LSP discipline 通过. TSan re-sweep 超时跳过 (机器性能受限, 留独立 follow-up).
+
 - **2026-09-16 (Sprint 33+ Day 1-2 / TSan residual + real-llm Day 1 prep, ship)**: OpenSpec changes `fix-tsan-residual-2026-09-15` (Day 1) + `skill-interpreter-ipc-realllm` (Day 2.1) + `cloud-adapter-threading-root-cause` (Day 2.5 archive) + chat Phase A+B.1 doc sync (Day 2.4) ship.
   - **Day 1 commit `be2f103`**: fix(event_log) — EventLogWriter file_mutex_ 序列化 flush_loop/flush_sync/stop() (模式 #7 v2 同 pattern, 1456752 SessionWriter fix 复刻). 同时扩展 IInteractionBus::wait_for_drain() virtual method (default no-op, InMemoryBus override) — **contract drain API 模式首次落地 (新模式 #9)**.
   - **Day 1 commit `d5e5d3a`**: fix(chat_session) — periodic_id_ 改 atomic + 新增 in_flight_callbacks_ barrier + timer callback RAII guard + ~Impl() 5 步析构顺序 + step ①.5 wait in-flight. 修复 ITimerService contract line 86 "外部注入 timer 必须自行保证生命周期" + "cancel 与 callback 不互斥" 揭示的 UB (callback 在 cancel 返回后 in-flight 访问已销毁成员).

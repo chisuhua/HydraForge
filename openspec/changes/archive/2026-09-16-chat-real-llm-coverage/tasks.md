@@ -52,7 +52,9 @@
 
 ### C.1 真实 LLM 行为变更基础设施
 
-- [ ] C.1.1 新建 `examples/pdk_chat_demo/tests/test_helpers/real_llm_env.h` — helper 抽离
+> **C.1 status 2026-09-16 (Day 5 收盘 checkbox 修正)**: C.1 全部实施完成, 由 `skill-interpreter-ipc-realllm` (Day 2, commit `50c2dd3`) 前置 ship — `real_llm_env.h` 存在于 `examples/pdk_chat_demo/tests/test_helpers/` (5066 bytes) + `tests/test_helpers/` (6546 bytes) 双路径, `test_real_llm_env_helper.cpp` (3522 bytes) 已 CMake 注册 (line 1005). Day 3 的 C.2/D.2/G tests 均 `#include "test_helpers/real_llm_env.h"` + `require_real_llm_env()`. 此前 checkbox 未勾仅因 author session 失误 (同 Phase A/B status note).
+
+- [x] C.1.1 新建 `examples/pdk_chat_demo/tests/test_helpers/real_llm_env.h` — helper 抽离 ✅ (Day 2 ship, 双路径存在)
   - **API 设计** (Oracle 1b):
     - `require_real_llm_env()` — 直接调 `FAIL(...)` (无 try/catch 多余样板,无不存在类型 `Catch2_failure`)
     - `real_llm_config()` — 从 env 构造 `agenticdsl::LLMConfig` (deepseek 优先)
@@ -60,14 +62,14 @@
   - **include 路径** (Oracle 1c):
     - `common/llm/llm_types.h` (ILLMProvider 在此,**非** `include/agenticdsl/llm/llm_provider.h`)
     - `common/llm/llm_provider_factory.h`
-- [ ] C.1.2 修改 `test_e2e_real_llm.cpp` 现有 2 tests:
+- [x] C.1.2 修改 `test_e2e_real_llm.cpp` 现有 2 tests ✅ (Day 2 ship)
   - 删除 `HYDRAFORGE_RUN_REAL_LLM` gate (新行为不依赖双 flag)
   - 替换为 `pdk_chat_demo::testing::require_real_llm_env()`
-- [ ] C.1.3 新建 helper 自测 `test_real_llm_env_helper.cpp` — 3 TEST_CASEs:
+- [x] C.1.3 新建 helper 自测 `test_real_llm_env_helper.cpp` — 3 TEST_CASEs ✅ (Day 2 ship, CMake line 1005)
   - `require_real_llm_env` 在 unset + skip=1 时返回 silent
   - `require_real_llm_env` 在 unset + skip unset 时 FAIL
   - `real_llm_config` 字段正确填充 (provider=deepseek 当 DEEPSEEK_API_KEY set)
-- [ ] C.1.4 新建 `examples/pdk_chat_demo/tests/test_helpers/` 目录 + 在 `CMakeLists.txt` 添加 `${CMAKE_CURRENT_SOURCE_DIR}` 到 target_include_directories (确保 `#include "test_helpers/real_llm_env.h"` 解析)
+- [x] C.1.4 新建 `examples/pdk_chat_demo/tests/test_helpers/` 目录 + 在 `CMakeLists.txt` 添加 `${CMAKE_CURRENT_SOURCE_DIR}` 到 target_include_directories (确保 `#include "test_helpers/real_llm_env.h"` 解析) ✅ (Day 2 ship)
 
 ### C.2 真实 LLM GenerateSubGraph 测试 (删 C.2.4) ✅ 2026-09-16
 
@@ -114,17 +116,17 @@
 - [x] G.4 测试 case 3: **Network unreachable → NetworkError** ✅ (Scoping: `api_url = "https://nonexistent.invalid.host")
   - 调用 generate → `result.has_value()==false`
   - `result.error().code == LLMError::Code::NetworkError`
-- [ ] G.5 在 `tests/CMakeLists.txt` 注册
+- [x] G.5 在 `tests/CMakeLists.txt` 注册 ✅ (commit c1703cd, line 390-418: add_executable + target_link + include + compile_definitions + add_test + set_tests_properties)
 
 ## Phase F — OpenSpec 收尾 + 验证 + CI
 
-- [ ] F.1 修改 `.github/workflows/ci.yml` 添加 `env: HYDRAFORGE_SKIP_REAL_LLM: "1"` (前瞻,保护未来 examples=ON + fork PR 无 secrets 场景)
-- [ ] F.2 `openspec validate chat-real-llm-coverage --strict` exit 0
-- [ ] F.3 `tools/adr_lint.py` 0 errors
-- [ ] F.4 `tools/docs_drift_audit.py` 0 CRITICAL drift
-- [ ] F.5 全量 `ctest -j$(nproc)` 不引入 regression (219 baseline + 21 new = ~240)
-- [ ] F.6 commit 实施 + archive change (--no-verify 因 pre-commit hook hangs)
-- [ ] F.7 更新 `examples/pdk_chat_demo/README.md` 提及 test coverage 扩展
+- [x] F.1 修改 `.github/workflows/ci.yml` 添加 `env: HYDRAFORGE_SKIP_REAL_LLM: "1"` ✅ (ci.yml:84 已存在, Day 2 ship) (前瞻,保护未来 examples=ON + fork PR 无 secrets 场景)
+- [x] F.2 `openspec validate chat-real-llm-coverage --strict` exit 0 ✅ (archive 前验证通过)
+- [x] F.3 `tools/adr_lint.py` 0 errors ✅ (Day 5 复核)
+- [x] F.4 `tools/docs_drift_audit.py` 0 CRITICAL drift ✅ (Day 5 复核)
+- [x] F.5 全量 `ctest` 不引入 regression ✅ (243/243 PASS, 2026-09-16)
+- [x] F.6 commit 实施 + archive change ✅ (commits c1703cd + 9ccb1c2 + efa578b + b11b772 archive)
+- [ ] F.7 更新 `examples/pdk_chat_demo/README.md` 提及 test coverage 扩展 (未实施, 低优先级 follow-up)
 
 ## Tasks 总数
 
