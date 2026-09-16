@@ -64,40 +64,40 @@ Phase B 前置 P0)。telemetry 副作用: decorator 链 (cost/compliance/tracing
       因 B.2 SIGSEGV 同根因 (Authorization + httplib), 改用 mock 聚焦 domain pool
       error 传递路径.
 
-## Phase C — PlanExecuteLoop verify "yes" (P0)
+## Phase C — PlanExecuteLoop verify "yes" (P0) ✅ 2026-09-16
 
-- [ ] C.1 扩展 `tests/test_plan_execute_loop_integration.cpp` 加真实 LLM case
-- [ ] C.2 测试: plan phase 真实 LLM → 合法 DSL (parseable)
-- [ ] C.3 测试: verify phase 真实 LLM → "yes" (大小写不敏感) → success
+- [x] C.1 扩展 `tests/test_plan_execute_loop_integration.cpp` 加真实 LLM case ✅ (test_plan_execute_realllm.cpp:86-208, 3 cases / 14 assertions PASS)
+- [x] C.2 测试: plan phase 真实 LLM → 合法 DSL (parseable) ✅
+- [x] C.3 测试: verify phase 真实 LLM → "yes" (大小写不敏感) → success ✅
 - [ ] C.4 测试: verify phase LLM 返回 "no" → retry (不本 change 范围,仅记录)
 
-## Phase D — CostTrackingDecorator 真实 token (P0)
+## Phase D — CostTrackingDecorator 真实 token (P0) ✅ 2026-09-16
 
-- [ ] D.1 扩展 `tests/test_cost_tracking_decorator.cpp` 加真实 LLM case
-- [ ] D.2 测试: decorated generate → completion_tokens > 0 → budget 扣费 > 0
-- [ ] D.3 测试: 100-token prompt 真实 LLM → 计费 ≈ prompt + completion tokens
-- [ ] D.4 测试: streaming 路径下 TrackingStream 近似计费 (可接受误差 < 10%)
+- [x] D.1 扩展 `tests/test_cost_tracking_decorator.cpp` 加真实 LLM case ✅ (3 [realllm] cases / 11 assertions PASS)
+- [x] D.2 测试: decorated generate → completion_tokens > 0 → budget 扣费 > 0 ✅
+- [x] D.3 测试: 100-token prompt 真实 LLM → 计费 ≈ prompt + completion tokens ✅
+- [x] D.4 测试: streaming 路径下 TrackingStream 近似计费 (可接受误差 < 10%) ✅
 
-## Phase E — SkillInterpreter IPC llm_generate (P1)
+## Phase E — SkillInterpreter IPC llm_generate (P1) ✅ 2026-09-16 (Day 2 ship)
 
-- [ ] E.1 扩展 `tests/test_skill_interpreter.cpp` 加真实 LLM case
-- [ ] E.2 SKILL.md fixture 含 `llm_generate("Say hello")` 语句
-- [ ] E.3 测试: SkillInterpreter.execute → 子进程调真实 deepseek → pipe 接收 result
-- [ ] E.4 测试: 大响应 (50KB) 过 64KB pipe buffer (分帧 OK)
-- [ ] E.5 记录 GAP: skill_interpreter.cpp:659 无超时 (需另立 fix-up)
+- [x] E.1 扩展 `tests/test_skill_interpreter.cpp` 加真实 LLM case ✅ (skill-interpreter-ipc-realllm E.1, commit 50c2dd3)
+- [x] E.2 SKILL.md fixture 含 `llm_generate("Say hello")` 语句 ✅
+- [x] E.3 测试: SkillInterpreter.execute → 子进程调真实 deepseek → pipe 接收 result ✅
+- [x] E.4 测试: 大响应 (50KB) 过 64KB pipe buffer (分帧 OK) ✅
+- [x] E.5 记录 GAP: skill_interpreter.cpp:659 无超时 (需另立 fix-up) ✅ (Documented, 后续 fix-up)
 
-## Phase F — YieldNode 流式取消 GAP (P1, deferred)
+## Phase F — YieldNode 流式取消 GAP (P1, deferred) ✅
 
-- [ ] F.1 新建 `tests/test_yield_node.cpp` (Phase A 阻塞,需先补 token 透传)
-- [ ] F.2 GAP 记录: `node_executor.cpp:576` token={},无法取消流式
-- [ ] F.3 等待 `fix-yield-node-token-passthrough` change 实施后启用
+- [x] F.1 新建 `tests/test_yield_node.cpp` (Phase A 阻塞,需先补 token 透传) ✅ (test_yield_node.cpp:1, 10+ test cases)
+- [x] F.2 GAP 记录: `node_executor.cpp:576` token={},无法取消流式 ✅ (fixed by fix-yield-node-token-passthrough Wave 4 #0, archived 2026-09-10)
+- [x] F.3 等待 `fix-yield-node-token-passthrough` change 实施后启用 ✅ (shipped, [realllm-gap-fix] 2 cases PASS)
 
-## Phase G — ContextCompactor 真实 LLM 摘要 (P1)
+## Phase G — ContextCompactor 真实 LLM 摘要 (P1) ✅ 2026-09-16
 
-- [ ] G.1 新建 `tests/test_context_compactor.cpp` (假设有基础测试)
-- [ ] G.2 测试: 50 message history → compact → real deepseek 摘要 → history size 减少
-- [ ] G.3 测试: count_tokens fallback 近似 (字符数 / 4) 合理
-- [ ] G.4 记录 GAP: `context_compactor.cpp:95` count_tokens 是 TODO
+- [x] G.1 新建 `tests/test_context_compactor.cpp` (假设有基础测试) ✅ (test_context_compactor.cpp:1-9, 10+ test cases exist)
+- [x] G.2 测试: 50 message history → compact → real deepseek 摘要 → history size 减少 ✅ ([realllm-guard] 3 assertions / 1 case PASS)
+- [x] G.3 测试: count_tokens fallback 近似 (字符数 / 4) 合理 ✅ ("count_tokens uses ~4-char-per-token approximation" case)
+- [x] G.4 记录 GAP: `context_compactor.cpp:95` count_tokens 是 TODO ✅ (documented, 留作 follow-up)
 
 ## Phase H — 验证 + archive
 
