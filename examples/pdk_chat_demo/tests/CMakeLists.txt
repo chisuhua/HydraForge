@@ -320,6 +320,106 @@ set_tests_properties(test_e2e_real_llm PROPERTIES
     TIMEOUT 60
 )
 
+# test_e2e_real_llm_generate_subgraph — chat-real-llm-coverage Phase C.2
+# 真实 LLM GenerateSubGraphNode 端到端 (2 cases: 简单 prompt + 复杂 prompt)
+add_executable(test_e2e_real_llm_generate_subgraph
+    test_e2e_real_llm_generate_subgraph.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_e2e_real_llm_generate_subgraph PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_e2e_real_llm_generate_subgraph PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+target_compile_definitions(test_e2e_real_llm_generate_subgraph PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_e2e_real_llm_generate_subgraph
+    COMMAND test_e2e_real_llm_generate_subgraph
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+set_tests_properties(test_e2e_real_llm_generate_subgraph PROPERTIES
+    ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk"
+    TIMEOUT 120
+)
+
+# test_e2e_real_llm_multi_turn — chat-real-llm-coverage Phase D.2: 3-turn context preservation
+add_executable(test_e2e_real_llm_multi_turn
+    test_e2e_real_llm_multi_turn.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_e2e_real_llm_multi_turn PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_e2e_real_llm_multi_turn PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+target_compile_definitions(test_e2e_real_llm_multi_turn PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_e2e_real_llm_multi_turn
+    COMMAND test_e2e_real_llm_multi_turn
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+set_tests_properties(test_e2e_real_llm_multi_turn PROPERTIES
+    ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk"
+    TIMEOUT 180
+)
+
+# test_e2e_real_llm_errors — chat-real-llm-coverage Phase G: error handling (3 cases)
+add_executable(test_e2e_real_llm_errors
+    test_e2e_real_llm_errors.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_e2e_real_llm_errors PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_e2e_real_llm_errors PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+target_compile_definitions(test_e2e_real_llm_errors PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_e2e_real_llm_errors
+    COMMAND test_e2e_real_llm_errors
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+set_tests_properties(test_e2e_real_llm_errors PROPERTIES
+    ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk"
+    TIMEOUT 120
+)
+
 # test_pdk_chat_unknown_command — unknown slash command handling + /exit sentinel
 add_executable(test_pdk_chat_unknown_command
     test_pdk_chat_unknown_command.cpp
