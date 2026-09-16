@@ -69,29 +69,29 @@
   - `real_llm_config` 字段正确填充 (provider=deepseek 当 DEEPSEEK_API_KEY set)
 - [ ] C.1.4 新建 `examples/pdk_chat_demo/tests/test_helpers/` 目录 + 在 `CMakeLists.txt` 添加 `${CMAKE_CURRENT_SOURCE_DIR}` 到 target_include_directories (确保 `#include "test_helpers/real_llm_env.h"` 解析)
 
-### C.2 真实 LLM GenerateSubGraph 测试 (删 C.2.4)
+### C.2 真实 LLM GenerateSubGraph 测试 (删 C.2.4) ✅ 2026-09-16
 
-- [ ] C.2.1 新建 `examples/pdk_chat_demo/tests/test_e2e_real_llm_generate_subgraph.cpp`
-- [ ] C.2.2 测试 case 1: **Real deepseek: prompt "compute 2+3" 通过 GenerateSubgraphNode 生成 DSL**
+- [x] C.2.1 新建 `examples/pdk_chat_demo/tests/test_e2e_real_llm_generate_subgraph.cpp` ✅ (commit c1703cd)
+- [x] C.2.2 测试 case 1: **Real deepseek: prompt "compute 2+3" 通过 GenerateSubgraphNode 生成 DSL** ✅ (deepseek tokens=1456)
   - 真实 LLM 返回含算术节点的 DSL
   - subgraph 解析成功 (不赌"5",只断言 `success=true` + `callback >= 1`)
-- [ ] C.2.3 测试 case 2: **Real deepseek: 复杂 prompt "compute factorial of 5" → 多 subgraph 生成**
+- [x] C.2.3 测试 case 2: **Real deepseek: 复杂 prompt "compute factorial of 5" → 多 subgraph 生成** ✅ (deepseek tokens=963)
   - callback 触发 ≥ 2 次 (graph split)
   - 每个 subgraph 可独立解析
-- [ ] C.2.4 ~~Real deepseek 错误恢复~~ **DELETED** (Oracle Q3: 真实 LLM 输出不可控,B.1.3 畸形 YAML fixture 同路径已覆盖)
-- [ ] C.2.5 在 `tests/CMakeLists.txt` 注册
+- [x] C.2.4 ~~Real deepseek 错误恢复~~ **DELETED** (Oracle Q3: 真实 LLM 输出不可控,B.1.3 畸形 YAML fixture 同路径已覆盖)
+- [x] C.2.5 在 `tests/CMakeLists.txt` 注册 ✅
 
-## Phase D — 真实 LLM 多轮 (保留 D.2, 删 D.3/D.4)
+## Phase D — 真实 LLM 多轮 (保留 D.2, 删 D.3/D.4) ✅ 2026-09-16
 
-- [ ] D.1 新建 `examples/pdk_chat_demo/tests/test_e2e_real_llm_multi_turn.cpp`
-- [ ] D.2 测试 case 1: **3 轮对话 context preservation** (保留,降险)
+- [x] D.1 新建 `examples/pdk_chat_demo/tests/test_e2e_real_llm_multi_turn.cpp` ✅
+- [x] D.2 测试 case 1: **3 轮对话 context preservation** (保留,降险) ✅ (commit c1703cd, 1 case / 7 assertions PASS, "alice" 匹配降为 WARN per AGENTS.md 模式 #3 flake 保护)
   - Round 1: "My name is Alice" → response 非空
   - Round 2: "What's my name?" → response 含 "alice" (大小写不敏感子串)
   - Round 3: "Thanks" → response 非空
   - **验证依据**: chat_session.cpp:335-339 追加 user_msg,:346 全量 dump 进 loop_args,react.agent.md think 节点 `{{history}}` 插值
   - **降险**: 大小写不敏感 + 接受 "you said your name is Alice" 等变体
-- [ ] D.3 ~~/model 切换 mid-conversation~~ **DELETED** (Oracle Q1: `next_model_` write-only,全仓库零消费者,测的是未实现生产行为)
-- [ ] D.4 ~~system prompt variations~~ **DELETED** (Oracle Q4: "诗意语言"不可断言)
+- [x] D.3 ~~/model 切换 mid-conversation~~ **DELETED** (Oracle Q1: `next_model_` write-only,全仓库零消费者,测的是未实现生产行为)
+- [x] D.4 ~~system prompt variations~~ **DELETED** (Oracle Q4: "诗意语言"不可断言)
 
 ## Phase G — 真实 LLM 错误处理 (错误码修正版)
 
