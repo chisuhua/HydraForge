@@ -5,7 +5,7 @@
 
 ## 状态
 
-🟡 Partial (Sprint 24 调研完成, §Step 1+2 假设偏差已修订, 见 §实施日志)
+✅ Approved (2026-09-16 Sprint 28 step 1-5 全 ship + 3.3× speedup benchmark 验证, 根因修复路径闭环)
 
 > **背景 (2026-09-08)**: Wave 1 #2 `fix-cloud-adapter-multithreading` 通过工厂层
 > `SerializingDecorator` (mutex + cv 串行化 generate/generate_stream) 规避了
@@ -17,7 +17,15 @@
 > 已含 PR #701 threading fix). 升级路径重定位至 httplib CVE-2026-33745
 > (Critical security) 升级, 真根因待 Sprint 26 实证.
 >
-> **OpenSpec 追踪**: `openspec/changes/cloud-adapter-threading-root-cause/` (scaffold).
+> **Sprint 26-27 root cause 修复 ship (2026-09-12)**: 
+> - Step 1: OpenSSL 3.0 per-thread 集成 ✅ (假设失效但升级完成)
+> - Step 2: httplib 0.18.4 → 0.54.1 ✅ (含 PR #701 threading fix)
+> - Step 3: test_cloud_adapter_multithread PASS 12.56s (8 worker × 20 task real deepseek)
+> - Step 4: 移除默认 SerializingDecorator (commits de79309 + 9d6d6a6 + bd1c893 + a146711)
+> - Step 5.1 (2026-09-16): 4-worker benchmark **3.3× speedup** (serial 2834ms → parallel 858ms)
+> - 决策 3 落地: SerializingDecorator 保留为 OPT-IN fail-safe
+>
+> **OpenSpec 追踪**: `openspec/changes/adr-0087-root-cause-upgrade/` → 2026-09-16 archive
 > **Wave 1 #2 实施**: ship (commit `3d653e0` + Phase 2 commits).
 
 ## 决策
@@ -299,7 +307,9 @@ if (backend == "openai" || ...) {
 | 2026-09-08 | 🔍 Proposed | ADR 创建 (Wave 1 #2 ship 后) |
 | 2026-09-10 (commit `26749c2`) | 🟡 Partial | Sprint 24 调研完成,根因诊断修订 |
 | 2026-09-10 (本 commit) | 🟡 Partial | Oracle 评审 High/Medium/Low 修正应用 |
-| 2026-09-XX (待) | 🟡 Partial → ✅ Approved | Sprint 25 升级 ship + Sprint 26 实证后 |
+| 2026-09-12 (commits de79309 + 9d6d6a6 + bd1c893 + a146711) | 🟡 Partial | Sprint 27 step 1-4 ship (root cause fixes, 移除默认 SerializingDecorator) |
+| 2026-09-16 (commit `13ac53f`) | 🟡 Partial | step 5.1 benchmark 验证 3.3× speedup (serial 2834ms → parallel 858ms) |
+| 2026-09-16 (本 commit) | ✅ Approved | step 5 全 ship + OPT-IN docs 完整 + 3.3× 加速证据齐全 |
 
 ---
 

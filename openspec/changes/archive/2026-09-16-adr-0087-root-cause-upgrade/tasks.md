@@ -56,23 +56,23 @@
   - **Oracle session:** `ses_f738bec89ffeFMay5d3VIiXJGd` SHIP-with-fixes verdict
   - **验证:** openspec validate --strict PASS / adr_lint 68 ADR PASS / docs_drift_audit 0 DRIFT / check-model-default-cleared 8/8 OK
 
-## 5. Benchmark + OPT-IN 文档 (Sprint 28) ⏸ PENDING
+## 5. Benchmark + OPT-IN 文档 (Sprint 28) ✅ SHIPPED 2026-09-16
 
-- [ ] 5.1 4 worker 并发 deepseek benchmark (预期 ~4× 加速, baseline ~12s → fix 后 ~3s)
-- [ ] 5.2 OPT-IN serializer 路径文档 (docs/active-status.md + AGENTS.md)
-- [ ] 5.3 ADR-0087 状态从 🟡 Partial → ✅ Approved
-- [ ] 5.4 openspec archive adr-0087-root-cause-upgrade
+- [x] 5.1 4 worker 并发 deepseek benchmark (实测 **3.3× 加速**: serial 2834ms → parallel 858ms) — commit `13ac53f`
+- [x] 5.2 OPT-IN serializer 路径文档 (docs/active-status.md + AGENTS.md) — 本 commit
+- [x] 5.3 ADR-0087 状态从 🟡 Partial → ✅ Approved — docs/adr/adr-0087-cloud-adapter-threading-model.md 翻转
+- [x] 5.4 openspec archive adr-0087-root-cause-upgrade — 本 commit
 
-## 6. 关联 (待 ship 后)
+## 6. 关联 ✅
 
-- [ ] 6.1 active-status.md 更新: ADR-0087 root cause upgrade 完成记录
-- [ ] 6.2 ctest 计数 + 性能 benchmark 数据
-- [ ] 6.3 AGENTS.md §ENGINEERING PATTERNS 沉淀 (Multithread SIGSEGV root cause 解决)
+- [x] 6.1 active-status.md 更新: ADR-0087 root cause upgrade 完成记录
+- [x] 6.2 ctest 计数 + 性能 benchmark 数据 (3.3× speedup 记录)
+- [x] 6.3 AGENTS.md §ENGINEERING PATTERNS 沉淀 (Multithread SIGSEGV root cause 解决)
 
-## 7. Validation Per Sprint
+## 7. Validation Per Sprint ✅
 
-- [ ] cmake --build 零 error + 零 warning
-- [ ] openspec validate --strict PASS
-- [ ] adr_lint PASS (68 ADR, +ADR-0087)
-- [ ] docs_drift_audit: 0 DRIFT items
-- [ ] check-model-default-cleared 8/8 OK
+- [x] cmake --build 零 error + 零 warning
+- [x] openspec validate --strict PASS
+- [x] adr_lint PASS (68 ADR, +ADR-0087)
+- [x] docs_drift_audit: 0 DRIFT items
+- [x] check-model-default-cleared 8/8 OK
