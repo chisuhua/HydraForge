@@ -140,6 +140,9 @@ TEST_CASE("ChatSession: registry 'Tool not found' 错误信封 remap 到 ToolNot
     ChatSessionFixtureEmpty fx;
     fx.bus->subscribe("loop.error", [&](const BusEvent& e) { captured.push_back(e); });
     auto result = fx.session->chat("test input");
+    // InMemoryBus 异步 dispatch_thread 派发, chat() 返回时事件未达 subscriber
+    // (AGENTS.md mode #9 contract drain API). wait_for_drain() 等派发完.
+    fx.bus->wait_for_drain();
     REQUIRE(result.success == false);
     REQUIRE(result.error_message == "Tool not found: loop/run");
     REQUIRE(captured.size() == 1);
