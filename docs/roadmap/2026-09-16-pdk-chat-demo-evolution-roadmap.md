@@ -4,9 +4,48 @@
 > **驱动愿景**: 在 HydraForge "DSL 执行引擎" 核心使命内搭建 Harness-RSI 闭环骨架
 > **覆盖**: Sprint 34-36 (3 Sprints, ~3-4 周)
 > **生成日期**: 2026-09-16
-> **最后验证**: 2026-09-16（基于 Phase 6c 收官 + Sprint 33+ 收官 baseline）
+> **最后验证**: 2026-09-17（追加 Wave 2 P1 + Worker Pool + DAG 动态组合调研记录）
 > **作者**: Architecture Working Group + Oracle 评审 (`task_id=ses_f55f307f6ffeRJ9SIny8iUbZ8Y`)
 > **状态**: 🔍 Proposed (Master Plan 草案，待 24h cooling-off + GitHub Issue self-review)
+
+---
+
+## ⚠️ Master Plan 更新日志 (2026-09-17)
+
+### 追加 #1: Wave 2 P1 (intent classification + loop type routing) 补登记
+
+**之前状态**: 仅在 `openspec/changes/archive/2026-09-17-fix-dsl-call-pause-autonomous-mode/proposal.md` L182 提及"Wave 2 P1 (intent 分类 + loop_type 路由) — 那是独立 change"，**主计划未登记**。
+
+**Metis + Oracle 调研结论** (sessions `ses_f5084d7bfffeq1Yt5QVVtaIfix` + `ses_f5084614dffesPP0dEHgJhc4LM`):
+- P1 真实存在，但**完全可通过纯 DSL 图节点实现**，不需要新 C++ 类
+- 实施路径: 新建 `lib/loop/intent_classify.agent.md`（~30 行 YAML subgraph）+ `switch` 节点 + `tool_call loop/run_subgraph` 桥接
+- 估时修订: 3-5 天 → **2-3 天**（DSL 实现比 C++ 实现更轻量）
+
+**Worker Pool Routing 不需要单独决策** (Oracle `ses_f505f99fdffefgE5Q9oFA2t2AD`):
+- CognitiveWorker 生产零使用（仅 tests），不阻塞 P1
+- DomainWorkerPool 唯一生产消费者是 C++ ForkJoinLoop，但 chat 路径走 DSL TopoScheduler Taskflow，**不经 DomainWorkerPool**
+- P1 intent schema 保持 4 字段（`intent_type/complexity/suggested_loop/requires_subgraph`），**不要加 `worker_pool` 字段**
+
+### 追加 #2: 完整 DAG 动态组合流程调研完成 (2026-09-17)
+
+Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发现 2 个 Latent Gap**:
+
+1. **静态 `next: "/dynamic/..."` 在现行实现必然失败** (`parse_node_wait_for_deps` 无 `/dynamic/` 豁免, 抛 "Next node not found"). dsl.md §423/§438/§1114 描述与实现矛盾.
+2. **generate→register→execute 全链路无任何 E2E 测试**. 现有 2 个 "E2E" 实为 prompt smoke, 真实 LLM 对 `execute_generate_subgraph` 覆盖 = 零.
+
+**关键架构事实**: plan_execute.agent.md 已 ship 的"LLM 生成子图→执行"走 `loop/execute_plan` 工具 (独立子引擎), **不走 generate_subgraph 节点**.
+
+### 追加 #3: P1 实施路径修订为方案 A'' (2026-09-17)
+
+基于上述调研, P1 方案从"全 DSL 化"修订为**方案 A''** (混合模式):
+- 分类逻辑仍是 DSL 图 `lib/loop/intent_classify.agent.md` (~30 行)
+- Dispatch 决策在 **ChatSession 层** (两次平级 loop/run 调用)
+- 动态子图部分**复用已 ship 的 `loop/execute_plan` 工具模式** (独立子引擎)
+- **不使用 generate_subgraph 节点** (latent gap #1 已知, 绕道)
+- 估时 **0.5-1 sprint** (2-3 天实施 + 3-5 天真实 LLM 测试)
+- 符合 pdk/loop_agent/README 双循环架构: Chat-loop 管 turn 边界路由, Agent-loop 管 turn 内推理
+
+`GenerateSubgraphNode` 节点 deferred to 独立 fix 项 (不阻塞 P1). 修复需要 (a) build_dag 加 `/dynamic/` 豁免或修正 dsl.md 文档 + (b) 补全 3+3 真实 LLM E2E, 估时 1-2 sprint.
 
 ---
 
@@ -26,18 +65,16 @@
   - skill-interpreter-ipc-rellm, pdk-chat-session-shim-cleanup
 
 ### 1.3 关键 Baseline 数据
-- **ctest baseline**: 243/243 PASS（2026-09-16 verified, per `AGENTS.md` "Recent Changes"）
+- **ctest baseline**: 245/245 PASS（2026-09-17 verified, post C0+C1+P0 ship; per `docs/active-status.md`）
 - **adr_lint.py**: 0 errors
 - **docs_drift_audit**: 0 DRIFT items
 - **openspec validate**: clean
 
 ### 1.4 关键 bug（驱动本 plan 存在）
-- **Bug 1**: `pdk/loop_agent/src/pdk_entry.cpp:166-329` `loop/run` 工具返回契约缺 `ok/error_code` 字段
-- **Bug 2**: `pdk/chat_session/src/chat_session.cpp:500-503` `result.success = true` 无条件覆盖吞错误
-- **Bug 3**: `pdk/loop_agent` 仅注册 2 工具（`loop/set_parent_provider`, `loop/run`），但 `lib/loop/*.agent.md` 引用 3 个未实现工具
-  - `loop/decide_react` (react.agent.md L25)
-  - `loop/execute_plan` (plan_execute.agent.md L23)
-  - `loop/process_task` (fork_join.agent.md L21/29/37)
+- **Bug 1**: ✅ FIXED (`f84dbb3`, Sprint 34 C0) — `loop/run` 工具返回契约补 `ok/error_code` 字段 + `chat_session.cpp:526` 3 层 fallback 替代无条件 `result.success = true`
+- **Bug 2**: ✅ FIXED (`f84dbb3` + `d21ac6f`, Sprint 34 C0) — "Tool not found" envelope remap 到 `ToolNotRegistered` error_code (ADR-0023 对齐)
+- **Bug 3**: ✅ FIXED (`f4766be`, Sprint 34 C1) — `loop/decide_react` / `loop/execute_plan` / `loop/process_task` 全部实现 (`pdk_entry.cpp:402/434/524`) + `loop/set_capture_mode` 新增；13 unit test PASS (mock LLM) + 真实 DeepSeek LLM "Hello" 验证 ✅。**残量风险**: react agent 在 `decide` 节点真实 LLM 端到端仍 ship-with-known-issue（inja 渲染 `{{llm_response}}` 待诊断，跟进 chat-real-llm-coverage Phase H）
+- **Bridge fix**: ✅ FIXED (commit `pending`, follow-up `fix-tool-result-error-bridge`) — `tool_result.cpp:from_json` 加 `error → meta.error_message` 桥接，消除 PDK 工具失败错误信息隐形系统性问题
 
 ### 1.5 既有契约栈（Wave 2 复用基础）
 - **ADR-0083** IEvaluator/RewardSignal Contract (✅ V2 Shipped 2026-08-27)
@@ -93,6 +130,9 @@
 | C0 + C1 → C2 | **hard** | C2 需要 chat demo 能跑通才能采集真实事件流 | Sprint 35 起 |
 | C2 → C3 | **hard** | C3 状态机需要 Genome 版本号才能判断"过期数据" | Sprint 35 内 |
 | C3 → C4 | **hard** | Pilot 需要 H→D→M 守卫 | Sprint 36 |
+| P0 → P1 | **hard** | P1 classify→execute 链路需要 P0 让 Autonomous 模式跑通（已 ship ✅） | Sprint 36+ deferred |
+| P1 → (无 hard dep) | none | P1 纯 DSL 实现，可独立 ship 不阻塞 C2/C3/C4 | 可与 C4 并行 |
+| P1 → C2 (可选) | soft | P1 输出的 `suggested_loop` 可被 Genome spec.harness.loop_type 引用 | 后续 follow-up |
 
 ---
 
@@ -102,11 +142,18 @@
 |---|------|------|------|------|------|--------|
 | **C0** | `fix-loop-run-return-contract` | immediate-placeholder | 1-2h | None | ✅ | 34 |
 | **C1** | `loop-agent-tools` | immediate-placeholder | 3-5h | None (∥ C0) | ✅ | 34 |
-| **C2** | `genome-registry` | hard-placeholder | 1 周 | C0+C1 | ⚪ | 35 |
+| **P0** | `fix-dsl-call-pause-autonomous-mode` (Wave 2 P0) | immediate-placeholder | 4h | C0+C1 | ✅ | 34 |
+| **C2** | `genome-registry` | hard-placeholder | 1 周 | C0+C1+P0 | ⚪ | 35 |
 | **C3** | `h-d-m-transition-guard` | hard-placeholder | 2-3 天 | C2 | ⚪ | 35 |
+| **P1** | `intent-classification-router` (Wave 2 P1) — **方案 A''** (Oracle `ses_f4fd88215ffeUWSe2StAWtFPSQ` 推荐): `lib/loop/intent_classify.agent.md` (DSL 分类图, ~30 行) + `loop/classify_intent` 工具 (loop_agent C++, ~30 行) + ChatSession `"auto"` routing (C++, ~20 行, **两次平级** loop/run 调用) + 真实 LLM E2E 6 cases (3 happy + 3 error). **不使用 generate_subgraph 节点** (Oracle latent gap #1: 静态 `next: /dynamic/...` 在 build_dag 抛错, 文档与实现矛盾). **动态子图部分复用已 ship 的 `loop/execute_plan` 工具模式** (独立子引擎, 不走 /dynamic/ 注册). 估时 **0.5-1 sprint** (2-3 天实施 + 3-5 天真实 LLM 测试). | hard-placeholder | **0.5-1 sprint** | P0 | 🟡 Deferred → Sprint 36+ (与 C4 并行候选) | 35+ |
 | **C4** | `harness-rsi-pilot` | hard-placeholder | 1-2 周 | C3 | ⚪ | 36 |
 
-**总估时**: 3-4 周（基于 Oracle `ses_f55f307f6ffeRJ9SIny8iUbZ8Y` 评审）
+**总估时**: 4-5 周（基线 C0+C1+P0 已 ship + C2+C3 Sprint 35 + C4 Sprint 36 + P1 deferred → Sprint 36+ 候选与 C4 并行 + generate_subgraph fix 项独立 1-2 sprint）
+**P1 实施方案**: 方案 A'' (Oracle `ses_f4fd88215ffeUWSe2StAWtFPSQ` 推荐)，2 次平级 loop/run + 复用 `loop/execute_plan` 模式
+**P1 worker pool routing**: 不需要单独决策（Oracle `ses_f505f99fdffefgE5Q9oFA2t2AD`）
+**P1 intent schema**: 4 字段 `intent_type/complexity/suggested_loop/requires_subgraph`，不加 `worker_pool`
+
+(原 "总估时: 3-4 周" Oracle `ses_f55f307f6ffeRJ9SIny8iUbZ8Y` 评审版已被 P1 补登记后的 4-5 周 supersede — 详 §十一 Adjustment Log)
 
 ### 类型说明
 - **immediate-placeholder**: Wave 1 修复 bug 的高优先级 change，待写完整 proposal/design/tasks/specs
@@ -330,7 +377,7 @@
 **Ship Gate (必须全部通过)**:
 - [ ] 真实 LLM 模式跑通：输入消息 → Assistant 显示非空文本 + total_steps ≥ 1
 - [ ] 3 工具单测全部 PASS
-- [ ] ctest 全量 243/243 零回归
+- [ ] ctest 全量 245/245 零回归
 - [ ] adr_lint 0 errors
 - [ ] docs_drift_audit 0 DRIFT
 - [ ] openspec validate clean
@@ -507,6 +554,10 @@
 |------|--------|-----------|------|--------|
 | 2026-09-17 | 34 | **C0 ship-with-fixes**: Oracle review (session `ses_f54ef2010ffeLK90Y0OQp1DuxJ`) 发现 4 项 (Critical commit 顺序, Major spec R3/R2 producer-correction, Minor test 名 + spec text alignment). 全部修正 ship. | 应用 Critical/Major/Minor; 3 atomic commits `f84dbb3` + `d21ac6f` + `f3fbb9d`; archive 5 文件完整 | `f84dbb3` + `d21ac6f` + `f3fbb9d` |
 | 2026-09-17 | 34 | **C1 ship-with-fixes**: Metis dual-agent review (session `ses_f53731302ffegMN8KTsrzqrPOB`) 发现 4 Major (M1 merge_patch 语义未定义, M2 子图 registry 隔离 NOTE 缺失, M3 thread_local per-thread 声明缺失, M4 E2E 自动化缺失). 全部修正 ship. | design.md D2/D4 加 NOTE, tasks.md §6.1 改自动化 E2E; deep agent `bg_9a5f7c89` 实施 22 case PASS; atomic commit `f4766be`; archive 5 文件完整 (路径 `2026-09-17-2026-09-16-loop-agent-tools` 因当前日期 9-17 + 创建日期 9-16 双前缀) | `f4766be` |
+| 2026-09-17 | 34 | **P0 (fix-dsl-call-pause-autonomous-mode) ship-with-fixes**: Oracle+Metis dual-agent review (sessions `ses_f530341e6ffeCdMvLYU9pITBoI` + `ses_f53731302ffegMN8KTsrzqrPOB`) 发现 7 项 (Oracle C1 steps, C2 SchedulerConfig.execution_flags 透传路径, M1 catch 双 guard, M2 has_autonomous_flag 包装, M3 enum class 单 flag; Metis M1 loop/execute_plan Autonomous, M2 D1 DSL-only 实现, M3 worker pool 调研). 全部修正 ship. | 基础设施 11 文件 +209/-3 (`016497e`) + D4 wiring 4 文件 +308/-8 (`23e8403`); 7 test_loop_agent_autonomous + 7 test_e2e_mock 全 PASS (真实 DeepSeek LLM "Hello" 验证); Option A mock_fallback 修回归 (Metis M3 衍生) | `016497e` + `23e8403` |
+| 2026-09-17 | - | **Master Plan 补登记 Wave 2 P1**: P0 proposal L182 提及"P1 (intent 分类 + loop_type 路由) — 独立 change" 但 master plan 未登记. Metis+Oracle dual-agent review 确认 P1 真实存在, 完全可通过纯 DSL 图节点实现 (`lib/loop/intent_classify.agent.md` + switch + loop/run_subgraph + 可选 generate_subgraph). | §三表格添加 P1 行 (deferred → Sprint 36+), §二 Dependency Graph 添加 P0→P1 hard + P1→(none), 顶部 ⚠️ 更新日志记录本次同步, §十一 Adjustment Log 添加 P1 row. 估时修订 3-5 天 → 2-3 天. | (本 commit) |
+| 2026-09-17 | - | **Master Plan 补登记 Worker Pool 调研结论**: Oracle 调研 (session `ses_f505f99fdffefgE5Q9oFA2t2AD`) 确认 chat 路径无 worker pool 选择 (CognitiveWorker 生产零使用, DomainWorkerPool 唯一生产消费者是 C++ ForkJoinLoop 但 chat 走 DSL TopoScheduler Taskflow). | P1 intent schema 不加 `worker_pool` 字段. 顶部更新日志记录. | (本 commit) |
+| 2026-09-17 | - | **DAG 动态组合完整流程调研完成**: Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s). **新发现 2 个 Latent Gap** (此前未记录): (1) 静态 `next: "/dynamic/..."` 在 `parse_node_wait_for_deps` (topo_scheduler.cpp:88-95) 抛 "Next node not found", 无 `/dynamic/` 豁免; dsl.md §423/§438/§1114 与实现矛盾. (2) generate→register→execute 全链路无任何端到端测试; 现有 2 个 "E2E" 名义测试实为 prompt smoke, 真实 LLM 对 `execute_generate_subgraph` 覆盖 = 零. **关键架构事实**: plan_execute.agent.md 已 ship 的"LLM 生成子图→执行"走 `loop/execute_plan` 工具 (独立子引擎), **不走 generate_subgraph 节点**. | §三 P1 Row 修订为方案 A'' (推荐): ChatSession 两次平级 loop/run + 复用 `loop/execute_plan` 模式 + 不使用 generate_subgraph 节点. §十一 Adjustment Log 加 P1 方案 A'' + generate_subgraph 节点 deferred 行. | (本 commit) |
 
 ---
 
@@ -517,6 +568,10 @@
 | 2026-09-17 | C1 | tools 字段 v1 忽略（留 future field） | Metis N1 minor: design.md 隐式接受, tasks §3 未列 |
 | 2026-09-17 | C1 | `loop/decide_react` response 字段保持原文 | design.md D1 L1/L2/L3 统一返回原文, spec Scenario 强化 (Metis N3) |
 | 2026-09-17 | C1 | 错误码仅断言活跃值 (InvalidParams/Unknown) | C1 仅产 2 个值, Cancelled/ToolNotRegistered 是保留值 (Metis N5) |
+| 2026-09-17 | P1 (Wave 2) | **新登记** Wave 2 P1 (intent-classification-router) — 纯 DSL 子图实现 (`lib/loop/intent_classify.agent.md` + switch + loop/run_subgraph + 可选 generate_subgraph). 估时 **2-3 天** (DSL 实现比 C++ 实现更轻量). Deferred → Sprint 36+ 与 C4 并行候选. | P0 proposal L182 显式声明下游 dep 但主计划未登记; Metis+Oracle dual-agent review 确认 scope + DSL-only 实施路径 (sessions `ses_f5084d7bfffeq1Yt5QVVtaIfix` + `ses_f5084614dffesPP0dEHgJhc4LM`) |
+| 2026-09-17 | P1 (Wave 2) | **P1 intent schema 保持 4 字段**: `intent_type/complexity/suggested_loop/requires_subgraph`, **不加 `worker_pool` 字段** | chat 路径无 worker pool 选择; CognitiveWorker 生产零使用; DomainWorkerPool 唯一生产消费者是 C++ ForkJoinLoop 但 chat 走 DSL TopoScheduler Taskflow (Oracle `ses_f505f99fdffefgE5Q9oFA2t2AD`) |
+| 2026-09-17 | P1 (Wave 2) | **P1 实施路径从"全 DSL 化"修订为方案 A''** (混合模式, Oracle `ses_f4fd88215ffeUWSe2StAWtFPSQ` 推荐). 分类逻辑仍是 DSL 图 `lib/loop/intent_classify.agent.md` + `loop/classify_intent` 工具, 但 **dispatch 决策在 ChatSession 层** (两次平级 loop/run 调用). 动态子图部分 **复用已 ship 的 `loop/execute_plan` 工具模式** (独立子引擎), **不使用 generate_subgraph 节点**. 估时 0.5-1 sprint. | Oracle DAG 调研发现 generate_subgraph 节点有 2 个 latent gap (静态 `next: /dynamic/...` build_dag 抛错 + 全链路零 E2E 测试); 方案 A'' 规避生成图节点, 利用已 ship 模式, 同时符合双循环架构 (Chat-loop 管 turn 边界路由, Agent-loop 管 turn 内推理). |
+| 2026-09-17 | generate_subgraph | **`GenerateSubgraphNode` 节点 deferred to 独立 fix 项** (不阻塞 P1). dsl.md §423/§438/§1114 描述的 `next: "/dynamic/x"` 静态跳转与实现矛盾 (`parse_node_wait_for_deps` 无 `/dynamic/` 豁免); 真实 LLM 对 `execute_generate_subgraph` 覆盖 = 零. **P1 走 `loop/execute_plan` 已 ship 模式绕过此问题**. | Oracle DAG 调研发现 latent gap; 修复 generate_subgraph 节点需要 (a) build_dag 加 `/dynamic/` 豁免或修正 dsl.md 文档使其与 wait_for 动态机制一致 + (b) 补全 3+3 真实 LLM E2E (happy + error path) — 总估时 1-2 sprint, 单独立项. |
 
 ---
 
@@ -545,24 +600,39 @@ docs/superpowers/plans/
 └── 2026-09-16-pdk-chat-demo-evolution-roadmap.md     # 本文件 (Master Plan tracker)
 
 openspec/changes/
-├── 2026-09-16-fix-loop-run-return-contract/         # C0 immediate-placeholder
-│   ├── .openspec.yaml
-│   ├── proposal.md          # STATUS: PLACEHOLDER
-│   ├── tasks.md             # 5-10 sections TBD
-│   └── specs/
-│       └── loop-run-contract/spec.md
-├── 2026-09-16-loop-agent-tools/                    # C1 immediate-placeholder
-│   ├── .openspec.yaml
-│   ├── proposal.md          # STATUS: PLACEHOLDER
-│   ├── tasks.md
-│   └── specs/
-│       └── loop-agent-tools/spec.md
+├── 2026-09-16-fix-loop-run-return-contract/         # C0 ✅ shipped (commit f84dbb3)
+├── 2026-09-16-loop-agent-tools/                    # C1 ✅ shipped (commit f4766be)
+├── archive/
+│   ├── 2026-09-17-2026-09-16-fix-loop-run-return-contract/    # C0 ✅ shipped
+│   ├── 2026-09-17-2026-09-16-loop-agent-tools/                # C1 ✅ shipped
+│   └── 2026-09-17-2026-09-17-fix-dsl-call-pause-autonomous-mode/  # P0 ✅ shipped (commits 016497e + 23e8403)
 ├── 2026-09-16-genome-registry/                      # C2 hard-placeholder
 │   ├── .openspec.yaml
 │   ├── proposal.md          # STATUS: PLACEHOLDER + dep on C0+C1
 │   ├── tasks.md
 │   └── specs/
 │       └── genome-registry/spec.md
+├── 2026-09-17-intent-classification-router/         # P1 (Wave 2) hard-placeholder — 方案 A''
+│   ├── .openspec.yaml
+│   ├── proposal.md          # STATUS: PLACEHOLDER + dep on P0
+│   ├── tasks.md
+│   └── specs/
+│       └── intent-router/spec.md
+│       # 子图: lib/loop/intent_classify.agent.md
+│       # 工具: pdk/loop_agent loop/classify_intent (~30 行)
+│       # ChatSession "auto" routing (~20 行)
+│       # 真实 LLM E2E 6 cases (3 happy + 3 error)
+│       # 不使用 generate_subgraph 节点 (latent gap known, 绕道)
+│       # 复用 loop/execute_plan 已 ship 模式
+├── 2026-09-17-fix-generate-subgraph-static-next/    # 独立 fix 项 (不阻塞 P1)
+│   ├── .openspec.yaml
+│   ├── proposal.md          # STATUS: PLACEHOLDER
+│   ├── tasks.md
+│   └── specs/
+│       └── generate-subgraph-static-next/spec.md
+│       # (a) parse_node_wait_for_deps 加 /dynamic/ 豁免 OR 修正 dsl.md 文档
+│       # (b) 补全 3+3 真实 LLM E2E (happy + error)
+│       # 估时 1-2 sprint
 ├── 2026-09-16-h-d-m-transition-guard/               # C3 hard-placeholder
 │   ├── .openspec.yaml
 │   ├── proposal.md          # STATUS: PLACEHOLDER + dep on C2
