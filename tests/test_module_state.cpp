@@ -46,7 +46,9 @@ struct ModuleStateFixture {
             tools,
             &mock_llm,
             resources,
-            &empty_graphs
+            &empty_graphs,
+            0,  // execution_flags
+            nullptr  // append_graphs_callback
         );
     }
 };

@@ -144,7 +144,7 @@ TEST_CASE("ExecutionSession sets pending_yield_ when YIELD produces __yield_mode
                    "Test prompt", YieldMode::CONTINUE, "");
     Context ctx;
 
-    ExecutionSession session("test-session", std::nullopt, registry, provider.get(), rm, nullptr);
+    ExecutionSession session("test-session", std::nullopt, registry, provider.get(), rm, nullptr, 0, nullptr);
     ExecutionSession::ExecutionResult result = session.execute_node(&node, ctx);
 
     REQUIRE(result.success);
@@ -169,7 +169,7 @@ TEST_CASE("ExecutionSession pending_yield_ persists and clears correctly",
                    "Test prompt", YieldMode::NEXT, "");
     Context ctx;
 
-    ExecutionSession session("test-session", std::nullopt, registry, provider.get(), rm, nullptr);
+    ExecutionSession session("test-session", std::nullopt, registry, provider.get(), rm, nullptr, 0, nullptr);
 
     REQUIRE_FALSE(session.get_pending_yield().has_value());
 
