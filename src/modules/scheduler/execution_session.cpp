@@ -10,6 +10,8 @@
 #include "resource_manager.h"
 #include "common/llm/llm_types.h" // C₁.3: 需要完整 ILLMProvider 定义
 #include "common/utils/template_renderer.h" // 引入 InjaTemplateRenderer (for Trace context delta)
+// Wave 2 P0: has_autonomous_flag helper
+#include "agenticdsl/core/types/execution_flag.h"
 //#include "agenticdsl/llm/prompt_builder.h" // 引入 PromptBuilder
 #include <stdexcept>
 #include <algorithm> // For std::find
@@ -26,9 +28,11 @@ ExecutionSession::ExecutionSession(
     ILLMProvider* llm_provider,
     ResourceManager& resource_manager, // ← 新增
     const std::vector<ParsedGraph>* full_graphs,
+    int execution_flags,
     AppendGraphsCallback append_graphs_callback)
     : session_id_(session_id),
       resource_manager_(resource_manager), // ← 初始化 (引用)
+      execution_flags_(execution_flags), // Wave 2 P0: 存储 flag
       context_engine_(std::make_unique<ContextEngine>()),
       budget_controller_(std::make_unique<BudgetController>(std::move(initial_budget))),
       trace_exporter_(std::make_unique<TraceExporter>()),
@@ -241,16 +245,22 @@ ExecutionSession::ExecutionResult ExecutionSession::execute_node(Node* node, con
         }
 
         // --- v3.1: Check for LLM Call Pause ---
+        // Wave 2 P0: Autonomous 模式跳过 paused_at, 让 loop 继续执行后续节点
         if (node->type == NodeType::DSL_CALL) {
-             result.paused_at = node->path;
+             if (!has_autonomous_flag(execution_flags_)) {
+                 result.paused_at = node->path;
+             }
         }
 
     } catch (const std::exception& e) {
         result.success = false;
         result.message = std::string("Node execution failed: ") + e.what();
         // DSL_CALL nodes that fail (e.g., LLM unavailable) should pause so caller can supply content
+        // Wave 2 P0 (Oracle M1): 同样 guard catch 块 — Autonomous 模式跳过暂停
         if (node->type == NodeType::DSL_CALL) {
-            result.paused_at = node->path;
+            if (!has_autonomous_flag(execution_flags_)) {
+                result.paused_at = node->path;
+            }
         }
     }
 

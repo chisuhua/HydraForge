@@ -336,6 +336,10 @@ ExecutionResult DSLEngine::run(const Context& context) {
 }
 
 ExecutionResult DSLEngine::run(const LayeredContext& ctx) {
+    return run(ctx, ExecutionFlag::None);
+}
+
+ExecutionResult DSLEngine::run(const LayeredContext& ctx, ExecutionFlag flag) {
     // 提取预算（从 /__meta__）
     std::optional<ExecutionBudget> budget;
     for (auto& g : full_graphs_) {
@@ -349,6 +353,7 @@ ExecutionResult DSLEngine::run(const LayeredContext& ctx) {
     scheduler_cfg.initial_budget = std::move(budget);
     scheduler_cfg.approval_handler = approval_handler_.get(); // ADR-0031 (2026-07-31): 传递审批处理器
     scheduler_cfg.tool_coordinator = tool_coordinator_.get(); // C4 Sprint 14 (ADR-0031 P3-P4): 传递 ToolCoordinator
+    scheduler_cfg.execution_flags = static_cast<int>(flag); // Wave 2 P0: 透传 run flag 到 scheduler
     auto scheduler_unique = agenticdsl::scheduler::create(
         std::move(scheduler_cfg), *tool_registry_, get_llm_provider(), &full_graphs_);
     IScheduler& scheduler = *scheduler_unique;

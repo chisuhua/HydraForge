@@ -45,6 +45,8 @@ public:
         // 0 = std::max(1u, std::thread::hardware_concurrency()) (与 Sprint 12 C2 现状一致)
         // 非 0 时作为 tf::Executor 确切线程数,使并发度测试可确定性
         size_t num_workers = 0;
+        // Wave 2 P0 (2026-09-17): DSLEngine::run flag 透传
+        int execution_flags{0};
         // Add other config options if needed
         Config() = default;
     };

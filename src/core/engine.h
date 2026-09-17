@@ -59,6 +59,9 @@ namespace hydraforge { class PluginLoader; } // IToolRegistry 抽象 (P1.T2, 替
 // SessionRegistry (C11 Phase 5 Stage 1)
 #include "core/types/session_registry.h"
 
+// Wave 2 P0 (2026-09-17): ExecutionFlag — run 模式控制
+#include "agenticdsl/core/types/execution_flag.h"
+
 #include <memory>
 #include <string>
 
@@ -80,6 +83,9 @@ public:
     // Sprint 20 (2026-07-01) / OpenSpec migrate-context-to-layered:
     // 推荐签名 — 接受 LayeredContext (5-层结构化, ADR-0008)。
     ExecutionResult run(const LayeredContext& ctx);
+
+    // Wave 2 P0 (2026-09-17): ExecutionFlag overload — 控制 run 行为 (Autonomous/None)
+    ExecutionResult run(const LayeredContext& ctx, ExecutionFlag flag);
 
 [[deprecated("use LayeredContext overload (Sprint 20 / ADR-0008)")]]
     ExecutionResult run(const Context& context = Context{});

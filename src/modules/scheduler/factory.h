@@ -29,6 +29,7 @@ struct SchedulerConfig {
     // Sprint 19: 改用 IApprovalHandler 抽象 (依赖倒置, ADR-0019 §1.4)
     IApprovalHandler* approval_handler{nullptr}; // ADR-0031 (2026-07-31): 审批处理器
     ToolCoordinator* tool_coordinator{nullptr}; // C4 Sprint 14 (ADR-0031 P3-P4): ToolCoordinator
+    int execution_flags{0}; // Wave 2 P0: DSLEngine::run flag 透传
 };
 
 std::unique_ptr<IScheduler> create(

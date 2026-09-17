@@ -1090,3 +1090,37 @@ add_test(
     COMMAND test_generate_subgraph_pdk_chat
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# test_loop_agent_autonomous — Wave 2 P0: Autonomous mode E2E
+add_executable(test_loop_agent_autonomous
+    test_loop_agent_autonomous.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_loop_agent_autonomous PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_loop_agent_autonomous PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/tests
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+target_compile_definitions(test_loop_agent_autonomous PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+)
+add_test(
+    NAME test_loop_agent_autonomous
+    COMMAND test_loop_agent_autonomous
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../..
+)
+set_tests_properties(test_loop_agent_autonomous PROPERTIES
+    ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk:${CMAKE_BINARY_DIR}/pdk"
+    TIMEOUT 120
+)

@@ -79,6 +79,7 @@ public:
         ILLMProvider* llm_provider,
         ResourceManager& resource_manager, // ← 新增参数
         const std::vector<ParsedGraph>* full_graphs, // ← 新增：指向完整图集
+        int execution_flags, // Wave 2 P0: ExecutionFlag 透传 (0 = None)
         AppendGraphsCallback append_graphs_callback = nullptr // New parameter
     );
 
@@ -153,6 +154,7 @@ private:
     mutable std::mutex yield_mutex_;
     std::string session_id_;              // C11: Session 标识
     nlohmann::json session_vars_;         // C11: per-run Session 变量 (json)
+    int execution_flags_ = 0;             // Wave 2 P0: ExecutionFlag 值透传
     std::unordered_map<NodePath, std::vector<NodePath>> pending_dynamic_deps_; // NodePath -> [list of unresolved deps]
     std::unordered_map<NodePath, nlohmann::json> dynamic_wait_for_expressions_; // NodePath -> original wait_for expression
     AppendGraphsCallback append_graphs_callback_; // Callback for dynamic graphs

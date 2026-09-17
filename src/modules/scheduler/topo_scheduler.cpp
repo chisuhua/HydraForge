@@ -32,7 +32,7 @@ TopoScheduler::TopoScheduler(Config config, IToolRegistry& tool_registry, ILLMPr
     : full_graphs_(full_graphs),
       resource_manager_(std::make_unique<ResourceManager>()),
       session_("", std::move(config.initial_budget), tool_registry, llm_provider, *resource_manager_,
-               full_graphs_,
+               full_graphs_, config.execution_flags,
                [this](std::vector<ParsedGraph> graphs) { this->append_dynamic_graphs(std::move(graphs)); }) { // Pass callback to ExecutionSession
     // ADR-0031 (2026-07-31): 传递审批处理器到执行会话
     if (config.approval_handler) {
