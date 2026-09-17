@@ -492,7 +492,7 @@ ChatResult ChatSession::chat(const std::string& user_input, std::stop_token toke
         loop_args["tools"] = nlohmann::json(impl_->agent_cfg.tools).dump();
         loop_args["max_steps"] = std::to_string(impl_->agent_cfg.max_steps);
         // 将 bus 与会话 ID 透传给 loop_agent, 用于真实事件发射
-        loop_args["bus_ptr"] = ptr_to_str(impl_->bus.get());
+        loop_args["bus_ptr"] = ptr_to_str(impl_->bus.get());  // AUDIT: ptr_to_str 唯一合法使用点, 禁止扩展
         loop_args["session_id"] = session_id_;
         loop_args["cancellation_id"] = cancellation_id;
 
