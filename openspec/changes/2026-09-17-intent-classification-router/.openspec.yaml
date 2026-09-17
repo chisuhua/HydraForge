@@ -1,0 +1,11 @@
+# STATUS: PLACEHOLDER
+name: 2026-09-17-intent-classification-router
+created: 2026-09-17
+kind: hard-placeholder (Wave 2 P1, 方案 A'')
+deps:
+  - P0 fix-dsl-call-pause-autonomous-mode (shipped 2026-09-17)
+enables:
+  - C2 genome-registry (optional: suggested_loop field references harness.loop_type)
+priority: P1 (deferred → Sprint 36+, candidate parallel with C4)
+estimate: 0.5-1 sprint (2-3d impl + 3-5d real LLM test)
+oracle_session: ses_f4fd88215ffeUWSe2StAWtFPSQ (DAG dynamic composition 调研)

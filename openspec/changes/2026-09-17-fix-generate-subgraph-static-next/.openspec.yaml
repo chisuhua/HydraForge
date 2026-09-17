@@ -1,0 +1,14 @@
+# STATUS: PLACEHOLDER
+name: 2026-09-17-fix-generate-subgraph-static-next
+created: 2026-09-17
+kind: independent-fix (does NOT block P1)
+deps: none (independent)
+priority: P3 (deferred → Sprint 36+)
+estimate: 1-2 sprint (Oracle ses_f4fd88215ffeUWSe2StAWtFPSQ latent gap analysis)
+blocks:
+  - dsl.md §423/§438/§1114 文档与实现矛盾
+  - generate→register→execute 全链路零 E2E 测试覆盖
+scope:
+  - (a) parse_node_wait_for_deps 加 /dynamic/ 豁免 OR 修正 dsl.md 文档使其与 wait_for 动态机制一致
+  - (b) 补全 3+3 真实 LLM E2E (happy + error path) 对 execute_generate_subgraph
+oracle_session: ses_f4fd88215ffeUWSe2StAWtFPSQ
