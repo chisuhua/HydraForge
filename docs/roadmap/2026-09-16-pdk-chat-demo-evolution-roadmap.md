@@ -74,7 +74,7 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 - **Bug 1**: ✅ FIXED (`f84dbb3`, Sprint 34 C0) — `loop/run` 工具返回契约补 `ok/error_code` 字段 + `chat_session.cpp:526` 3 层 fallback 替代无条件 `result.success = true`
 - **Bug 2**: ✅ FIXED (`f84dbb3` + `d21ac6f`, Sprint 34 C0) — "Tool not found" envelope remap 到 `ToolNotRegistered` error_code (ADR-0023 对齐)
 - **Bug 3**: ✅ FIXED (`f4766be`, Sprint 34 C1) — `loop/decide_react` / `loop/execute_plan` / `loop/process_task` 全部实现 (`pdk_entry.cpp:402/434/524`) + `loop/set_capture_mode` 新增；13 unit test PASS (mock LLM) + 真实 DeepSeek LLM "Hello" 验证 ✅。**残量风险**: react agent 在 `decide` 节点真实 LLM 端到端仍 ship-with-known-issue（inja 渲染 `{{llm_response}}` 待诊断，跟进 chat-real-llm-coverage Phase H）
-- **Bridge fix**: ✅ FIXED (commit `pending`, follow-up `fix-tool-result-error-bridge`) — `tool_result.cpp:from_json` 加 `error → meta.error_message` 桥接，消除 PDK 工具失败错误信息隐形系统性问题
+- **Bridge fix**: ✅ FIXED (commit `0b0da50`) — `tool_result.cpp:from_json` 加 `error → meta.error_message` 桥接，消除 PDK 工具失败错误信息隐形系统性问题
 
 ### 1.5 既有契约栈（Wave 2 复用基础）
 - **ADR-0083** IEvaluator/RewardSignal Contract (✅ V2 Shipped 2026-08-27)
