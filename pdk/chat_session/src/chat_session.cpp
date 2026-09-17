@@ -495,6 +495,9 @@ ChatResult ChatSession::chat(const std::string& user_input, std::stop_token toke
         loop_args["bus_ptr"] = ptr_to_str(impl_->bus.get());  // AUDIT: ptr_to_str 唯一合法使用点, 禁止扩展
         loop_args["session_id"] = session_id_;
         loop_args["cancellation_id"] = cancellation_id;
+        // Wave 2 P0 Option A: mock provider → mock_fallback (不走真 DSL, 避免
+        // react.agent.md 需要多步 mock LLM 响应)
+        loop_args["mock_fallback"] = (impl_->agent_cfg.provider == "mock") ? "true" : "false";
 
         nlohmann::json loop_result = impl_->registry->call_tool("loop/run", loop_args);
 

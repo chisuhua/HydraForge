@@ -88,6 +88,63 @@ inline nlohmann::json error_result(const std::string& ec, const std::string& err
     return ok_result(false, ec.c_str(), err);
 }
 
+// Forward declaration: parse_react_decision 真实定义在 line 147, helper 在 line 99
+// 需要 forward decl 才能在 lambda 内部引用 (C++ 编译顺序约束)
+nlohmann::json parse_react_decision(const std::string& response);
+
+// ============================================================
+// Wave 2 P0: register_react_support_tools_for_child
+//   Child DSLEngine created by from_markdown has empty ToolRegistry.
+//   react.agent.md references loop/decide_react (decide node) and a
+//   dynamic {{decision.action_tool}} (act node, typically 'finish').
+//   We must register these to the child's registry so the DAG executes
+//   past decide → act → observe → end without halting on missing tools.
+// ============================================================
+inline void register_react_support_tools_for_child(::agenticdsl::DSLEngine& child) {
+    // 1. loop/decide_react — 复用 file-static parse_react_decision (line 94)
+    child.register_tool(
+        "loop/decide_react",
+        ::agenticdsl::ToolMetadata{
+            .name = "loop/decide_react",
+            .description = "Parse LLM response into ReAct decision (3-level fallback)",
+            .domain = "loop",
+            .category = ::agenticdsl::ToolCategory::Execute,
+            .min_layer = ::agenticdsl::LayerProfile::Workflow,
+            .approval = ::agenticdsl::ApprovalPolicy{false, true, false, false},
+            .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
+        },
+        [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+            auto it = args.find("response");
+            if (it == args.end() || it->second.empty()) {
+                return error_result("InvalidParams", "Missing 'response' argument");
+            }
+            return parse_react_decision(it->second);
+        });
+
+    // 2. finish — ReAct 终止动作, 返回 "Task complete" 让 react loop 走完 end 节点
+    child.register_tool(
+        "finish",
+        ::agenticdsl::ToolMetadata{
+            .name = "finish",
+            .description = "Mark task complete (ReAct terminal action)",
+            .domain = "loop",
+            .category = ::agenticdsl::ToolCategory::ReadOnly,  // 非 dangerous (registry.cpp:103)
+            .min_layer = ::agenticdsl::LayerProfile::Workflow,
+            .approval = ::agenticdsl::ApprovalPolicy{false, false, false, false},
+            .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
+        },
+        [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+            auto it = args.find("answer");
+            std::string answer = (it != args.end()) ? it->second : "Task complete";
+            nlohmann::json r;
+            r["ok"] = true;
+            r["success"] = true;
+            r["error_code"] = nullptr;
+            r["answer"] = answer;
+            return r;
+        });
+}
+
 // ============================================================
 // Helper: 三级 fallback ReAct 决策解析器 (design D1)
 // ============================================================
@@ -242,7 +299,16 @@ fs::path find_loop_dir() {
     const char* env_path = std::getenv("HYDRAFORGE_LOOP_DIR");
     if (env_path) return env_path;
 
-    // 2. 当前工作目录相对路径
+    // 2. 当前工作目录相对路径 (CWD = tests/ 时向上找 ../../../lib/loop)
+    fs::path cwd = fs::current_path();
+    for (int depth = 0; depth < 5; ++depth) {
+        fs::path candidate = cwd / "lib" / "loop";
+        if (fs::exists(candidate)) return candidate;
+        if (cwd == cwd.parent_path()) break;
+        cwd = cwd.parent_path();
+    }
+
+    // 3. Fallback: 相对当前 CWD
     return fs::current_path() / "lib" / "loop";
 }
 
@@ -411,6 +477,10 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                     std::make_unique<ProviderLLMTool>(
                         *tls_parent_provider, std::stop_token{}));
 
+                // Wave 2 P0 D4: 同 loop/run, 注册 react support tools + Autonomous
+                // (子 plan DSL 可能含 llm_call + tool_call 节点)
+                register_react_support_tools_for_child(*child);
+
                 // 构造 context
                 ::agenticdsl::LayeredContext ctx;
                 std::string context_str = str_arg(args, "context");
@@ -425,8 +495,8 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                     }
                 }
 
-                // 同步执行 (lock-step)
-                auto result = child->run(ctx);
+                // 同步执行 (lock-step, Wave 2 P0 Autonomous mode)
+                auto result = child->run(ctx, ::agenticdsl::ExecutionFlag::Autonomous);
 
                 // 构造输出
                 nlohmann::json output;
@@ -439,7 +509,8 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                     output["error"] = result.message;
                 }
                 output["results"] = result.final_context;
-                output["total_steps"] = 1;
+                // Wave 2 P0 Oracle C1: 真实步数
+                output["total_steps"] = static_cast<int>(child->get_last_traces().size());
                 return output;
             } catch (const std::exception& e) {
                 return error_result("Unknown", e.what());
@@ -593,8 +664,19 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                     hydraforge::pdk::g_cancellation_registry->resolve_token(cancellation_id);
             }
 
-            // Mock fallback when parent provider not set
-            if (!tls_parent_provider) {
+            // Mock fallback when parent provider not set or mock_fallback mode
+            std::string mock_fallback_str = str_arg(args, "mock_fallback");
+            bool mock_fallback_mode = (mock_fallback_str == "true");
+            if (!tls_parent_provider || mock_fallback_mode) {
+                // Metis Option A: mock fallback 也发射事件保证事件契约一致性
+                // (test_e2e_mock / test_chat_session_events 期望 loop.turn.* 事件)
+                if (bus && !session_id.empty()) {
+                    emit_loop_event(bus, session_id, "loop.turn.start",
+                                    {{"turn", 1}, {"step", 1}});
+                    emit_loop_event(bus, session_id, "loop.decision",
+                                    {{"decision", "tool_call"}, {"tool", "loop/run"}});
+                }
+
                 nlohmann::json output;
                 output["response"] =
                     "[loop_agent/" + loop_type + "] Processed: \"" + user_prompt + "\"\n\n"
@@ -606,6 +688,11 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                 output["success"] = true;
                 output["ok"] = true;
                 output["error_code"] = nullptr;
+
+                if (bus && !session_id.empty()) {
+                    emit_loop_event(bus, session_id, "loop.turn.end",
+                                    {{"turn", 1}, {"decision", "respond"}});
+                }
                 return output;
             }
 
@@ -635,6 +722,10 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                     "llama-default",
                     std::make_unique<ProviderLLMTool>(*tls_parent_provider, cancellation_token));
 
+                // Wave 2 P0 D4: 注册 react.agent.md 依赖的工具到 child engine
+                // (loop/decide_react for decide node + finish for act terminal)
+                register_react_support_tools_for_child(*child);
+
                 ::agenticdsl::LayeredContext ctx;
                 ctx.working["user_input"] = user_prompt;
                 ctx.working["system_prompt"] = str_arg(args, "system_prompt");
@@ -648,7 +739,9 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                 emit_loop_event(bus, session_id, "loop.decision",
                                 {{"decision", "tool_call"}, {"tool", "loop/run"}});
 
-                auto result = child->run(ctx);
+                // Wave 2 P0 D4: Autonomous mode skips DSL_CALL pause, lets full
+                // react loop (think → decide → act → observe → end) execute.
+                auto result = child->run(ctx, ::agenticdsl::ExecutionFlag::Autonomous);
 
                 // ADR-0068 附录 A: loop.turn.end
                 emit_loop_event(bus, session_id, "loop.turn.end",
@@ -673,7 +766,8 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                 }
                 if (response_text.empty()) response_text = result.message;
                 output["response"] = response_text;
-                output["steps"]  = 1;
+                // Wave 2 P0 Oracle C1: 真实步数 (替代硬编码 1)
+                output["steps"]  = static_cast<int>(child->get_last_traces().size());
                 output["tokens_used"] = 0;
                 output["cost_usd"]    = 0.0;
                 return output;

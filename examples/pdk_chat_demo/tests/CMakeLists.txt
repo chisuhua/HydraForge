@@ -1114,7 +1114,9 @@ target_include_directories(test_loop_agent_autonomous PRIVATE
 )
 target_compile_definitions(test_loop_agent_autonomous PRIVATE
     CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+    LOOP_AGENT_SO_PATH="${PROJECT_BINARY_DIR}/pdk/loop_agent/libLoopAgent.so"
 )
+target_link_options(test_loop_agent_autonomous PRIVATE -Wl,--export-dynamic)
 add_test(
     NAME test_loop_agent_autonomous
     COMMAND test_loop_agent_autonomous
