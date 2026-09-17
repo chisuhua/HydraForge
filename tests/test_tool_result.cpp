@@ -255,3 +255,56 @@ TEST_CASE("ErrorCode::Cancelled string round-trip",
   // meta.error_message 字段保留 ("user cancelled")
   REQUIRE(roundtripped.meta.value("error_message", "") == "user cancelled");
 }
+
+// === Test (fix-tool-result-error-bridge): 顶层 error 字段桥接到 meta.error_message ===
+// PDK 工具 (pdk_entry.cpp error_result) 返回 {"ok":false, "error":"...", "error_code":"..."}
+// 时, 顶层 error 字段必须桥接到 ToolResult::meta["error_message"], 否则 NodeExecutor
+// handle_tool_errors (line 512) 读取 meta.error_message 永远为空 → 所有 PDK 工具
+// 失败时错误信息隐形. (Oracle 复审 ses_f4f9061b3ffe 发现, 是 decide_react 真实 LLM
+// 失败 "Tool 'X' failed:" 后空 message 的系统性根因.)
+TEST_CASE("ToolResult from_json bridges top-level error to meta.error_message",
+          "[tool_result][pdk-bridge][fix-bridge]") {
+  // 模拟 pdk_entry.cpp:error_result() 返回的 PDK 错误信封
+  nlohmann::json pdk_err = {
+    {"ok", false},
+    {"success", false},
+    {"error_code", "InvalidParams"},
+    {"error", "Missing 'response' argument"}
+  };
+
+  auto r = ToolResult::from_json(pdk_err);
+
+  REQUIRE(r.ok == false);
+  REQUIRE(r.error_code.has_value());
+  REQUIRE(r.error_code.value() == ErrorCode::InvalidParams);
+  REQUIRE(r.meta.value("error_message", std::string{}) ==
+          "Missing 'response' argument");
+}
+
+TEST_CASE("ToolResult from_json bridge preserves existing meta.error_message",
+          "[tool_result][pdk-bridge][fix-bridge]") {
+  nlohmann::json j = {
+    {"ok", false},
+    {"error", "PDK top-level error"},
+    {"meta", {{"error_message", "preserved-p1-path"}}}
+  };
+
+  auto r = ToolResult::from_json(j);
+
+  REQUIRE(r.ok == false);
+  REQUIRE(r.meta.value("error_message", std::string{}) == "preserved-p1-path");
+}
+
+TEST_CASE("ToolResult from_json bridge ignores non-string error field",
+          "[tool_result][pdk-bridge][fix-bridge]") {
+  // 防御性: 非 string 的 error 字段不桥接 (避免错误类型污染 meta)
+  nlohmann::json j = {
+    {"ok", false},
+    {"error", 12345}  // int 而非 string
+  };
+
+  auto r = ToolResult::from_json(j);
+
+  REQUIRE(r.ok == false);
+  REQUIRE(r.meta.value("error_message", std::string{}) == std::string{});
+}

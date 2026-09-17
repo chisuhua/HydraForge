@@ -132,6 +132,13 @@ ToolResult ToolResult::from_json(const nlohmann::json& j) {
     if (j.contains("meta")) {
       r.meta = j["meta"];
     }
+    // fix-bridge: PDK 工具 (pdk_entry.cpp error_result) 顶层 "error" 字段
+    // 桥接到 meta.error_message (NodeExecutor::handle_tool_errors 读取此字段);
+    // 已有 meta.error_message 优先 (P1 ToolResult::error() path 兼容).
+    if (j.contains("error") && j["error"].is_string() &&
+        !r.meta.contains("error_message")) {
+      r.meta["error_message"] = j["error"].get<std::string>();
+    }
     // P2: error_code (容错 string → ErrorCode 解析, 未知 → Unknown)
     if (j.contains("error_code") && j["error_code"].is_string()) {
       r.error_code = string_to_error_code(j["error_code"].get<std::string>());
