@@ -145,6 +145,16 @@ Context NodeExecutor::execute_dsl_node(const DSLNode* node, const Context& ctx) 
                     result.value("error", "Unknown error"));
             }
             new_context[node->output_keys[0]] = result["text"].get<std::string>();
+            // F1 fix-react-decide-empty-response: stream 分支同主路径空校验
+            // (per Oracle ses_f4caa8cf0ffeajSx05M235DwDz AGENTS.md 模式 #1
+            //  step 4 "系统性记录同类潜伏站点" 要求)
+            if (new_context[node->output_keys[0]].is_string() &&
+                new_context[node->output_keys[0]].get<std::string>().empty()) {
+                throw std::runtime_error(
+                    "LLM call succeeded but returned empty text for node '" +
+                    node->path + "' output_key '" + node->output_keys[0] + "' "
+                    "(stream path). Check provider model availability.");
+            }
         }
         // 切片输出值推送至 sink
         std::string text = new_context[node->output_keys[0]].dump();
@@ -192,6 +202,17 @@ Context NodeExecutor::execute_dsl_node(const DSLNode* node, const Context& ctx) 
         }
 
         new_context[key] = result["text"].get<std::string>();
+        // F1 fix-react-decide-empty-response: llm_call 输出非空校验
+        // (Oracle ses_f4d05cdb0ffe0BhMdEADyfsdTz: 空文本 → decide 节点
+        //  args:response="{{llm_response}}" 渲染为空字符串 → decide_react
+        //  报 "Missing 'response' argument". 此校验把 silent empty 转为
+        //  显式错误, 让空 LLM 输出可见于 trace.)
+        if (new_context[key].is_string() && new_context[key].get<std::string>().empty()) {
+            throw std::runtime_error(
+                "LLM call succeeded but returned empty text for node '" +
+                node->path + "' output_key '" + key + "'. "
+                "Check provider model availability or prompt template.");
+        }
 
         // Phase 1 Sprint 1b (S1b.T3): 成功退出时推送 dsl.call.completed 事件
         if (bus_) {
