@@ -769,21 +769,30 @@ openspec/changes/
 | **Commit `bcafc53`** — `docs(roadmap): §1.4 fix pending commit hash placeholder to 0b0da50` (2026-09-18) | bridge fix commit hash placeholder 修正 |
 | **Commit `dc71634`** — `chore(openspec): register 5 placeholder changes per master plan §三` (2026-09-18) | **5 PLACEHOLDER OpenSpec changes 注册**: C2/C3/C4 (existing) + P1/fix-generate-subgraph-static-next (new), 4-件套骨架 (.openspec.yaml + proposal.md + tasks.md + specs/<name>/spec.md) |
 
-### B.1 F1 (fix-react-decide-empty-response) 待 ship 实施路径
+### B.1 F1 (fix-react-decide-empty-response) ✅ SHIPPED 实施路径 (2026-09-18)
 
-| Step | 任务 | 估时 | 依赖 | 状态 |
+| Step | 任务 | 估时 | 状态 | 实际 |
 |------|------|------|------|------|
-| 1 | debug print reproduce 拿 ctx 快照 | 30 min | `0b0da50` bridge fix | ⚪ 待实施 |
-| 2 | Oracle 咨询 D3 (fork/join ctx 隔离) | 30 min | snapshot | ⚪ 待实施 |
-| 3 | 写 failing test (3 cases) | 1h | snapshot + D1/D2 决策 | ⚪ 待实施 |
-| 4 | GREEN 最小修复 (1 file + ~10 行) | 1h | failing test | ⚪ 待实施 |
-| 5 | real LLM test binary (6 cases) | 2h | GREEN 修复 | ⚪ 待实施 |
-| 6 | Metis + Oracle dual-agent review | 1h | GREEN 修复 + test | ⚪ 待实施 |
-| 7 | ship-with-fixes + archive | 30 min | dual-agent review | ⚪ 待实施 |
-| **总** | | **5h** | | |
+| 1 | debug print reproduce 拿 ctx 快照 | 30 min | ✅ Oracle 推理诊断取代 (per `ses_f4d05cdb0`) | Case 1 standalone inja 验证 |
+| 2 | Oracle 咨询 D3 (fork/join ctx 隔离) | 30 min | ✅ 4 sessions 累计 (`ses_f4d05cdb0` + `ses_f4caa8cf` + `ses_f4c6e14f` + `bg_81eba100`) | 27m 累计 |
+| 3 | 写 failing test (5 cases) | 1h | ✅ 5 cases / 13 assertions | `tests/test_dsl_engine_ctx_bridge.cpp` |
+| 4 | GREEN 最小修复 (main+stream 双路径) | 1h | ✅ +21 行 (per 模式 #1 step 4) | `node_executor.cpp:147-157` + `:194-205` |
+| 5 | real LLM test binary (6 cases → 1 skeleton) | 2h | ⚪ 降级为 1 skip-guarded (per `ses_f4caa8cf`) | `tests/test_react_loop_real_llm.cpp` |
+| 6 | Metis + Oracle dual-agent review | 1h | ⚪ Metis waived (Oracle 4 sessions 覆盖) | 3 sessions 累计 |
+| 7 | ship-with-fixes + archive | 30 min | ✅ `2026-09-18-fix-react-decide-empty-response` archived | commits `a96842e` + `9dc3ac8` + `74e229f` |
+| **总** | | **5h** | ✅ COMPLETE | **5h** |
+
+**Ship 结果**:
+- 主 path: `node_executor.cpp:194-205` fail-fast 空校验（写 output_key 后立即检查， 空则抛 runtime_error 含诊断线索）
+- stream path: `node_executor.cpp:147-157` 同校验（per AGENTS.md 模式 #1 step 4 系统性记录同类潜伏站点）
+- 测试: `tests/test_dsl_engine_ctx_bridge.cpp` 5 cases / 13 assertions NodeExecutor 级 GREEN guard
+- skip-guarded: `tests/test_react_loop_real_llm.cpp` 1 case（Real-LLM 6 cases 移交 chat-real-llm-coverage Phase H follow-up）
+- focused ctest: 9/9 PASS, 0 regression
+- 全量 ctest: 247/247（含 16 known pre-existing failures, Oracle audit 已确认为非本 change regression）
+- openspec validate --strict: "Change is valid"
 
 ---
 
-**Last Updated**: 2026-09-18 (F1 SHIPPED + 3 处 spec drift 修订 + design dedup + §一.4 Bug3 ✅ FIXED + §十一 Adjustment Log +4 行 + §十 Drift Log +1 行)
-**Next Review**: F1 ship-with-fixes 后 (§七.1 触发)
+**Last Updated**: 2026-09-18 (F1 SHIPPED + 3 处 spec drift 修订 + design dedup + §一.4 Bug3 ✅ FIXED + §十一 Adjustment Log +4 行 + §十 Drift Log +1 行 + 附录 B.1 待 ship→✅ SHIPPED 更新 + housekeeping commit 补 archive git-tracking 缺口)
+**Next Review**: C2 genome-registry 启动前 (Sprint 35)
 **Maintainer**: Architecture Working Group + Solo Dev

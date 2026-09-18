@@ -47,6 +47,6 @@ TEST_CASE("react loop real LLM smoke: non-empty text passes fail-fast",
     // Phase H follow-up 覆盖完整端到端
     auto provider = real_llm_provider();
     REQUIRE(provider != nullptr);
-    SUCCEED("real LLM provider constructed; deepfail-fast stream path verified "
+    SUCCEED("real LLM provider constructed; fail-fast path verified "
             "via Case 4 mock (test_dsl_engine_ctx_bridge)");
 }
