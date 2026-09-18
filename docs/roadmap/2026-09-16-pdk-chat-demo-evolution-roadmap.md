@@ -73,7 +73,7 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 ### 1.4 关键 bug（驱动本 plan 存在）
 - **Bug 1**: ✅ FIXED (`f84dbb3`, Sprint 34 C0) — `loop/run` 工具返回契约补 `ok/error_code` 字段 + `chat_session.cpp:526` 3 层 fallback 替代无条件 `result.success = true`
 - **Bug 2**: ✅ FIXED (`f84dbb3` + `d21ac6f`, Sprint 34 C0) — "Tool not found" envelope remap 到 `ToolNotRegistered` error_code (ADR-0023 对齐)
-- **Bug 3**: ✅ FIXED (`f4766be`, Sprint 34 C1) — `loop/decide_react` / `loop/execute_plan` / `loop/process_task` 全部实现 (`pdk_entry.cpp:402/434/524`) + `loop/set_capture_mode` 新增；13 unit test PASS (mock LLM) + 真实 DeepSeek LLM "Hello" 验证 ✅。**残量风险**: react agent 在 `decide` 节点真实 LLM 端到端仍 ship-with-known-issue（inja 渲染 `{{llm_response}}` 待诊断，跟进 chat-real-llm-coverage Phase H）
+- **Bug 3**: ✅ FIXED (`f4766be`, Sprint 34 C1) — `loop/decide_react` / `loop/execute_plan` / `loop/process_task` 全部实现 (`pdk_entry.cpp:402/434/524`) + `loop/set_capture_mode` 新增；13 unit test PASS (mock LLM) + 真实 DeepSeek LLM "Hello" 验证 ✅。**残量风险**: react agent 在 `decide` 节点真实 LLM 端到端仍 ship-with-known-issue（inja 渲染 `{{llm_response}}` → `decide_react` 收到空 `response` → `Missing 'response' argument`）— 跟进 OpenSpec change **`fix-react-decide-empty-response`** (`openspec/changes/fix-react-decide-empty-response/`, hard-placeholder ⚪, depends on chat-real-llm-coverage helper + ADR-0023)
 - **Bridge fix**: ✅ FIXED (commit `0b0da50`) — `tool_result.cpp:from_json` 加 `error → meta.error_message` 桥接，消除 PDK 工具失败错误信息隐形系统性问题
 
 ### 1.5 既有契约栈（Wave 2 复用基础）
@@ -147,8 +147,9 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 | **C3** | `h-d-m-transition-guard` | hard-placeholder | 2-3 天 | C2 | ⚪ | 35 |
 | **P1** | `intent-classification-router` (Wave 2 P1) — **方案 A''** (Oracle `ses_f4fd88215ffeUWSe2StAWtFPSQ` 推荐): `lib/loop/intent_classify.agent.md` (DSL 分类图, ~30 行) + `loop/classify_intent` 工具 (loop_agent C++, ~30 行) + ChatSession `"auto"` routing (C++, ~20 行, **两次平级** loop/run 调用) + 真实 LLM E2E 6 cases (3 happy + 3 error). **不使用 generate_subgraph 节点** (Oracle latent gap #1: 静态 `next: /dynamic/...` 在 build_dag 抛错, 文档与实现矛盾). **动态子图部分复用已 ship 的 `loop/execute_plan` 工具模式** (独立子引擎, 不走 /dynamic/ 注册). 估时 **0.5-1 sprint** (2-3 天实施 + 3-5 天真实 LLM 测试). | hard-placeholder | **0.5-1 sprint** | P0 | 🟡 Deferred → Sprint 36+ (与 C4 并行候选) | 35+ |
 | **C4** | `harness-rsi-pilot` | hard-placeholder | 1-2 周 | C3 | ⚪ | 36 |
+| **F1** | `fix-react-decide-empty-response` (Wave 34.5 follow-up) — react agent loop 在 `decide` 节点真实 LLM 端到端 `Missing 'response' argument` 修复。诊断 `{{llm_response}}` inja 模板 ctx bridge 根因 + 实施最小修复 + 加 chat-real-llm-coverage Phase H（react/plan_execute/fork_join 三种 loop 真实 LLM 端到端测试覆盖）。**依赖**: `chat-real-llm-coverage` helper 三态分离模式（已 ship）+ ADR-0023 ErrorCode enum + commit `0b0da50` (bridge fix follow-up)。估时 **5h**（TDD 5 步 + 真实 LLM 6 cases）。OpenSpec: `openspec/changes/fix-react-decide-empty-response/` (2026-09-18 立项, 4 artifacts done: proposal.md + design.md + 2 specs + tasks.md). | hard-placeholder | **5h** | `0b0da50` (bridge fix) + `chat-real-llm-coverage` helper | ⚪ | **34.5** (post-Wave-1) |
 
-**总估时**: 4-5 周（基线 C0+C1+P0 已 ship + C2+C3 Sprint 35 + C4 Sprint 36 + P1 deferred → Sprint 36+ 候选与 C4 并行 + generate_subgraph fix 项独立 1-2 sprint）
+**总估时**: 4-5 周 + F1 5h ≈ **5 周**（基线 C0+C1+P0 已 ship + C2+C3 Sprint 35 + C4 Sprint 36 + P1 deferred → Sprint 36+ 候选与 C4 并行 + generate_subgraph fix 项独立 1-2 sprint + F1 Wave 34.5 follow-up）
 **P1 实施方案**: 方案 A'' (Oracle `ses_f4fd88215ffeUWSe2StAWtFPSQ` 推荐)，2 次平级 loop/run + 复用 `loop/execute_plan` 模式
 **P1 worker pool routing**: 不需要单独决策（Oracle `ses_f505f99fdffefgE5Q9oFA2t2AD`）
 **P1 intent schema**: 4 字段 `intent_type/complexity/suggested_loop/requires_subgraph`，不加 `worker_pool`
@@ -363,6 +364,57 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 
 ---
 
+### F1: `fix-react-decide-empty-response`
+
+**类型**: hard-placeholder (post-Wave-1 follow-up)
+**估时**: 5h
+**Sprint**: 34.5 (post-Wave-1 follow-up, 紧接 Sprint 34 ship)
+
+**目标**: 修复 react agent loop 在 `decide` 节点真实 LLM 端到端 `Missing 'response' argument` 失败。诊断 `node_executor.cpp:147` llm_call output_keys → next node ctx bridge 根因 + 实施最小修复 + 加 chat-real-llm-coverage Phase H 真实 LLM 测试。
+
+**Why（精简）**:
+- `commit 0b0da50` 修复 `tool_result.cpp:from_json` 加 `error → meta.error_message` 桥接后，真实错误浮现：`Tool 'loop/decide_react' failed: Missing 'response' argument`
+- 根因：`react.agent.md` `decide` 节点 `args: response: "{{llm_response}}"` inja 模板渲染为空字符串，`loop/decide_react` 收到空 `response` 参数
+- 可能子因：(a) llm_call output_keys 数据类型与 inja 期望 string 不匹配；(b) ctx 跨节点传递断点；(c) react.agent.md schema 与 node_executor 实现的 output_keys→args 桥接语义不一致
+- C1 已 ship 的 13 个 unit test 用 mock LLM，**未覆盖真实 LLM 端到端** → 这是 C1 ship-with-known-issue 的根因
+
+**What（精简）**:
+1. 诊断 react agent decide 节点 ctx bridge 根因（debug print → reproduce → 定位）
+2. 实施最小修复（per AGENTS.md "fix minimally, never refactor while fixing"）
+3. 加 chat-real-llm-coverage Phase H（react/plan_execute/fork_join 三种 loop 真实 LLM 端到端 6 cases）
+4. ship-with-fixes（Metis + Oracle dual-agent review per AGENTS.md 模式 #8）
+
+**Out of Scope**:
+- 不重写 ReactLoop C++ class（保留 Sprint 20 ship 行为）
+- 不重写 DSL node 类型（start/llm_call/tool_call/assign/end 不变）
+- 不引入新 DSL 节点类型
+- 不修复 fork_join / plan_execute 类似 ctx bridge bug（除非诊断发现通用问题）
+
+**Verification**:
+- 真实 LLM react loop 端到端：用户消息 → Assistant 非空 + steps ≥ 1
+- 3 个新 real LLM cases PASS (`[realllm]` tag + `require_real_llm_env()`)
+- core ctest 245/245 零回归
+
+**OpenSpec artifacts** (4/4 done, 2026-09-18):
+- `openspec/changes/fix-react-decide-empty-response/proposal.md` — Why/What/Capabilities/Impact
+- `openspec/changes/fix-react-decide-empty-response/design.md` — Context/Decisions D1-D6/Risks/Open Questions
+- `openspec/changes/fix-react-decide-empty-response/specs/react-agent-llm-ctx-bridge/spec.md` — 6 Requirements, 11 Scenarios
+- `openspec/changes/fix-react-decide-empty-response/specs/real-llm-react-loop-e2e/spec.md` — 5 Requirements, 12 Scenarios
+- `openspec/changes/fix-react-decide-empty-response/tasks.md` — 7 task groups, 28 checkboxes
+
+**详细制定 TODO** (实施时 fill):
+- [ ] 1. 决策前置: Oracle 咨询 D3 (fork/join ctx 隔离策略) + D1/D2 验证
+- [ ] 2. 在 `node_executor.cpp:147` + `node_executor.cpp:230` 加 std::cerr debug print, reproduce demo 拿 ctx 快照
+- [ ] 3. 根据快照决定最小修复路径 (D1 data type 适配 / D2 校验层 / react.agent.md schema 调整)
+- [ ] 4. 写 failing test (3 cases: ctx bridge / type / empty arg)
+- [ ] 5. 实施修复 (1 file + ~10 行 per AGENTS.md "fix minimally")
+- [ ] 6. 加真实 LLM test binary `tests/test_react_loop_real_llm.cpp` (3 react + 2 plan_execute + 1 fork_join cases)
+- [ ] 7. Metis + Oracle dual-agent review + 应用所有 Critical/Major 修正
+- [ ] 8. 跑全量 ctest 245/245 零回归 + 真实 DeepSeek LLM 端到端验证
+- [ ] 9. openspec archive + 更新 §一.4 Bug 3 残量风险为 ✅ FIXED
+
+---
+
 ## 五、Sprint Breakdown
 
 ### Sprint 34 (Wave 1: 修 chat demo, ~5-7h, P0 必要)
@@ -425,6 +477,36 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 
 ---
 
+### Sprint 34.5 (Wave 34.5 follow-up, ~5h, post-Sprint 34 ship)
+
+| Change | 估时 | Type | 任务 |
+|--------|------|------|------|
+| **F1** `fix-react-decide-empty-response` | 5h | hard | 诊断 react agent `decide` 节点 `{{llm_response}}` 渲染根因 + 实施最小修复 + chat-real-llm-coverage Phase H |
+
+**触发条件**: `commit 0b0da50` (bridge fix) 揭示 react loop decide 节点真实错误 `Missing 'response' argument`. C1 ship-with-known-issue follow-up.
+
+**依赖**: `chat-real-llm-coverage` helper 三态分离模式 (已 ship) + ADR-0023 ErrorCode enum + commit `0b0da50`.
+
+**并行**: 独立 task (不阻塞 C2/C3/C4).
+
+**Ship Gate**:
+- [ ] `node_executor.cpp:147` + `node_executor.cpp:230` debug print reproduce 拿到 ctx 快照 (决策前置)
+- [ ] Oracle 咨询 D3 (fork/join ctx 隔离) + D1/D2 验证
+- [ ] 写 failing test (3 cases: ctx bridge / type / empty arg)
+- [ ] 实施最小修复 (1 file + ~10 行 per AGENTS.md "fix minimally")
+- [ ] 加 real LLM test binary `tests/test_react_loop_real_llm.cpp` (3 react + 2 plan_execute + 1 fork_join cases)
+- [ ] Metis + Oracle dual-agent review + 应用所有 Critical/Major 修正
+- [ ] ctest 全量 245/245 零回归
+- [ ] adr_lint 0 errors
+- [ ] docs_drift_audit 0 DRIFT
+- [ ] openspec validate clean
+- [ ] 真实 DeepSeek LLM 端到端验证 (手动 `HYDRAFORGE_SKIP_REAL_LLM=0 ctest -R test_react_loop_real_llm --output-on-failure`)
+- [ ] openspec archive + 更新 §一.4 Bug 3 残量风险为 ✅ FIXED
+
+**变更依据**: 本 master plan + OpenSpec change `fix-react-decide-empty-response/`.
+
+---
+
 ## 六、Risks
 
 | # | 风险 | 影响 | 缓解 |
@@ -439,6 +521,7 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 | R8 | C4 pilot No-Go 决策后 Wave 2 skeleton 浪费 | 投入沉没 | Sprint 35 收官时预审，如果 pilot 假设不成立提前终止 |
 | R9 | Single-Dev 流程成本未计入排期 | 5 changes × issue + 24h cooling-off + checklist = 2-3h | 排期 + 0.5h 流程缓冲 |
 | R10 | MetaRSI-v1 论文真实性未验证 (Oracle 评审声明) | 设计依据弱 | OpenSpec artifacts 引用时标注 "external framework reference, unverified" |
+| R11 | F1 修复可能 break C1 已 ship 的 13 个 unit test (mock LLM L1/L2/L3 path) | C1 单测回归 | TDD 5 步: 先 RED failing test 验证 mock 路径不受影响 + 实施最小修复 + 跑全量 ctest 245/245 零回归 gate. 若 break, 拆 micro fix 单独 commit. |
 
 ---
 
@@ -492,6 +575,14 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 - `openspec/changes/archive/2026-07-20-loop-agent-dsl-execution/` (loop_agent DSL 实施, Change 2 模板)
 - `openspec/changes/archive/2026-09-15-pdk-chat-session-shim-cleanup/` (PDK shim 清理, Change 1/2 模板)
 - `openspec/changes/archive/2026-08-03-promote-event-builder-fulltoolresult-support/` (EventBuilder V2, 契约模式)
+
+### 8.3.1 活跃 OpenSpec changes (PLACEHOLDER 状态)
+- `openspec/changes/2026-09-16-genome-registry/` (C2, hard-placeholder)
+- `openspec/changes/2026-09-16-h-d-m-transition-guard/` (C3, hard-placeholder)
+- `openspec/changes/2026-09-16-harness-rsi-pilot/` (C4, hard-placeholder Go/No-Go)
+- `openspec/changes/2026-09-17-intent-classification-router/` (P1, hard-placeholder 方案 A'')
+- `openspec/changes/2026-09-17-fix-generate-subgraph-static-next/` (latent gap fix, hard-placeholder)
+- `openspec/changes/fix-react-decide-empty-response/` (F1, hard-placeholder, 2026-09-18 立项)
 
 ### 8.4 关键 recent AGENTS.md 段
 - `AGENTS.md` §模式 6 (Contract-layer utility tool pattern) — Change 1/2 设计参考
@@ -572,6 +663,8 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 | 2026-09-17 | P1 (Wave 2) | **P1 intent schema 保持 4 字段**: `intent_type/complexity/suggested_loop/requires_subgraph`, **不加 `worker_pool` 字段** | chat 路径无 worker pool 选择; CognitiveWorker 生产零使用; DomainWorkerPool 唯一生产消费者是 C++ ForkJoinLoop 但 chat 走 DSL TopoScheduler Taskflow (Oracle `ses_f505f99fdffefgE5Q9oFA2t2AD`) |
 | 2026-09-17 | P1 (Wave 2) | **P1 实施路径从"全 DSL 化"修订为方案 A''** (混合模式, Oracle `ses_f4fd88215ffeUWSe2StAWtFPSQ` 推荐). 分类逻辑仍是 DSL 图 `lib/loop/intent_classify.agent.md` + `loop/classify_intent` 工具, 但 **dispatch 决策在 ChatSession 层** (两次平级 loop/run 调用). 动态子图部分 **复用已 ship 的 `loop/execute_plan` 工具模式** (独立子引擎), **不使用 generate_subgraph 节点**. 估时 0.5-1 sprint. | Oracle DAG 调研发现 generate_subgraph 节点有 2 个 latent gap (静态 `next: /dynamic/...` build_dag 抛错 + 全链路零 E2E 测试); 方案 A'' 规避生成图节点, 利用已 ship 模式, 同时符合双循环架构 (Chat-loop 管 turn 边界路由, Agent-loop 管 turn 内推理). |
 | 2026-09-17 | generate_subgraph | **`GenerateSubgraphNode` 节点 deferred to 独立 fix 项** (不阻塞 P1). dsl.md §423/§438/§1114 描述的 `next: "/dynamic/x"` 静态跳转与实现矛盾 (`parse_node_wait_for_deps` 无 `/dynamic/` 豁免); 真实 LLM 对 `execute_generate_subgraph` 覆盖 = 零. **P1 走 `loop/execute_plan` 已 ship 模式绕过此问题**. | Oracle DAG 调研发现 latent gap; 修复 generate_subgraph 节点需要 (a) build_dag 加 `/dynamic/` 豁免或修正 dsl.md 文档使其与 wait_for 动态机制一致 + (b) 补全 3+3 真实 LLM E2E (happy + error path) — 总估时 1-2 sprint, 单独立项. |
+| 2026-09-18 | F1 | **`fix-react-decide-empty-response` 新登记** — react agent loop 在 `decide` 节点真实 LLM 端到端 `Missing 'response' argument` 失败立项. `commit 0b0da50` (`fix(tool_result): bridge top-level 'error' field to meta.error_message`) 修复使本 bug 可见. 根因待诊断 (`{{llm_response}}` inja 模板 ctx bridge). OpenSpec 4 artifacts done: proposal.md (Why/What/Capabilities/Impact) + design.md (D1-D6) + 2 specs (react-agent-llm-ctx-bridge 6 R + real-llm-react-loop-e2e 5 R) + tasks.md (7 task groups). 估时 **5h** (TDD + 真实 LLM 6 cases). Sprint 34.5 follow-up. | §七.1 触发 (新 change 立项 = change 状态变化) + §一.4 Bug 3 残量风险不对齐 (旧引用 "chat-real-llm-coverage Phase H" 实际是独立 change F1) |
+| 2026-09-18 | **Master Plan 同步 (本 commit)** | §一.4 Bug 3 残量风险引用名对齐 (chat-real-llm-coverage Phase H → `fix-react-decide-empty-response`) + §三 Overview 新增 F1 row + 总估时 +5h + §四 Detailed Tracking 新增 §四 F1 子节 (含 9 TODO 项) + §十一 Adjustment Log 新增 2 行 (本行 + F1 立项) + §五 Sprint Breakdown 新增 Sprint 34.5 段 + §六 Risks 新增 R11 + §十三 Response Change Types fix 行加示例 + §八.3 References 加新 change path + 附录 B 更新实施路径 (含 Oracle session `ses_f4f9061b3ffeuy4qw2iatqQojw`) + Last Updated 同步 2026-09-18. | §七.1 触发 (新 change 立项 / §一.4 漂移 / 调整) |
 
 ---
 
@@ -587,7 +680,7 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 
 | 类型 | 触发 | 工作流 |
 |------|------|--------|
-| **fix** | ship 后发现 bug | 创建 `fix-<name>` OpenSpec change → ship-with-fixes |
+| **fix** | ship 后发现 bug | 创建 `fix-<name>` OpenSpec change → ship-with-fixes (e.g., `fix-react-decide-empty-response`, bridge fix follow-up, 2026-09-18) |
 | **retro** | sprint 收官复盘发现系统性改进 | 创建 `<name>-retro` OpenSpec change |
 | **redirect** | 战略对齐发现方向需调整 | 创建 `<name>-redirect` OpenSpec change + 更新本 plan §十二 |
 
@@ -657,9 +750,34 @@ openspec/changes/
 | `openspec/changes/archive/2026-07-20-loop-agent-dsl-execution/` | loop_agent DSL 实施 (C1 参考) |
 | `openspec/changes/archive/2026-09-15-pdk-chat-session-shim-cleanup/` | PDK shim 清理模式 (C1 bus_ptr 边界) |
 | Oracle session `ses_f55f307f6ffeRJ9SIny8iUbZ8Y` | C1 修正 (契约对齐)、M1 修正 (双循环分工)、M2 修正 (取消 3 算子接口) |
+| Oracle session `ses_f5084d7bfffeq1Yt5QVVtaIfix` + `ses_f5084614dffesPP0dEHgJhc4LM` | P1 (intent-classification-router) 补登记 + DSL-only 实施路径 (Metis dual-agent review) |
+| Oracle session `ses_f505f99fdffefgE5Q9oFA2t2AD` | P1 intent schema 4 字段不含 worker_pool (chat 路径无 worker pool 选择) |
+| Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` | DAG 动态组合完整流程调研 (20m 36s) — 2 latent gaps (静态 next:/dynamic/ 抛错 + 零 E2E) + P1 方案 A'' 修订 |
+| Oracle session `ses_f54ef2010ffeLK90Y0OQp1DuxJ` | C0 ship-with-fixes 4 项 (Critical commit 顺序 / Major spec R3 R2 / Minor test 名) |
+| Oracle session `ses_f53731302ffegMN8KTsrzqrPOB` | C1 ship-with-fixes 4 Major (M1 merge_patch / M2 子图 registry / M3 thread_local / M4 E2E 自动化) |
+| Oracle session `ses_f530341e6ffeCdMvLYU9pITBoI` | P0 ship-with-fixes 7 项 (Oracle C1 steps / C2 SchedulerConfig.execution_flags / M1 catch 双 guard / M2 has_autonomous_flag / M3 enum class; Metis M1 loop/execute_plan Autonomous / M2 D1 DSL-only / M3 worker pool 调研) |
+| Oracle session `ses_f4f9061b3ffeuy4qw2iatqQojw` | Master plan 2026-09-17 修订建议 (5 盲点 + 13 任务优先级重排 + 4 补丁 rating + Top 3 行动) |
+| **Commit `0b0da50`** — `fix(tool_result): bridge top-level 'error' field to meta.error_message for PDK diagnostic` (2026-09-18) | **bridge fix**: `tool_result.cpp:from_json` 加 `error → meta.error_message` 桥接 (3 行 fix + 3 regression test), 消除 PDK 工具失败错误信息隐形系统性问题. Per Oracle session `ses_f4f9061b3ffe`. Reveals react loop `decide` 真实 LLM 失败 `Missing 'response' argument` (predecessor of F1) |
+| **Commit `e5d59d5`** — `test(execution_session): follow up ctor signature for int execution_flags` (2026-09-18) | **test build-fix**: `execution_session.h` ctor 8 参 (P0 ship), test files 6 参未跟进 → HEAD build 断裂. Per Oracle 盲点 #1 |
+| **Commit `deb6bbf`** — `docs(sync): active-status 245/245 + roadmap P1 补登记 + 4 Oracle 补丁应用` (2026-09-18) | **docs sync**: active-status baseline 245/245 + roadmap §1.3/§1.4/§五/附录 A 4 Oracle 补丁 (baseline 243→245 + §1.4 三 bug ✅ 标注 + 双总估时去重 + 删 P0 active stale) |
+| **Commit `bcafc53`** — `docs(roadmap): §1.4 fix pending commit hash placeholder to 0b0da50` (2026-09-18) | bridge fix commit hash placeholder 修正 |
+| **Commit `dc71634`** — `chore(openspec): register 5 placeholder changes per master plan §三` (2026-09-18) | **5 PLACEHOLDER OpenSpec changes 注册**: C2/C3/C4 (existing) + P1/fix-generate-subgraph-static-next (new), 4-件套骨架 (.openspec.yaml + proposal.md + tasks.md + specs/<name>/spec.md) |
+
+### B.1 F1 (fix-react-decide-empty-response) 待 ship 实施路径
+
+| Step | 任务 | 估时 | 依赖 | 状态 |
+|------|------|------|------|------|
+| 1 | debug print reproduce 拿 ctx 快照 | 30 min | `0b0da50` bridge fix | ⚪ 待实施 |
+| 2 | Oracle 咨询 D3 (fork/join ctx 隔离) | 30 min | snapshot | ⚪ 待实施 |
+| 3 | 写 failing test (3 cases) | 1h | snapshot + D1/D2 决策 | ⚪ 待实施 |
+| 4 | GREEN 最小修复 (1 file + ~10 行) | 1h | failing test | ⚪ 待实施 |
+| 5 | real LLM test binary (6 cases) | 2h | GREEN 修复 | ⚪ 待实施 |
+| 6 | Metis + Oracle dual-agent review | 1h | GREEN 修复 + test | ⚪ 待实施 |
+| 7 | ship-with-fixes + archive | 30 min | dual-agent review | ⚪ 待实施 |
+| **总** | | **5h** | | |
 
 ---
 
-**Last Updated**: 2026-09-16
-**Next Review**: 24h cooling-off 后 self-review
+**Last Updated**: 2026-09-18 (F1 立项 + 10 项 master plan 同步 + 附录 B 实施路径最新化)
+**Next Review**: F1 ship-with-fixes 后 (§七.1 触发)
 **Maintainer**: Architecture Working Group + Solo Dev
