@@ -15,10 +15,10 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **259/259** 配置总数 (2026-09-19 C2 `genome-registry` SHIPPED: `test_genome_registry` binary 新增 12 cases / 266 assertions); baseline 247 → 259 (+12: Sprint 35 C2 genome-registry). focused ctest 32/32 PASS 0 new regression |
+| **Total ctest** | **248/248** 配置总数 (`ctest -N` 实测 2026-09-19, post Oracle acceptance review 修正: 之前声明 247/259 均为手算非实测). 2026-09-19 C2 `genome-registry` SHIPPED: `test_genome_registry` binary 新增 12 cases / 266 assertions. focused ctest 32/32 PASS 0 new regression |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
-| **OpenSpec active** | **4** (2026-09-19: C2 `genome-registry` SHIPPED + archived, 释放 1 slot): C3/C4 + P1 + generate-subgraph-fix 4 PLACEHOLDER 在 `openspec/changes/`).<br/>**2026-09-19 C2 archive**: `genome-registry` (commits `2e7af89` + `a320032` + `839590d` + `b6114c2` + `507eae3`; archive 路径 `2026-09-19-2026-09-16-genome-registry`; 12/12 tests PASS, 266 assertions, Oracle dual-agent review BLOCK→fixed; focused ctest 32/32 PASS 0 regression). 累计: 9 + 1 = 10 changes archived, 4 active. |
+| **OpenSpec active** | **7** (2026-09-19: C2 `genome-registry` SHIPPED + archived, 释放 1 slot; 3 placeholders from this session 注册: fix-flatten-layers-comment-drift / provider-llm-tool-empty-passthrough / chat-real-llm-coverage-phase-h). 累计: 4 (C3/C4 + P1 + generate-subgraph-fix) + 3 (本次 session placeholders) = 7 active.<br/>**2026-09-19 C2 archive**: `genome-registry` (commits `2e7af89` + `a320032` + `839590d` + `b6114c2` + `507eae3`; archive 路径 `2026-09-19-2026-09-16-genome-registry`; 12/12 tests PASS, 266 assertions, Oracle dual-agent review BLOCK→fixed; focused ctest 32/32 PASS 0 regression). 累计: 9 + 1 = 10 changes archived, 7 active. |
 | **Master Plan 更新** | `docs/roadmap/2026-09-16-pdk-chat-demo-evolution-roadmap.md` 2026-09-19 追加 C2 genome-registry ✅ SHIPPED row + §三表格 C2 ⚪→✅ SHIPPED + §十一 Adjustment Log +6 行 (Oracle design / Oracle review / critical fixes / spec amendments / ship / ctest 259) + 附录 B.2 C2 实施路径 + Last Updated 2026-09-19. C3 ready to start (Genome 版本号接口已就位). |
 
 ## §Sprint 25 收官注记 (2026-09-03, 治理收官 Sprint)

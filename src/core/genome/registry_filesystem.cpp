@@ -81,10 +81,12 @@ std::string load_or_generate_hmac_key() {
         key.push_back(hex[raw[i] & 0xF]);
     }
     fs::create_directories(key_path.parent_path());
+    // Restrict perms BEFORE writing — closes the brief window with umask-default
+    // perms on a secret key file (M6 hygiene fix, post-acceptance review 2026-09-19).
+    fs::permissions(key_path, fs::perms::owner_read | fs::perms::owner_write);
     std::ofstream ofs(key_path);
     ofs << key;
     ofs.close();
-    fs::permissions(key_path, fs::perms::owner_read | fs::perms::owner_write);
     return key;
 }
 
@@ -352,9 +354,12 @@ Result<CommitResult, GenomeError> FilesystemGenomeRegistry::commit(const Genome&
         return Result<CommitResult, GenomeError>::failure(GenomeError::IOError);
     }
 
-    // M1 fix: write signature FIRST, genome.yaml SECOND (signature.hmac is last to rename)
-    // → commit succeeds iff BOTH files exist; crash between creates half-state that
-    //   load()/list_versions rejects (atomicity guarantee strengthened).
+    // M1 fix: write signature FIRST, genome.yaml SECOND. Rationale: signature.hmac is
+    // the integrity anchor; if genome.yaml is written first and crash interrupts before
+    // sig, load() would reject (HMAC missing) BUT list_versions would see a half-written
+    // version (yaml present, sig absent). Writing sig first ensures that any visible
+    // version_dir has both files when listing, and any failure leaves the dir without
+    // yaml (which load AND list_versions both reject as half-state).
     auto sig_res = atomic_write(version_dir / "signature.hmac", sig);
     if (!sig_res.has_value()) {
         std::error_code rmec;
