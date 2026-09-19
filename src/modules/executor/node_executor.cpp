@@ -127,8 +127,7 @@ Context NodeExecutor::execute_dsl_node(const DSLNode* node, const Context& ctx) 
         node->metadata["stream"].get<bool>();
 
     if (stream_requested && stream_sink_ == nullptr) {
-        std::cerr << "[WARN] stream:true ignored: no sink registered for node: "
-                  << node->path << std::endl;
+        LOG_WARN("stream:true ignored: no sink registered for node: " << node->path);
     }
 
     if (stream_requested && stream_sink_ != nullptr && !node->output_keys.empty()) {
@@ -240,8 +239,7 @@ Context NodeExecutor::execute_tool_call(const ToolCallNode* node, const Context&
         node->metadata["stream"].get<bool>();
 
     if (stream_requested && stream_sink_ == nullptr) {
-        std::cerr << "[WARN] stream:true ignored: no sink registered for node: "
-                  << node->path << std::endl;
+        LOG_WARN("stream:true ignored: no sink registered for node: " << node->path);
     }
 
     if (stream_requested && stream_sink_ != nullptr) {
