@@ -184,6 +184,9 @@ src/core/context_compactor.cpp      # context-compactor Task 1: 上下文压缩�
 src/core/agent_registry.cpp         # P7: IAgentRegistry InMemory 参考实现 (ADR-0082 §决策 7)
  src/core/agent_hook_registry.cpp    # P3: IAgentHookRegistry InMemory 参考实现 (ADR-0081)
  src/core/parsed_graph_to_trajectory_ir.cpp  # T15: TrajectoryIR 单向 Converter (ADR-0061-06 v1.1)
+ src/core/genome/hmac.cpp           # C2 genome-registry: HMAC-SHA256 wrapper (D10)
+ src/core/genome/canonical_yaml.cpp # C2 genome-registry: canonical YAML serialization (pitfall #2)
+ src/core/genome/registry_filesystem.cpp  # C2 genome-registry: FilesystemGenomeRegistry (D9 + tmp+rename pitfall #3)
 )
 
 target_link_libraries(agenticdsl_core
@@ -208,6 +211,9 @@ target_link_libraries(agenticdsl_core
  agenticdsl_governance
  agenticdsl_secure_tools
  Threads::Threads
+ yaml-cpp::yaml-cpp
+ OpenSSL::Crypto
+ OpenSSL::SSL
 )
 
 # Alias target for tests
