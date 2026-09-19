@@ -7,6 +7,7 @@
 #include "agenticdsl/genome/genome.h"
 
 #include <filesystem>
+#include <mutex>
 
 namespace agenticdsl::genome {
 
@@ -25,6 +26,7 @@ public:
 
 private:
     std::filesystem::path root_;
+    std::mutex commit_mutex_;  // M4 fix: serialize concurrent commits (Oracle review)
 };
 
 }  // namespace agenticdsl::genome

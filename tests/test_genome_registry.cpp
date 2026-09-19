@@ -11,6 +11,7 @@
 #include "catch_amalgamated.hpp"
 
 #include "agenticdsl/genome/genome.h"
+#include "agenticdsl/genome/hmac.h"
 
 #include <cstdlib>
 #include <filesystem>
@@ -246,6 +247,7 @@ TEST_CASE("genome registry hmac_tamper_detection",
 
     // tamper by writing via the SAME canonical serializer with modified content
     Genome tampered = g;
+    tampered.metadata.version = 1;  // preserve dir version for consistency check
     tampered.spec.harness = "TAMPERED.md";
     fs::path yaml = root / "alpha" / "1" / "genome.yaml";
     {
@@ -276,6 +278,7 @@ TEST_CASE("genome registry hmac_covers_parent_field",
 
     // tamper only parent field via canonical serializer
     Genome tampered = v1;
+    tampered.metadata.version = 1;  // preserve dir version for consistency check
     tampered.metadata.parent = "alpha@2";
     fs::path yaml = root / "alpha" / "1" / "genome.yaml";
     {
@@ -292,6 +295,8 @@ TEST_CASE("genome registry hmac_covers_parent_field",
 
 TEST_CASE("genome registry cycle_detection",
           "[genome_registry][lineage]") {
+    // m3 fix: isolate key per test BEFORE any commit/load (so commits use test key)
+    setenv("HYDRAFORGE_GENOME_KEY", "test_key_cycle_1234567890abcdef0123456789abcdef", 1);
     auto root = make_test_root();
     auto reg = IGenomeRegistry::create_filesystem(root);
     REQUIRE(reg != nullptr);
@@ -312,32 +317,44 @@ TEST_CASE("genome registry cycle_detection",
     beta_v1.spec.harness = "x";
     REQUIRE(reg->commit(beta_v1).has_value());
 
+    // C2(c) fix: re-sign the cycle-injected YAMLs so HMAC passes and
+    // cycle detection runs (otherwise IntegrityViolation masks the path).
     Genome cycle_alpha = alpha_v1;
+    cycle_alpha.metadata.version = 1;  // set explicitly — canonical_yaml_serialize uses struct, not dir
     cycle_alpha.metadata.parent = "beta@1";
     fs::path alpha_yaml = root / "alpha" / "1" / "genome.yaml";
+    fs::path alpha_sig = root / "alpha" / "1" / "signature.hmac";
     {
         std::ofstream ofs(alpha_yaml, std::ios::trunc);
         ofs << canonical_yaml_serialize(cycle_alpha);
         ofs.flush();
         ofs.close();
+        const char* key = std::getenv("HYDRAFORGE_GENOME_KEY");
+        std::string key_str = key ? key : "";
+        std::ofstream sig_ofs(alpha_sig, std::ios::trunc);
+        sig_ofs << hmac_sign(key_str, canonical_yaml_serialize(cycle_alpha));
     }
 
     Genome cycle_beta = beta_v1;
+    cycle_beta.metadata.version = 1;  // set explicitly — canonical_yaml_serialize uses struct
     cycle_beta.metadata.parent = "alpha@1";
     fs::path beta_yaml = root / "beta" / "1" / "genome.yaml";
+    fs::path beta_sig = root / "beta" / "1" / "signature.hmac";
     {
         std::ofstream ofs(beta_yaml, std::ios::trunc);
         ofs << canonical_yaml_serialize(cycle_beta);
         ofs.flush();
         ofs.close();
+        const char* key = std::getenv("HYDRAFORGE_GENOME_KEY");
+        std::string key_str = key ? key : "";
+        std::ofstream sig_ofs(beta_sig, std::ios::trunc);
+        sig_ofs << hmac_sign(key_str, canonical_yaml_serialize(cycle_beta));
     }
 
     auto res = reg->load("alpha", 1);
     REQUIRE_FALSE(res.has_value());
-    // cycle detection runs AFTER HMAC verify; HMAC fails first → IntegrityViolation
-    // (correct security ordering: prevent attacker from triggering cycle OOM via forged YAML)
-    REQUIRE((res.error() == GenomeError::IntegrityViolation ||
-             res.error() == GenomeError::BrokenLineage));
+    // C2(c): cycle detection now actually runs (HMAC passes) → BrokenLineage expected
+    REQUIRE(res.error() == GenomeError::BrokenLineage);
 }
 
 // =====================================================================
