@@ -4,7 +4,7 @@
 > **调研方式**: 6 项并行代码调研 + 10 个自进化 ADR 交叉对照 + 3 个 RSI 占位 change 深度分析
 > **关联文档**:
 > - 三篇 RSI 文章（外部参考）: MetaRSI-v1（清华/北大/斯坦福）/ 字节 Seed Self-Developing Agents 三篇（Aspire/S³Gym/HarnessDev）/ DeepSeek Harness 三权分立
-> - 项目占位 change: `openspec/changes/2026-09-16-genome-registry/` / `2026-09-16-h-d-m-transition-guard/` / `2026-09-16-harness-rsi-pilot/`
+> - 项目 change 状态: C2 archived (`archive/2026-09-19-2026-09-16-genome-registry/`) + ADR-0086 v1.1 amendment in flight (`openspec/changes/2026-09-20-adr-0086-v1-1-harness-change-confounder/`); C3 placeholder (`openspec/changes/2026-09-16-h-d-m-transition-guard/`, 待 fill); C4 placeholder (`openspec/changes/2026-09-16-harness-rsi-pilot/`, 待 C3 ship)
 > - 关联 ADR: ADR-0083/0084/0086/0087/0080/0061/0079/0075/0037/0050
 > - 路线图: `docs/roadmap/2026-09-16-pdk-chat-demo-evolution-roadmap.md`
 > - 自进化架构顶层: `docs/architecture/self-evolution-architecture-2026-08.md`
@@ -13,7 +13,7 @@
 
 ## 执行摘要
 
-HydraForge **已经在实施 RSI**——10 个 ship 评估/治理/审计/会话/沙箱 ADR 已构成完整基础设施，C0+C1 chat demo 端到端 2026-09-16 已 ship。`2026-09-16-genome-registry` (C2) / `h-d-m-transition-guard` (C3) / `harness-rsi-pilot` (C4) 三个 PLACEHOLDER change 直接对应 MetaRSI-v1 三个算子（Data-RSI / Harness-RSI / Model-RSI）和"禁止 H→M 直跳"关键禁令。Sprint 35-36 是 RSI 工程的"启动周"。
+HydraForge **已经在实施 RSI**——10 个 ship 评估/治理/审计/会话/沙箱 ADR 已构成完整基础设施，C0+C1 chat demo 端到端 2026-09-16 已 ship，**C2 genome-registry 2026-09-19 已 ship**（12 tests / 266 assertions, archived `2026-09-19-2026-09-16-genome-registry`）。`h-d-m-transition-guard` (C3, fill 中) / `harness-rsi-pilot` (C4, placeholder) 两个剩余 change 直接对应 MetaRSI-v1 关键禁令（"禁止 H→M 直跳，必须 H→D→M"）。Sprint 35-36 是 RSI 工程的"启动周"（C3 → C4 顺序）。
 
 **核心评级**：⭐⭐⭐⭐（基础设施已就位，缺 Genome 装配 + H→D→M 守门 + Harness-RSI Pilot 验证）
 
@@ -25,11 +25,11 @@ HydraForge **已经在实施 RSI**——10 个 ship 评估/治理/审计/会话/
 
 | 来源 | 核心概念 | HydraForge 对应 | 状态 |
 |------|----------|-----------------|------:|
-| **MetaRSI-v1** | **Genome**（Harness 可版本化资产） | `2026-09-16-genome-registry` (C2) | 📝 占位 |
+| **MetaRSI-v1** | **Genome**（Harness 可版本化资产） | `2026-09-16-genome-registry` (C2) | ✅ Shipped 2026-09-19 (12 tests / 266 assertions) |
 | **MetaRSI-v1** | **Data-RSI**（轨迹→训练数据） | ADR-0061-06 v1.1 Trajectory IR + ADR-0080 D10 Distillation | ✅ Shipped |
-| **MetaRSI-v1** | **Harness-RSI**（改 prompt/tools/workflow） | `2026-09-16-harness-rsi-pilot` (C4) + ADR-0084 Mutation Governance | 📝 C4 + ADR ✅ |
-| **MetaRSI-v1** | **Model-RSI**（训练权重） | ADR-0078 Fine-tune 🔍 Proposed + ADR-0084 V1 显式禁止 L4 | 🔍 待立项 |
-| **MetaRSI-v1** | **H→D→M 交通规则** | `2026-09-16-h-d-m-transition-guard` (C3) + ADR-0086 Credit Assignment 🔍 | 📝 C3 + 🔍 ADR |
+| **MetaRSI-v1** | **Harness-RSI**（改 prompt/tools/workflow） | `2026-09-16-harness-rsi-pilot` (C4) + ADR-0084 Mutation Governance | 🟡 C4 placeholder + ADR ✅ |
+| **MetaRSI-v1** | **Model-RSI**（训练权重） | ADR-0078 Fine-tune 🔍 Proposed + ADR-0084 V1 显式禁止 L4 | 🔍 待立项 (Wave 3, gated by C4 Go) |
+| **MetaRSI-v1** | **H→D→M 交通规则** | `2026-09-16-h-d-m-transition-guard` (C3, fill 中) + ADR-0086 Credit Assignment 🔍 Proposed → 🟡 amendment in flight (`2026-09-20-adr-0086-v1-1-harness-change-confounder`) | 🟡 C3 + ADR amendment |
 | **字节 Seed Aspire** | 目标形成（"改什么"） | ADR-0086 Credit Assignment（归因层）+ ADR-0083 IEvaluator（评估层） | 🟡 Credit 🔍 |
 | **字节 Seed S³Gym** | 经验整合（历史→能力） | ADR-0061-04 SLM Routing First + ADR-0083 V2 + ADR-0080 D10 | ✅ Shipped |
 | **字节 Seed HarnessDev** | 系统进化（改 Harness） | C4 Harness-RSI Pilot + ADR-0084 + ADR-0081 Pre-Step Hook | 🟡 C4 + ADR ✅ |
@@ -112,13 +112,13 @@ HydraForge **已经在实施 RSI**——10 个 ship 评估/治理/审计/会话/
 
 | 项目基础设施 | 对应 MetaRSI-v1 角色 |
 |------------|---------------------|
-| **Genome Registry**（C2 占位） | 标识"当前 Harness 版本号"（last_harness_change_version） |
-| **IEvaluator 评估结果** | 4 条件矩阵的"回归门 PASS"判定 |
-| **Mutation Governance** | 变异授权白名单（source_id）+ 模式×等级矩阵 |
-| **Credit Assignment**（ADR-0086 🔍） | 归因结果（attributed/insufficient/confounded），决定是否升级 |
-| **BudgetController** | "预算充足"判定 |
+| **Genome Registry**（C2 ✅ Shipped 2026-09-19） | 标识"当前 Harness 版本号"（last_harness_change_version）+ walk_ancestors 谱系（待 C3 amendment 扩展） |
+| **IEvaluator 评估结果**（ADR-0083 V2 ✅） | 3+1 条件矩阵的"回归门 PASS"判定（见 §3.2 注：原 4 条件逻辑冗余，实际 3 独立条件 + 1 派生注释） |
+| **Mutation Governance**（ADR-0084 V1 ✅） | 变异授权白名单（source_id）+ 模式×等级矩阵 |
+| **Credit Assignment**（ADR-0086 🔍 Proposed → 🟡 amendment in flight） | 归因结果（attributed/insufficient/confounded），决定是否升级 |
+| **BudgetController**（`IBudgetController` Sprint 11 C1） | "预算充足"判定（`ExecutionBudget` core type，**非 ADR-0019**——ADR-0019 是 IInteractionBus，引用修正见 §3.2） |
 
-C3 TransitionGuard 的 4 条件矩阵天然落在既有契约栈上（per Oracle M2 评审取消新建 3 算子接口框架，复用既有 ADR-0083/0084/0086）。
+C3 TransitionGuard 的 3+1 条件矩阵天然落在既有契约栈上（per Oracle M2 评审取消新建 3 算子接口框架，复用既有 ADR-0083/0084/0086 v1.1）。
 
 ---
 
@@ -160,7 +160,7 @@ C3 TransitionGuard 的 4 条件矩阵天然落在既有契约栈上（per Oracle
 **关键决策**：
 - D9 storage backend：filesystem（`~/.hydraforge/genomes/<name>/<version>/genome.yaml`）优先，Git-LFS 后续
 - D10 signature scheme：HMAC（简单，V1 够用），ed25519 V2
-- IGenomeRegistry 5 方法：`load(name@version)` / `commit(genome)` / `fork(parent, mutations)` / `list_versions(name)` / `diff(v1, v2)`
+- IGenomeRegistry 5 方法 + 1 待扩展：`load(name@version)` / `commit(genome)` / `fork(parent, mutations)` / `list_versions(name)` / `diff(v1, v2)`；**`walk_ancestors(from_version)` 在 C2 ship 时 deferred，公开接口不存在**——C3 amendment 决定扩展方式（推荐：新增 public `walk_ancestors` 接口，见 `openspec/changes/2026-09-16-h-d-m-transition-guard/` fill）
 
 **RSI 价值**：
 - Genome 版本号是 **C3 TransitionGuard 判断"过期数据"** 的基础
@@ -184,11 +184,12 @@ EvolutionVerdict can_transition(
 }
 ```
 
-**4 条件 evaluate_readiness 矩阵**：
-1. 归因 Attributed（复用 ADR-0086）
-2. 回归门 PASS（复用 ADR-0083 IEvaluator）
-3. 预算充足（复用 ADR-0019 ExecutionBudget）
-4. 无未控制混杂（复用 ADR-0086 ConfounderRecord）
+**3+1 条件 evaluate_readiness 矩阵**（per Oracle `ses_f45b96c94ffevTy454aeDBK7U2` 评审修正：原"4 条件"逻辑冗余，条件 1 蕴含条件 4）：
+1. **归因 Attributed**（复用 ADR-0086 v1.1）—— 蕴含"无未控制混杂"，因 ADR-0086 决策 2 算法 `未控制混杂 → verdict=Confounded`
+2. **回归门 PASS**（复用 ADR-0083 IEvaluator + ADR-0061-02 T14 Hotelling T²）
+3. **预算充足**（复用 `ExecutionBudget` core type + `IBudgetController` 接口——**修正原映射文档错误引用 ADR-0019**，ADR-0019 是 IInteractionBus MVP）
+
+> 注：原"4 条件矩阵"第 4 条"无未控制混杂"不是独立门，其检查已内嵌于条件 1 的算法（ADR-0086 决策 2）。详见 `openspec/changes/2026-09-20-adr-0086-v1-1-harness-change-confounder/` 决策 4（HarnessChange kind）+ 决策 9（数据新鲜度判定）。
 
 **Oracle M2 关键决策**：取消原计划新建 3 算子接口（IDataRSI/IHarnessRSI/IModelRSI），复用既有契约栈——避免平行架构（YAGNI）。
 
@@ -269,11 +270,11 @@ EvolutionVerdict can_transition(
 
 | MetaRSI-v1 抽象 | HydraForge 工程化映射 | 评估 |
 |---------------|---------------------|:----:|
-| 三个算子（Data/Harness/Model-RSI） | 3 个 OpenSpec change + 10 个 ship ADR | 直接对应 |
-| "Genome" 概念 | Genome Registry（C2 占位） | 概念契合 |
+| 三个算子（Data/Harness/Model-RSI） | C2 archived + C3 fill 中 + C4 placeholder + 10 个 ship ADR | Data-RSI ✅ / Harness-RSI 🟡 / Model-RSI 🔍 |
+| "Genome" 概念 | Genome Registry（C2 ✅ Shipped 2026-09-19）+ walk_ancestors（C3 amendment 扩展） | 概念契合 + 谱系可追溯 |
 | 三层递归调度内核 | H→D→M Transition Guard（C3）+ Mutation Governance + IEvaluator 门禁链 | 拆分到既有契约栈（YAGNI） |
-| 验证逻辑与生成分离 | `evaluate_readiness` 4 条件 + MutationGovernor gate-and-audit | 完全契合 |
-| 强制 H→D→M 禁令 | C3 TransitionGuard.can_transition() | 待实施 |
+| 验证逻辑与生成分离 | `evaluate_readiness` **3+1 条件**（归因 + 回归门 + 预算；混杂检查内嵌）+ MutationGovernor gate-and-audit | 完全契合（Oracle 评审修正：原"4 条件"冗余） |
+| 强制 H→D→M 禁令 | C3 TransitionGuard.can_transition() + ADR-0086 v1.1 HarnessChange kind | C3 待实施 + ADR-0086 amendment in flight |
 | 动态调度优于静态流程 | CancellationRegistry + 双队列 + 3 Loop | 已有 |
 
 ### 5.2 项目 vs 字节 Seed 三篇论文
