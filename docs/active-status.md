@@ -15,11 +15,11 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **247/247** 配置总数 (2026-09-18 F1 `fix-react-decide-empty-response` SHIPPED: `test_dsl_engine_ctx_bridge` binary 新增 5 cases / 13 assertions NodeExecutor 级 + `test_react_loop_real_llm` binary 新增 1 skip-guarded real-LLM case); baseline 245 → 247 (+2: Wave 34.5 F1 fix-react-decide-empty-response) |
+| **Total ctest** | **259/259** 配置总数 (2026-09-19 C2 `genome-registry` SHIPPED: `test_genome_registry` binary 新增 12 cases / 266 assertions); baseline 247 → 259 (+12: Sprint 35 C2 genome-registry). focused ctest 32/32 PASS 0 new regression |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 超时跳过 (机器性能受限) |
-| **OpenSpec active** | **5** (2026-09-18: F1 `fix-react-decide-empty-response` SHIPPED + archived, 释放 1 slot): C2/C3/C4 + P1 + generate-subgraph-fix 5 PLACEHOLDER 在 `openspec/changes/`).<br/>**2026-09-18 F1 archive**: `fix-react-decide-empty-response` (commits `a96842e` + `9dc3ac8`; archive 路径 `2026-09-18-fix-react-decide-empty-response`; 5/13 NodeExecutor 级 mock 测试 PASS + 1 skip-guarded real-LLM skeleton; Oracle 3 sessions 累计 audit, 3 处 spec drift 修订; focused 9/9 PASS 0 regression). 累计: 8 + 1 = 9 changes archived, 5 active. |
-| **Master Plan 更新** | `docs/roadmap/2026-09-16-pdk-chat-demo-evolution-roadmap.md` 2026-09-17 追加 #1 (Wave 2 P1 补登记) + #2 (DAG 动态组合完整流程调研) + §三表格添加 P1 row (deferred → Sprint 36+) + §二 Dependency Graph 添加 P0→P1 hard dep + §十 Drift Log 5 行 + §十一 Adjustment Log 2 行. Metis+Oracle dual-agent review 确认 P1 完全可通过纯 DSL 图节点实现 (`lib/loop/intent_classify.agent.md` + switch + loop/run_subgraph + 可选 generate_subgraph). |
+| **OpenSpec active** | **4** (2026-09-19: C2 `genome-registry` SHIPPED + archived, 释放 1 slot): C3/C4 + P1 + generate-subgraph-fix 4 PLACEHOLDER 在 `openspec/changes/`).<br/>**2026-09-19 C2 archive**: `genome-registry` (commits `2e7af89` + `a320032` + `839590d` + `b6114c2` + `507eae3`; archive 路径 `2026-09-19-2026-09-16-genome-registry`; 12/12 tests PASS, 266 assertions, Oracle dual-agent review BLOCK→fixed; focused ctest 32/32 PASS 0 regression). 累计: 9 + 1 = 10 changes archived, 4 active. |
+| **Master Plan 更新** | `docs/roadmap/2026-09-16-pdk-chat-demo-evolution-roadmap.md` 2026-09-19 追加 C2 genome-registry ✅ SHIPPED row + §三表格 C2 ⚪→✅ SHIPPED + §十一 Adjustment Log +6 行 (Oracle design / Oracle review / critical fixes / spec amendments / ship / ctest 259) + 附录 B.2 C2 实施路径 + Last Updated 2026-09-19. C3 ready to start (Genome 版本号接口已就位). |
 
 ## §Sprint 25 收官注记 (2026-09-03, 治理收官 Sprint)
 

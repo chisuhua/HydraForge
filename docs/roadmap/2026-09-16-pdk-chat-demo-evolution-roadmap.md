@@ -143,8 +143,8 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 | **C0** | `fix-loop-run-return-contract` | immediate-placeholder | 1-2h | None | ✅ | 34 |
 | **C1** | `loop-agent-tools` | immediate-placeholder | 3-5h | None (∥ C0) | ✅ | 34 |
 | **P0** | `fix-dsl-call-pause-autonomous-mode` (Wave 2 P0) | immediate-placeholder | 4h | C0+C1 | ✅ | 34 |
-| **C2** | `genome-registry` | hard-placeholder | 1 周 | C0+C1+P0 | ⚪ | 35 |
-| **C3** | `h-d-m-transition-guard` | hard-placeholder | 2-3 天 | C2 | ⚪ | 35 |
+| **C2** | `genome-registry` — ✅ **SHIPPED** (2026-09-19, archived `2026-09-19-2026-09-16-genome-registry`): Oracle dual-agent review (Oracle bg_a818a6a1 设计评审 + bg_9ade564d 实现评审 BLOCK→fixed + Metis bg_89293120 ship-with-fixes→fixed). Genome CRD + IGenomeRegistry interface (5 methods + 1 internal walk_ancestors deferred to C3) + FilesystemGenomeRegistry impl (D9/D10/D11 per Oracle bg_a818a6a1). 12 tests / 266 assertions PASS. **Critical fixes shipped**: C1 cycle infinite loop (visited keyed on name@version pair + 10000 depth cap), C2 vacuous cycle test (re-sign tampered YAMLs), M1 list_versions double-file check + sig-first atomic write, M2 RAND_bytes CSPRNG, M3 IOError returned, M4 mutex commit serialization, M5 lineage validation at commit time. **Spec amendments**: fork version semantics (max+1 not parent+1), walk_ancestors deferred to C3, fsync deferred to follow-up, CLI tool deferred to genome-cli change. | ~~hard-placeholder~~ | 1 周 → DONE | C0+C1+P0+F1 | ✅ SHIPPED | 35 |
+| **C3** | `h-d-m-transition-guard` | hard-placeholder | 2-3 天 | C2 ✅ | 🟡 Ready → Sprint 35+ | 35 |
 | **P1** | `intent-classification-router` (Wave 2 P1) — **方案 A''** (Oracle `ses_f4fd88215ffeUWSe2StAWtFPSQ` 推荐): `lib/loop/intent_classify.agent.md` (DSL 分类图, ~30 行) + `loop/classify_intent` 工具 (loop_agent C++, ~30 行) + ChatSession `"auto"` routing (C++, ~20 行, **两次平级** loop/run 调用) + 真实 LLM E2E 6 cases (3 happy + 3 error). **不使用 generate_subgraph 节点** (Oracle latent gap #1: 静态 `next: /dynamic/...` 在 build_dag 抛错, 文档与实现矛盾). **动态子图部分复用已 ship 的 `loop/execute_plan` 工具模式** (独立子引擎, 不走 /dynamic/ 注册). 估时 **0.5-1 sprint** (2-3 天实施 + 3-5 天真实 LLM 测试). | hard-placeholder | **0.5-1 sprint** | P0 | 🟡 Deferred → Sprint 36+ (与 C4 并行候选) | 35+ |
 | **C4** | `harness-rsi-pilot` | hard-placeholder | 1-2 周 | C3 | ⚪ | 36 |
 | **F1** | `fix-react-decide-empty-response` (Wave 34.5 follow-up) — react agent loop 在 `decide` 节点真实 LLM 端到端 `Missing 'response' argument` 修复。✅ **SHIPPED** (2026-09-18, commits `a96842e` + `9dc3ac8`, archived `2026-09-18-fix-react-decide-empty-response`) — 根因 = think 节点 LLM 空 text silent 穿透, fix = `node_executor.cpp` main + stream 双路径 fail-fast 空校验 +21 行. Real-LLM 6 cases 降级为 1 skip-guarded skeleton (`tests/test_react_loop_real_llm.cpp`) + 移交 chat-real-llm-coverage Phase H follow-up. | hard-placeholder | **5h → DONE** | `0b0da50` (bridge fix) + `chat-real-llm-coverage` helper | ✅ SHIPPED | **34.5** (post-Wave-1) |
@@ -671,6 +671,11 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 | 2026-09-18 | F1 | **§5 降级: 真实 LLM 6 cases → 1 skip-guarded skeleton + Phase H 移交** (Oracle `ses_f4caa8cf` 推荐 + `ses_f4c6e14f` 确认). 原因: sandbox 无 DEEPSEEK_API_KEY, mock 注入 (MockLLMEmptyTool) 已验证 fix 路径, 6 cases 投入产出比低. Single-Dev 有 key 时手动跑 `HYDRAFORGE_SKIP_REAL_LLM=0 DEEPSEEK_API_KEY=... ctest -R test_react_loop_real_llm --output-on-failure`. | Mode #1 minimal fix + 模式 #1 step 4 latent sites 记录 + 真实 LLM 测试 ROI 评估. |
 | 2026-09-18 | F1 | **Spec drift 修订**: R4 EmptyLLMResponseError → runtime_error (实施抛 plain runtime_error, not 新 ErrorCode); R1 streaming first_text_chunk → full text (实现存完整 result["text"]); D3 fork/join 决议: 双注册非 bug + 当前 schema OK (Oracle `ses_f4caa8cf` 审计). | Oracle `ses_f4c6e14f` 发现 spec drift 阻塞 archive — 修订后 openspec validate --strict → "Change is valid". |
 | 2026-09-18 | F1 | **Total ctest**: 245 → 247 (新增 test_dsl_engine_ctx_bridge binary 5 cases / 13 assertions + test_react_loop_real_llm binary 1 skip-guarded case). Focused ctest 9/9 PASS 0 regression. | 测试套件扩展, 245 门禁被新 binary 替换为 247. |
+| 2026-09-18 | 短链 | **F1 ship hygiene (post Oracle bg_59b2388c final review)**: 4 gaps — (G1) archive 移动未入 git (Day 5 lesson 实质性避免, 修 `d91b212`) + (G2) `examples/pdk_chat_demo/~/` junk dir 删除 + (G3) archived tasks.md 38 checkbox 全勾选 + (G4) 附录 B.1 stale 修复 + SUCCEED message typo "deepfail-fast" → "fail-fast". 2 atomic commits (`d91b212` + `7b782aa`). | Day 5 lesson 实质性避免 (archive 必须入 git) + future maintainer 文档完整性. |
+| 2026-09-18 | 短链 | **Sprint 34.5 follow-up closure: 3 placeholders + 2 shippable items**: Tasks #1-#5 of F1 ship hygiene 短链. (1) `2026-09-18-fix-flatten-layers-comment-drift` placeholder (P3 cosmetic, ~30min) (2) `provider-llm-tool-empty-passthrough` placeholder (P2 defense-in-depth, ~1-2h) (3) `chat-real-llm-coverage-phase-h` placeholder (P2 coverage gap, ~3-5h) (4) `test_react_loop_real_llm.cpp` 1→2 cases 增强 (~30min, commit `211f866`) (5) `node_executor.cpp` 2 `std::cerr` → `LOG_WARN` migration (~1h, commit `f83b85d`). 3 atomic commits. | F1 design.md Latent Sites 表 + AGENTS.md 模式 #1 step 4 systematic recording. |
+| 2026-09-19 | 35 | **C2 `genome-registry` Oracle design review (bg_a818a6a1, 1m 45s)**: D9 filesystem / D10 HMAC-SHA256 / D11 unlimited lineage 全 resolve. 加 5 obs (GenomeError 独立 enum 不对齐 ToolResult / fork 设计空白 / capture_mode 字段值域 / version 单调整数 / CLI demo 避 pdk_chat_demo namespace pollution) + 12 test cases + 5 pitfalls. | D9/D10/D11 决策落地 + 12 test cases 收敛 + 5 pitfalls 避免. |
+| 2026-09-19 | 35 | **C2 `genome-registry` SHIPPED** — 6 commits: design+spec+tasks (`2e7af89`) + RED 12/12 FAIL (`a320032`) + GREEN 12/12 PASS 266 assertions (`839590d`) + critical fixes (`b6114c2`) + spec amendments (`507eae3`). **Oracle dual-agent review**: bg_9ade564d (BLOCK → SHIP) + bg_89293120 (ship-with-fixes → SHIP). **Critical fixes**: C1 cycle detection infinite loop (visited keyed on name@version pair + 10000 depth cap), C2 vacuous cycle test (re-sign tampered YAMLs), M1 list_versions double-file check + sig-first atomic write ordering, M2 HMAC key uses OpenSSL RAND_bytes CSPRNG, M3 IOError lifecycle (no longer dead enum), M4 mutex commit serialization, M5 lineage validation at commit (not only load). **Spec amendments**: fork version = max+1 (was parent+1), walk_ancestors deferred to C3, fsync deferred to follow-up, CLI tool deferred to genome-cli change. Total ctest +12 (12 new in test_genome_registry). Focused ctest 32/32 PASS (test_executor + test_dsl_engine + test_loop_agent + test_react + test_provider + test_session + test_genome_registry), 0 new regression. archived `2026-09-19-2026-09-16-genome-registry` (6 files verified, Day 5 lesson 避免). §三 Overview C2 ⚪ → ✅ SHIPPED + §十一 Adjustment Log +6 行 (Oracle design + Oracle review + 5 critical fixes + spec amendments + ship + Total ctest 259) + 附录 B (新 B.2 C2 实施路径). | Phase 6 Candidate B 服务化核心基础设施就位 + C3 启动前置 (Genome 版本号接口). |
+| 2026-09-19 | 35 | **Total ctest**: 247 → 259 (+12 genome_registry). Focused ctest 32/32 PASS. Active OpenSpec 5 → 4 (C2 archived). 后续: C3 h-d-m-transition-guard 启动就绪 (Genome 版本号接口 ship). | 持续增强 + Single-Dev mode 范本 (Oracle dual-agent review 完整闭环). |
 
 ---
 
@@ -793,6 +798,51 @@ openspec/changes/
 
 ---
 
-**Last Updated**: 2026-09-18 (F1 SHIPPED + 3 处 spec drift 修订 + design dedup + §一.4 Bug3 ✅ FIXED + §十一 Adjustment Log +4 行 + §十 Drift Log +1 行 + 附录 B.1 待 ship→✅ SHIPPED 更新 + housekeeping commit 补 archive git-tracking 缺口)
-**Next Review**: C2 genome-registry 启动前 (Sprint 35)
+### B.2 C2 (genome-registry) ✅ SHIPPED 实施路径 (2026-09-19)
+
+| Step | 任务 | 估时 | 状态 | 实际 |
+|------|------|------|------|------|
+| 0 | Oracle design review (bg_a818a6a1) — D9/D10/D11 + 12 tests + 5 pitfalls | 30 min | ✅ 1m 45s | D9 filesystem / D10 HMAC-SHA256 / D11 unlimited + 5 obs + 12 cases + 5 pitfalls |
+| 1 | Pre-flight + 读现有 placeholder | 30 min | ✅ | Oracle bg_a818a6a1 直接命中 |
+| 2 | design.md + spec.md + tasks.md | 1h | ✅ | commit `2e7af89` (3 files, +237/-86) |
+| 3 | RED: 12 failing tests | 2h | ✅ 12/12 FAIL | commit `a320032` (+503) |
+| 4 | GREEN: minimal impl (filesystem + HMAC + fork + diff) | 3h | ✅ 12/12 PASS 266 assertions | commit `839590d` (8 files +43/-202) |
+| 5 | Oracle dual-agent review (bg_9ade564d + bg_89293120) | 30 min | ✅ BLOCK → SHIP-with-fixes (2 criticals + 6 majors) | Oracle C1+C2 + Metis 5 deal-breakers |
+| 5.5 | critical fixes (cycle, IOError, mutex, RAND_bytes, list_versions integrity) | 1h | ✅ | commit `b6114c2` (3 files +179/-56) |
+| 5.6 | spec amendments (max+1, walk_ancestors deferred, fsync deferred, CLI deferred) | 30 min | ✅ openspec validate "Change is valid" | commit `507eae3` (2 files +65/-11) |
+| 6 | ship-with-fixes + archive | 30 min | ✅ | archived `2026-09-19-2026-09-16-genome-registry` |
+| **总** | | **8h** | ✅ COMPLETE (估时 1 周) | **8h** |
+
+**Ship 结果**:
+- 12/12 tests PASS, 266 assertions
+- focused ctest 32/32 PASS (test_executor + test_dsl_engine + test_loop_agent + test_react + test_provider + test_session + test_genome_registry), 0 new regression
+- openspec validate --strict: "Change is valid"
+- Total ctest: 247 → 259 (+12 genome_registry)
+- Active OpenSpec: 5 → 4 (C2 archived)
+- 6 atomic commits: design+spec (`2e7af89`) + RED (`a320032`) + GREEN (`839590d`) + critical fixes (`b6114c2`) + spec amendments (`507eae3`)
+
+**关键决策**:
+- D9 filesystem (single-Dev 单写者假设 + 项目先例 + 未来 git clone 友好)
+- D10 HMAC-SHA256 (完整性 > 身份认证 + 第三方不验签)
+- D11 unlimited (bounded 丢失信息, parent_only 退化)
+- 5 pitfalls 避免: canonical bytes / tmp+rename / no walk_ancestors v1 / no semver
+
+**Critical fixes (per dual-agent review)**:
+- C1: cycle detection visited keyed on (name, version) pair + 10000 depth cap
+- C2: walk wrapped in try/catch + cycle test re-signed to actually exercise cycle path
+- M1: list_versions requires BOTH yaml + sig + sig-first atomic write ordering
+- M2: HMAC key uses OpenSSL RAND_bytes CSPRNG (not mt19937_64)
+- M3: atomic_write returns Result + checks stream state (IOError no longer dead enum)
+- M4: commit guarded by std::mutex commit_mutex_
+- M5: lineage validation also at commit (not only load)
+
+**Deferred to follow-up changes**:
+- fsync (file + directory fdatasync) — Linux-specific hardening
+- CLI tool (`examples/genome_cli/`) — separate `genome-cli` change
+- walk_ancestors — C3 transition-guard change (consumer ready)
+
+---
+
+**Last Updated**: 2026-09-19 (C2 genome-registry ✅ SHIPPED — Oracle dual-agent review (bg_a818a6a1 设计 + bg_9ade564d 实现 BLOCK→fixed + Metis bg_89293120 ship-with-fixes→fixed). 12 tests / 266 assertions PASS. 6 commits ahead: design/spec (`2e7af89`) + RED (`a320032`) + GREEN (`839590d`) + critical fixes (`b6114c2`) + spec amendments (`507eae3`). archived `2026-09-19-2026-09-16-genome-registry` (6 files verified, Day 5 lesson 避免). §三 Overview C2 ✅ SHIPPED + §十一 Adjustment Log +5 行 + 附录 B (新 B.2 C2 实施路径). C3 ready to start (Genome 版本号接口已就位). + F1 housekeeping + 3 placeholders (fix-flatten-layers-comment-drift / provider-llm-tool-empty-passthrough / chat-real-llm-coverage-phase-h) + test_react_loop_real_llm 增强 + node_executor.cpp 2 std::cerr→LOG_WARN)
+**Next Review**: C3 h-d-m-transition-guard 启动前
 **Maintainer**: Architecture Working Group + Solo Dev
