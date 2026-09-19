@@ -129,6 +129,44 @@
 
 ---
 
+## Dual-Agent Review Outcome (2026-09-18)
+
+**Oracle bg_9ade564d** (BLOCK → SHIP-with-fixes post-corrections):
+- C1 (critical) ✅ FIXED: cycle detection infinite loop — visited set keyed on (name, version) PAIRS + depth cap 10000
+- C2 (critical) ✅ FIXED: walk wrapped in try/catch (IOError returns); cycle_detection test re-signed to actually exercise cycle path
+- M1 ✅ FIXED: list_versions requires BOTH yaml + sig; commit writes sig-first ordering
+- M2 ✅ FIXED: HMAC key uses OpenSSL RAND_bytes (CSPRNG)
+- M3 ✅ FIXED: atomic_write returns Result + checks stream state
+- M4 ✅ FIXED: commit guarded by std::mutex commit_mutex_
+- M5 ✅ FIXED: lineage validation also at commit (not only load)
+- M6 DEFERRED: Result template — minor, can co-exist with llm_types.h::Result
+- m1 ✅ FIXED: fork generates fresh RFC3339 UTC timestamp
+- m2 ✅ SPEC AMENDED: fork version semantics `max+1` (replaces `parent+1`)
+- m3 PARTIAL: cycle test sets HYDRAFORGE_GENOME_KEY (other tests still use $HOME key)
+- m4: CycleDetected/BrokenLineage semantics clarified — cycle returns BrokenLineage per spec
+
+**Metis bg_89293120** (ship-with-fixes → SHIP post-corrections):
+- A1 ✅ FIXED (matches Oracle C2b)
+- A2 ✅ FIXED (matches Oracle C2c)
+- A3 DEFERRED: hard timing <50ms — flake risk acknowledged, kept for now (generous buffer)
+- S1 ✅ SPEC AMENDED: spec text now matches impl (load rejects non-monotonic version via parse exception)
+- S2 ✅ SPEC AMENDED: fork version semantics
+- S3 ✅ SPEC AMENDED: spec text relaxed from "fsync" to "tmp + rename" with sig-first ordering guarantee
+- S4 ✅ FIXED (matches Oracle M1): list_versions double-file check
+- I1 DEFERRED: walk_ancestors — already deferred to C3, spec text amended
+- I2 ✅ FIXED (matches Oracle m1): fork timestamp
+- I3 PARTIAL: cycle test isolation via env override
+- I4 ✅ SPEC AMENDED: parent clarified as optional
+- I5 DEFERRED: CLI tool — already out of scope per design.md §Out-of-scope, spec amended
+
+**Deferred to follow-up changes** (not in this C2 scope):
+- Fsync (file + directory fdatasync) — Linux-specific hardening
+- CLI tool (`examples/genome_cli/`) — separate `genome-cli` change
+- walk_ancestors — C3 transition-guard change
+- Hard timing <50ms flake risk — consider relaxation to <500ms
+
+---
+
 ## File Layout (planned)
 
 ```
