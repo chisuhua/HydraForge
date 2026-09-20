@@ -1,0 +1,189 @@
+# ADR-0088: H→D→M Transition Guard 架构 — MetaRSI-v1 关键规则强制
+
+**日期**: 2026-09-20
+**状态**: 🔍 **Proposed** (2026-09-20 — OpenSpec change `2026-09-16-h-d-m-transition-guard` 待 fill; rdd-arch 立项阶段)
+**父主题**: Phase 6c MetaRSI-v1 (Agent 协同进化关键规则强制)
+**前置 ADR**:
+- ADR-0083 (✅ Approved + V2 Shipped) — IEvaluator/RewardSignal 评估契约 ("表现如何")
+- ADR-0084 (✅ Approved + V1 Shipped) — MutationGovernance ("是否允许提交")
+- **ADR-0086 (✅ Approved v1.1, ship 2026-09-20)** — Credit Assignment (条件 1: Attributed + 数据新鲜度算法)
+- ADR-0080 (✅ Approved, v1.1/v1.2 amendments) — AppendOnlyEventLog (`evolution.scheduler.denied` 事件发射)
+- ADR-0061-02 (✅ Approved + T14 Shipped) — 行为回归套件 (条件 2: 回归门 PASS)
+- **C2 IGenomeRegistry (✅ Shipped 2026-09-19)** — `walk_ancestors()` 待扩展
+- `ExecutionBudget` + `IBudgetController` (✅ Shipped Sprint 11) — 条件 3: 预算充足
+- `Hotelling T²` (T14 Shipped) — VersionPairDiff 方差估计基线
+
+**关联文档**:
+- `docs/architecture/self-evolution-architecture-2026-08.md` §一.1.3 + §四 4.2 + §七 — 自进化方向与协同进化前置条件
+- `docs/architecture/agent-orchestration-architecture-2026-08.md` §十七 §17 — Loop×Pattern 行为矩阵
+- `docs/roadmap/2026-09-16-pdk-chat-demo-evolution-roadmap.md` §四 C3 — 关键路径定义
+- `openspec/changes/2026-09-16-h-d-m-transition-guard/proposal.md` — 469 行详细 proposal (D1-D7 决策 + 7 项 Oracle continuation actions)
+- **Oracle session IDs**: `ses_f45b96c94ffevTy454aeDBK7U2` (continuation 2026-09-20) + `ses_f55f307f6ffeRJ9SIny8iUbZ8Y` (M2 评审)
+
+**最后更新**: 2026-09-20
+
+## 状态
+
+🔍 **Proposed** (2026-09-20 — rdd-arch 立项阶段, rdd-planner 待处理 change `2026-09-16-h-d-m-transition-guard`)
+
+## Context (背景)
+
+### MetaRSI-v1 关键规则（external framework, unverified）
+
+HydraForge Phase 6c MetaRSI-v1 方向采用 Meta-RSI 框架 (字节 Seed HarnessDev 论文实证) 的三态规则:
+
+- **禁止 H→M 直跳**：用旧 Harness 数据训练新能力 → 训练目标混乱（字节 Seed 论文实证：64 次版本迭代仅 53.1% 修改方向一致）
+- **必须 H→D→M**：先改 Harness，再跑 D 生成与新能力匹配的新数据，再 M 训练
+- **验证逻辑与生成分离**：确定性代码，模型无权改
+
+### 现状缺口
+
+- Harness-RSI 与 Model-RSI 可被任意组合（违反 MetaRSI-v1 规则）
+- 验证逻辑散落多个 ADR，无统一入口
+- 自进化闭环（per `self-evolution-architecture-2026-08.md` §三）无法落地
+- ADR-0086 v1.1 amendment 暴露的 H→D→M 规则无状态机落地（仅文字契约）
+
+### 架构依据
+
+本 ADR 是 MetaRSI-v1 闭环的关键强制点（per `self-evolution-architecture-2026-08.md` §七 #9 "Agent-Agent/Agent-Environment 协同进化：只有在 S4 promotion criteria 满足后再单独立项"）。本 change **不引入协同进化**，仅落地 H→D→M 状态机强制 + 三条件门控（Attributed + 回归门 + 预算），为后续 S4 promotion criteria 铺垫。
+
+## Decision (决策)
+
+### D1 — 状态机模型（per YAGNI，简单 4 状态 + Done）
+
+```cpp
+namespace agenticdsl::evolution {
+
+enum class EvolutionState {
+    Idle,        // 未启动或完成
+    Harness,     // Harness 变更中
+    Data,        // 数据采集中（与新 Harness 匹配）
+    Model,       // 模型训练中
+    Done         // 全部完成（→等价 Idle，禁止→非 Idle）
+};
+
+}
+```
+
+### D2 — 验证结果结构
+
+```cpp
+struct EvolutionVerdict {
+    bool can_proceed = false;
+    EvolutionState recommended_next = EvolutionState::Idle;
+    std::string reason;
+    std::vector<std::string> failed_conditions;
+};
+```
+
+### D3 — 状态机判定结果（编译期可调用）
+
+- `can_transition(from, to)` — 编译期函数，返回 `bool`
+- `evaluate_readiness(state, bus, registry, budget, baseline)` — 运行期函数，返回 `EvolutionVerdict`
+- **三条件门控**：① 归因 Attributed (per ADR-0086) + ② 回归门 PASS (per T14 Hotelling T²) + ③ 预算充足 (per IBudgetController)
+
+### D4 — 取消原计划的 3 算子接口 (per Oracle M2 D1)
+
+**取消** IDatasRsi / IHarnessRSI / IModelRSI 三算子接口 — 与既有 ADR-0083/0084/0086 契约栈重复。改用**轻量状态机 + 双入口**。
+
+### D5 — `walk_ancestors()` 接口扩展 (C2 amendment)
+
+```cpp
+// IGenomeRegistry 接口扩展 (C2 已有 interface, C3 新增 virtual method)
+virtual Result<LineageWalk, GenomeError> walk_ancestors(
+    const std::string& name,
+    uint64_t from_version,
+    std::optional<uint64_t> to_version = std::nullopt
+) = 0;
+
+struct LineageWalk {
+    std::vector<uint64_t> intermediate_versions;
+    std::vector<agenticdsl::genome::Genome> intermediate_metadata;
+    // Genome 含 spec.harness, NOT GenomeMetadata
+};
+```
+
+**单一所有权**: `GenomeVersion struct` 已在 `include/agenticdsl/types/attribution_record.h` 定义,本 ADR 复用避免 ODR 违规 (per spot-check New Issue 1)。
+
+### D6 — judge_data_freshness 完整实装
+
+ADR-0086 v1.1 ship 的 `judge_data_freshness(data, current, registry)` 是 stub (返回 `Insufficient` 防假阴性)。C3 必须实装 `walk_ancestors()` + 完整 lineage walk + harness string comparison 算法,实现 4 cases (per spec/credit-assignment-v1-1/spec.md data-freshness-algorithm):
+1. data == current → Attributed fast-path
+2. data not in lineage → Confounded
+3. data in lineage but Harness changed after → Confounded (HarnessChange confounder)
+4. data in lineage with no subsequent Harness change → Attributed
+
+### D7 — 复用既有契约（per Oracle M2 D4 YAGNI）
+
+- 复用 ADR-0083 IEvaluator (`evaluate(Genotype)` 返回 reward signal)
+- 复用 ADR-0084 MutationGovernance (L1-L4 变异等级)
+- 复用 ADR-0086 AttributionRecord (Attributed/Confounded/Insufficient/NotAttempted 4 态)
+- 复用 `IBudgetController` (max_tokens / max_llm_calls / max_duration_sec)
+- 复用 `EventLog` + `EventBuilder` (ADR-0068) 发射 `evolution.scheduler.denied` 事件
+- **不**新建平行接口 (per Oracle M2 YAGNI 原则)
+
+### 影响范围
+
+| 模块 | 变更 |
+|------|------|
+| `include/agenticdsl/evolution/transition_guard.h` | **新增** (~280 行) |
+| `src/modules/evolution/transition_guard.cpp` | **新增** (~280 行) |
+| `include/agenticdsl/genome/genome.h` | **修改** (C2 IGenomeRegistry `walk_ancestors` virtual method + LineageWalk struct, ~30 行增) |
+| `src/core/genome/registry_filesystem.cpp` | **修改** (override walk_ancestors, ~40 行) |
+| `src/evolution/version_pair_diff.cpp` | **修改** (judge_data_freshness stub → 完整实现, ~50 行增) |
+| `tests/test_transition_guard.cpp` | **新增** (TDD 5 步, ~15 cases) |
+| `tests/test_genome_walk_ancestors.cpp` | **新增** (~6 cases for walk_ancestors) |
+
+### 备选方案
+
+- **方案 B (重型框架)**: IDatasRsi / IHarnessRSI / IModelRSI 三算子接口 + EventBus 集成。**驳回**: 与既有 ADR-0083/0084/0086 契约栈重复,YAGNI 原则违反,pilot (C4) 验证价值前不造重型框架。
+- **方案 C (分散实现)**: 把状态机散落到 node_executor + scheduler + budget_controller。**驳回**: 违反 single-source-of-truth,审计追踪困难。
+
+## Consequences (后果)
+
+### 正面
+
+- H→D→M 关键规则强制状态机化,自进化闭环可被审计
+- `walk_ancestors()` 接口实装解锁 `judge_data_freshness` 完整算法,信用分配可检测 HarnessChange confounder
+- 三条件门控提供客观吸收/拒绝标准 (per T21 Prompt Evidence Gate 范式)
+- 复用既有契约,不引入新接口 (per YAGNI)
+- ADR-0086 v1.1 ship 的 `judge_data_freshness` stub → 完整实装,C3 是 stub 闭合点
+
+### 负面 / 风险
+
+- **`walk_ancestors` 是新 virtual method,所有 IGenomeRegistry 实现必须 override** — LSP cascade,需 LLM 生成的 stub override for 测试 mock
+- **状态机 D1 → D5 状态转移边界 case 多** — TDD 覆盖不全风险,需 ≥10 cases for state transitions
+- **`judge_data_freshness` 完整算法依赖 lineage walk 性能** — 大 lineage (≥100 versions) 可能 O(n), 需缓存 + lazy 评估
+- **三条件门控任意 fail → 自动 deny** — 与 GEPALoop 失败反思修订闭环集成时,需谨慎避免 hard-closed 阻断 prompt 修订
+
+### 后续待办
+
+1. C3 fill (OpenSpec change `2026-09-16-h-d-m-transition-guard`) — 当前 change
+2. C4 Harness-RSI Pilot — 验证状态机 + 三条件门控 in real workflow
+3. Phase 6c Stage Gate 评估 — C2-C4 全部 ship 后 2 周稳定期
+4. ADR-0088 status Proposed → Approved (C3 ship 后翻转)
+5. ADR-0086 v1.1 `judge_data_freshness` stub → C3 完整实装 (D6)
+
+## References (参考资料)
+
+- ADR-0083 (IEvaluator/RewardSignal) — ✅ V2 Shipped
+- ADR-0084 (MutationGovernance) — ✅ V1 Shipped
+- ADR-0086 (Credit Assignment) — ✅ Approved v1.1, ship 2026-09-20
+- ADR-0080 (AppendOnlyEventLog) — ✅ Approved v1.1/v1.2
+- ADR-0061-02 (行为回归 T14) — ✅ Shipped
+- C2 IGenomeRegistry — ✅ Shipped 2026-09-19
+- `docs/architecture/self-evolution-architecture-2026-08.md` §一.1.3 + §四 4.2 + §七
+- `docs/roadmap/2026-09-16-pdk-chat-demo-evolution-roadmap.md` §四 C3
+- `openspec/changes/2026-09-16-h-d-m-transition-guard/proposal.md` — 469 行详细 proposal
+- `openspec/changes/archive/2026-09-20-adr-0086-v1-1-harness-change-confounder/` — ADR-0086 v1.1 ship
+- Oracle session: `ses_f45b96c94ffevTy454aeDBK7U2` (continuation 2026-09-20)
+- Oracle session: `ses_f55f307f6ffeRJ9SIny8iUbZ8Y` (M2 评审)
+
+---
+
+**Ship Evidence** (待 C3 ship 后追加):
+- commit hash: TBD
+- ctest: test_transition_guard + test_genome_walk_ancestors + test_credit_assignment (judge_data_freshness 完整版) PASS
+- 5 atomic commits per AGENTS.md 模式 #4
+- rdd-verifier PASS
+- merge to main commit hash: TBD
