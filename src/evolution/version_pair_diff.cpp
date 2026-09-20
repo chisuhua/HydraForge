@@ -38,7 +38,8 @@ AttributionRecord VersionPairDiff::compare(
 }
 
 AttributionVerdict VersionPairDiff::judge_data_freshness(
-    const GenomeVersion& v, const GenomeVersion& current, IGenomeRegistry& registry) {
+    const GenomeVersion& v, const GenomeVersion& current,
+    ::agenticdsl::genome::IGenomeRegistry& registry) {
     (void)registry;  // C3 实装 walk_ancestors 后启用
     // Fast-path (决策 9 修正 excludes-self 假阳性):
     // data.version == current.version → 直接 Attributed

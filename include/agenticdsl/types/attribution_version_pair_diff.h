@@ -18,13 +18,14 @@ public:
         const VersionSnapshot& parent,
         const std::vector<ConfounderRecord>& confounders);
 
-    // v1.1 决策 9 数据新鲜度判定 (完整版算法 per proposal §1 决策 9)
-    // 当前 stub: 因 C3 walk_ancestors 未 ship, 完整 lineage walk 不可用
-    // 返回 Insufficient (C3 实装后启用 fast-path + lineage + harness 对比)
-    static AttributionVerdict judge_data_freshness(
-        const GenomeVersion& v,
-        const GenomeVersion& current,
-        IGenomeRegistry& registry);
+// v1.1 决策 9 数据新鲜度判定 (完整版算法 per proposal §1 决策 9)
+// 当前 stub: 因 C3 walk_ancestors 未 ship, 完整 lineage walk 不可用
+// 返回 Insufficient (C3 实装后启用 fast-path + lineage + harness 对比)
+// v1.1 amendment (Critical C1): signature 改 ::agenticdsl::genome::IGenomeRegistry&
+static AttributionVerdict judge_data_freshness(
+    const GenomeVersion& v,
+    const GenomeVersion& current,
+    ::agenticdsl::genome::IGenomeRegistry& registry);
 };
 
 }  // namespace agenticdsl::evolution

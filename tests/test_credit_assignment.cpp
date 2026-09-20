@@ -12,6 +12,12 @@
 #include "agenticdsl/types/attribution_record.h"
 #include "agenticdsl/types/attribution_version_pair_diff.h"
 
+// Critical C1 (C3 h-d-m-transition-guard follow-up):
+// judge_data_freshness signature 改 agenticdsl::genome::IGenomeRegistry&
+// MockRegistry 必须 derive from genome::IGenomeRegistry (含 5 纯虚 + walk_ancestors 默认实现)
+// 详见 openspec/changes/2026-09-20-ig-genome-registry-walk-ancestors/spec.md §ig-genome-registry-type-unification
+#include "agenticdsl/genome/genome.h"
+
 namespace agenticdsl::evolution {
 namespace testing {
 namespace {
@@ -190,7 +196,35 @@ TEST_CASE("HarnessChangeRecord schema 完整性 (v1.1)", "[adr-0086][v1.1]") {
 
 TEST_CASE("judge_data_freshness data==current fast-path (v1.1)",
           "[adr-0086][v1.1]") {
-    struct MockRegistry : IGenomeRegistry {};
+    // Critical C1: derive from ::agenticdsl::genome::IGenomeRegistry (5 纯虚 + walk_ancestors 默认)
+    struct MockRegistry : ::agenticdsl::genome::IGenomeRegistry {
+        ::agenticdsl::genome::Result<::agenticdsl::genome::Genome, ::agenticdsl::genome::GenomeError>
+        load(const std::string&, uint64_t) override {
+            return ::agenticdsl::genome::Result<::agenticdsl::genome::Genome, ::agenticdsl::genome::GenomeError>::failure(
+                ::agenticdsl::genome::GenomeError::NotFound);
+        }
+        ::agenticdsl::genome::Result<::agenticdsl::genome::CommitResult, ::agenticdsl::genome::GenomeError>
+        commit(const ::agenticdsl::genome::Genome&) override {
+            return ::agenticdsl::genome::Result<::agenticdsl::genome::CommitResult, ::agenticdsl::genome::GenomeError>::failure(
+                ::agenticdsl::genome::GenomeError::NotFound);
+        }
+        ::agenticdsl::genome::Result<::agenticdsl::genome::CommitResult, ::agenticdsl::genome::GenomeError>
+        fork(const std::string&, uint64_t, const ::agenticdsl::genome::GenomeSpec&) override {
+            return ::agenticdsl::genome::Result<::agenticdsl::genome::CommitResult, ::agenticdsl::genome::GenomeError>::failure(
+                ::agenticdsl::genome::GenomeError::NotFound);
+        }
+        ::agenticdsl::genome::Result<std::vector<uint64_t>, ::agenticdsl::genome::GenomeError>
+        list_versions(const std::string&) override {
+            return ::agenticdsl::genome::Result<std::vector<uint64_t>, ::agenticdsl::genome::GenomeError>::failure(
+                ::agenticdsl::genome::GenomeError::NotFound);
+        }
+        ::agenticdsl::genome::Result<::agenticdsl::genome::GenomeDiff, ::agenticdsl::genome::GenomeError>
+        diff(const std::string&, uint64_t, uint64_t) override {
+            return ::agenticdsl::genome::Result<::agenticdsl::genome::GenomeDiff, ::agenticdsl::genome::GenomeError>::failure(
+                ::agenticdsl::genome::GenomeError::NotFound);
+        }
+        // walk_ancestors 不 override → 走 D9 默认 (NotImplemented)
+    };
     MockRegistry reg;
     GenomeVersion v{"g", 5};
     GenomeVersion current{"g", 5};
@@ -201,7 +235,34 @@ TEST_CASE("judge_data_freshness data==current fast-path (v1.1)",
 
 TEST_CASE("judge_data_freshness data != current returns Insufficient (v1.1 C3 stub)",
           "[adr-0086][v1.1]") {
-    struct MockRegistry : IGenomeRegistry {};
+    // Critical C1: MockRegistry derive from ::agenticdsl::genome::IGenomeRegistry
+    struct MockRegistry : ::agenticdsl::genome::IGenomeRegistry {
+        ::agenticdsl::genome::Result<::agenticdsl::genome::Genome, ::agenticdsl::genome::GenomeError>
+        load(const std::string&, uint64_t) override {
+            return ::agenticdsl::genome::Result<::agenticdsl::genome::Genome, ::agenticdsl::genome::GenomeError>::failure(
+                ::agenticdsl::genome::GenomeError::NotFound);
+        }
+        ::agenticdsl::genome::Result<::agenticdsl::genome::CommitResult, ::agenticdsl::genome::GenomeError>
+        commit(const ::agenticdsl::genome::Genome&) override {
+            return ::agenticdsl::genome::Result<::agenticdsl::genome::CommitResult, ::agenticdsl::genome::GenomeError>::failure(
+                ::agenticdsl::genome::GenomeError::NotFound);
+        }
+        ::agenticdsl::genome::Result<::agenticdsl::genome::CommitResult, ::agenticdsl::genome::GenomeError>
+        fork(const std::string&, uint64_t, const ::agenticdsl::genome::GenomeSpec&) override {
+            return ::agenticdsl::genome::Result<::agenticdsl::genome::CommitResult, ::agenticdsl::genome::GenomeError>::failure(
+                ::agenticdsl::genome::GenomeError::NotFound);
+        }
+        ::agenticdsl::genome::Result<std::vector<uint64_t>, ::agenticdsl::genome::GenomeError>
+        list_versions(const std::string&) override {
+            return ::agenticdsl::genome::Result<std::vector<uint64_t>, ::agenticdsl::genome::GenomeError>::failure(
+                ::agenticdsl::genome::GenomeError::NotFound);
+        }
+        ::agenticdsl::genome::Result<::agenticdsl::genome::GenomeDiff, ::agenticdsl::genome::GenomeError>
+        diff(const std::string&, uint64_t, uint64_t) override {
+            return ::agenticdsl::genome::Result<::agenticdsl::genome::GenomeDiff, ::agenticdsl::genome::GenomeError>::failure(
+                ::agenticdsl::genome::GenomeError::NotFound);
+        }
+    };
     MockRegistry reg;
     GenomeVersion v{"g", 3};
     GenomeVersion current{"g", 5};

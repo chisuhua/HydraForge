@@ -102,7 +102,8 @@ struct GenomeVersion {
     uint64_t version;
 };
 
-// Forward declaration for IGenomeRegistry — 当前为空 stub, C3 实装真实虚函数接口
-struct IGenomeRegistry {};
-
 }  // namespace agenticdsl::evolution
+
+// IGenomeRegistry forward declaration in global agenticdsl::genome (C3 Critical C1)
+// Avoids nested namespace resolution when included from agenticdsl::evolution::testing.
+namespace agenticdsl::genome { class IGenomeRegistry; }
