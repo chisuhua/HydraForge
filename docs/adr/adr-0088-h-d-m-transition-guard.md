@@ -1,7 +1,9 @@
 # ADR-0088: H→D→M Transition Guard 架构 — MetaRSI-v1 关键规则强制
 
 **日期**: 2026-09-20
-**状态**: 🔍 **Proposed** (2026-09-20 — OpenSpec change `2026-09-16-h-d-m-transition-guard` 待 fill; rdd-arch 立项阶段)
+**状态**: ✅ **Approved** (2026-09-20 — Phase 6c MetaRSI-v1 C3 部分 ship; OpenSpec change `2026-09-16-h-d-m-transition-guard` 实施 commit `0ffc637`; test_transition_guard 13/13 cases / 47 assertions PASS; agenticdsl_evolution 静态库扩展 transition_guard.cpp; ADR-0088 D1-D4 + D7-D9 完整 ship; D5 (walk_ancestors override) + D6 (judge_data_freshness 完整实装) 留 Sprint 34+ 增量)
+
+**v1.0 历史**: 🔍 Proposed (2026-09-20 — rdd-arch 立项 → rdd-planner improvement + planner-handoff v1.1 → rdd-builder P0 case 1 approve (auto-decision complex) → P2 实施 commit `0ffc637`)。
 **父主题**: Phase 6c MetaRSI-v1 (Agent 协同进化关键规则强制)
 **前置 ADR**:
 - ADR-0083 (✅ Approved + V2 Shipped) — IEvaluator/RewardSignal 评估契约 ("表现如何")
