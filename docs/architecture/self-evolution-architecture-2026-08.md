@@ -1,7 +1,7 @@
 # 自进化与协同进化架构定义（2026-08）
 
-**生成日期**: 2026-08-26  
-**最后验证**: 2026-08-26（v1.2，ADR-0083 ✅ Approved 代码已 ship + ADR-0084 ✅ Approved V1 代码已 ship (G11 ✅ Closed) + IDistillationWriter 代码 ship 待办标注，验证命令见 §九）  
+**生成日期**: 2026-08-26（v1.3 增量同步 2026-09-20 — ADR-0086 v1.0+v1.1 ✅ Approved ship, G16 Closed, §1.3 + §五 + §七 #6 + §九 同步更新）
+**最后验证**: 2026-09-20（v1.3，**ADR-0086 v1.0+v1.1 ✅ Approved 代码已 ship** (merge commit `886def1`) + ADR-0083 ✅ Approved 代码已 ship + ADR-0084 ✅ Approved V1 代码已 ship (G11 ✅ Closed) + IDistillationWriter 代码 ship 待办标注，验证命令见 §九）  
 **作者**: Architecture Working Group  
 **状态**: 🔍 Proposed
 
@@ -49,8 +49,8 @@
 `IEvaluator/RewardSignal` 负责回答“候选表现如何”；信用分配负责回答“表现变化应归因于哪个主体、哪个变异、哪个环境变化”。二者不能混为同一个接口：
 
 - 评估信号可以是成功率、行为回归 Verdict、成本、延迟、错误恢复率或人工反馈；
-- 信用分配需要反事实、差分、版本对照或因果实验等机制，目前不是 HydraForge 已批准的通用能力；
-- 在信用分配缺失时，系统不得把相对胜负、单次成功或环境变简单认定为自身能力提升。
+- **信用分配契约 (ADR-0086 v1.0+v1.1 ✅ Approved 2026-09-20)**：`agenticdsl::evolution` 命名空间下 `AttributionRecord` + `VersionPairDiff` + `ConfounderRecord` 5 态混杂分层（含 v1.1 `ConfounderKind::HarnessChange`）+ `AttributionVerdict` 4 态判定（Attributed / Confounded / Insufficient / NotAttempted）+ `kMinBaselineSamples=5` Hotelling T² 经验值基线门控 + `judge_data_freshness(data, current, registry)` 数据时效性判定算法 stub（fast-path 排除 self-match, C3 walk_ancestors 接口由 C3 实装补全）+ `GenomeVersion` struct 单一所有权避免 ODR；**默认 fail-closed**（Insufficient 优于误归因）。**实施载体**：`include/agenticdsl/types/attribution_record.h` + `include/agenticdsl/types/attribution_version_pair_diff.h` + `src/evolution/{attribution_record,version_pair_diff}.cpp` + `agenticdsl_evolution` 静态库 + `tests/test_credit_assignment.cpp` 12 cases / 40 assertions PASS（commit `5819f55` ship，merge commit `886def1`，2026-09-20）；
+- 在信用分配契约未覆盖新混杂维度时，系统不得把相对胜负、单次成功或环境变简单认定为自身能力提升（HarnessChange confounder 是首要捕获目标 — genome 变更与 harness 字符串不一致时归因无效）。
 
 ---
 
@@ -162,6 +162,7 @@
 | 会话与证据 | SessionManager、Session 4-scope、D10 Capture | 采集启用、抽取和训练数据流水线未完全实现 |
 | 轨迹视图 | ADR-0061-06 独立 Trajectory IR | T15 尚需工程实现 |
 | 评估信号 | ADR-0083 IEvaluator/RewardSignal (✅ Approved, 代码 ship 2026-08-26) | ✅ IEvaluator 已 ship (tests/test_evaluator.cpp 12 cases / 31 assertions); 多主体信用分配未定义 |
+| **信用分配契约** | **ADR-0086 v1.0+v1.1 ✅ Approved (2026-09-20)** — `agenticdsl::evolution` namespace AttributionRecord/VersionPairDiff/ConfounderRecord 5 态混杂分层 + HarnessChange v1.1 + kMinBaselineSamples=5 + judge_data_freshness() 算法 stub + GenomeVersion 单一所有权 + 默认 fail-closed | ✅ **已 ship (merge commit `886def1`)**: test_credit_assignment **12 cases / 40 assertions PASS** + `agenticdsl_evolution` 静态库; G16 Closed; C3 h-d-m-transition-guard 现可 fill; Phase 6c MetaRSI-v1 hard prerequisite |
 | 变异对象 | ADR-0074 Prompt Evidence、ADR-0061-03 SkillCompiler、DSL 资产 | L2/L3 候选生成和版本化尚未完整实现 |
 | 变异治理 | ADR-0084 ✅ Approved + V1 gate-and-audit 代码 ship (G11 ✅ Closed 2026-08-26, commit `a2b2d52`); ApprovalPolicy/ExecutionPolicy 可复用 | ✅ MutationGovernor 已 ship (13 cases / 139 assertions); 自动提交经 gate-and-audit 门禁后允许 |
 | 稳定性门 | ADR-0061-02 行为回归、历史版本、SLM routing | 防共谋、多样性、语义对齐指标未定义 |
@@ -208,7 +209,7 @@ T19 GEPA 在 S1 阶段只能执行只读反思；S2 之前不得执行 `commit(P
 3. **Trajectory IR 工程实现**（ADR-0061-06 v1.1 ✅）：序列化视图、敏感字段和版本兼容 — **T15 启动 Sprint 25**；
 4. **IDistillationWriter 代码 ship**（ADR-0061-13 ✅）：`include/agenticdsl/contract/idistillation_writer.h` + `distillation_record.h` + 3 文件分离实现 — **2026-08-26 自审识别代码不存在，待 OpenSpec task 排期**；
 5. 进化事件与 `EvolutionAttempt` schema：引用关系、幂等性和审计查询；
-6. ~~信用分配契约：单主体与多主体评估的归因边界（建议预估 `adr-0085-credit-assignment-contract.md`，1+2 sprint spike + ADR）~~ ✅ **已立项 (2026-08-31)**：[`../adr/adr-0086-credit-assignment-contract.md`](../adr/adr-0086-credit-assignment-contract.md) 🔍 Proposed — 文件名修正为 0086 (0085 已被横切 Pattern PDK 占用)；评估层 vs 归因层划界 + VersionPairDiff V1 + 默认 NotAttempted fail-closed；
+6. ~~信用分配契约：单主体与多主体评估的归因边界（建议预估 `adr-0085-credit-assignment-contract.md`，1+2 sprint spike + ADR）~~ ✅ **已立项 + 已 ship (2026-08-31 立项 / 2026-09-20 ship v1.0+v1.1, merge commit `886def1`)**：[`../adr/adr-0086-credit-assignment-contract.md`](../adr/adr-0086-credit-assignment-contract.md) ✅ **Approved (v1.1, 2026-09-20)** — 文件名修正为 0086 (0085 已被横切 Pattern PDK 占用)；评估层 vs 归因层划界 + VersionPairDiff V1 + ConfounderRecord 5 态混杂分层 (v1.1 +`ConfounderKind::HarnessChange`) + kMinBaselineSamples=5 基线门控 + judge_data_freshness() 数据时效性算法 stub (v1.1) + GenomeVersion 单一所有权 (v1.1) + 默认 NotAttempted fail-closed；**G16 Closed**, **Phase 6c MetaRSI-v1 hard prerequisite, C3 h-d-m-transition-guard 现可 fill**；
 7. 稳定性与反共谋评估：历史锚点、多样性、独立对手/环境和停止条件；
 8. 在线教师蒸馏研究协议：教师准入、门控吸收、异步调度、成本和回滚；
 9. Agent-Agent/Agent-Environment 协同进化：只有在 S4 promotion criteria 满足后再单独立项。

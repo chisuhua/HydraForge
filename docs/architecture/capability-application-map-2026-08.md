@@ -1,7 +1,7 @@
 # 架构能力-应用地图（2026-08 v2.5）
 
 **生成日期**: 2026-08-29
-**最后验证**: 2026-09-02（v2.5.1 — 31 项能力 / 9 项 open gap (G10-G15 全部 ✅ Closed, G6 接近 Closed) / 17 类应用 / 23 个工程任务 T1-T22 + T26（T17/T15/IEvaluator V2/T19/T21/T20/Cross-Cutting Pattern PDK V1 全部 ✅ SHIP, T26 横切化 + capture-mode-and-distillation-writer-v1 启动中），验证命令见 §六；2026-09-02 同步增加 §一后 α 计数口径段（22→31 完整算术链）与 §一 canonical source 声明）
+**最后验证**: 2026-09-20（v2.6.0 — **32 项能力** / 9 项 open gap (G10-G15 全部 ✅ Closed, G16 Credit Assignment G6 接近 Closed) / 17 类应用 / 23 个工程任务 T1-T22 + T26 + Phase 6c MetaRSI-v1 (C2-C4: ADR-0086 v1.0+v1.1 ✅ ship, h-d-m-transition-guard unblocked, harness-rsi-pilot 待填)，验证命令见 §六；2026-09-20 同步：① §一 +#32 Credit Assignment Contract v1.0+v1.1 (L4 12→13) ② 头部计数 31→32 算术链 ③ 自进化 §七 #6 ADR-0086 立项完成 + ✅ Approved 翻牌)
 **作者**: Architecture Working Group
 **状态**: ✅ Active — 架构能力的**唯一事实源**（取代已归档的 `defect-truth-table-2026-08.md`；**ADR 状态权威源以 `docs/adr/*.md` `## 状态` 字段为准**，本表为滚动视图层）
 
@@ -18,23 +18,23 @@
 
 | 旧视角（问题导向） | 新视角（能力导向） |
 |---|---|
-| "我们有 14 项缺陷" | "我们有 31 项已 ship 能力 + 9 项 open gap" |
+| "我们有 14 项缺陷" | "我们有 32 项已 ship 能力 + 9 项 open gap" |
 | "ADR-0079 实施率 100%" | "工程任务 T1 启动即可解锁 6 个 A 类应用" |
 | "缺陷 3.1 骨架 ship" | "IAgentRegistry 已可用，B 类应用 2 sprint 内可构建" |
 | 计数聚焦（grep + ctest） | 应用聚焦（什么工程 → 解锁什么应用） |
 
-**计数口径与唯一事实源声明**（2026-09-02 增补，per Q3 α 修订）：
+**计数口径与唯一事实源声明**（2026-09-02 增补，per Q3 α 修订；2026-09-20 v2.6.0 同步 ADR-0086 v1.0+v1.1 ship）：
 
 | 维度 | 本表口径 | 排除/包含规则 | 数据来源 |
 |------|---------|--------------|---------|
-| **已 ship 能力 (31 项)** | L0-L4 五层契约已落地的可验证能力 | 含 Sprint 22 后所有 ship + 含 #23-#31 L4 增补；**不含** Archived ADR (0010-0018 + 0030 V1 + 0036×2) | `git log` + `tools/doc_metrics.py` + 人工核对 |
-| **Open gap (9 项)** | G1-G9 + G10-G15 中仍 Open（**6 项** ✅ Closed: G10/11/12/13/14/15） | G6 接近 Closed（保留为 🟡 Partial）；G7 scope tree 维持 🟡 Partial 协作取消已 ship | per §二表格 |
+| **已 ship 能力 (32 项)** | L0-L4 五层契约已落地的可验证能力 | 含 Sprint 22 后所有 ship + 含 #23-#32 L4 增补；**不含** Archived ADR (0010-0018 + 0030 V1 + 0036×2) | `git log` + `tools/doc_metrics.py` + 人工核对 |
+| **Open gap (9 项)** | G1-G9 + G10-G15 中仍 Open（**6 项** ✅ Closed: G10/11/12/13/14/15；G16 Credit Assignment 接近 Closed） | G6 接近 Closed（保留为 🟡 Partial）；G7 scope tree 维持 🟡 Partial 协作取消已 ship | per §二表格 |
 | **应用场景 (17 类)** | A/B/C 三档可构建应用 | 含 B6 (蒸馏环境) + B7 (自进化基础) v1.1 新增 | per §三 |
-| **工程任务 (23 项 = T1-T22 + T26)** | 已 ship 或 tracked 中的任务 | T1-T22 来自 v1.0; **+T26** = Cross-Cutting Pattern PDK V1 (2026-08-28 ship) | per §四 + §八 |
+| **工程任务 (23 项 = T1-T22 + T26)** | 已 ship 或 tracked 中的任务 | T1-T22 来自 v1.0; **+T26** = Cross-Cutting Pattern PDK V1 (2026-08-28 ship); **+Phase 6c C2-C4** = ADR-0086 ship + C3 unblocked + C4 待填 | per §四 + §八 |
 
 > **ADR 状态唯一事实源** = `docs/adr/*.md` 各自 `## 状态` 字段；本文档状态表为视图层（**与 ADR 文件冲突时以 ADR 文件为准**）。可复现命令：`python3 tools/adr_lint.py`（per `adr-management/STATUS-GLOSSARY.md` 维护规则 #2 同 commit 同步要求）。
 >
-> **历史版本说明**：v1.0 计数为 22 项（L0-L4 加总 5+5+4+5+3 = 22）。后续 9 次增补累计 +9 → 31：
+> **历史版本说明**：v1.0 计数为 22 项（L0-L4 加总 5+5+4+5+3 = 22）。后续 10 次增补累计 +10 → 32：
 > - v1.1.2 (T14 行为回归 #23) → **23**
 > - v1.3 (T17 SkillCompiler #24) → **24**
 > - v1.9 (T15 Trajectory IR #25) → **25**
@@ -43,13 +43,14 @@
 > - v2.2 (Prompt Evidence Gate #28) → **28**
 > - v2.3 (MCTSWorkflowSearch #29) → **29**
 > - v2.4 (Cross-Cutting Pattern PDK V1 #30) → **30**
-> - **v2.5 (Distillation Data Plane V1 #31) → 31**
+> - v2.5 (Distillation Data Plane V1 #31) → **31**
+> - **v2.6 (Credit Assignment Contract v1.0+v1.1 #32) → 32**（2026-09-20 ship, Phase 6c MetaRSI-v1 hard prerequisite, merge commit `886def1`）
 >
-> L4 总计 12 项 = L4 原始 3 项（#20 EventLog / #21 Session 4-scope / #22 17 ErrorCode）+ 增补 9 项（#23 T14 行为回归 / #24 T17 SkillCompiler / #25 T15 Trajectory IR / #26 IEvaluator V2 / #27 GEPALoop / #28 Prompt Evidence Gate / #29 MCTSWorkflowSearch / #30 Cross-Cutting Pattern PDK V1 / #31 Distillation Data Plane V1）。
+> L4 总计 13 项 = L4 原始 3 项（#20 EventLog / #21 Session 4-scope / #22 17 ErrorCode）+ 增补 10 项（#23 T14 行为回归 / #24 T17 SkillCompiler / #25 T15 Trajectory IR / #26 IEvaluator V2 / #27 GEPALoop / #28 Prompt Evidence Gate / #29 MCTSWorkflowSearch / #30 Cross-Cutting Pattern PDK V1 / #31 Distillation Data Plane V1 / **#32 Credit Assignment Contract v1.0+v1.1**）。
 
 ---
 
-## 一、架构能力清单（31 项已 ship 能力，L4 含 #23 T14 + #24 T17 + #25 T15 + #26 IEvaluator V2 v2.0 后置增补 + #27 GEPALoop + #28 Prompt Evidence Gate + #29 MCTSWorkflowSearch + #30 Cross-Cutting Pattern PDK V1 + **#31 Distillation Data Plane V1 (Change #1 ship 后增补, ✅ Shipped 2026-08-29)**）
+## 一、架构能力清单（**32 项**已 ship 能力，L4 含 #23 T14 + #24 T17 + #25 T15 + #26 IEvaluator V2 v2.0 后置增补 + #27 GEPALoop + #28 Prompt Evidence Gate + #29 MCTSWorkflowSearch + #30 Cross-Cutting Pattern PDK V1 + #31 Distillation Data Plane V1 (Change #1 ship 后增补, ✅ Shipped 2026-08-29) + **#32 Credit Assignment Contract v1.0+v1.1 (Phase 6c MetaRSI-v1 hard prerequisite, ✅ Shipped 2026-09-20, merge commit 886def1)**）
 
 > **分层依据**: `docs/specs/architecture.md` L0~L4 + R1~R5 五层架构模型
 > **验证方法**: `grep` 实证 + ctest PASS + ADR 头部状态三方交叉（详见 §六）
@@ -94,7 +95,7 @@
 | 18 | IAgentComposition (call/call_async/delegate + stream 占位) | `iagent_composition.h` + `agent_composition.cpp` | test_agent_composition 10 cases PASS | ADR-0060 | Sprint 22 (P8) |
 | 19 | PDK 三种 Agent Loop + SafeExec 沙箱 + **SLM 路由 .so** (v1.2 +1) | `pdk/agent_macros.h` + `pdk/safe_exec.h` + `pdk/model_router/slm_strategy/` | test_pdk_macros 5 cases + test_safe_exec PASS + **test_model_router_slm ≥5 cases PASS (v1.2 ship)** | ADR-0021 + **0061-04 (SLM)** | Sprint 4 + 22 + **23 (SLM)** |
 
-### L4 可观测 + 治理层（12 项，#20 EventLog / #21 Session 4-scope / #22 17 ErrorCode / #23 T14 行为回归 / #24 T17 SkillCompiler / #25 T15 Trajectory IR / #26 IEvaluator V2 / #27 GEPALoop / #28 Prompt Evidence Gate / #29 MCTSWorkflowSearch / #30 Cross-Cutting Pattern PDK V1 / #31 Distillation Data Plane V1）
+### L4 可观测 + 治理层（13 项，#20 EventLog / #21 Session 4-scope / #22 17 ErrorCode / #23 T14 行为回归 / #24 T17 SkillCompiler / #25 T15 Trajectory IR / #26 IEvaluator V2 / #27 GEPALoop / #28 Prompt Evidence Gate / #29 MCTSWorkflowSearch / #30 Cross-Cutting Pattern PDK V1 / #31 Distillation Data Plane V1 / **#32 Credit Assignment Contract v1.0+v1.1**）
 
 | # | 能力 | 实现位置 | 验证证据 | 关联 ADR | 上线 |
 |---|---|---|---|---|---|
@@ -110,8 +111,9 @@
 | **29** | **MCTSWorkflowSearch V1 (AFlow 风格 MCTS 工作流搜索: 5 轴模板搜索空间 + UCB1 选择/扩展/模拟/反向传播 + V2 评估 + 回归门 + 变异授权 + mcts.* 事件)** | `include/agenticdsl/cognitive/mcts_workflow_search.h` + `src/modules/cognitive/mcts_workflow_search.cpp` | test_mcts_workflow_search **17 cases / 65 assertions PASS**; 4 主题注册 (ADR-0068 v1.5); 既有 5 契约零修改; Mock 模板实例化不触发真实 LLM | ADR-0061-08 | **Sprint 24 (T20, 2026-08-28 ship)** |
 | **30** | **Cross-Cutting Pattern PDK V1 (4 范式 PDK Pattern + CrossCuttingOrchestrator + ICrossCuttingPattern + 横切功能 DSL `*.cc.md`)** | `include/agenticdsl/pdk/cross_cutting/` + `src/common/governance/cross_cutting/` | test_cross_cutting_orchestrator 5 cases + test_decorator_pattern 2 + test_hook_pattern 3 + test_composition_pattern 2 + test_bus_pattern 2 + test_cross_cutting_dsl 2 + test_cross_cutting_e2e 2 = **18 cases PASS**; 既有 10 个契约文件零修改 (Oracle B3) | ADR-0085 | **Sprint 24 (pdk-cross-cutting-patterns, 2026-08-28 ship)** |
 | **31** | **Distillation Data Plane V1 (CaptureMode 三态枚举 + IDistillationWriter 契约 + FileDistillationWriter V1 默认实现 + TrajectoryIR → DistillationRecord 桥接 + payload redact hash-only PII 防御)** | `include/agenticdsl/types/capture_mode.h` (47行 ✅) + `include/agenticdsl/types/distillation_record.h` (77行 ✅) + `include/agenticdsl/contract/idistillation_writer.h` (59行, 3虚函数+工厂 ✅) + `src/modules/distillation/file_writer.cpp` (Phase 1) + `src/modules/distillation/trajectory_bridge.cpp` (Phase 2) | **Phase 0-2 全部 ship ✅** test_capture_mode **4 cases** + test_distillation_writer **6** + test_trajectory_bridge **6** + test_event_log_capture_mode **5** = **21 cases PASS**; BREAKING EventLogConfig `bool capture_prompt_bytes → CaptureMode capture_mode` (`grep capture_prompt_bytes = 0` 强验证); 既有 **20 个** contract 头文件零修改 (Oracle B3, 修正 D8) | **ADR-0080 v1.2** + **ADR-0061-13** | **Phase 0-2 ✅ ship 2026-08-29 (3 commits: 11d3515 + 9a781f8 + ed5fcaf), Change #1 archived 2026-08-29** |
+| **32** | **Credit Assignment Contract v1.0+v1.1 (评估层 IEvaluator vs 归因层 AttributionRecord 划界; VersionPairDiff V1 归因方法 (child_cost - parent_cost); ConfounderRecord 5 种混杂分层记录 (新增 v1.1 `ConfounderKind::HarnessChange`); 4 态判定 Attributed/Confounded/Insufficient/NotAttempted; `kMinBaselineSamples=5` Hotelling T²经验值; `judge_data_freshness()` 算法 stub 含 fast-path; `GenomeVersion` struct 单一所有权避免 ODR; 默认 fail-closed)** | `include/agenticdsl/types/attribution_record.h` (5 v1.0 类型 + HarnessChange enum + HarnessChangeRecord struct + kMinBaselineSamples 常量 + GenomeVersion struct + IGenomeRegistry stub) + `include/agenticdsl/types/attribution_version_pair_diff.h` (VersionPairDiff 类) + `src/evolution/attribution_record.cpp` + `src/evolution/version_pair_diff.cpp` | test_credit_assignment **12 cases / 40 assertions PASS** (6 v1.0 + 4 v1.1 + 2 judge_data_freshness); `agenticdsl_evolution` 静态库新建立 (`src/evolution/CMakeLists.txt`); ctest 248 PASS 零回归 (含 12 新增); 4 atomic commits per pattern #4 (5819f55 feat + 9deca7d docs ADR + 53396cf docs C3 + 798b6c6 chore archive); Oracle dual-agent review ship (7 Critical 修正应用) | **ADR-0086 v1.0+v1.1** (✅ Approved 2026-09-20) | **Sprint 25+ Phase 6c MetaRSI-v1 hard prerequisite (2026-09-20 ship, merge commit 886def1)** |
 
-**总覆盖**: **31 项已 ship 能力 (含 #31 Distillation Data Plane V1 ✅ Shipped 2026-08-29)** = L0(5) + L1(5) + L2(4) + L3(5) + L4(12)
+**总覆盖**: **32 项已 ship 能力 (含 #31 Distillation Data Plane V1 ✅ Shipped 2026-08-29 + #32 Credit Assignment Contract v1.0+v1.1 ✅ Shipped 2026-09-20)** = L0(5) + L1(5) + L2(4) + L3(5) + L4(13)
 **v1.1.2 新增**: L4 +1（行为回归套件 — Oracle 评审 "本周最高杠杆" T14 完成）
 **v1.3 新增**: L4 +1（SkillCompiler V1 — T17 ship, B7 自进化"变异对象生成器"落地, 闭环 2 第 4 环接通）
 **v1.9 新增**: L4 +1（Trajectory IR V1 — T15 ship, B6 前置标准化数据格式落地 (G14 闭环), ParsedGraph 独立视图, 单向 Converter 桥接；B6 端到端教师→学生能力迁移未 ship）
@@ -119,6 +121,8 @@
 **v2.1 新增**: L4 +1（GEPALoop — T19 Phase 2 commit ship, B7 自进化基础应用解锁, 失败→反思→修订→回归→评估→授权提交全闭环落地）
 **v2.2 新增**: L4 +1（Prompt Evidence Gate — T21 ship, prompt 质量门控层落地, Wave 2 → Wave 3 Go/No-Go 客观标准就绪, B7 自进化 prompt 门控前置）
 **v2.3 新增**: L4 +1（MCTSWorkflowSearch V1 — T20 ship, C2 自进化高级工作流搜索解锁, B7 自进化方向从反思循环扩展至搜索空间自动发现）
+**v2.4 新增**: L4 +1（Credit Assignment Contract v1.0 — ADR-0086 首次实施, B7 自进化"信用分配"基线落地, G16 Closed, axis6 multi-genome 协同前置）
+**v2.5 新增**: L4 +1（Credit Assignment Contract v1.1 amendment — HarnessChange confounder + kMinBaselineSamples + judge_data_freshness 算法 + GenomeVersion 单一所有权, C3 h-d-m-transition-guard unblocked, MetaRSI-v1 协同进化前置）
 
 ---
 
@@ -255,7 +259,7 @@ docs/specs/architecture.md  (L0-L4 + R1-R5 五层模型)
        ↓ 能力落地
 docs/architecture/capability-application-map-2026-08.md  ← 本表 (v1.1)
        ↓ 拆分映射
-    ├── §一 31 项 ship 能力（按 L0-L4 工程分层）
+     ├── §一 32 项 ship 能力（按 L0-L4 工程分层）
    ├── §二 15 项 open gap（G1-G9 继任自 defect-truth-table + G10-G15 v1.1 Oracle 评审新增）
    ├── §三 A/B/C 应用场景矩阵（15 → 17 类,v1.1 新增 B6/B7 蒸馏+自进化）
    ├── §四 T1-T13 工程任务解锁映射（基础设施轨）
@@ -308,7 +312,7 @@ docs/architecture/capability-application-map-2026-08.md  ← 本表 (v1.1)
 
 > 符合 `docs/architecture/README.md` §二 "Last-Verified 规则"——所有**计数类数据**必须可用命令复现
 
-### 6.1 已 ship 能力计数（验证 §一 = 31 项）
+### 6.1 已 ship 能力计数（验证 §一 = 32 项）
 
 ```bash
 # L0 (5 项): 引擎核心
@@ -338,6 +342,21 @@ ls src/core/event_log.cpp
 ls src/core/{session_manager,session_writer}.cpp pdk/session_agent/src/session_store.cpp
 ls src/core/types/{tool_result,execution_result}.h
 ls include/agenticdsl/testing/behavioral_regression.h
+
+# L4 (5 项 v2.6 新增): Credit Assignment Contract v1.0+v1.1 (Phase 6c MetaRSI-v1 hard prerequisite)
+ls include/agenticdsl/types/attribution_record.h
+ls include/agenticdsl/types/attribution_version_pair_diff.h
+ls src/evolution/{attribution_record,version_pair_diff}.cpp
+ls src/evolution/CMakeLists.txt  # agenticdsl_evolution 静态库
+ls tests/test_credit_assignment.cpp
+# ctest 验证 (12 cases / 40 assertions 预期 PASS)
+cd build && ctest --output-on-failure -R test_credit_assignment
+# OpenSpec validate --strict
+openspec validate 2026-09-20-adr-0086-v1-1-harness-change-confounder --strict
+# ADR-0086 状态翻牌验证 (🔍 Proposed → ✅ Approved v1.1)
+grep -E "✅ Approved.*v1\.1" docs/adr/adr-0086-credit-assignment-contract.md
+# ctest 全量零回归 (248/248 PASS 预期)
+cd build && ctest --output-on-failure | tail -5
 ```
 
 ### 6.1.1 行为回归套件 (T14, v1.1.2 新增)
