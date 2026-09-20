@@ -246,10 +246,15 @@ struct GenomeVersion {
     uint64_t version;
 };
 
+// C3 v1.1 amendment (Critical C1): signature 改 ::agenticdsl::genome::IGenomeRegistry&
+// 原 unqualified IGenomeRegistry& 解析到 attribution_record.h:106 空 stub struct
+// (namespace agenticdsl::evolution::IGenomeRegistry), 实际无 walk_ancestors 方法 → D6
+// 完整实装无法编译。统一类型到 agenticdsl::genome::IGenomeRegistry (5 公共方法 +
+// walk_ancestors D9 默认实现) 解锁 Critical C1。
 AttributionVerdict judge_data_freshness(
     const GenomeVersion& data,
     const GenomeVersion& current,
-    IGenomeRegistry& registry);
+    ::agenticdsl::genome::IGenomeRegistry& registry);
 }
 ```
 

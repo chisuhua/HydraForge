@@ -28,12 +28,12 @@
 
 ✅ **Approved** (2026-09-20 — Phase 6c MetaRSI-v1 C3 部分 ship; OpenSpec change `2026-09-16-h-d-m-transition-guard` 实施 commit `0ffc637` (Transition Guard state machine v1.0) + openspec archive commit `7a15744` (8 specs shipped); test_transition_guard **13/13 cases / 47 assertions GREEN**; agenticdsl_evolution 静态库扩展 transition_guard.cpp)
 
-**v1.0 实际 ship 范围** (per Oracle 审查 ALIGNMENT SCORE 62 / NEEDS_FIX verdict, 修正 commit `421fa62` 已应用 + 待补):
+**v1.0 实际 ship 范围** (per Oracle 审查 ALIGNMENT SCORE 62 / NEEDS_FIX verdict, 修正 commit `421fa62` 已应用):
 - ✅ D1 5 态枚举 + D2 EvolutionVerdict + D3 can_transition 编译期矩阵 + D4 reset_to_idle + D7 复用既有契约 (test_transition_guard 13 cases PASS)
 - ✅ D8 事件主题常量已 ship (evolution.transition.denied + evolution.readiness.denied) — **实际发射待 ADR-0068 Appendix A 注册** (Sprint 34+ follow-up `2026-09-20-adr-0068-appendix-a-evolution-themes`)
-- 🟡 D5 walk_ancestors 公开接口扩展 (Sprint 34+ follow-up `2026-09-20-ig-genome-registry-walk-ancestors` — IGenomeRegistry 当前仍是 5 方法, FilesystemGenomeRegistry override 缺失)
-- 🟡 D6 judge_data_freshness 完整实装 (Sprint 34+ follow-up — version_pair_diff.cpp:48 仍返回 stub=Insufficient)
-- 🟡 D9 walk_ancestors 默认实现 (Sprint 34+ follow-up — 当前头文件无此接口)
+- ✅ D5 walk_ancestors 公开接口扩展 (IGenomeRegistry 5 → 6 公共方法 + LineageWalk struct + FilesystemGenomeRegistry override 完成; light parse path + 跳 HMAC verify + visited set 检环 + cross-name rejection; commit `e4403c9`; test_genome_walk_ancestors 6 cases PASS)
+- ✅ D6 judge_data_freshness 完整实装 (5 cases: fast-path / cross-name Confounded / not in lineage / Harness changed after / in lineage no Harness change + 第 5 条 walk-failure → Insufficient fail-closed per Critical C2; commit `6e1f8a5`; test_credit_assignment 12 cases 零回归)
+- ✅ D9 walk_ancestors 默认实现 (IGenomeRegistry::walk_ancestors 默认 body 返回 Result::failure(GenomeError::NotImplemented); per AGENTS.md 模式 #9 ITimerService precedent 避免 LSP cascade for test mocks; commit `9a7fb08`)
 
 **v1.0 历史**: 🔍 Proposed (2026-09-20 — rdd-arch 立项 → rdd-planner improvement + planner-handoff v1.1 → rdd-builder P0 case 1 approve (auto-decision complex) → P2 实施 commit `0ffc637` → openspec archive commit `7a15744`)
 
