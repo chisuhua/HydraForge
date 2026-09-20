@@ -9,12 +9,15 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace agenticdsl::genome {
 
 // D7 GenomeError enum — 独立定义 (per Oracle obs #1, 不对齐 ToolResult::ErrorCode)
+// C3 amendment: 新增 NotImplemented (per ADR-0088 D9 + C3 Critical C3, 6 → 7 variants)
+// Append at end for binary compat (existing 6 values keep ordinal 0-5).
 enum class GenomeError {
     NotFound,
     SchemaViolation,
@@ -22,6 +25,7 @@ enum class GenomeError {
     BrokenLineage,
     CycleDetected,
     IOError,
+    NotImplemented,
 };
 
 // Result<T, E> — 复用 llm_types.h pattern
@@ -83,7 +87,14 @@ struct GenomeDiff {
     std::vector<std::string> changed_fields;
 };
 
-// D4 IGenomeRegistry interface — 5 public + 1 internal (walk_ancestors)
+// C3 amendment: LineageWalk — walk_ancestors 返回类型
+// intermediate_metadata 含 spec.harness (per Oracle 🔴-6, NOT GenomeMetadata)
+struct LineageWalk {
+    std::vector<uint64_t> intermediate_versions;            // closest-first, self-inclusive
+    std::vector<Genome> intermediate_metadata;              // 含 spec.harness 供 HarnessChange 检测
+};
+
+// D4 IGenomeRegistry interface — 6 public methods (C3 +1 walk_ancestors)
 class IGenomeRegistry {
 public:
     virtual ~IGenomeRegistry() = default;
@@ -96,6 +107,16 @@ public:
     virtual Result<std::vector<uint64_t>, GenomeError> list_versions(const std::string& name) = 0;
     virtual Result<GenomeDiff, GenomeError> diff(const std::string& name,
                                                   uint64_t v1, uint64_t v2) = 0;
+
+    // D5/D9 (C3 ship): walk_ancestors with default implementation returning NotImplemented
+    // Default impl (not = 0) per AGENTS.md pattern #9 ITimerService precedent — avoids LSP cascade
+    // for test mocks and future derivations. FilesystemGenomeRegistry overrides.
+    virtual Result<LineageWalk, GenomeError> walk_ancestors(
+        const std::string& name, uint64_t from_version,
+        std::optional<uint64_t> to_version = std::nullopt) {
+        (void)name; (void)from_version; (void)to_version;
+        return Result<LineageWalk, GenomeError>::failure(GenomeError::NotImplemented);
+    }
 
     // Factory: filesystem backend with custom root (per D9 + design.md)
     static std::unique_ptr<IGenomeRegistry> create_filesystem(const std::filesystem::path& root);
