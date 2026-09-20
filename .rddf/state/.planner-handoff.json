@@ -1,14 +1,29 @@
 {
-  "schema": "planner-handoff-v1",
-  "version": 1,
+  "schema": "planner-handoff-v1.1",
+  "version": 2,
   "owner": "rdd-planner",
-  "planner_complete_at": "2026-09-20T03:01:34.584481+00:00",
+  "planner_complete_at": "2026-09-20T11:53:37.427187+00:00",
   "current_sprint": "sprint-2026-09",
-  "proposals_ready": [],
-  "proposals_approved_count": 0,
-  "features_active": [],
+  "proposals_ready": [
+    "h-d-m-transition-guard"
+  ],
+  "proposals_approved_count": 1,
+  "features_active": [
+    {
+      "feature_id": "phase-6c-matarsi-v1",
+      "change_name": "2026-09-16-h-d-m-transition-guard",
+      "priority": "P0",
+      "theme": "RSI meta-cognitive",
+      "status": "active",
+      "proposal_path": "openspec/changes/2026-09-16-h-d-m-transition-guard/proposal.md",
+      "improvement_path": ".rddf/improvements/h-d-m-transition-guard.md",
+      "adr_path": "docs/adr/adr-0088-h-d-m-transition-guard.md",
+      "feedback_status": "none",
+      "mapped": true
+    }
+  ],
   "awaiting_builder": [
-    "add-2026-09-20-adr-0086-v1-1-harness-change-confounder"
+    "h-d-m-transition-guard"
   ],
   "recommended_route": "complex"
 }
