@@ -427,6 +427,84 @@ Result<GenomeDiff, GenomeError> FilesystemGenomeRegistry::diff(
     return Result<GenomeDiff, GenomeError>::success(diff_genomes(a.value(), b.value()));
 }
 
+// D5 (C3 ship): walk_ancestors override — light parse + visited set cycle detection
+// Per Oracle O-2 Major + AGENTS.md pattern #4 性能: 不调 public load() (避免 O(n²) + 每次 HMAC key 读盘)
+// 直接复用 anonymous namespace parse_genome_yaml + 跳过 HMAC verify (walk 自身 visited set 检环)
+// v1 拒绝跨名 lineage (Critical C4 + AC-8) → BrokenLineage
+Result<LineageWalk, GenomeError> FilesystemGenomeRegistry::walk_ancestors(
+    const std::string& name, uint64_t from_version,
+    std::optional<uint64_t> to_version) {
+    LineageWalk walk;
+    std::unordered_set<std::string> visited;
+
+    std::string cur_name = name;
+    uint64_t cur_version = from_version;
+
+    while (true) {
+        std::string key = cur_name + "@" + std::to_string(cur_version);
+        if (visited.count(key)) {
+            return Result<LineageWalk, GenomeError>::failure(GenomeError::BrokenLineage);
+        }
+        visited.insert(key);
+
+        // Light parse: 不调 public load(), 跳过 HMAC verify (walk 自身 visited set 检环)
+        fs::path yaml_path = root_ / cur_name / std::to_string(cur_version) / "genome.yaml";
+        std::error_code ec;
+        if (!fs::exists(yaml_path, ec)) {
+            // First iteration (self) = from_version not exists → NotFound (per spec)
+            // Subsequent iterations (parent) = broken lineage → BrokenLineage
+            if (cur_name == name && cur_version == from_version) {
+                return Result<LineageWalk, GenomeError>::failure(GenomeError::NotFound);
+            }
+            return Result<LineageWalk, GenomeError>::failure(GenomeError::BrokenLineage);
+        }
+        Genome g;
+        try {
+            g = parse_genome_yaml(yaml_path);
+        } catch (const std::exception&) {
+            return Result<LineageWalk, GenomeError>::failure(GenomeError::SchemaViolation);
+        }
+
+        walk.intermediate_versions.push_back(cur_version);
+        walk.intermediate_metadata.push_back(std::move(g));
+
+        // to_version inclusive stop
+        if (to_version.has_value() && cur_version == *to_version) {
+            break;
+        }
+
+        // End of lineage (no parent)
+        const Genome& cur_g = walk.intermediate_metadata.back();
+        if (cur_g.metadata.parent.empty()) {
+            // If to_version provided but not reached → BrokenLineage
+            if (to_version.has_value()) {
+                return Result<LineageWalk, GenomeError>::failure(GenomeError::BrokenLineage);
+            }
+            break;
+        }
+
+        // Parse parent pointer "name@version"
+        auto p = cur_g.metadata.parent.find('@');
+        if (p == std::string::npos) {
+            return Result<LineageWalk, GenomeError>::failure(GenomeError::SchemaViolation);
+        }
+        std::string next_name = cur_g.metadata.parent.substr(0, p);
+        try {
+            cur_version = std::stoull(cur_g.metadata.parent.substr(p + 1));
+        } catch (const std::exception&) {
+            return Result<LineageWalk, GenomeError>::failure(GenomeError::SchemaViolation);
+        }
+
+        // Cross-name rejection (AC-8 v1 explicit limitation)
+        if (next_name != name) {
+            return Result<LineageWalk, GenomeError>::failure(GenomeError::BrokenLineage);
+        }
+        cur_name = next_name;
+    }
+
+    return Result<LineageWalk, GenomeError>::success(std::move(walk));
+}
+
 std::unique_ptr<IGenomeRegistry> IGenomeRegistry::create_filesystem(const fs::path& root) {
     return std::make_unique<FilesystemGenomeRegistry>(root);
 }

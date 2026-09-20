@@ -23,6 +23,9 @@ public:
     Result<std::vector<uint64_t>, GenomeError> list_versions(const std::string& name) override;
     Result<GenomeDiff, GenomeError> diff(const std::string& name,
                                           uint64_t v1, uint64_t v2) override;
+    Result<LineageWalk, GenomeError> walk_ancestors(
+        const std::string& name, uint64_t from_version,
+        std::optional<uint64_t> to_version = std::nullopt) override;
 
 private:
     std::filesystem::path root_;
