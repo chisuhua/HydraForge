@@ -60,6 +60,10 @@ function(add_catch_test TEST_NAME)
     if(TEST_NAME STREQUAL "test_credit_assignment")
         target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_evolution)
     endif()
+    # Phase 6c (2026-09-16-h-d-m-transition-guard): Transition Guard 测试需要 evolution 模块
+    if(TEST_NAME STREQUAL "test_transition_guard")
+        target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_evolution)
+    endif()
     target_compile_definitions(${TEST_NAME} PRIVATE CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1)
 
     # temporal_agent 测试需要直接链接 plugin 源码 (pdk_register_tools + pdk_plugin_info)
