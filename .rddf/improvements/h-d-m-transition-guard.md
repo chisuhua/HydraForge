@@ -52,7 +52,7 @@ ADR-0088 🔍 Proposed (本 change rdd-arch 立项) → C3 fill
 - MutationGovernance (ADR-0084) — L1-L4 变异等级
 - AttributionRecord (ADR-0086) — Attributed/Confounded/Insufficient/NotAttempted
 - IBudgetController — max_tokens/max_llm_calls/max_duration_sec
-- EventLog + EventBuilder (ADR-0068) — evolution.scheduler.denied 事件发射
+- EventLog + EventBuilder (ADR-0068) — `evolution.transition.denied` + `evolution.readiness.denied` 事件发射 (per ADR-0088 D8, 原 `evolution.scheduler.denied` 是幻影主题已修正)
 
 **不**新建平行接口 (per Oracle M2 YAGNI).
 
@@ -60,7 +60,7 @@ ADR-0088 🔍 Proposed (本 change rdd-arch 立项) → C3 fill
 
 - [ ] **AC-1**: EvolutionState 5 态枚举 + EvolutionVerdict struct 在 `include/agenticdsl/evolution/transition_guard.h` 定义 (compile-time `static_assert` 验证 `is_enum_v<EvolutionState> == true`).
 - [ ] **AC-2**: `can_transition(from, to)` 编译期函数返回 bool,覆盖 5×5 = 25 状态对,其中合法转换 ≥6 (Idle→Harness, Harness→Data, Data→Model, Model→Done, Done→Idle, 任意→Idle for reset). 非法转换 ≥19.
-- [ ] **AC-3**: `evaluate_readiness(state, bus, registry, budget, baseline)` 返回 EvolutionVerdict,三条件门控 ① Attributed (per ADR-0086) ② 回归门 PASS (per T14) ③ 预算充足 (per IBudgetController). 任意条件 fail → can_proceed=false + failed_conditions 非空 + evolution.scheduler.denied 事件发射.
+- [ ] **AC-3**: `evaluate_readiness(state, bus, registry, budget, baseline)` 返回 EvolutionVerdict,三条件门控 ① Attributed (per ADR-0086) ② 回归门 PASS (per T14, baseline 类型 = `BaselineSnapshot` 复用 T14) ③ 预算充足 (per IBudgetController). 任意条件 fail → can_proceed=false + failed_conditions **累积报告所有 3 条件结果** (非短路)+ `evolution.readiness.denied` 事件发射 (per ADR-0088 D8 修正).
 - [ ] **AC-4**: IGenomeRegistry `walk_ancestors(name, from_version, to_version=nullopt)` virtual method + LineageWalk struct schema `{intermediate_versions: vector<uint64_t>, intermediate_metadata: vector<Genome>}` (含 `Genome.spec.harness`, NOT GenomeMetadata) 在 `include/agenticdsl/genome/genome.h` 定义.
 - [ ] **AC-5**: `RegistryFilesystem::walk_ancestors` override 实现 (per `src/core/genome/registry_filesystem.cpp`) 支持 lineage walk + lazy load + cache,大 lineage (≥100 versions) < 100ms.
 - [ ] **AC-6**: `judge_data_freshness(data, current, registry)` 完整实装 (替换 ADR-0086 v1.1 stub),实现 4 cases per spec: (1) data==current → Attributed fast-path (2) data not in lineage → Confounded (3) data in lineage but Harness changed after → Confounded with reason="harness changed after data generation" + confounders[0].kind=HarnessChange (4) data in lineage with no subsequent Harness change → Attributed.
@@ -79,9 +79,10 @@ ADR-0088 🔍 Proposed (本 change rdd-arch 立项) → C3 fill
 - **MUST** 复用 ADR-0086 v1.1 `agenticdsl::evolution::ConfounderKind::HarnessChange` 类型 (避免重新定义, 遵守 ADR-0088 D5 单一所有权约束)
 - **MUST** 复用 `GenomeVersion struct` 来自 `include/agenticdsl/types/attribution_record.h` (per ADR-0088 D5 + spot-check New Issue 1)
 - **MUST** 复用 ADR-0083 IEvaluator / ADR-0084 MutationGovernance / ADR-0086 AttributionRecord 既有契约 (per Oracle M2 D7)
-- **MUST** 发射 `evolution.scheduler.denied` 事件 (per ADR-0080 + ADR-0088 D7) — 三条件门控任意 fail 时
-- **MUST** 实现 IGenomeRegistry `walk_ancestors` 完整 lineage walk (per ADR-0088 D5)
-- **MUST** judge_data_freshness 完整实装 (per ADR-0088 D6 + spec/credit-assignment-v1-1 §data-freshness-algorithm)
+- **MUST** 发射 `evolution.transition.denied` + `evolution.readiness.denied` 事件 (per ADR-0088 D8 + ADR-0068 v1.8 amendment 待注册) — `can_transition()` false 时发射 transition 事件, `evaluate_readiness()` 三条件门控任意 fail 时发射 readiness 事件
+- **MUST** 实现 IGenomeRegistry `walk_ancestors` 默认实现返回 `Result::failure(GenomeError::NotImplemented)` + FilesystemGenomeRegistry override 完整 lineage walk (per ADR-0088 D9 + Oracle CRITICAL Q6 — 避免 LSP cascade, 项目模式 #9 ITimerService 先例)
+- **MUST** judge_data_freshness 完整实装 (per ADR-0088 D6 + spec/credit-assignment-v1-1 §data-freshness-algorithm; nullopt `to_version` 语义 = 追溯到 root, 默认 `from_version` 的 root ancestor, depth cap 10000 per C2 ship M1 fix)
+- **MUST** `EvolutionState::Done` 提供显式 `reset_to_idle()` API (per Metis Q7 — Done 状态外部观察但不触发隐式转换)
 - **MUST** TDD 5 步 (Write failing test → Verify fail → Implement → Verify pass → Commit) — per AGENTS.md 工程层 TDD 纪律
 - **MUST** atomic commits per AGENTS.md 模式 #4 (≥3 atomic commits: feat + docs + archive + merge)
 - **MUST** rdd-verifier PASS 8+/8+ ACs (per rdd-builder P3 archive gate)
@@ -94,7 +95,7 @@ ADR-0088 🔍 Proposed (本 change rdd-arch 立项) → C3 fill
 - **MUST NOT** 修改现有 `AttributionRecord` / `ConfounderRecord` 字段 (向后兼容, 仅扩展 HarnessChange kind)
 - **MUST NOT** 跳过 TDD 步骤直接实现 (违反 AGENTS.md 工程纪律)
 - **MUST NOT** 在 worktree 主分支直接 commit (违反 AGENTS.md worktree 隔离)
-- **MUST NOT** 引入新 bus 主题 (复用 evolution.scheduler.denied 现有 ADR-0080 v1.2 主题, 避免 spec 蔓延)
+- **MUST NOT** 引入 3 个以上新 bus 主题 (新增 `evolution.transition.denied` + `evolution.readiness.denied` 2 个, 复用 ADR-0068 v1.8 amendment 注册; 避免 spec 蔓延)
 - **MUST NOT** 触碰 test_budget_alert / test_chat_session_events / test_e2e_real_llm pre-existing failure (3 项 baseline bug 与本 change 零关联)
 
 ## Impact (影响范围)
@@ -140,7 +141,7 @@ ADR-0088 🔍 Proposed (本 change rdd-arch 立项) → C3 fill
 |------|------|------|
 | rdd-planner (本阶段) | 30 min | 创建 improvement 5-segment + planner-handoff update |
 | rdd-builder P0-P3 | 4-6 天 | 实施 + 测试 + review + archive |
-| **总估时** | **5-7 天** | 含 Oracle dual-agent review (30 min 后台) + rdd-verifier PASS |
+| **总估时** | **5-7 天** | 含 Oracle dual-agent review (30 min 后台, 已 ship per bg_a87e7fe3/bg_0bb0f96c + 6 项 Critical 修正已应用) + rdd-verifier PASS |
 
 ## 关联 ADR
 

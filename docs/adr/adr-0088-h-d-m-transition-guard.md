@@ -7,7 +7,7 @@
 - ADR-0083 (✅ Approved + V2 Shipped) — IEvaluator/RewardSignal 评估契约 ("表现如何")
 - ADR-0084 (✅ Approved + V1 Shipped) — MutationGovernance ("是否允许提交")
 - **ADR-0086 (✅ Approved v1.1, ship 2026-09-20)** — Credit Assignment (条件 1: Attributed + 数据新鲜度算法)
-- ADR-0080 (✅ Approved, v1.1/v1.2 amendments) — AppendOnlyEventLog (`evolution.scheduler.denied` 事件发射)
+- ADR-0080 (✅ Approved, v1.1/v1.2 amendments) — AppendOnlyEventLog (新增幻影主题注册 — 见 D8)
 - ADR-0061-02 (✅ Approved + T14 Shipped) — 行为回归套件 (条件 2: 回归门 PASS)
 - **C2 IGenomeRegistry (✅ Shipped 2026-09-19)** — `walk_ancestors()` 待扩展
 - `ExecutionBudget` + `IBudgetController` (✅ Shipped Sprint 11) — 条件 3: 预算充足
@@ -119,8 +119,37 @@ ADR-0086 v1.1 ship 的 `judge_data_freshness(data, current, registry)` 是 stub 
 - 复用 ADR-0084 MutationGovernance (L1-L4 变异等级)
 - 复用 ADR-0086 AttributionRecord (Attributed/Confounded/Insufficient/NotAttempted 4 态)
 - 复用 `IBudgetController` (max_tokens / max_llm_calls / max_duration_sec)
-- 复用 `EventLog` + `EventBuilder` (ADR-0068) 发射 `evolution.scheduler.denied` 事件
+- 复用 `EventLog` + `EventBuilder` (ADR-0068) 发射 `evolution.transition.denied` + `evolution.readiness.denied` 事件 (per D8)
 - **不**新建平行接口 (per Oracle M2 YAGNI 原则)
+
+### D8 — 事件主题命名修正（修正 Metis Q1 Deal-breaker）
+
+**事件主题**:
+- `evolution.transition.denied` — `can_transition()` 返回 false 时发射
+- `evolution.readiness.denied` — `evaluate_readiness()` 三条件门控任意 fail 时发射
+
+**修正理由** (per Metis Q1 + Oracle dual-agent review `ses_f45b96c94ffevTy454aeDBK7U2`):
+- 原 `evolution.scheduler.denied` 在 ADR-0068 Appendix A 中不存在, 是幻影主题
+- 新主题需在 ADR-0068 Appendix A 注册 (v1.8 amendment), 否则 EventBuilder 强制主题注册会拒绝事件发射
+- 双主题分离: transition 层 (state machine) vs readiness 层 (3-condition gate) 独立可观测
+
+### D9 — `walk_ancestors` 默认实现 (修正 Oracle Q6 CRITICAL)
+
+```cpp
+// IGenomeRegistry 默认实现 (避免 LSP cascade, per Oracle CRITICAL Q6)
+virtual Result<LineageWalk, GenomeError> walk_ancestors(
+    const std::string& name, uint64_t from_version,
+    std::optional<uint64_t> to_version = std::nullopt) {
+    return Result<LineageWalk, GenomeError>::failure(
+        GenomeError::NotImplemented);
+}
+```
+
+**修正理由** (per Oracle Q6 + AGENTS.md 模式 #9 contract drain API 先例):
+- `= 0` pure virtual 会破坏现有 mock 实现 (test_credit_assignment.cpp 有 2 个 MockRegistry)
+- 默认实现返回 `NotImplemented` 让 registry 扩展与 walk_ancestors 解耦, mock 测试零迁移成本
+- 项目先例: `ITimerService::wait_for_drain() = {}` default no-op (per fix-tsan-residual-2026-09-15)
+- FilesystemGenomeRegistry 在 C3 中 override 默认实现 (真 lineage walk)
 
 ### 影响范围
 
