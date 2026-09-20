@@ -5,9 +5,19 @@
 > **优先级**: P0 (Wave 2, Sprint 35+, blocked by ADR-0086 v1.1 amendment ship)
 > **估时**: 3-4 天（受 walk_ancestors 接口扩展决策影响）
 > **追溯范围**: `docs/roadmap/2026-09-16-pdk-chat-demo-evolution-roadmap.md` §四 C3
-> **关联 ADR**: ADR-0083 (✅ V2 Shipped), ADR-0084 (✅ V1 Shipped), ADR-0086 (🟡 amendment in flight), ADR-0080 (✅ v1.2), ADR-0061-02 (✅ T14 Shipped)
+> **关联 ADR**: ADR-0083 (✅ V2 Shipped), ADR-0084 (✅ V1 Shipped), **ADR-0086 (✅ Approved v1.1, ship 2026-09-20)**, ADR-0080 (✅ v1.2), ADR-0061-02 (✅ T14 Shipped)
 > **依赖上游**:
 >   - C2 genome-registry ✅ Shipped 2026-09-19 (`archive/2026-09-19-2026-09-16-genome-registry/`)
+>   - **ADR-0086 v1.1 ✅ Shipped 2026-09-20** (`openspec/changes/archive/2026-09-20-adr-0086-v1-1-harness-change-confounder/`)
+
+> **2026-09-20 ADR-0086 v1.1 ship 通知** (per OpenSpec Task 6.4):
+> - 本 change 现可 fill — 不再阻塞于 ADR-0086 v1.1 ship
+> - 可引用 `agenticdsl::evolution::ConfounderKind::HarnessChange` (类型已 ship, include 路径 `agenticdsl/types/attribution_record.h`)
+> - 可引用 `judge_data_freshness(data, current, registry)` 函数 (算法 stub 已 ship, 完整版依赖本 change 实装的 `walk_ancestors` — C3 必须扩展该接口)
+> - **GenomeVersion struct 单一所有权** — 已在 `include/agenticdsl/types/attribution_record.h` 定义, 本 change **必须复用本文件, 不得重复定义** (避免 ODR 违规, per spot-check New Issue 1)
+> - **walk_ancestors 签名契约** (per ADR-0086 v1.1 决策 9 + Oracle 🔴-5 修正):
+>   - 签名: `virtual Result<LineageWalk, GenomeError> walk_ancestors(const std::string& name, uint64_t from_version, std::optional<uint64_t> to_version = std::nullopt) = 0;`
+>   - LineageWalk schema: `{ std::vector<uint64_t> intermediate_versions; std::vector<agenticdsl::genome::Genome> intermediate_metadata; }` ← **Genome 含 spec.harness**, NOT GenomeMetadata
 >   - ADR-0086 v1.1 amendment → Ship 前置（`openspec/changes/2026-09-20-adr-0086-v1-1-harness-change-confounder/`）
 > **下游**: C4 Harness-RSI Pilot
 > **Oracle 评审**: `ses_f45b96c94ffevTy454aeDBK7U2` (continuation, 2026-09-20) + `ses_f55f307f6ffeRJ9SIny8iUbZ8Y` (M2 评审)

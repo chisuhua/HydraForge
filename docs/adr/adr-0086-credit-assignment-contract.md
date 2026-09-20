@@ -1,7 +1,7 @@
 # ADR-0086: 信用分配契约 (Credit Assignment Contract)
 
-**日期**: 2026-08-31
-**状态**: 🔍 **Proposed** (评审通过后 flip to ✅ Approved；按 self-evolution §七 #6 建议形式: spike + ADR, V1 不强制实施)
+**日期**: 2026-08-31 (v1.0) → 2026-09-20 (v1.1 amendment + first ship)
+**状态**: ✅ **Approved (v1.1)** (2026-09-20 — Oracle dual-agent review `ses_f45b96c94ffevTy454aeDBK7U2` + spot-check `ses_f45456c38ffeO6cmQwiUQwlcdC`; v1.0 首次实施 + v1.1 增量合并落地, ship per OpenSpec change `2026-09-20-adr-0086-v1-1-harness-change-confounder`)
 **父主题**: Phase 6 Agent 自进化方向 (self-evolution §一.1.3 + §四 4.2 + §七 #6)
 **前置 ADR**:
 - ADR-0083 (✅ Approved + V2 Shipped) — IEvaluator/RewardSignal 评估契约 ("表现如何")
@@ -20,7 +20,9 @@
 
 ## 状态
 
-🔍 **Proposed** (2026-08-31, 评审通过后 flip to ✅ Approved；按 self-evolution §七 #6 建议形式: spike + ADR, V1 不强制实施)
+✅ **Approved (v1.1)** (2026-09-20, dual-agent review 通过 + 10 tests PASS: 6 v1.0 + 4 v1.1; ship evidence 段见文末)
+
+v1.0 历史：🔍 Proposed (2026-08-31, v1 不强制实施); v1.0 文本作为 ADR 主体保留, v1.1 在尾部追加决策 8/9 + 不变量 8/9 (避免 v1.0 编号冲突)。v1.1 首次 ship = v1.0 首次实施 + v1.1 增量合并。
 
 **前置文档**:
 - `docs/architecture/self-evolution-architecture-2026-08.md` §一.1.3 + §四 4.2 + §五 + §六 S4 + §七 #6
@@ -224,6 +226,43 @@ owner=attribution 模块 (新增 `src/common/attribution/` 或 `src/modules/attr
 - ❌ 用相对胜负 (A 比 B 好) 宣称 A 自身提升 (必须 A_new 比 A_old 好 + 混杂控制)
 - ❌ 在 Confounded / Insufficient 状态下 commit 变异 (治理绑定, 决策 3)
 
+### 决策 8 (v1.1 新增, documentation-only) — 与外部 RSI 框架的对位
+
+> **本节为 documentation-only**, 不引入任何新契约层 API 或行为变更。
+
+- 月谈AI "验证是 RSI 的生命线" ↔ 决策 3 治理绑定 + 决策 7 fail-closed: 本 ADR 是该原则在归因层的可执行化 (HarnessChange 检测 + kMinBaselineSamples 守卫)。
+- MetaRSI-v1 H→D→M 交通规则是本 ADR 的**首要消费者**: HarnessChange 混杂 kind (决策 4 修订) 为 TransitionGuard (`2026-09-16-h-d-m-transition-guard`) 提供类型化判定依据。
+- 月谈AI 三层 (Prompt/Skill/Agent RSI) 不是与 MetaRSI 三算子平行的框架, 而是 Harness-RSI 内部的粒度轴。本 ADR 不直接区分三层 (粒度对归因透明), 但 `ConfounderKind::HarnessChange` 可检测任意粒度的 Harness 变更。
+- 对位不改变本 ADR 边界: 归因层仍不调用 LLM、不修改 IEvaluator (不变量 1/3)。
+
+### 决策 9 (v1.1 新增) — Data-freshness judgment algorithm
+
+**签名** (修正 Oracle 🔴-5 — 版本号 per-name 模型):
+
+```cpp
+namespace agenticdsl::evolution {
+struct GenomeVersion {
+    std::string name;
+    uint64_t version;
+};
+
+AttributionVerdict judge_data_freshness(
+    const GenomeVersion& data,
+    const GenomeVersion& current,
+    IGenomeRegistry& registry);
+}
+```
+
+**算法** (修正 Oracle 🔴-6 — 完整版消除假阴性 + excludes-self 假阳性):
+
+1. **Fast-path**: `data.name == current.name && data.version == current.version` → `Attributed` (不调 walk_ancestors)
+2. **Step 1 lineage walk**: `registry.walk_ancestors(current.name, current.version, nullopt)` → `Result<LineageWalk, GenomeError>`
+3. **Step 2 定位**: 在 `lineage.intermediate_versions` (closest-first) 中定位 `data.version` 索引 `data_idx`; 不在线 → `Confounded`
+4. **Step 3 harness 对比**: 比较 `lineage.intermediate_metadata[data_idx].spec.harness` 与 `data_idx` 之后所有版本的 `spec.harness`; 任一不同 → `Confounded` (reason="harness changed after data generation") + 自动构造 HarnessChange confounder
+5. **Step 4 全部相同** → `Attributed`
+
+**关键依赖**: 依赖 C3 (`2026-09-16-h-d-m-transition-guard`) 实装 `walk_ancestors` (签名含 name 参数 + LineageWalk.intermediate_metadata: `std::vector<Genome>`)。两 change 同步 ship。
+
 ## 不变量
 
 - **不变量 1**: IEvaluator/RewardSignal 零修改 (ADR-0083 边界, 评估层与归因层分离)
@@ -233,6 +272,8 @@ owner=attribution 模块 (新增 `src/common/attribution/` 或 `src/modules/attr
 - **不变量 5**: 默认 `NotAttempted` fail-closed — Confounded/Insufficient/NotAttempted 三态禁止作为自动变异依据
 - **不变量 6**: 5 contract 头文件零修改 (`include/agenticdsl/contract/`), attribution 类型放 `include/agenticdsl/types/`
 - **不变量 7**: ADR-0068 Appendix A v1.9 amendment 随 V1 ship 同步 (2 个 attribution.* 主题注册)
+- **不变量 8 (v1.1 新增)**: 归因层不主动调度基线重复评估; 调用方必须保证 `parent.sample_count >= kMinBaselineSamples`, 否则归因层 fail-fast 返回 `Insufficient`。避免归因层越界调度 (与不变量 1/3 一致: 归因层只判定, 不执行)。
+- **不变量 9 (v1.1 新增)**: `ConfounderKind::HarnessChange` 记录的 `source_id` 必须包含完整的 `"name@old_version→new_version"` 标识符, 确保跨进程审计可追溯 (决策 4 schema 约束)。
 
 ## 实施
 
@@ -298,3 +339,19 @@ owner=attribution 模块 (新增 `src/common/attribution/` 或 `src/modules/attr
 - ADR-0079 (Session 4-Scope — 版本固定基础)
 - AFlow (arXiv:2410.10762) — 工作流搜索的评估噪声问题
 - 因果推断文献 (Pearl, do-calculus) — V2 反事实归因理论基础 (仅参考, V1 不依赖)
+
+## Ship Evidence (v1.0 + v1.1 合并首次 ship)
+
+**实施载体**: `openspec/changes/2026-09-20-adr-0086-v1-1-harness-change-confounder/` (worktree `.rddf/wt/2026-09-20-adr-0086-v1-1-harness-change-confounder/`)
+
+**代码落地**:
+- `include/agenticdsl/types/attribution_record.h` — 5 v1.0 类型 + HarnessChange enum + kMinBaselineSamples=5 + HarnessChangeRecord + ControlStatus + GenomeVersion struct (C3 复用避免 ODR) + IGenomeRegistry stub
+- `include/agenticdsl/types/attribution_version_pair_diff.h` — VersionPairDiff 类声明
+- `src/evolution/attribution_record.cpp` + `version_pair_diff.cpp` — compare() + judge_data_freshness() 实现
+- `tests/test_credit_assignment.cpp` — 12 test cases / 40 assertions PASS
+
+**评审通过**: Oracle dual-agent review (`bg_ba048665` Metis 5 Critical + `bg_fed9d7c0` Oracle 7 Critical + 6 Major + 8 Minor) — 全部 7 Critical 修正已应用至 proposal + spec + tasks; spot-check `ses_f45456c38ffeO6cmQwiUQwlcdC` 5 stale + New Issue 1 GenomeVersion 重复定义 已修复。
+
+**依赖解锁**:
+- C3 `2026-09-16-h-d-m-transition-guard` 现可 fill — 引用 `ConfounderKind::HarnessChange` (类型已 ship) + `judge_data_freshness` 算法 stub + GenomeVersion 单一所有权
+- C4 `2026-09-16-harness-rsi-pilot` 间接解锁（依赖 C3）
