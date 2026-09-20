@@ -1,0 +1,37 @@
+{
+  "name": "ig-genome-registry-walk-ancestors",
+  "created": "2026-09-20",
+  "owner": "rdd-arch+rdd-planner pending",
+  "purpose": "Sprint 34+ follow-up to ADR-0088 v1.0 ship (commit 0ffc637 + 7a15744). Extends IGenomeRegistry interface with walk_ancestors virtual method + FilesystemGenomeRegistry override + judge_data_freshness 完整实装 + test_genome_walk_ancestors ≥6 cases.",
+  "blockedBy": [],
+  "blocks": [
+    "C4 harness-rsi-pilot"
+  ],
+  "status": "DRAFT (follow-up registered per Oracle NEEDS_FIX verdict 2026-09-20)",
+  "files_to_change": [
+    "include/agenticdsl/genome/genome.h (IGenomeRegistry walk_ancestors virtual method + LineageWalk struct)",
+    "src/core/genome/registry_filesystem.cpp (walk_ancestors override impl)",
+    "src/evolution/version_pair_diff.cpp (judge_data_freshness 完整实装 4 cases)",
+    "tests/test_genome_walk_ancestors.cpp (≥6 cases)",
+    "tests/CMakeLists.txt (target_link_libraries)"
+  ],
+  "ADR": "ADR-0088 D5/D6/D9 (D5 walk_ancestors interface extension + D6 judge_data_freshness 完整实装 + D9 default impl returning Result::failure(GenomeError::NotImplemented))",
+  "Spec_refs": [
+    "openspec/specs/transition-guard/spec.md §walk-ancestors-extension (Requirement)",
+    "openspec/specs/credit-assignment-v1-1/spec.md §data-freshness-algorithm (Requirement, 4 scenarios)"
+  ],
+  "acceptance": [
+    "IGenomeRegistry 新增 walk_ancestors virtual method (5 → 6 公共方法)",
+    "FilesystemGenomeRegistry override 完整 lineage walk (lazy load + cache, ≥100 versions < 100ms)",
+    "judge_data_freshness 完整 4 cases: data==current fast-path / not in lineage / Harness changed after / in lineage no Harness change",
+    "test_genome_walk_ancestors ≥6 cases / ≥20 assertions PASS",
+    "test_credit_assignment 12/12 cases 零回归",
+    "ctest 全量 248+ tests 零回归",
+    "Oracle dual-agent review (per AGENTS.md 模式 #8) + ship-with-fixes 修正"
+  ],
+  "oracle_findings": [
+    "Oracle Q6 CRITICAL: walk_ancestors 必须默认实现 (返回 NotImplemented) 避免 LSP cascade",
+    "Oracle Q4 CRITICAL: harness 在 GenomeSpec 而非 GenomeMetadata (LineageWalk 命名误导)",
+    "Oracle Q5 MAJOR: D6 注明 judge_data_freshness 调用频率约束 (每 transition 一次)"
+  ]
+}

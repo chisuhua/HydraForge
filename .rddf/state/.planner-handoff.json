@@ -1,29 +1,40 @@
 {
   "schema": "planner-handoff-v1.1",
-  "version": 2,
+  "version": 3,
   "owner": "rdd-planner",
-  "planner_complete_at": "2026-09-20T11:53:37.427187+00:00",
+  "planner_complete_at": "2026-09-20T20:35:00+00:00",
   "current_sprint": "sprint-2026-09",
   "proposals_ready": [
+    "2026-09-20-ig-genome-registry-walk-ancestors",
+    "2026-09-20-adr-0068-appendix-a-evolution-themes"
+  ],
+  "proposals_approved_count": 0,
+  "proposals_archived_count": 1,
+  "proposals_archived": [
     "h-d-m-transition-guard"
   ],
-  "proposals_approved_count": 1,
   "features_active": [
     {
       "feature_id": "phase-6c-matarsi-v1",
-      "change_name": "2026-09-16-h-d-m-transition-guard",
+      "change_name": "h-d-m-transition-guard",
       "priority": "P0",
       "theme": "RSI meta-cognitive",
-      "status": "active",
-      "proposal_path": "openspec/changes/2026-09-16-h-d-m-transition-guard/proposal.md",
-      "improvement_path": ".rddf/improvements/h-d-m-transition-guard.md",
+      "status": "archived (C3 v1.0 ship 2026-09-20, merge 7a15744)",
+      "ship_commit": "7a15744",
+      "ship_evidence": "test_transition_guard 13/13 cases / 47 assertions GREEN + agenticdsl_evolution static lib + ADR-0088 ✅ Approved + openspec archive (8 specs)",
       "adr_path": "docs/adr/adr-0088-h-d-m-transition-guard.md",
-      "feedback_status": "none",
-      "mapped": true
+      "feedback_status": "oracle-NEEDS_FIX-verdict-debt-cleanup (2 critical / 4 major / 4 minor)",
+      "mapped": true,
+      "deferred_followups": [
+        "2026-09-20-ig-genome-registry-walk-ancestors (D5 walk_ancestors interface + D6 judge_data_freshness 完整实装 + D9 default impl)",
+        "2026-09-20-adr-0068-appendix-a-evolution-themes (D8 evolution.transition.denied + evolution.readiness.denied 主题注册)"
+      ]
     }
   ],
   "awaiting_builder": [
-    "h-d-m-transition-guard"
+    "2026-09-20-ig-genome-registry-walk-ancestors",
+    "2026-09-20-adr-0068-appendix-a-evolution-themes"
   ],
-  "recommended_route": "complex"
+  "recommended_route": "complex",
+  "governance_notes": "2026-09-20 rdd-builder P0-P3 完整 ship 闭环 + Oracle dual-agent review ship-with-fixes 6 Critical 修正应用 + openspec archive PASS + post-ship governance debt cleanup (per Oracle NEEDS_FIX verdict ALIGNMENT SCORE 62, pending follow-up change 实装)."
 }

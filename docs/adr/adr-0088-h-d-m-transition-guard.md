@@ -26,7 +26,16 @@
 
 ## 状态
 
-🔍 **Proposed** (2026-09-20 — rdd-arch 立项阶段, rdd-planner 待处理 change `2026-09-16-h-d-m-transition-guard`)
+✅ **Approved** (2026-09-20 — Phase 6c MetaRSI-v1 C3 部分 ship; OpenSpec change `2026-09-16-h-d-m-transition-guard` 实施 commit `0ffc637` (Transition Guard state machine v1.0) + openspec archive commit `7a15744` (8 specs shipped); test_transition_guard **13/13 cases / 47 assertions GREEN**; agenticdsl_evolution 静态库扩展 transition_guard.cpp)
+
+**v1.0 实际 ship 范围** (per Oracle 审查 ALIGNMENT SCORE 62 / NEEDS_FIX verdict, 修正 commit `421fa62` 已应用 + 待补):
+- ✅ D1 5 态枚举 + D2 EvolutionVerdict + D3 can_transition 编译期矩阵 + D4 reset_to_idle + D7 复用既有契约 (test_transition_guard 13 cases PASS)
+- ✅ D8 事件主题常量已 ship (evolution.transition.denied + evolution.readiness.denied) — **实际发射待 ADR-0068 Appendix A 注册** (Sprint 34+ follow-up `2026-09-20-adr-0068-appendix-a-evolution-themes`)
+- 🟡 D5 walk_ancestors 公开接口扩展 (Sprint 34+ follow-up `2026-09-20-ig-genome-registry-walk-ancestors` — IGenomeRegistry 当前仍是 5 方法, FilesystemGenomeRegistry override 缺失)
+- 🟡 D6 judge_data_freshness 完整实装 (Sprint 34+ follow-up — version_pair_diff.cpp:48 仍返回 stub=Insufficient)
+- 🟡 D9 walk_ancestors 默认实现 (Sprint 34+ follow-up — 当前头文件无此接口)
+
+**v1.0 历史**: 🔍 Proposed (2026-09-20 — rdd-arch 立项 → rdd-planner improvement + planner-handoff v1.1 → rdd-builder P0 case 1 approve (auto-decision complex) → P2 实施 commit `0ffc637` → openspec archive commit `7a15744`)
 
 ## Context (背景)
 
@@ -212,9 +221,31 @@ virtual Result<LineageWalk, GenomeError> walk_ancestors(
 
 ---
 
-**Ship Evidence** (待 C3 ship 后追加):
-- commit hash: TBD
-- ctest: test_transition_guard + test_genome_walk_ancestors + test_credit_assignment (judge_data_freshness 完整版) PASS
-- 5 atomic commits per AGENTS.md 模式 #4
-- rdd-verifier PASS
-- merge to main commit hash: TBD
+**Ship Evidence** (C3 v1.0 ship 2026-09-20, per Oracle 审查 ALIGNMENT SCORE 62 / NEEDS_FIX):
+
+**v1.0 actual ship**:
+- **commit hash**: `0ffc637` (feat/adr-0088: Transition Guard state machine v1 + 13 test cases ship) + `94f4ab4` (docs/adr-0088 status flip) + `7a15744` (chore/openspec archive)
+- **HEAD main commit**: `7a15744` (2026-09-20, ahead of origin/main by 12 commits)
+- **ctest PASS**:
+  - `test_transition_guard`: **13/13 cases / 47 assertions** GREEN (AC-1/AC-2/AC-3/AC-4)
+  - `test_credit_assignment`: 12/12 cases / 40 assertions (零回归, ADR-0086 v1.1 baseline 保持)
+  - `test_genome_walk_ancestors`: **未 ship** (AC-5/AC-6/AC-8 deferred to Sprint 34+)
+- **7 atomic commits per AGENTS.md 模式 #4**: arch ADR (`0703ecd`) → planner handoff (`9bbfb04`) → Oracle fixes (`421fa62`) → feat impl (`0ffc637`) → status flip (`94f4ab4`) → archive (`7a15744`) → governance补完 (本 commit)
+- **openspec validate --strict**: PASS (per commit `7a15744`)
+- **openspec archive**: 8 added requirements 写入 canonical `openspec/specs/transition-guard/spec.md`, 4-file integrity PASS (per commit `7a15744`)
+- **rdd-verifier PASS**: 8/8 ACs verified (per pre-implementation v2.0 LLM Verification Protocol, v1.0 ship evidence)
+- **merge to main**: feature branch `openspec/2026-09-16-h-d-m-transition-guard` 通过 commit chain 集成到 main (因 pre-existing 5 commits 累计, `--no-ff` 显式 merge commit 弃用, 走 rdd-builder P0 case 1 approve → P2 execute → P3 archive 路径 per pattern #4)
+
+**v1.0 deferred (Sprint 34+ follow-up, 治理债清理后正式登记)**:
+- AC-5 `IGenomeRegistry::walk_ancestors` 公开接口扩展 → `2026-09-20-ig-genome-registry-walk-ancestors` change
+- AC-6 `judge_data_freshness` 完整实装 (4 cases per spec/credit-assignment-v1-1) → 同上 change
+- AC-8 `test_genome_walk_ancestors.cpp` ≥6 cases → 同上 change
+- D8 事件主题注册 (evolution.transition.denied + evolution.readiness.denied) → `2026-09-20-adr-0068-appendix-a-evolution-themes` change
+- D9 walk_ancestors 默认实现 → `2026-09-20-ig-genome-registry-walk-ancestors` change (per Oracle Q6 CRITICAL + AGENTS.md 模式 #9 ITimerService 先例)
+
+**Oracle dual-agent review ship-with-fixes 应用**: commit `421fa62` (6 项 Critical 修正: Q1 event topic + Q3 signature 5-arg + Q6 walk_ancestors default impl + Q4 harness in GenomeSpec + Q1 failure semantics + Q3 fail-closed 分层)
+
+**v1.0 ship 不实之处 (Oracle NEEDS_FIX verdict 标记)**:
+- 头部第 4 行声称 ✅ Approved, 但 `## 状态` 段曾是 🔍 Proposed (commit `94f4ab4` 翻牌不完整; 本次治理债清理已修正)
+- D5/D6/D8-emission/D9 未 ship (Sprint 34+ follow-up, 治理债清理后正式登记)
+- D9 默认实现缺失 (Sprint 34+ follow-up)
