@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "current_sprint": "sprint-2026-09",
+  "sprint_started_at": "2026-09-20T02:58:34+00:00",
+  "last_sync_at": "2026-09-20T02:58:34+00:00",
+  "last_sync_status": "ok",
+  "recommended_route": "complex",
+  "active_projects": [
+    {
+      "project_id": "phase-6c-adr-0086",
+      "proposal": "adr-0086-v1-1-harness-change-confounder",
+      "phase": "phase-6c",
+      "theme": "RSI meta-cognitive",
+      "priority": "P0",
+      "status": "active",
+      "proposal_path": ".rddf/improvements/adr-0086-v1-1-harness-change-confounder.md",
+      "feedback_status": "none",
+      "mapped": true
+    }
+  ],
+  "unmapped_proposals": [],
+  "synced_proposals": [
+    "adr-0086-v1-1-harness-change-confounder"
+  ],
+  "previous_unmapped": [],
+  "state_revision": 1
+}
