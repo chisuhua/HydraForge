@@ -1,0 +1,31 @@
+{
+  "schema": "builder-handoff-v1",
+  "version": 1,
+  "owner": "rdd-builder",
+  "change_name": "2026-09-20-adr-0086-v1-1-harness-change-confounder",
+  "current_phase": "phase-1.5",
+  "approval_status": "pending",
+  "plan_quality_status": "pending",
+  "execution_mode_decision": {
+    "mode": "worktree",
+    "reason": "files=6>2 AND tasks=5>3",
+    "decided_at": "2026-09-20T03:06:19.288552",
+    "decided_by": "phase-1.5-deps-analyzer"
+  },
+  "deps_status": {
+    "blockers": [],
+    "manual_deps": [],
+    "cross_repo_pending": []
+  },
+  "worktree_path": "",
+  "branch": "",
+  "execution_status": "pending",
+  "review_status": "pending",
+  "retry_count": 0,
+  "max_retries": 3,
+  "retry_history": [],
+  "phase_pause_history": [],
+  "archive_status": "pending",
+  "verifier_report_path": ".rddf/state/.verifier-report.json",
+  "updated_at": "2026-09-20T03:06:19.288570+00:00"
+}
