@@ -55,6 +55,7 @@ class SpyRegistry final : public IToolRegistry {
   }
   void register_tool_function(std::string, ToolMetadata,
                               IToolRegistry::ToolFunc) override {}
+  void unregister_tool_function(const std::string&) override {}
   void register_llm_tool(std::string, std::unique_ptr<agenticdsl::ILLMTool>,
                          const LLMParams&) override {}
   bool is_llm_tool(const std::string&) const override { return false; }

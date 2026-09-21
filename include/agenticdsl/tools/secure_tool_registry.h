@@ -149,6 +149,7 @@ class SecureToolRegistry : public IToolRegistry {
 
   // 函数工具注册 (1, 模板桥接 — 委托到 wrapped ToolRegistry)
   void register_tool_function(std::string name, ToolMetadata meta, ToolFunc fn) override;
+  void unregister_tool_function(const std::string& name) override;
 
   // LLM 工具管理 (4) — 全部委托到 wrapped ToolRegistry (LLM 工具不涉及安全检查)
   void register_llm_tool(

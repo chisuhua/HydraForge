@@ -32,6 +32,7 @@ class MockToolRegistry : public IToolRegistry {
   bool has_tool(const std::string&) const override { return true; }
   std::vector<std::string> list_tools() const override { return {"calculate"}; }
   void register_tool_function(std::string, ToolMetadata, ToolFunc) override {}
+  void unregister_tool_function(const std::string&) override {}
   void register_llm_tool(std::string, std::unique_ptr<ILLMTool>,
                          const LLMParams&) override {}
   bool is_llm_tool(const std::string&) const override { return false; }

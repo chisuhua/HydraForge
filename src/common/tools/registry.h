@@ -57,6 +57,7 @@ void register_tool(std::string name, ToolMetadata meta, Func&& func) {
 
     // 函数工具注册 (1, 模板桥接)
     void register_tool_function(std::string name, ToolMetadata meta, ToolFunc fn) override;
+    void unregister_tool_function(const std::string& name) override;
 
     // LLM 工具管理 (4)
     void register_llm_tool(

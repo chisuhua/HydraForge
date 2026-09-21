@@ -263,6 +263,12 @@ void SecureToolRegistry::register_tool_function(std::string name, ToolMetadata m
   }
 }
 
+void SecureToolRegistry::unregister_tool_function(const std::string& name) {
+  if (registry_ref_) {
+    registry_ref_->unregister_tool_function(name);
+  }
+}
+
 // LLM 工具管理 (4) — 全部委托到 wrapped ToolRegistry (LLM 工具不涉及安全检查)
 
 void SecureToolRegistry::register_llm_tool(

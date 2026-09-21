@@ -39,6 +39,7 @@ class MockToolRegistryV2 : public ::agenticdsl::IToolRegistry {
     registered_tools.push_back(name);
     (void)fn;
   }
+                              void unregister_tool_function(const std::string&) override {}
 
   bool has_tool(const std::string& name) const override {
     for (const auto& t : registered_tools) {

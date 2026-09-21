@@ -36,6 +36,7 @@ class MockToolRegistry : public ::agenticdsl::IToolRegistry {
   void register_tool_function(std::string name, ::agenticdsl::ToolMetadata, ToolFunc fn) override {
     tool_funcs[name] = std::move(fn);
   }
+  void unregister_tool_function(const std::string&) override {}
   bool has_tool(const std::string& name) const override {
     return tool_funcs.find(name) != tool_funcs.end();
   }

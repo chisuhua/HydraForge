@@ -36,6 +36,7 @@ class StubRegistry : public IToolRegistry {
   std::vector<std::string> list_tools() const override { return {"stub"}; }
 
   void register_tool_function(std::string, ToolMetadata, ToolFunc) override {}
+  void unregister_tool_function(const std::string&) override {}
 
   void register_llm_tool(std::string, std::unique_ptr<ILLMTool>,
                          const LLMParams&) override {}

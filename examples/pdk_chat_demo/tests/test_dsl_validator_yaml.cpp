@@ -40,6 +40,7 @@ class MockToolRegistry : public ::agenticdsl::IToolRegistry {
 
   void register_tool_function(std::string, ::agenticdsl::ToolMetadata,
                               ToolFunc) override {}
+  void unregister_tool_function(const std::string&) override {}
 
   void register_llm_tool(std::string, std::unique_ptr<::agenticdsl::ILLMTool>,
                          const ::agenticdsl::LLMParams&) override {}

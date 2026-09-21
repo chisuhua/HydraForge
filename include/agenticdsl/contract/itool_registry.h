@@ -127,6 +127,12 @@ class IToolRegistry {
   virtual void register_tool_function(std::string name, ToolMetadata meta, ToolFunc fn) = 0;
 
   /**
+   * @brief 注销函数工具 (no-op if name not found)
+   * @param name 工具名称
+   */
+  virtual void unregister_tool_function(const std::string& name) = 0;
+
+  /**
    * @brief Register a tool that takes nlohmann::json args (non-virtual convenience).
    *
    * Default implementation wraps the ToolFuncJson to accept

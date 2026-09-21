@@ -115,6 +115,11 @@ void ToolRegistry::register_tool_function(std::string name, ToolMetadata meta, T
     tool_metadata_[name] = std::move(meta);
 }
 
+void ToolRegistry::unregister_tool_function(const std::string& name) {
+    tools_.erase(name);
+    tool_metadata_.erase(name);
+}
+
 void ToolRegistry::register_llm_tool(std::string name, std::unique_ptr<ILLMTool> tool, const LLMParams& default_params) {
   llm_tools_[std::move(name)] = LLMToolEntry{std::move(tool), default_params};
 }
