@@ -58,8 +58,10 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 - **Phase 8a/b** — ⏸ Gated by Phase 7a ship ≥3 月
 
 ### 1.2 Active vs Archive
-- **openspec/changes/** 当前 active: **6** (per `openspec list` 实测 2026-09-21):
-  - `harness-rsi-remove-governance` (Wave 3 前置 change 1/3 — Oracle bg_5db13fe0 审查后新建)
+- **openspec/changes/** 当前 active: **8** (per `openspec list` 实测 2026-09-21):
+  - `harness-rsi-remove-governance` (Wave 3 前置 1/3)
+  - `evolution-verdict-reward-quality` (Wave 3 前置 2/3)
+  - `sync-pdk-contract-header` (Wave 3 前置 3/3)
   - `fix-generate-subgraph-static-next` (latent gap #1 fix)
   - `intent-classification-router` (P1)
   - `chat-real-llm-coverage-phase-h` (real-LLM E2E 6 cases follow-up)
