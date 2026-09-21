@@ -7,6 +7,7 @@ add_library(agenticdsl_evolution STATIC
     attribution_record.cpp
     version_pair_diff.cpp
     transition_guard.cpp  # ADR-0088 H→D→M Transition Guard (Phase 6c MetaRSI-v1)
+    harness_rsi.cpp  # C4 harness-rsi-pilot (Phase 6c MetaRSI-v1) — apply_harness_mutation 轻量函数
 )
 
 target_include_directories(agenticdsl_evolution
