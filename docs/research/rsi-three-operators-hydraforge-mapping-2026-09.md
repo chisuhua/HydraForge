@@ -4,7 +4,7 @@
 > **调研方式**: 6 项并行代码调研 + 10 个自进化 ADR 交叉对照 + 3 个 RSI 占位 change 深度分析
 > **关联文档**:
 > - 三篇 RSI 文章（外部参考）: MetaRSI-v1（清华/北大/斯坦福）/ 字节 Seed Self-Developing Agents 三篇（Aspire/S³Gym/HarnessDev）/ DeepSeek Harness 三权分立
-> - 项目 change 状态: C2 archived (`archive/2026-09-19-2026-09-16-genome-registry/`) + ADR-0086 v1.1 amendment in flight (`openspec/changes/2026-09-20-adr-0086-v1-1-harness-change-confounder/`); C3 placeholder (`openspec/changes/2026-09-16-h-d-m-transition-guard/`, 待 fill); C4 placeholder (`openspec/changes/2026-09-16-harness-rsi-pilot/`, 待 C3 ship)
+> - 项目 change 状态 (2026-09-21 校准): C2 archived (`archive/2026-09-19-2026-09-16-genome-registry/`) + ADR-0086 v1.1 ✅ Approved 已 ship (`openspec/changes/archive/2026-09-20-adr-0086-v1-1-harness-change-confounder/`); C3 h-d-m-transition-guard ✅ v1.0 shipped + archived (`archive/2026-09-20-2026-09-16-h-d-m-transition-guard/`, ADR-0088 ✅ Approved); C4 harness-rsi-pilot ✅ shipped + archived (`archive/2026-09-21-2026-09-16-harness-rsi-pilot/`); active: `harness-rsi-remove-governance` (tools_remove 治理对称 + trace_id 透传)
 > - 关联 ADR: ADR-0083/0084/0086/0087/0080/0061/0079/0075/0037/0050
 > - 路线图: `docs/roadmap/2026-09-16-pdk-chat-demo-evolution-roadmap.md`
 > - 自进化架构顶层: `docs/architecture/self-evolution-architecture-2026-08.md`
@@ -13,7 +13,7 @@
 
 ## 执行摘要
 
-HydraForge **已经在实施 RSI**——10 个 ship 评估/治理/审计/会话/沙箱 ADR 已构成完整基础设施，C0+C1 chat demo 端到端 2026-09-16 已 ship，**C2 genome-registry 2026-09-19 已 ship**（12 tests / 266 assertions, archived `2026-09-19-2026-09-16-genome-registry`）。`h-d-m-transition-guard` (C3, fill 中) / `harness-rsi-pilot` (C4, placeholder) 两个剩余 change 直接对应 MetaRSI-v1 关键禁令（"禁止 H→M 直跳，必须 H→D→M"）。Sprint 35-36 是 RSI 工程的"启动周"（C3 → C4 顺序）。
+HydraForge **已经在实施 RSI**——10 个 ship 评估/治理/审计/会话/沙箱 ADR 已构成完整基础设施，C0+C1 chat demo 端到端 2026-09-16 已 ship，**C2 genome-registry 2026-09-19 已 ship**（12 tests / 266 assertions, archived `2026-09-19-2026-09-16-genome-registry`），**C3 h-d-m-transition-guard v1.0 + C4 harness-rsi-pilot 已于 2026-09-20/21 ship**（ADR-0088 ✅ Approved；test_transition_guard 13 cases / 47 assertions + test_harness_rsi_pilot 9 cases / 43 assertions）。**遗留关键缺口（2026-09-21 Oracle 审查确认）**：`IGenomeRegistry` 无生产接线——`apply_harness_mutation` 仅改内存、`GEPALoop::reflect_and_commit` 仅发审计事件，闭环第 7 环"版本提交"仍断（接线 change `genome-wiring-harness-rsi-gepa` 待立项）。
 
 **核心评级**：⭐⭐⭐⭐（基础设施已就位，缺 Genome 装配 + H→D→M 守门 + Harness-RSI Pilot 验证）
 
@@ -27,12 +27,12 @@ HydraForge **已经在实施 RSI**——10 个 ship 评估/治理/审计/会话/
 |------|----------|-----------------|------:|
 | **MetaRSI-v1** | **Genome**（Harness 可版本化资产） | `2026-09-16-genome-registry` (C2) | ✅ Shipped 2026-09-19 (12 tests / 266 assertions) |
 | **MetaRSI-v1** | **Data-RSI**（轨迹→训练数据） | ADR-0061-06 v1.1 Trajectory IR + ADR-0080 D10 Distillation | ✅ Shipped |
-| **MetaRSI-v1** | **Harness-RSI**（改 prompt/tools/workflow） | `2026-09-16-harness-rsi-pilot` (C4) + ADR-0084 Mutation Governance | 🟡 C4 placeholder + ADR ✅ |
+| **MetaRSI-v1** | **Harness-RSI**（改 prompt/tools/workflow） | `2026-09-16-harness-rsi-pilot` (C4) + ADR-0084 Mutation Governance | ✅ C4 shipped 2026-09-21 (9 cases / 43 assertions) + ADR ✅ (Genome 持久化接线待 follow-up) |
 | **MetaRSI-v1** | **Model-RSI**（训练权重） | ADR-0078 Fine-tune 🔍 Proposed + ADR-0084 V1 显式禁止 L4 | 🔍 待立项 (Wave 3, gated by C4 Go) |
-| **MetaRSI-v1** | **H→D→M 交通规则** | `2026-09-16-h-d-m-transition-guard` (C3, fill 中) + ADR-0086 Credit Assignment 🔍 Proposed → 🟡 amendment in flight (`2026-09-20-adr-0086-v1-1-harness-change-confounder`) | 🟡 C3 + ADR amendment |
-| **字节 Seed Aspire** | 目标形成（"改什么"） | ADR-0086 Credit Assignment（归因层）+ ADR-0083 IEvaluator（评估层） | 🟡 Credit 🔍 |
+| **MetaRSI-v1** | **H→D→M 交通规则** | `2026-09-16-h-d-m-transition-guard` (C3) + ADR-0086 Credit Assignment | ✅ C3 shipped 2026-09-20 (ADR-0088 ✅ Approved) + ADR-0086 ✅ Approved v1.1 |
+| **字节 Seed Aspire** | 目标形成（"改什么"） | ADR-0086 Credit Assignment（归因层）+ ADR-0083 IEvaluator（评估层） | ✅ Credit ✅ Approved v1.1 (2026-09-20) |
 | **字节 Seed S³Gym** | 经验整合（历史→能力） | ADR-0061-04 SLM Routing First + ADR-0083 V2 + ADR-0080 D10 | ✅ Shipped |
-| **字节 Seed HarnessDev** | 系统进化（改 Harness） | C4 Harness-RSI Pilot + ADR-0084 + ADR-0081 Pre-Step Hook | 🟡 C4 + ADR ✅ |
+| **字节 Seed HarnessDev** | 系统进化（改 Harness） | C4 Harness-RSI Pilot + ADR-0084 + ADR-0081 Pre-Step Hook | ✅ C4 shipped 2026-09-21 + ADR ✅ |
 | **DSH 三权分立** | Cordis 能力 / Loop 推进 / Session 事实 | SkillInterpreter / DSLEngine+3 Loop / SessionManager JSONL | ✅ Shipped |
 | **DSH 投影语义** | messages 是事实的投影 | ChatSession `build_context_entries(leaf)` 叶到根投影 | ✅ Shipped |
 | **omp 单一权威会话** | 一切皆 Entity Delta | SessionManager JSONL 树 + append-only + EventLog 双通道 | ✅ Shipped |
@@ -112,7 +112,7 @@ HydraForge **已经在实施 RSI**——10 个 ship 评估/治理/审计/会话/
 
 | 项目基础设施 | 对应 MetaRSI-v1 角色 |
 |------------|---------------------|
-| **Genome Registry**（C2 ✅ Shipped 2026-09-19） | 标识"当前 Harness 版本号"（last_harness_change_version）+ walk_ancestors 谱系（待 C3 amendment 扩展） |
+| **Genome Registry**（C2 ✅ Shipped 2026-09-19） | 标识"当前 Harness 版本号"（last_harness_change_version）+ walk_ancestors 谱系（✅ 2026-09-20 实装，见 C3 follow-up D5） |
 | **IEvaluator 评估结果**（ADR-0083 V2 ✅） | 3+1 条件矩阵的"回归门 PASS"判定（见 §3.2 注：原 4 条件逻辑冗余，实际 3 独立条件 + 1 派生注释） |
 | **Mutation Governance**（ADR-0084 V1 ✅） | 变异授权白名单（source_id）+ 模式×等级矩阵 |
 | **Credit Assignment**（ADR-0086 🔍 Proposed → 🟡 amendment in flight） | 归因结果（attributed/insufficient/confounded），决定是否升级 |
@@ -160,7 +160,7 @@ C3 TransitionGuard 的 3+1 条件矩阵天然落在既有契约栈上（per Orac
 **关键决策**：
 - D9 storage backend：filesystem（`~/.hydraforge/genomes/<name>/<version>/genome.yaml`）优先，Git-LFS 后续
 - D10 signature scheme：HMAC（简单，V1 够用），ed25519 V2
-- IGenomeRegistry 5 方法 + 1 待扩展：`load(name@version)` / `commit(genome)` / `fork(parent, mutations)` / `list_versions(name)` / `diff(v1, v2)`；**`walk_ancestors(from_version)` 在 C2 ship 时 deferred，公开接口不存在**——C3 amendment 决定扩展方式（推荐：新增 public `walk_ancestors` 接口，见 `openspec/changes/2026-09-16-h-d-m-transition-guard/` fill）
+- IGenomeRegistry **6 方法**：`load(name@version)` / `commit(genome)` / `fork(parent, mutations)` / `list_versions(name)` / `diff(v1, v2)` / **`walk_ancestors(name, from_version, to_version)`**（D5 于 2026-09-20 实装，5 → 6 public methods，default impl 返回 NotImplemented，FilesystemGenomeRegistry override 提供 closest-first + self-inclusive + visited set + cross-name rejection）
 
 **RSI 价值**：
 - Genome 版本号是 **C3 TransitionGuard 判断"过期数据"** 的基础
@@ -229,7 +229,7 @@ EvolutionVerdict can_transition(
 
 **HydraForge 缓解**：
 1. **ADR-0083 IEvaluator** 多评估器组合（TaskSuccess + BehavioralEquivalence + Composite）——不依赖单一信号
-2. **ADR-0086 Credit Assignment**（🔍 待 ship）——归因层与评估层划界（VersionPairDiff V1 归因方法 + ConfounderRecord 混杂分层记录）
+2. **ADR-0086 Credit Assignment**（✅ 已 ship 2026-09-20 v1.1）——归因层与评估层划界（VersionPairDiff V1 归因方法 + ConfounderRecord 混杂分层记录 + HarnessChange kind + judge_data_freshness + GenomeVersion）
 3. **ADR-0084 Mutation Governance L1-L4 分级**——只允许白名单 R 轨任务触发变异，禁止模型自行发起
 
 ### 4.2 字节 Seed S³Gym 风险：经验整合失败
@@ -270,20 +270,20 @@ EvolutionVerdict can_transition(
 
 | MetaRSI-v1 抽象 | HydraForge 工程化映射 | 评估 |
 |---------------|---------------------|:----:|
-| 三个算子（Data/Harness/Model-RSI） | C2 archived + C3 fill 中 + C4 placeholder + 10 个 ship ADR | Data-RSI ✅ / Harness-RSI 🟡 / Model-RSI 🔍 |
+| 三个算子（Data/Harness/Model-RSI） | C2 + C3 + C4 均已 archived + 10 个 ship ADR | Data-RSI ✅ / Harness-RSI 🟡 (接线待 follow-up) / Model-RSI 🔍 |
 | "Genome" 概念 | Genome Registry（C2 ✅ Shipped 2026-09-19）+ walk_ancestors（C3 amendment 扩展） | 概念契合 + 谱系可追溯 |
 | 三层递归调度内核 | H→D→M Transition Guard（C3）+ Mutation Governance + IEvaluator 门禁链 | 拆分到既有契约栈（YAGNI） |
 | 验证逻辑与生成分离 | `evaluate_readiness` **3+1 条件**（归因 + 回归门 + 预算；混杂检查内嵌）+ MutationGovernor gate-and-audit | 完全契合（Oracle 评审修正：原"4 条件"冗余） |
-| 强制 H→D→M 禁令 | C3 TransitionGuard.can_transition() + ADR-0086 v1.1 HarnessChange kind | C3 待实施 + ADR-0086 amendment in flight |
+| 强制 H→D→M 禁令 | C3 TransitionGuard.can_transition() + ADR-0086 v1.1 HarnessChange kind | ✅ C3 v1.0 shipped 2026-09-20 (ADR-0088) + ADR-0086 ✅ Approved v1.1 |
 | 动态调度优于静态流程 | CancellationRegistry + 双队列 + 3 Loop | 已有 |
 
 ### 5.2 项目 vs 字节 Seed 三篇论文
 
 | 论文洞察 | HydraForge 对应 | 差距 |
 |---------|----------------|------|
-| Aspire: AI 难以决定"改什么" | IEvaluator + Credit Assignment（待 ship）+ Mutation 白名单 | Credit Assignment 🔍 Proposed，🔧 优先 ship |
+| Aspire: AI 难以决定"改什么" | IEvaluator + Credit Assignment（✅ 已 ship）+ Mutation 白名单 | Credit Assignment ✅ Approved v1.1，已落地 |
 | S³Gym: 经验不可靠 | D10 蒸馏 + SLM Routing First + Trajectory IR | 已 ship，验证流 OK |
-| HarnessDev: 自我修改 ≠ 自我改进 | Mutation Governance + H→D→M 守门（C3）+ session fork revert | 治理完整，**H→D→M 守门待 ship** |
+| HarnessDev: 自我修改 ≠ 自我改进 | Mutation Governance + H→D→M 守门（C3 ✅）+ session fork revert | 治理完整，**H→D→M 守门已 ship；Genome 持久化接线（闭环第 7 环）待 follow-up** |
 
 ### 5.3 项目 vs DSH "三权分立"
 

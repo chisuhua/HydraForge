@@ -261,7 +261,7 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 - 自进化架构 §一明确"Genome 是 Harness 资产的可追溯性基础"
 
 **What（精简）**:
-1. `pdk/genome/spec/genome-v1.yaml` — Genome CRD schema (apiVersion, metadata{name,version,parent,created_by,capture_mode}, spec{harness{system_prompt,loop_type,workflow}, tools[], budget, model_routing, prompt_cache_prefix})
+1. `pdk/genome/spec/genome-v1.yaml` — Genome CRD schema (apiVersion, metadata{name,version,parent,created_by,capture_mode}, spec{harness (string, 已 ship), tools[], budget, model_routing, prompt_cache_prefix})
 2. `include/agenticdsl/genome/registry.h` — `IGenomeRegistry` 接口 (load(name@version) / commit(genome) / fork(name, parent, mutations) / list_versions(name) / diff(v1, v2))
 3. `src/core/genome/registry.cpp` — 文件系统后端 (`~/.hydraforge/genomes/<name>/<version>/genome.yaml`)
 4. 谱系追踪：commit 强制 `parent` 字段必填
@@ -272,7 +272,7 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 - Git-LFS 后端（filesystem 优先）
 - Genome-aware ChatSession/DSLEngine 构造参数（避免 BREAKING，留作 follow-up）
 
-**Verification**: Genome commit/fork/rollback 往返 + 版本 diff 确定性测试
+**Verification**: Genome commit/fork 往返 + 版本 diff 确定性测试 (注: rollback 非 C2 范围 — IGenomeRegistry 无 rollback 方法, 回滚经 ADR-0079 session fork, 见 ADR-0084 决策 5)
 
 **详细制定 TODO** (待 C0+C1 ship 后):
 - [ ] 1. 决策前置: storage backend (D9 filesystem vs SQLite vs Git-LFS) + signature scheme (D10 HMAC vs ed25519)
@@ -462,7 +462,7 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 **并行**: C2 和 C3 顺序（C3 依赖 C2 的 Genome 版本号接口）
 
 **Ship Gate**:
-- [ ] Genome commit/fork/rollback 往返测试通过
+- [ ] Genome commit/fork 往返测试通过 (rollback 经 ADR-0079 session fork, 非 C2 范围)
 - [ ] can_transition(H→M) 编译期+运行期双重断言通过
 - [ ] 12 个 transition guard test case 全部 PASS
 - [ ] ctest 零回归

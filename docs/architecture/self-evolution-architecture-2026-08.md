@@ -1,7 +1,7 @@
 # 自进化与协同进化架构定义（2026-08）
 
-**生成日期**: 2026-08-26（v1.3 增量同步 2026-09-20 — ADR-0086 v1.0+v1.1 ✅ Approved ship, G16 Closed, §1.3 + §五 + §七 #6 + §九 同步更新）
-**最后验证**: 2026-09-20（v1.3，**ADR-0086 v1.0+v1.1 ✅ Approved 代码已 ship** (merge commit `886def1`) + ADR-0083 ✅ Approved 代码已 ship + ADR-0084 ✅ Approved V1 代码已 ship (G11 ✅ Closed) + IDistillationWriter 代码 ship 待办标注，验证命令见 §九）  
+**生成日期**: 2026-08-26（v1.4 增量同步 2026-09-21 — IDistillationWriter + Trajectory IR ship 状态对齐 §五/§七/§九）
+**最后验证**: 2026-09-21（v1.4，**ADR-0086 v1.0+v1.1 ✅ Approved 代码已 ship** (merge commit `886def1`) + ADR-0083 ✅ Approved 代码已 ship + ADR-0084 ✅ Approved V1 代码已 ship (G11 ✅ Closed) + ADR-0088 v1.0 ✅ Approved 代码已 ship (C3) + IDistillationWriter ✅ 已 ship (2026-08-29) + Trajectory IR ✅ 已 ship (2026-08-27/29)，验证命令见 §九）  
 **作者**: Architecture Working Group  
 **状态**: 🔍 Proposed
 
@@ -160,7 +160,7 @@
 |---|---|---|
 | 观测与审计 | EventLog、EventBuilder、IInteractionBus | 进化事件主题和 `EvolutionAttempt` schema 尚未批准 |
 | 会话与证据 | SessionManager、Session 4-scope、D10 Capture | 采集启用、抽取和训练数据流水线未完全实现 |
-| 轨迹视图 | ADR-0061-06 独立 Trajectory IR | T15 尚需工程实现 |
+| 轨迹视图 | ADR-0061-06 v1.1 独立 Trajectory IR | ✅ 已 ship (2026-08-27/29): `include/agenticdsl/ir/trajectory_ir.h` + `src/modules/ir/trajectory_ir_backend.cpp` + `src/core/parsed_graph_to_trajectory_ir.cpp` (T15, 9 cases / 55 assertions, ParsedGraph 零修改) |
 | 评估信号 | ADR-0083 IEvaluator/RewardSignal (✅ Approved, 代码 ship 2026-08-26) | ✅ IEvaluator 已 ship (tests/test_evaluator.cpp 12 cases / 31 assertions); 多主体信用分配未定义 |
 | **信用分配契约** | **ADR-0086 v1.0+v1.1 ✅ Approved (2026-09-20)** — `agenticdsl::evolution` namespace AttributionRecord/VersionPairDiff/ConfounderRecord 5 态混杂分层 + HarnessChange v1.1 + kMinBaselineSamples=5 + judge_data_freshness() 算法 stub + GenomeVersion 单一所有权 + 默认 fail-closed | ✅ **已 ship (merge commit `886def1`)**: test_credit_assignment **12 cases / 40 assertions PASS** + `agenticdsl_evolution` 静态库; G16 Closed; C3 h-d-m-transition-guard 现可 fill; Phase 6c MetaRSI-v1 hard prerequisite |
 | **H→D→M Transition Guard v1.0** | **ADR-0088 v1.0 ✅ Approved (2026-09-20)** — `agenticdsl::evolution` namespace EvolutionState 5 态 (Idle/Harness/Data/Model/Done) + can_transition 编译期 5×5 矩阵 + evaluate_readiness 三条件门控 (Attributed + 回归门 + 预算, 累积报告非短路) + reset_to_idle() 显式 API + 复用 IEvaluator/IBudgetController/AttributionRecord; D1-D4 + D7-D9 部分 ship, D5/D6/D8 主题注册 deferred to Sprint 34+ follow-up | ✅ **已 ship (merge commit `7a15744`)**: test_transition_guard **13/13 cases / 47 assertions PASS** + `agenticdsl_evolution` 静态库扩展 transition_guard.cpp + openspec archive (8 specs); Oracle post-ship verdict **ALIGNMENT SCORE 62 / NEEDS_FIX** (2 critical + 4 major + 4 minor debt); C3 h-d-m-transition-guard v1.0 部分 ship, C4 harness-rsi-pilot unblocked; 2 Sprint 34+ follow-up 已正式登记: `2026-09-20-ig-genome-registry-walk-ancestors` (D5/D6/D9) + `2026-09-20-adr-0068-appendix-a-evolution-themes` (D8 主题注册); **Phase 6c MetaRSI-v1 C3 关键路径 ship** |
@@ -168,7 +168,7 @@
 | 变异治理 | ADR-0084 ✅ Approved + V1 gate-and-audit 代码 ship (G11 ✅ Closed 2026-08-26, commit `a2b2d52`); ApprovalPolicy/ExecutionPolicy 可复用 | ✅ MutationGovernor 已 ship (13 cases / 139 assertions); 自动提交经 gate-and-audit 门禁后允许 |
 | 稳定性门 | ADR-0061-02 行为回归、历史版本、SLM routing | 防共谋、多样性、语义对齐指标未定义 |
 | 运行资源 | IBudgetController、DomainWorkerPool、stop_token、SLM 路由 | 进化任务调度策略未形成独立契约 |
-| 蒸馏输出 | ADR-0061-13 DistillationRecord/IDistillationWriter (✅ Approved, 代码 ship 待办 2026-08-26 自审) | IDistillationWriter 类代码不存在 (grep 0 命中); 训练管线与模型回流依赖外部 AgenticMind |
+| 蒸馏输出 | ADR-0061-13 DistillationRecord/IDistillationWriter (✅ Approved, 代码 ✅ 已 ship 2026-08-29) | ✅ `include/agenticdsl/contract/idistillation_writer.h` + `src/modules/distillation/file_writer.{h,cpp}` + `trajectory_bridge.{h,cpp}` (commits `11d3515` + `9a781f8`, capture-mode-and-distillation-writer-v1 archived, 21 cases PASS); 训练管线与模型回流仍依赖外部 AgenticMind |
 | 环境/对手共进化 | EnvBackend、Agent Composition 契约骨架 | 尚无成熟 Agent-Agent 或世界模型运行时 |
 
 ### 当前允许的最小闭环
@@ -207,8 +207,8 @@ T19 GEPA 在 S1 阶段只能执行只读反思；S2 之前不得执行 `commit(P
 
 1. ~~**ADR-0084**（2026-08-26 文件已创建 🔍 Proposed）~~ ✅ **已完成 (2026-08-26, G11 Closed)**：变异对象 L1-L4 分级 / 授权绑定复用 ADR-0004+ADR-0031 / 治理流程 propose→evaluator→回归门→commit / 审计复用 ADR-0080 + ADR-0068 amendment 注册 4 个 `mutation.*` 主题 / 失败回滚 / 攻击面 fail-closed — **ADR-0084 ✅ Approved + V1 gate-and-audit 代码 ship (commit `a2b2d52`, 13 cases / 139 assertions, ctest 187/187 PASS)**；
 2. ~~**IEvaluator 代码 ship**（ADR-0083）~~ ✅ **已完成 (2026-08-26)**：`include/agenticdsl/contract/ievaluator.h` + `reward_signal.h` + TaskSuccessEvaluator V1 + CognitiveWorker/DomainWorkerPool setter 注入 + evaluation.result 事件发射，`tests/test_evaluator.cpp` 12 cases / 31 assertions PASS（V2 BehavioralEquivalence/Composite 评估器留 follow-up `ship-evaluator-v2-composite`）；
-3. **Trajectory IR 工程实现**（ADR-0061-06 v1.1 ✅）：序列化视图、敏感字段和版本兼容 — **T15 启动 Sprint 25**；
-4. **IDistillationWriter 代码 ship**（ADR-0061-13 ✅）：`include/agenticdsl/contract/idistillation_writer.h` + `distillation_record.h` + 3 文件分离实现 — **2026-08-26 自审识别代码不存在，待 OpenSpec task 排期**；
+3. ~~**Trajectory IR 工程实现**（ADR-0061-06 v1.1 ✅）~~ ✅ **已完成 (2026-08-27/29, T15)**：序列化视图、敏感字段和版本兼容已 ship — `include/agenticdsl/ir/trajectory_ir.h` + `src/modules/ir/trajectory_ir_backend.cpp` + `src/core/parsed_graph_to_trajectory_ir.cpp`，9 cases / 55 assertions PASS，ParsedGraph 零修改；
+4. ~~**IDistillationWriter 代码 ship**（ADR-0061-13 ✅）~~ ✅ **已完成 (2026-08-29)**：`include/agenticdsl/contract/idistillation_writer.h` + `distillation_record.h` + 3 文件分离实现 (`src/modules/distillation/`)，commits `11d3515` + `9a781f8`；
 5. 进化事件与 `EvolutionAttempt` schema：引用关系、幂等性和审计查询；
 6. ~~信用分配契约：单主体与多主体评估的归因边界（建议预估 `adr-0085-credit-assignment-contract.md`，1+2 sprint spike + ADR）~~ ✅ **已立项 + 已 ship (2026-08-31 立项 / 2026-09-20 ship v1.0+v1.1, merge commit `886def1`)**：[`../adr/adr-0086-credit-assignment-contract.md`](../adr/adr-0086-credit-assignment-contract.md) ✅ **Approved (v1.1, 2026-09-20)** — 文件名修正为 0086 (0085 已被横切 Pattern PDK 占用)；评估层 vs 归因层划界 + VersionPairDiff V1 + ConfounderRecord 5 态混杂分层 (v1.1 +`ConfounderKind::HarnessChange`) + kMinBaselineSamples=5 基线门控 + judge_data_freshness() 数据时效性算法 stub (v1.1) + GenomeVersion 单一所有权 (v1.1) + 默认 NotAttempted fail-closed；**G16 Closed**, **Phase 6c MetaRSI-v1 hard prerequisite, C3 h-d-m-transition-guard 现可 fill**；
 6a. ~~**H→D→M Transition Guard 状态机** (Phase 6c MetaRSI-v1 C3 关键规则强制)~~ ✅ **已立项 + 已 ship v1.0 (2026-09-20 rdd-arch 立项 → rdd-planner improvement + planner-handoff v1.1 → rdd-builder P0 case 1 approve (auto-decision complex) → P2 实施 commit `0ffc637` → openspec archive commit `7a15744`)**：[`../adr/adr-0088-h-d-m-transition-guard.md`](../adr/adr-0088-h-d-m-transition-guard.md) ✅ **Approved (v1.0, 2026-09-20)** — D1 5 态状态机 + D2 EvolutionVerdict + D3 can_transition 编译期矩阵 + D4 reset_to_idle + D7 复用 IEvaluator/IBudgetController/AttributionRecord + D8 evolution.transition.denied + evolution.readiness.denied 主题常量 + D9 walk_ancestors 默认实现; test_transition_guard **13/13 cases / 47 assertions PASS**; **Phase 6c MetaRSI-v1 C3 v1.0 ship** (D1-D4 + D7 + D9 部分 ship);
@@ -264,9 +264,9 @@ grep -m1 "^✅ Approved" docs/adr/adr-0084-mutation-governance-contract.md
 grep -r "class IEvaluator\|struct IEvaluator" include/agenticdsl/contract/ src/ 2>/dev/null
 # 预期 (2026-08-26 ship 后): ≥ 1 命中 (include/agenticdsl/contract/ievaluator.h)
 
-# IDistillationWriter 代码 ship 状态
+# IDistillationWriter 代码 ship 状态（2026-08-29 已 ship）
 grep -r "class IDistillationWriter\|struct IDistillationWriter" include/agenticdsl/contract/ src/ 2>/dev/null
-# 预期 (2026-08-26): 0 命中 — 代码 ship 待办
+# 预期 (2026-08-29 ship 后): ≥ 1 命中 (include/agenticdsl/contract/idistillation_writer.h)
 
 # 关键引用一致性 — cap-map §二 G10/G11 Closed 与 self-evolution §五 + ADR 文档状态一致
 grep -n "G10.*Closed.*代码 ship\|G11.*Closed.*ADR-0084" \
