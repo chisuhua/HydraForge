@@ -135,7 +135,19 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
     }
   }
 
+  // === Gate 2.5: tools_add 全量 registry 预检 (Oracle bg_afa84d4d Critical-1 修訂)
+  // 必须在 apply 前完成, 防止部分应用违反零状态变更契约。
+  // 例: input {prompt_delta:"X", tools_add:["unregistered"]} → registry.has_tool 失败
+  // 但 prompt_delta 已应用 → state leaked on failure → 不变量违反。
+  for (const auto& tool_name : mutations.tools_add) {
+    if (!registry.has_tool(tool_name)) {
+      return Result<AppliedMutation, MutationError>::failure(
+          MutationError::RegistryRejected);
+    }
+  }
+
   // === Apply (顺序: workflow_patch 检查 → prompt_delta → tools_add → tools_remove) ===
+  // 此时所有预检已通过, apply 阶段保证不失败。
   AppliedMutation applied;
 
   // workflow_patch → UnsupportedVariant (Wave 3 deferred)
@@ -150,13 +162,8 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
     applied.applied_prompts.push_back(mutations.prompt_delta);
   }
 
-  // mutation 路径 2: tools_add (调用 register_tool_function 需 ToolMetadata, 此处仅记录应用列表)
+  // mutation 路径 2: tools_add (registry.has_tool 已在前置 Gate 2.5 验证, 此处必通过)
   for (const auto& tool_name : mutations.tools_add) {
-    if (!registry.has_tool(tool_name)) {
-      // 工具未注册 — fail-fast (per AGENTS.md "no as any" — 不假设 metadata)
-      return Result<AppliedMutation, MutationError>::failure(
-          MutationError::RegistryRejected);
-    }
     tools.push_back(tool_name);
     applied.applied_tools_added.push_back(tool_name);
   }

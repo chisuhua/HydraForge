@@ -90,7 +90,7 @@ struct EvolutionVerdict {
 ### D3 — 状态机判定结果（编译期可调用）
 
 - `can_transition(from, to)` — 编译期函数，返回 `bool`
-- `evaluate_readiness(state, bus, registry, budget, baseline)` — 运行期函数，返回 `EvolutionVerdict`
+- `evaluate_readiness(state, attribution, evaluator, budget)` — 运行期函数 (实签名 per `transition_guard.h:55-59`), 返回 `EvolutionVerdict`. 注意: ADR 文本 line 93 旧签名 `(state, bus, registry, budget, baseline)` 与实装不一致, 已在 2026-09-21 Oracle 审查 `bg_afa84d4d` 确认 header 为准, 登记本次修正历史 (非设计变更, 仅文档对齐)。
 - **三条件门控**：① 归因 Attributed (per ADR-0086) + ② 回归门 PASS (per T14 Hotelling T²) + ③ 预算充足 (per IBudgetController)
 
 ### D4 — 取消原计划的 3 算子接口 (per Oracle M2 D1)

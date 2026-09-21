@@ -134,6 +134,11 @@ Pre-existing failures (与 C4 ship 无关, git stash 验证 baseline 同样 fail
 
 **Pilot 可接受**: pilot scope 单 agent 验证, 跨 agent blast radius 在 prod 部署时需通过 session 隔离或 ToolCoordinator 包装。
 
+**补充 (per Oracle 独立审查 bg_afa84d4d 2026-09-21)**:
+- (a) **remove 无治理**: tools_remove 完全绕过 `is_tool_allowed` 治理检查 — Gate 2 只查 add, remove 路径零拦截 (harness_rsi.cpp:133-137 vs :166-170)。移除安全关键工具（如审批 hook）无任何阻止点。Wave 3 必须补: remove 路径过 policy check 或在 MutationGovernancePolicy 显式声明 remove 豁免语义。
+- (b) **SecureToolRegistry 裸委托**: `SecureToolRegistry::unregister_tool_function` (secure_tool_registry.cpp:266-270) 裸委托到 `registry_ref_->unregister_tool_function(name)`, 无任何安全检查 (vs `call_tool` 有 `check_security`)。remove 路径完全绕过安全层。
+- (c) **全类无 mutex**: ToolRegistry 全类读写路径均无 mutex (registry.h:83-97 搜索 zero mutex hit)。unregister 引入"运行期改全局 registry"这一此前不存在的并发风险面 — 此前 registry 为构造期写入 + 只读调用 (运行期只有 register 在 ToolCoordinator 路径出现, 是工作量极少的热修改)。unregister 使全局 registry 变异面显著扩大。
+
 ### 摩擦 3: bus == nullptr 时事件静默跳过 (harness_rsi.cpp:112)
 
 **现象**: `if (ctx.bus)` 守护下 emit, nullptr 时 fail-open 静默。
@@ -160,7 +165,7 @@ Pre-existing failures (与 C4 ship 无关, git stash 验证 baseline 同样 fail
 | 2 | Case 2 PASS — system_prompt == initial + 4-field payload (failed_conditions + attribution_verdict + eval_quality + budget_state) | ✅ |
 | 3 | Case 3a PASS — `REQUIRE(registry.has_tool("dangerous_tool") == false)` | ✅ |
 | 4 | Case 3b PASS — `REQUIRE(registry.has_tool("trusted_tool") == true)` | ✅ |
-| 5 | ctest 252 tests (251 + 1 new) zero regression (related 8 tests 100% PASS) | ✅ |
+| 5 | ctest 252 tests (251 + 1 new) zero regression (related 8 tests 100% PASS). 注: spec.md 原声称 "251 + 4 new = 255", 实际因 Case 4 (real LLM) 删除 + tools_remove/workflow_patch tests 在 Phase 6 才补, 最终 test 数为 252(1 binary × 9 cases / 43 assertions)。基线调整已在 Phase 8 同步 master plan active-status.md。 | ✅ |
 
 **All 5 must hold → Decision: GO** ✅
 

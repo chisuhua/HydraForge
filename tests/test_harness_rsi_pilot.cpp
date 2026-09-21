@@ -433,3 +433,38 @@ TEST_CASE("C4 case-4: apply_harness_mutation workflow_patch → UnsupportedVaria
   REQUIRE(system_prompt == "initial");
   REQUIRE(tools.empty());
 }
+
+// ============================================================================
+// Case 3d: partial apply regression guard (Oracle bg_afa84d4d Critical-1)
+// prompt_delta + unregistered tools_add → RegistryRejected + 零状态变更
+// ============================================================================
+TEST_CASE("C4 case-3d: partial apply prevention — prompt_delta + unregistered_add → Rejected",
+          "[c4][harness-rsi][case-3d]") {
+  using namespace agenticdsl::evolution::testing;
+
+  AttributionRecord attr;
+  attr.verdict = AttributionVerdict::Attributed;
+  StubEvaluatorExcellent evaluator;
+  StubBudgetOk budget;
+  CapturingBus bus;
+  StubToolRegistry registry;
+
+  MutationGateContext ctx{
+      EvolutionState::Data,
+      &attr, &evaluator, &budget, &bus,
+      MutationGovernancePolicy{}
+  };
+
+  std::string system_prompt = "initial";
+  std::vector<std::string> tools;
+  GenomeMutations m;
+  m.prompt_delta = "Be concise.";         // 合法 prompt delta
+  m.tools_add = {"nonexistent_tool"};     // registry 中不存在
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, registry, ctx);
+
+  REQUIRE_FALSE(result.has_value());
+  REQUIRE(result.error() == MutationError::RegistryRejected);
+  REQUIRE(system_prompt == "initial");
+  REQUIRE(tools.empty());
+}

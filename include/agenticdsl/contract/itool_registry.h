@@ -30,7 +30,7 @@ namespace agenticdsl {
  * 外加 2 个非虚 JSON 便捷方法 (call_tool_json / register_tool_function_json,
  * 参见 openspec/changes/2026-07-17-hydraforge-itoolregistry-json-args/):
  *
- * 总计 11 个公开方法 (9 pure virtual + 2 non-virtual JSON convenience).
+ * 总计 12 个公开方法 (10 pure virtual + 2 non-virtual JSON convenience).
  *
  * 基础查询 (3):
  *   - has_tool(name) const
