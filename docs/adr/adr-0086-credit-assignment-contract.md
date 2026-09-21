@@ -262,9 +262,13 @@ AttributionVerdict judge_data_freshness(
 
 1. **Fast-path**: `data.name == current.name && data.version == current.version` → `Attributed` (不调 walk_ancestors)
 2. **Step 1 lineage walk**: `registry.walk_ancestors(current.name, current.version, nullopt)` → `Result<LineageWalk, GenomeError>`
-3. **Step 2 定位**: 在 `lineage.intermediate_versions` (closest-first) 中定位 `data.version` 索引 `data_idx`; 不在线 → `Confounded`
-4. **Step 3 harness 对比**: 比较 `lineage.intermediate_metadata[data_idx].spec.harness` 与 `data_idx` 之后所有版本的 `spec.harness`; 任一不同 → `Confounded` (reason="harness changed after data generation") + 自动构造 HarnessChange confounder
+3. **Step 2 定位**: 在 `lineage.intermediate_metadata` 中按 `(name, version)` 对定位 `data_idx`; 不在线 → `Confounded`
+4. **Step 3 harness 对比**: 比较 `lineage.intermediate_metadata[data_idx].spec.harness` 与 `data_idx` 之后所有版本 (closest-first 索引更小者) 的 `spec.harness`; 任一不同 → `Confounded` (reason="harness changed after data generation") + 自动构造 HarnessChange confounder
 5. **Step 4 全部相同** → `Attributed`
+
+**已知 v1.1 限制 (Oracle post-impl review 2026-09-20 bg_f6190442)**:
+- 签名返回 `AttributionVerdict` (not `AttributionRecord`), 不携带 confounder/reason. 调用方需自行构造 `AttributionRecord.confounders` (基于 verdict + 关联的 HarnessChange 信息). v1.2 amendment (Sprint 34+ follow-up 候选) 可考虑扩展返回类型为 `Result<AttributionVerdict, JudgeResult>` 含 verdict + HarnessChangeRecord.
+- spec 场景要求 reason 字符串与 `confounders[0].kind == HarnessChange` 形式约束超出当前 verdict-only 签名能力, v1.1 实现优先满足核心 5-case 逻辑正确性 (test_genome_walk_ancestors Case 7/8/9 GREEN).
 
 **关键依赖**: 依赖 C3 (`2026-09-16-h-d-m-transition-guard`) 实装 `walk_ancestors` (签名含 name 参数 + LineageWalk.intermediate_metadata: `std::vector<Genome>`)。两 change 同步 ship。
 

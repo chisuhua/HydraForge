@@ -208,8 +208,8 @@ TEST_CASE("walk_ancestors cross-name parent returns BrokenLineage",
 }
 
 // ============================================================================
-// Case 6: cycle detection → BrokenLineage (tampered files)
-// Per spec Scenario "FilesystemGenomeRegistry override" + lineage cycle handling
+// Case 6: broken lineage parent → BrokenLineage (tampered files)
+// Per spec Scenario "FilesystemGenomeRegistry override" + lineage handling
 // ============================================================================
 TEST_CASE("walk_ancestors broken lineage parent returns BrokenLineage",
           "[walk-ancestors][filesystem][broken-lineage]") {
@@ -240,6 +240,50 @@ TEST_CASE("walk_ancestors broken lineage parent returns BrokenLineage",
                "  prompt_cache_prefix: \"\"\n";
     }
 
+    auto walk = reg->walk_ancestors("g", 2);
+    REQUIRE_FALSE(walk.has_value());
+    REQUIRE(walk.error() == agenticdsl::genome::GenomeError::BrokenLineage);
+
+    fs::remove_all(root);
+}
+
+// ============================================================================
+// Case 10: real cycle detection via tampering (cycle: g@1 parent g@2 + g@2 parent g@1)
+// (P2 fix from Oracle: exercises visited-set cycle path; commit-time M5 validation
+//  prevents normal-path cycle creation, so test must bypass via direct file write)
+// ============================================================================
+TEST_CASE("walk_ancestors cycle via tampering returns BrokenLineage",
+          "[walk-ancestors][filesystem][cycle]") {
+    set_test_hmac_key();
+    fs::path root = make_tmpdir("cycle");
+
+    auto reg = agenticdsl::genome::IGenomeRegistry::create_filesystem(root);
+    // Commit g@1 + g@2 normally (linear chain, no cycle)
+    REQUIRE(reg->commit(make_genome("g", 0, "", "h")).has_value());
+    REQUIRE(reg->commit(make_genome("g", 0, "g@1", "h")).has_value());
+
+    // Tamper: rewrite g@1/genome.yaml so its parent becomes "g@2" instead of ""
+    // Result: g@2 → g@1 → g@2 cycle (M5 commit validation bypassed)
+    fs::path g1_yaml = root / "g/1/genome.yaml";
+    {
+        std::ofstream ofs(g1_yaml);
+        ofs << "metadata:\n"
+               "  name: g\n"
+               "  version: 1\n"
+               "  parent: \"g@2\"\n"
+               "  created_by: tampered\n"
+               "  created_at: \"2026-09-20T00:00:00Z\"\n"
+               "  capture_mode: mock\n"
+               "spec:\n"
+               "  harness: h\n"
+               "  tools: []\n"
+               "  budget: 1000\n"
+               "  model_routing: default\n"
+               "  prompt_cache_prefix: \"\"\n";
+    }
+
+    // Walk from g@2 → visits g@2 (parent=g@1) → visits g@1 (parent=g@2 per tampered)
+    // → revisit g@2 → cycle detected
     auto walk = reg->walk_ancestors("g", 2);
     REQUIRE_FALSE(walk.has_value());
     REQUIRE(walk.error() == agenticdsl::genome::GenomeError::BrokenLineage);
