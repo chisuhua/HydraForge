@@ -10,7 +10,7 @@
 
 ## §1 原始 ctest 输出 (per Metis 2.6 anti-bias: 原始证据先列, 再写结论)
 
-### 1.1 test_harness_rsi_pilot (4 cases / 26 assertions → 8 cases / 39 assertions post Oracle 3rd review)
+### 1.1 test_harness_rsi_pilot (4 cases / 26 assertions → 9 cases / 43 assertions post Oracle 4 reviews, HEAD commit `08aace2`)
 
 ```
 $ build/tests/test_harness_rsi_pilot
@@ -104,6 +104,17 @@ Pre-existing failures (与 C4 ship 无关, git stash 验证 baseline 同样 fail
 | Minor-2 | Decision Record (本文档) 3 项摩擦 + ctest 原始输出 | ⚪ | ✅ (本文) |
 | Minor-3 | test L262 designated initializer 语法 | ⚪ | ⚪ 跳过 (CI 实证 GCC 13 + C++20 已合法) |
 
+### 2.5 Oracle bg_afa84d4d (4th review, post-impl 独立审查, 10m 20s, SHIP-with-fixes) — 6 项修正全部应用 (commit `08aace2`)
+
+| # | 修正 | 严重度 | 状态 |
+|---|------|:---:|:---:|
+| Critical-1 | partial apply 违反零状态变更契约 — Gate 2.5 预检提前至 tools_add 前 + Case 3d 回归测试 (harness_rsi.cpp:155-170) | 🔴 | ✅ 9 cases / 43 assertions |
+| Major-2 | ADR-0088 D3 签名 drift (adr-0088:93 旧 5 参 → transition_guard.h 一致 4 参) | 🟠 | ✅ |
+| Major-4 | active-status.md:21 活跃计数 7→5 (C4 + D8 archived) | 🟠 | ✅ |
+| Minor-5 | itool_registry.h:33 计数 11→12 (10 pure virtual + 2 non-virtual JSON convenience) | ⚪ | ✅ |
+| Minor-6 | Decision Record §3 摩擦 2 补 (a) remove 绕过治理 (b) SecureToolRegistry 裸委托 (c) 无 mutex 三子面; §4 判据 5 基线 255→252 注明 | ⚪ | ✅ |
+| — | (第 6 项 = Minor-6 内含多子面, 无独立编号) | — | ✅ |
+
 ---
 
 ## §3 实施摩擦清单 (per Oracle bg_3ef7280a Minor-2 + Metis 2.6 anti-bias)
@@ -175,7 +186,7 @@ Pre-existing failures (与 C4 ship 无关, git stash 验证 baseline 同样 fail
 
 **decision: GO** ✅
 
-**rationale**: Harness-RSI 价值验证成功, 5 项 Go 判据全绿 (8 cases / 39 assertions GREEN per §1.1), 0 回归 (8 相关测试 100% PASS per §1.2). 4 项摩擦 (eval_quality 硬编码 / add-remove 不对称 / bus nullptr fail-open / spec 文本漂移) 全部在本文档 §3 显式记录, 不影响 Go 结论, 但需 Wave 3 (ADR-0078 Model-RSI pilot) 启动时优先解决 (尤其是 add-remove 不对称, 是 Model-RSI 真实应用前提).
+**rationale**: Harness-RSI 价值验证成功, 5 项 Go 判据全绿 (9 cases / 43 assertions GREEN per §1.1 HEAD `08aace2`), 0 回归 (8 相关测试 100% PASS per §1.2). 4 项摩擦 (eval_quality 硬编码 / add-remove 不对称 / bus nullptr fail-open / spec 文本漂移) 全部在本文档 §3 显式记录, 不影响 Go 结论, 但需 Wave 3 (ADR-0078 Model-RSI pilot) 启动时优先解决 (尤其是 add-remove 不对称, 是 Model-RSI 真实应用前提).
 
 **Wave 3 立项依据** (Go 路径必填):
 - Harness-RSI 价值证明: prompt delta + tools add/remove 路径均可工作, MutationGovernance 政策可阻止 dangerous tool
@@ -192,7 +203,7 @@ Pre-existing failures (与 C4 ship 无关, git stash 验证 baseline 同样 fail
 - ADR-0084 V1 (MutationGovernance 接口) — ✅ referenced but not directly used (per C3 重写)
 - ADR-0086 v1.1 (AttributionRecord schema) — ✅ used in MutationGateContext
 - `openspec/changes/2026-09-16-harness-rsi-pilot/` (4 files: proposal.md + tasks.md + specs/harness-rsi-pilot/spec.md + .openspec.yaml)
-- Oracle bg_3672cb57 + bg_1f291bc4 + bg_770d1308 + bg_3ef7280a (4 sessions)
+- Oracle bg_3672cb57 + bg_1f291bc4 + bg_770d1308 + bg_3ef7280a + bg_afa84d4d (5 sessions)
 
 ---
 
