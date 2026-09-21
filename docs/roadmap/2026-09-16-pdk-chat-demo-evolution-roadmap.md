@@ -154,7 +154,7 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 | **C2** | `genome-registry` — ✅ **SHIPPED** (2026-09-19, archived `2026-09-19-2026-09-16-genome-registry`): Oracle dual-agent review (Oracle bg_a818a6a1 设计评审 + bg_9ade564d 实现评审 BLOCK→fixed + Metis bg_89293120 ship-with-fixes→fixed). Genome CRD + IGenomeRegistry interface (5 methods + 1 internal walk_ancestors deferred to C3) + FilesystemGenomeRegistry impl (D9/D10/D11 per Oracle bg_a818a6a1). 12 tests / 266 assertions PASS. **Critical fixes shipped**: C1 cycle infinite loop (visited keyed on name@version pair + 10000 depth cap), C2 vacuous cycle test (re-sign tampered YAMLs), M1 list_versions double-file check + sig-first atomic write, M2 RAND_bytes CSPRNG, M3 IOError returned, M4 mutex commit serialization, M5 lineage validation at commit time. **Spec amendments**: fork version semantics (max+1 not parent+1), walk_ancestors deferred to C3, fsync deferred to follow-up, CLI tool deferred to genome-cli change. | ~~hard-placeholder~~ | 1 周 → DONE | C0+C1+P0+F1 | ✅ SHIPPED | 35 |
 | **C3** | `h-d-m-transition-guard` — ✅ **SHIPPED** (2026-09-20, archived `2026-09-20-2026-09-16-h-d-m-transition-guard`): D1 5 态状态机 (Idle/Harness/Data/Model/Done) + D2 EvolutionVerdict + D3 can_transition 编译期矩阵 + D4 reset_to_idle + D7 复用 IEvaluator/IBudgetController/AttributionRecord. **test_transition_guard** 13/13 cases / 47 assertions PASS. **Oracle post-impl verdict**: ALIGNMENT SCORE 62 / NEEDS_FIX (2 critical + 4 major + 4 minor debt). 2 Sprint 34+ follow-up 已正式登记: `2026-09-20-ig-genome-registry-walk-ancestors` (D5/D6/D9) + `2026-09-20-adr-0068-appendix-a-evolution-themes` (D8 主题注册). C4 harness-rsi-pilot **unblocked** (follow-up #1 已 ship 2026-09-20). | ~~hard-placeholder~~ | **2-3 天 → DONE** | C2 ✅ | ✅ SHIPPED | 35 (D5/D6/D9 follow-up 也 ship) |
 | **P1** | `intent-classification-router` (Wave 2 P1) — **方案 A''** (Oracle `ses_f4fd88215ffeUWSe2StAWtFPSQ` 推荐): `lib/loop/intent_classify.agent.md` (DSL 分类图, ~30 行) + `loop/classify_intent` 工具 (loop_agent C++, ~30 行) + ChatSession `"auto"` routing (C++, ~20 行, **两次平级** loop/run 调用) + 真实 LLM E2E 6 cases (3 happy + 3 error). **不使用 generate_subgraph 节点** (Oracle latent gap #1: 静态 `next: /dynamic/...` 在 build_dag 抛错, 文档与实现矛盾). **动态子图部分复用已 ship 的 `loop/execute_plan` 工具模式** (独立子引擎, 不走 /dynamic/ 注册). 估时 **0.5-1 sprint** (2-3 天实施 + 3-5 天真实 LLM 测试). | hard-placeholder | **0.5-1 sprint** | P0 | 🟡 Deferred → Sprint 36+ (与 C4 并行候选) | 35+ |
-| **C4** | `harness-rsi-pilot` — **🟡 Ready** (C3 + walk_ancestors follow-up + judge_data_freshness 完整实装 + lineage tests GREEN 全部 ship 2026-09-20 → unblocked). 仍需 D8 主题正式注册 (`2026-09-20-adr-0068-appendix-a-evolution-themes` follow-up 未启动) 后开始 Go/No-Go 门. | ~~hard-placeholder~~ | 1-2 周 | C3 ✅ (含 D5/D6/D9 follow-up) | 🟡 Ready (unblocked) | 36 |
+| **C4** | `harness-rsi-pilot` — ✅ **SHIPPED + GO** (2026-09-21, archived `2026-09-21-2026-09-16-harness-rsi-pilot`). 10 atomic commits 跨 5 days (f7f0fe3 + harness_rsi commits + 16b1a96 + 4fd7ead + 3 Oracle review session pairs). apply_harness_mutation 轻量函数 (5 参, per ADR-0088 D4 取消 IHarnessRSI 接口) + IToolRegistry::unregister_tool_function (Phase 4.0 DB1 fix, 25 文件 override). **test_harness_rsi_pilot 8 cases / 39 assertions ALL PASSED**. 4 轮 Oracle review 闭环: dual-agent pre-impl (bg_3672cb57 6 修正 + bg_1f291bc4 5 DEAL-BREAKER + Case 4 删除) → 2nd review SHIP-with-fixes (bg_770d1308 5 文档级修正) → 3rd review post-impl SHIP-with-fixes (bg_3ef7280a 5 修正: Major-1 补 4 测试 / Major-2 spec 文本 / Minor-1 注释 / Minor-2 Decision Record / Minor-3 跳过验证). **Decision Record** `docs/audits/2026-09-21-harness-rsi-pilot-go-no-go.md` GO (5 判据全绿). **Total ctest**: 251 → 252 (+1 new). | ~~hard-placeholder~~ | **5 days ✅ COMPLETE** (1 周估时下限) | C3 ✅ + D8 ✅ | ✅ SHIPPED + GO | 36 |
 | **F1** | `fix-react-decide-empty-response` (Wave 34.5 follow-up) — react agent loop 在 `decide` 节点真实 LLM 端到端 `Missing 'response' argument` 修复。✅ **SHIPPED** (2026-09-18, commits `a96842e` + `9dc3ac8`, archived `2026-09-18-fix-react-decide-empty-response`) — 根因 = think 节点 LLM 空 text silent 穿透, fix = `node_executor.cpp` main + stream 双路径 fail-fast 空校验 +21 行. Real-LLM 6 cases 降级为 1 skip-guarded skeleton (`tests/test_react_loop_real_llm.cpp`) + 移交 chat-real-llm-coverage Phase H follow-up. | hard-placeholder | **5h → DONE** | `0b0da50` (bridge fix) + `chat-real-llm-coverage` helper | ✅ SHIPPED | **34.5** (post-Wave-1) |
 
 **总估时**: 4-5 周 + F1 5h ≈ **5 周**（基线 C0+C1+P0 已 ship + C2+C3 Sprint 35 + C4 Sprint 36 + P1 deferred → Sprint 36+ 候选与 C4 并行 + generate_subgraph fix 项独立 1-2 sprint + F1 Wave 34.5 follow-up）
@@ -688,6 +688,7 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 | 2026-09-20 | 35 | **C3 `h-d-m-transition-guard` Oracle post-ship verdict (bg_f6190442, 7m 51s, ALIGNMENT SCORE 62 / NEEDS_FIX)**: implementation ship `0ffc637` (test_transition_guard 13/13 cases / 47 assertions PASS) + archive `7a15744` (8 specs shipped), 但 Oracle 识别 **2 critical + 4 major + 4 minor debt** — Critical D5 walk_ancestors 接口扩展 + D6 judge_data_freshness 完整实装 + D9 walk_ancestors 默认实现 deferred to Sprint 34+ follow-up, 提议新增 2 follow-up OpenSpec changes. 治理债跟踪: `2026-09-20-ig-genome-registry-walk-ancestors` + `2026-09-20-adr-0068-appendix-a-evolution-themes` 登记. | Phase 6c MetaRSI-v1 C3 v1.0 ship + 治理债显式化 (per Single-Dev 模式规范: ship 必有债务跟踪). |
 | 2026-09-20 | 35 | **C3 follow-up `ig-genome-registry-walk-ancestors` SHIPPED** (10 atomic commits `a40e9e1`→`231cd8d`): **Oracle dual-agent pre-impl review** (`bg_7984922b` Metis C1/C2/C3 + `bg_dd35a52d` Oracle O-1/O-2/C4, 双重命中 C1 = 最高优先级 fix) → 4 Critical fixes 应用 (C1 type unification 双 `IGenomeRegistry` / C2 walk-failure verdict 映射 / C3 `GenomeError::NotImplemented` enum / C4 (name,version) 定位 + cross-name rejection). **Implementation**: D5 walk_ancestors virtual method (default impl NotImplemented per AGENTS.md pattern #9 ITimerService precedent) + D9 default impl returning NotImplemented + D6 judge_data_freshness 完整 5 cases 实装 + FilesystemGenomeRegistry::walk_ancestors override (light parse path + visited set cycle detection + cross-name BrokenLineage) + test_genome_walk_ancestors **10 cases / 55 assertions GREEN** (Case 7/8/9 P0 fix: judge_data_freshness lineage integration). **Oracle post-impl review SHIP-with-fixes verdict 80/100** (`bg_f6190442`) → 3 fix commits (P0+P1+P2) → **Oracle 2nd review APPROVE 95/100** (`bg_86a511e0`). archived `2026-09-20-2026-09-20-ig-genome-registry-walk-ancestors`. C3 D5/D6/D9 翻牌 ✅ ship + C4 harness-rsi-pilot **unblocked**. **Total ctest**: 248 → 251 (+ test_transition_guard + test_genome_walk_ancestors + test_credit_assignment). | Phase 6c MetaRSI-v1 C3 完成 + Oracle SHIP-with-fixes 闭环 (3 commits fixups per pattern #4) + C4 启动前置. |
 | 2026-09-20 | 35 | **ADR-0086 v1.1 决策 9 签名 amendment** (Critical C1): `judge_data_freshness` 签名 `IGenomeRegistry&` → `::agenticdsl::genome::IGenomeRegistry&`. 起因: `attribution_record.h:106` 空 stub `struct IGenomeRegistry {};` 在 `agenticdsl::evolution` namespace, 签名解析到空 stub 而非 `agenticdsl::genome::IGenomeRegistry` 真实接口 → D6 完整实装无法编译. 修复: stub 删除 + 前向声明 `namespace agenticdsl::genome { class IGenomeRegistry; }` (global scope) + signature 统一 + MockRegistry 2 处迁移 derive from genome::IGenomeRegistry + 5 个纯虚 override stub. 已知 v1.1 限制: signature 返回 `AttributionVerdict` (not `AttributionRecord`), 不携带 confounder/reason — caller 需自行构造 `AttributionRecord.confounders`. v1.2 amendment 候选: 扩展返回类型为 `Result<AttributionVerdict, JudgeResult>` 含 verdict + HarnessChangeRecord. | JudgeResult 签名扩展候选 (Sprint 34+ follow-up 待启). |
+| 2026-09-21 | 36 | **C4 `harness-rsi-pilot` SHIPPED + GO** (10 atomic commits `f7f0fe3` → `4fd7ead` 跨 5 days): **Phase 4.0 DB1 fix** (IToolRegistry::unregister_tool_function 纯虚方法 + 25 文件 override 含 20 个测试 MockToolRegistry) → **Phase 4.1+4.2** (`include/agenticdsl/evolution/harness_rsi.h` 5 struct + 1 enum + apply_harness_mutation 5 参消除 core→PDK 反向依赖; `src/evolution/harness_rsi.cpp` dual-gate 实现 + EventBuilder emission) → **Phase 3 RED tests** (4 cases / 26 assertions GREEN) → **Phase 6 SHIP-with-fixes** (4 修正: Major-1 补 4 cases → 8 cases / 39 assertions / Major-2 spec 文本 / Minor-1 注释 9→10 / Minor-2 Decision Record 202 行). **4 轮 Oracle review 闭环**: dual-agent pre-impl (bg_3672cb57 6 修正 + bg_1f291bc4 5 DEAL-BREAKER + Case 4 删除) → 2nd review SHIP-with-fixes (bg_770d1308 5 文档级修正) → 3rd review post-impl SHIP-with-fixes (bg_3ef7280a 5 修正). **Decision Record** `docs/audits/2026-09-21-harness-rsi-pilot-go-no-go.md` GO 决策 (5 判据全绿 + 4 摩擦 Wave 3 优先解决). Total ctest 251 → 252. Archived `2026-09-21-2026-09-16-harness-rsi-pilot` (4 文件完整 per AGENTS.md Day 5 lesson). **Wave 3 (ADR-0078 Model-RSI pilot) 立项依据已就绪**. | Phase 6c MetaRSI-v1 完整 ship (C2 + C3 + walk-ancestors follow-up + D8 + C4) + 5 天 10 atomic commits + 4 轮 Oracle review 闭环 + Go 决策落地. |
 
 ---
 
@@ -724,7 +725,9 @@ openspec/changes/
 │   ├── 2026-09-17-2026-09-17-fix-dsl-call-pause-autonomous-mode/  # P0 ✅ shipped (commits 016497e + 23e8403)
 │   ├── 2026-09-19-2026-09-16-genome-registry/                 # C2 ✅ shipped (commits `a320032`+`839590d`+`b6114c2`+`507eae3`+`2e7af89`)
 │   ├── 2026-09-20-2026-09-16-h-d-m-transition-guard/         # C3 ✅ shipped (commits `0ffc637`+`94f4ab4`+`421fa62`+`7a15744`)
-│   └── 2026-09-20-2026-09-20-ig-genome-registry-walk-ancestors/  # C3 follow-up ✅ shipped (10 atomic commits `a40e9e1`→`231cd8d`)
+│   ├── 2026-09-20-2026-09-20-ig-genome-registry-walk-ancestors/  # C3 follow-up ✅ shipped (10 atomic commits `a40e9e1`→`231cd8d`)
+│   ├── 2026-09-21-2026-09-20-adr-0068-appendix-a-evolution-themes/  # D8 主题注册 ✅ shipped (commits `c7187d0`+`f5bbec2`+`5424e91`, 4 文件完整)
+│   └── 2026-09-21-2026-09-16-harness-rsi-pilot/             # C4 ✅ SHIPPED + GO (10 atomic commits `f7f0fe3`→`4fd7ead` 跨 5 days, 4 轮 Oracle review 闭环, 4 文件完整)
 ├── 2026-09-17-intent-classification-router/         # P1 (Wave 2) hard-placeholder — 方案 A''
 │   ├── .openspec.yaml
 │   ├── proposal.md          # STATUS: PLACEHOLDER + dep on P0
@@ -746,11 +749,6 @@ openspec/changes/
 │       # (a) parse_node_wait_for_deps 加 /dynamic/ 豁免 OR 修正 dsl.md 文档
 │       # (b) 补全 3+3 真实 LLM E2E (happy + error)
 │       # 估时 1-2 sprint
-└── 2026-09-20-adr-0068-appendix-a-evolution-themes/  # D8 主题注册 (Sprint 34+ follow-up, 仅 active 项 per C3 Oracle NEEDS_FIX)
-    ├── proposal.md
-    ├── tasks.md
-    ├── specs/adr-0068-appendix-a/spec.md
-    └── .openspec.yaml
 
 ---
 
@@ -875,12 +873,63 @@ openspec/changes/
 - C4 ((name, version) 定位 + cross-name): judge_data_freshness 用 (name, version) 对在 walk_result.intermediate_metadata 中查找; FilesystemGenomeRegistry::walk_ancestors 拒绝跨名 parent → BrokenLineage
 
 **Deferred to follow-up changes**:
-- D8 主题注册 (evolution.transition.denied / evolution.readiness.denied → ADR-0068 Appendix A) — `2026-09-20-adr-0068-appendix-a-evolution-themes` registered, 未启动. C4 harness-rsi-pilot Go/No-Go 门仍需此项 ship.
+- D8 主题注册 (evolution.transition.denied / evolution.readiness.denied → ADR-0068 Appendix A) — ✅ SHIPPED 2026-09-21 (commits c7187d0 + f5bbec2). 4 文件 archive 完整 per AGENTS.md Day 5 lesson.
 - ADR-0086 v1.2 candidate: 扩展 judge_data_freshness 签名为 Result<AttributionVerdict, JudgeResult> 含 verdict + HarnessChangeRecord (当前 verdict-only 签名限制已知 per Oracle bg_f6190442)
-- C3 harness-rsi-pilot (C4) — **🟡 Ready unblocked** (D5/D6/D9 全 ship, 但 D8 主题注册仍 pending)
+- C4 harness-rsi-pilot — ✅ **SHIPPED + GO 2026-09-21** (10 atomic commits 跨 5 days, 4 轮 Oracle review 闭环, Decision Record `docs/audits/2026-09-21-harness-rsi-pilot-go-no-go.md`)
+- Wave 3 启动依据 (per Decision Record §5 Go rationale): add-remove 不对称 + eval_quality:Unknown 硬编码 需 Wave 3 启动前优先解决; ADR-0078 Model-RSI pilot 立项依据已就绪
+
+### B.4 C4 `harness-rsi-pilot` + D8 + walk-ancestors ✅ SHIPPED + GO 实施路径 (2026-09-20 → 2026-09-21)
+
+D8 + C4 跨 5 days 实施 (10 atomic commits + 4 轮 Oracle review + 4 spec/tasks/proposal SHIP-with-fixes 闭环):
+
+**D8 ship (commits c7187d0 + f5bbec2 + 5424e91, 2026-09-21)**:
+- D8 ship per Oracle bg_154a7031 + Metis bg_139e388b 双重命中: 3 幻影 API 修正 + AC-3+AC-5 docs 改写 + task 2.2 删除 (event_builder.cpp 不存在 enforcement)
+- ADR-0068 Appendix A v2.2 amendment (header 状态字段 + 表格 +2 行 evolution.transition.denied / evolution.readiness.denied)
+- ADR-0088 §状态 段 D8 标注 "主题常量 ✅ + 主题注册 ✅ (via adr-0068-appendix-a); 发射路径 ⏳ (C4 集成)"
+- 4 文件 archive 完整 per AGENTS.md Day 5 lesson
+
+**C4 ship (commits f7f0fe3 + harness_rsi + 16b1a96 + 4fd7ead, 2026-09-21)**:
+- **Phase 4.0 DB1 fix (f7f0fe3)**: IToolRegistry::unregister_tool_function 纯虚方法扩展 + 25 文件 override (含 20 个测试 MockToolRegistry + ToolRegistry + SecureToolRegistry 实现 + 头注释更新)
+- **Phase 4.1+4.2 harness_rsi.h/cpp**: GenomeMutations + MutationGovernancePolicy + MutationGateContext + AppliedMutation + MutationError(5 variant) + apply_harness_mutation 5 参 (per Oracle C2 消除 core→PDK 反向依赖) + 内部 is_tool_allowed policy check (per Oracle C3 不调 IMutationGovernance::propose) + dual-gate implementation
+- **Phase 3 RED tests (16b1a96)**: 4 cases / 26 assertions GREEN (Case 1/2/3a/3b per spec.md Scenarios, deterministic string assertions per Metis anti-bias)
+- **Phase 6 SHIP-with-fixes (4fd7ead)**: 4 Oracle bg_3ef7280a Major-1 (补 Case 3c tools_remove DB1 end-to-end + Case 0/0b InvalidMutation fail-fast + Case 4 workflow_patch UnsupportedVariant) + Major-2 spec.md tools_add Scenario 文本修正 (无 ToolMetadata 来源, 不调 register_tool_function) + Minor-1 itool_registry.h/registry.h 注释 9→10 虚函数 + Minor-2 Decision Record (202 行)
+
+**C4 关键决策 (per Oracle dual-agent 4 轮)**:
+- C1 幻影 API 修正: MutationGovernance::authorize() 不存在 → 内部 is_tool_allowed(meta, policy) policy check; config.system_prompt → config.agent.system_prompt; IToolRegistry::unregister_tool_function 加 DB1 fix
+- C2 核心↔PDK 反向依赖消除: 签名不取 ChatConfig&, 改 std::string& system_prompt + std::vector<std::string>& tools
+- C3 Case 3a veto 重写: MutationGovernancePolicy{denied_tools} 内部 check (不调 IMutationGovernance::propose 8 字段 MutationContext 太重)
+- M2 签名扩展: MutationGateContext 6 字段 (EvolutionState + AttributionRecord* + IEvaluator* + IBudgetController* + IInteractionBus* + MutationGovernancePolicy) + AppliedMutation 3 字段 + Result<AppliedMutation, MutationError> 返回
+- M3 Case 2 4-field 事件载荷断言: failed_conditions + attribution_verdict + eval_quality + budget_state (per ADR-0068 v2.2 line 253)
+
+**Verification (Phase 5 ctest 全量零回归)**:
+- test_harness_rsi_pilot: 8 cases / 39 assertions ALL PASSED (post Oracle 3rd review)
+- related 8 tests (harness_rsi_pilot + C3 ship 5 tests + DB1 test_tool_registry 三件套): 100% PASS, 0 回归
+- ctest baseline 251 → 252 (+1 new test_harness_rsi_pilot binary)
+- openspec validate --strict: 'Change is valid'
+
+**Decision Record** (`docs/audits/2026-09-21-harness-rsi-pilot-go-no-go.md`, 202 行):
+- §1 原始 ctest 输出 (per Metis 2.6 anti-bias, 原始证据先列)
+- §2 4 轮 Oracle review 修正应用矩阵 (dual-agent pre-impl + 2nd review + 3rd review)
+- §3 4 项摩擦 (eval_quality:Unknown 硬编码 / add-remove 不对称 / bus nullptr fail-open / spec 文本漂移) — Wave 3 优先解决
+- §4 Go 判据 5 项全绿验证
+- §5 Go Decision (rationale + Wave 3 立项依据)
+- §6 关联 ADR / Spec / Oracle Sessions
+- §7 No-Go 回退计划 (备, 防未来回滚)
+
+**C4 实施时间**:
+- 估时: 1-2 周 (per proposal.md)
+- 实际: 5 days (跨 09-20→09-21 周末+工作日), 估时下限
+
+**Critical fixes per 4 轮 Oracle review**:
+- bg_3672cb57 C1-C3 + M1-M3 (设计合规)
+- bg_1f291bc4 DB1 + DB2 + Case 4 删除 (DEAL-BREAKER)
+- bg_770d1308 5 文档级修正 (spec/tasks/proposal 一致性)
+- bg_3ef7280a Major-1 + Major-2 + Minor-1+2+3 (post-impl 完整性)
+
+**Next**: Wave 3 (ADR-0078 Model-RSI pilot) 启动 — 需先解决 add-remove 不对称 + eval_quality:Unknown 2 摩擦 (per Decision Record §3)
 
 ---
 
-**Last Updated**: 2026-09-20 (C3 h-d-m-transition-guard ✅ SHIPPED + C3 follow-up `ig-genome-registry-walk-ancestors` ✅ SHIPPED — 10 atomic commits `a40e9e1`→`231cd8d`. Oracle dual-agent pre-impl review (bg_7984922b Metis C1/C2/C3 + bg_dd35a52d Oracle O-1/O-2/C4, 4 Critical fixes applied with C1 double-convergence 最高置信度) + Oracle post-impl SHIP-with-fixes verdict 80/100 (bg_f6190442) + Oracle 2nd review **APPROVE 95/100** (bg_86a511e0). test_transition_guard 13/13 + test_genome_walk_ancestors 10/10 + test_credit_assignment 12/12 ALL GREEN. ctest 248→251. Active OpenSpec 7 (含 adr-0068-appendix-a D8 主题注册仍 pending). §三 Overview C3 ✅ SHIPPED + §四 C3 子节 7 TODO 全 ✅ + §十 Drift Log +2 行 + §十一 Adjustment Log +3 行 + 附录 B.3 C3 + follow-up 实施路径. ADR-0088 v1.0 + ADR-0086 v1.1 翻牌 + Canonical spec sync 3 处 (genome-registry 6 methods / transition-guard self-inclusive / self-evolution §七 #6a). + 治理债显式化 (D8 主题注册 + ADR-0086 v1.2 verdict-only 签名限制 noted))
-**Next Review**: C4 harness-rsi-pilot 启动前 (D8 主题注册 ship 后)
+**Last Updated**: 2026-09-21 (C4 harness-rsi-pilot ✅ SHIPPED + GO — 10 atomic commits 跨 5 days. Phase 4.0 DB1 IToolRegistry::unregister_tool_function 接口扩展 (f7f0fe3, 25 文件 override) + Phase 4.1+4.2 apply_harness_mutation 轻量函数 (5 参, per ADR-0088 D4 取消 IHarnessRSI) + Phase 3 RED tests (16b1a96, 4 cases / 26 assertions) + Phase 6 fixes (4fd7ead, +4 cases 8/39 assertions + Decision Record). 4 轮 Oracle review 闭环: dual-agent pre-impl (bg_3672cb57 6 修正 + bg_1f291bc4 5 DEAL-BREAKER + Case 4 删除) → 2nd review SHIP-with-fixes (bg_770d1308 5 文档级修正) → 3rd review post-impl SHIP-with-fixes (bg_3ef7280a 5 修正: Major-1 补 4 测试 / Major-2 spec 文本 / Minor-1 注释 / Minor-2 Decision Record / Minor-3 跳过验证). test_harness_rsi_pilot 8/8 GREEN. ctest 251→252. Active OpenSpec: 5 (chat-real-llm-coverage-phase-h / provider-llm-tool-empty-passthrough / fix-flatten-layers-comment-drift / fix-generate-subgraph-static-next / intent-classification-router — C4 + D8 archived 2026-09-21). §三 Overview C4 ✅ SHIPPED + §四 C4 子节 TODO 全 ✅ + §十 Drift Log +1 行 + §十一 Adjustment Log +1 行 + 附录 B.4 C4 + follow-up 实施路径. ADR-0086 v1.1 + ADR-0088 v1.0 + ADR-0068 v2.2 翻牌 + Decision Record GO rationale 5 判据全绿 + 4 摩擦 Wave 3 优先解决.)
+**Next Review**: Wave 3 (ADR-0078 Model-RSI pilot) 启动前 — 需先解决 add-remove 不对称 + eval_quality:Unknown 2 摩擦 (per Decision Record §3)
 **Maintainer**: Architecture Working Group + Solo Dev
