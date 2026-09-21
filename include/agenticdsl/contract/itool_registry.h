@@ -26,7 +26,7 @@ namespace agenticdsl {
 /**
  * @brief 工具注册表抽象接口 (ADR-0023 §C.3 标准化)
  *
- * 包含 9 个虚函数 (P1.T2 v3 修订, 移除未使用的 has_cost_callback, YAGNI)
+ * 包含 10 个虚函数 (P1.T2 v3 9 个 + C4 Phase 4.0 DB1 unregister_tool_function)
  * 外加 2 个非虚 JSON 便捷方法 (call_tool_json / register_tool_function_json,
  * 参见 openspec/changes/2026-07-17-hydraforge-itoolregistry-json-args/):
  *

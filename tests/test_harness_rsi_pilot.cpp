@@ -307,3 +307,129 @@ TEST_CASE("C4 case-3b: apply_harness_mutation trusted tool add positive",
   REQUIRE(registry.has_tool("trusted_tool"));
   REQUIRE(std::find(tools.begin(), tools.end(), "trusted_tool") != tools.end());
 }
+
+// ============================================================================
+// Case 3c: tools_remove positive path
+// ============================================================================
+TEST_CASE("C4 case-3c: apply_harness_mutation tools_remove (DB1 end-to-end)",
+          "[c4][harness-rsi][case-3c]") {
+  using namespace agenticdsl::evolution::testing;
+
+  AttributionRecord attr;
+  attr.verdict = AttributionVerdict::Attributed;
+  StubEvaluatorExcellent evaluator;
+  StubBudgetOk budget;
+  CapturingBus bus;
+  StubToolRegistry registry;
+
+  MutationGateContext ctx{
+      EvolutionState::Data,
+      &attr, &evaluator, &budget, &bus,
+      MutationGovernancePolicy{}
+  };
+
+  std::string system_prompt = "initial";
+  std::vector<std::string> tools = {"trusted_tool"};
+  GenomeMutations m;
+  m.tools_remove = {"trusted_tool"};
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, registry, ctx);
+
+  REQUIRE(result.has_value());
+  REQUIRE_FALSE(registry.has_tool("trusted_tool"));
+  REQUIRE(std::find(tools.begin(), tools.end(), "trusted_tool") == tools.end());
+}
+
+// ============================================================================
+// Case 0: InvalidMutation fail-fast
+// ============================================================================
+TEST_CASE("C4 case-0: apply_harness_mutation empty mutation → InvalidMutation",
+          "[c4][harness-rsi][case-0]") {
+  using namespace agenticdsl::evolution::testing;
+
+  AttributionRecord attr;
+  attr.verdict = AttributionVerdict::Attributed;
+  StubEvaluatorExcellent evaluator;
+  StubBudgetOk budget;
+  CapturingBus bus;
+  StubToolRegistry registry;
+
+  MutationGateContext ctx{
+      EvolutionState::Data,
+      &attr, &evaluator, &budget, &bus,
+      MutationGovernancePolicy{}
+  };
+
+  std::string system_prompt = "initial";
+  std::vector<std::string> tools;
+  GenomeMutations m;
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, registry, ctx);
+
+  REQUIRE_FALSE(result.has_value());
+  REQUIRE(result.error() == MutationError::InvalidMutation);
+  REQUIRE(system_prompt == "initial");
+  REQUIRE(tools.empty());
+}
+
+TEST_CASE("C4 case-0b: apply_harness_mutation add/remove same name → InvalidMutation",
+          "[c4][harness-rsi][case-0b]") {
+  using namespace agenticdsl::evolution::testing;
+
+  AttributionRecord attr;
+  attr.verdict = AttributionVerdict::Attributed;
+  StubEvaluatorExcellent evaluator;
+  StubBudgetOk budget;
+  CapturingBus bus;
+  StubToolRegistry registry;
+
+  MutationGateContext ctx{
+      EvolutionState::Data,
+      &attr, &evaluator, &budget, &bus,
+      MutationGovernancePolicy{}
+  };
+
+  std::string system_prompt = "initial";
+  std::vector<std::string> tools;
+  GenomeMutations m;
+  m.tools_add = {"trusted_tool"};
+  m.tools_remove = {"trusted_tool"};
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, registry, ctx);
+
+  REQUIRE_FALSE(result.has_value());
+  REQUIRE(result.error() == MutationError::InvalidMutation);
+}
+
+// ============================================================================
+// Case 4: workflow_patch → UnsupportedVariant
+// ============================================================================
+TEST_CASE("C4 case-4: apply_harness_mutation workflow_patch → UnsupportedVariant",
+          "[c4][harness-rsi][case-4]") {
+  using namespace agenticdsl::evolution::testing;
+
+  AttributionRecord attr;
+  attr.verdict = AttributionVerdict::Attributed;
+  StubEvaluatorExcellent evaluator;
+  StubBudgetOk budget;
+  CapturingBus bus;
+  StubToolRegistry registry;
+
+  MutationGateContext ctx{
+      EvolutionState::Data,
+      &attr, &evaluator, &budget, &bus,
+      MutationGovernancePolicy{}
+  };
+
+  std::string system_prompt = "initial";
+  std::vector<std::string> tools;
+  GenomeMutations m;
+  m.workflow_patch = std::string("some workflow");
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, registry, ctx);
+
+  REQUIRE_FALSE(result.has_value());
+  REQUIRE(result.error() == MutationError::UnsupportedVariant);
+  REQUIRE(system_prompt == "initial");
+  REQUIRE(tools.empty());
+}

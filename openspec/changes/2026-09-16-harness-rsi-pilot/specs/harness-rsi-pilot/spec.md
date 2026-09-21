@@ -22,7 +22,7 @@ A lightweight function `apply_harness_mutation(GenomeMutations, std::string& sys
 #### Scenario: tools_add apply (success path)
 - **WHEN** `apply_harness_mutation(GenomeMutations{tools_add: ["trusted_tool"]}, system_prompt, tools, registry, ctx)` is called
 - **AND** dual gate passes
-- **THEN** `registry.register_tool_function("trusted_tool", ...)` MUST have been called (verifiable via `registry.has_tool("trusted_tool") == true`)
+- **THEN** `registry.has_tool("trusted_tool") == true` MUST hold (工具须预注册于共享 registry; apply 仅激活到 agent 的 tools vector, **不**调 `register_tool_function` — 无 ToolMetadata 来源, 避免伪造 metadata 违反 ADR-0004 V2 校验逻辑)
 - **AND** `tools` vector MUST contain "trusted_tool" (verifiable via `std::find(tools.begin(), tools.end(), "trusted_tool") != tools.end()`)
 - **AND** MUST return `Result::success(AppliedMutation{applied_tools_added: ["trusted_tool"]})`
 

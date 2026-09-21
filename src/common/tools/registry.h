@@ -25,6 +25,7 @@ namespace agenticdsl {
  * @brief 工具注册表主实现
  *
  * Phase 1 P1.T2 (2026-06-18): 实现 IToolRegistry 9 虚函数.
+ * C4 Phase 4.0 DB1 (2026-09-21): 加 unregister_tool_function (第 10 个虚函数, 供 harness-rsi-pilot tools_remove 路径用)
  * register_tool<Func> 模板保持 (非虚), 内部委托到 register_tool_function 虚函数.
  */
 class ToolRegistry : public IToolRegistry {
@@ -46,7 +47,7 @@ void register_tool(std::string name, ToolMetadata meta, Func&& func) {
   register_tool_function(std::move(name), std::move(meta), std::move(erased));
 }
 
-    // === IToolRegistry 9 虚函数实现 (P1.T2 新增) ===
+    // === IToolRegistry 10 虚函数实现 (P1.T2 9 个 + C4 DB1 unregister_tool_function) ===
 
     // 基础查询 (3)
     bool has_tool(const std::string& name) const override;
