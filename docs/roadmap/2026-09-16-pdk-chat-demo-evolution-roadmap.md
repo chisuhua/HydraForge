@@ -878,6 +878,8 @@ openspec/changes/
 - ADR-0086 v1.2 candidate: 扩展 judge_data_freshness 签名为 Result<AttributionVerdict, JudgeResult> 含 verdict + HarnessChangeRecord (当前 verdict-only 签名限制已知 per Oracle bg_f6190442)
 - C4 harness-rsi-pilot — ✅ **SHIPPED + GO 2026-09-21** (11 atomic commits 跨 5 days, 5 轮 Oracle review 闭环, Decision Record `docs/audits/2026-09-21-harness-rsi-pilot-go-no-go.md`)
 - Wave 3 启动前置 (per Decision Record §3 摩擦 + Oracle bg_afa84d4d 独立审查): **Pre-Wave3 收口门禁** 3 项 checklist — (1) remove 路径过 policy 治理 + SecureToolRegistry 安全校验 (新 change `harness-rsi-remove-governance`) (2) `EvolutionVerdict.reward_quality` 字段 (改 C3 API + harness_rsi.cpp L117 接线) (3) `sync-pdk.sh` 同步 contract 头 + stdout 验证. 全绿才能立项 ADR-0078 Model-RSI pilot.
+  - **双 agent 审查 (2026-09-21, Oracle bg_c706862b + Metis bg_d9744d91) 修正已应用**: Change 1 SHIP-with-fixes (D2 语义锁静默忽略 void / D3 加 register_llm_tool / BREAKING 降级非 BREAKING); Change 2 BLOCK→修正 (Quality enum 实际值 = Excellent/Acceptable/Poor, 无 Unknown/Good — 原 spec 虚构值已全部改正 + ≤4 约束修订 + 复用 evaluation_events.h quality_name); Change 3 BLOCK→修正 (清单 4→实测 11 头 + DRY_RUN 离线化不 clone + 动机事实修正: chat_session.h 本不在同步范围 + tool_macros.h 悬空 include 登记 follow-up).
+  - **实施顺序建议**: Change 1 + Change 2 均触碰 `harness_rsi.cpp` + `test_harness_rsi_pilot.cpp` (Case 2)，**建议串行实施**（避免 merge 冲突）；Change 3 独立可并行。
 
 ### B.4 C4 `harness-rsi-pilot` + D8 + walk-ancestors ✅ SHIPPED + GO 实施路径 (2026-09-20 → 2026-09-21)
 

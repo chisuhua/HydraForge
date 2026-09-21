@@ -10,9 +10,9 @@
 - [ ] 2.3 运行 RED: 确认新测试 FAIL (reward_quality 未实现)
 
 ## 3. GREEN — 实现
-- [ ] 3.1 `transition_guard.h`: `EvolutionVerdict` 增加 `agenticdsl::RewardSignal::Quality reward_quality = Quality::Unknown;` 字段
-- [ ] 3.2 `transition_guard.h`: `evaluate_readiness()` 在 `auto reward = evaluator.evaluate(...)` 后填充 `verdict.reward_quality = reward.quality;`
-- [ ] 3.3 `harness_rsi.cpp`: 新增 `quality_name()` helper (Quality enum → 字符串, 与 attribution_verdict_name 同模式)
+- [ ] 3.1 `transition_guard.h`: `EvolutionVerdict` 增加 `agenticdsl::RewardSignal::Quality reward_quality = Quality::Acceptable;` 字段（**enum 值域 = Excellent/Acceptable/Poor，无 Unknown**）
+- [ ] 3.2 `transition_guard.h`: `evaluate_readiness()` 在 `auto reward = evaluator.evaluate(...)` 后填充 `verdict.reward_quality = reward.quality;` + 更新 D2 注释 (4→5 字段, Oracle Q8 约束修订)
+- [ ] 3.3 `harness_rsi.cpp`: 复用 `evaluation_events.h:28` 既有 `quality_name()` helper（不新增）
 - [ ] 3.4 `harness_rsi.cpp` L117: `{"eval_quality", "Unknown"}` → `{"eval_quality", quality_name(verdict.reward_quality)}`
 - [ ] 3.5 运行 GREEN: 全部新测试 + 既有测试 PASS
 
