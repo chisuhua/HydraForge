@@ -51,6 +51,7 @@
 - **修订签名** (per Oracle C2 消除 core→PDK):
   ```cpp
   struct MutationGateContext {
+    EvolutionState current;                    // evaluate_readiness 首参 (transition_guard.h:56, used for recommended_next via can_transition)
     const AttributionRecord* attribution;     // ADR-0086 v1.1
     IEvaluator* evaluator;                    // per transition_guard.h
     IBudgetController* budget;                // per ADR-0019 §1.4
@@ -75,7 +76,7 @@
       const GenomeMutations& mutations,
       std::string& system_prompt,             // ← 改: 不取 ChatConfig& (C2)
       std::vector<std::string>& tools,         // ← 改: 同上 (C2)
-      IToolRegistry& registry,                 // 必须 (per C1: 用 has_tool/list_tools 替代 unregister)
+      IToolRegistry& registry,                 // 必须 (per DB1: 新增 unregister_tool_function 用于 tools_remove 路径)
       const MutationGateContext& ctx);         // 封装 readiness + bus + policy
   ```
 
@@ -124,7 +125,7 @@
 
 ## Acceptance (修订版)
 
-- [ ] **AC-1**: `apply_harness_mutation` 轻量函数 ship (修订签名, 6 参, 消除 core→PDK 依赖)
+- [ ] **AC-1**: `apply_harness_mutation` 轻量函数 ship (修订签名, 5 参, 消除 core→PDK 依赖)
 - [ ] **AC-2**: `IToolRegistry::unregister_tool_function` 添加 (per Metis DB1, 估时 +0.1d)
 - [ ] **AC-3**: 双门禁集成完整 (evaluate_readiness + is_tool_allowed 内部 policy check)
 - [ ] **AC-4**: Mock Case 1 (prompt_delta apply) PASS
@@ -216,7 +217,7 @@
 - `docs/adr/adr-0084-mutation-governance-contract.md` (V1 ship)
 - `include/agenticdsl/contract/itool_registry.h` (9 虚方法, 无 unregister)
 - `include/agenticdsl/contract/imutation_governance.h` (propose/commit/revert, 8 字段 MutationContext)
-- `pdk/chat_session/include/agenticdsl/pdk/chat_session.h:115-127` (AgentConfig struct, system_prompt 字段 line 123)
+- `include/agenticdsl/pdk/chat_session.h:115-127` (AgentConfig struct, system_prompt 字段 line 123)
 - `include/agenticdsl/evolution/transition_guard.h:55-59` (evaluate_readiness 实参)
 - Oracle bg_3672cb57 (2026-09-21, 7m 16s) — 实施路径审查 + 3 Critical + 3 Major + 3 RED FLAGS
 - Metis bg_1f291bc4 (2026-09-21, 7m 18s) — 意图 + 5 DEAL-BREAKER + 6 必读文件

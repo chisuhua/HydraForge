@@ -40,7 +40,7 @@ A lightweight function `apply_harness_mutation(GenomeMutations, std::string& sys
 ---
 
 ### Requirement: dual-gate-integration
-`apply_harness_mutation` MUST first invoke `evaluate_readiness(state, attribution, evaluator, budget)` (per ADR-0088 D3, 4-condition check) and then internal `is_tool_allowed(meta, MutationGovernancePolicy)` (per Oracle C3 — lightweight policy check, NOT `IMutationGovernor::propose`). If either check fails, the mutation MUST NOT be applied (zero state change to system_prompt + tools + registry) and MUST return `Result::failure`.
+`apply_harness_mutation` MUST first invoke `evaluate_readiness(ctx.current, *ctx.attribution, *ctx.evaluator, *ctx.budget)` (per ADR-0088 D3, 4-condition check) and then internal `is_tool_allowed(meta, ctx.policy)` (per Oracle C3 — lightweight policy check, NOT `IMutationGovernor::propose`). If either check fails, the mutation MUST NOT be applied (zero state change to system_prompt + tools + registry) and MUST return `Result::failure`.
 
 #### Scenario: evaluate_readiness denies (regression gate fail)
 - **WHEN** `evaluate_readiness` returns `{can_proceed: false, failed_conditions: ["regression_gate_failed", "budget_exhausted"]}`
@@ -75,7 +75,7 @@ The pilot MUST verify 4 mock closed-loop cases via deterministic assertions (NOT
 
 #### Scenario: case-1 prompt_delta apply
 - **WHEN** `apply_harness_mutation(prompt_delta="Be concise.", system_prompt, tools, registry, ctx)` is called with mock setup
-- **AND** evaluate_readiness returns can_proceed=true (mock setup: stub IEvaluator returns Quality::Good + stub IBudgetController.exceeded()=false + AttributionRecord{verdict=Passed})
+- **AND** evaluate_readiness returns can_proceed=true (mock setup: stub IEvaluator returns `agenticdsl::RewardSignal::Quality::Excellent` + stub IBudgetController.exceeded()=false + AttributionRecord{verdict=AttributedVerdict::Attributed})
 - **AND** is_tool_allowed returns true (mock setup: empty policy)
 - **THEN** `REQUIRE(system_prompt.find("Be concise.") != std::string::npos)` MUST PASS
 - **AND** MUST return success
@@ -191,7 +191,7 @@ The pilot implementation MUST NOT introduce `IHarnessRSI` / `IDatasRsi` / `IMode
 - `docs/adr/adr-0084-mutation-governance-contract.md` (V1 ship, but C4 NOT using IMutationGovernor::propose)
 - `include/agenticdsl/contract/itool_registry.h` (9 虚方法 + unregister_tool_function via Phase 4.0 DB1 fix)
 - `include/agenticdsl/contract/imutation_governance.h` (propose/commit/revert, NOT used by C4)
-- `pdk/chat_session/include/agenticdsl/pdk/chat_session.h:115-127` (AgentConfig struct, system_prompt field line 123)
+- `include/agenticdsl/pdk/chat_session.h:115-127` (AgentConfig struct, system_prompt field line 123)
 - `include/agenticdsl/evolution/transition_guard.h:55-59` (evaluate_readiness 实参)
 - AGENTS.md 模式 #4 (SHIP-with-fixes) + 模式 #8 (pre-impl dual-agent review)
 - tests/AGENTS.md mode #3 (WARN + SUCCEED + return pattern for CI-skip — N/A since Case 4 removed)

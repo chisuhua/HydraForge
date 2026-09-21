@@ -76,7 +76,7 @@
 
 ## Acceptance
 
-- [ ] AC-1: apply_harness_mutation 轻量函数 ship (修订签名, 6 参, 消除 core→PDK 依赖)
+- [ ] AC-1: apply_harness_mutation 轻量函数 ship (修订签名, 5 参, 消除 core→PDK 依赖)
 - [ ] AC-2: IToolRegistry::unregister_tool_function 添加 (DB1 修复)
 - [ ] AC-3: 双门禁集成完整 (evaluate_readiness + is_tool_allowed 内部 policy check)
 - [ ] AC-4: Mock Case 1 (prompt_delta apply) PASS
