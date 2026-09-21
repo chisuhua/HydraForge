@@ -1,5 +1,5 @@
 // tests/test_genome_registry.cpp
-// C2 genome-registry — 12 test cases (GREEN phase)
+// C2 genome-registry — 13 test cases (GREEN phase)
 // Per design.md §Test Cases + Oracle bg_a818a6a1 推荐.
 //
 // 测试分组:
@@ -7,6 +7,10 @@
 //   - Atomicity & Fork Semantics (4 cases): 5-8
 //   - HMAC & Lineage Integrity (3 cases): 9-11
 //   - Performance & Diff (1 case): 12
+//   - HMAC Key Generation (1 case): 13  ← C1 fresh-HOME 回归守卫
+//
+// Hermetic: 文件顶部注入 HYDRAFORGE_GENOME_KEY, 全部 registry 测试不依赖
+// 宿主机既存 ~/.hydraforge/genome.key (C1 bug 正是被该依赖掩盖).
 
 #include "catch_amalgamated.hpp"
 
@@ -21,6 +25,22 @@
 
 namespace fs = std::filesystem;
 using namespace agenticdsl::genome;
+
+namespace {
+
+// 文件级 hermetic fixture: 注入固定 HMAC key, 使全部 registry 测试不依赖
+// 宿主机既存 ~/.hydraforge/genome.key (C1 bug 曾被该依赖掩盖: 测试在已有 key
+// 的机器上通过, fresh HOME 上首次 commit 抛 IOError). 独立 key 测试 (case 13)
+// 显式 unsetenv 后覆盖 HOME 走真实文件生成路径.
+struct GenomeTestEnv {
+    GenomeTestEnv() {
+        setenv("HYDRAFORGE_GENOME_KEY",
+               "test_key_registry_00000000000000000000000000000000", 1);
+    }
+};
+const GenomeTestEnv g_genome_test_env;
+
+}  // namespace
 
 static fs::path make_test_root() {
     static int counter = 0;
@@ -407,4 +427,44 @@ TEST_CASE("genome registry list_versions_scale and diff_field_level",
     REQUIRE(std::find(diff_res.value().changed_fields.begin(),
                       diff_res.value().changed_fields.end(),
                       "metadata.parent") != diff_res.value().changed_fields.end());
+}
+
+// =====================================================================
+// HMAC Key Generation (1 case): 13 — C1 fresh-HOME 回归守卫
+// =====================================================================
+
+TEST_CASE("genome registry fresh_home_key_generation_0600",
+          "[genome_registry][hmac][c1]") {
+    // C1 回归守卫: 旧实现 fs::permissions() 在文件创建前调用, 对不存在的
+    // key 路径抛 filesystem_error → 全新机器上首次 commit 永远 IOError.
+    // 本测试隔离 HOME + 显式 unsetenv, 走真实 key 文件生成路径 (非 env 分支).
+    unsetenv("HYDRAFORGE_GENOME_KEY");
+
+    fs::path home = make_test_root() / "home";
+    fs::create_directories(home);
+    setenv("HOME", home.c_str(), 1);
+
+    auto root = make_test_root();
+    auto reg = IGenomeRegistry::create_filesystem(root);
+    REQUIRE(reg != nullptr);
+
+    Genome g;
+    g.metadata.name = "alpha";
+    g.metadata.created_by = "solo-dev";
+    g.metadata.created_at = "2026-09-18T00:00:00Z";
+    g.metadata.capture_mode = "mock";
+    g.spec.harness = "lib/loop/react.agent.md";
+
+    // C1: commit 必须成功 (旧代码此处抛 IOError)
+    auto commit_res = reg->commit(g);
+    REQUIRE(commit_res.has_value());
+
+    // key 文件生成于 $HOME/.hydraforge/genome.key 且权限 0600
+    fs::path key_path = home / ".hydraforge" / "genome.key";
+    REQUIRE(fs::exists(key_path));
+    auto perms = fs::status(key_path).permissions();
+    REQUIRE((perms & fs::perms::owner_read) != fs::perms::none);
+    REQUIRE((perms & fs::perms::owner_write) != fs::perms::none);
+    REQUIRE((perms & fs::perms::group_read) == fs::perms::none);
+    REQUIRE((perms & fs::perms::others_read) == fs::perms::none);
 }

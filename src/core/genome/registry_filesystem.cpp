@@ -23,15 +23,19 @@
 #include <yaml-cpp/yaml.h>
 
 #include <algorithm>
+#include <cerrno>
 #include <chrono>
 #include <cstdlib>
+#include <cstring>
 #include <ctime>
+#include <fcntl.h>
 #include <fstream>
 #include <iomanip>
 #include <mutex>
 #include <random>
 #include <sstream>
 #include <unordered_set>
+#include <unistd.h>
 #include <variant>
 
 namespace fs = std::filesystem;
@@ -81,12 +85,30 @@ std::string load_or_generate_hmac_key() {
         key.push_back(hex[raw[i] & 0xF]);
     }
     fs::create_directories(key_path.parent_path());
-    // Restrict perms BEFORE writing — closes the brief window with umask-default
-    // perms on a secret key file (M6 hygiene fix, post-acceptance review 2026-09-19).
-    fs::permissions(key_path, fs::perms::owner_read | fs::perms::owner_write);
-    std::ofstream ofs(key_path);
-    ofs << key;
-    ofs.close();
+    // C1 fix (Oracle bg_3c06ae5b): 用 open(O_CREAT|O_EXCL, 0600) 原子创建并赋权,
+    // 避免此前 fs::permissions() 在文件尚不存在时抛 filesystem_error,
+    // 导致全新机器上首次 commit/load 永远 IOError (M6 hygiene fix 引入的回归).
+    // O_EXCL 同时保证不覆盖既存 key, 且无 umask 默认权限短暂窗口.
+    int fd = ::open(key_path.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);
+    if (fd < 0) {
+        if (errno == EEXIST) {
+            // 竞争窗口内另一进程已创建 key — 读取并校验非空
+            std::ifstream ifs(key_path);
+            std::stringstream ss;
+            ss << ifs.rdbuf();
+            std::string existing = ss.str();
+            if (!existing.empty()) return existing;
+        }
+        throw std::runtime_error(std::string("open genome.key failed: ") +
+                                 std::strerror(errno));
+    }
+    // 已成功 O_EXCL 创建 (0600) — 直接写入生成的 key
+    ssize_t written = ::write(fd, key.data(), key.size());
+    ::close(fd);
+    if (written != static_cast<ssize_t>(key.size())) {
+        throw std::runtime_error(std::string("write genome.key failed: ") +
+                                 std::strerror(errno));
+    }
     return key;
 }
 
