@@ -5,6 +5,7 @@
 #include "catch_amalgamated.hpp"
 
 #include "agenticdsl/genome/genome.h"
+#include "agenticdsl/types/attribution_version_pair_diff.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -210,29 +211,24 @@ TEST_CASE("walk_ancestors cross-name parent returns BrokenLineage",
 // Case 6: cycle detection → BrokenLineage (tampered files)
 // Per spec Scenario "FilesystemGenomeRegistry override" + lineage cycle handling
 // ============================================================================
-TEST_CASE("walk_ancestors cycle detection returns BrokenLineage",
-          "[walk-ancestors][filesystem][cycle]") {
+TEST_CASE("walk_ancestors broken lineage parent returns BrokenLineage",
+          "[walk-ancestors][filesystem][broken-lineage]") {
     set_test_hmac_key();
-    fs::path root = make_tmpdir("cycle");
+    fs::path root = make_tmpdir("broken-lineage");
 
     auto reg = agenticdsl::genome::IGenomeRegistry::create_filesystem(root);
-    // g@1 root, g@2 parent "g@1"
     REQUIRE(reg->commit(make_genome("g", 0, "", "h")).has_value());
     REQUIRE(reg->commit(make_genome("g", 0, "g@1", "h")).has_value());
 
-    // Tamper: rewrite g@1/genome.yaml to have parent "g@2" (cycle: g@1 → g@2 → g@1)
-    // Note: HMAC verify will reject the tampered file. The cycle is detected at commit time,
-    // so g@2 cannot be committed with parent "g@2" (no cycle). We use a different approach:
-    // rewrite g@2 to have parent "g@1" (already exists), no cycle. To create a cycle, we
-    // need to bypass commit validation. For test purposes, we instead test with a
-    // non-existent parent (broken lineage) which exercises the same error path.
+    // Tamper: rewrite g@2 to have non-existent parent g@99 (commit validation
+    // prevents cycles; we exercise the BrokenLineage path via dangling parent).
     fs::path g2_yaml = root / "g/2/genome.yaml";
     {
         std::ofstream ofs(g2_yaml);
         ofs << "metadata:\n"
                "  name: g\n"
                "  version: 2\n"
-               "  parent: \"g@99\"\n"  // non-existent parent → BrokenLineage
+               "  parent: \"g@99\"\n"
                "  created_by: tampered\n"
                "  created_at: \"2026-09-20T00:00:00Z\"\n"
                "  capture_mode: mock\n"
@@ -247,6 +243,77 @@ TEST_CASE("walk_ancestors cycle detection returns BrokenLineage",
     auto walk = reg->walk_ancestors("g", 2);
     REQUIRE_FALSE(walk.has_value());
     REQUIRE(walk.error() == agenticdsl::genome::GenomeError::BrokenLineage);
+
+    fs::remove_all(root);
+}
+
+// ============================================================================
+// Case 7: judge_data_freshness integration — data in lineage, no Harness change → Attributed
+// (Critical: covers D6 Case 5 + readiness gate condition 1, P0 fix from Oracle SHIP-with-fixes)
+// ============================================================================
+TEST_CASE("judge_data_freshness in-lineage no harness change returns Attributed",
+          "[walk-ancestors][judge-data-freshness][integration]") {
+    set_test_hmac_key();
+    fs::path root = make_tmpdir("judge-attributed");
+
+    auto reg = agenticdsl::genome::IGenomeRegistry::create_filesystem(root);
+    // g@1 (h=v1) → g@2 (h=v1) → g@3 (h=v1) — same harness throughout
+    REQUIRE(reg->commit(make_genome("g", 0, "", "v1")).has_value());
+    REQUIRE(reg->commit(make_genome("g", 0, "g@1", "v1")).has_value());
+    REQUIRE(reg->commit(make_genome("g", 0, "g@2", "v1")).has_value());
+
+    auto verdict = agenticdsl::evolution::VersionPairDiff::judge_data_freshness(
+        agenticdsl::evolution::GenomeVersion{"g", 1},
+        agenticdsl::evolution::GenomeVersion{"g", 3},
+        *reg);
+    REQUIRE(verdict == agenticdsl::evolution::AttributionVerdict::Attributed);
+
+    fs::remove_all(root);
+}
+
+// ============================================================================
+// Case 8: judge_data_freshness integration — Harness changed after data → Confounded
+// (Critical: covers D6 Case 4 + AC-8 harness detection, P0 fix from Oracle SHIP-with-fixes)
+// ============================================================================
+TEST_CASE("judge_data_freshness harness changed after data returns Confounded",
+          "[walk-ancestors][judge-data-freshness][integration]") {
+    set_test_hmac_key();
+    fs::path root = make_tmpdir("judge-confounded");
+
+    auto reg = agenticdsl::genome::IGenomeRegistry::create_filesystem(root);
+    // g@1 (h=v1) → g@2 (h=v1) → g@3 (h=v2) — Harness changes at g@2
+    REQUIRE(reg->commit(make_genome("g", 0, "", "v1")).has_value());
+    REQUIRE(reg->commit(make_genome("g", 0, "g@1", "v1")).has_value());
+    REQUIRE(reg->commit(make_genome("g", 0, "g@2", "v2")).has_value());
+
+    auto verdict = agenticdsl::evolution::VersionPairDiff::judge_data_freshness(
+        agenticdsl::evolution::GenomeVersion{"g", 1},
+        agenticdsl::evolution::GenomeVersion{"g", 3},
+        *reg);
+    REQUIRE(verdict == agenticdsl::evolution::AttributionVerdict::Confounded);
+
+    fs::remove_all(root);
+}
+
+// ============================================================================
+// Case 9: judge_data_freshness integration — data not in lineage → Confounded
+// (Critical: covers D6 Case 3 + AC-8 lineage lookup miss, P0 fix from Oracle SHIP-with-fixes)
+// ============================================================================
+TEST_CASE("judge_data_freshness data not in lineage returns Confounded",
+          "[walk-ancestors][judge-data-freshness][integration]") {
+    set_test_hmac_key();
+    fs::path root = make_tmpdir("judge-not-in-lineage");
+
+    auto reg = agenticdsl::genome::IGenomeRegistry::create_filesystem(root);
+    // g@1 → g@2 (no g@3 in lineage; data=99 → Confounded)
+    REQUIRE(reg->commit(make_genome("g", 0, "", "v1")).has_value());
+    REQUIRE(reg->commit(make_genome("g", 0, "g@1", "v1")).has_value());
+
+    auto verdict = agenticdsl::evolution::VersionPairDiff::judge_data_freshness(
+        agenticdsl::evolution::GenomeVersion{"g", 99},
+        agenticdsl::evolution::GenomeVersion{"g", 2},
+        *reg);
+    REQUIRE(verdict == agenticdsl::evolution::AttributionVerdict::Confounded);
 
     fs::remove_all(root);
 }
