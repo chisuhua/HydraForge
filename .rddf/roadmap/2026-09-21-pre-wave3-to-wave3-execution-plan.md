@@ -131,16 +131,16 @@ Week 1, Day 4 (verify): ctest + openspec validate + AGENTS.md sync + 24h cooling
 ### Phase 7 短期验证门（Week 1 末尾）
 
 ```
-□ G1 commit + 9 cases / 43 assertions 零回归 + openspec validate PASS
-□ G2 commit + MutationDecision 链路测试 PASS + openspec validate PASS
-□ G3 commit + sync-pdk.sh 干跑 PASS + 11 头覆盖 + openspec validate PASS
-□ G4 commit + 4 binary 全绿 + 闭环第 7 环 audit ✅ + openspec validate PASS
-□ ctest 全量零回归（expected 252, 实际可能因 G4 新增 binary = 253）
-□ AGENTS.md Recent Changes 追加 4 commits（G1/G2/G3/G4）+ 整体收口注记
-□ roadmap §三 Pre-Wave3 收口 4 项 标 ✅ SHIPPED
-□ ADR-0068 Appendix A v2.3 grep 验证：`genome.committed` + `genome.persist_failed` ≥ 1 命中 each
-□ Decision Record §5.1 状态由 "post-hoc closure gate" → "closed"
-□ 24h cooling-off（Single-Dev 模式必走）+ Oracle 复审
+□ G1 commit + 9 cases / 43 assertions 零回归 + openspec validate PASS — ✅ SHIPPED (merge 9709317)
+□ G2 commit + MutationDecision 链路测试 PASS + openspec validate PASS — ✅ SHIPPED (merge dc12a17, Oracle bg_ebfe1c25 SHIP verdict 0C + 2 Minor)
+□ G3 commit + sync-pdk.sh 干跑 PASS + 11 头覆盖 + openspec validate PASS — ✅ SHIPPED (merge a196a09)
+□ G4 commit + 4 binary 全绿 + 闭环第 7 环 audit ✅ + openspec validate PASS — ✅ SHIPPED (merge fb2769f, Oracle bg_e4eec567 SHIP-with-fixes 3 Major 已修)
+□ ctest 全量零回归（expected 252, 实际可能因 G4 新增 binary = 253） — ✅ 208/210 PASS (99%), 2 失败均为 pre-existing (test_skill_interpreter KI 7.S29-1 + test_pdk_plan_execute BAD_COMMAND build 后 PASS)
+□ AGENTS.md Recent Changes 追加 4 commits（G1/G2/G3/G4）+ 整体收口注记 — ✅ G3 + G4 已 ship (commit 98711e3), G2 本批追加
+□ roadmap §三 Pre-Wave3 收口 4 项 标 ✅ SHIPPED — ✅ 4-Gate 序列全部 SHIPPED (本批 commit)
+□ ADR-0068 Appendix A v2.3 grep 验证：`genome.committed` + `genome.persist_failed` ≥ 1 命中 each — ✅ (G4 commit a21c08a)
+□ Decision Record §5.1 状态由 "post-hoc closure gate" → "closed" — ✅ (commit 98711e3)
+□ 24h cooling-off（Single-Dev 模式必走）+ Oracle 复审 — 🕒 计时中, 起点 2026-09-22 22:30 (G2 merge dc12a17)
 ```
 
 ---

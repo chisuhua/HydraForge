@@ -119,7 +119,7 @@ Pre-existing failures (与 C4 ship 无关, git stash 验证 baseline 同样 fail
 
 ## §3 实施摩擦清单 (per Oracle bg_3ef7280a Minor-2 + Metis 2.6 anti-bias)
 
-### 摩擦 1: `eval_quality:"Unknown"` 硬编码 (harness_rsi.cpp:117)
+### ✅ 摩擦 1: `eval_quality:"Unknown"` 硬编码 (harness_rsi.cpp:117) — RESOLVED 2026-09-22 by G2 `evolution-verdict-reward-quality`
 
 **现象**: 发射 `evolution.readiness.denied` 事件时 `eval_quality` 字段填 `"Unknown"` 字符串。
 
@@ -130,6 +130,14 @@ Pre-existing failures (与 C4 ship 无关, git stash 验证 baseline 同样 fail
 **Wave 3 路径**: `EvolutionVerdict` 加 `reward_quality: agenticdsl::RewardSignal::Quality` 字段 (沿用 ADR-0086 v1.1 AttributionRecord 模式)。
 
 **不修本 change**: 改 `EvolutionVerdict` 结构是 C3 已 archive change 的 API 面变更, 越界。
+
+**RESOLVED 2026-09-22 (G2 ship, merge `dc12a17`)**:
+- `EvolutionVerdict` 增加 `reward_quality: agenticdsl::RewardSignal::Quality` 字段 (默认 `Quality::Acceptable`, D1); D2 注释 4→5 字段约束修订 (D1a)
+- `evaluate_readiness()` 填充 `verdict.reward_quality = reward.quality` (失败质量不丢失, D2)
+- `harness_rsi.cpp:140` `evolution.readiness.denied` 事件 `eval_quality` 字段从 `"Unknown"` 改为 `agenticdsl::evaluation::quality_name(verdict.reward_quality)` (复用 `evaluation_events.h:28` 既有 helper, 不新增同义函数, D3)
+- 测试: test_transition_guard 新增 G2 case (Poor + default Acceptable), test_harness_rsi_pilot Case 2 eval_quality 断言强化为具体值 "Poor"
+- Oracle bg_ebfe1c25 verdict: SHIP (0 Critical + 0 Major + 2 Minor 不阻塞). 2 Minor: (a) archived design.md:57 D3 namespace 笔误 (实施用真实 namespace, builder.json design_deviations 已记录); (b) spec 2 个 Excellent 场景无独立断言 (机制已覆盖 Acceptable+Poor)
+- namespace 勘误: 实施用 `agenticdsl::evaluation::quality_name`, 非 design.md:57 写的 `agenticdsl::quality_name`
 
 ### 摩擦 2: tools_add / tools_remove 语义不对称
 
@@ -201,13 +209,15 @@ Pre-existing failures (与 C4 ship 无关, git stash 验证 baseline 同样 fail
 
 **Wave 3 立项前提** (强约束, 4 项门禁全绿才能立项 ADR-0078 Model-RSI pilot; 状态 per 2026-09-22 main session):
 1. ✅ **G1** `harness-rsi-remove-governance` SHIPPED (merge `9709317`, 2026-09-22)
-2. ⏸️ **G2** `evolution-verdict-reward-quality` 待启 (proposal/design/tasks/specs 完备, 异步 worker 待 dispatch)
+2. ✅ **G2** `evolution-verdict-reward-quality` SHIPPED (merge `dc12a17`, 2026-09-22; Oracle bg_ebfe1c25 SHIP verdict 0 Critical + 2 Minor)
 3. ✅ **G3** `sync-pdk-contract-header` SHIPPED (merge `a196a09`, 2026-09-22)
 4. ✅ **G4** `genome-wiring-harness-rsi-gepa` SHIPPED (merge `fb2769f`, 2026-09-22; Oracle bg_e4eec567 SHIP-with-fixes 3 Major 已修)
 
-**Post-hoc closure gate 关闭决议** (2026-09-22):
+**Pre-Wave3 Plan §2 4-Gate 序列全部 SHIPPED ✅** (2026-09-22 22:30)
 - 闭环第 7 环"版本提交"已接线 (G4) — 原始审查时认为的"端到端断裂"已被 G4 SHIP 修复, 不再构成 Wave 3 立项阻断.
-- G2 仍是 Wave 3 核心信号前置 (`eval_quality "Unknown"` 硬编码修复), 需在 Wave 3 立项前 ship.
+- G2 `eval_quality "Unknown"` 硬编码已修复 — Wave 3 Model-RSI 核心信号前置完成.
+- 剩余 24h cooling-off 计时起点: 2026-09-22 22:30 (G2 merge `dc12a17`) — 期间可做 Wave 3 立项**准备** (读 ADR-0078 background + 写 improvement 5-segment 草稿), 不正式立项.
+- Wave 3 正式立项前置 (冷却期满 + Oracle 复审通过): rdd-arch 启动 ADR-0078 `finetune-base-model` OpenSpec 流程.
 - 24h cooling-off 计时起点: G4 merge `fb2769f` 2026-09-22 20:46 (per Single-Dev 治理); 期间可做 Wave 3 立项准备, 不正式立项.
 
 **串行约束**: G1 → G2 → G4 (三者都改 `MutationGateContext`/`harness_rsi.cpp`); G3 ∥ 全并行。**估时**: ~3-4 天。
