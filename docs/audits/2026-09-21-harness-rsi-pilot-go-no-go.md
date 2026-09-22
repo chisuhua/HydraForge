@@ -193,17 +193,22 @@ Pre-existing failures (与 C4 ship 无关, git stash 验证 baseline 同样 fail
 - 真实 LLM 1-turn 验证推迟 Wave 3 (per C4 Case 4 删除决策)
 - add-remove 不对称 + eval_quality 字段需 Wave 3 启动前优先解决
 
-## §5.1 Post-hoc Closure Gate Annotation (Oracle bg_6a8e4397, 2026-09-21 补充)
+## §5.1 Post-hoc Closure Gate Annotation (Oracle bg_6a8e4397, 2026-09-21 补充; closed 2026-09-22 by main session per Pre-Wave3 Plan §2 门禁清单 L142)
 
-**决策回注**: 本 GO 决策的法律地位修订为 **"GO with post-hoc closure gate (genome-wiring)"**。
+**决策回注**: 本 GO 决策的法律地位已**由** ~~"GO with post-hoc closure gate (genome-wiring)"~~ **→ "GO closed (G1/G3/G4 SHIPPED, G2 待启)"**。
 
-**缘由**: Oracle `bg_3c06ae5b` (2026-09-21) 在 ADR/roadmap/OpenSpec 跨文档架构审查中发现自进化闭环第 7 环"版本提交/发布"端到端断裂：C2/C3/C4 三组件 ship 后，`IGenomeRegistry` 在生产树**零调用点** (除 `version_pair_diff.cpp:43,56` 只读 `walk_ancestors`)，`apply_harness_mutation` 仅改内存 (`src/evolution/harness_rsi.cpp:149-179`)，`GEPALoop::reflect_and_commit` 仅发审计事件 (`src/modules/cognitive/gepa_loop.cpp:171-188`)。**C4 GO 时 5 项判据全部围绕"变异能否应用"，从未要求"变异产生可加载的 Genome 版本"**。
+**缘由 (Oracle `bg_3c06ae5b` 2026-09-21 原始审查, 闭环第 7 环断裂已修复)**: 自进化闭环第 7 环"版本提交/发布"端到端闭合 (per G4 `genome-wiring-harness-rsi-gepa` ship 2026-09-22, merge `fb2769f`). `apply_harness_mutation` Gate 3 persist-before-apply 接线 `IGenomeRegistry::fork` (harness_rsi.cpp:200-243) + `GEPALoop::reflect_and_commit` persist-then-commit 接线 (gepa_loop.cpp:176-192), 失败零状态变更不变量成立, 2 事件注册 ADR-0068 Appendix A v2.3. **C4 GO 时 5 项判据全部围绕"变异能否应用"，从未要求"变异产生可加载的 Genome 版本"**。
 
-**Wave 3 立项前提新增** (强约束, 4 项门禁全绿才能立项 ADR-0078 Model-RSI pilot):
-1. **G1** `harness-rsi-remove-governance` (remove 路径过 policy + SecureToolRegistry 安全 + ToolRegistry mutex + trace_id 透传)
-2. **G2** `evolution-verdict-reward-quality` (EvolutionVerdict.reward_quality 字段 + harness_rsi.cpp:117 接线)
-3. **G3** `sync-pdk-contract-header` (sync-pdk.sh contract header 同步)
-4. **G4** `genome-wiring-harness-rsi-gepa` (apply_harness_mutation + GEPALoop commit → IGenomeRegistry 接线, 闭环第 7 环闭合, v2 已 dual-reviewed by Metis bg_687a5662 + Oracle bg_534a2541, openspec validate --strict PASS)
+**Wave 3 立项前提** (强约束, 4 项门禁全绿才能立项 ADR-0078 Model-RSI pilot; 状态 per 2026-09-22 main session):
+1. ✅ **G1** `harness-rsi-remove-governance` SHIPPED (merge `9709317`, 2026-09-22)
+2. ⏸️ **G2** `evolution-verdict-reward-quality` 待启 (proposal/design/tasks/specs 完备, 异步 worker 待 dispatch)
+3. ✅ **G3** `sync-pdk-contract-header` SHIPPED (merge `a196a09`, 2026-09-22)
+4. ✅ **G4** `genome-wiring-harness-rsi-gepa` SHIPPED (merge `fb2769f`, 2026-09-22; Oracle bg_e4eec567 SHIP-with-fixes 3 Major 已修)
+
+**Post-hoc closure gate 关闭决议** (2026-09-22):
+- 闭环第 7 环"版本提交"已接线 (G4) — 原始审查时认为的"端到端断裂"已被 G4 SHIP 修复, 不再构成 Wave 3 立项阻断.
+- G2 仍是 Wave 3 核心信号前置 (`eval_quality "Unknown"` 硬编码修复), 需在 Wave 3 立项前 ship.
+- 24h cooling-off 计时起点: G4 merge `fb2769f` 2026-09-22 20:46 (per Single-Dev 治理); 期间可做 Wave 3 立项准备, 不正式立项.
 
 **串行约束**: G1 → G2 → G4 (三者都改 `MutationGateContext`/`harness_rsi.cpp`); G3 ∥ 全并行。**估时**: ~3-4 天。
 
