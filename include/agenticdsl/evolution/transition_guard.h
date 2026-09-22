@@ -1,7 +1,7 @@
 // include/agenticdsl/evolution/transition_guard.h
 // H→D→M Transition Guard 状态机 (ADR-0088 + OpenSpec change 2026-09-16-h-d-m-transition-guard)
 // D1 决策: 5 态状态机 + YAGNI
-// D2 决策: EvolutionVerdict struct (4 字段)
+// D2 决策: EvolutionVerdict struct (5 字段, Oracle Q8 约束修订 2026-09-22: reward_quality 为 Wave 3 决策必需信号)
 // D3 决策: can_transition() 编译期 + evaluate_readiness() 运行期 + 三条件门控 (累积报告非短路)
 // D7 决策: 复用 IEvaluator + IBudgetController + AttributionRecord
 // D8 决策: 事件主题 evolution.transition.denied + evolution.readiness.denied (NOT evolution.scheduler.denied)
@@ -27,12 +27,14 @@ enum class EvolutionState {
     Done    = 4
 };
 
-// D2: EvolutionVerdict struct (4 字段, ≤4 字段约束 per Oracle Q8)
+// D2: EvolutionVerdict struct (5 字段, Oracle Q8 约束修订 per design D1a: reward_quality 追加于字段末尾, 默认值兜底不破坏既有构造)
 struct EvolutionVerdict {
     bool can_proceed = false;
     EvolutionState recommended_next = EvolutionState::Idle;
     std::string reason;
     std::vector<std::string> failed_conditions;  // 累积报告所有 3 条件结果 (非短路, per Metis Q6)
+    agenticdsl::RewardSignal::Quality reward_quality =
+        agenticdsl::RewardSignal::Quality::Acceptable;  // G2 design D1: Wave 3 决策必需质量信号
 };
 
 // D3: can_transition() 编译期 5×5 矩阵 (constexpr std::array)
@@ -70,6 +72,8 @@ inline EvolutionVerdict evaluate_readiness(
     // 使用 sentinel ExecutionTrace 触发 evaluate (实际生产用真实 trace)
     agenticdsl::ExecutionTrace sentinel_trace;
     auto reward = evaluator.evaluate(sentinel_trace);
+    // G2 design D2: quality 无论 can_proceed 与否都要反映 (失败时的质量也是关键信号)
+    verdict.reward_quality = reward.quality;
     if (reward.quality == agenticdsl::RewardSignal::Quality::Poor ||
         reward.scalar < 0.0) {
         verdict.failed_conditions.push_back("regression_failed");

@@ -83,6 +83,8 @@ TEST_CASE("EvolutionVerdict struct fields exist", "[adr-0088][ac-1]") {
     CHECK(v.recommended_next == EvolutionState::Idle);
     CHECK(v.reason.empty());
     CHECK(v.failed_conditions.empty());
+    // G2: reward_quality 默认 Quality::Acceptable (design D1, 语义中立哨兵)
+    CHECK(v.reward_quality == agenticdsl::RewardSignal::Quality::Acceptable);
 }
 
 // AC-2
@@ -125,6 +127,20 @@ TEST_CASE("evaluate_readiness all conditions pass → can_proceed=true",
     CHECK(verdict.can_proceed == true);
     CHECK(verdict.failed_conditions.empty());
     CHECK(verdict.recommended_next == EvolutionState::Data);
+    // G2 (spec scenario 1): evaluator quality 填充到 verdict.reward_quality
+    CHECK(verdict.reward_quality == agenticdsl::RewardSignal::Quality::Acceptable);
+}
+
+// G2 (spec scenario 2): Poor quality + regression_failed → reward_quality 仍为 Poor
+TEST_CASE("evaluate_readiness regression Poor fills reward_quality Poor",
+          "[adr-0088][ac-3][g2-reward-quality]") {
+    ValidReadinessFixture f;
+    MockPoorIEvaluator eval;
+    MockBudgetController budget(false);
+    auto verdict = evaluate_readiness(EvolutionState::Data,
+                                       f.attributed_record, eval, budget);
+    CHECK(verdict.can_proceed == false);
+    CHECK(verdict.reward_quality == agenticdsl::RewardSignal::Quality::Poor);
 }
 
 TEST_CASE("evaluate_readiness Attributed fails → fail-closed deny",
