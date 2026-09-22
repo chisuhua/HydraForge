@@ -90,7 +90,7 @@ while IFS=: read -r file lineno line; do
     fail "drift-guard: ${file}:${lineno} — ${header} 未在 PDK_CONTRACT_DEPS 中注册"
     DRIFT_ERRORS=$((DRIFT_ERRORS + 1))
   fi
-done < <(grep -rn '#include <agenticdsl/contract/' include/agenticdsl/pdk/ 2>/dev/null || true)
+done < <(grep -rn '#include [<"]agenticdsl/contract/' include/agenticdsl/pdk/ 2>/dev/null || true)
 if [ "$DRIFT_ERRORS" -eq 0 ]; then
   pass "drift-guard: 所有 contract include 已注册 (0 漂移)"
 else
