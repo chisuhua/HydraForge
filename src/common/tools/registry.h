@@ -9,6 +9,7 @@
 // 最后修改日期：2026-06-18 [Phase 1 P1.T2: IToolRegistry 集成]
 
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <functional>
@@ -86,6 +87,11 @@ private:
     void register_default_tools();
     std::unordered_map<std::string, ToolFunc> tools_;
     std::unordered_map<std::string, ToolMetadata> tool_metadata_;
+
+    // D3: 写路径互斥锁, 最小并发面. unique_ptr 保持 ToolRegistry 可移动 (movable).
+    // 读路径 (has_tool/list_tools/call_tool/is_llm_tool/get_llm_params) 不加锁,
+    // 假设写路径单线程或外部同步.
+    std::unique_ptr<std::mutex> mutation_mutex_ = std::make_unique<std::mutex>();
 
     // LLM tool storage
     struct LLMToolEntry {

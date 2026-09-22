@@ -96,6 +96,7 @@ std::vector<std::string> ToolRegistry::list_tools() const {
 }
 
 void ToolRegistry::register_tool_function(std::string name, ToolMetadata meta, ToolFunc fn) {
+    std::lock_guard<std::mutex> lock(*mutation_mutex_);  // D3: 写-写互斥
     if (name.empty()) throw std::invalid_argument("ToolRegistry: tool name must not be empty");
     if (tools_.count(name)) throw std::invalid_argument("ToolRegistry: tool '" + name + "' already registered");
     
@@ -116,11 +117,13 @@ void ToolRegistry::register_tool_function(std::string name, ToolMetadata meta, T
 }
 
 void ToolRegistry::unregister_tool_function(const std::string& name) {
+    std::lock_guard<std::mutex> lock(*mutation_mutex_);  // D3: 写-写互斥
     tools_.erase(name);
     tool_metadata_.erase(name);
 }
 
 void ToolRegistry::register_llm_tool(std::string name, std::unique_ptr<ILLMTool> tool, const LLMParams& default_params) {
+  std::lock_guard<std::mutex> lock(*mutation_mutex_);  // D3: 写-写互斥
   llm_tools_[std::move(name)] = LLMToolEntry{std::move(tool), default_params};
 }
 

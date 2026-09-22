@@ -118,7 +118,7 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
           {"budget_state", ctx.budget->exceeded() ? "exceeded" : "ok"}
       });
       event.meta(nlohmann::json{
-          {"trace_id", ""},
+          {"trace_id", ctx.trace_id},  // D4: 从 ctx 透传, 替代硬编码空串
           {"current_state", evolution_state_name(ctx.current)}
       });
       ctx.bus->emit(event.build());
@@ -127,8 +127,15 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
         MutationError::NotReady);
   }
 
-  // === Gate 2: is_tool_allowed policy check (per Oracle C3) ===
+  // === Gate 2: is_tool_allowed policy check (per Oracle C3 + D1 remove-governance) ===
+  // D1 扩展: 对称检查 tools_add + tools_remove (per design.md D1)
   for (const auto& tool_name : mutations.tools_add) {
+    if (!is_tool_allowed(tool_name, ctx.policy)) {
+      return Result<AppliedMutation, MutationError>::failure(
+          MutationError::GovernanceDenied);
+    }
+  }
+  for (const auto& tool_name : mutations.tools_remove) {
     if (!is_tool_allowed(tool_name, ctx.policy)) {
       return Result<AppliedMutation, MutationError>::failure(
           MutationError::GovernanceDenied);
