@@ -32,6 +32,28 @@ SRC_CATCH_H="${MONOREPO_ROOT}/tests/catch_amalgamated.hpp"
 SRC_CATCH_CPP="${MONOREPO_ROOT}/tests/catch_amalgamated.cpp"
 SRC_NLOHMANN="${MONOREPO_ROOT}/external/nlohmann_json/single_include/nlohmann/json.hpp"
 
+# Monorepo contract 头源路径
+SRC_CONTRACT_DIR="${MONOREPO_ROOT}/include/agenticdsl/contract"
+
+# PDK_CONTRACT_DEPS — 实测 11 头 (2026-09-21 grep 枚举)
+# chat_session.h 依赖 (6): ilogger / iinput_source / iinteraction_bus / itool_registry / resume_token / timer_service
+# cross_cutting 依赖 (5): ievaluator / itool_hook_registry / iagent_hook_registry / iagent_registry / i_llm_provider_decorator
+# 设计依据: openspec/changes/sync-pdk-contract-header/design.md D1 (硬编码 + drift-guard)
+# 维护: 新增 contract include 时同步扩展; drift-guard 测试 (tests/test_sync_pdk_contract.sh) 锁定 ⊆ 关系
+PDK_CONTRACT_DEPS=(
+  "ilogger.h"
+  "iinput_source.h"
+  "iinteraction_bus.h"
+  "itool_registry.h"
+  "resume_token.h"
+  "timer_service.h"
+  "ievaluator.h"
+  "itool_hook_registry.h"
+  "iagent_hook_registry.h"
+  "iagent_registry.h"
+  "i_llm_provider_decorator.h"
+)
+
 # === 颜色输出 ===
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -307,6 +329,27 @@ CMAKE_EOF
   fi
 }
 
+# === 同步 contract 头 (PDK_CONTRACT_DEPS 清单) ===
+sync_contract_headers() {
+  log_info "Syncing contract headers (PDK_CONTRACT_DEPS = ${#PDK_CONTRACT_DEPS[@]} deps)..."
+
+  local contract_dir="${WORK_DIR}/include/agenticdsl/contract"
+  mkdir -p "${contract_dir}"
+
+  local count=0
+  for dep in "${PDK_CONTRACT_DEPS[@]}"; do
+    local src="${SRC_CONTRACT_DIR}/${dep}"
+    if [[ -f "${src}" ]]; then
+      cp "${src}" "${contract_dir}/${dep}"
+      log_ok "  [contract] ${dep}"
+      count=$((count + 1))
+    else
+      log_warn "  [contract] ${dep} NOT FOUND at ${src} — skipping"
+    fi
+  done
+  log_ok "Synced ${count}/${#PDK_CONTRACT_DEPS[@]} contract headers"
+}
+
 # === 生成 standalone README ===
 generate_readme() {
   cat > "${WORK_DIR}/README.md" << 'README_EOF'
@@ -537,9 +580,30 @@ main() {
   echo "=========================================="
   echo ""
 
+  # PDK_SYNC_DRY_RUN=1 — 离线模式, 跳过 git clone, 验证 contract 清单
+  # (sandbox/CI 无 SSH 凭据, 见 openspec/changes/sync-pdk-contract-header/design.md D3)
+  if [[ "${DRY_RUN}" == "1" ]]; then
+    local temp_dir
+    temp_dir=$(mktemp -d)
+    WORK_DIR="${temp_dir}"
+    log_info "PDK_SYNC_DRY_RUN=1: skipping git clone, using local temp dir: ${WORK_DIR}"
+
+    sync_contract_headers
+
+    echo ""
+    log_ok "DRY RUN — contract headers synced to ${WORK_DIR}:"
+    for dep in "${PDK_CONTRACT_DEPS[@]}"; do
+      echo "  ${WORK_DIR}/include/agenticdsl/contract/${dep}"
+    done
+    echo ""
+    log_info "Set PDK_SYNC_DRY_RUN=0 and ensure SSH key to run real sync."
+    exit 0
+  fi
+
   preflight_check
   prepare_workdir
   sync_files
+  sync_contract_headers
   generate_readme
   commit_and_push
   verify_standalone_build

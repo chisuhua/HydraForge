@@ -316,3 +316,12 @@ add_test(NAME test_fork_static_contracts
          COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_fork_static_contracts.sh
          WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
+# ─────────────────────────────────────────────────────────────
+# G3 sync-pdk-contract-header: PDK contract 头同步 DRY_RUN 离线验证
+# 详见: tests/test_sync_pdk_contract.sh
+# 关联 spec: openspec/changes/sync-pdk-contract-header/specs/sync-pdk-contract-header/spec.md
+# ─────────────────────────────────────────────────────────────
+add_test(NAME test_sync_pdk_contract
+         COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_sync_pdk_contract.sh
+         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+

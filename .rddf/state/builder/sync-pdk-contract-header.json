@@ -1,0 +1,29 @@
+{
+  "schema": "builder-handoff-v1",
+  "version": 1,
+  "owner": "rdd-builder",
+  "change_name": "sync-pdk-contract-header",
+  "current_phase": "phase-2.5",
+  "approval_status": "approved",
+  "plan_quality_status": "ready",
+  "approval_decision_at": "2026-09-22T12:00:00+00:00",
+  "approval_decision_by": "user-explicit",
+  "approval_context": "用户授权串行启动 G3 (per Pre-Wave3 Plan §2 sequencing + G1 ship 完成 f1a6647)",
+  "execution_mode_decision": {
+    "mode": "worktree",
+    "reason": "worktree per task spec; files=3 (modify: sync-pdk.sh + tests/CMakeLists.txt; new: test_sync_pdk_contract.sh) > 2, bash script change 涉及 CI 测试注册",
+    "decided_at": "2026-09-22T12:00:00+00:00",
+    "decided_by": "rdd-builder-P0-auto-decision",
+    "worktree_path": ".rddf/wt/sync-pdk-contract-header",
+    "worktree_branch": "feat/sync-pdk-contract-header"
+  },
+  "post_impl_execute_summary": {
+    "impl_commit": null,
+    "archive_commit": null,
+    "branch": "feat/sync-pdk-contract-header",
+    "shipped_at": null,
+    "6_ac_pass": null,
+    "design_deviations": []
+  },
+  "post_impl_review_prompt": "Review G3 = sync-pdk-contract-header implementation commit(s) on branch feat/sync-pdk-contract-header in worktree .rddf/wt/sync-pdk-contract-header/. Per AGENTS.md mode #4 SHIP-with-fixes pattern, verify: (1) AC-1 PDK_CONTRACT_DEPS 数组=11 头实测清单 (chat_session 6: ilogger/iinput_source/iinteraction_bus/itool_registry/resume_token/timer_service; cross_cutting 5: ievaluator/itool_hook_registry/iagent_hook_registry/iagent_registry/i_llm_provider_decorator) — grep 确认 sync-pdk.sh 包含全部 11 个 .h 条目; (2) AC-2 contract 同步段实现 — mkdir -p + cp 每个 dep 到 WORK_DIR/include/agenticdsl/contract/ (路径映射 D2: monorepo→standalone 一致); (3) AC-3 PDK_SYNC_DRY_RUN=1 离线分支 — 跳过 git clone (prepare_workdir), 用 mktemp -d 本地替身执行 contract 复制 + 输出清单; (4) AC-4 tests/test_sync_pdk_contract.sh 4 断言 — (a) exit 0 (b) 输出含 itool_registry.h (c) 临时工作目录文件存在 (d) drift-guard: pdk 头 contract include 集合 ⊆ PDK_CONTRACT_DEPS 清单; (5) AC-5 tests/CMakeLists.txt add_test 注册 (参考 test_fork_static_contracts.sh 先例); (6) AC-6 既有 sync-pdk.sh preflight/copy/commit 结构零破坏 (Non-Goal: 不重构整体架构); (7) Day-5 archive integrity — archive/sync-pdk-contract-header-YYYY-MM-DD/ 5 files present (Day-5 trap guard); (8) design.md Non-Goals 保持 — tool_macros.h 悬空 include 未被修, chat_session.h 未被同步, 未引入 git submodule/FetchContent; (9) openspec validate —strict 返回 'Change is valid'; (10) 任何 emergent issues (DRY_RUN 离线分支是否影响真实 sync-pdk.sh 主路径, PDK_CONTRACT_DEPS 清单是否完整覆盖 icross_cutting_pattern.h 的 cross_cutting 5 头). Return: verdict (SHIP / SHIP-with-fixes / BLOCK) + 严重度排序修正清单 (Critical / Major / Minor)."
+}
