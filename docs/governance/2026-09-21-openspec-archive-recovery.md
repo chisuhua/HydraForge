@@ -72,3 +72,44 @@ openspec/changes/archive/2026-09-20-2026-09-20-adr-0086-v1-1-harness-change-conf
 - `5b600a6` — docs: 自进化 v1.4 + rsi-mapping C3/C4 alignment + roadmap CRD string + AGENTS.md 模式 #10
 - `3076042` — feat(openspec): genome-wiring-harness-rsi-gepa v2 — closes loop ring 7
 - 本次 commit — chore(governance): record ADR-0086 archive recovery + Day-5 lesson recurrence
+
+---
+
+## D1 决策登记 (2026-09-21)：.gitignore archive 策略 = 选项 A 维持
+
+> **决策依据**: Pre-Wave3 Plan `.rddf/roadmap/2026-09-21-pre-wave3-to-wave3-execution-plan.md` §6 D1 经用户授权收口。
+
+**决议**: **选项 A 维持** — `.gitignore` 继续 ignore `openspec/changes/archive/`，**不**切换到 B（archive 入 git）或 C（hybrid）。
+
+**当前实际状况** (2026-09-21 验证):
+```bash
+# .gitignore:36-38 现状（确认维持）
+openspec/changes/archive/   # ephemeral, per-machine local archive 副本
+openspec/config.yaml        # per-machine OpenSpec CLI 配置
+openspec/specs/             # per-machine 派生 spec 视图（git-tracked canonical 在 openspec/specs/ 之外）
+```
+
+### 选项 A 维持的考量
+
+1. **防误 commit**: 新人 `git add -A` 不会把 archive 全量入库（archive 子目录若有几千个历史 change，仓库体量爆炸）
+2. **现行治理链路已稳定**: 每次 archive 单独产生 `docs/audits/<date>-openspec-archive-recovery.md`（如本文件）+ `git ls-files openspec/changes/archive/<name>/` 在 commit 后人工验证 4 文件完整
+3. **Day-5 lesson 防御已 build-in**: AGENTS.md §实施模式 已要求 `openspec archive` 后必须 `git ls-files` 验证 4 文件完整，不必依赖 git diff 可视化
+
+### 切换条件（备查）
+
+如出现以下任一信号，应重新评估切到选项 B 或 C：
+- ❌ **Signal 1**: 同一 change archive 触发 ≥2 次 recovery audit（如 ADR-0086 v1.1 已第 2 次）→ 频繁出错说明手工审计链路不稳，应切 B 入 git
+- ❌ **Signal 2**: 新 contributor clone 仓库后因 archive 缺失导致 `openspec validate` 验证失败率 > 20% → 入 git 是更友好的新人体验
+- ❌ **Signal 3**: 出现跨机器 archive 同步冲突（如 2 个 branch 在 file system 各自维护了不同版本 archive 副本）→ git 作为 single source of truth 是唯一解
+
+### 当前状态评估
+
+- Signal 1: ⚠️ ADR-0086 v1.1 第 2 次（commit 798b6c6 当时"declare verified but actual partial"，本次物理恢复 + 新增审计文档），接近升级阈值但**未达 ≥2 触发**
+- Signal 2: ❎ 未观测到新人验证失败率（Solo-Dev 模式，无外部 contributor）
+- Signal 3: ❎ 未观测到跨机器冲突（Solo-Dev 单工作机器）
+
+**结论**: 选项 A 维持，但持续监控上述 3 信号。本 section 作为项目级治理决策登记，在 archive 策略再次被触发 review 时优先查阅。
+
+---
+
+> **Last Updated**: 2026-09-21 (Append per Pre-Wave3 Plan D1 授权)
