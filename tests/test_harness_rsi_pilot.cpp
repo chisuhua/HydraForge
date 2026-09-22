@@ -619,3 +619,45 @@ TEST_CASE("C4 case-3d: partial apply prevention — prompt_delta + unregistered_
   REQUIRE(system_prompt == "initial");
   REQUIRE(tools.empty());
 }
+
+// ============================================================================
+// Case 5d (Oracle bg_8237a316 SHIP-with-fixes Major #1): Spec R1 scenario 3
+// "remove 不存在的工具" → 幂等 no-op + applied_tools_removed 记录 ("请求移除")
+// ============================================================================
+TEST_CASE("C4 case-5d: apply_harness_mutation remove 不存在工具 → success no-op + applied record",
+          "[c4][harness-rsi][case-5d][oracle-ship-with-fixes]") {
+  using namespace agenticdsl::evolution::testing;
+
+  AttributionRecord attr;
+  attr.verdict = AttributionVerdict::Attributed;
+  StubEvaluatorExcellent evaluator;
+  StubBudgetOk budget;
+  CapturingBus bus;
+  StubToolRegistry registry;  // 只含 {"trusted_tool"}
+
+  MutationGateContext ctx{
+      EvolutionState::Data,
+      &attr, &evaluator, &budget, &bus,
+      MutationGovernancePolicy{}  // 空 policy, 不阻止 remove
+  };
+
+  std::string system_prompt = "initial";
+  std::vector<std::string> tools;
+  GenomeMutations m;
+  m.tools_remove = {"nonexistent_tool"};  // 不在 registry → 幂等 no-op
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, registry, ctx);
+
+  // 断言 1: 返回 success (unregister 对不存在工具为幂等)
+  REQUIRE(result.has_value());
+  // 断言 2: applied_tools_removed 记录 "nonexistent_tool"
+  //   (spec R1 scenario 3 "请求移除" 而非 "实际移除" 语义)
+  REQUIRE(result.value().applied_tools_removed.size() == 1);
+  REQUIRE(result.value().applied_tools_removed[0] == "nonexistent_tool");
+  // 断言 3: 零状态变更 (system_prompt 不变)
+  REQUIRE(system_prompt == "initial");
+  // 断言 4: 原有 "trusted_tool" 不受影响 (assertion by side-effect)
+  REQUIRE(registry.has_tool("trusted_tool"));
+  // 断言 5: nonexistent_tool 仍不存在 (写入仍然幂等)
+  REQUIRE_FALSE(registry.has_tool("nonexistent_tool"));
+}
