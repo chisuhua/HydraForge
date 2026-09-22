@@ -435,6 +435,157 @@ TEST_CASE("C4 case-4: apply_harness_mutation workflow_patch → UnsupportedVaria
 }
 
 // ============================================================================
+// Case 5a: remove denied tool → GovernanceDenied + 零状态变更 (AC-1)
+// ============================================================================
+TEST_CASE("C4 case-5a: apply_harness_mutation remove denied tool → GovernanceDenied",
+          "[c4][harness-rsi][case-5a]") {
+  using namespace agenticdsl::evolution::testing;
+
+  AttributionRecord attr;
+  attr.verdict = AttributionVerdict::Attributed;
+  StubEvaluatorExcellent evaluator;
+  StubBudgetOk budget;
+  CapturingBus bus;
+  StubToolRegistry registry;
+
+  // "trusted_tool" IS in StubToolRegistry, but policy denies it
+  MutationGateContext ctx{
+      EvolutionState::Data,
+      &attr, &evaluator, &budget, &bus,
+      MutationGovernancePolicy{denied_tools: {"trusted_tool"}}
+  };
+
+  std::string system_prompt = "initial";
+  std::vector<std::string> tools = {"trusted_tool"};
+  GenomeMutations m;
+  m.tools_remove = {"trusted_tool"};
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, registry, ctx);
+
+  // GovernanceDenied + 零状态变更
+  REQUIRE_FALSE(result.has_value());
+  REQUIRE(result.error() == MutationError::GovernanceDenied);
+  // system_prompt 未变
+  REQUIRE(system_prompt == "initial");
+  // registry 中工具仍在（未被 unregister）
+  REQUIRE(registry.has_tool("trusted_tool"));
+  // tools 向量中工具仍在
+  REQUIRE(tools.size() == 1);
+  REQUIRE(tools[0] == "trusted_tool");
+}
+
+// ============================================================================
+// Case 5b: remove trusted tool → success + registry unregister (AC-2)
+// ============================================================================
+TEST_CASE("C4 case-5b: apply_harness_mutation remove trusted tool → success",
+          "[c4][harness-rsi][case-5b]") {
+  using namespace agenticdsl::evolution::testing;
+
+  AttributionRecord attr;
+  attr.verdict = AttributionVerdict::Attributed;
+  StubEvaluatorExcellent evaluator;
+  StubBudgetOk budget;
+  CapturingBus bus;
+  StubToolRegistry registry;
+
+  MutationGateContext ctx{
+      EvolutionState::Data,
+      &attr, &evaluator, &budget, &bus,
+      MutationGovernancePolicy{}  // empty policy: no denied_tools
+  };
+
+  std::string system_prompt = "initial";
+  std::vector<std::string> tools = {"trusted_tool"};
+  GenomeMutations m;
+  m.tools_remove = {"trusted_tool"};
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, registry, ctx);
+
+  REQUIRE(result.has_value());
+  // registry 中工具已移除（unregister 成功）
+  REQUIRE_FALSE(registry.has_tool("trusted_tool"));
+  // tools 向量中工具已移除
+  REQUIRE(tools.empty());
+}
+
+// ============================================================================
+// Case 5c: add denied + remove denied 混合 → GovernanceDenied + 零状态变更 (AC-3)
+// ============================================================================
+TEST_CASE("C4 case-5c: apply_harness_mutation add+remove mixed denied → GovernanceDenied",
+          "[c4][harness-rsi][case-5c]") {
+  using namespace agenticdsl::evolution::testing;
+
+  AttributionRecord attr;
+  attr.verdict = AttributionVerdict::Attributed;
+  StubEvaluatorExcellent evaluator;
+  StubBudgetOk budget;
+  CapturingBus bus;
+  StubToolRegistry registry;
+
+  // policy denies both "dangerous_tool" (add) and "trusted_tool" (remove)
+  MutationGateContext ctx{
+      EvolutionState::Data,
+      &attr, &evaluator, &budget, &bus,
+      MutationGovernancePolicy{denied_tools: {"dangerous_tool", "trusted_tool"}}
+  };
+
+  std::string system_prompt = "initial";
+  std::vector<std::string> tools = {"trusted_tool"};
+  GenomeMutations m;
+  m.tools_add = {"dangerous_tool"};
+  m.tools_remove = {"trusted_tool"};
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, registry, ctx);
+
+  REQUIRE_FALSE(result.has_value());
+  REQUIRE(result.error() == MutationError::GovernanceDenied);
+  // 零状态变更: 两个路径都未应用
+  REQUIRE(system_prompt == "initial");
+  REQUIRE(tools.size() == 1);
+  REQUIRE(tools[0] == "trusted_tool");
+  REQUIRE(registry.has_tool("trusted_tool"));
+  REQUIRE_FALSE(registry.has_tool("dangerous_tool"));
+}
+
+// ============================================================================
+// Case 6: trace_id 透传断言 (AC-4)
+// ============================================================================
+TEST_CASE("C4 case-6: apply_harness_mutation trace_id from ctx → event meta",
+          "[c4][harness-rsi][case-6]") {
+  using namespace agenticdsl::evolution::testing;
+
+  // 触发 readiness denied (poor evaluator)
+  AttributionRecord attr;
+  attr.verdict = AttributionVerdict::NotAttempted;
+  StubEvaluatorPoor evaluator;
+  StubBudgetExceeded budget;
+  CapturingBus bus;
+  StubToolRegistry registry;
+
+  MutationGateContext ctx{
+      EvolutionState::Data,
+      &attr, &evaluator, &budget, &bus,
+      MutationGovernancePolicy{},
+      "trace-abc-123"  // explicit trace_id
+  };
+
+  std::string system_prompt = "initial";
+  std::vector<std::string> tools;
+  GenomeMutations m;
+  m.prompt_delta = "Be concise.";
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, registry, ctx);
+
+  REQUIRE_FALSE(result.has_value());
+  REQUIRE(result.error() == MutationError::NotReady);
+  REQUIRE(bus.captured.size() == 1);
+  REQUIRE(bus.captured[0].topic == "evolution.readiness.denied");
+  // trace_id 从 ctx 透传到 event meta
+  REQUIRE(bus.captured[0].meta.contains("trace_id"));
+  REQUIRE(bus.captured[0].meta["trace_id"] == "trace-abc-123");
+}
+
+// ============================================================================
 // Case 3d: partial apply regression guard (Oracle bg_afa84d4d Critical-1)
 // prompt_delta + unregistered tools_add → RegistryRejected + 零状态变更
 // ============================================================================

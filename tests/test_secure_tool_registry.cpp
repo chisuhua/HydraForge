@@ -184,6 +184,30 @@ TEST_CASE("SecureToolRegistry custom path policy per-tool", "[secure_tool_regist
   fs::remove("./secrets");
 }
 
+// ADDED: harness-rsi-remove-governance AC-5: disabled tool 拒绝 unregister
+TEST_CASE("SecureToolRegistry disabled tool rejects unregister",
+          "[secure_tool_registry][stage1][remove-governance]") {
+  ToolRegistry base;
+  // register a test tool
+  base.register_tool("test_tool",
+    agenticdsl::ToolMetadata{"test_tool", "test", "test",
+      agenticdsl::ToolCategory::ReadOnly, agenticdsl::LayerProfile::Workflow},
+    [](const std::unordered_map<std::string, std::string>&) -> nlohmann::json {
+      return nlohmann::json{{"result", "ok"}};
+    });
+  SecureToolRegistry secure(base);
+  REQUIRE(base.has_tool("test_tool"));
+
+  // 禁用该工具
+  secure.disable_tool("test_tool");
+
+  // 尝试 unregister disabled 工具 → 静默拒绝
+  secure.unregister_tool_function("test_tool");
+
+  // 工具仍然存在（unregister 被拒绝）
+  REQUIRE(base.has_tool("test_tool"));
+}
+
 TEST_CASE("SecureToolRegistry thread safety on concurrent calls", "[secure_tool_registry][stage1][thread]") {
   ToolRegistry base;
   register_fs_read(base);

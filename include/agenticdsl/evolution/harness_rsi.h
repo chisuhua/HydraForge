@@ -40,6 +40,8 @@ struct MutationGateContext {
   IBudgetController* budget;
   IInteractionBus* bus;
   MutationGovernancePolicy policy;
+  // 末尾追加, 默认空, 非 BREAKING. Wave 3 调用方必填.
+  std::string trace_id;
 };
 
 struct AppliedMutation {

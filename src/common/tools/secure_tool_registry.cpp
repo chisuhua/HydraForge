@@ -264,6 +264,10 @@ void SecureToolRegistry::register_tool_function(std::string name, ToolMetadata m
 }
 
 void SecureToolRegistry::unregister_tool_function(const std::string& name) {
+  // D2: disabled 工具静默拒绝 unregister (与 call_direct disabled 语义一致)
+  if (is_disabled(name)) {
+    return;
+  }
   if (registry_ref_) {
     registry_ref_->unregister_tool_function(name);
   }
