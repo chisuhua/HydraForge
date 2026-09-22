@@ -60,6 +60,7 @@ TEST_CASE("LLMProviderFactory 50-thread × 1000 mixed ops stay consistent",
   CHECK(creates.load() + failures.load() >= total * 3 / 5);
   CHECK((factory.current_default() == "provider-a" ||
          factory.current_default() == "provider-b"));
-  CHECK(factory.dynamic_names().size() == 2);
+  // ctor 自注册 finetune (1) + 运行时 register provider-a/provider-b (2) = 3
+  CHECK(factory.dynamic_names().size() == 3);
   SUCCEED();
 }

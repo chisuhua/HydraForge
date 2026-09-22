@@ -141,7 +141,7 @@ candidates:
       latency: 7.0          # P50 30ms/token
       cost: 4.0             # $10 / 1M input, $30 / 1M output
       openness: 3.0         # 闭源, 无权重, 无本地部署
-    weighted_score: 6.0     # 9*0.3 + 7*0.2 + 4*0.2 + 3*0.3 = 2.7+1.4+0.8+0.9
+    weighted_score: 5.8     # 9*0.3 + 7*0.2 + 4*0.2 + 3*0.3 = 2.7+1.4+0.8+0.9
 
   - name: claude-3-5-sonnet-20241022
     scores:
@@ -149,7 +149,7 @@ candidates:
       latency: 6.0          # P50 40ms/token
       cost: 3.0             # $3 / 1M input, $15 / 1M output
       openness: 2.0         # 闭源
-    weighted_score: 5.35
+    weighted_score: 5.25
 
   - name: llama-3.1-70b-instruct
     scores:
@@ -157,7 +157,7 @@ candidates:
       latency: 5.0          # P50 60ms/token (本地)
       cost: 9.0             # 本地部署, 仅电费
       openness: 10.0        # 完全开源, 权重可训练
-    weighted_score: 8.0      # ← 选这个 (本地 + 可训练 + 低成本)
+    weighted_score: 8.2      # ← 选这个 (本地 + 可训练 + 低成本)
 
   - name: qwen-2.5-72b-instruct
     scores:
@@ -165,7 +165,7 @@ candidates:
       latency: 5.5
       cost: 9.0
       openness: 10.0
-    weighted_score: 8.25     # ← 也可
+    weighted_score: 8.45     # ← 也可
 
   - name: deepseek-v2-chat
     scores:
@@ -173,7 +173,7 @@ candidates:
       latency: 7.0
       cost: 8.0             # $0.14 / 1M (cache hit), $0.28 (miss)
       openness: 6.0         # 部分开源 (DeepSeek-V2 Lite)
-    weighted_score: 7.5
+    weighted_score: 7.35
 ```
 
 **选择标准**:
@@ -186,6 +186,8 @@ candidates:
   - ✅ Latency P95 ≤ 100ms/token (interactive)
 
 **示例最终选择** (基于上述): `llama-3.1-70b-instruct` 或 `qwen-2.5-72b-instruct` (本地 + 可训练)
+
+> **算术校正 NOTE (2026-09-23, Oracle bg_7fe026cc 审查发现)**: 上方 5 个候选 `weighted_score` 初版全部存在算术错误 (加权计算表达式正确, 字段值抄录错误), 已修正为正确算术值: gpt-4-turbo **5.8** (原 6.0) / claude-3-5-sonnet **5.25** (原 5.35) / llama-3.1-70b **8.2** (原 8.0) / qwen-2.5-72b **8.45** (原 8.25) / deepseek-v2-chat **7.35** (原 7.5)。关键影响: deepseek 真实 7.35 < 7.5 不满足 Weighted ≥ 7.5, 不再属于候选。最终选择 `llama-3.1-70b-instruct` (实际 8.2 ≥ 7.5) **不变**。对应研究文档 `docs/research/wave-3-base-model-selection.md` 已同步修正 + 增加"校正说明"段落; 本 ADR 与之一致。
 
 ### D2. Fine-tune 触发条件 — Evidence Gate + AgenticMind 回流
 
