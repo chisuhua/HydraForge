@@ -2,7 +2,7 @@
   "version": 1,
   "current_sprint": "sprint-2026-09",
   "sprint_started_at": "2026-09-20T02:58:34+00:00",
-  "last_sync_at": "2026-09-20T02:58:34+00:00",
+  "last_sync_at": "2026-09-22T15:48:14.378537+00:00",
   "last_sync_status": "ok",
   "recommended_route": "complex",
   "active_projects": [
@@ -16,12 +16,24 @@
       "proposal_path": ".rddf/improvements/adr-0086-v1-1-harness-change-confounder.md",
       "feedback_status": "none",
       "mapped": true
+    },
+    {
+      "project_id": "wave-3-finetune-base-model",
+      "proposal": "wave-3-finetune-base-model",
+      "phase": "phase-7-wave-3",
+      "theme": "Wave 3 Model-RSI pilot (ADR-0078)",
+      "priority": "P0",
+      "status": "active",
+      "proposal_path": ".rddf/improvements/wave-3-finetune-base-model.md",
+      "feedback_status": "none",
+      "mapped": true
     }
   ],
   "unmapped_proposals": [],
   "synced_proposals": [
-    "adr-0086-v1-1-harness-change-confounder"
+    "adr-0086-v1-1-harness-change-confounder",
+    "wave-3-finetune-base-model"
   ],
   "previous_unmapped": [],
-  "state_revision": 1
+  "state_revision": 2
 }

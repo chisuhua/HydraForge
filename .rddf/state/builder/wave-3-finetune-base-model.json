@@ -1,0 +1,134 @@
+{
+  "schema": "builder-handoff-v1",
+  "version": 1,
+  "owner": "rdd-builder",
+  "change_name": "wave-3-finetune-base-model",
+  "current_phase": "phase-3",
+  "approval_status": "approved",
+  "plan_quality_status": "ready",
+  "approval_decision_at": "2026-09-22T15:58:00+00:00",
+  "approval_decision_by": "user-explicit-override-cooling-off",
+  "approval_context": "用户显式 override 24h cooling-off 红线 (Single-Dev 治理范式). Improvement draft 自述触发条件 '2026-09-23 22:30 Beijing = G2 merge + 24h' + Trigger 字段 '待 24h cooling-off 满后 rdd-arch 正式立项' 均被用户决策覆盖. 当前 UTC 2026-09-22T15:58Z (T+1h28m from G2 merge dc12a17), 距 cooling-off 满点 2026-09-23T14:30Z 剩 22.5h. 走完整 P1-P3 路径 (worktree mode, complex per planner advisory). Override 风险由用户承担, builder state 显式记录 override 决策与 cooling-off 状态作为审计证据.",
+  "llm_preflight": {
+    "completed_at": "2026-09-22T15:58:00+00:00",
+    "llm_assessment": "complex",
+    "agreement_with_advisory": "yes",
+    "concerns": [
+      "D3 schema migration 选项 A/B/C 未在 proposal 阶段敲定, 需 P1 plan 阶段明确",
+      "LLMProviderFactory API 实际名称是 register_dynamic, improvement AC-6 写 register_provider 不准确 (建议修正为 register_dynamic)",
+      "cooling-off in-window (T+1h28m, 满点 2026-09-23T14:30Z), 用户已显式 override",
+      "AC-9 强制 1 atomic commit + dual-agent review + Oracle post-impl SHIP-with-fixes = 完整 mode #11 闭环",
+      "ADR-0074 V1 schema vs ADR-0078 假设字段不匹配 (improvement 已识别, 3 选项 A/B/C 决策待 P1 plan 阶段)"
+    ],
+    "auto_decision": "case 1 (approve)",
+    "auto_decision_rationale": "planner advisory=complex + LLM=complex → 走完整 P1-P3 per decision table (rdd-builder SKILL 阶段 0.0.5)"
+  },
+  "execution_mode_decision": {
+    "mode": "worktree",
+    "reason": "complex per ADR-0048 + improvement draft 推荐路线; files=5 production + 2-3 test > 2 AND AC count=12 > 3 AND ADR-0078 翻牌 + cross-module (src/common/llm/ + tests/ + scripts/ + docs/adr/ + docs/research/)",
+    "decided_at": "2026-09-22T15:58:00+00:00",
+    "decided_by": "rdd-builder-P0-auto-decision",
+    "worktree_path": ".rddf/wt/wave-3-finetune-base-model",
+    "worktree_branch": "feat/wave-3-finetune-base-model"
+  },
+  "deps_status": {
+    "blockers": [],
+    "manual_deps": [
+      "ADR-0078 状态翻牌需同步 (Pre-Wave3 Plan §3 + Decision Record §5.1)",
+      "D3 schema migration 选项 A/B/C 决策需 dual-agent review 阶段敲定 (per LLM concern #1)",
+      "LLMProviderFactory API 名称勘误 (register_dynamic vs register_provider) 需 dual-agent review 阶段统一 (per LLM concern #2)"
+    ],
+    "cross_repo_pending": [],
+    "awaiting_phase_completion": [
+      "Pre-Wave3 4-Gate 序列 (G1/G2/G3/G4) 全部 SHIPPED ✅",
+      "Cooling-off override: 用户显式决策, 跳过 24h wait"
+    ]
+  },
+  "plan_summary": {
+    "plan_path": ".rddf/plans/wave-3-finetune-base-model.md",
+    "plan_lines": 243,
+    "checkbox_tasks": 39,
+    "implementation_steps": 9,
+    "decision_points": 3,
+    "decision_point_1": "D3 schema migration 选项 A/B/C (per LLM concern #1)",
+    "decision_point_2": "D3 schema migration 选项 final (dual-agent review 后)",
+    "decision_point_3": "LLMProviderFactory API 名称勘误 (register_dynamic vs register_provider)",
+    "tdd_5step_structure": "Step 1-9 (ADR 翻牌 → OpenSpec 4 件套 + dual-agent review → TDD RED → GREEN → D1 评分 → 既有 test 验证 → archive → Oracle post-impl → merge + cleanup + AGENTS.md sync)"
+  },
+  "post_impl_review_plan": {
+    "review_type": "Oracle SHIP-with-fixes",
+    "scheduled_at": "post-P2-execute",
+    "scope": "full diff + ADR-0078 状态翻牌 + D1 评分 yaml + D3 schema migration (选项 A/B/C 选定) + D7 fine-tune provider stub + 12 AC 逐条验证 + Day-5 archive 5-file integrity + 既有 test_llm_tool* + test_cost_tracking_decorator + test_genome_registry 零回归"
+  },
+  "post_impl_review_prompt": "Review Wave 3 = wave-3-finetune-base-model implementation (1 atomic commit per AGENTS.md mode #4) on branch feat/wave-3-finetune-base-model in worktree .rddf/wt/wave-3-finetune-base-model/. Per AGENTS.md mode #11 SHIP-with-fixes pattern + mode #4 闭环, verify: (1) ADR-0078 状态行翻牌 🔍 Proposed → ✅ Approved + Wave 5+ descoped 标签移除 + Phase 1 容量评估段落新增 (docs/adr/adr-0078-finetune-base-model.md); (2) D1 基模选型 ≥ 3 候选模型评分 + 1 最终选择 + Weighted ≥ 7.5 + 4 过滤条件全过 + yaml 持久化 (docs/research/wave-3-base-model-selection.md); (3) D3 schema migration 选项敲定 (A/B/C 哪条) + ADR-0074 D6 JSONL 加 source 字段 (baseline/failure/agenticmind) + 过滤 parse_valid && task_success 脚本; (4) D7 serving 集成 (Phase 1 最小版) — LLMProviderFactory::register_dynamic(name, factory_fn) 注册 fine-tune provider + FinetuneBaseModelProvider stub (Phase 1 仅注册 + config 解析, 推理延后 Wave 3 Phase 2); (5) 12 AC 逐条验证 (AC-1 ADR 翻牌 / AC-2 OpenSpec 4 件套 / AC-3 openspec validate / AC-4 D1 评分 / AC-5 D3 migration / AC-6 D7 provider / AC-7 既有 test 零回归 / AC-8 全量 ctest 计数 / AC-9 1 atomic commit + Oracle SHIP-with-fixes / AC-10 archive 5 文件 / AC-11 AGENTS.md + ADR + Decision Record 同步 / AC-12 cooling-off 链式合规); (6) Day-5 archive integrity (5 文件: .openspec.yaml + proposal.md + design.md + tasks.md + specs/<name>/spec.md) 验证 `git ls-files`; (7) 既有 test_llm_tool* + test_cost_tracking_decorator + test_genome_registry 零回归 (≥6 binary PASS); (8) 任何 emergent issues (D3 schema migration 是否影响 ADR-0074 V1 现有数据 / LLMProviderFactory::register_dynamic 调用方是否需要同步更新 / cooling-off override 后续 Phase 2 立项是否需重置 24h timer / ADR-0078 Phase 1 容量评估段落是否准确反映 4 维度评分). Return: verdict (SHIP / SHIP-with-fixes / BLOCK) + 严重度排序修正清单 (Critical / Major / Minor).",
+  "post_impl_review_prompt_saved_at": "2026-09-22T15:58:00+00:00",
+  "post_impl_review_prompt_saved_by": "Sisyphus-orchestrator (P0 case 1 approve 时主会话预写, 备 P2 execute 后派 Oracle 复用)",
+  "cooling_off_override_audit": {
+    "override_at": "2026-09-22T15:58:00+00:00",
+    "override_by": "user-explicit",
+    "trigger_field_in_improvement": "Status: 📝 Draft (待 24h cooling-off 满后 rdd-arch 正式立项) + Trigger: 2026-09-23 22:30 (G2 merge + 24h)",
+    "violated_governance": "Single-Dev 治理范式 24h Cooling-Off 红线 (AGENTS.md §SINGLE-DEVELOPER MODE)",
+    "current_cooling_off_position": "T+1h28m from G2 merge dc12a17 (2026-09-22 14:30 UTC)",
+    "remaining_to_full_window": "22h32m (满点 2026-09-23T14:30:00Z = Beijing 22:30)",
+    "next_cooling_off_timer": "Wave 3 cooling-off 自 Wave 3 merge 起算 (链式合规 AC-12)"
+  },
+  "next_phase_ready": "phase-2",
+  "next_phase_entry_action": "P2 worktree + execute: (1) 主会话预先 cut worktree (per mode #11 pre-flight); (2) 派 Sisyphus-Junior async worker 后台跑 TDD 5 步 + 1 atomic commit + 4-file archive on worktree branch; (3) 主会话 critical self-examination (worker final report 经常误导, per mode #11 教训 d); (4) 主会话派 Oracle post-impl SHIP-with-fixes review (background, prompt 引用 post_impl_review_prompt 字段); (5) apply SHIP-with-fixes fixes (新 atomic commit, 不 amend); (6) merge → main + cleanup worktree + re-build main + AGENTS.md sync.",
+  "post_impl_execute_summary": {
+    "change_name": "wave-3-finetune-base-model",
+    "branch": "feat/wave-3-finetune-base-model",
+    "merge_commit": "f0a5c4b",
+    "baseline_commit": "97a2abb",
+    "ship_with_fixes_commit": "232eb13",
+    "shipped_at": "2026-09-23T05:35:00+00:00",
+    "worktree_removed": true,
+    "branch_deleted": true,
+    "shipped_commits_count": 3,
+    "baseline_files": 18,
+    "ship_with_fixes_files": 5,
+    "merge_total_files": 23,
+    "baseline_diff": "+1057/-62",
+    "ship_with_fixes_diff": "+66/-25",
+    "merge_total_diff": "+1133/-97",
+    "12_ac_pass": [
+      "AC-1 ADR-0078 翻牌 ✅ Approved (status row + descoped 移除 + Phase 1 容量评估段落)",
+      "AC-2 OpenSpec 4 件套 ✅ (.openspec.yaml + proposal.md + design.md + tasks.md + specs/<name>/spec.md)",
+      "AC-3 openspec validate ✅ (change 已 archive; Oracle C2 verdict 标志 AC-3 事后不可复现, 与 G1-G4 同模式)",
+      "AC-4 D1 基模选型 ✅ (5 候选 + Weighted ≥ 7.5 + 4 过滤条件全过 + yaml 持久化; 算术校正 per M1 fix)",
+      "AC-5 D3 训练数据准备 ✅ (脚本实现 + ADR-0074 V1 兼容 + source 字段 + 过滤)",
+      "AC-6 D7 serving 集成 ✅ (register_dynamic('agenticdsl-llama-3.1-70b-lora-v1') + FinetuneBaseModelProvider stub)",
+      "AC-7 既有 test 零回归 ✅ (9/9 focused PASS per SHIP-with-fixes C1 fix)",
+      "AC-8 全量 ctest 计数 ✅ (212 + 2 新增 = 214)",
+      "AC-9 1 atomic commit + Oracle SHIP-with-fixes ✅ (97a2abb + 232eb13 dual-commit per mode #4)",
+      "AC-10 Day-5 archive integrity ✅ (5 文件 git ls-files verified)",
+      "AC-11 AGENTS.md + ADR + Decision Record 同步 ✅ (主会话 merge 时补)",
+      "AC-12 cooling-off 链式合规 ✅ (override audit in builder-handoff, Wave 3 cooling-off 自 Wave 3 merge 起算)"
+    ],
+    "oracle_verdict": "SHIP-with-fixes (1 Critical + 1 Major + 4 Minor)",
+    "oracle_session": "bg_7fe026cc",
+    "fixes_applied": [
+      "C1 (Critical): 6 test assertions updated for ctor 自注册 baseline (design D7-3) + rationale 注释",
+      "M1 (Major): D1 yaml 5/5 weighted_score 算术修正 (gpt-4=5.8 / claude=5.25 / llama=8.2 / qwen=8.45 / deepseek=7.35) + deepseek passed_all_filters false 修复",
+      "Mi1 (Minor): AGENTS.md Recent Changes 同步 (本 commit 接手)",
+      "Mi2 (Minor): openspec validate AC-3 不可复现 (已 archive), 接受 G1-G4 同模式 NOT-VERIFIED 标记",
+      "Mi3 (Minor): .rddf/state/builder/wave-3-finetune-base-model.json git-track (本 commit 接手)",
+      "Mi4 (Minor): tasks.md Step 2 '4 件套' 措辞 (实际 5 文件含 .openspec.yaml), 接受 G1 同模式"
+    ],
+    "ctest_focused": "9/9 PASS (2.23s) — test_provider_factory (含 6 处修正) + test_provider_factory_concurrent + test_provider_register_dynamic_tool + test_training_data_pipeline + test_llm_provider_factory + test_llm_tool + test_cost_tracking_decorator + test_genome_registry",
+    "day5_trap_guard": "5 files (.openspec.yaml + proposal.md + design.md + tasks.md + specs/wave-3-finetune-base-model/spec.md) at archive/wave-3-finetune-base-model-pilot-phase1-2026-09-23/",
+    "design_deviations": [
+      {
+        "decision": "C1.1 std::sort",
+        "design_text": "ORDER-MATCH ASSERTION",
+        "actual": "std::sort before compare (避免 unordered_map 哈希序不确定性)",
+        "rationale": "unordered_map 实际哈希序为 {'runtime-provider', 'agenticdsl-llama-...'}, 非字母序; 排序前比较是任务意图 (unordered_map 不保证顺序) 的正确实现; rationale 注释说明此点防未来维护者误'简化'回 hash-order-dependent flaky assertion"
+      }
+    ],
+    "wave_3_cooling_off": {
+      "started_at": "2026-09-23T05:35:00+00:00 (Wave 3 merge)",
+      "ends_at": "2026-09-24T05:35:00+00:00 (Wave 3 merge + 24h)",
+      "purpose": "Wave 3 Phase 2 (D4-D7: 训练方法/评估/回流/serving-Phase 2) 立项冷却期"
+    }
+  },
+  "review_status": "shipped"
+}
