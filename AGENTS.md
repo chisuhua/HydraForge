@@ -566,6 +566,66 @@ HydraForge/
 - "只派 Metis 不派 Oracle" → 漏掉架构 + 测试物理可行性, C2 chmod 0 物理不可行问题 Metis 关注意图不会主动发现
 - "等实施后再审查" → 改造成本倍增 (Oracle SHIP-with-fixes 的修正要新开 commit 保持原子性)
 
+---
+
+#### 10. post-acceptance "hygiene fix" 打乱资源创建顺序 → fresh-deploy 静默回归 (✅ promoted from candidate per 2026-09-22 G1 case study)
+
+**触发**: 接受 ship 后 audit 反馈做 "小 hygiene fix" (refactor permissions order / 改 race-id / 调整 checkpoint) — 修改本意是好的 (消除 umask 权限窗口 / 锁顺序调整), 但**打乱既有资源创建顺序** → 在全新部署环境下 (无既存 host 状态) 引入确定性失败路径, 而既有 CI 镜像因宿主机已有持久状态掩盖了 Critical。
+
+**5 步沉淀** (per 2026-09-21 C1 genome-registry HMAC case study + 2026-09-22 G1 SHIP-with-fixes 双案例):
+1. **检测信号** — Ship 后收到 hygiene fix 反馈 (audit, Oracle 顺带发现) → 改资源创建顺序 (permissions/fs 操作 与 open/ofstream 顺序) → 测试在 dev machine 仍 PASS (host 已有 .hydraforge/genome.key 或既有 config)
+2. **精准复现** — CI 报 red 或 fresh-clone 报 IOError, dev machine 绿。**关键差异** = host 既存持久状态掩盖, 全新部署暴露确定性失败
+3. **根因二分** — `git show <fix_commit>` 对比 baseline, 看 resource init 顺序是否被 flip (permissions 移到 open 之前 → 对不存在路径抛 filesystem_error)
+4. **修复分层**:
+   - **(推荐) 原子赋权** — `::open(path, O_WRONLY|O_CREAT|O_EXCL, mode)` 一步创建 + 赋权, EEXIST 竞争窗口读回已存 key
+   - **(次选) hermetic env fixture** — 测试侧 `unsetenv HOME + chdir tmpdir` 隔离 host 持久状态, 暴露 fresh-deploy 路径
+   - **(防御性) build-time check** — 资源 init 顺序 invariant 在 dtor / main 启动时 assert
+5. **回归守卫** — 加 fresh-state 测试 (隔离 HOME + unsetenv), CI 必须能 fail-build (不是只 host green 隐藏)
+
+**反模式**:
+- ❌ "hygiene fix 是 trivial 的 → 不需要专门回归测试" → 实际是 fresh-deploy 静默回归最常见来源 (本案 C1)
+- ❌ "测试在 dev machine 绿 = 修复成功" → 必须 fresh clone 验证 (CI/docker/sandbox)
+- ❌ "hygiene fix 可以 amend 上次 commit" → 应该新 atomic commit (AGENTS.md 模式 #4), amend 会丢失 baseline 状态
+- ❌ "fs::permissions 不存在路径抛异常无所谓" — 这是错的, 必须用 open(O_CREAT, mode) 一步完成
+- ❌ 测试依赖宿主机持久状态 (无 hermetic env fixture) → 永远掩盖 fresh-deploy 路径
+
+**2026-09-21 case study (C1 genome-registry HMAC)**: commit `60d5a18` 把 `fs::permissions()` 移到 `ofstream` 创建文件之前, 对不存在的 key 路径抛 `filesystem_error` → 全新机器首次 commit/load 永远 IOError (本机被既存 `~/.hydraforge/genome.key` 掩盖). 修复: `::open(key_path, O_WRONLY|O_CREAT|O_EXCL, 0600)` 原子创建 + 赋权, EEXIST 竞争窗口读回已存 key + hermetic HOME fixture (新文件 `fresh_home_key_generation_0600`).
+
+**推广**: 所有 hygiene fix commit 必走 fresh-state 验证 (隔离 HOME/tmpdir + unsetenv + fresh .gitignore 路径), **不**信任 dev machine green.
+
+---
+
+#### 11. Async Worker + Dual Oracle dual-review SHIP-with-fixes cycle (✅ G1 case study 2026-09-22)
+
+**触发**: OpenSpec change 跨多文件 (≥3 files) + 涉及生产代码 + 跨模块 BREAKING API 变更, 派 Sisyphus-Junior async worker 后台跑 TDD 5 步 + 1 commit + archive; 主会话 worker task 完成后 派 Oracle post-impl SHIP-with-fixes 复评 → 应用 Major 修正 → merge → cleanup. **完整闭环 = 5 commits + dual Oracle verdict + Day-5 trap guard + worktree cleanup**.
+
+**8 步沉淀** (per 2026-09-22 G1 = harness-rsi-remove-governance case study):
+1. **Pre-flight**: 主会话准备工作树 (branch + .rddf/wt/ 路径 + builder-handoff-v1.5.json + improvement 5-segment + .gitignore 防 rdd-quick state 残留). **不要**让 worker 切 worktree — 主会话预先 cut 减少 worker context burn
+2. **Async Sisyphus-Junior dispatch** (6-segment delegation: TASK / EXPECTED_OUTCOME / REQUIRED_TOOLS / MUST DO / MUST NOT DO / CONTEXT). 参考 2026-09-21 G1 bg_8a06d1ac (1h37m) prompt 模板
+3. **Worker TDD 5 步 + 1 atomic commit on worktree + 4-file archive** (per tasks.md phases + Day-5 trap guard). Worker self-validation 在每 step 必 `git ls-files` + `bash -n` + 实际跑命令验证 exit code, 不只信 "Edit applied successfully"
+4. **主会话 critical self-examination** — worker final report 经常**误导** (G1 案例: Sisyphus-Junior final report 声称 `post_impl_review_prompt saved to builder json` 但实际**字段缺失**; `git show <commit>` 才能验证). **关键原则**: 主会话永远验证 worker 实际产物, 不只信 final report
+5. **Oracle post-impl SHIP-with-fixes review** (subagent_type=oracle, run_in_background=true). Verdict = SHIP / SHIP-with-fixes / BLOCK + 修正清单 (按严重度排序). **不跑 Oracle 跳过 review** = 大 change 高风险, 一旦发现 bug 需拆 commit (违反模式 #4 atomicity)
+6. **apply SHIP-with-fixes fixes** — 不 amend baseline commit, **新增 atomic commit on worktree branch** (可能多个, per Major 严重度). 每次 fix commit 配 git-master 6-segment: commit plan → style detect → atomic unit planning → execute (per worktree path) → verification
+7. **merge worktree → main** (fast-forward + merge commit, `--no-ff` 保留 worktree branch history). 工作树 cleanup: `git worktree remove --force` + `git branch -D feat/<branch>`. merge 后**必须重 build main working tree** (worktree merge 不自动 sync main working tree)
+8. **Post-merge verification** — main working tree 跑 focused ctest (G1 影响面) + 全量 ctest (zero regression 209 binaries). Oracle verdict 的 "NOT-VERIFIED" 状态补全 → 主会话 post-merge 必补 ctest 真实跑 (Oracle 沙箱限制导致的 NOT-RUN 必须由主会话 fix)
+
+**关键调试教训** (来自 G1):
+- (a) **Result<T,E> 解包** — `result.value().field` 而非 `result->field` (Result 类无 operator-> 重载, genome.h:36 `value()` 返回 `const T&`)
+- (b) **Lambda by-value 捕获的 const 上下文** — `register_tool<Func>` 模板内部 `[fn=std::forward<Func>(func)]` by-value 捕获 → lambda `operator()` const → 调用 `fn(args)` 要求 `func::operator()` 必须 const-qualified
+- (c) **LSP stale cache ≠ 真实 compile fail** — LSP 多次报 `Excess elements in struct initializer` (cache 未刷新), 实际 `g++ -std=c++20` 编译通过. 反之 LSP 不报 ≠ 编译通过 (G1 暴露 2 个 LSP 未报的真编译错误). **永远**以实际 g++/cmake 输出为准, LSP 仅作提示
+- (d) **Worker final-report 误导模式** — Sisyphus-Junior async worker 倾向 "final report 写好听但实际产物漏" (类似 AGENTS.md Sprint 15 shared_ptr + raw + new unique_ptr 双所有权 SIGSEGV 案例). 主会话 verification checklist = `git show` + `git ls-files` + 真实跑命令 + 主会话 commit builder json 字段而非信 worker
+
+**反模式**:
+- ❌ "worker 说 done = done" → 必须主会话验证 (worker final-report 误导 案例)
+- ❌ "SHIP-with-fixes 可以 amend baseline commit" → 必须新 atomic commit (模式 #4 atomicity)
+- ❌ "LSP clean = compile clean" → 永远实际 g++ 验证
+- ❌ "worktree merge = main 工作树 sync" → merge 只更新 git ls-files, main working tree 不变, 必须重 build
+- ❌ "Oracle 沙箱 NOT-RUN = 阻塞 ship" → 主会话补 ctest post-merge (Oracle NOT-VERIFIED 状态专门给主会话接手)
+- ❌ "跳过 Oracle post-impl 节省 30 min" → 一旦发现 bug 拆 commit = 远超 30 min 损失
+- ❌ "Sisyphus-Junior prompt 可以 vague" → 必须 6-segment delegation (vague = failed delegation, 实际浪费更多 token)
+
+**Promoted ROI**: G1 case study 双 Oracle (pre bg_c706862b 5 SHIP-with-fixes + post bg_8237a316 0 Critical + 2 Major + 4 Minor) + 3 SHIP-with-fixes atomic commits (9ee475e + e182f82 + f1a6647) + 2 commit const retry. 总耗时: 1h37m worker + 12m23s Oracle post-impl + 30min 主会话 apply + verify. **vs 不走此模式**: 大 change ship 后 bug 拆 commit + 重新 dual-review ≈ 2-4h 浪费.
+
 ### 工程层 (Engineering)
 
 > 工程层模式沉淀在 `tests/AGENTS.md` (测试目录专属) + `src/common/llm/AGENTS.md` (LLM 模块专属).
