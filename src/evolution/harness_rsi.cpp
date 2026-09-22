@@ -1,26 +1,23 @@
 // src/evolution/harness_rsi.cpp
 // C4 harness-rsi-pilot 轻量函数实现 (per ADR-0088 D4 + Oracle bg_3672cb57 修正)
-//   - 双门禁: evaluate_readiness → 失败发 evolution.readiness.denied + 零状态变更
-//   - 内部 is_tool_allowed policy check (per Oracle C3 — 不调 IMutationGovernor::propose)
-//   - 3 mutation 路径 (prompt_delta + tools_add + tools_remove)
-//   - workflow_patch → UnsupportedVariant (Wave 3 deferred)
-// 设计依据: openspec/changes/2026-09-16-harness-rsi-pilot/ (C4 DRAFT after 2nd Oracle review)
-// 作者: HydraForge Sprint 34+ Phase 6c MetaRSI-v1 C4
-// 最后修改日期: 2026-09-21
+// G4 extension: Gate 0 workflow_patch upmove + Gate 3 persist-before-apply + undo
+// 设计依据: openspec/changes/genome-wiring-harness-rsi-gepa/ (G4, 2026-09-22)
+// 作者: HydraForge Sprint 34+ Phase 6c MetaRSI-v1 C4+G4
+// 最后修改日期: 2026-09-22
 
 #include "agenticdsl/evolution/harness_rsi.h"
 
 #include "agenticdsl/contract/event_builder.h"
 #include "agenticdsl/evolution/transition_guard.h"
+#include "agenticdsl/genome/genome.h"
 
+#include <algorithm>
 #include <string>
 
 namespace agenticdsl::evolution {
 
 namespace {
 
-// 内部 policy check (per Oracle C3 — 不调 IMutationGovernance::propose)
-// 返回 true = allowed, false = denied
 bool is_tool_allowed(const std::string& tool_name,
                      const MutationGovernancePolicy& policy) {
   for (const auto& denied : policy.denied_tools) {
@@ -29,7 +26,6 @@ bool is_tool_allowed(const std::string& tool_name,
   return true;
 }
 
-// MutationError 转字符串 (for Decision Record 记录, per Metis 2.6 摩擦清单)
 const char* mutation_error_name(MutationError e) {
   switch (e) {
     case MutationError::NotReady:            return "NotReady";
@@ -37,6 +33,19 @@ const char* mutation_error_name(MutationError e) {
     case MutationError::UnsupportedVariant:  return "UnsupportedVariant";
     case MutationError::RegistryRejected:    return "RegistryRejected";
     case MutationError::InvalidMutation:    return "InvalidMutation";
+  }
+  return "Unknown";
+}
+
+const char* genome_error_name(genome::GenomeError e) {
+  switch (e) {
+    case genome::GenomeError::NotFound:           return "NotFound";
+    case genome::GenomeError::SchemaViolation:    return "SchemaViolation";
+    case genome::GenomeError::IntegrityViolation: return "IntegrityViolation";
+    case genome::GenomeError::BrokenLineage:      return "BrokenLineage";
+    case genome::GenomeError::CycleDetected:      return "CycleDetected";
+    case genome::GenomeError::IOError:            return "IOError";
+    case genome::GenomeError::NotImplemented:     return "NotImplemented";
   }
   return "Unknown";
 }
@@ -64,15 +73,13 @@ const char* evolution_state_name(EvolutionState s) {
 
 }  // namespace
 
-// apply_harness_mutation — 5 参轻量函数 (per Oracle bg_770d1308 修正)
+// GATE ORDER (G4 expanded):
+//   Gate 0 (校验, 含 workflow_patch + genome_name/parent_version)
+//   → Gate 1 evaluate_readiness → Gate 2 is_tool_allowed
+//   → Gate 2.5 tools_add registry 预检 → Gate 3 (persist-before-apply)
+//   → Apply
 //
-// DUAL-GATE ORDER (per Metis 3.5 + Oracle 1.4 验证):
-//   1. evaluate_readiness → 失败发 evolution.readiness.denied (D8 ship) + 零状态变更
-//   2. is_tool_allowed (per tools in mutations) → 拒绝直接返回 error
-//
-// 失败路径零状态变更 (system_prompt + tools + registry 全部不动)
-// workflow_patch → UnsupportedVariant
-// invalid mutation (空 prompt + empty tools_add/remove) → InvalidMutation
+// 失败路径零状态变更.
 Result<AppliedMutation, MutationError> apply_harness_mutation(
     const GenomeMutations& mutations,
     std::string& system_prompt,
@@ -80,7 +87,7 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
     IToolRegistry& registry,
     const MutationGateContext& ctx) {
 
-  // === Gate 0: InvalidMutation fail-fast ===
+  // === Gate 0: InvalidMutation fail-fast + workflow_patch ===
   const bool has_prompt = !mutations.prompt_delta.empty();
   const bool has_tools_add = !mutations.tools_add.empty();
   const bool has_tools_remove = !mutations.tools_remove.empty();
@@ -98,17 +105,30 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
       }
     }
   }
+  // G4: workflow_patch → UnsupportedVariant at Gate 0 (先于所有后续门禁)
+  if (has_workflow) {
+    return Result<AppliedMutation, MutationError>::failure(
+        MutationError::UnsupportedVariant);
+  }
+  // G4: genome_name 空检查 (registry 非空时, Gate 0)
+  if (ctx.genome_registry != nullptr && ctx.genome_name.empty()) {
+    return Result<AppliedMutation, MutationError>::failure(
+        MutationError::InvalidMutation);
+  }
+  // G4: parent_version==0 (registry 非空时, Gate 0)
+  if (ctx.genome_registry != nullptr && ctx.parent_version == 0) {
+    return Result<AppliedMutation, MutationError>::failure(
+        MutationError::InvalidMutation);
+  }
 
-  // === Gate 1: evaluate_readiness (C3 ship) ===
+  // === Gate 1: evaluate_readiness ===
   if (!ctx.attribution || !ctx.evaluator || !ctx.budget) {
-    // Missing required context (caller's bug) — fail-fast InvalidMutation
     return Result<AppliedMutation, MutationError>::failure(
         MutationError::InvalidMutation);
   }
   auto verdict = evaluate_readiness(ctx.current, *ctx.attribution,
                                     *ctx.evaluator, *ctx.budget);
   if (!verdict.can_proceed) {
-    // 零状态变更 + 发 evolution.readiness.denied (per ADR-0068 v2.2 line 253, 4-field payload)
     if (ctx.bus) {
       EventBuilder event("evolution.readiness.denied");
       event.args(nlohmann::json{
@@ -118,7 +138,7 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
           {"budget_state", ctx.budget->exceeded() ? "exceeded" : "ok"}
       });
       event.meta(nlohmann::json{
-          {"trace_id", ctx.trace_id},  // D4: 从 ctx 透传, 替代硬编码空串
+          {"trace_id", ctx.trace_id},
           {"current_state", evolution_state_name(ctx.current)}
       });
       ctx.bus->emit(event.build());
@@ -127,8 +147,7 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
         MutationError::NotReady);
   }
 
-  // === Gate 2: is_tool_allowed policy check (per Oracle C3 + D1 remove-governance) ===
-  // D1 扩展: 对称检查 tools_add + tools_remove (per design.md D1)
+  // === Gate 2: is_tool_allowed policy check ===
   for (const auto& tool_name : mutations.tools_add) {
     if (!is_tool_allowed(tool_name, ctx.policy)) {
       return Result<AppliedMutation, MutationError>::failure(
@@ -142,10 +161,7 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
     }
   }
 
-  // === Gate 2.5: tools_add 全量 registry 预检 (Oracle bg_afa84d4d Critical-1 修訂)
-  // 必须在 apply 前完成, 防止部分应用违反零状态变更契约。
-  // 例: input {prompt_delta:"X", tools_add:["unregistered"]} → registry.has_tool 失败
-  // 但 prompt_delta 已应用 → state leaked on failure → 不变量违反。
+  // === Gate 2.5: tools_add 全量 registry 预检 ===
   for (const auto& tool_name : mutations.tools_add) {
     if (!registry.has_tool(tool_name)) {
       return Result<AppliedMutation, MutationError>::failure(
@@ -153,29 +169,73 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
     }
   }
 
-  // === Apply (顺序: workflow_patch 检查 → prompt_delta → tools_add → tools_remove) ===
-  // 此时所有预检已通过, apply 阶段保证不失败。
+  // === 记录 Apply 前快照 (G4) ===
   AppliedMutation applied;
+  applied.prompt_snapshot = system_prompt;
+  applied.tools_snapshot = tools;
 
-  // workflow_patch → UnsupportedVariant (Wave 3 deferred)
-  if (has_workflow) {
-    return Result<AppliedMutation, MutationError>::failure(
-        MutationError::UnsupportedVariant);
+  // === Gate 3: Genome persist-before-apply (G4) ===
+  if (ctx.genome_registry != nullptr) {
+    // 计算最终态 spec
+    std::string final_harness = system_prompt;
+    if (has_prompt) final_harness += mutations.prompt_delta;
+
+    std::vector<std::string> final_tools = tools;
+    for (const auto& add : mutations.tools_add) {
+      final_tools.push_back(add);
+    }
+    for (const auto& rm : mutations.tools_remove) {
+      auto it = std::find(final_tools.begin(), final_tools.end(), rm);
+      if (it != final_tools.end()) final_tools.erase(it);
+    }
+    // 最终态 tools 为空 → InvalidMutation (V1 边界)
+    if (final_tools.empty()) {
+      return Result<AppliedMutation, MutationError>::failure(
+          MutationError::InvalidMutation);
+    }
+
+    genome::GenomeSpec spec;
+    spec.harness = final_harness;
+    spec.tools = final_tools;
+    auto fork_res = ctx.genome_registry->fork(
+        ctx.genome_name, ctx.parent_version, spec);
+    if (!fork_res.has_value()) {
+      if (ctx.bus) {
+        EventBuilder event("genome.persist_failed");
+        event.args(nlohmann::json{
+            {"genome_name", ctx.genome_name},
+            {"error", genome_error_name(fork_res.error())}
+        });
+        event.meta(nlohmann::json{{"trace_id", ctx.trace_id}});
+        ctx.bus->emit(event.build());
+      }
+      return Result<AppliedMutation, MutationError>::failure(
+          MutationError::RegistryRejected);
+    }
+    applied.committed_genome_version = fork_res.value().version;
+
+    if (ctx.bus) {
+      EventBuilder event("genome.committed");
+      event.args(nlohmann::json{
+          {"genome_name", ctx.genome_name},
+          {"version", fork_res.value().version},
+          {"parent", ctx.parent_version},
+          {"mutation_kind", "harness"}
+      });
+      event.meta(nlohmann::json{{"trace_id", ctx.trace_id}});
+      ctx.bus->emit(event.build());
+    }
   }
 
-  // mutation 路径 1: prompt_delta
+  // === Apply (顺序: prompt_delta → tools_add → tools_remove) ===
   if (has_prompt) {
     system_prompt += mutations.prompt_delta;
     applied.applied_prompts.push_back(mutations.prompt_delta);
   }
-
-  // mutation 路径 2: tools_add (registry.has_tool 已在前置 Gate 2.5 验证, 此处必通过)
   for (const auto& tool_name : mutations.tools_add) {
     tools.push_back(tool_name);
     applied.applied_tools_added.push_back(tool_name);
   }
-
-  // mutation 路径 3: tools_remove (per DB1 IToolRegistry::unregister_tool_function)
   for (const auto& tool_name : mutations.tools_remove) {
     registry.unregister_tool_function(tool_name);
     auto it = std::find(tools.begin(), tools.end(), tool_name);
@@ -184,6 +244,14 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
   }
 
   return Result<AppliedMutation, MutationError>::success(applied);
+}
+
+void undo_applied_mutation(const AppliedMutation& applied,
+                           std::string& system_prompt,
+                           std::vector<std::string>& tools,
+                           IToolRegistry* /*registry*/) {
+  system_prompt = applied.prompt_snapshot;
+  tools = applied.tools_snapshot;
 }
 
 }  // namespace agenticdsl::evolution

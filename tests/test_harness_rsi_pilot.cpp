@@ -5,8 +5,12 @@
 #include "catch_amalgamated.hpp"
 
 #include <algorithm>
+#include <cstdlib>
+#include <filesystem>
 #include <string>
 #include <vector>
+
+#include "agenticdsl/genome/genome.h"
 
 #include "agenticdsl/contract/event_builder.h"
 #include "agenticdsl/contract/ievaluator.h"
@@ -156,7 +160,17 @@ class StubToolRegistry : public IToolRegistry {
 }  // namespace testing
 }  // namespace agenticdsl::evolution
 
+namespace fs = std::filesystem;
 using namespace agenticdsl::evolution;
+
+// 文件级 hermetic fixture: 注入 HMAC key (per C1 教训: 防 G4 测试依赖宿主机既存 key)
+struct G4GenomeEnv {
+    G4GenomeEnv() {
+        setenv("HYDRAFORGE_GENOME_KEY",
+               "test_key_g4_00000000000000000000000000000000", 1);
+    }
+};
+const G4GenomeEnv g_g4_genome_env;
 
 // ============================================================================
 // Case 1: prompt_delta apply (success path, 确定性字符串断言)
@@ -618,6 +632,405 @@ TEST_CASE("C4 case-3d: partial apply prevention — prompt_delta + unregistered_
   REQUIRE(result.error() == MutationError::RegistryRejected);
   REQUIRE(system_prompt == "initial");
   REQUIRE(tools.empty());
+}
+
+// ============================================================================
+// G4 Case 7a: Gate 3 persist success (AC-1) — 真实 FilesystemGenomeRegistry + fork
+// ============================================================================
+TEST_CASE("C4 case-7a: Gate 3 persist success with FilesystemGenomeRegistry",
+          "[c4][harness-rsi][case-7a][g4]") {
+  using namespace agenticdsl::evolution::testing;
+
+  auto tmpdir = fs::temp_directory_path() / "hydraforge_g4_7a";
+  fs::remove_all(tmpdir);
+  auto genome_reg = agenticdsl::genome::IGenomeRegistry::create_filesystem(tmpdir);
+  REQUIRE(genome_reg != nullptr);
+
+  // Seed root v1
+  agenticdsl::genome::Genome root;
+  root.metadata.name = "chat_harness";
+  root.metadata.created_by = "test";
+  root.metadata.created_at = "2026-09-22T00:00:00Z";
+  root.metadata.capture_mode = "mock";
+  root.spec.harness = "You are helpful.";
+  root.spec.tools = {"trusted_tool"};
+  auto root_res = genome_reg->commit(root);
+  REQUIRE(root_res.has_value());
+  REQUIRE(root_res.value().version == 1);
+
+  // Mutation setup
+  AttributionRecord attr;
+  attr.verdict = AttributionVerdict::Attributed;
+  StubEvaluatorExcellent evaluator;
+  StubBudgetOk budget;
+  CapturingBus bus;
+  StubToolRegistry t_reg;
+
+  MutationGateContext ctx{
+    EvolutionState::Data,
+    &attr, &evaluator, &budget, &bus,
+    MutationGovernancePolicy{},
+    "trace-g4-7a",
+    genome_reg.get(),
+    "chat_harness",
+    1
+  };
+
+  std::string system_prompt = "You are helpful.";
+  std::vector<std::string> tools = {"trusted_tool"};
+  GenomeMutations m;
+  m.prompt_delta = " Be concise.";
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, t_reg, ctx);
+
+  REQUIRE(result.has_value());
+  REQUIRE(result.value().committed_genome_version > 0);
+
+  // Load back and verify
+  uint64_t saved_version = result.value().committed_genome_version;
+  auto loaded = genome_reg->load("chat_harness", saved_version);
+  REQUIRE(loaded.has_value());
+
+  // genome.committed event
+  bool found_committed = false;
+  for (const auto& c : bus.captured) {
+    if (c.topic == "genome.committed") {
+      found_committed = true;
+    }
+  }
+  REQUIRE(found_committed);
+
+  fs::remove_all(tmpdir);
+}
+
+// ============================================================================
+// G4 Case 7b: Gate 0 workflow_patch 上移拒绝 (AC-2 顺序守卫)
+// ============================================================================
+TEST_CASE("C4 case-7b: workflow_patch → UnsupportedVariant at Gate 0 (before Gate 1)",
+          "[c4][harness-rsi][case-7b][g4]") {
+  using namespace agenticdsl::evolution::testing;
+
+  auto tmpdir = fs::temp_directory_path() / "hydraforge_g4_7b";
+  fs::remove_all(tmpdir);
+  auto genome_reg = agenticdsl::genome::IGenomeRegistry::create_filesystem(tmpdir);
+
+  // Seed root to make fork available
+  agenticdsl::genome::Genome root;
+  root.metadata.name = "chat_harness";
+  root.metadata.created_by = "test";
+  root.metadata.created_at = "2026-09-22T00:00:00Z";
+  root.metadata.capture_mode = "mock";
+  root.spec.harness = "initial";
+  root.spec.tools = {};
+  auto root_res = genome_reg->commit(root);
+  REQUIRE(root_res.has_value());
+  REQUIRE(root_res.value().version == 1);
+
+  AttributionRecord attr;
+  attr.verdict = AttributionVerdict::Attributed;
+  StubEvaluatorExcellent evaluator;
+  StubBudgetOk budget;
+  CapturingBus bus;
+  StubToolRegistry t_reg;
+
+  MutationGateContext ctx{
+    EvolutionState::Data,
+    &attr, &evaluator, &budget, &bus,
+    MutationGovernancePolicy{},
+    "trace-g4-7b",
+    genome_reg.get(),
+    "chat_harness",
+    1
+  };
+
+  std::string system_prompt = "initial";
+  std::vector<std::string> tools;
+  GenomeMutations m;
+  m.workflow_patch = std::string("some workflow");
+  m.prompt_delta = " should not apply";
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, t_reg, ctx);
+
+  // UnsupportedVariant at Gate 0 — before Gate 1, before Gate 3 fork
+  REQUIRE_FALSE(result.has_value());
+  REQUIRE(result.error() == MutationError::UnsupportedVariant);
+  // Zero state change
+  REQUIRE(system_prompt == "initial");
+  REQUIRE(tools.empty());
+  // No genome.* event (fork never called)
+  bool found_genome_event = false;
+  for (const auto& c : bus.captured) {
+    if (c.topic.rfind("genome.", 0) == 0) found_genome_event = true;
+  }
+  REQUIRE_FALSE(found_genome_event);
+
+  fs::remove_all(tmpdir);
+}
+
+// ============================================================================
+// G4 Case 7c: Gate 3 fork failure → RegistryRejected (AC-3)
+// ============================================================================
+TEST_CASE("C4 case-7c: Gate 3 fork failure → RegistryRejected + zero state change",
+          "[c4][harness-rsi][case-7c][g4]") {
+  using namespace agenticdsl::evolution::testing;
+
+  auto tmpdir = fs::temp_directory_path() / "hydraforge_g4_7c";
+  fs::remove_all(tmpdir);
+  auto genome_reg = agenticdsl::genome::IGenomeRegistry::create_filesystem(tmpdir);
+
+  AttributionRecord attr;
+  attr.verdict = AttributionVerdict::Attributed;
+  StubEvaluatorExcellent evaluator;
+  StubBudgetOk budget;
+  CapturingBus bus;
+  StubToolRegistry t_reg;
+
+  // parent_version 指向不存在的版本 → fork returns NotFound
+  MutationGateContext ctx{
+    EvolutionState::Data,
+    &attr, &evaluator, &budget, &bus,
+    MutationGovernancePolicy{},
+    "trace-g4-7c",
+    genome_reg.get(),
+    "chat_harness",
+    99  // nonexistent parent version
+  };
+
+  std::string system_prompt = "initial";
+  std::vector<std::string> tools = {"trusted_tool"};
+  GenomeMutations m;
+  m.prompt_delta = " should not apply";
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, t_reg, ctx);
+
+  // RegistryRejected + zero state change
+  REQUIRE_FALSE(result.has_value());
+  REQUIRE(result.error() == MutationError::RegistryRejected);
+  REQUIRE(system_prompt == "initial");
+  REQUIRE(tools.size() == 1);
+  REQUIRE(tools[0] == "trusted_tool");  // 零状态变更
+
+  // genome.persist_failed event
+  bool found_failed = false;
+  for (const auto& c : bus.captured) {
+    if (c.topic == "genome.persist_failed") {
+      found_failed = true;
+    }
+  }
+  REQUIRE(found_failed);
+
+  fs::remove_all(tmpdir);
+}
+
+// ============================================================================
+// G4 Case 7d: parent_version=0 → InvalidMutation (AC-4 root guard)
+// ============================================================================
+TEST_CASE("C4 case-7d: parent_version=0 → InvalidMutation + zero events",
+          "[c4][harness-rsi][case-7d][g4]") {
+  using namespace agenticdsl::evolution::testing;
+
+  auto tmpdir = fs::temp_directory_path() / "hydraforge_g4_7d";
+  fs::remove_all(tmpdir);
+  auto genome_reg = agenticdsl::genome::IGenomeRegistry::create_filesystem(tmpdir);
+
+  MutationGateContext ctx{
+    EvolutionState::Data,
+    nullptr, nullptr, nullptr, nullptr,
+    MutationGovernancePolicy{}
+  };
+  // 不设 genome_registry — test 纯 parent_version=0 拦截
+
+  std::string system_prompt = "initial";
+  std::vector<std::string> tools;
+  GenomeMutations m;
+  m.prompt_delta = " should not apply";
+
+  StubToolRegistry t_reg;
+  auto result = apply_harness_mutation(m, system_prompt, tools, t_reg, ctx);
+
+  REQUIRE_FALSE(result.has_value());
+  REQUIRE(result.error() == MutationError::InvalidMutation);
+
+  fs::remove_all(tmpdir);
+}
+
+// ============================================================================
+// G4 Case 7e: tools 最终态为空 → InvalidMutation (V1 边界)
+// ============================================================================
+TEST_CASE("C4 case-7e: final tools empty → InvalidMutation + zero state change",
+          "[c4][harness-rsi][case-7e][g4]") {
+  using namespace agenticdsl::evolution::testing;
+
+  auto tmpdir = fs::temp_directory_path() / "hydraforge_g4_7e";
+  fs::remove_all(tmpdir);
+  auto genome_reg = agenticdsl::genome::IGenomeRegistry::create_filesystem(tmpdir);
+
+  agenticdsl::genome::Genome root;
+  root.metadata.name = "chat_harness";
+  root.metadata.created_by = "test";
+  root.metadata.created_at = "2026-09-22T00:00:00Z";
+  root.metadata.capture_mode = "mock";
+  root.spec.harness = "initial";
+  root.spec.tools = {"tool_a"};
+  auto root_res = genome_reg->commit(root);
+  REQUIRE(root_res.has_value());
+  REQUIRE(root_res.value().version == 1);
+
+  MutationGateContext ctx{
+    EvolutionState::Data,
+    nullptr, nullptr, nullptr, nullptr,
+    MutationGovernancePolicy{}
+  };
+
+  std::string system_prompt = "initial";
+  std::vector<std::string> tools = {"tool_a"};
+  StubToolRegistry t_reg;
+  GenomeMutations m;
+  m.tools_remove = {"tool_a"};
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, t_reg, ctx);
+
+  REQUIRE_FALSE(result.has_value());
+  REQUIRE(result.error() == MutationError::InvalidMutation);
+}
+
+// ============================================================================
+// G4 Case 7f: parent_version=0 with registry → InvalidMutation
+// ============================================================================
+TEST_CASE("C4 case-7f: parent_version=0 with registry → InvalidMutation",
+          "[c4][harness-rsi][case-7f][g4]") {
+  using namespace agenticdsl::evolution::testing;
+
+  auto tmpdir = fs::temp_directory_path() / "hydraforge_g4_7f";
+  fs::remove_all(tmpdir);
+  auto genome_reg = agenticdsl::genome::IGenomeRegistry::create_filesystem(tmpdir);
+
+  MutationGateContext ctx{
+    EvolutionState::Data,
+    nullptr, nullptr, nullptr, nullptr,
+    MutationGovernancePolicy{},
+    "",
+    genome_reg.get(),
+    "chat_harness",
+    0  // parent_version = 0
+  };
+
+  std::string system_prompt = "initial";
+  std::vector<std::string> tools;
+  StubToolRegistry t_reg;
+  GenomeMutations m;
+  m.prompt_delta = " should not apply";
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, t_reg, ctx);
+
+  REQUIRE_FALSE(result.has_value());
+  REQUIRE(result.error() == MutationError::InvalidMutation);
+  REQUIRE(system_prompt == "initial");
+
+  fs::remove_all(tmpdir);
+}
+
+// ============================================================================
+// G4 Case 7g: workflow_patch + registry → UnsupportedVariant (Gate 0 order guard)
+// ============================================================================
+TEST_CASE("C4 case-7g: workflow_patch + registry → UnsupportedVariant at Gate 0 (no disk version)",
+          "[c4][harness-rsi][case-7g][g4]") {
+  using namespace agenticdsl::evolution::testing;
+
+  auto tmpdir = fs::temp_directory_path() / "hydraforge_g4_7g";
+  fs::remove_all(tmpdir);
+  auto genome_reg = agenticdsl::genome::IGenomeRegistry::create_filesystem(tmpdir);
+
+  agenticdsl::genome::Genome root;
+  root.metadata.name = "chat_harness";
+  root.metadata.created_by = "test";
+  root.metadata.created_at = "2026-09-22T00:00:00Z";
+  root.metadata.capture_mode = "mock";
+  root.spec.harness = "initial";
+  auto root_res = genome_reg->commit(root);
+  REQUIRE(root_res.has_value());
+
+  MutationGateContext ctx{
+    EvolutionState::Data,
+    nullptr, nullptr, nullptr, nullptr,
+    MutationGovernancePolicy{},
+    "",
+    genome_reg.get(),
+    "chat_harness",
+    1
+  };
+
+  std::string system_prompt = "initial";
+  std::vector<std::string> tools;
+  StubToolRegistry t_reg;
+  GenomeMutations m;
+  m.workflow_patch = std::string("some workflow");
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, t_reg, ctx);
+
+  REQUIRE_FALSE(result.has_value());
+  REQUIRE(result.error() == MutationError::UnsupportedVariant);
+  REQUIRE(system_prompt == "initial");
+
+  // Verify no disk version beyond root v1 was created
+  auto versions = genome_reg->list_versions("chat_harness");
+  REQUIRE(versions.has_value());
+  REQUIRE(versions.value().size() == 1);
+  REQUIRE(versions.value()[0] == 1);
+
+  fs::remove_all(tmpdir);
+}
+
+// ============================================================================
+// G4 Case 7h: undo_applied_mutation 恢复 tools_snapshot (AC-5)
+// ============================================================================
+TEST_CASE("C4 case-7h: undo_applied_mutation restores prompt+tools from AppliedMutation snapshot",
+          "[c4][harness-rsi][case-7h][g4]") {
+  using namespace agenticdsl::evolution::testing;
+
+  AttributionRecord attr;
+  attr.verdict = AttributionVerdict::Attributed;
+  StubEvaluatorExcellent evaluator;
+  StubBudgetOk budget;
+  CapturingBus bus;
+  StubToolRegistry t_reg;
+
+  MutationGateContext ctx{
+    EvolutionState::Data,
+    &attr, &evaluator, &budget, &bus,
+    MutationGovernancePolicy{}
+  };
+
+  std::string system_prompt = "You are helpful.";
+  std::vector<std::string> tools = {"trusted_tool"};
+  GenomeMutations m;
+  m.prompt_delta = " Be concise.";
+  m.tools_add = {"another_tool"};
+  // Gate 2.5 要求 tools_add 的 tool 已在 registry 注册
+  t_reg.register_tool_function("another_tool", agenticdsl::ToolMetadata{},
+                               agenticdsl::IToolRegistry::ToolFunc{});
+
+  auto result = apply_harness_mutation(m, system_prompt, tools, t_reg, ctx);
+  REQUIRE(result.has_value());
+
+  // Verify mutation applied
+  std::string applied_prompt = system_prompt;
+  std::vector<std::string> applied_tools = tools;
+
+  // Undo — restore from snapshot
+  std::string restored_prompt = system_prompt;
+  std::vector<std::string> restored_tools = tools;
+  undo_applied_mutation(result.value(), restored_prompt, restored_tools, &t_reg);
+
+  // Undo should restore to pre-mutation state
+  REQUIRE(restored_prompt == "You are helpful.");
+  REQUIRE(restored_tools.size() == 1);
+  REQUIRE(restored_tools[0] == "trusted_tool");
+
+  // V1 limitation: registry has_tool for removed stays false
+  if (!m.tools_remove.empty()) {
+    REQUIRE_FALSE(t_reg.has_tool(m.tools_remove[0]));
+  }
 }
 
 // ============================================================================
