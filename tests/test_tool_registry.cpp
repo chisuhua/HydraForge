@@ -151,7 +151,7 @@ TEST_CASE("ToolRegistry concurrent register+unregister write-write safe",
     std::thread t_register([&]() {
         while (!start.load(std::memory_order_acquire)) { /* spin wait */ }
         struct NewTool {
-            json operator()(const std::unordered_map<std::string, std::string>&) {
+            json operator()(const std::unordered_map<std::string, std::string>&) const {
                 return json{{"new", true}};
             }
         };
