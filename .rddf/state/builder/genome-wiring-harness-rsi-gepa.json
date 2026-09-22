@@ -1,0 +1,48 @@
+{
+  "schema": "builder-handoff-v1",
+  "version": 1,
+  "owner": "rdd-builder",
+  "change_name": "genome-wiring-harness-rsi-gepa",
+  "current_phase": "phase-1.5",
+  "approval_status": "approved",
+  "plan_quality_status": "ready",
+  "approval_decision_at": "2026-09-22T12:00:00+00:00",
+  "approval_decision_by": "user-explicit",
+  "approval_context": "用户授权 G4 async (per Pre-Wave3 Plan §2 G4 最后闸口, G1+G3 已 ship 确认 G4 ready)",
+  "pre_dual_review": {
+    "completed_at": "2026-09-21T00:00:00+00:00",
+    "oracle_session": "bg_ab8bc26b",
+    "oracle_verdict": "Caveat 2-4 无 PR；D2 fork(即 factory)代价过低 → 调 fork 不改复用 cost — agreed",
+    "metis_session": "bg_687a5662",
+    "metis_verdict": "3 deal-breaker（R1 root 下次 fork 的 ParentVersion=0 → 引导 commit 修复、R2 undo unregister 恢复 only true testable with state、DB1 workflow_patch 检查上移 Gate 0）+ 6 歧义"
+  },
+  "execution_mode_decision": {
+    "mode": "worktree",
+    "reason": "complex per ADR-0048 + G4 跨 6 production files + 2 test files + ADR-0068 Appendix A amendment; 同改 MutationGateContext (G1 D4 trace_id pattern 复用); 闭环第 7 环 wiring, 与 G1/G2/G3 独立. Per mode #11 async + dual Oracle post-impl.",
+    "decided_at": "2026-09-22T12:00:00+00:00",
+    "decided_by": "rdd-builder-P0-auto-decision",
+    "worktree_path": ".rddf/wt/genome-wiring-harness-rsi-gepa",
+    "worktree_branch": "feat/genome-wiring-harness-rsi-gepa"
+  },
+  "deps_status": {
+    "blockers": [],
+    "manual_deps": [],
+    "cross_repo_pending": [],
+    "awaiting_phase_completion": [
+      "G1 harness-rsi-remove-governance (同改 MutationGateContext, 已 ship ✅)",
+      "G2 evolution-verdict-reward-quality (推后, 不 block G4)"
+    ]
+  },
+  "g1_lessons_applied": {
+    "lessons_1-4": [
+      "Result<T,E> 解包用 .value() 非 -> (模式 #11)",
+      "Lambda by-value 捕获要求 operator() const-qualified",
+      "LSP stale cache ≠ 真实 compile fail (永远 g++ 验证)",
+      "Worker final-report 误导 — 主会话必须验证实际产物, 不信 report"
+    ],
+    "builder_state_schema": "FULL (含 pre_dual_review + post_impl_review_prompt + post_impl_execute_summary + design_deviations)",
+    "merge_conflict_lesson": "G3 merge conflict on builder state (worker 简版 vs main full 版) → worker prompt 必须显式要求builder.json FULL schema"
+  },
+  "next_phase_ready": "phase-2",
+  "next_phase_entry_action": "fire async Sisyphus-Junior worker for G4 P2 execute (TDD 5步 + 1 impl commit + 1 archive commit + Oracle post-impl review prompt)"
+}
