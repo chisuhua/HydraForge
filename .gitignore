@@ -48,7 +48,8 @@ build_ninja/
 .rddf/state/.env-cache.json
 # rdd-quick mode per-machine ephemeral state (per AGENTS.md Mode: cross-section)
 .rddf/state/.quick-history.jsonl
-.rddf/state/builder/
+# note: .rddf/state/builder/ is intentionally tracked (rdd-builder state machine depends on it
+# to resume P0 across sessions). Per-machine ephemeral subdirs go in .quick-history.jsonl instead.
 # _lib is a per-machine symlink to ~/.agents/skills/_lib/ (rdd-workflow canonical)
 # Each developer creates this themselves; see AGENTS.md §环境 setup
 _lib

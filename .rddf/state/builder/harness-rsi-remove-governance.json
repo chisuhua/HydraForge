@@ -1,0 +1,44 @@
+{
+  "schema": "builder-handoff-v1",
+  "version": 1,
+  "owner": "rdd-builder",
+  "change_name": "harness-rsi-remove-governance",
+  "current_phase": "phase-1.5",
+  "approval_status": "approved",
+  "plan_quality_status": "ready",
+  "approval_decision_at": "2026-09-21T11:30:00+00:00",
+  "approval_decision_by": "user-explicit",
+  "approval_context": "用户授权立即启动 G1 (per Pre-Wave3 Plan §2 sequencing + Phase A 3 commits ship 完成 1e99a1f)",
+  "pre_dual_review": {
+    "completed_at": "2026-09-21T00:00:00+00:00",
+    "oracle_session": "bg_c706862b",
+    "oracle_verdict": "5 SHIP-with-fixes",
+    "metis_session": "bg_d9744d91",
+    "metis_verdict": "3 BLOCK→修正",
+    "fixes_commit": "a4f374b"
+  },
+  "execution_mode_decision": {
+    "mode": "worktree",
+    "reason": "complex per ADR-0048 + rdd-quick escalation; files=7 > 2 AND tasks=12 (AC items) > 3 AND public API change (MutationGateContext +1 字段, design D4 修正为非 BREAKING 仍需跨文件构造点同步) AND cross-module (evolution + common/tools)",
+    "decided_at": "2026-09-21T11:30:00+00:00",
+    "decided_by": "rdd-builder-P0-auto-decision",
+    "worktree_path": ".rddf/wt/harness-rsi-remove-governance",
+    "worktree_branch": "feat/harness-rsi-remove-governance"
+  },
+  "deps_status": {
+    "blockers": [],
+    "manual_deps": [],
+    "cross_repo_pending": [],
+    "awaiting_phase_completion": [
+      "G2 (evolution-verdict-reward-quality) 需 shared harness_rsi.cpp 串行后续",
+      "G3 (sync-pdk-contract-header) ∥ 独立 contract manifest 文件面, 可并行 (per user 决策 G1 ship 后再启 G3)"
+    ]
+  },
+  "post_impl_review_plan": {
+    "review_type": "Oracle SHIP-with-fixes",
+    "scheduled_at": "post-P2-execute",
+    "scope": "full diff + Gate 2 不变量 + trace_id 透传语义 + Day-5 trap guard"
+  },
+  "next_phase_ready": "phase-2",
+  "next_phase_entry_action": "delegate to TDD worker (read tasks.md §3 + write failing test per AC-1)"
+}
