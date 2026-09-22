@@ -170,6 +170,7 @@
 | 运行资源 | IBudgetController、DomainWorkerPool、stop_token、SLM 路由 | 进化任务调度策略未形成独立契约 |
 | 蒸馏输出 | ADR-0061-13 DistillationRecord/IDistillationWriter (✅ Approved, 代码 ✅ 已 ship 2026-08-29) | ✅ `include/agenticdsl/contract/idistillation_writer.h` + `src/modules/distillation/file_writer.{h,cpp}` + `trajectory_bridge.{h,cpp}` (commits `11d3515` + `9a781f8`, capture-mode-and-distillation-writer-v1 archived, 21 cases PASS); 训练管线与模型回流仍依赖外部 AgenticMind |
 | 环境/对手共进化 | EnvBackend、Agent Composition 契约骨架 | 尚无成熟 Agent-Agent 或世界模型运行时 |
+| **Genome 版本提交/发布 (闭环第 7 环)** | **ADR-0088 + C2 genome-registry + C4 harness-rsi-pilot** — `IGenomeRegistry` (C2 ship) + `apply_harness_mutation` Gate 3 persist-before-apply (G4 wiring) + `GEPALoop::reflect_and_commit` fork 持久化 | ✅ **已接线 (genome-wiring-harness-rsi-gepa, 2026-09-22)**: Gate 3 `fork(name, parent_version, final_spec)` 在内存 apply 之前持久化, 失败零状态变更; `undo_applied_mutation` 快照式回滚; `genome.committed`/`genome.persist_failed` 2 事件注册 (ADR-0068 Appendix A v2.3); GEPA persist-then-commit (version_id = name@N) |
 
 ### 当前允许的最小闭环
 

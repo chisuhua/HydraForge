@@ -10,6 +10,7 @@
 #include "agenticdsl/contract/ievaluator.h"
 #include "agenticdsl/contract/imutation_governance.h"
 #include "agenticdsl/contract/iinteraction_bus.h"
+#include "agenticdsl/genome/genome.h"
 #include "modules/budget/budget_controller.h"
 #include "agenticdsl/types/execution_trace.h"
 
@@ -29,6 +30,10 @@ class GEPALoop {
     double regression_alpha = 0.05;
     int max_iterations = 3;
     std::string source_id = "R_T19_GEPA";
+    // G4: Genome registry 注入 (可选). 非空时 enable persist-then-commit.
+    std::shared_ptr<genome::IGenomeRegistry> genome_registry;
+    std::string genome_name;
+    uint64_t parent_version = 0;
   };
 
   struct ReflectionResult {

@@ -283,7 +283,7 @@ EvolutionVerdict can_transition(
 |---------|----------------|------|
 | Aspire: AI 难以决定"改什么" | IEvaluator + Credit Assignment（✅ 已 ship）+ Mutation 白名单 | Credit Assignment ✅ Approved v1.1，已落地 |
 | S³Gym: 经验不可靠 | D10 蒸馏 + SLM Routing First + Trajectory IR | 已 ship，验证流 OK |
-| HarnessDev: 自我修改 ≠ 自我改进 | Mutation Governance + H→D→M 守门（C3 ✅）+ session fork revert | 治理完整，**H→D→M 守门已 ship；Genome 持久化接线（闭环第 7 环）待 follow-up** |
+| HarnessDev: 自我修改 ≠ 自我改进 | Mutation Governance + H→D→M 守门（C3 ✅）+ session fork revert | 治理完整，**H→D→M 守门已 ship；Genome 持久化接线（闭环第 7 环）✅ 已接线 (genome-wiring-harness-rsi-gepa, 2026-09-22)** |
 
 ### 5.3 项目 vs DSH "三权分立"
 

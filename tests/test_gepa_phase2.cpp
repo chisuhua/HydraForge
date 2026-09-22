@@ -22,13 +22,18 @@
 #include "agenticdsl/cognitive/composite_evaluator.h"
 #include "core/types/tool_result.h"
 
+#include "agenticdsl/genome/genome.h"
+
 #include <algorithm>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_set>
 #include <vector>
 
 using namespace agenticdsl;
+
+namespace fs = std::filesystem;
 
 namespace {
 
@@ -502,4 +507,145 @@ TEST_CASE("gepa_budget_t6_unlimited_baseline", "[gepa][budget][t6]") {
   const auto result = loop.reflect_and_commit(make_failed_trace("t6_unlimited"));
   REQUIRE(result.success);  // budget 不限, 跑完 3 次迭代
   REQUIRE_FALSE(controller.evolution_budget_exceeded());
+}
+
+// ============================================================================
+// G4 Case 9: GEPA persist-then-commit success with genome registry
+// ============================================================================
+TEST_CASE("G4 case-9: GEPA persist-then-commit with genome registry succeeds",
+          "[gepa][g4][case-9]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
+  auto governor = std::make_shared<StubMutationGovernor>();
+  auto llm = std::make_shared<MockLLMProvider>();
+  auto bus = std::make_shared<RecordingBus>();
+
+  // Setup real FilesystemGenomeRegistry
+  auto tmpdir = fs::temp_directory_path() / "hydraforge_g4_9";
+  fs::remove_all(tmpdir);
+  auto genome_reg = agenticdsl::genome::IGenomeRegistry::create_filesystem(tmpdir);
+  REQUIRE(genome_reg != nullptr);
+
+  // Seed root v1 for gepa_skill
+  agenticdsl::genome::Genome root;
+  root.metadata.name = "gepa_skill";
+  root.metadata.created_by = "test";
+  root.metadata.created_at = "2026-09-22T00:00:00Z";
+  root.metadata.capture_mode = "mock";
+  root.spec.harness = "initial system prompt";
+  root.spec.tools = {};
+  auto root_res = genome_reg->commit(root);
+  REQUIRE(root_res.has_value());
+  REQUIRE(root_res.value().version == 1);
+
+  GEPALoop::Config config;
+  config.max_iterations = 1;
+  // unique_ptr → shared_ptr: 必须 std::move (shared_ptr 有 unique_ptr 移动赋值)
+  config.genome_registry = std::move(genome_reg);
+  config.genome_name = "gepa_skill";
+  config.parent_version = 1;
+
+  GEPALoop loop(evaluator, governor, llm, config, bus);
+
+  auto result = loop.reflect_and_commit(make_failed_trace("g4_case9"));
+
+  // Should succeed with genome version
+  REQUIRE(result.success);
+  REQUIRE(result.candidate_skills.size() == 1);
+
+  // version_id should be gepa_skill@N
+  // (checked via gepa.commit.committed event payload)
+  bool found_version_id = false;
+  bool found_genome_version = false;
+  for (const auto& e : bus->events) {
+    if (e.topic == "gepa.commit.committed") {
+      if (e.payload.data.contains("commit_id")) {
+        std::string commit_id = e.payload.data["commit_id"].get<std::string>();
+        if (commit_id.rfind("gepa_skill@", 0) == 0) {
+          found_version_id = true;
+        }
+      }
+      // M1 回归守卫: spec 要求 payload MUST 含 genome_version (persist-then-commit)
+      if (e.payload.data.contains("genome_version")) {
+        found_genome_version = true;
+      }
+    }
+  }
+  REQUIRE(found_version_id);
+  REQUIRE(found_genome_version);
+
+  fs::remove_all(tmpdir);
+}
+
+// ============================================================================
+// G4 Case 9b: GEPA fork failure → gepa.commit.denied + success=false
+// ============================================================================
+TEST_CASE("G4 case-9b: GEPA fork failure → gepa.commit.denied + success=false",
+          "[gepa][g4][case-9b]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
+  auto governor = std::make_shared<StubMutationGovernor>();
+  auto llm = std::make_shared<MockLLMProvider>();
+  auto bus = std::make_shared<RecordingBus>();
+
+  auto tmpdir = fs::temp_directory_path() / "hydraforge_g4_9b";
+  fs::remove_all(tmpdir);
+  auto genome_reg = agenticdsl::genome::IGenomeRegistry::create_filesystem(tmpdir);
+
+  GEPALoop::Config config;
+  config.max_iterations = 1;
+  config.genome_registry = std::move(genome_reg);  // unique_ptr → shared_ptr
+  config.genome_name = "gepa_skill";
+  config.parent_version = 99;  // nonexistent parent → fork fail
+
+  GEPALoop loop(evaluator, governor, llm, config, bus);
+
+  auto result = loop.reflect_and_commit(make_failed_trace("g4_case9b"));
+
+  REQUIRE_FALSE(result.success);
+  // Should have gepa.commit.denied
+  bool found_denied = false;
+  for (const auto& e : bus->events) {
+    if (e.topic == "gepa.commit.denied") {
+      found_denied = true;
+    }
+  }
+  REQUIRE(found_denied);
+
+  fs::remove_all(tmpdir);
+}
+
+// ============================================================================
+// G4 Case 9c: GEPA genome_registry == nullptr → V1 regression (version_id = reflection_id)
+// ============================================================================
+TEST_CASE("G4 case-9c: GEPA registry nullptr → version_id = reflection_id (V1)",
+          "[gepa][g4][case-9c]") {
+  auto evaluator = std::make_shared<StubEvaluator>();
+  evaluator->score_by_ok = true;
+  auto governor = std::make_shared<StubMutationGovernor>();
+  auto llm = std::make_shared<MockLLMProvider>();
+  auto bus = std::make_shared<RecordingBus>();
+
+  GEPALoop::Config config;
+  config.max_iterations = 1;
+  // genome_registry defaults to nullptr
+
+  GEPALoop loop(evaluator, governor, llm, config, bus);
+
+  auto result = loop.reflect_and_commit(make_failed_trace("g4_case9c"));
+
+  REQUIRE(result.success);
+  // version_id should be reflection_id (V1 pattern)
+  bool found_reflection = false;
+  for (const auto& e : bus->events) {
+    if (e.topic == "gepa.commit.committed") {
+      if (e.payload.data.contains("commit_id")) {
+        std::string commit_id = e.payload.data["commit_id"].get<std::string>();
+        if (commit_id.rfind("g4_case9c:reflection:", 0) == 0) {
+          found_reflection = true;
+        }
+      }
+    }
+  }
+  REQUIRE(found_reflection);
 }

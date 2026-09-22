@@ -11,6 +11,7 @@
 #include "agenticdsl/cognitive/skill_compiler.h"
 #include "agenticdsl/ir/trajectory_ir.h"
 #include "agenticdsl/testing/behavioral_regression.h"
+#include "agenticdsl/genome/genome.h"
 #include "common/llm/llm_types.h"
 
 #include <memory>
@@ -168,6 +169,29 @@ GEPALoop::ReflectionResult GEPALoop::reflect_and_commit(
 
     proposal.version_id = reflection_id;
     proposal.evaluation_refs = {reflection_id};
+
+    // G4: persist-then-commit — fork 在 result.success=true 之前
+    // fork 成功 → proposal.version_id = name@N → governor commit
+    // fork 失败 → gepa.commit.denied(genome_persist_failed) + skip commit
+    uint64_t committed_genome_version = 0;
+    if (config_.genome_registry != nullptr && !config_.genome_name.empty()) {
+      genome::GenomeSpec spec;
+      spec.harness = candidate.compiled_content;
+      auto fork_res = config_.genome_registry->fork(
+          config_.genome_name, config_.parent_version, spec);
+      if (fork_res.has_value()) {
+        committed_genome_version = fork_res.value().version;
+        proposal.version_id = config_.genome_name + "@" +
+                              std::to_string(committed_genome_version);
+      } else {
+        result.failure_mode = "genome_persist_failed";
+        emit_event(bus_, "gepa.reflection.failed",
+                   {{"reflection_id", reflection_id}, {"reason", result.failure_mode}});
+        emit_event(bus_, "gepa.commit.denied",
+                   {{"reflection_id", reflection_id}, {"reason", "genome_persist_failed"}});
+        continue;
+      }
+    }
     const MutationDecision committed = governor_->commit(proposal);
     if (!committed.approved) {
       result.failure_mode = "commit_denied";
@@ -184,7 +208,8 @@ GEPALoop::ReflectionResult GEPALoop::reflect_and_commit(
                {{"reflection_id", reflection_id}, {"regression_verdict", verdict_to_string(verdict)}});
     emit_event(bus_, "gepa.commit.committed",
                {{"reflection_id", reflection_id}, {"commit_id", proposal.version_id},
-                {"evaluation_refs", proposal.evaluation_refs}});
+                {"evaluation_refs", proposal.evaluation_refs},
+                {"genome_version", committed_genome_version}});
     return result;
   }
 

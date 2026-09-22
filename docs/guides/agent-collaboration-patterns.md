@@ -889,7 +889,7 @@ namespace hydraforge::pdk::cross_cutting_pattern {
 
 ## 十、信用分配契约（ADR-0086）
 
-**状态**：🔍 Proposed (2026-08-31 — self-evolution §七 #6 立项)
+**状态**：✅ Approved (v1.1, 2026-09-20 — merge commit `886def1`, test_credit_assignment 12 cases / 40 assertions PASS)
 
 **目的**：协作链路的信用归因，**Axis6 cognitive_domain composition chain** 的前置（`adr-0061-08-v1-1-amendment-axis6.md`）。
 
@@ -910,6 +910,16 @@ namespace hydraforge::pdk::cross_cutting_pattern {
   - `Insufficient` ← 数据不足
   - `NotAttempted` ← 未尝试
 - **默认 fail-closed**
+
+---
+
+### 10.3 Genome Registry 接线（闭环第 7 环）
+
+**状态**：✅ 已接线 (genome-wiring-harness-rsi-gepa, 2026-09-22)
+
+- `IGenomeRegistry` (C2 ship) 现由 `apply_harness_mutation` Gate 3 persist-before-apply + `GEPALoop::reflect_and_commit` persist-then-commit 实际调用（此前无生产接线）
+- `genome.committed` / `genome.persist_failed` 2 事件注册于 ADR-0068 Appendix A v2.3
+- `undo_applied_mutation` 快照式回滚（V1 tools_remove registry 恢复限制）
 
 ---
 
