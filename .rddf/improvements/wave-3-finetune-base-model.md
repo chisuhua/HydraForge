@@ -29,7 +29,13 @@ Pre-Wave3 Plan §3 明确 Wave 3 立项依据: G1+G3+G4+G2 4-Gate 序列全部 S
 - **ADR-0078 状态翻牌**: 🔍 Proposed (Wave 5+ descoped docs-only) → ✅ Approved (Pilot 激活). 同时 Phase 5+ descoped 标签移除, Pilot 改名为 Wave 3 Phase 1.
 - **OpenSpec change 创建**: `openspec/changes/wave-3-finetune-base-model/` (或 `finetune-base-model-pilot-phase1` 更具体名称). 4 件套: proposal.md + design.md + tasks.md + specs/*/spec.md. 实施 D1 + D3 (基模选型 + 训练数据准备), D4-D7 延后到 Wave 3 Phase 2+ (Phase 5+ training)。
 - **D1 基模选型实施**: 4 维度 (Capability/Latency/Cost/Openness) 评分, 候选 5 个模型 (gpt-4-turbo / claude-3.5-sonnet / llama-3.1-70b / qwen-2.5-72b / deepseek-v2), 选 Weighted ≥ 7.5 + 4 过滤条件全过. 复用现有 `tests/test_llm_tool*.cpp` 评分基础设施 + `examples/cost_tracking_decorator` cost 数据.
-- **D3 训练数据准备**: 3 路汇总 (ADR-0074 D6 baseline JSONL + ADR-0074 D7 失败事件 + AgenticMind 回流). Schema 兼容 ADR-0074 D6 (`dsl_version` + `schema_snapshot_hash` + `stage_1_selected` 等元数据), 新增 `source` 字段 (`baseline` / `failure` / `agenticmind`).
+- **D3 训练数据准备**: 3 路汇总 (ADR-0074 D6 baseline JSONL + ADR-0074 D7 失败事件 + AgenticMind 回流).
+  - **ADR-0074 D6 实际 schema** (`tools/prompt/export_training_data.py` ADR-0074 V1 ship): 每行 `{prompt, response, reward, metadata{task_id, domain, difficulty, ...}}`. 注意 — **与 ADR-0078 ADR 描述字段不匹配** (ADR-0078 假设字段 `dsl_version`, `schema_snapshot_hash`, `stage_1_selected`, `parse_valid`, `task_success` 等, 这些字段是 ADR-0078 设计意图而非 ADR-0074 V1 实际产出).
+  - **Wave 3 Phase 1 D3 设计决策** (待 rdd-planner/implementation 阶段决定):
+    - 选项 A: 改造 `tools/prompt/export_training_data.py` 扩展 schema, 加 `source` + ADR-0078 假设字段 (需要 schema migration 测试 + backward compat)
+    - 选项 B: 接受 ADR-0074 V1 实际 schema, Wave 3 微调 ADR-0078 ADR (简单, 但失去 ADR-0078 部分治理价值)
+    - 选项 C: 双 schema 并存: 训练用 ADR-0074 V1 schema, 评估用 ADR-0078 假设字段 (解耦, 但增加 complexity)
+  - 新增 `source` 字段 (`baseline` / `failure` / `agenticmind`) 用于 3 路数据过滤 — 跨选项通用
 - **D7 serving 集成 (Phase 1 最小版)**: 注册 Fine-tune 模型为 ILLMProvider via `LLMProviderFactory::register_dynamic(name, DynamicFactoryFn)` (per `src/common/llm/llm_provider_factory.h:33`, 实际 API 名称; 不是 `register_provider`). Factory fn 签名 `std::function<std::unique_ptr<ILLMProvider>(const LLMConfig&)>` (LLMConfig 非 json). 接入 MCP `prompts/*` 更新 (ADR-0076 衔接) 延后 Wave 3 Phase 2+.
 - **决策记录更新**: `docs/audits/2026-09-21-harness-rsi-pilot-go-no-go.md` §5.1 4-Gate 序列 Pre-Wave3 收盘 + §3 摩擦 1 (G2 已 resolved) + Wave 3 立项条件新增"Phase 1 容量评估"段落.
 
