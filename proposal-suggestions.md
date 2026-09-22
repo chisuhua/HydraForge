@@ -28,9 +28,9 @@
 
 | 提案 | 优先级 | 来源 | 添加时间 | 状态 |
 |------|--------|------|----------|------|
-| _（空 — 14 个 stale 提案已在 §3 清理，0 项待讨论）_ | | | | |
+| [wave-3-finetune-base-model](.rddf/improvements/wave-3-finetune-base-model.md) | P0 (Wave 3 立项) | Pre-Wave3 Plan §3 + ADR-0078 🔍 Proposed 翻牌 + 4-Gate 序列 SHIPPED 触发 | 2026-09-22 | 📝 Draft (24h cooling-off 期间准备; 2026-09-23 22:30 后 rdd-arch 正式立项) |
 
-**当前待讨论数**: 0 项
+**当前待讨论数**: 1 项 (Wave 3 立项准备草稿)
 
 **Dashboard stale 同步**: rddf dashboard 仍显示 14 个"📋 待讨论"是因为 `.rddf/improvements/` 目录下文件未自动标记状态。本次清理通过：
 1. `proposal-suggestions.md` §3 记录清理动作 + 依据；
