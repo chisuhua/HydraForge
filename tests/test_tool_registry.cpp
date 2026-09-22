@@ -133,7 +133,7 @@ TEST_CASE("ToolRegistry concurrent register+unregister write-write safe",
     ToolRegistry registry;
     // Pre-register 2 个工具: a (后续不操作), c (被 t2 unregister)
     struct DummyFn {
-        json operator()(const std::unordered_map<std::string, std::string>&) {
+        json operator()(const std::unordered_map<std::string, std::string>&) const {
             return json{{"ok", true}};
         }
     };
