@@ -61,7 +61,8 @@ TEST_CASE("register_dynamic rejects invalid and duplicate definitions without mu
   bool invalid_ok = invalid["ok"].get<bool>();
   CHECK_FALSE(invalid_ok);
   CHECK(invalid["error_code"] == "validation");
-  CHECK(factory.dynamic_names().empty());
+  // ctor 自动注册 finetune 模型, 故 size() = 1 (而非 0)
+  CHECK(factory.dynamic_names().size() == 1);
   CHECK(registry.list_providers().empty());
 
   REQUIRE(invoke_register_dynamic_tool(factory, registry, valid_input())["ok"] == true);
@@ -69,5 +70,6 @@ TEST_CASE("register_dynamic rejects invalid and duplicate definitions without mu
   bool dup_ok = dup["ok"].get<bool>();
   CHECK_FALSE(dup_ok);
   CHECK(dup["error_code"] == "duplicate-provider");
-  CHECK(factory.dynamic_names().size() == 1);
+  // ctor 注册 finetune + 运行时 register 1 个 = 2
+  CHECK(factory.dynamic_names().size() == 2);
 }

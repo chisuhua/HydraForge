@@ -86,6 +86,7 @@ add_library(agenticdsl_common STATIC
     src/common/llm/mock_provider.cpp
     src/common/llm/mock_provider_factory.cpp    # P1.T1: MockProviderFactory
     src/common/llm/factory.cpp                  # Sprint 6 P2-7
+    src/common/llm/finetune_provider.cpp        # Wave 3 Phase 1 D7: FinetuneBaseModelProvider stub
     src/common/llm/sse_stream.cpp
     src/common/llm/stream_to_bus.cpp            # C2 Day 1-2: IGenerationStream → IInteractionBus bridge
     src/common/llm/illmprovider_decorator.cpp   # Phase 5: ILLMProviderDecorator 基类 (REQ-IPD-001)

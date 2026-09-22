@@ -10,6 +10,7 @@
 #include "common/llm/mock_provider.h"
 #include "common/llm/mock_provider_factory.h"  // P1.T1.5: MockProviderFactory 完整类型
 
+#include <algorithm>
 #include <atomic>
 #include <memory>
 #include <string>
@@ -146,6 +147,15 @@ TEST_CASE("LLMProviderFactory concurrent create() thread-safe", "[provider_facto
 // ============================================================
 // 7. LLMProviderFactory 动态注册: 运行时注册后立即创建
 // ============================================================
+// 设计决策背景 (design D7-3 + ADR-0078 Phase 1 容量评估):
+//   LLMProviderFactory 构造函数内自注册 finetune 模型
+//   ("agenticdsl-llama-3.1-70b-lora-v1", Wave 3 Phase 1 stub),
+//   保证默认 finetune provider 无 explicit register 调用即可用
+//   (factory.create(config) 直接路由到 dynamic_factories_)。
+//   因此 dynamic_names() 在全新 factory 上不为空 — 这是 design
+//   D7-3 的显式决策, 而非 regression。下方断言基于此 baseline 计算:
+//   ctor 注册 1 个 + 运行时 register N 个 = size() N+1。
+//   注意 unordered_map 不保证顺序, 精确比较需按字母序。
 TEST_CASE("LLMProviderFactory registers and creates a dynamic provider",
           "[provider_factory][dynamic]") {
   LLMProviderFactory factory;
@@ -165,7 +175,11 @@ TEST_CASE("LLMProviderFactory registers and creates a dynamic provider",
   REQUIRE(provider != nullptr);
   CHECK(calls.load() == 1);
   CHECK(factory.has_dynamic("runtime-provider"));
-  CHECK(factory.dynamic_names() == std::vector<std::string>{"runtime-provider"});
+  // 包含 LLMProviderFactory ctor 自动注册的 finetune 模型 (per design D7-3)
+  // unordered_map 不保证顺序, 排序后比较以消除哈希序依赖
+  auto names = factory.dynamic_names();
+  std::sort(names.begin(), names.end());
+  CHECK(names == std::vector<std::string>{"agenticdsl-llama-3.1-70b-lora-v1", "runtime-provider"});
   CHECK(factory.current_default().empty());
 }
 
@@ -178,7 +192,8 @@ TEST_CASE("LLMProviderFactory rejects invalid and duplicate dynamic providers",
   LLMProviderFactory::DynamicFactoryFn null_fn;
   CHECK_FALSE(factory.register_dynamic("", null_fn));
   CHECK_FALSE(factory.register_dynamic("runtime-provider", null_fn));
-  CHECK(factory.dynamic_names().empty());
+  // ctor 自动注册 finetune 模型, 故 size() = 1 (而非 0)
+  CHECK(factory.dynamic_names().size() == 1);
 
   auto callback = [](const LLMConfig& config) {
     (void)config;
@@ -186,7 +201,8 @@ TEST_CASE("LLMProviderFactory rejects invalid and duplicate dynamic providers",
   };
   REQUIRE(factory.register_dynamic("runtime-provider", callback));
   CHECK_FALSE(factory.register_dynamic("runtime-provider", callback));
-  CHECK(factory.dynamic_names().size() == 1);
+  // ctor 注册 finetune + 运行时 register "runtime-provider"
+  CHECK(factory.dynamic_names().size() == 2);
   CHECK_FALSE(factory.register_dynamic("openai", callback));  // reserved backend
 }
 

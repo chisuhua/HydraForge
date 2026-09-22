@@ -2,11 +2,26 @@
 
 ## 状态
 
-🔍 Proposed (2026-08-03 — 派生自 ADR-0071 §决策 D9, **Wave 5+ descoped**; docs-only 未来设计 ADR; 触发条件: AgenticMind 项目独立探索 fine-tune 后回流; 衔接 ADR-0074 (JSONL 训练数据 + Evidence Gate); 待架构组评审; 估时 4-6 周实施待 AgenticMind ship)
+✅ Approved (Wave 3 Phase 1 Pilot 激活, 2026-09-23 — 派生自 ADR-0071 §决策 D9; 经 Pre-Wave3 Plan §3 立项 + 用户显式 override 24h cooling-off (audit 见 `.rddf/state/builder/wave-3-finetune-base-model.json::cooling_off_override_audit`); Phase 1 实施 D1 (基模选型评分) + D3 (训练数据准备) + D7 最小版 (provider stub 注册); D4-D7 Phase 2 延后; 衔接 ADR-0074 (JSONL 训练数据 + Evidence Gate); OpenSpec change: `wave-3-finetune-base-model-pilot-phase1`)
 
 ## 领域
 
-L0 运行时 / LLM 训练 / 基模选型 / 训练数据管线 / AgenticMind → HydraForge 回流 / Phase 5+ 推迟
+L0 运行时 / LLM 训练 / 基模选型 / 训练数据管线 / AgenticMind → HydraForge 回流 / Wave 3 Phase 1 Pilot 激活
+
+## Phase 1 容量评估 (2026-09-23, per Pre-Wave3 Plan §3 + Decision Record §5.1)
+
+Wave 3 Phase 1 启动时对 ADR-0078 D1-D7 逐项做容量评估, 明确 Phase 1 边界 (D1/D3/D7 最小版) vs Phase 2 (D4-D7 完整):
+
+| 决策项 | Phase 1 (本 change) | Phase 2+ (延后) | 依据 |
+|--------|--------------------|-----------------|------|
+| **D1 基模选型** | ✅ 4 维度评分框架落地, 评分 yaml 持久化 (`docs/research/wave-3-base-model-selection.md`), 复用 llm-tool-eval + cost-monitoring 基础设施 | 真实候选模型 benchmark 数据 (依赖 llm-tool-eval 实时跑, 见 plan NOT-VERIFIED) | Pre-Wave3 Plan §3: "起步 ship 范围: fine-tune 数据闭环 (ADR-0078 §D3) + 4 维度评分 (§D1)" |
+| **D2 触发条件** | ✅ 重新审阅: 4 项触发条件部分满足 (AgenticMind 立项 + G4 ship 后 eval_quality 真实值 + Fine-tune 价格 ≤$1/1M), Production 用户≥10 未达 (Phase 7 部署后) | — | ADR-0078 D2 + Pre-Wave3 Plan §3 |
+| **D3 训练数据准备** | ✅ 3 路汇总第 1 路 (ADR-0074 D6 JSONL) 落地: `scripts/prepare_training_data.py` 迁移脚本加 `source` 字段 + 过滤 `parse_valid && task_success` | D7 失败事件 + AgenticMind 回流 (依赖 AgenticMind ship, Phase 2) | ADR-0078 D3 + improvement draft |
+| **D4 训练方法** | ❌ 不实施 (LoRA/QLoRA/API fine-tune, 估时 2-4 周) | Wave 3 Phase 2+ | improvement draft Non-Goals |
+| **D5/D6 评估 + 回流** | ❌ 不实施 (依赖 AgenticMind ship) | Wave 3 Phase 2+ | improvement draft Non-Goals |
+| **D7 serving** | ✅ Phase 1 最小版: `LLMProviderFactory::register_dynamic("agenticdsl-llama-3.1-70b-lora-v1", factory_fn)` 注册 + `FinetuneBaseModelProvider` stub (available_models 非空 + generate 返回 failure "Phase 2 deferred") | 真实推理 + MCP `prompts/*` 更新 (依赖 ADR-0076 gRPC, Phase 2+) | ADR-0078 D7 + improvement draft |
+
+**容量评估结论**: Solo Dev 容量约束下, Phase 1 (1-2 天, 4-6 files + 2-3 tests, 0 外部依赖) 与 Phase 2 (D4-D7, 2-4 周, HF TRL/PEFT 引入) 边界清晰。Phase 1 立即可执行且不引入 build complexity; Phase 2 需 Wave 3 cooling-off (自本 change merge 起算 24h) 满后独立立项。
 
 ## 关联
 
@@ -22,8 +37,8 @@ L0 运行时 / LLM 训练 / 基模选型 / 训练数据管线 / AgenticMind → 
 - [ADR-0077 — gRPC Data Plane](./adr-0077-grpc-data-plane.md) §D1 LLMDataPlane — Fine-tune 训练数据高频采集底层
 
 ### 平行/下游
-- AgenticMind (独立项目, 4-6 周探索) — 本 ADR 等待 AgenticMind 探索结果回流后激活
-- Wave 5+ PDK AgentForge 集成 — Fine-tune 模型作为 AgentForge agent 的 LLM 后端
+- AgenticMind (独立项目, 4-6 周探索) — 本 ADR Phase 2 等待 AgenticMind 探索结果回流后激活
+- Wave 5+ PDK AgentForge 集成 — Fine-tune 模型作为 AgentForge agent 的 LLM 后端 (Phase 2+)
 
 ### 规范
 - [OpenAI Fine-tuning API](https://platform.openai.com/docs/guides/fine-tuning) — OpenAI fine-tune 接口
@@ -52,7 +67,7 @@ ADR-0071 §决策 D9 明确: Fine-tune 基模选型**延后到 AgenticMind 探�
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│           Fine-tune Pipeline (本 ADR Wave 5+)               │
+│           Fine-tune Pipeline (本 ADR Wave 3 Pilot)           │
 │                                                               │
 │  ┌────────────────────────────────────────────┐              │
 │  │  Phase 1: Data Preparation (D3)             │              │
@@ -126,7 +141,7 @@ candidates:
       latency: 7.0          # P50 30ms/token
       cost: 4.0             # $10 / 1M input, $30 / 1M output
       openness: 3.0         # 闭源, 无权重, 无本地部署
-    weighted_score: 6.0     # 9*0.3 + 7*0.2 + 4*0.2 + 3*0.3 = 2.7+1.4+0.8+0.9
+    weighted_score: 5.8     # 9*0.3 + 7*0.2 + 4*0.2 + 3*0.3 = 2.7+1.4+0.8+0.9
 
   - name: claude-3-5-sonnet-20241022
     scores:
@@ -134,7 +149,7 @@ candidates:
       latency: 6.0          # P50 40ms/token
       cost: 3.0             # $3 / 1M input, $15 / 1M output
       openness: 2.0         # 闭源
-    weighted_score: 5.35
+    weighted_score: 5.25
 
   - name: llama-3.1-70b-instruct
     scores:
@@ -142,7 +157,7 @@ candidates:
       latency: 5.0          # P50 60ms/token (本地)
       cost: 9.0             # 本地部署, 仅电费
       openness: 10.0        # 完全开源, 权重可训练
-    weighted_score: 8.0      # ← 选这个 (本地 + 可训练 + 低成本)
+    weighted_score: 8.2      # ← 选这个 (本地 + 可训练 + 低成本)
 
   - name: qwen-2.5-72b-instruct
     scores:
@@ -150,7 +165,7 @@ candidates:
       latency: 5.5
       cost: 9.0
       openness: 10.0
-    weighted_score: 8.25     # ← 也可
+    weighted_score: 8.45     # ← 也可
 
   - name: deepseek-v2-chat
     scores:
@@ -158,7 +173,7 @@ candidates:
       latency: 7.0
       cost: 8.0             # $0.14 / 1M (cache hit), $0.28 (miss)
       openness: 6.0         # 部分开源 (DeepSeek-V2 Lite)
-    weighted_score: 7.5
+    weighted_score: 7.35
 ```
 
 **选择标准**:
@@ -172,6 +187,8 @@ candidates:
 
 **示例最终选择** (基于上述): `llama-3.1-70b-instruct` 或 `qwen-2.5-72b-instruct` (本地 + 可训练)
 
+> **算术校正 NOTE (2026-09-23, Oracle bg_7fe026cc 审查发现)**: 上方 5 个候选 `weighted_score` 初版全部存在算术错误 (加权计算表达式正确, 字段值抄录错误), 已修正为正确算术值: gpt-4-turbo **5.8** (原 6.0) / claude-3-5-sonnet **5.25** (原 5.35) / llama-3.1-70b **8.2** (原 8.0) / qwen-2.5-72b **8.45** (原 8.25) / deepseek-v2-chat **7.35** (原 7.5)。关键影响: deepseek 真实 7.35 < 7.5 不满足 Weighted ≥ 7.5, 不再属于候选。最终选择 `llama-3.1-70b-instruct` (实际 8.2 ≥ 7.5) **不变**。对应研究文档 `docs/research/wave-3-base-model-selection.md` 已同步修正 + 增加"校正说明"段落; 本 ADR 与之一致。
+
 ### D2. Fine-tune 触发条件 — Evidence Gate + AgenticMind 回流
 
 **触发本 ADR 实施** (任一):
@@ -182,16 +199,18 @@ candidates:
 3. **Production 用户 ≥ 10** + 训练数据 ≥ 1 万条 (足够 fine-tune 收益)
 4. **OpenAI / Anthropic / DeepSeek fine-tune 价格降至 ≤ $1 / 1M tokens** (成本可行)
 
-**触发顺序**:
+**触发顺序** (Wave 3 Phase 1 实际路径):
 
 ```
-[Wave 5] AgenticMind 独立探索 (4-6 周)
+[Wave 3] Pre-Wave3 4-Gate 序列 (G1-G4) 全部 SHIPPED (2026-09-22)
     ↓
-[Wave 5+] AgenticMind ship + 回流
+[Wave 3] 24h cooling-off + 用户显式 override (2026-09-22, builder-handoff audit)
     ↓
-[Wave 5+] ADR-0078 激活 (本 ADR)
+[Wave 3] ADR-0078 翻牌 ✅ Approved (Phase 1 Pilot 激活, 2026-09-23)
     ↓
-基模选型 (D1) → 数据准备 (D3) → 训练 (D4) → 评估 (D5-D6) → serving (D7)
+Phase 1: 基模选型评分 (D1) + 数据准备第 1 路 (D3) + serving 注册 stub (D7 最小版)
+    ↓
+[Wave 3 Phase 2] AgenticMind ship + D4-D7 完整实施 (2-4 周)
 ```
 
 **不触发条件** (本 ADR 永不实施):
@@ -557,86 +576,84 @@ Fine-tune 模型 prompt 可缩短 (knowledge distillation), 进一步降低 pref
 - `docs/security/finetune-data-privacy.md` (Phase 5+ 新增) — 训练数据隐私规范
 - `docs/audits/2026-XX-XX-finetune-baseline-v1.json` (Phase 5+ 新增) — Fine-tune 后 baseline 重测
 
-### 代码 (Phase 5+, 当前 ⏸)
-- `src/common/llm/finetune_llama_provider.h/cpp` — FinetuneLlamaProvider (D7)
-- `src/common/llm/finetune_config.h` — FinetuneConfig (LoRA 适配器路径 + 基模路径)
-- `src/common/llm/llm_provider_factory.cpp` — 新增 `agenticdsl-llama-3.1-70b-lora-v1` 注册
-- `tools/measure_finetune_baseline.cpp` (新增) — D5 重测脚本
-- `tools/scan_pii.py` (新增) — 训练数据 PII 扫描 (CI hook)
-- `tools/jsonl_to_openai_finetune.py` (新增) — JSONL → OpenAI fine-tune 格式转换
-- `tools/jsonl_to_hf_dataset.py` (新增) — JSONL → Hugging Face Dataset
+### 代码 (Phase 1 ✅ ship / Phase 2 待实施)
+- `src/common/llm/finetune_provider.h/cpp` — `FinetuneBaseModelProvider` (D7 Phase 1 stub: 注册 + config 解析 + generate 返回 failure "Phase 2 deferred"; Phase 2 完整推理) ✅ Phase 1 ship
+- `src/common/llm/llm_provider_factory.cpp` — 新增 `agenticdsl-llama-3.1-70b-lora-v1` 注册 (D7 Phase 1) ✅ Phase 1 ship
+- `src/common/llm/finetune_llama_provider.h/cpp` — FinetuneLlamaProvider (D7 Phase 2 完整推理)
+- `src/common/llm/finetune_config.h` — FinetuneConfig (LoRA 适配器路径 + 基模路径) (Phase 2)
+- `tools/measure_finetune_baseline.cpp` (新增) — D5 重测脚本 (Phase 2)
+- `tools/scan_pii.py` (新增) — 训练数据 PII 扫描 (CI hook) (Phase 2)
+- `tools/jsonl_to_openai_finetune.py` (新增) — JSONL → OpenAI fine-tune 格式转换 (Phase 2)
+- `tools/jsonl_to_hf_dataset.py` (新增) — JSONL → Hugging Face Dataset (Phase 2)
 
-### 测试 (Phase 5+)
-- `tests/test_finetune_llama_provider.cpp` — FinetuneLlamaProvider ILLMProvider v2 接口
-- `tests/test_llm_provider_factory_routing.cpp` — fine-tune 模型路由
-- `tests/test_basemodel_selection.cpp` — D1 4 维度评分算法
-- `tests/test_pii_scan.cpp` — 训练数据 PII 扫描
-- `tests/test_finetune_baseline.cpp` — D5 baseline 重测
+### 测试 (Phase 1 ✅ ship / Phase 2 待实施)
+- `tests/test_llm_provider_factory.cpp` — D7 Phase 1 provider 注册 + 实例化 stub (register_dynamic + available_models 非空 + generate failure "Phase 2 deferred") ✅ Phase 1 ship
+- `tests/test_training_data_pipeline.cpp` — D3 ADR-0074 D6 JSONL 迁移 + source 字段 + 过滤 (parse_valid && task_success) ✅ Phase 1 ship
+- `tests/test_finetune_llama_provider.cpp` — FinetuneLlamaProvider ILLMProvider v2 接口 (Phase 2)
+- `tests/test_llm_provider_factory_routing.cpp` — fine-tune 模型路由 (Phase 2)
+- `tests/test_basemodel_selection.cpp` — D1 4 维度评分算法 (Phase 2)
+- `tests/test_pii_scan.cpp` — 训练数据 PII 扫描 (Phase 2)
+- `tests/test_finetune_baseline.cpp` — D5 baseline 重测 (Phase 2)
 
 ### 生态
-- `examples/finetune_pipeline/` (Phase 5+) — Fine-tune 全流程示例 (数据 → 训练 → 评估 → serving)
-- `data/training/*.jsonl` (ADR-0074 D6) — Fine-tune 数据源
-- ADR-0076 MCP `prompts/*` — Fine-tune 后 `generate_dsl_v3_finetuned` 新增
-- AgentForge — Fine-tune 模型作为 agent LLM 后端
+- `examples/finetune_pipeline/` (Phase 2+) — Fine-tune 全流程示例 (数据 → 训练 → 评估 → serving)
+- `data/training/*.jsonl` (ADR-0074 D6) — Fine-tune 数据源 (Phase 1 输出 `data/wave-3-training-data.jsonl`)
+- ADR-0076 MCP `prompts/*` — Fine-tune 后 `generate_dsl_v3_finetuned` 新增 (Phase 2)
+- AgentForge — Fine-tune 模型作为 agent LLM 后端 (Phase 2)
 
 ---
 
 ## 后续
 
-### 短期 (Wave 5+ descoped, 当前不实施)
+### Wave 3 Phase 1 已 ship (2026-09-23)
 
-1. **保持 ADR 状态 🔍 Proposed** — docs-only 未来设计
-2. **Phase 5 重新评估触发条件** (见"复审节点")
-3. **不写代码 / 不创建 OpenSpec change**
-4. **AgenticMind 项目独立进展跟踪** — 等待 4-6 周探索产出
+1. **✅ ADR 状态翻牌** 🔍 Proposed → ✅ Approved (本 change)
+2. **✅ D1 基模选型评分 yaml 持久化** — `docs/research/wave-3-base-model-selection.md` (≥3 候选 + Weighted ≥ 7.5 + 4 过滤条件全过)
+3. **✅ D3 训练数据准备第 1 路** — `scripts/prepare_training_data.py` (ADR-0074 D6 JSONL + `source` 字段 + 过滤 `parse_valid && task_success`)
+4. **✅ D7 serving Phase 1 最小版** — `FinetuneBaseModelProvider` stub + `LLMProviderFactory::register_dynamic("agenticdsl-llama-3.1-70b-lora-v1", ...)`
+5. **AgenticMind 项目独立进展跟踪** — 等待 4-6 周探索产出 (Phase 2 前置)
 
-### AgenticMind 项目 ship 后 (Phase 5+, 估时 4-6 周)
+### Wave 3 Phase 2 (D4-D7 完整, 估时 2-4 周, Wave 3 cooling-off 满后启动)
 
-5. **D1 基模选型应用 AgenticMind 结果** — 4 维度评分 → 选择
-6. **D3 训练数据合并 agenticmind_rlhf.jsonl** — 3 路汇总
-7. **D4 LoRA fine-tune 训练** — 单 A100 80GB × 24h
-8. **D5 重跑 baseline + A/B** — 评估方法学应用
-9. **D7 serving 集成** — ILLMProvider + MCP prompts/* 更新
-10. **Evidence Gate 复测** (per ADR-0074 D4) — 即使基模替换, 不重启 Wave
+6. **D1 基模选型应用 AgenticMind 结果** — 4 维度评分 → 最终选择 (补充真实 benchmark 数据)
+7. **D3 训练数据合并 agenticmind_rlhf.jsonl + D7 失败事件** — 3 路汇总完成
+8. **D4 LoRA fine-tune 训练** — 单 A100 80GB × 24h (HF TRL / PEFT 引入)
+9. **D5 重跑 baseline + A/B** — 评估方法学应用
+10. **D7 serving 完整推理** — FinetuneBaseModelProvider 真实推理 + MCP prompts/* 更新
+11. **Evidence Gate 复测** (per ADR-0074 D4) — 即使基模替换, 不重启 Wave
 
 ### Phase 6+ 持续 (与 ADR-0074 baseline 同步)
 
-11. 每月新增 baseline 数据 → 触发 fine-tune v2 / v3 增量训练
-12. DSL v3.11+ ship → 触发 fine-tune 数据 v3.11 适配
-13. MCP `prompts/*` 持续更新 — 反映 fine-tune 模型能力
+12. 每月新增 baseline 数据 → 触发 fine-tune v2 / v3 增量训练
+13. DSL v3.11+ ship → 触发 fine-tune 数据 v3.11 适配
+14. MCP `prompts/*` 持续更新 — 反映 fine-tune 模型能力
 
 ---
 
 ## 复审节点
 
 - **本 ADR 创建时 (2026-08-03)**: 🔍 Proposed + docs-only + Wave 5+ descoped
-- **Phase 5 容量评估时** (估时 2027-Q2 或更晚):
+- **Wave 3 Phase 1 翻牌时 (2026-09-23)**: ✅ Approved (Pilot 激活) — 用户显式 override 24h cooling-off (审计: builder-handoff `cooling_off_override_audit`); 4 项 D2 触发条件部分满足 (AgenticMind 立项 + G4 eval_quality 真实值 + Fine-tune 价格 ≤$1/1M; Production 用户 ≥ 10 未达, Phase 7 部署后)
+- **Wave 3 Phase 2 启动时** (估时 Wave 3 cooling-off 满后):
   - 检查: AgenticMind 项目是否 ship? (D2 触发条件 #1)
   - 检查: Evidence Gate 是否 FAIL? (D2 触发条件 #2)
   - 检查: 用户数 ≥ 10? (D2 触发条件 #3)
   - 检查: Fine-tune 价格 ≤ $1 / 1M tokens? (D2 触发条件 #4)
-  - 满足任一 → 启动 Phase 5+ 实施 (估时 4-6 周)
+  - 满足任一 → 启动 Phase 2 实施 (D4-D7, 估时 2-4 周)
 - **Phase 6+ 持续**: 每月评估 (D3 §后续 持续项)
 
 ---
 
-## Wave 5+ descoped 理由 (引用 ADR-0071 §D9)
+## Wave 5+ descoped 历史理由 (引用 ADR-0071 §D9, 2026-09-23 已由 Wave 3 Phase 1 翻牌解除)
 
 > 4.1 §Layer 3 dual memos 记录: Solo Dev Phase 6a/6b 容量 37h/44h 满载;
 > Fine-tune 估时 4-6 周 + 持续运维成本 (每月数据 + 重训 + 评估);
 > AgenticMind 项目独立探索是关键前置 (避免选错基模);
 > 团队 1 人无法承担 Phase 6 demo 推进 + Fine-tune 实施并行。
 
-**重新激活条件** (任一):
+**Wave 3 Phase 1 翻牌依据** (2026-09-23): 上述 descoped 理由针对的是 **D4-D7 完整实施 (4-6 周)**。Wave 3 Phase 1 (D1 + D3 + D7 最小版, 1-2 天, 0 外部依赖) 不违反 Solo Dev 容量约束 — 无训练 / 无 GPU / 无新依赖, 仅评分 + 数据管线 + provider 注册 stub。D4-D7 完整实施 (Phase 2) 仍按原 descoped 理由延后到 Wave 3 cooling-off 满后独立立项。
 
-1. AgenticMind 项目 ship + 探索结果回流 (D2 #1)
-2. ADR-0074 Evidence Gate FAIL, Prompt 优化不够 (D2 #2)
-3. Production 用户 ≥ 10 + 训练数据 ≥ 1 万条 (D2 #3)
-4. Fine-tune 价格 ≤ $1 / 1M tokens (D2 #4)
-
----
-
-*文档版本: v1.0*
+*文档版本: v1.1*
 *创建日期: 2026-08-03*
 *作者: HydraForge 架构组*
-*状态: 🔍 Proposed (Wave 5+ descoped; docs-only 未来设计; 触发条件 4 项显式; 衔接 ADR-0074 JSONL + ADR-0076 MCP + ADR-0077 gRPC; 待架构组评审)*
+*状态: ✅ Approved (Wave 3 Phase 1 Pilot 激活, 2026-09-23; D1 + D3 + D7 最小版 ship; D4-D7 Phase 2 延后; 衔接 ADR-0074 JSONL + ADR-0076 MCP + ADR-0077 gRPC)*
