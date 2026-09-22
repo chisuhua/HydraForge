@@ -251,6 +251,8 @@ TEST_CASE("C4 case-2: apply_harness_mutation readiness denied + 4-field event pa
   REQUIRE(payload["attribution_verdict"].is_string());
   REQUIRE(payload.contains("eval_quality"));
   REQUIRE(payload["eval_quality"].is_string());
+  // G2 (spec scenario 2): StubEvaluatorPoor → reward_quality=Poor → eval_quality=="Poor"
+  REQUIRE(payload["eval_quality"] == "Poor");
   REQUIRE(payload.contains("budget_state"));
   REQUIRE(payload["budget_state"].is_string());
 }

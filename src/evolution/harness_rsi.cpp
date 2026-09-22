@@ -1,13 +1,16 @@
 // src/evolution/harness_rsi.cpp
 // C4 harness-rsi-pilot 轻量函数实现 (per ADR-0088 D4 + Oracle bg_3672cb57 修正)
 // G4 extension: Gate 0 workflow_patch upmove + Gate 3 persist-before-apply + undo
+// G2 extension: evolution.readiness.denied eval_quality 真实值 (摩擦 1 resolved, quality_name() 复用)
 // 设计依据: openspec/changes/genome-wiring-harness-rsi-gepa/ (G4, 2026-09-22)
-// 作者: HydraForge Sprint 34+ Phase 6c MetaRSI-v1 C4+G4
+//          + openspec/changes/evolution-verdict-reward-quality/ (G2, 2026-09-22)
+// 作者: HydraForge Sprint 34+ Phase 6c MetaRSI-v1 C4+G4+G2
 // 最后修改日期: 2026-09-22
 
 #include "agenticdsl/evolution/harness_rsi.h"
 
 #include "agenticdsl/contract/event_builder.h"
+#include "agenticdsl/contract/evaluation_events.h"  // G2: quality_name() helper (design D3, 复用不新增)
 #include "agenticdsl/evolution/transition_guard.h"
 #include "agenticdsl/genome/genome.h"
 
@@ -134,7 +137,7 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
       event.args(nlohmann::json{
           {"failed_conditions", verdict.failed_conditions},
           {"attribution_verdict", attribution_verdict_name(ctx.attribution->verdict)},
-          {"eval_quality", "Unknown"},
+          {"eval_quality", agenticdsl::evaluation::quality_name(verdict.reward_quality)},
           {"budget_state", ctx.budget->exceeded() ? "exceeded" : "ok"}
       });
       event.meta(nlohmann::json{

@@ -1,0 +1,89 @@
+{
+  "schema": "builder-handoff-v1",
+  "version": 1,
+  "owner": "rdd-builder",
+  "change_name": "evolution-verdict-reward-quality",
+  "current_phase": "phase-2.5-post-impl",
+  "approval_status": "approved",
+  "plan_quality_status": "ready",
+  "approval_decision_at": "2026-09-22T12:00:00+00:00",
+  "approval_decision_by": "user-explicit",
+  "approval_context": "Pre-Wave3 Plan §2 G2 (最后一次闸口, 与 G1/G3/G4 串行; G1/G3/G4 已 ship main 98711e3)",
+  "pre_dual_review": {
+    "completed_at": "2026-09-21T00:00:00+00:00",
+    "oracle_session": "bg_5db13fe0",
+    "oracle_verdict": "方向确认: EvolutionVerdict 加 reward_quality 字段纯接线, 无新逻辑; ≤4 字段约束需 design D1a 显式修订",
+    "metis_session": "bg_687a5662-metis"
+  },
+  "execution_mode_decision": {
+    "mode": "worktree",
+    "reason": "cross 4 production files (transition_guard.h + harness_rsi.cpp + 2 test files) + spec 决策需复核 (字段约束修订). Per mode #11 async + Oracle post-impl.",
+    "decided_at": "2026-09-22T12:00:00+00:00",
+    "decided_by": "rdd-builder-P0-auto-decision",
+    "worktree_path": ".rddf/wt/evolution-verdict-reward-quality",
+    "worktree_branch": "feat/evolution-verdict-reward-quality"
+  },
+  "deps_status": {
+    "blockers": [],
+    "manual_deps": [],
+    "cross_repo_pending": [],
+    "awaiting_phase_completion": [
+      "G4 genome-wiring-harness-rsi-gepa (已 ship 2026-09-22, 同改 MutationGateContext, 已 rebase 通过)"
+    ]
+  },
+  "g4_lessons_applied": {
+    "lessons_1-4": [
+      "Result<T,E> 解包用 .value() 非 -> (模式 #11)",
+      "Lambda by-value 捕获要求 operator() const-qualified",
+      "LSP stale cache ≠ 真实 compile fail (实际 g++ 验证: RED 编译失败确认字段缺失, GREEN 编译通过确认字段存在)",
+      "Worker final-report 误导 — 本 change 实际产物: 2 commits (e51073a impl + 737e979 archive) + builder json FULL schema"
+    ],
+    "builder_state_schema": "FULL (含 pre_dual_review + post_impl_review_prompt + post_impl_execute_summary + design_deviations)",
+    "g4_worktree_build_lesson": "worktree external/ 空 submodule → ln -sfn 主仓库 external/{inja,nlohmann_json,yaml-cpp} + 独立 build/"
+  },
+  "impl_commits": [
+    {
+      "hash": "e51073a",
+      "message": "feat(evolution): G2 EvolutionVerdict reward_quality + eval_quality real passthrough",
+      "files": [
+        "include/agenticdsl/evolution/transition_guard.h",
+        "src/evolution/harness_rsi.cpp",
+        "tests/test_transition_guard.cpp",
+        "tests/test_harness_rsi_pilot.cpp",
+        "openspec/changes/evolution-verdict-reward-quality/tasks.md"
+      ]
+    },
+    {
+      "hash": "737e979",
+      "message": "docs(openspec): G2 archive evolution-verdict-reward-quality (5-file integrity)",
+      "files": [
+        "openspec/changes/archive/evolution-verdict-reward-quality-2026-09-22/ (5 文件: .openspec.yaml + proposal + design + tasks + specs/*/spec.md)"
+      ]
+    }
+  ],
+  "design_deviations": [
+    {
+      "item": "quality_name() namespace",
+      "design_text": "design D3 措辞 'agenticdsl::quality_name'",
+      "impl_text": "实际 agenticdsl::evaluation::quality_name (evaluation_events.h:28 位于 namespace evaluation {})",
+      "rationale": "design D3 引用的是既有 helper 本身, 命名空间限定词笔误; 实施用真实 namespace, 零新函数"
+    },
+    {
+      "item": "tasks.md 2.1 措辞",
+      "design_text": "'reward_quality 默认 Unknown + evaluate 填充 Good/Poor'",
+      "impl_text": "默认 Quality::Acceptable (无 Unknown enum 值), 填充 Excellent/Poor",
+      "rationale": "proposal Impact 已明确 enum 值域无 Unknown/Good, tasks 措辞是早期笔误, 实施按 proposal/design 正确值域"
+    }
+  ],
+  "post_impl_review_prompt": "You are Oracle. Post-impl SHIP-with-fixes review of OpenSpec change `evolution-verdict-reward-quality` (G2, Pre-Wave3 final gate). Worktree branch feat/evolution-verdict-reward-quality @ /workspace/project/HydraForge/.rddf/wt/evolution-verdict-reward-quality, baseline main 98711e3 (含 G1/G3/G4). 2 commits on branch: impl e51073a + archive 737e979.\n\n## 验证清单 (AC)\n\n1. **G2 AC-1 — verdict.reward_quality 字段填充**: `include/agenticdsl/evolution/transition_guard.h` EvolutionVerdict + 第 5 字段 `reward_quality` (默认 Quality::Acceptable per design D1) + evaluate_readiness() 在 evaluator.evaluate() 后填充 `verdict.reward_quality = reward.quality` (design D2: 失败时质量不丢失). 验证: git show e51073a + 读取 transition_guard.h.\n2. **G2 AC-2 — eval_quality 真实透传**: `src/evolution/harness_rsi.cpp` L137 `{\"eval_quality\", \"Unknown\"}` → `agenticdsl::evaluation::quality_name(verdict.reward_quality)` (复用 evaluation_events.h:28 helper, design D3 不新增第三同义函数). 验证: git show e51073a + grep 确认无新增同义函数.\n3. **G2 AC-3 — 测试断言更新**: (a) tests/test_transition_guard.cpp 14 cases / 51 assertions (baseline 13 + 1 新增 G2 case 默认 Acceptable + 填充 Poor 断言); (b) tests/test_harness_rsi_pilot.cpp Case 2 eval_quality 断言 `== \"Poor\"` (StubEvaluatorPoor 真实透传). 验证: 运行 ./build/tests/test_transition_guard + ./build/tests/test_harness_rsi_pilot.\n4. **5-file archive integrity**: `git ls-files openspec/changes/archive/evolution-verdict-reward-quality-2026-09-22/` 必须 = 5 文件 (.openspec.yaml + proposal.md + design.md + tasks.md + specs/evolution-verdict-reward-quality/spec.md).\n5. **零 G1/G3/G4 回归**: 运行 ctest -R 'test_transition_guard|test_harness_rsi_pilot|test_gepa_phase2|test_genome_registry|test_genome_walk_ancestors|test_tool_registry' (worker 实测 8/8 PASS; 你 NOT-RUN 可标 NOT-VERIFIED 交主会话 post-merge 补).\n6. **≤5 字段约束修订一致**: transition_guard.h D2 注释 (5 字段, Oracle Q8 约束修订 2026-09-22) vs design.md D1a 修订 vs proposal Impact — 三处一致, 无 docs_drift.\n7. **design_deviations 复核**: (a) quality_name() 实际 namespace agenticdsl::evaluation (design D3 措辞笔误); (b) tasks.md 2.1 '默认 Unknown/Good' 措辞 → 实施按 proposal 正确值域 (Acceptable 默认). 两 deviation 均文档化, 判定 ACCEPT / require fix.\n\n## 输出格式\n\nVerdict: SHIP / SHIP-with-fixes / BLOCK + 修正清单按严重度 (Critical/Major/Minor, 每条含文件+行号+修复建议). 若需跑测试但沙箱限制无法跑, 标 NOT-VERIFIED 交主会话 post-merge 补. 末尾附 AC 逐项 PASS/FAIL/NOT-RUN." ,
+  "post_impl_execute_summary": {
+    "worker_session": "Sisyphus-Junior async (G2)",
+    "completed_at": "2026-09-22",
+    "focused_ctest": "8/8 PASS: test_transition_guard 14/14 (51 assertions, baseline 13+1 G2) + test_harness_rsi_pilot 22/22 (115 assertions, Case 2 eval_quality=='Poor') + test_gepa_phase2 + test_genome_registry + test_genome_walk_ancestors + test_tool_registry/test_tool_registry_interface/test_tool_registry_v2 零回归",
+    "red_verified": "RED 编译失败确认 reward_quality 字段缺失 (3 error sites)",
+    "green_verified": "GREEN 编译通过 + 2/2 focused PASS",
+    "lsp_discipline": "transition_guard.h + harness_rsi.cpp + 2 test files: 0 errors (clang-tidy warnings 均 pre-existing, 非 G2 引入)"
+  },
+  "next_phase_ready": "phase-3-archive-verified",
+  "next_phase_entry_action": "主会话: 派 Oracle post-impl SHIP-with-fixes review (subagent_type=oracle, run_in_background=true, prompt=post_impl_review_prompt) → 应用修正 (新 atomic commit, 不 amend) → merge feat/evolution-verdict-reward-quality → main (--no-ff) → main 重 build + focused ctest → worktree cleanup → 启动 Wave 3"
+}
