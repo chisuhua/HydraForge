@@ -876,10 +876,20 @@ TEST_CASE("C4 case-7e: final tools empty → InvalidMutation + zero state change
   REQUIRE(root_res.has_value());
   REQUIRE(root_res.value().version == 1);
 
+  // 有效 stubs — 让流程通过 Gate 0/1/2，真正触达 Gate 3 的 final-tools-empty 检查
+  AttributionRecord attr;
+  attr.verdict = AttributionVerdict::Attributed;
+  StubEvaluatorExcellent evaluator;
+  StubBudgetOk budget;
+  CapturingBus bus;
   MutationGateContext ctx{
     EvolutionState::Data,
-    nullptr, nullptr, nullptr, nullptr,
-    MutationGovernancePolicy{}
+    &attr, &evaluator, &budget, &bus,
+    MutationGovernancePolicy{},
+    "trace-g4-7e",
+    genome_reg.get(),
+    "chat_harness",
+    1
   };
 
   std::string system_prompt = "initial";
@@ -892,6 +902,12 @@ TEST_CASE("C4 case-7e: final tools empty → InvalidMutation + zero state change
 
   REQUIRE_FALSE(result.has_value());
   REQUIRE(result.error() == MutationError::InvalidMutation);
+  // 零状态变更
+  REQUIRE(system_prompt == "initial");
+  REQUIRE(tools.size() == 1);
+  REQUIRE(tools[0] == "tool_a");
+
+  fs::remove_all(tmpdir);
 }
 
 // ============================================================================

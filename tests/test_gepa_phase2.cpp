@@ -556,6 +556,7 @@ TEST_CASE("G4 case-9: GEPA persist-then-commit with genome registry succeeds",
   // version_id should be gepa_skill@N
   // (checked via gepa.commit.committed event payload)
   bool found_version_id = false;
+  bool found_genome_version = false;
   for (const auto& e : bus->events) {
     if (e.topic == "gepa.commit.committed") {
       if (e.payload.data.contains("commit_id")) {
@@ -564,9 +565,14 @@ TEST_CASE("G4 case-9: GEPA persist-then-commit with genome registry succeeds",
           found_version_id = true;
         }
       }
+      // M1 回归守卫: spec 要求 payload MUST 含 genome_version (persist-then-commit)
+      if (e.payload.data.contains("genome_version")) {
+        found_genome_version = true;
+      }
     }
   }
   REQUIRE(found_version_id);
+  REQUIRE(found_genome_version);
 
   fs::remove_all(tmpdir);
 }

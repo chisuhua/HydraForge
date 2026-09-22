@@ -173,14 +173,16 @@ GEPALoop::ReflectionResult GEPALoop::reflect_and_commit(
     // G4: persist-then-commit — fork 在 result.success=true 之前
     // fork 成功 → proposal.version_id = name@N → governor commit
     // fork 失败 → gepa.commit.denied(genome_persist_failed) + skip commit
+    uint64_t committed_genome_version = 0;
     if (config_.genome_registry != nullptr && !config_.genome_name.empty()) {
       genome::GenomeSpec spec;
       spec.harness = candidate.compiled_content;
       auto fork_res = config_.genome_registry->fork(
           config_.genome_name, config_.parent_version, spec);
       if (fork_res.has_value()) {
+        committed_genome_version = fork_res.value().version;
         proposal.version_id = config_.genome_name + "@" +
-                              std::to_string(fork_res.value().version);
+                              std::to_string(committed_genome_version);
       } else {
         result.failure_mode = "genome_persist_failed";
         emit_event(bus_, "gepa.reflection.failed",
@@ -206,7 +208,8 @@ GEPALoop::ReflectionResult GEPALoop::reflect_and_commit(
                {{"reflection_id", reflection_id}, {"regression_verdict", verdict_to_string(verdict)}});
     emit_event(bus_, "gepa.commit.committed",
                {{"reflection_id", reflection_id}, {"commit_id", proposal.version_id},
-                {"evaluation_refs", proposal.evaluation_refs}});
+                {"evaluation_refs", proposal.evaluation_refs},
+                {"genome_version", committed_genome_version}});
     return result;
   }
 
