@@ -1,0 +1,64 @@
+{
+  "schema": "builder-handoff-v1",
+  "version": 1,
+  "owner": "rdd-builder",
+  "change_name": "sync-pdk-contract-header",
+  "current_phase": "phase-2.5",
+  "approval_status": "approved",
+  "plan_quality_status": "ready",
+  "approval_decision_at": "2026-09-22T11:30:00+00:00",
+  "approval_decision_by": "user-explicit",
+  "approval_context": "用户授权 G1 ship 后启 G3 串行决策 (per Pre-Wave3 Plan §2 sequencing + Phase A G1 SHIP-with-fixes cycle complete f1a6647)",
+  "pre_dual_review": {
+    "completed_at": "2026-09-21T00:00:00+00:00",
+    "oracle_session": "bg_5db13fe0",
+    "oracle_verdict": "contract 头是'唯一未闭环的 PDK 生态影响'，但范围调整为'预置 contract 消费面'",
+    "metis_session": "2026-09-21 双 agent 事实核查",
+    "metis_verdict": "scope correction: standalone tool_macros.h 悬空 include 登记独立 follow-up"
+  },
+  "execution_mode_decision": {
+    "mode": "worktree",
+    "reason": "complex per ADR-0048 + script-bash 改动跨 3 files; AC=6 > 3; sync-pdk.sh 558 → ~620 lines + 新增 test bash 脚本 + CMake add_test; 独立 manifest 文件面, 不依赖 G1/G2",
+    "decided_at": "2026-09-22T11:30:00+00:00",
+    "decided_by": "rdd-builder-P0-auto-decision",
+    "worktree_path": ".rddf/wt/sync-pdk-contract-header",
+    "worktree_branch": "feat/sync-pdk-contract-header"
+  },
+  "deps_status": {
+    "blockers": [],
+    "manual_deps": [],
+    "cross_repo_pending": [],
+    "awaiting_phase_completion": [
+      "G4 (genome-wiring-harness-rsi-gepa) = Pre-Wave3 最后闸口 per plan §2, G1+G3 ship 后启动"
+    ]
+  },
+  "post_impl_execute_summary": {
+    "impl_commit": "a641d34",
+    "archive_commit": "bd74fc1",
+    "branch": "feat/sync-pdk-contract-header",
+    "shipped_at": "2026-09-22T13:35:00+00:00",
+    "6_ac_pass": {
+      "AC-1": "PDK_CONTRACT_DEPS 数组 11 头实测清单 (chat_session 6 + cross_cutting 5)",
+      "AC-2": "contract 同步段 mkdir -p + cp 实现 (D2 path consistency)",
+      "AC-3": "PDK_SYNC_DRY_RUN=1 离线分支 (mktemp -d 替身, skip git clone)",
+      "AC-4": "tests/test_sync_pdk_contract.sh 4 assertions + drift-guard",
+      "AC-5": "CMake add_test 注册 (tests/CMakeLists.txt)",
+      "AC-6": "既有 sync-pdk.sh preflight/copy/commit 结构零破坏"
+    },
+    "focused_verification": "PDK_SYNC_DRY_RUN=1 scripts/sync-pdk.sh → exit 0 + 11 头清单 + 临时工作目录文件存在",
+    "archive_day5_trap_guard": "5 files present (.openspec.yaml + proposal.md + design.md + tasks.md + specs/sync-pdk-contract-header/spec.md)",
+    "design_deviations": [
+      {
+        "decision": "G3 builder state",
+        "design_text": "post-impl review prompt saved to .rddf/state/builder/sync-pdk-contract-header.json",
+        "actual": "Sisyphus-Junior worker 漏建 builder state (模式 #11 教训 d 再次命中: final report 误导 'saved' 但实际未创建)",
+        "rationale": "主会话手动补救 (per AGENTS.md 模式 #11 沉淀, 'worker final-report 误导 → 主会话必须验证实际产物, 不信 report')"
+      }
+    ]
+  },
+  "post_impl_review_prompt": "Review G3 = sync-pdk-contract-header implementation commits a641d34 (impl) + bd74fc1 (archive) on branch feat/sync-pdk-contract-header in worktree .rddf/wt/sync-pdk-contract-header/. Per AGENTS.md mode #4 SHIP-with-fixes pattern, verify: (1) D1 PDK_CONTRACT_DEPS 数组硬编码 11 头实测清单与 pdk 头实际 contract 依赖一致 (grep cross-validate all <agenticdsl/contract/*.h> includes in include/agenticdsl/pdk/*.h must ⊆ PDK_CONTRACT_DEPS); (2) D2 路径映射 monorepo include/agenticdsl/contract/ → standalone include/agenticdsl/contract/ (cp 命令路径正确); (3) D3 DRY_RUN 离线分支正确跳过 prepare_workdir 的 git clone (验证 sandbox/CI 无 SSH 凭据可跑); (4) test_sync_pdk_contract.sh 4 assertions (exit 0 + itool_registry.h 输出 + 临时工作目录文件存在 + drift-guard scan ⊆ PDK_CONTRACT_DEPS); (5) CMakeLists.txt add_test 注册语法正确; (6) sync-pdk.sh bash -n syntax check 无错; (7) 既有 preflight/copy/commit 段未破坏 (Non-Goal: 不重构整体架构); (8) 任何 emergent issues (sync-pdk.sh 改动是否引入 shell injection risk, mktemp 路径处理是否 sanitized, chmod 权限设置是否遵循 least-privilege). Return: verdict (SHIP / SHIP-with-fixes / BLOCK) + 严重度排序修正清单.",
+  "post_impl_review_prompt_saved_at": "2026-09-22T14:00:00+00:00",
+  "post_impl_review_prompt_saved_by": "Sisyphus-orchestrator (manual补救 — worker 任务 final report 误导声称 saved 但实际 builder state 整个未创建, 现按 2026-09-22 G1 case study 同模式手动补救)",
+  "next_phase_ready": "phase-2.5",
+  "next_phase_entry_action": "派 Oracle 复评 session, 收集 verdict 后决定 SHIP-with-fixes 修正路径"
+}
