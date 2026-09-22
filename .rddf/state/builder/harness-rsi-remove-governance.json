@@ -3,7 +3,7 @@
   "version": 1,
   "owner": "rdd-builder",
   "change_name": "harness-rsi-remove-governance",
-  "current_phase": "phase-1.5",
+  "current_phase": "phase-2.5",
   "approval_status": "approved",
   "plan_quality_status": "ready",
   "approval_decision_at": "2026-09-21T11:30:00+00:00",
@@ -39,6 +39,28 @@
     "scheduled_at": "post-P2-execute",
     "scope": "full diff + Gate 2 不变量 + trace_id 透传语义 + Day-5 trap guard"
   },
-  "next_phase_ready": "phase-2",
-  "next_phase_entry_action": "delegate to TDD worker (read tasks.md §3 + write failing test per AC-1)"
+  "post_impl_execute_summary": {
+    "impl_commit": "714764d",
+    "archive_commit": "7a31d12",
+    "branch": "feat/harness-rsi-remove-governance",
+    "shipped_at": "2026-09-22T05:00:25+00:00",
+    "12_ac_pass": "case-5a (AC-1) + case-5b (AC-2) + case-5c (AC-3) + case-6 (AC-4) + test_secure_tool_registry disabled unregister (AC-5) + mutation_mutex_ 3 写路径 (AC-6) + Gate 2 不变量 (AC-7) + 13 cases/65 assertions 零回归 (AC-8) + 6/6 focused ctest (AC-9) + 209/209 全量 ctest (AC-10) + 'Change is valid' (AC-11) + 5 files archive Day-5 guard (AC-12)",
+    "ctest_focused": "6/6 PASS",
+    "ctest_full": "209/209 PASS, 0 regression",
+    "openspec_validate": "Change is valid",
+    "day5_trap_guard": "5 files (.openspec.yaml + proposal.md + design.md + tasks.md + specs/harness-rsi-remove-governance/spec.md) at archive/harness-rsi-remove-governance-2026-09-22/",
+    "design_deviations": [
+      {
+        "decision": "D3",
+        "design_text": "std::mutex mutation_mutex_",
+        "actual": "std::unique_ptr<std::mutex> mutation_mutex_  (preserve ToolRegistry movable 语义, 避免 test_itoolregistry_json_args.cpp 等 5+ 测试构造点修改)",
+        "rationale": "Oracle 最低成本方案的实用优化 (语义等价, per Session ses_f38d8ed03ffeE1v5qoz8clz8vv TDD Step 3 时遇到 std::mutex makes ToolRegistry non-movable → 5+ test 失败 → 用 unique_ptr wrapper 一次性修复) — Oracle 复审应验证语义等价性而非文字一致性"
+      }
+    ]
+  },
+  "post_impl_review_prompt": "Review G1 = harness-rsi-remove-governance implementation commits 714764d (impl) + 7a31d12 (archive) on branch feat/harness-rsi-remove-governance in worktree .rddf/wt/harness-rsi-remove-governance/. Per AGENTS.md mode #4 SHIP-with-fixes pattern, verify: (1) D1 Gate 2 tools_remove 对称治理 (harness_rsi.cpp:137-143) 是否覆盖所有 tools_remove 子路径, 零状态变更不变量保持 [设计 §D1 + Spec R1 Scenario remove 拒绝 denied / remove 允许 trusted / add+remove 双拒绝]; (2) D2 SecureToolRegistry unregister disabled 静默忽略语义 (secure_tool_registry.cpp:267-270) 是否与 call_direct 的 disabled 检查一致, has_tool 事后可观察是否成立 [Spec R2 Scenario disabled tool 拒绝 unregister]; (3) D3 ToolRegistry mutation mutex 的 std::unique_ptr<std::mutex> 包装偏离 design §D3 文字描述 是否语义等价 (保持 ToolRegistry movable + 3 写路径加锁保护); (4) D4 trace_id 透传 (harness_rsi.h:43 + harness_rsi.cpp:122) 是否从 ctx 取真实 trace_id 替代硬编码 '', 既有 12 个 MutationGateContext 构造点是否仍可编译 (非 BREAKING 不变量); (5) Day-5 archive integrity (archive/harness-rsi-remove-governance-2026-09-22/ 5 files present) 是否满足 4-file 最低标准; (6) 12 AC 是否全部通过 (case-5a/b/c/6 + secure_tool_registry unregister + 9 existing cases/43 assertions 零回归); (7) 全量 ctest 209/209 zero regression 是否真实 (worktree 独立 build 完成); (8) 任何 emergent issues (本次 fix 5+ test movable 修复是否引入 leak/SI/UB risk, unique_ptr<std::mutex> 在 dtor 是否正确释放). Return: verdict (SHIP / SHIP-with-fixes / BLOCK) + 严重度排序修正清单 (Critical / Major / Minor).",
+  "post_impl_review_prompt_saved_at": "2026-09-22T05:05:00+00:00",
+  "post_impl_review_prompt_saved_by": "Sisyphus-orchestrator (manual补救 — worker 任务 final report 误导声称 saved 但实际未写入 JSON, 现手工补全)",
+  "next_phase_ready": "phase-2.5",
+  "next_phase_entry_action": "派 Oracle 复评 session, 收集 verdict 后决定 SHIP-with-fixes 修正路径"
 }
