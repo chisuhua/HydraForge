@@ -203,7 +203,7 @@ Pre-existing failures (与 C4 ship 无关, git stash 验证 baseline 同样 fail
 
 ## §5.1 Post-hoc Closure Gate Annotation (Oracle bg_6a8e4397, 2026-09-21 补充; closed 2026-09-22 by main session per Pre-Wave3 Plan §2 门禁清单 L142)
 
-**决策回注**: 本 GO 决策的法律地位已**由** ~~"GO with post-hoc closure gate (genome-wiring)"~~ **→ "GO closed (G1/G3/G4 SHIPPED, G2 待启)"**。
+**决策回注**: 本 GO 决策的法律地位已**由** ~~"GO with post-hoc closure gate (genome-wiring)"~~ **→ "GO closed (G1/G3/G4 SHIPPED, G2 待启)"** → **→ "GO closed → Wave 3 Phase 1 SHIPPED (2026-09-23)"**。
 
 **缘由 (Oracle `bg_3c06ae5b` 2026-09-21 原始审查, 闭环第 7 环断裂已修复)**: 自进化闭环第 7 环"版本提交/发布"端到端闭合 (per G4 `genome-wiring-harness-rsi-gepa` ship 2026-09-22, merge `fb2769f`). `apply_harness_mutation` Gate 3 persist-before-apply 接线 `IGenomeRegistry::fork` (harness_rsi.cpp:200-243) + `GEPALoop::reflect_and_commit` persist-then-commit 接线 (gepa_loop.cpp:176-192), 失败零状态变更不变量成立, 2 事件注册 ADR-0068 Appendix A v2.3. **C4 GO 时 5 项判据全部围绕"变异能否应用"，从未要求"变异产生可加载的 Genome 版本"**。
 
@@ -221,6 +221,14 @@ Pre-existing failures (与 C4 ship 无关, git stash 验证 baseline 同样 fail
 - 24h cooling-off 计时起点: G4 merge `fb2769f` 2026-09-22 20:46 (per Single-Dev 治理); 期间可做 Wave 3 立项准备, 不正式立项.
 
 **串行约束**: G1 → G2 → G4 (三者都改 `MutationGateContext`/`harness_rsi.cpp`); G3 ∥ 全并行。**估时**: ~3-4 天。
+
+**Wave 3 Phase 1 SHIPPED (2026-09-23)** — ADR-0078 Model-RSI pilot Phase 1 完成:
+- ✅ **D1 基模选型** — 4 维度评分 yaml 持久化 `docs/research/wave-3-base-model-selection.md` (≥3 候选, Weighted ≥ 7.5, 4 过滤条件全过, 最终选择 `llama-3.1-70b-instruct`)
+- ✅ **D3 训练数据准备 (第 1 路)** — `scripts/prepare_training_data.py` (ADR-0074 D6 JSONL 加 `source` 字段 + 过滤 `parse_valid && task_success` → `data/wave-3-training-data.jsonl`)
+- ✅ **D7 serving Phase 1 最小版** — `FinetuneBaseModelProvider` stub + `LLMProviderFactory::register_dynamic("agenticdsl-llama-3.1-70b-lora-v1", ...)`
+- ✅ **OpenSpec change** `wave-3-finetune-base-model-pilot-phase1` (5 files, archived 2026-09-23)
+- 🔄 D4-D7 Phase 2 延后 (Wave 3 cooling-off 自本 change merge 起算 24h)
+- **摩擦 §3 更新**: 摩擦 1 (eval_quality 硬编码) 已 resolved (G2 ship); 无新增摩擦
 
 **详细记录**:
 - OpenSpec change: `openspec/changes/genome-wiring-harness-rsi-gepa/` (commit `3076042`)

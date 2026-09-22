@@ -286,6 +286,13 @@ if(TEST test_prompt_evidence_gate)
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 endif()
 
+# Wave 3 Phase 1 — test_training_data_pipeline 调用 scripts/prepare_training_data.py
+# (相对路径 python 脚本, 需以仓库根为工作目录; Oracle pre-impl review C1)
+if(TEST test_training_data_pipeline)
+    set_tests_properties(test_training_data_pipeline PROPERTIES
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+endif()
+
 # ─────────────────────────────────────────────────────────────
 # C6+C7 (from-roadmap-phase-6c-execution-dsl): dual_syntax_lint 独立可执行工具
 # C7 lint 工具: 检测 legacy 语法 → warning + 行级豁免 + 新文件 heuristic

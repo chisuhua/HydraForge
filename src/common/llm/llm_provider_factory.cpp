@@ -4,6 +4,7 @@
 #include <mutex>
 
 #include "common/llm/cloud_adapter.h"        // CloudLLMAdapter (OpenAI 兼容协议)
+#include "common/llm/finetune_provider.h"    // FinetuneBaseModelProvider (Wave 3 Phase 1 D7 stub)
 #include "common/llm/llama_adapter_provider.h"  // LlamaAdapterProvider (本地 llama.cpp)
 #include "common/llm/llm_config.h"          // LLMConfig
 #include "common/llm/llm_types.h"            // ILLMProvider
@@ -44,7 +45,16 @@ class LlamaProviderFactory : public IProviderFactory {
 LLMProviderFactory::LLMProviderFactory()
     : mock_factory(std::make_unique<MockProviderFactory>()),
       cloud_factory(std::make_unique<CloudProviderFactory>()),
-      llama_factory(std::make_unique<LlamaProviderFactory>()) {}
+      llama_factory(std::make_unique<LlamaProviderFactory>()) {
+  // Wave 3 Phase 1 D7 最小版: 自注册 fine-tune provider stub (design D7-3).
+  // register_dynamic 是公开成员函数, 构造函数内自调用合法 (dynamic_mutex_ 已初始化,
+  // is_reserved_backend 检查通过 — "agenticdsl-llama-3.1-70b-lora-v1" 非保留后端).
+  register_dynamic(
+      FinetuneBaseModelProvider::kModelName,
+      [](const LLMConfig& config) {
+        return std::make_unique<FinetuneBaseModelProvider>(config);
+      });
+}
 
 bool LLMProviderFactory::is_reserved_backend(const std::string& name) {
   return name == "mock" || name == "openai" || name == "anthropic" ||

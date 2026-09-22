@@ -1,7 +1,7 @@
 # Pre-Wave3 to Wave3 Execution Plan (2026-09-21 → ?)
 
 > **来源**: 综合 Oracle `bg_3c06ae5b` (闭环第 7 环断裂) + `bg_6a8e4397` (roadmap drift 12 项) + Metis `bg_687a5662` + Oracle `bg_534a2541` (genome-wiring dual-review) 输出。
-> **状态**: Phase 7 短期 G1/G2/G3/G4 active 中。Wave 3 立项前置等待 G4 ship。
+> **状态**: Wave 3 Phase 1 SHIPPED (2026-09-23). Pre-Wave3 4-Gate 序列全部 closed; ADR-0078 Model-RSI pilot Phase 1 (D1/D3/D7 最小版) 已完成; Wave 3 cooling-off 自本 change merge 起算.
 > **维护**: Single-Dev 模式，每次 sprint 收官需更新状态。
 
 ## 1. 当前快照（2026-09-21, main `0b54914`）
@@ -147,7 +147,15 @@ Week 1, Day 4 (verify): ctest + openspec validate + AGENTS.md sync + 24h cooling
 
 ## 3. Phase 7 中期: Wave 3 立项 (1-2 天, Week 2 起点)
 
-G4 ship 后 24h cooling-off + Oracle 复审通过，正式立项 ADR-0078 Model-RSI pilot。
+G4 ship 后 24h cooling-off + 用户显式 override + Oracle 复审，已正式立项 ADR-0078 Model-RSI pilot 并完成 Phase 1 (2026-09-23)。
+
+### Phase 1 ship 状态 (2026-09-23)
+
+- ✅ **ADR-0078 翻牌** 🔍 Proposed → ✅ Approved (Wave 3 Phase 1 Pilot 激活)
+- ✅ **D1 基模选型** — 评分 yaml `docs/research/wave-3-base-model-selection.md` (最终选择 `llama-3.1-70b-instruct`)
+- ✅ **D3 训练数据准备** — `scripts/prepare_training_data.py` (ADR-0074 D6 JSONL + source 字段 + 过滤)
+- ✅ **D7 serving Phase 1 最小版** — `FinetuneBaseModelProvider` stub + `register_dynamic("agenticdsl-llama-3.1-70b-lora-v1", ...)`
+- 🔄 **Phase 2 (D4-D7 完整)** — Wave 3 cooling-off (自本 change merge 起算 24h) 满后独立立项
 
 ### Sequencing
 
@@ -258,6 +266,23 @@ python3 tools/docs_drift_audit.py
 | archive 不入 git 漂移 | 修复 D1 后才能彻底避免 |
 | Solo Dev 容量不足4 项 | G3 ∥ G1 节省 0.5-1d；G4 可选 v2 → v1 缩减（去掉 undo + GEPA 接线，单版本号持久化），最低 1d |
 | Real LLM 测试阻塞 | F1 → chat-real-llm-phase-h 已 deferred；Wave 3 D6 AgenticMind 回流也需要 API key |
+
+---
+
+## 10. Decision Record (Wave 3 Phase 1, 2026-09-23)
+
+**§5.1 状态演进**: "GO with post-hoc closure gate" → "GO closed (G1/G3/G4 SHIPPED, G2 待启)" (commit `98711e3`) → **"GO closed → Wave 3 Phase 1 SHIPPED (2026-09-23)"**.
+
+**决策**: ADR-0078 Model-RSI pilot Phase 1 实施完成 (D1 基模选型 + D3 训练数据准备第 1 路 + D7 serving Phase 1 最小版)。用户显式 override 24h cooling-off (audit: `.rddf/state/builder/wave-3-finetune-base-model.json::cooling_off_override_audit`), 走完整 P1-P3 worktree 路径 (mode #11)。
+
+**证据**:
+- OpenSpec change: `openspec/changes/wave-3-finetune-base-model-pilot-phase1/` (5 files, archived 2026-09-23)
+- 1 atomic commit `feat(llm): Wave 3 finetune-base-model pilot phase 1`
+- focused ctest: `test_training_data_pipeline` + `test_llm_provider_factory` + `test_llm_tool*` + `test_cost_tracking_decorator` + `test_genome_registry` 全 PASS (≥6 binary)
+- D1 评分: `docs/research/wave-3-base-model-selection.md` (Weighted ≥ 7.5, 4 过滤条件全过)
+- Oracle post-impl SHIP-with-fixes 复评 (主会话派, 后续 Step 8)
+
+**下一步**: Wave 3 cooling-off 自本 change merge 起算 24h → Phase 2 (D4-D7) 独立立项。
 
 ---
 
