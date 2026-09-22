@@ -46,6 +46,9 @@ build_ninja/
 .rddf/wt/
 .rddf/wt-backup/
 .rddf/state/.env-cache.json
+# rdd-quick mode per-machine ephemeral state (per AGENTS.md Mode: cross-section)
+.rddf/state/.quick-history.jsonl
+.rddf/state/builder/
 # _lib is a per-machine symlink to ~/.agents/skills/_lib/ (rdd-workflow canonical)
 # Each developer creates this themselves; see AGENTS.md §环境 setup
 _lib
