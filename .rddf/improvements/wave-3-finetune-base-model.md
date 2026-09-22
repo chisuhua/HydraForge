@@ -30,7 +30,7 @@ Pre-Wave3 Plan §3 明确 Wave 3 立项依据: G1+G3+G4+G2 4-Gate 序列全部 S
 - **OpenSpec change 创建**: `openspec/changes/wave-3-finetune-base-model/` (或 `finetune-base-model-pilot-phase1` 更具体名称). 4 件套: proposal.md + design.md + tasks.md + specs/*/spec.md. 实施 D1 + D3 (基模选型 + 训练数据准备), D4-D7 延后到 Wave 3 Phase 2+ (Phase 5+ training)。
 - **D1 基模选型实施**: 4 维度 (Capability/Latency/Cost/Openness) 评分, 候选 5 个模型 (gpt-4-turbo / claude-3.5-sonnet / llama-3.1-70b / qwen-2.5-72b / deepseek-v2), 选 Weighted ≥ 7.5 + 4 过滤条件全过. 复用现有 `tests/test_llm_tool*.cpp` 评分基础设施 + `examples/cost_tracking_decorator` cost 数据.
 - **D3 训练数据准备**: 3 路汇总 (ADR-0074 D6 baseline JSONL + ADR-0074 D7 失败事件 + AgenticMind 回流). Schema 兼容 ADR-0074 D6 (`dsl_version` + `schema_snapshot_hash` + `stage_1_selected` 等元数据), 新增 `source` 字段 (`baseline` / `failure` / `agenticmind`).
-- **D7 serving 集成 (Phase 1 最小版)**: 注册 Fine-tune 模型为 ILLMProvider (`LLMProviderFactory::register_provider`). 接入 MCP `prompts/*` 更新 (ADR-0076 衔接) 延后 Wave 3 Phase 2+.
+- **D7 serving 集成 (Phase 1 最小版)**: 注册 Fine-tune 模型为 ILLMProvider via `LLMProviderFactory::register_dynamic(name, DynamicFactoryFn)` (per `src/common/llm/llm_provider_factory.h:33`, 实际 API 名称; 不是 `register_provider`). Factory fn 签名 `std::function<std::unique_ptr<ILLMProvider>(const LLMConfig&)>` (LLMConfig 非 json). 接入 MCP `prompts/*` 更新 (ADR-0076 衔接) 延后 Wave 3 Phase 2+.
 - **决策记录更新**: `docs/audits/2026-09-21-harness-rsi-pilot-go-no-go.md` §5.1 4-Gate 序列 Pre-Wave3 收盘 + §3 摩擦 1 (G2 已 resolved) + Wave 3 立项条件新增"Phase 1 容量评估"段落.
 
 **Non-Goals**:
