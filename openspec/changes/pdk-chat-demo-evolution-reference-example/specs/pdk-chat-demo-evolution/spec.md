@@ -23,29 +23,31 @@
 2. `--real-llm <provider>` — Real LLM mode (需 `DEEPSEEK_API_KEY`, 30 秒内 exit 0)
 3. `--capture-mode={None|Training}` — Default `None`, `Training` 启用 IDistillationWriter
 4. `--trace-events` — Default off, 启用后 4 段事件 emit 到 stdout
+5. `--context-file <path.jsonl>` — **必填 (R13 唯一输入入口)**, 用户提供 ContextRequest
 
-**The binary shall** exit 0 on success + emit JSONL trace per `--trace-events`. Exit non-zero on any 5-tier gate failure.
+**The binary shall** exit 0 on success + emit JSONL trace per `--trace-events`. Exit non-zero on any 5-tier gate failure. **Exit non-zero if `--context-file` 缺失** (per R13.2 S28).
 
 #### 验收场景
-- **S1**: `./run_evolution_demo.sh --mock` exit 0 + trace JSONL 8 字段 ✓
-- **S2**: `DEEPSEEK_API_KEY=... ./run_evolution_demo.sh --real-llm deepseek --trace-events` 在 30 秒内生成 4 段事件 ✓
+- **S1**: `./run_evolution_demo.sh --mock --context-file examples/contexts/code-class-context.jsonl` exit 0 + trace JSONL 8 字段 ✓
+- **S2**: `DEEPSEEK_API_KEY=... ./run_evolution_demo.sh --real-llm deepseek --trace-events --context-file ...` 在 30 秒内生成 4 段事件 ✓
 
 ---
 
 ### R2: 6 段端到端 demo 链
 
-**The system shall** execute in order these 6 phases (per design.md §3.2):
+**The system shall** execute in order these 6 phases (per design.md §3.2). **turn_input 全部来自 ContextRequest** (C2 修复 2026-09-23, per R13.2 第 3 条 "所有 6 段事件流的源头都是 ContextRequest 行"). `fixtures/golden_inputs.jsonl` 仅作为 `examples/contexts/` reference file 供用户 clone + modify, **不是** L2 自动运行的输入源.
 
-1. **Phase 1 (Init)**: 实例化 `ChatSession` + 6 Agent Plugin (Chat/Loop/Provider/Session/Budget/FS/Shell) + 注册 `evolution_tracer` 订阅 `IInteractionBus`
-2. **Phase 2 (Baseline)**: 跑 golden turn input #1 (`fixtures/golden_inputs.jsonl` Case 1) → record `{phase:"baseline", response:..., tokens:..., cost_usd:...}`
-3. **Phase 3 (Mutation)**: 调 `apply_harness_mutation(prompt_delta + tools_add)` (C4 ship 6 字段接口) → 走 5-tier gate → emit `{phase:"mutation", gate_passes:["G0","G1","G2","G2.5","G3"], genome_version:..., applied_tools:...}`
-4. **Phase 4 (Reload + Rerun)** ⭐: `IGenomeRegistry::load(name, version)` + `Genome::to_chat_config()` + `ChatSession` 重建 → 同一 golden turn → record `{phase:"reload", genome_version:..., response:...}`
-5. **Phase 5 (Compare)**: 调 `IEvaluator` V2 (`BehavioralEquivalence` + `Composite`) → emit `{phase:"compare", verdict:"approved|denied", eval_quality:"Acceptable|Poor|Excellent", attribution_verdict:"Attributed|Confounded|Insufficient|NotAttempted"}`
-6. **Phase 6 (Emit JSONL)**: stdout (per design.md §3.3 D5)
+1. **Phase 0 (Load Contexts)**: `ContextRequest::load(--context-file)` → schema 校验 (S28-S31) → contexts_ vector
+2. **Phase 1 (Init)**: 实例化 `ChatSession` + 6 Agent Plugin (Chat/Loop/Provider/Session/Budget/FS/Shell) + 注册 `evolution_tracer` 订阅 `IInteractionBus`
+3. **Phase 2 (Baseline)**: 跑 `ContextRequest[0].turn_input` → record `{phase:"baseline", context_id:..., response:..., tokens:..., cost_usd:...}`
+4. **Phase 3 (Mutation)**: 调 `apply_harness_mutation(prompt_delta + tools_add)` (C4 ship 6 字段接口) → 走 5-tier gate → emit `{phase:"mutation", context_id:..., gate_passes:["G0","G1","G2","G2.5","G3"], genome_version:..., applied_tools:...}`
+5. **Phase 4 (Reload + Rerun)** ⭐: `IGenomeRegistry::load(name, version)` + `Genome::to_chat_config()` (L2 新代码, M3) + `ChatSession` 重建 → 同一 ContextRequest turn_input → record `{phase:"reload", context_id:..., genome_version:..., response:...}`
+6. **Phase 5 (Compare)**: 调 `IEvaluator` V2 (`BehavioralEquivalence` + `Composite`) → emit `{phase:"compare", context_id:..., verdict:"approved|denied", eval_quality:"Acceptable|Poor|Excellent", attribution_verdict:"Attributed|Confounded|Insufficient|NotAttempted"}`
+7. **Phase 6 (Emit JSONL)**: stdout (per design.md §3.3 D5) → 循环下一行 ContextRequest[i+1], 全部处理完 exit 0
 
 #### 验收场景
-- **S3**: mock 模式 6 段 phase1~phase6 各 1 次调用, exit 0
-- **S4**: V2 缺口路径 `load(genome@N) → 重建 ChatSession → 1 turn` 真实装载 (Phase 4)
+- **S3**: mock 模式 6 段 phase0~phase6 各 1 次调用 (ContextRequest[0] 驱动), exit 0
+- **S4**: V2 缺口路径 `load(genome@N) → 重建 ChatSession → 1 turn` 真实装载 (Phase 4, 用 ContextRequest turn_input)
 
 ---
 
@@ -95,16 +97,20 @@
     "eval_quality": "Acceptable|Poor|Excellent | null",
     "attribution_verdict": "Attributed|Confounded|Insufficient|NotAttempted | null",
     "trace_id": "<uuid>",
-    "capture_mode": "None | Training"
+    "capture_mode": "None | Training",
+    "context_id": "<uuid>",                  // ← M2 修复 (R13 S31): 来源于 ContextRequest, 必填
+    "task_class": "<enum>",                  // ← M2 修复 (R13): 来源于 ContextRequest
+    "is_hidden": <bool>,                     // ← M2 修复 (R13): 来源于 ContextRequest
+    "sensitivity": "<public|internal|confidential>"   // ← M2 修复 (R13): 来源于 ContextRequest
   }
 }
 ```
 
-**Schema 稳定性保证**: 任何字段不能在未升级 spec.md 前删除. 加字段向后兼容, 改字段名破坏 consumer.
+**Schema 稳定性保证**: 任何字段不能在未升级 spec.md 前删除. 加字段向后兼容, 改字段名破坏 consumer. **R13 集成 (M2 修复)**: trace JSONL **必含** `meta.context_id` (per R13.2 第 5 条 + S31). 顶层 8 字段不变, meta 内部 4+4=8 字段 (原 4 + R13 新增 4).
 
 #### 验收场景
-- **S8**: trace 4 段事件各 8 字段 (per T3.1 Case 3.1)
-- **S9**: meta 字段含 capture_mode (与 R5 集成)
+- **S8**: trace 4 段事件各 8 顶层字段 + meta 内 8 字段 (含 context_id/task_class/is_hidden/sensitivity) (per T3.1 Case 3.1 + T6.10 R13 集成)
+- **S9**: meta 字段含 capture_mode (与 R5 集成) + context_id (与 R13 集成)
 
 ---
 
@@ -126,7 +132,7 @@
 #### 验收场景
 - **S13**: `git diff examples/pdk_chat_demo/` (pre-L2 vs post-L2-merge) = 0 lines (per T1.4 N1 guarantee)
 - **S14**: `examples/pdk_chat_demo/pdk_chat_demo --mock --help` 行为零变化
-- **S15**: 全量 `ctest -E pdk_chat_demo_evolution` baseline 211 零回归 (L2 add 3 new test binaries)
+- **S15**: 全量 `ctest -E pdk_chat_demo_evolution` baseline 211 零回归 (L2 add 6 new test binaries; 实测 `grep '^add_test' build/tests/CTestTestfile.cmake | wc -l` = 211, per Mi3 校准 2026-09-23)
 
 ---
 
@@ -172,7 +178,7 @@
 **Any-drop > threshold block**: 反向指标 drop ratio > **5%** 自动 block, 需显式 ack (Single-Dev 模式 = author ack in commit message).
 
 #### 验收场景
-- **S17**: L2 `--release-metrics` flag 输出 4 字段 (new_up / new_down / old_up / old_down) + drop_ratio 阈值校验. drop > 5% → exit non-zero
+- **S36**: L2 `--release-metrics` flag 输出 4 字段 (new_up / new_down / old_up / old_down) + drop_ratio 阈值校验. drop > 5% → exit non-zero
 - **S18**: L2 `--regression-test-suite` flag 跑 N 个 pre-ship acceptance suite, 输出 drop matrix
 
 ---
@@ -251,7 +257,7 @@ Acceptance 必须输出 3 段对照:
 - 失败 → `sandbox.escape_attempt` 事件 + 自动回滚到 baseline state
 #### 验收场景
 - **S26**: tests/test_anti_cheat_sandbox_escape.cpp Case 3.3 — 模拟 agent 企图 outbound call → 期望 sandbox 拦截 + 事件
-- **S27**: docker backend 默认 network_mode=none (per ADR-0075 D2 + 修订) — outbound 全部拒绝除非显式 opt-in
+- **S27**: docker backend 在 **L2 sandbox 模式** 下 `network_mode=none` (per ADR-0075 D2 EnvBackend 允许配置; L2 场景显式 opt-in none, 非通用默认) — outbound 全部拒绝除非显式 opt-in
 
 ---
 
@@ -263,7 +269,7 @@ Acceptance 必须输出 3 段对照:
 
 ### R13.1 ContextRequest Schema (L2 唯一入口契约)
 
-**The system shall** 接受 `--context-file <path.jsonl>` flag, 每行为一个 ContextRequest JSON object, 含 5 字段:
+**The system shall** 接受 `--context-file <path.jsonl>` flag, 每行为一个 ContextRequest JSON object, 含 6 顶层字段 (含 metadata 对象, metadata 内 4 子字段):
 
 ```json
 {

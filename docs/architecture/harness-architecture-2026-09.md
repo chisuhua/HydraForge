@@ -584,7 +584,7 @@ ctest -R test_genome_walk_ancestors --output-on-failure
 
 - **L2 链接**: [L2 spec R8 + R9](../../openspec/changes/pdk-chat-demo-evolution-reference-example/specs/pdk-chat-demo-evolution/spec.md) (主 source of reverse indicator + anti-cheat)
 - **SoT §十二 同源**: [`./self-evolution-architecture-2026-08.md` §十二](./self-evolution-architecture-2026-08.md) (9 段闭环) + [`./rsi-architecture-2026-09.md` §十二](./rsi-architecture-2026-09.md) (真 RSI 三判据)
-- **AGENTS.md Reverse Indicator Rule**: per `AGENTS.md` Reverse Indicator Rule (待 C1 同步)
+- **AGENTS.md Reverse Indicator Rule**: per `AGENTS.md` §REVERSE INDICATOR RULE (已 ship 2026-09-23, commit `4af2092`)
 
 ### 12.8 维保规则
 
@@ -625,30 +625,30 @@ ctest -R test_genome_walk_ancestors --output-on-failure
 
 #### 12.9.3 trace JSONL 必含 ContextRequest 字段
 
-8 字段原 schema (per L2 spec R4) + 1 个**强制** 新字段:
+trace schema 顶层 8 字段不变 (per L2 spec R4) + `meta` 内 4 个**强制** 新字段 (M2 修复, per L2 spec R13 S31):
 
 ```diff
 {
   "phase": "baseline | mutation | reload | compare",
   "timestamp_iso8601": "...",
   "session_id": "...",
-+ "context_id": "<uuid>",                    // 必填, 来源于 ContextRequest
   "turn_input": "...",
   "response": "...",
   "tokens": 0,
   "cost_usd": 0.0,
   "meta": {
-+   "task_class": "<enum>",                   // 来源于 ContextRequest
-+   "expected_eval_quality": "<...>",         // 来源于 ContextRequest (R8.2 失败可追溯)
-+   "is_hidden": <bool>,                      // 来源于 ContextRequest (E2 公开/隐藏集)
-+   "sensitivity": "<...>",                   // 来源于 ContextRequest (H2 凭证隔离)
-+   "trace_id": "<uuid>",                     // (原有)
-    "capture_mode": "None | Training"        // (原有)
++   "context_id": "<uuid>",                    // 来源于 ContextRequest, 必填 (R13 S31)
++   "task_class": "<enum>",                    // 来源于 ContextRequest
++   "expected_eval_quality": "<...>",          // 来源于 ContextRequest (R8.2 失败可追溯)
++   "is_hidden": <bool>,                       // 来源于 ContextRequest (E2 公开/隐藏集)
++   "sensitivity": "<...>",                    // 来源于 ContextRequest (H2 凭证隔离)
+    "trace_id": "<uuid>",                     // (原有)
+    "capture_mode": "None | Training"         // (原有)
   }
 }
 ```
 
-任何缺失 `context_id` 的 trace 段视为 0% 失配 (per L2 spec S31) → exit non-zero.
+任何缺失 `meta.context_id` 的 trace 段视为 0% 失配 (per L2 spec S31) → exit non-zero.
 
 #### 12.9.4 与 R8 (反向指标) 集成
 

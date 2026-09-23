@@ -420,7 +420,7 @@ grep -m1 "Approved.*Wave 3 Phase 1 Pilot 激活" docs/adr/adr-0078-finetune-base
 ### 11.4 承载例 vs Reference Example (L1 + L2 关系)
 
 - **L1 (本文)** — traceback 只标注"每段架构概念**已经**在 pdk_chat_demo 哪里落地" (✅ 已 ship) **或** "将在哪里落地" (⏳ Phase 2)
-- **L2 (`pdk_chat_demo_evolution`)** — 独立 example sub-project (≤ 1 周实施), 提供**可运行 harness-rsi + data-rsi + model-rsi reference example**, 不是主线 chat demo 的修改, 而是用 chat session 实例 + LoopAgent 包装一个 evolution-aware 变体. 详见 OpenSpec change `pdk-chat-demo-evolution-reference-example` (即将草案)
+- **L2 (`pdk_chat_demo_evolution`)** — 独立 example sub-project (≤ 1 周实施), 提供**可运行 harness-rsi + data-rsi + model-rsi reference example**, 不是主线 chat demo 的修改, 而是用 chat session 实例 + LoopAgent 包装一个 evolution-aware 变体. 详见 OpenSpec change `pdk-chat-demo-evolution-reference-example` (已注册 2026-09-23, 4 件套完整, commit `52b871d`; 状态 PLACEHOLDER 待 rdd-builder 实施)
 
 > **本文不替代 OpenSpec change**: §X.Y 是**追溯 traceback**, L2 是**改造 + 验证**. 两者互不冲突, 但 L2 立项需先用本文 §X.Y 做导航, 然后再实施.
 
@@ -430,6 +430,49 @@ grep -m1 "Approved.*Wave 3 Phase 1 Pilot 激活" docs/adr/adr-0078-finetune-base
 
 > **来源**: per Cross-Doc Review 2026-09-23 + 用户提交 16 模块评审 + L2 spec R8/R9.
 > **核心命题**: 任何"自进化能力 ship"必须同时输出**正向 + 反向指标** (per R8.1) + 100% 失败可追溯 (per R8.2) + 消融对照数据 (per R8.3), 缺一不予 merge. 此外, 任何"进化机制"评估必须显式覆盖 3 类已知反作弊场景 (per R9).
+
+### 12.0 E1-E6 自进化红线矩阵 (2026-09-23 Oracle M5 修复)
+
+> **来源**: 用户提交三阶段文档的"阶段二 自进化" 6 模块 (E1-E6). 与 harness §12.1 (H1-H6 矩阵) + rsi §12.1 (R1-R4 矩阵) 对齐, 补全 16 模块一一对应的唯一缺口.
+> **定位**: 用户原文 "这一阶段的正确名字是**防退化基线**, 职责是'让系统不退化', **不是**'让系统变强'. 对外不得宣称'实现了自进化'".
+
+| E 模块 | 用户判据 | 项目 SoT 现状 | ship 证据 / 缺口 |
+|--------|---------|--------------|------------------|
+| **E1 反馈管道** | 环外反馈采集 + **bad case 必转用例** + Agent 自动提炼候选 | ⚠️ partial | ✅ EventLog + SessionManager JSONL + IDistillationWriter (ADR-0061-13) + CaptureMode 三态; ❌ **bad case 必转用例机制未 ship** (E1 分界线) + ❌ Agent 自动提炼未 ship |
+| **E2 评测回归** | Golden Set + **公开集/隐藏集分离** + 增长式动态评测 + Reliability + Verifiability + CI 门禁 | ⚠️ partial | ✅ IEvaluator V1+V2 (20 cases / 49 assertions) + BehavioralRegressionGate; ❌ **公开集/隐藏集分离未实施** (L2 R13 metadata.is_hidden 是入口, 无测试); ⚠️ Reli/Verifi 双维度见 §12.3 |
+| **E3 技能沉淀** | 执行→评估→抽象→优化 + 触发门槛 (评分≥7/步骤≥3/未复用) + **Pareto 精英池** | ⚠️ partial | ✅ SkillCompiler T17 ship (15 cases / 61 assertions) + SkillInterpreter; ❌ **Pareto 精英池未 ship** + 触发门槛量化未 ship |
+| **E4 验证门** | 只有验证集**严格提升**才接受 + 域限定 + 拒绝缓冲 + 慢更新 + 完整证据链 | ✅ 强 | ✅ 5-tier gate (G3 persist-before-apply) + ADR-0086 v1.1 (judge_data_freshness fail-closed) + 4 个 `mutation.*` 事件; ⚠️ 拒绝缓冲 + 慢更新策略未量化 |
+| **E5 记忆治理** | 定时去重合并修剪 + 成败差异化提炼 + **效用驱动检索 (意图-经验-效用三元组 + Q 值)** + 遗忘缓解 | ❌ 缺 | ✅ SessionManager JSONL + CaptureMode; ❌ **效用驱动检索未 ship** (本质是新 IR 引擎) + 遗忘缓解未 ship |
+| **E6 变更治理** | **PR 人工审查 + 永不直提主分支** + 版本检查点 + 归因记录 + 灰度回滚 | ⚠️ partial | ✅ ADRs + Self-Review Checklist + 4-Gate 收口 + 5 阶段 ship 实证 + Reverse Indicator Rule; ❌ **Single-Dev = author = reviewer = approver** (不达 E6 红线, 同 rsi §12.2 R4) |
+
+**自进化四要件 (用户红线, 缺一不成立)**:
+
+| 要件 | 用户判据 | 项目 SoT 现状 | 证据 |
+|------|---------|--------------|------|
+| **持久性** | 跨会话跨重启仍生效 (in-context 一次性修正不算) | ✅ | Genome 持久化 (C2 + G4 wiring), test_genome_registry 13/13 |
+| **因果性** | 必须交 A/B: 冻结进化 vs 开启进化 | ❌ | **缺 A/B 对照实验基建** (R8.3 消融是静态 3 段, 非动态 A/B) |
+| **可归因** | 每条改动追溯到具体 trace 与失败样本 | ✅ | ADR-0086 v1.1 + judge_data_freshness, test_credit_assignment 12/12 |
+| **可回滚** | 任意版本可退回, 被拒编辑有记录 | ✅ | G4 persist-before-apply + undo_applied_mutation, test_harness_rsi_pilot 22/22 |
+
+**反向指标 (用户红线, 必须与正向同时提交)**: 见 §12.1 (drop_ratio ≤ 5% block) + §12.3 (成本曲线 + 一致性 + 错误自知). 用户原文 "**只报涨不报掉属选择性披露，不予通过**" → 已固化为 AGENTS.md Reverse Indicator Rule.
+
+**E1-E6 红线验收命令**:
+```bash
+# E1 反馈管道 — bad case 转用例 (待 ship, L2 后续)
+# E2 评测回归 — IEvaluator V2 + BehavioralRegressionGate
+ctest -R test_evaluator --output-on-failure   # 20 cases
+ctest -R test_behavioral_equivalence --output-on-failure
+# E3 技能沉淀 — SkillCompiler
+ctest -R test_skill_compiler --output-on-failure   # 15 cases
+# E4 验证门 — 5-tier gate
+ctest -R test_harness_rsi_pilot --output-on-failure  # 22 cases
+# E5 记忆治理 — SessionManager JSONL
+ctest -R test_session_manager --output-on-failure
+# E6 变更治理 — Reverse Indicator Rule (AGENTS.md)
+grep -c "REVERSE INDICATOR RULE" AGENTS.md  # 预期 ≥ 1
+```
+
+**E1-E6 缺口清单 (后续修订候选)**: E1 bad case 转用例 / E2 公开-隐藏集分离 / E3 Pareto 精英池 / E5 效用驱动检索 / 因果性 A/B 基建 — 详见 §12.0 各行的 ❌ 标记.
 
 ### 12.1 反向指标门 (Reverse Indicator Gate) — 应用于 9 段闭环
 
@@ -545,7 +588,7 @@ done
 > **来源**: 用户原话 "L2 只是提供了用户交互的设施, 具体还要用户提供一个具体上下文请求, 这个上下文请求创建的目标才能做 harness/自进化/rsi 的验证"
 > **核心命题**: 任何"自进化能力 ship"必须由 **ContextRequest** 触发, 不是 L2 demo 自身自动跑. L2 是 reference example 入口, **不**是 autonomous evaluator.
 
-#### 12.9.1 ContextRequest 5+3 字段契约
+#### 12.9.1 ContextRequest 6 顶层字段契约 (含 metadata 对象, metadata 内 4 子字段)
 
 | 字段 | 必填 | 约束 |
 |------|------|------|
