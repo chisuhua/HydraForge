@@ -145,8 +145,8 @@ ChatSession(
 // L2 P0-1 fix (2026-09-23): proposal/design 早期 "5 method" claim 是事实错误;
 // 真实只有 override_provider + override_system_prompt 两个. tools/budget/model_routing/prompt_prefix
 // 维度走 AgentConfig 公开字段直接赋值, 不依赖 override_*
-ChatConfig& override_provider(std::string provider, std::string model);
-ChatConfig& override_system_prompt(std::string overwrite, std::string append);
+void override_provider(const std::string& provider, const std::string& model);
+void override_system_prompt(const std::string& overwrite, const std::string& append);
 // 不存在的"5 method"列表 (设计笔误, 真实代码不存在):
 // - override_tools() — 走 AgentConfig.tools 字段
 // - override_budget() — 走 AgentConfig.budget_limit_usd 字段

@@ -874,7 +874,7 @@ git log --oneline | grep -E "f0a5c4b|fb2769f|dc12a17|a196a09|9709317" | wc -l
 
 | 范围 | ContextRequest 角色 | 实证要求 |
 |------|---------------------|----------|
-| **Self-Dev 可船范围** (§11.8.1) | 单 ContextRequest 类实证 + ≥ 3 类对比 | L2 demo 默认提供 `examples/contexts/{code,research,debug}-class-context.jsonl` 3 reference file |
+| **Self-Dev 可船范围** (§11.8.1) | 单 ContextRequest 类实证 + ≥ 3 类对比 | L2 demo 默认提供 `examples/pdk_chat_demo_evolution/fixtures/contexts/{code,research,debug}-class-context.jsonl` 3 reference file |
 | **必须外部治理范围** (§11.8.2) | 跨 ContextRequest 类 + 跨治理主体的元指标对比 | 需 4 个独立治理主体承认 (per R4 红线) |
 | **永远不达范围** (R4) | n/a (Single-Dev = 单一 context provider) | n/a |
 
@@ -891,7 +891,7 @@ git log --oneline | grep -E "f0a5c4b|fb2769f|dc12a17|a196a09|9709317" | wc -l
 |----------|---------------------|
 | 1. 24h cooling-off 强制 | ContextRequest 跨类 ≥ 3 收集需 24h (R3 实证前置) |
 | 2. Oracle dual-agent 审查 | ContextRequest schema 变更需 Oracle 审查 (R13 升档) |
-| 3. 4-file integrity 强制 | `examples/contexts/` 目录 4-file integrity (ContextRequest fixture) |
+| 3. 4-file integrity 强制 | `examples/pdk_chat_demo_evolution/fixtures/contexts/` 目录 4-file integrity (ContextRequest fixture) |
 | 4. 双向指标 commit 字段 | `[Reverse Indicator]` 段含 `context_ids: <uuid list>` |
 | 5. 5 阶段 ship 实证 | ContextRequest 类 ≥ 3 视为阶段 ship 实证 (per R3 红线) |
 | 6. 3 份 SoT 双向引用 | ContextRequest 引用任一 SoT §12.9 必双向同步 |

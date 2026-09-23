@@ -627,7 +627,7 @@ done
 | **Research 类** (`task_class: research`) | 文档摘要 / 文献对比 — data-rsi capture-mode=Training |
 | **Debug 类** (`task_class: debug`) | 日志分析 / 错误诊断 — model-rsi provider 选择 |
 
-L2 ship 时附 `examples/contexts/{code,research,debug}-class-context.jsonl` 3 个 reference ContextRequest file (per L2 spec R13.3 S32).
+L2 ship 时附 `examples/pdk_chat_demo_evolution/fixtures/contexts/{code,research,debug}-class-context.jsonl` 3 个 reference ContextRequest file (per L2 spec R13.3 S32).
 
 #### 12.9.4 与 R8 / R9 的关系
 

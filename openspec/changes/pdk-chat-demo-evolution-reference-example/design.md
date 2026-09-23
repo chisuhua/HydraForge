@@ -105,7 +105,7 @@ L2 的**唯一任务**: 实例化一个真实 demo 把这些接口**端到端串
                           └────────────────────────────────┘
 ```
 
-> **§3.1 与 R13 (上下文驱动契约) 的关系**: `context_request.{h,cpp}` 是 L2 的**唯一输入入口** (per spec R13.1). main.cpp 启动时 `--context-file <path.jsonl>` 必填, 无 flag → exit non-zero (S28). 6 段事件流的 turn_input 全部来自 ContextRequest, **不是** fixtures/golden_inputs.jsonl (那是 reference 示例, 供用户 clone + modify, 见 spec R13.2).
+> **§3.1 与 R13 (上下文驱动契约) 的关系**: `context_request.{h,cpp}` 是 L2 的**唯一输入入口** (per spec R13.1). main.cpp 启动时 `--context-file <path.jsonl>` 必填, 无 flag → exit non-zero (S28). 6 段事件流的 turn_input 全部来自 ContextRequest, **不是** fixtures/golden_inputs.jsonl (**per P1-5 fix:golden_inputs.jsonl 已显式 REMOVED**,per P0-10 ship 时随 L2 binary 同期 ship 的 3 个 reference ContextRequest 在 `examples/pdk_chat_demo_evolution/fixtures/contexts/{code,research,debug}-class-context.jsonl`, 供用户 clone + modify).
 
 ### 3.1.5 ContextRequest Flow (Phase E4, per spec R13)
 
@@ -580,7 +580,7 @@ endif()
 
 | # | 风险 | 影响 | 缓解 |
 |---|------|------|------|
-| R1 | ChatSession ctor 与 ChatConfig 结合出现 lifecycle 问题 (C4 5-tier gate 已 ship, 但 V2 reload 路径未 ship) | V2 缺口闭环实现可能 wave 5-tier gate 已经处理, 但 reload → 重建 ChatSession 仍是新路径 (per Decision Record §3 第 6 项) | L2 严格 follow 5-tier gate + `--strict` mode (任何 gate fail → exit non-zero) |
+| R1 | ChatSession ctor 与 ChatConfig 结合出现 lifecycle 问题 (C4 5-tier gate 已 ship, 但 V2 reload 路径未 ship) | V2 缺口闭环实现可能 wave 5-tier gate 已经处理, 但 reload → 重建 ChatSession 仍是新路径 (per Decision Record §3 第 6 项) | L2 严格 follow 5-tier gate(per P0'-4 hermetic env fixture + 任何 gate fail → exit non-zero,per R8.1 机制覆盖;**per P1-6 M2 fix**:原设计 R1 mitigation 列引用的 `--strict` 旗标已删除—— `--strict` 不在 spec R1 旗标面(9 旗标 5 R1 + 3 R8 + 1 R13 helper),`--strict` 行为已并入 R8.1 反向指标门 `drop_ratio > 5% → exit non-zero` 机制) |
 | R2 | `--real-llm` 模式需要 DEEPSEEK_API_KEY (sandbox 无 key) | 真实 LLM 验证受限 | 默认 `--mock` + Gate 验证; 单 dev developer local 跑 `--real-llm` |
 | R3 | D7 stub (Wave 3 Phase 1) 与 L2 stub provider 命名冲突 | 命名 alias 风险 | L2 用 `_demo_evolution_<uuid>` prefix 避免冲突 |
 | R4 | L2 demo 跑通路径 5-tier gate 中, G2 load + G3 commit 都涉及 IGenomeRegistry::commit, 频繁操作 file system | Disk 写入锁 contention + **AGENTS.md 模式 #10 fresh-deploy 静默回归** | **P0'-4 fix (2026-09-23)**: L2 默认 `--mock` 与 `--real-llm` 双模式均使用 `FilesystemGenomeRegistry` (per `src/core/genome/registry_filesystem.cpp` 现成实现), **但强制 hermetic env fixture**: 测试入口 `setenv("HOME", "/tmp/l2-test-<uuid>", 1)` + `setenv("HYDRAFORGE_GENOME_DIR", "$HOME/.hydraforge/genomes", 1)` + `mkdtemp` 隔离 HOME; 这样既不引入新 `InMemoryGenomeRegistry` (破 N2 边界), 又保证测试不污染宿主机 `~/.hydraforge/genomes/` (修 AGENTS.md 模式 #10 hygiene-fix fresh-deploy 风险). mock 与 real-llm 唯一区别是 LLM provider, 不是 registry |
