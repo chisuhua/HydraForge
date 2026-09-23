@@ -1,0 +1,1 @@
+{"context_id":"invalid-task-class-enum-001","turn_input":"This ContextRequest has task_class='unsupported_class' which is NOT in the closed enum (R13.1.3)","task_class":"unsupported_class","expected_eval_quality":"Acceptable","invocation_mode":"mock","metadata":{"domain":"invalid-test","tags":["R13.1.3","bad-task-class"],"is_hidden":false,"sensitivity":"public"}}

@@ -1,0 +1,1 @@
+{"context_id":"invalid-empty-turn-input-001","turn_input":"","task_class":"code_gen","expected_eval_quality":"Acceptable","invocation_mode":"mock","metadata":{"domain":"invalid-test","tags":["R13.1.2","empty-turn-input"],"is_hidden":false,"sensitivity":"public"}}

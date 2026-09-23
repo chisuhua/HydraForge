@@ -124,20 +124,34 @@ struct GenomeVersion {
 ### 3.1 装配入口
 
 ```cpp
-// 入口 1: ChatSession 构造
+// 入口 1: ChatSession 构造 (**11 参真实签名, NOT "4 参"**, per `chat_session.h:210-230`)
+// L2 P0-1 fix (2026-09-23): proposal/design 早期 "4 参" claim 是事实错误;
+// 真实签名含 5 个默认参 + 无 ILLMProvider* ctor 参数 (provider 走 engine->set_llm_provider() 注入)
 ChatSession(
   DSLEngine* engine,
-  AgentConfig cfg,                       // 包含 ChatConfig (Harness + 预算)
-  std::unique_ptr<ILLMProvider> provider,
-  ITimerService* timer = nullptr
+  std::shared_ptr<IInteractionBus> bus,
+  IToolRegistry* registry,
+  const AgentConfig& agent_cfg,            // 含 ChatConfig
+  const SessionConfig& session_cfg,
+  std::shared_ptr<CancellationRegistry> cancellation_registry = nullptr,
+  ITimerService* timer = nullptr,          // D9 lazy
+  std::unique_ptr<IInputSource> input = nullptr,    // lift C1 §6.1
+  std::unique_ptr<ILogger> logger = nullptr,
+  SessionManager* session_manager = nullptr,         // 观察者, 不持有
+  std::optional<ResumeToken> resume = std::nullopt
 );
 
-// 入口 2: ChatConfig 显式 override_* 方法 (Sprint 19+ ship, 5 个 API)
-ChatConfig& override_system_prompt(std::string);
-ChatConfig& override_tools(std::vector<std::string>);
-ChatConfig& override_budget(ExecutionBudget);
-ChatConfig& override_model_routing(RouterConfig);
-ChatConfig& override_prompt_prefix(std::string);
+// 入口 2: ChatConfig 显式 override_* 方法 (**2 method, NOT 5**, per `chat_session.h:173-176`)
+// L2 P0-1 fix (2026-09-23): proposal/design 早期 "5 method" claim 是事实错误;
+// 真实只有 override_provider + override_system_prompt 两个. tools/budget/model_routing/prompt_prefix
+// 维度走 AgentConfig 公开字段直接赋值, 不依赖 override_*
+ChatConfig& override_provider(std::string provider, std::string model);
+ChatConfig& override_system_prompt(std::string overwrite, std::string append);
+// 不存在的"5 method"列表 (设计笔误, 真实代码不存在):
+// - override_tools() — 走 AgentConfig.tools 字段
+// - override_budget() — 走 AgentConfig.budget_limit_usd 字段
+// - override_model_routing() — 走 AgentConfig.provider / model 字段
+// - override_prompt_prefix() — 走 AgentConfig.system_prompt 字段
 ```
 
 ### 3.2 当前已 ship 的装配路径 (Wave 1 + Wave 2.5)
@@ -327,7 +341,7 @@ Per [`./rsi-architecture-2026-09.md`](./rsi-architecture-2026-09.md) 第七节, 
 | # | 决策 | 实施载体 | 理由 |
 |---|------|----------|------|
 | D1 | **Harness 字段类型 = string (不是 object)** | C2 ship + Self-evolution §十.3 | (a) render 后是字符串 (b) schema-overcommit 风险 (c) Phase 2+ 可加 typed patch 不破坏 v1.0 |
-| D2 | **apply_harness_mutation 6 字段签名 (非裸 MutationContext)** | C4 ship (Oracle bg_3ef7280a) | 核心↔PDK 反向依赖消除; MutationContext 8 字段太重, break ABI compat |
+| D2 | **apply_harness_mutation 5 参自由函数签名 (非裸 MutationContext, NOT "6 字段 interface" / MutationGateChain)** | C4 ship (Oracle bg_3ef7280a) | 核心↔PDK 反向依赖消除; MutationContext 8 字段太重, break ABI compat. **L2 P0-1 fix (2026-09-23)**: 真实签名 `(const GenomeMutations&, std::string& system_prompt, std::vector<std::string>& tools, IToolRegistry&, const MutationGateContext&)` per `harness_rsi.h:73-78`; `MutationGateChain` 类 grep 0 命中, design 早期笔误 |
 | D3 | **Gate 0 / Gate 1 / Gate 2 / Gate 2.5 / Gate 3 / H→D 5-tier gate** | C4 + G4 + C3 5 阶段 ship | 任一独立 gate fail-bypass ⇒ 已 ship C4 5 Oracle reviews 累计教训 |
 | D4 | **persist-before-apply (G3 fork before apply)** | G4 ship (Oracle bg_e4eec567) | 失败零状态变更; GEPALoop::reflect_and_commit 不能仅发审计事件 |
 | D5 | **tools_remove 必须对称治理 (G1 ship, 不允许单边)** | G1 ship (Oracle bg_c706862b) | mutations 等价; 防 undo 语义丢失 |
@@ -389,7 +403,7 @@ grep -E "evolution\.(transition|readiness)\.denied|genome\.(committed|persist_fa
 |------|----------------------|
 | **Wave 1** (2026-09-17-18) | ChatConfig override_* 方法 (Sprint 19 ship, 5 API); F1 react-decide-empty-response 修复 |
 | **Wave 2** (2026-09-19-20) | C2 IGenomeRegistry 5 methods; C3 TransitionGuard H→D 守门 5×5 矩阵; C3 follow-up walk_ancestors + judge_data_freshness; D8 主题注册 evolution.transition/readiness.denied |
-| **Wave 2.5** (2026-09-20-21) | C4 apply_harness_mutation 6 字段签名; 9 cases / 43 assertions; Decision Record GO; IToolRegistry::unregister_tool_function 25 文件 override |
+| **Wave 2.5** (2026-09-20-21) | C4 apply_harness_mutation **5 参 free function** (per `harness_rsi.h:73-78`, NOT "6 字段 interface" / MutationGateChain); 9 cases / 43 assertions; Decision Record GO; IToolRegistry::unregister_tool_function 25 文件 override. **L2 P0-1 fix (2026-09-23)**: 此处 "6 字段签名" 措辞为 C4 ship 时笔误, 实施代码实为 5 参自由函数 |
 | **Pre-Wave3** (2026-09-21-22) | G1 remove 治理 + semantic_locked_tools + trace_id; G2 eval_quality 字段复用; G3 sync-pdk-contract-header; G4 genome-wiring-harness-rsi-gepa (Gate 3 persist-before-apply + GEPA fork→commit + 2 事件) |
 | **Wave 3 Phase 1** (2026-09-23) | ADR-0078 ✅ Approved; D1+D3+D7 最小版 ship; finetune-base-model pilot |
 
@@ -448,7 +462,7 @@ grep -E "evolution\.(transition|readiness)\.denied|genome\.(committed|persist_fa
 | 装配路径 (§三.2) | pdk_chat_demo 落地 | 验证 |
 |----------------|-------------------|------|
 | **入口 1: ChatSession 构造** | `examples/pdk_chat_demo/main.cpp` 启动 `ChatSession` (Sprint 32 ship) — `ChatSession(dsl_engine, AgentConfig{ChatConfig{}}, llm_provider, &timer_service)` | `test_chat_session.cpp` 5 cases / `--mock` e2e PASS |
-| **入口 2: ChatConfig override_*** | `examples/pdk_chat_demo/commands/` 16 commands 中 `--model` (model_command.cpp) + `--name` 等覆盖 `override_system_prompt` + `override_tools` | `test_chat_session_consumer.cpp` + `test_chat_session_loop_result_ok.cpp` (Loop OK 路径下 ChatConfig 装载) |
+| **入口 2: ChatConfig override_*** | `examples/pdk_chat_demo/commands/` 16 commands 中 `--model` (model_command.cpp) + `--name` 等覆盖 `override_system_prompt` (**2 method per `chat_session.h:173-176`**, NOT 5; L2 P0-1 fix 2026-09-23) | `test_chat_session_consumer.cpp` + `test_chat_session_loop_result_ok.cpp` (Loop OK 路径下 ChatConfig 装载) |
 | **已 ship 步骤 1-5** | 步骤 1+2 已 ship (ChatConfig override + ChatSession ctor); **步骤 3-5 (mutation → governance → registry → fork → commit)** V1 C4 pilot **未启用到 pdk_chat_demo 实例** (mock + 1 turn V2 缺口) | C4 9/43 mock 测过; pdk_chat_demo 真实 wire 需 L2 (`pdk_chat_demo_evolution/`) |
 
 ### 11.3 变更能力 (§四) → pdk_chat_demo 落地
@@ -487,7 +501,7 @@ grep -E "evolution\.(transition|readiness)\.denied|genome\.(committed|persist_fa
 
 | 决策边界 | pdk_chat_demo 体现 |
 |---------|-----------------|
-| "可以 mutate prompt.tools?" | ✅ ChatConfig.override_* 5 method 已 wire (Sprint 19); apply_harness_mutation 6 字段**未 wire** (V2 立项) |
+| "可以 mutate prompt.tools?" | ✅ ChatConfig.override_provider + override_system_prompt (2 method, per `chat_session.h:173-176`; Sprint 19); apply_harness_mutation **5 参 free function** 已 wire (C4 ship); tools 维度**不**走 override_tools (不存在, 设计笔误), 走 AgentConfig.tools 字段直接赋值. **L2 P0-1 fix (2026-09-23)** |
 | "Should we do Harness-RSI?" | 决策点 = `commands/evolution_command.cpp` (L2 计划新增, 默认不入 pdk_chat_demo 主路径) |
 | "load(genome@N) → 1 turn" | ⏳ V2 `examples/pdk_chat_demo_evolution/Genome.load_chat_session(genome@N)` (L2 计划) |
 

@@ -1,0 +1,1 @@
+{"context_id":"valid-single-code-001","turn_input":"Write a TypeScript function that deep-clones an object (handle Date / Map / Set / circular references)","task_class":"code_gen","expected_eval_quality":"Acceptable","invocation_mode":"mock","metadata":{"domain":"typescript","tags":["valid-single"],"is_hidden":false,"sensitivity":"public"}}

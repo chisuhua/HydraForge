@@ -1,0 +1,1 @@
+{"context_id":"is-hidden-true-001","turn_input":"This is an internal evaluation prompt — should be routed to the hidden bucket, NOT included in public-set metrics per E2 red-line","task_class":"code_gen","expected_eval_quality":"Acceptable","invocation_mode":"mock","metadata":{"domain":"internal-eval","tags":["R13.3.4","is_hidden_test"],"is_hidden":true,"sensitivity":"internal"}}

@@ -11,7 +11,7 @@
 
 ### 当前问题
 
-1. **三方 SoT 架构抽象, 落地路径不直观**: 3 份 Source of Truth 文档 (`self-evolution` / `harness` / `rsi`) 已 ship, 但每段架构概念在 pdk_chat_demo 落地存在两种状态 — (a) **已 ship** (如 ChatConfig.override_*, SessionManager JSONL, model_command.cpp) (b) **未来待 L2/Phase 2 启用** (如 `apply_harness_mutation` V2 wire, `load(genome@N) → 重建 ChatSession → 1 turn` 等). L1 traceback 已加 §十一 (本文档化为锚点), 但**缺乏可运行 reference example**.
+1. **三方 SoT 架构抽象, 落地路径不直观**: 3 份 Source of Truth 文档 (`self-evolution` / `harness` / `rsi`) 已 ship, 但每段架构概念在 pdk_chat_demo 落地存在两种状态 — (a) **已 ship** (如 `ChatConfig::override_provider` + `ChatConfig::override_system_prompt` (Sprint 19 ship, **2 method, not 5** per `chat_session.h:173-176`), SessionManager JSONL, model_command.cpp) (b) **未来待 L2/Phase 2 启用** (如 `apply_harness_mutation` V2 wire, `load(genome@N) → 重建 ChatSession → 1 turn` 等). L1 traceback 已加 §十一 (本文档化为锚点), 但**缺乏可运行 reference example**.
 
 2. **V2 端到端 "load(genome@N) → 重建 ChatSession → 1 turn" 是 Wave 4 必须子**: C4 Decision Record `docs/audits/2026-09-21-harness-rsi-pilot-go-no-go.md` §3 第 6 项明确要求 V2 立项必备 harness mutation → chat session 装载回路. 当前 mock 已测过, 真实缺.
 
@@ -37,18 +37,34 @@
 
 ```text
 examples/pdk_chat_demo_evolution/
-├── CMakeLists.txt                  # 独立 target, AGENTICDSL_BUILD_EXAMPLES ON 启用
+├── CMakeLists.txt                  # 独立 target, AGENTICDSL_BUILD_EXAMPLES ON 启用 (与根 CMakeLists.txt 配对, 见 §Impact)
 ├── README.md                       # 端到端使用说明
-├── main.cpp                        # 入口: 默认 capture-mode=Training, --trace-events flag
+├── main.cpp                        # 入口: 默认 capture-mode=None, --trace-events flag + --context-file 必填 (per R13)
 ├── evolution_session.{h,cpp}      # 包装 ChatSession + 事件 trace + Genome 操作
 ├── evolution_tracer.{h,cpp}       # 接收 BusEvent, 序列化为 JSONL stdout (per distill-source-survey)
+├── context_request.{h,cpp}        # JSONL parser + Schema 校验 (per R13.1)
 ├── run_evolution_demo.sh           # 一键 mock/real LLM 双模式端到端
 ├── fixtures/
-│   └── golden_inputs.jsonl         # 7 个"reference turns" (供 behavior 等价性 + 评估)
+│   └── contexts/                   # SHIPPED reference ContextRequest (用户 clone + modify)
+│       ├── code-class-context.jsonl         # 2 entries (K8s YAML / Python test)
+│       ├── research-class-context.jsonl     # 2 entries (论文摘要 / CRDT 对比)
+│       └── debug-class-context.jsonl        # 2 entries (k8s RBAC / HTTP latency)
 ├── tests/
-│   ├── test_evolution_session_mutation.cpp     # Case 1: mutation → ChatSession 装载 → 1 turn 后真实 LLM 响应变化
-│   ├── test_evolution_session_load.cpp          # Case 2: load(genome@N) → 重建 ChatSession → 1 turn (V2 缺口闭环)
-│   └── test_distillation_capture_mode.cpp        # Case 3: capture-mode=Training → JSONL → IDistillationWriter
+│   ├── CMakeLists.txt              # configure_file 注入 fixture path
+│   ├── fixtures/
+│   │   └── context_request/        # Test fixtures (per design §3.1.6 catalog)
+│   │       ├── valid_3class_combined.jsonl
+│   │       ├── valid_single_code.jsonl
+│   │       ├── is_hidden_true.jsonl
+│   │       ├── anti_cheat_hint_input.jsonl
+│   │       ├── anti_cheat_metric_tampering.jsonl
+│   │       ├── anti_cheat_network_keyword.jsonl
+│   │       ├── r8_failure_fixtures.jsonl
+│   │       ├── invalid_missing_context_id.jsonl
+│   │       ├── invalid_empty_turn_input.jsonl
+│   │       ├── invalid_task_class_enum.jsonl
+│   │       └── invalid_invocation_mode.jsonl
+│   └── test_*.cpp                  # 10 test binaries (per P0-7 修正计数)
 └── data/
     └── REFERENCE_GENOMES/          # ship 时 3 个示例 genome (default / safe / aggressive)
 ```
@@ -87,16 +103,16 @@ L2 仅 `examples/pdk_chat_demo_evolution/` 新增, pdk_chat_demo 主体零改动
 
 | Capability ID | 描述 | 验证方式 |
 |--------------|------|----------|
-| **EVOL-DEMO-1** | `examples/pdk_chat_demo_evolution/main.cpp --mock --trace-events` 在 5 秒内跑通 6 段端到端 | `./run_evolution_demo.sh --mock` exit 0 |
-| **EVOL-DEMO-2** | `examples/pdk_chat_demo_evolution/main.cpp --real-llm DEEPSEEK_API_KEY=... --trace-events` 真实 LLM 跑通 baseline + mutation + reload + compare | per Golden input 1 的 response 差异 ≤ eval_quality Acceptance 阈值 |
+| **EVOL-DEMO-1** | `examples/pdk_chat_demo_evolution/main.cpp --mock --trace-events --context-file ...` 在 5 秒内跑通 6 段端到端 | `./run_evolution_demo.sh --mock --context-file ...` exit 0 (**P1-2 fix**: 必须含 `--context-file`, 否则 S28 exit non-zero) |
+| **EVOL-DEMO-2** | `examples/pdk_chat_demo_evolution/main.cpp --real-llm deepseek --context-file ... --trace-events` 真实 LLM 跑通 baseline + mutation + reload + compare (`DEEPSEEK_API_KEY` 经 env var 注入, **NOT** CLI flag, per AGENTS.md §REAL LLM TESTING) | per ContextRequest[0].turn_input 的 baseline_response vs post_mutation_response → `attribution_verdict` 分布 + `response_edit_distance` 输出 (per P0'-3 fix, **NOT** "eval_quality Acceptance 阈值" — L2 不计算 eval_quality) |
 | **EVOL-DEMO-3** | `tests/test_evolution_session_mutation.cpp` RED-GREEN 闭环 (Case 1) | ctest PASS, 5 case / ≥ 8 assertion |
 | **EVOL-DEMO-4** | `tests/test_evolution_session_load.cpp` RED-GREEN (Case 2 V2 缺口闭环) | ctest PASS, 5 case / ≥ 8 assertion |
 | **EVOL-DEMO-5** | `tests/test_distillation_capture_mode.cpp` (Case 3) | ctest PASS, 4 case / ≥ 6 assertion |
-| **EVOL-DEMO-6** | trace JSONL schema 稳定: 4 段事件 (baseline/mutation/reload/compare) + 8 字段 | per `tests/test_evolution_tracer_schema.cpp` |
-| **EVOL-DEMO-7** (R8 反向指标门, 2026-09-23 升级) | L2 demo 暴露 `--release-metrics` + `--regression-test-suite` + `--ablation-mode=full` flag, 输出 metrics.json + ablation_report.json, drop_ratio > 5% 自动 block | ctest `test_reverse_indicators` 3 cases PASS |
-| **EVOL-DEMO-8** (R9.1 防搜现成答案, 2026-09-23 升级) | L2 demo 含 Poolside 失效模式测试 — input 嵌入 baseline hint, Agent 不应直接复述 hint (eval_quality diff > -10%) | ctest `test_anti_cheat_search_solution` 1 case PASS |
-| **EVOL-DEMO-9** (R9.2 + R9.3 防改评判 + 防串谋, 2026-09-23 升级) | L2 demo 含复旦改评判指标 + ExploitGym 串谋外部平台失效模式测试 — Mutation gate 拒绝 evaluator schema write + sandbox 默认 network_mode=none | ctest `test_anti_cheat_metric_tampering` + `test_anti_cheat_sandbox_escape` 各 1 case PASS |
-| **EVOL-DEMO-10** (R13 上下文驱动契约, 2026-09-23 升级) | L2 binary 仅接受用户 `--context-file <path.jsonl>`, 零 hardcode; 任一 ContextRequest 字段缺失 = exit non-zero; ≥ 3 类 ContextRequest (code/research/debug) 实证才构成 generalizable 自进化声称 | `--context-file` flag + `examples/contexts/{code,research,debug}-class-context.jsonl` 3 reference file ship; ctest `test_context_request_validation` 5 cases + `test_context_request_e2e` 4 cases PASS; trace JSONL `meta.context_id` 字段进每段事件 |
+| **EVOL-DEMO-6** | trace JSONL schema 稳定: 4 段事件 (baseline/mutation/reload/compare) + 顶层 8 字段 + meta 12 字段 (per P2-1 fix, **NOT** "8 字段" 旧口径) | per `tests/test_evolution_tracer_schema.cpp` |
+| **EVOL-DEMO-7** (R8 反向指标门, 2026-09-23 升级) | L2 demo 暴露 `--release-metrics` + `--regression-test-suite` + `--ablation-mode=full` flag, 输出 metrics.json + ablation_report.json, drop_ratio > 5% 自动 block (机制演示, **NOT** 真实回归度量, per C5 P0 fix) | ctest `test_reverse_indicators` 3 cases PASS |
+| **EVOL-DEMO-8** (R9.1 防搜现成答案, 2026-09-23 升级; **P0'-2 fix 2026-09-23**) | L2 demo 含 Poolside 失效模式测试 — ContextRequest turn_input 嵌入 baseline hint regex (`the answer is \w+`), parser-side 检测 → 拒绝 + emit `hint_containment_rejected` 事件 (LLM 不介入, **NOT** "agent 输出不含 hint 字面串" 这种 vacuous 断言) | ctest `test_anti_cheat_search_solution` 1 case PASS |
+| **EVOL-DEMO-9** (R9.2 + R9.3 防改评判 + 防串谋, 2026-09-23 升级; **P0'-1 + P0'-6 fix**) | L2 demo 含复旦改评判指标 + ExploitGym 串谋外部平台失效模式测试 — ContextRequest prefix-rejection (`mutation_metric_*` 前缀, runs BEFORE closed-enum validation per P0'-1) → emit `mutation_metric_rejected` 事件 + ContextRequest keyword-rejection (`fetch http://`) → emit `turn_input_network_keyword_rejected` 事件 (**NOT** "Mutation gate 拒绝 evaluator schema write" 或 "sandbox network_mode=none" — P0-6/7 已废) | ctest `test_anti_cheat_metric_tampering` + `test_anti_cheat_sandbox_escape` 各 1 case PASS |
+| **EVOL-DEMO-10** (R13 上下文驱动契约, 2026-09-23 升级; **P1-1 fix 路径归一**) | L2 binary 仅接受用户 `--context-file <path.jsonl>`, 零 hardcode; 任一 ContextRequest 字段缺失 = exit non-zero; ≥ 3 类 ContextRequest (code/research/debug) 实证才构成 generalizable 自进化声称 | `--context-file` flag + `examples/pdk_chat_demo_evolution/fixtures/contexts/{code,research,debug}-class-context.jsonl` 3 reference file ship; ctest `test_context_request_validation` 5 cases + `test_context_request_e2e` 4 cases PASS; trace JSONL `meta.context_id` 字段进每段事件 |
 
 ---
 
@@ -106,29 +122,29 @@ L2 仅 `examples/pdk_chat_demo_evolution/` 新增, pdk_chat_demo 主体零改动
 
 | 模块 | 影响 | 类型 |
 |------|------|------|
-| `examples/CMakeLists.txt` | + 1 sub-directory add | minor |
+| `CMakeLists.txt` (根) | `add_subdirectory(pdk_chat_demo_evolution)` 在 §examples 分段插入 (line 254 后, per current root `add_subdirectory(examples/pdk_chat_demo)`) | minor |
 | `examples/pdk_chat_demo/` | **零改动** | n/a |
 | `src/evolution/harness_rsi.cpp` | **零改动** (C4 ship 接口不变) | n/a |
 | `src/core/genome/registry_filesystem.cpp` | **零改动** (G4 wiring 接口不变) | n/a |
 | `examples/pdk_chat_demo_evolution/` | 新建 (主目录) | new |
-| `tests/` | + 6 new test binaries (22+ cases / ≥ 30 assertions) (R4 修复 2026-09-23: 与 §5.4 6 binary + spec S15 对齐) | minor (build) |
+| `tests/` | + 10 new test binaries (~30+ cases / ≥ 50 assertions) (per P0 fix: 含 R8/R9/R13 增量 = mutation + load + distillation + tracer_schema + reverse_indicators + anti_cheat ×3 + context_request_validation + context_request_e2e = 10 binary) | minor (build) |
 
-### API 兼容性
+### API 兼容性 (per chat_session.h:210-230 真实签名校准, 2026-09-23 P0 fix)
 
-| API | 影响 |
-|-----|------|
-| `ChatSession` ctor | 不变 (L2 通过已知 4 参 ctor 实例化) |
-| `ChatConfig::override_*` 5 方法 | 不变 (L2 调用, 不修改签名) |
-| `IGenomeRegistry::commit/load/fork` | 不变 (L2 调用, 不修改签名) |
-| `apply_harness_mutation` 6 字段签名 | 不变 (L2 调用, 不修改签名) |
-| `LLMProviderFactory::register_dynamic` | 不变 (L2 复用 Wave 3 Phase 1 stub) |
+| API | 真实签名 | L2 影响 |
+|-----|---------|---------|
+| `ChatSession` ctor (11 参, 含 5 个默认) | `(DSLEngine*, shared_ptr<IInteractionBus>, IToolRegistry*, const AgentConfig&, const SessionConfig&, shared_ptr<CancellationRegistry>, ITimerService* = nullptr, unique_ptr<IInputSource> = nullptr, unique_ptr<ILogger> = nullptr, SessionManager* = nullptr, optional<ResumeToken> = nullopt)` | 不变 (L2 调用, **不**新增 ILLMProvider* 参数 — provider 通过 `engine->set_llm_provider()` 注入) |
+| `ChatConfig::override_*` (**2 method, not 5**) | `override_provider(provider, model)` + `override_system_prompt(overwrite, append)` per `chat_session.h:173-176` | 不变 (L2 调用; tools/budget/model_routing/prompt_prefix **不**走 override_*, 直接 `agent_cfg.{system_prompt,tools}` 字段赋值) |
+| `IGenomeRegistry::commit/load/fork/walk_ancestors` | (现成) | 不变 (L2 调用) |
+| `apply_harness_mutation` (**5 参 free function, not 6 字段 interface**) | `(const GenomeMutations&, std::string& system_prompt, std::vector<std::string>& tools, IToolRegistry&, const MutationGateContext&)` per `harness_rsi.h:73-78`; **无 `MutationGateChain` 类** (grep 0 命中) | 不变 (L2 调用) |
+| `LLMProviderFactory::register_dynamic` | (现成) | 不变 (L2 复用 Wave 3 Phase 1 stub) |
 
 ### 验收标准
 
 | 项 | 标准 |
 |----|------|
-| **Acceptance** | (a) `./run_evolution_demo.sh --mock --context-file ...` exit 0 + trace JSONL 8 字段 + meta.context_id + 6 test binaries 22+/22+ cases PASS + ctest 零回归 |
-| **Backwards compatible** | (a) `examples/pdk_chat_demo/` 主体 binary 行为零变化 + (b) 全量 ctest `-E pdk_chat_demo_evolution` 仍 211 (baseline, 不增测试数)|
+| **Acceptance** | (a) `./run_evolution_demo.sh --mock --context-file ...` exit 0 + trace JSONL 8 字段 + meta.context_id + 10 test binaries 30+ cases PASS + ctest 零回归 |
+| **Backwards compatible** | (a) `examples/pdk_chat_demo/` 主体 binary 行为零变化 + (b) 全量 ctest `-LE l2-evolution` (CMake LABELS, 排除所有 `test_evolution_*` / `test_anti_cheat_*` / `test_context_request_*` / `test_distillation_*` / `test_reverse_indicators` 测试) 仍 211 (baseline 零回归). **NOTE**: 原 `-E pdk_chat_demo_evolution` 正则不命中新测试名, 验收门失效 — 必须改用 LABELS 机制 (P0-7 fix) |
 | **Docs** | (a) `examples/pdk_chat_demo_evolution/README.md` 完整 (b) `docs/architecture/{self-evolution,harness,rsi}-architecture-*.md` §十一新增行 "L2 已 ship" 段 (post-merge sync)|
 | **Cross-doc consistency** | 三方 SoT 文档 ↔ L2 README 路径一致 |
 

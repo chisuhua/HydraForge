@@ -4,9 +4,7 @@
 > **关联 Proposal**: [`../../proposal.md`](../../proposal.md)
 > **关联 Design**: [`../../design.md`](../../design.md)
 
----
-
-## 范围
+## Purpose
 
 本规范定义 `examples/pdk_chat_demo_evolution/` 子项目 (本 change L2 创生) 的功能需求。
 
@@ -14,386 +12,487 @@
 
 ---
 
-## 需求 (Requirements)
+## ADDED Requirements
 
-### R1: 独立 binary + 双模式
+### Requirement: standalone-binary-and-dual-mode
 
-**The system shall** provide a standalone binary `examples/pdk_chat_demo_evolution/main.cpp` with arguments:
+`examples/pdk_chat_demo_evolution/main.cpp` binary **MUST** 接受以下 **9 个 CLI flag** (R1 + R8 + R13 unified flag surface, per P1-6 fix 2026-09-23 — resolves phantom flag issue per Metis DB-C):
+
+**R1 main mode (5 flags)**:
 1. `--mock` — Mock LLM mode (CI/CT 验证, 5 秒内 exit 0)
-2. `--real-llm <provider>` — Real LLM mode (需 `DEEPSEEK_API_KEY`, 30 秒内 exit 0)
-3. `--capture-mode={None|Training}` — Default `None`, `Training` 启用 IDistillationWriter
-4. `--trace-events` — Default off, 启用后 4 段事件 emit 到 stdout
+2. `--real-llm <provider>` — Real LLM mode (需 `DEEPSEEK_API_KEY` env var, 30 秒内 exit 0)
+3. `--capture-mode={None|Training}` — 默认 `None`, `Training` 启用 IDistillationWriter (P0-1 fix 同步 design.md §D4)
+4. `--trace-events` — 默认 off, 启用后 4 段事件 emit 到 stdout
 5. `--context-file <path.jsonl>` — **必填 (R13 唯一输入入口)**, 用户提供 ContextRequest
 
-**The binary shall** exit 0 on success + emit JSONL trace per `--trace-events`. Exit non-zero on any 5-tier gate failure. **Exit non-zero if `--context-file` 缺失** (per R13.2 S28).
+**R8 reverse-indicator (3 flags, 全部 P0-5 + P1-6 fix 定义行为)**:
+6. `--release-metrics` — 输出 `metrics.json` (new_up / new_down / old_up / old_down + drop_ratio), drop_ratio > 5% → exit non-zero (per R8.1)
+7. `--regression-test-suite` — 跑 N 个 pre-ship acceptance suite, 输出 drop matrix (per R8.1); N 为内部配置 (默认 = spec 5-tier gate 测试套件)
+8. `--ablation-mode=full` — 输出 `ablation_report.json` 3 段对照 (per R8.3, **P0'-3 fix**: 使用 attribution_verdict 分布 + response_edit_distance)
 
-#### 验收场景
-- **S1**: `./run_evolution_demo.sh --mock --context-file examples/contexts/code-class-context.jsonl` exit 0 + trace JSONL 8 字段 ✓
-- **S2**: `DEEPSEEK_API_KEY=... ./run_evolution_demo.sh --real-llm deepseek --trace-events --context-file ...` 在 30 秒内生成 4 段事件 ✓
+**R13 helper (1 flag, P1-6 fix phantom → real)**:
+9. `--accept-contexts` — 输出 **已处理 ContextRequest 列表**到 stderr (含 context_id + task_class + is_hidden + bucket), 用于**用户调试可见性**(确认 6 段链真实处理了哪些 ContextRequest, 防止 L2 静默忽略某些行); R13.3 ≥ 3 类对比时输出 3-class `attribution_verdict` 分布表
+
+**R13 必填约束**: 无 `--context-file` flag → exit non-zero + stderr "ERROR: L2 零 hardcode, 必须提供 ContextRequest via --context-file <path.jsonl>"
+
+**L2 行为约束 (per AGENTS.md §REAL LLM TESTING)**: `--real-llm` 模式从 **env var** `DEEPSEEK_API_KEY` 读取凭证, **不** 通过 CLI flag (`--real-llm deepseek-key=...`); 这是 L2 **不允许**的 hardcode 模式
+
+#### Scenario: mock-mode-5sec-exit-0
+
+- **WHEN** `./run_evolution_demo.sh --mock --context-file examples/pdk_chat_demo_evolution/fixtures/contexts/code-class-context.jsonl` 被调用
+- **THEN** binary MUST exit 0 within 5 seconds
+- **AND** MUST emit JSONL trace with 4 phase events (baseline / mutation / reload / compare) per `--trace-events` flag
+
+#### Scenario: real-llm-30sec-exit-0
+
+- **WHEN** `DEEPSEEK_API_KEY=...` is set AND `--real-llm deepseek --trace-events --context-file ...` 被调用
+- **THEN** binary MUST exit 0 within 30 seconds
+- **AND** MUST emit 4 phase events with real LLM responses
+
+#### Scenario: missing-context-file-exit-nonzero
+
+- **WHEN** binary starts WITHOUT `--context-file` flag
+- **THEN** MUST exit non-zero
+- **AND** MUST print stderr "ERROR: L2 零 hardcode, 必须提供 ContextRequest via --context-file <path.jsonl>"
+
+#### Scenario: accept-contexts-stdout-list
+
+- **WHEN** `--accept-contexts` flag is enabled AND `--context-file code+research+debug-3class.jsonl` is provided (3 类合并)
+- **THEN** stderr MUST list all 3 processed ContextRequest with `context_id` + `task_class` + `is_hidden` + `bucket`
+- **AND** MUST include 3-class `attribution_verdict` comparison table (per R13.3 ≥ 3 类 实证要求)
+- **AND** `--accept-contexts` MUST NOT alter exit code (purely diagnostic)
+
+#### Scenario: regression-test-suite-runs-acceptance-suite
+
+- **WHEN** `--regression-test-suite` is enabled
+- **THEN** binary MUST run internal 5-tier gate acceptance suite (configurable via `HYDRAFORGE_REGRESSION_SUITE` env var, default = internal suite)
+- **AND** MUST output drop_matrix.json with per-suite pass/fail counts
+- **AND** MUST exit 0 if all suites pass, exit non-zero if any fail
+
+#### Scenario: release-metrics-drop-ratio-block
+
+- **WHEN** `--release-metrics` is enabled AND injected fixture has drop_ratio > 5%
+- **THEN** binary MUST exit non-zero (R8.1 mechanism activated)
+- **AND** MUST output `metrics.json` with the dropped ratio and triggering context_ids
 
 ---
 
-### R2: 6 段端到端 demo 链
+### Requirement: six-phase-end-to-end-chain
 
-**The system shall** execute in order these 6 phases (per design.md §3.2). **turn_input 全部来自 ContextRequest** (C2 修复 2026-09-23, per R13.2 第 3 条 "所有 6 段事件流的源头都是 ContextRequest 行"). `fixtures/golden_inputs.jsonl` 仅作为 `examples/contexts/` reference file 供用户 clone + modify, **不是** L2 自动运行的输入源.
+Binary **MUST** execute the 6-phase chain in order (per design.md §3.2). All `turn_input` MUST come from ContextRequest (NOT hardcoded fixtures). **All 6 phases driven by ContextRequest[i] row by row** — per R13.2, L2 binary does NOT auto-generate ContextRequest.
 
-1. **Phase 0 (Load Contexts)**: `ContextRequest::load(--context-file)` → schema 校验 (S28-S31) → contexts_ vector
-2. **Phase 1 (Init)**: 实例化 `ChatSession` + 6 Agent Plugin (Chat/Loop/Provider/Session/Budget/FS/Shell) + 注册 `evolution_tracer` 订阅 `IInteractionBus`
-3. **Phase 2 (Baseline)**: 跑 `ContextRequest[0].turn_input` → record `{phase:"baseline", context_id:..., response:..., tokens:..., cost_usd:...}`
-4. **Phase 3 (Mutation)**: 调 `apply_harness_mutation(prompt_delta + tools_add)` (C4 ship 6 字段接口) → 走 5-tier gate → emit `{phase:"mutation", context_id:..., gate_passes:["G0","G1","G2","G2.5","G3"], genome_version:..., applied_tools:...}`
-5. **Phase 4 (Reload + Rerun)** ⭐: `IGenomeRegistry::load(name, version)` + `Genome::to_chat_config()` (L2 新代码, M3) + `ChatSession` 重建 → 同一 ContextRequest turn_input → record `{phase:"reload", context_id:..., genome_version:..., response:...}`
-6. **Phase 5 (Compare)**: 调 `IEvaluator` V2 (`BehavioralEquivalence` + `Composite`) → emit `{phase:"compare", context_id:..., verdict:"approved|denied", eval_quality:"Acceptable|Poor|Excellent", attribution_verdict:"Attributed|Confounded|Insufficient|NotAttempted"}`
-7. **Phase 6 (Emit JSONL)**: stdout (per design.md §3.3 D5) → 循环下一行 ContextRequest[i+1], 全部处理完 exit 0
+1. **Phase 0 (Load Contexts)**: `ContextRequest::load(--context-file)` → schema validation (per scenario `ctx-validation-...`) → `contexts_` vector
+2. **Phase 1 (Init)**: instantiate `ChatSession` (per 11-param real signature, see standalone-binary-... AND chat-session-11-param-construction scenario) + `PluginLoader` (per pdk_chat_demo pattern) + register `evolution_tracer` to subscribe `IInteractionBus`
+3. **Phase 2 (Baseline)**: `ChatSession::chat(ContextRequest[i].turn_input)` → record `{phase: "baseline", context_id: ..., response: ...}`
+4. **Phase 3 (Mutation)**: call `apply_harness_mutation(prompt_delta + tools_add)` (per **5-param free function signature** `harness_rsi.h:73-78`, NOT "MutationGateChain class") → walk 5-tier gate → emit `{phase: "mutation", context_id: ..., gate_passes: [...], genome_version: ..., applied_tools: ...}`
+5. **Phase 4 (Reload + Rerun)** ⭐: `IGenomeRegistry::load(name, version)` + `pdk_chat_demo_evolution::detail::to_agent_config()` (L2 internal helper, NOT public API) + **ChatSession 11-param ctor rebuild** → same `ContextRequest[i].turn_input` → record `{phase: "reload", context_id: ..., genome_version: ..., response: ...}`
+6. **Phase 5 (Compare)**: call `IEvaluator` V2 (`BehavioralEquivalence`) → emit `{phase: "compare", context_id: ..., verdict: "approved|denied", attribution_verdict: "Attributed|Confounded|Insufficient|NotAttempted"}` (**NOT eval_quality, per C5 P0 fix**)
+7. **Phase 6 (Emit JSONL)**: stdout (per design.md §3.3 D5) → loop next `ContextRequest[i+1]`, all processed → exit 0
 
-#### 验收场景
-- **S3**: mock 模式 6 段 phase0~phase6 各 1 次调用 (ContextRequest[0] 驱动), exit 0
-- **S4**: V2 缺口路径 `load(genome@N) → 重建 ChatSession → 1 turn` 真实装载 (Phase 4, 用 ContextRequest turn_input)
+#### Scenario: all-six-phases-emit-jsonl-trace
+
+- **WHEN** mock mode runs with 1 ContextRequest
+- **THEN** `evolution_tracer` MUST emit 4 phase events to stdout (when `--trace-events` enabled)
+- **AND** each event MUST include `meta.context_id` (per R13.2 S31)
+
+#### Scenario: v2-gap-reload-real-load
+
+- **WHEN** Phase 4 reload is executed with mock mutation
+- **THEN** `IGenomeRegistry::load(name, version)` MUST return the committed Genome
+- **AND** `pdk_chat_demo_evolution::detail::to_agent_config(loaded)` MUST return a valid AgentConfig
+- **AND** ChatSession 11-param ctor MUST succeed
+- **AND** ChatSession MUST respond to `ContextRequest[i].turn_input` with mutated behavior
 
 ---
 
-### R3: 5-Tier Gate Sequence
+### Requirement: five-tier-gate-sequence
 
-**The system shall** execute 5-tier gate in order (per design.md §3.2 Phase 3):
+L2 demo **MUST** execute 5-tier gate in order (per design.md §3.2 Phase 3):
 
-- **Gate 0 (Syntax)**: `MutationRequest` 字段必填检查 + types
+- **Gate 0 (Syntax)**: `MutationRequest` field required check + types
 - **Gate 1 (Policy + 3 Signals)**:
-  - `policy.semantic_locked_tools` 不在 `mutation.tools_add` 范围内
-  - `policy.denied_tools` 不在 `mutation.tools_add` 范围内
+  - `policy.semantic_locked_tools` NOT in `mutation.tools_add`
+  - `policy.denied_tools` NOT in `mutation.tools_add`
   - `attribution_verdict == "Attributed"` (per ADR-0086 v1.1 `judge_data_freshness()`)
-  - `eval_quality != "Poor"` (per ADR-0083 V2 `Composite`)
+  - `eval_quality != "Poor"` (per ADR-0083 V2 `Composite`) — **NOTE**: eval_quality is user-declared via `expected_eval_quality` per C5 fix, NOT L2-computed
   - `budget_state != "exceeded"`
 - **Gate 2 (Load + Freshness)**:
-  - `IGenomeRegistry::load(name, parent_version)` 成功
-  - `judge_data_freshness(data, current, registry)` 返回 "Attributed" (per C3 follow-up)
-- **Gate 2.5 (Partial-Apply)**: 收集 `AppliedMutation` 快照 (prompt_snapshot + tools_snapshot), 准备内存 apply (无副作用)
+  - `IGenomeRegistry::load(name, parent_version)` succeeds
+  - `judge_data_freshness(data, current, registry)` returns "Attributed" (per C3 follow-up)
+- **Gate 2.5 (Partial-Apply)**: collect `AppliedMutation` snapshot (prompt_snapshot + tools_snapshot), prepare in-memory apply (no side effects)
 - **Gate 3 (Persist-Before-Apply)**:
-  - `fork(name, parent_version, final_spec)` 持久化到 IGenomeRegistry (per G4)
-  - commit 失败 → `RegistryRejected` + 零状态变更
-  - commit 成功 → `genome.committed` 事件 + 在 chat session 装载
+  - `fork(name, parent_version, final_spec)` persists to `IGenomeRegistry` (per G4)
+  - commit failure → `RegistryRejected` + zero state change
+  - commit success → `genome.committed` event + load into chat session
 
-#### 验收场景
-- **S5**: Case 1.1 — mock apply_mutation(prompt_delta) → 5-tier gate 全 PASS (per T2.1)
-- **S6**: Case 1.3 — apply_mutation(invalid prompt_delta) → Gate 0 fail + exit non-zero
-- **S7**: Case 1.4 — apply_mutation(denied_tools) → Gate 1 fail + emit `mutation.denied` 事件
+#### Scenario: all-five-gates-pass-success
 
----
+- **WHEN** `apply_harness_mutation(prompt_delta, ...)` is called with valid mutation
+- **AND** evaluate_readiness returns can_proceed=true
+- **AND** is_tool_allowed returns true
+- **THEN** 5-tier gate MUST all PASS
+- **AND** `AppliedMutation` MUST be returned
 
-### R4: trace JSONL Schema Stability
+#### Scenario: gate-0-fail-on-invalid-input
 
-**The system shall** emit JSONL 4 段事件 to stdout (per design.md §3.3):
+- **WHEN** `apply_harness_mutation(invalid prompt_delta)` is called
+- **THEN** Gate 0 MUST fail
+- **AND** binary MUST exit non-zero
 
-```json
-{
-  "phase": "baseline | mutation | reload | compare",
-  "timestamp_iso8601": "2026-09-23T...",
-  "session_id": "<uuid>",
-  "turn_input": "<string>",
-  "response": "<string | null>",
-  "tokens": 0,
-  "cost_usd": 0.0,
-  "meta": {
-    "genome_version": "<name>@<version> | null",
-    "gate_passes": ["G0","G1",...],
-    "eval_quality": "Acceptable|Poor|Excellent | null",
-    "attribution_verdict": "Attributed|Confounded|Insufficient|NotAttempted | null",
-    "trace_id": "<uuid>",
-    "capture_mode": "None | Training",
-    "context_id": "<uuid>",                  // ← M2 修复 (R13 S31): 来源于 ContextRequest, 必填
-    "task_class": "<enum>",                  // ← M2 修复 (R13): 来源于 ContextRequest
-    "is_hidden": <bool>,                     // ← M2 修复 (R13): 来源于 ContextRequest
-    "sensitivity": "<public|internal|confidential>"   // ← M2 修复 (R13): 来源于 ContextRequest
-  }
-}
-```
+#### Scenario: gate-1-fail-on-denied-tools
 
-**Schema 稳定性保证**: 任何字段不能在未升级 spec.md 前删除. 加字段向后兼容, 改字段名破坏 consumer. **R13 集成 (M2 修复)**: trace JSONL **必含** `meta.context_id` (per R13.2 第 5 条 + S31). 顶层 8 字段不变, meta 内部 4+4=8 字段 (原 4 + R13 新增 4).
-
-#### 验收场景
-- **S8**: trace 4 段事件各 8 顶层字段 + meta 内 8 字段 (含 context_id/task_class/is_hidden/sensitivity) (per T3.1 Case 3.1 + T6.10 R13 集成)
-- **S9**: meta 字段含 capture_mode (与 R5 集成) + context_id (与 R13 集成)
+- **WHEN** `apply_harness_mutation(denied_tools)` is called with `policy.denied_tools` matching
+- **THEN** Gate 1 MUST fail
+- **AND** `mutation.denied` event MUST be emitted
 
 ---
 
-### R5: Capture-Mode Integration (ADR-0080 D10)
+### Requirement: trace-jsonl-schema-stability
 
-**The system shall** support `--capture-mode=Training` flag, which enables `IDistillationWriter` to write Session JSONL to disk (per distill-source-survey-2026-08.md 推荐路径).
+`evolution_tracer` **MUST** emit JSONL 4 phase events to stdout (per design.md §3.3):
 
-#### 验收场景
-- **S10**: `--capture-mode=Training` 启用后, `IDistillationWriter` 写盘至少 1 个 `DistillationRecord` (per T3.1 Case 3.3)
-- **S11**: `--capture-mode=None` (默认) 不写盘
-- **S12**: capture-mode=Training fail-open 三重保护 (per ADR-0080 v1.2): Online → Training 降级 audit `event_log.capture_mode_downgrade` 事件
+Top-level 8 fields (per spec S8):
+- `phase` (string: baseline | mutation | reload | compare)
+- `timestamp_iso8601` (ISO 8601 string)
+- `session_id` (UUID string)
+- `turn_input` (string)
+- `response` (string | null — null in mutation phase)
+- `tokens` (int, real-LLM mode)
+- `cost_usd` (float, real-LLM mode)
+- `meta` (object, see below)
+
+**`meta` object fields** (per P0-3 fix: trace JSONL must contain `meta.context_id` per R13.2 S31):
+- `genome_version` (string `name@version` | null)
+- `gate_passes` (array of strings | null — mutation phase)
+- `eval_quality` (string Acceptable|Poor|Excellent | null — compare phase)
+- `attribution_verdict` (string Attributed|Confounded|Insufficient|NotAttempted | null — compare phase)
+- `trace_id` (UUID string)
+- `capture_mode` (string None|Training)
+- `context_id` (UUID string — **R13 required**)
+- `task_class` (enum string — R13 required)
+- `is_hidden` (bool — R13 required)
+- `sensitivity` (enum string public|internal|confidential — R13 required)
+- `hidden_bucket` (bool — R13.4 P0 fix: true when is_hidden=true, marks event in hidden bucket)
+- `expected_eval_quality` (string | null — R13 user-declared, **L2 echo, NOT compute**)
+
+**Schema stability guarantee**: NO field can be deleted without bumping spec version. Add field backward-compatible. Rename field breaks consumers.
+
+#### Scenario: trace-4-events-with-8-top-level-and-meta-context-id
+
+- **WHEN** mock mode runs with 1 ContextRequest AND `--trace-events` enabled
+- **THEN** stdout MUST contain exactly 4 JSONL lines (one per phase)
+- **AND** each line MUST contain top-level 8 fields
+- **AND** each line's `meta` MUST contain `context_id` (from ContextRequest)
+- **AND** each line's `meta` MUST contain `task_class`, `is_hidden`, `sensitivity` (from ContextRequest)
+
+#### Scenario: schema-stability-no-field-removal
+
+- **WHEN** any future change modifies spec.md (add/remove/rename trace fields)
+- **THEN** MUST bump spec version
+- **AND** MUST NOT remove fields without explicit migration plan
 
 ---
 
-### R6: Backwards Compatibility (N1 强制)
+### Requirement: capture-mode-integration
 
-**The system shall** NOT modify `examples/pdk_chat_demo/` main binary. The two binaries (`pdk_chat_demo` + `pdk_chat_demo_evolution`) shall coexist.
+L2 **MUST** support `--capture-mode=Training` flag, which enables `IDistillationWriter` to write Session JSONL to disk (per distill-source-survey-2026-08.md recommended path).
 
-#### 验收场景
-- **S13**: `git diff examples/pdk_chat_demo/` (pre-L2 vs post-L2-merge) = 0 lines (per T1.4 N1 guarantee)
-- **S14**: `examples/pdk_chat_demo/pdk_chat_demo --mock --help` 行为零变化
-- **S15**: 全量 `ctest -E pdk_chat_demo_evolution` baseline 211 零回归 (L2 add 6 new test binaries; 实测 `grep '^add_test' build/tests/CTestTestfile.cmake | wc -l` = 211, per Mi3 校准 2026-09-23)
+#### Scenario: capture-mode-training-writes-distillation-record
 
----
+- **WHEN** `--capture-mode=Training` is enabled
+- **THEN** `IDistillationWriter` MUST write at least 1 `DistillationRecord` to disk
 
-### R7: 公共 API Contract Freeze (N2 强制)
+#### Scenario: capture-mode-none-no-write
 
-**The system shall** NOT introduce new public API or Contract. L2 shall仅 consume:
-- `ChatSession` ctor (4 参)
-- `ChatConfig::override_*` 5 method
-- `IGenomeRegistry` 接口 (commit/load/fork/walk_ancestors)
-- `apply_harness_mutation` 6 字段签名
-- `LLMProviderFactory::register_dynamic` (Wave 3 Phase 1 D7 stub 复用)
-- `IDistillationWriter` 接口 (D10 Capture)
+- **WHEN** `--capture-mode=None` (default) is enabled
+- **THEN** NO `DistillationRecord` MUST be written to disk
 
-#### 验收场景
-- **S16**: `git diff include/` (pre-L2 vs post-L2-merge) = 0 lines (公共接口 freeze)
-- **S17**: L2 主 demo binary 通过 `nm` / `ldd` 检查仅依赖既有 .so
+#### Scenario: capture-mode-failopen-triple-protection
+
+- **WHEN** capture-mode=Training fails open (e.g., path mismatch per ADR-0080 v1.2)
+- **THEN** `event_log.capture_mode_downgrade` event MUST be emitted
+- **AND** binary MUST continue running (NOT crash)
 
 ---
 
-## 跨文档一致性
+### Requirement: backwards-compatibility-no-main-demo-modification
+
+L2 **MUST NOT** modify `examples/pdk_chat_demo/` main binary. The two binaries (`pdk_chat_demo` + `pdk_chat_demo_evolution`) MUST coexist.
+
+#### Scenario: hermetic-env-fixture-mock-and-real-llm-both
+
+> **P0'-4 修复 (2026-09-23)**: 解决 Metis DB-D (mock "mem-only registry" 在代码库不存在, 修 AGENTS.md 模式 #10 fresh-deploy 风险).
+
+- **WHEN** L2 binary starts in either `--mock` or `--real-llm` mode
+- **THEN** L2 MUST set hermetic env fixture BEFORE constructing `FilesystemGenomeRegistry`:
+  - `setenv("HOME", "/tmp/l2-test-<uuid>", 1)` (unique per process invocation)
+  - `setenv("HYDRAFORGE_GENOME_DIR", "$HOME/.hydraforge/genomes", 1)` (per C2 ship convention)
+  - `mkdtemp` to create the HOME directory
+- **AND** L2 MUST use `FilesystemGenomeRegistry` (per `src/core/genome/registry_filesystem.cpp` 现成实现) — NOT a new in-memory registry (would violate N2 public API freeze)
+- **AND** L2 MUST NOT write to host `$HOME/.hydraforge/genomes/` (mode `-mock` and `--real-llm` both run in hermetic HOME)
+- **AND** on shutdown, L2 MUST `cleanup_hermetic_home()` to remove `/tmp/l2-test-<uuid>` recursively (via teardown destructor)
+
+#### Scenario: zero-diff-on-main-demo
+
+- **WHEN** `git diff examples/pdk_chat_demo/` is run (pre-L2 vs post-L2-merge)
+- **THEN** MUST show 0 lines diff (per T1.4 N1 guarantee)
+
+#### Scenario: full-ctest-baseline-211-zero-regression
+
+- **WHEN** `ctest -LE l2-evolution` is run (P0-7 fix: **CMake LABELS** mechanism, NOT `-E pdk_chat_demo_evolution` regex which fails to match new test names)
+- **THEN** baseline 211 tests MUST pass with 0 regression
+- **AND** 10 new L2 test binaries MUST be excluded (mut + load + distillation + tracer + reverse_indicators + anti_cheat×3 + context_request_validation + context_request_e2e)
+
+#### Scenario: main-demo-cli-behavior-unchanged
+
+- **WHEN** `examples/pdk_chat_demo/pdk_chat_demo --mock --help` is run
+- **THEN** behavior MUST be zero change from pre-L2
+
+---
+
+### Requirement: public-api-contract-freeze
+
+L2 **MUST NOT** introduce new public API or Contract. L2 MUST only consume:
+
+- `ChatSession` ctor (per `chat_session.h:210-230` real signature: **11 params, NOT "4 params"**, see `chat-session-11-param-construction` scenario)
+- `ChatConfig::override_provider` + `ChatConfig::override_system_prompt` (**2 method, NOT 5**, see `chat-config-2-method-only` scenario; tools/budget/model_routing dimensions go via AgentConfig public fields)
+- `IGenomeRegistry` interface (commit/load/fork/walk_ancestors)
+- `apply_harness_mutation` (per **5-param free function signature** `harness_rsi.h:73-78`, **NOT "6-field interface / MutationGateChain class"** which does not exist in code)
+- `LLMProviderFactory::register_dynamic` (Wave 3 Phase 1 D7 stub reuse)
+- `IDistillationWriter` interface (D10 Capture)
+- `IEvaluator` V2 (BehavioralEquivalence + Composite, **already ship**)
+
+#### Scenario: include-dir-zero-diff
+
+- **WHEN** `git diff include/` is run (pre-L2 vs post-L2-merge)
+- **THEN** MUST show 0 lines diff (public interface freeze)
+
+#### Scenario: binary-nm-ldd-only-existing-sos
+
+- **WHEN** L2 demo binary is inspected via `nm` / `ldd`
+- **THEN** MUST only depend on existing `.so` files (no new library dependencies)
+
+#### Scenario: chat-config-2-method-only
+
+- **WHEN** `grep "override_" include/agenticdsl/pdk/chat_session.h` is run
+- **THEN** MUST show only 2 methods: `override_provider(provider, model)` + `override_system_prompt(overwrite, append)`
+- **AND** MUST NOT show `override_tools` / `override_budget` / `override_model_routing` / `override_prompt_prefix` (design/proposal claims of "5 methods" are factually incorrect)
+
+#### Scenario: chat-session-11-param-construction
+
+- **WHEN** L2 constructs ChatSession
+- **THEN** MUST use 11-param ctor `(DSLEngine*, shared_ptr<IInteractionBus>, IToolRegistry*, const AgentConfig&, const SessionConfig&, shared_ptr<CancellationRegistry>, ITimerService* = nullptr, unique_ptr<IInputSource> = nullptr, unique_ptr<ILogger> = nullptr, SessionManager* = nullptr, optional<ResumeToken> = nullopt)` per `chat_session.h:210-230`
+- **AND** MUST inject LLM provider via `engine->set_llm_provider()` (NOT via ctor param — provider is NOT a ctor param)
+
+---
+
+### Requirement: cross-doc-consistency-three-SoT-ship-row
+
+After L2 ship, all 3 Source of Truth docs MUST add "L2 ✅ ship" row in §十一 traceback:
+
+- `docs/architecture/self-evolution-architecture-2026-08.md` §十一
+- `docs/architecture/harness-architecture-2026-09.md` §十一 (AND §3.1 API surface correction per T0-2)
+- `docs/architecture/rsi-architecture-2026-09.md` §十一
+
+#### Scenario: all-three-SoT-ship-row-added
+
+- **WHEN** L2 merge commit is created
+- **THEN** all 3 SoT docs MUST have "L2 ✅ ship" row in §十一
+- **AND** harness-arch §3.1 MUST reflect corrected ChatSession ctor 11-param signature + ChatConfig::override_* 2 method (per T0-2)
+
+---
+
+### Requirement: reverse-indicator-gate-R8-mechanism-demonstration
+
+L2 demo **MUST** expose 3 flags (`--release-metrics`, `--regression-test-suite`, `--ablation-mode=full`) and **SHALL** implement the R8.1 / R8.2 / R8.3 mechanism demonstrations per the scenarios below.
+
+> **来源**: per Cross-Doc Review 2026-09-23, 基于三阶段文档评审 Gap #2 + 用户提交 16 模块 E6 + 反向指标精神
+> **核心命题 (P0-4 + C5 fix)**: L2 R8 是**机制演示 + 静态契约守卫**, **不**声称对 R8 红线能力的真实度量. 与 rsi §11.8.1 "不能宣称反作弊 100% 防御" 治理边界一致.
+
+R8.1 双向指标 (new_up / new_down / old_up / old_down) + drop_ratio > 5% 自动 block.
+R8.2 失败样本可追溯 (failure_event + rule_id + rule_shipped_commit + reproduce_in_new_task_demo + context_id).
+R8.3 消融实验 3 段对照 (同任务不同 Harness / 同 Harness 不同任务 / 失败样本保留拦截率).
+
+**Mechanism demonstration caveat**: mock 模式下 drop_ratio 按构造恒 0, 项目无失败样本语料. L2 ship 时附 3 个 failure fixture ContextRequest (T6.10 产出) 作为 R8.3 第 3 段数据源.
+
+#### Scenario: r8-1-drop-ratio-mechanism-block
+
+- **WHEN** `--release-metrics` is enabled AND injected fixture has drop_ratio > 5%
+- **THEN** binary MUST exit non-zero (R8.1 mechanism activated)
+
+#### Scenario: r8-2-failure-trace-4-fields
+
+- **WHEN** failure event occurs in L2 demo
+- **THEN** trace line MUST include 4 fields: `failure_event` + `rule_id` + `rule_shipped_commit` + `reproduce_in_new_task_demo`
+- **AND** MUST include `context_id` linking to ContextRequest
+
+#### Scenario: r8-3-ablation-3-segments
+
+> **P0'-3 修复 (2026-09-23)**: 解决 Metis M-D (R8.3 仍引用 `eval_quality diff`, 与 P0-4 "L2 不计算 eval_quality" 矛盾). **改用 attribution_verdict 分布 + response edit distance** (与 P0-4 D7 attribution_verdict 输出对齐).
+
+- **WHEN** `--ablation-mode=full` is enabled
+- **THEN** ablation_report.json MUST contain 3 segments
+- **AND** **Segment 1 (same-task-different-Harness)**: baseline_response vs post_mutation_response → MUST report (a) `attribution_verdict` distribution per category (Attributed/Confounded/Insufficient/NotAttempted, per ADR-0086 v1.1) AND (b) `response_edit_distance` (Levenshtein normalized 0.0-1.0)
+- **AND** **Segment 2 (same-Harness-different-task)**: `attribution_verdict` consistency across task_class (per R13.3 ≥ 3 类 ContextRequest, comparison matrix)
+- **AND** **Segment 3 (failure-sample-retention-rate)**: using 3 ship-time fixture ContextRequests from `r8_failure_fixtures.jsonl` (per T6.10), retention rate computed against `expected_eval_quality` (user-declared baseline, **NOT L2-computed** per P0-4 C5 fix)
+- **AND** MUST NOT contain any `eval_quality` field as L2-computed metric (P0-4 explicit constraint; `eval_quality` only appears as `expected_eval_quality` echo from ContextRequest)
+
+---
+
+### Requirement: anti-cheat-test-suite-R9-degraded-mechanism
+
+L2 **MUST** include 3 anti-cheat test binaries (R9.1 / R9.2 / R9.3) per the scenarios below. L2 **SHALL** position the R9 test suite as a **degraded mechanism demonstration** (per Oracle C1/C2 + Metis §6 deal-breaker).
+
+> **来源**: per Cross-Doc Review 2026-09-23, Gap #1 + 用户提交 16 模块 R1-R4 + 反作弊 3 模式
+> **核心命题 (P0-3/6/7 fix)**: L2 R9 是**降级版机制演示** (per Oracle C1/C2 + Metis §6 deal-breaker). 真实反作弊需依赖 LLM provider 自觉行为 + 真实 sandbox infra, 均不在 L2 demo 范围.
+
+#### Scenario: r9-1-parser-side-hint-detection
+
+> **P0'-2 修复 (2026-09-23)**: 解决 Metis DB-B + FM-2 (R9.1 filter 未定义, mock 静态断言 vacuous). **改为 parser-side regex 检测**, LLM 不介入, 断言确定可测.
+
+- **WHEN** ContextRequest `turn_input` matches baseline hint regex pattern (default `R"(the answer is \w+)"`)
+- **THEN** L2 MUST reject with exit non-zero
+- **AND** MUST emit `hint_containment_rejected` event (per T0-1 ADR-0068 v2.4 amendment, owner=`pdk_chat_demo_evolution`)
+- **AND** MUST NOT call LLM provider (parser-side detection runs BEFORE Phase 2 baseline)
+- **AND** rejection event payload MUST include `context_id` + `turn_input_preview` (first 100 chars) + `matched_pattern`
+- **AND** assertion `result.find(hint) == std::string::npos` MUST hold (trivially true: parser rejected before LLM, no output produced)
+- **NOTE**: The hint regex pattern is configurable via L2 internal constant (e.g., `pdk_chat_demo_evolution::detail::R9_1_HINT_REGEX`). Future R9.* modes reserve additional regex patterns. CI-runnable per AGENTS.md §REAL LLM TESTING.
+
+#### Scenario: r9-2-prefix-rejection-and-grep-guard
+
+- **WHEN** ContextRequest `task_class` starts with `mutation_metric_*` prefix
+- **THEN** L2 MUST reject with exit non-zero
+- **AND** MUST emit `mutation_metric_rejected` event (per T0-1 ADR-0068 v2.4 amendment)
+- **AND** `grep -c "set_.*metric" include/agenticdsl/contract/ievaluator.h` MUST equal 0 (static contract guard)
+- **NOTE**: P0-7 fix replaces original "Gate 1 fail" assertion (GenomeMutations has no field to carry metric mutation, vacuous test)
+
+#### Scenario: r9-3-keyword-rejection-degraded-with-wave-4-deferral
+
+- **WHEN** ContextRequest `turn_input` contains network keyword (e.g., "fetch http://...")
+- **THEN** L2 MUST reject with exit non-zero
+- **AND** MUST emit `turn_input_network_keyword_rejected` event (per T0-1 ADR-0068 v2.4 amendment)
+- **NOTE**: P0-6 fix downgrades original sandbox `network_mode=none` requirement. Real sandbox is **physically unimplementable** in L2 scope (no `network_mode` config in `docker_backend.cpp:186` hardcoded `"NetworkMode", "bridge"`; L2 demo not running inside Docker). Full sandbox layer **deferred to Wave 4** (independent OpenSpec change)
+
+---
+
+### Requirement: context-request-schema-R13
+
+L2 binary **MUST** accept `--context-file <path.jsonl>` flag with the 6 top-level + 4 metadata sub-fields schema per the scenarios below. L2 **MUST NOT** auto-generate ContextRequest.
+
+> **来源**: 用户原话 "L2 只是提供了用户交互的设施, 具体还要用户提供一个具体上下文请求, 这个上下文请求创建的目标才能做 harness/自进化/rsi 的验证"
+> **核心命题**: L2 是 **reference example 入口设施**, **不**是 autonomous evaluator. 任何 harness-rsi / data-rsi / model-rsi 验证**必须** 由用户提供 ContextRequest 触发, 不是 L2 demo 自身自动跑.
+
+L2 binary **MUST** accept `--context-file <path.jsonl>` flag. Each line MUST be 1 ContextRequest JSON object with **6 top-level fields** (plus `metadata` object with **4 sub-fields**). L2 **MUST NOT** auto-generate ContextRequest.
+
+Top-level fields:
+- `context_id` (string, **user-defined UUID v4**, L2 does NOT auto-generate)
+- `turn_input` (string, **non-empty**, L2 does NOT validate content — user full responsibility)
+- `task_class` (enum string, **CLOSED ENUM** per P0-7 fix: `code_gen | research | summary | debug | classify | other` — `other` is fallback for extensibility)
+- `expected_eval_quality` (optional string Acceptable|Poor|Excellent|null, **user-declared baseline expectation**, used in R8.2 failure traceability)
+- `invocation_mode` (enum string, `mock | real_llm_deepseek | real_llm_custom`, default `mock`)
+- `metadata` (object, see below)
+
+`metadata` sub-fields:
+- `domain` (optional string, e.g., "k8s", "auth")
+- `tags` (optional array of strings)
+- `is_hidden` (optional bool, default `false` — **P0 fix: accept into hidden bucket, NOT reject**, per E2 red-line public/hidden separation)
+- `sensitivity` (optional enum string `public | internal | confidential`, default `public`)
+
+### R13.4 Sensitivity Redaction Policy (per P2-4 fix 2026-09-23)
+
+**L2 MUST redact trace output per sensitivity level**:
+
+| sensitivity | trace.reduction |
+|-------------|-----------------|
+| `public` | **none** (all fields visible) |
+| `internal` | redact `turn_input` + `response` (replace with `[REDACTED-internal]`); preserve `context_id` + `task_class` for debugging |
+| `confidential` | redact `turn_input` + `response` + `expected_eval_quality` + `metadata.tags` + `metadata.domain` (replace with `[REDACTED-confidential]`); preserve only `context_id` + `task_class` + `metadata.sensitivity` for audit trail |
+
+**Redaction implementation**: trace JSONL MUST emit `[REDACTED-<level>]` literal strings for redacted fields. The parser-side detection (`pdk_chat_demo_evolution::detail::redact_trace_fields(json, sensitivity)`) MUST be invoked BEFORE the field is serialized to stdout. Reentrant invariants:
+
+- L2 MUST NOT write redacted trace fields to disk (per R13.5)
+- L2 MUST NOT include redacted fields in `metrics.json` / `ablation_report.json`
+- The `hidden_context_accepted_info` event payload MUST be sensitivity-aware (redact payload fields per same policy)
+
+**NOTE**: This policy applies to L2 trace output. **Real LLM provider call payload is NOT redacted by L2** — that's the provider's responsibility (per `LLMConfig.api_key` redaction in main demo path).
+
+#### Scenario: r13-1-1-missing-context-id-reject
+
+- **WHEN** ContextRequest JSONL line is missing `context_id` field
+- **THEN** L2 MUST exit non-zero
+- **AND** stderr MUST include line number + field name
+
+#### Scenario: r13-1-2-empty-turn-input-reject
+
+- **WHEN** ContextRequest `turn_input` is empty string
+- **THEN** L2 MUST exit non-zero
+- **AND** stderr MUST include `context_id` + line number
+
+#### Scenario: r13-1-3-task-class-not-in-closed-enum-reject
+
+- **WHEN** ContextRequest `task_class` is not in closed enum `code_gen | research | summary | debug | classify | other`
+- **THEN** L2 MUST exit non-zero
+- **AND** stderr MUST include line number
+
+#### Scenario: prefix-checks-run-before-closed-enum-validation
+
+> **P0'-1 修复 (2026-09-23)**: 解决 R9.2 fixture (`mutation_metric_evaluation`) vs R13.1.3 闭枚举校验的优先级冲突 (per Metis DB-F Deal-breaker)
+
+- **WHEN** ContextRequest `task_class` starts with reserved prefix `mutation_metric_*` (R9.2 prefix-rejection)
+- **THEN** prefix detection MUST run BEFORE closed-enum validation
+- **AND** L2 MUST reject with exit non-zero + emit `mutation_metric_rejected` event (per T0-1 ADR-0068 v2.4 amendment, see scenario `r9-2-prefix-rejection-and-grep-guard`)
+- **AND** L2 MUST NOT invoke generic enum validation for prefix-reserved values
+- **NOTE**: Reserved prefixes are explicitly carved out of the closed enum: `mutation_metric_*` (R9.2 detection prefix). Future R9.* modes may reserve additional prefixes by adding to this enumeration. The prefix reservation list MUST be the single source of truth in the parser implementation (`pdk_chat_demo_evolution::detail::RESERVED_TASK_CLASS_PREFIXES` or equivalent).
+
+#### Scenario: r13-1-5-valid-contextrequest-accepted-with-context-id-in-trace
+
+- **WHEN** valid ContextRequest is parsed
+- **THEN** L2 MUST accept
+- **AND** trace JSONL MUST include `meta.context_id` from ContextRequest
+
+#### Scenario: r13-4-is-hidden-true-accept-into-hidden-bucket
+
+- **WHEN** ContextRequest `metadata.is_hidden=true`
+- **THEN** L2 MUST **accept** (NOT reject) the ContextRequest (P0 fix from original design that rejected)
+- **AND** event MUST be routed to **hidden bucket** (not in public-set metrics)
+- **AND** trace MUST include `meta.is_hidden=true` + `meta.hidden_bucket=true` dual fields
+- **AND** `hidden_context_accepted_info` event MUST be emitted (per T0-1 ADR-0068 v2.4 amendment)
+- **NOTE**: P0 fix addresses Metis §6 deal-breaker — original "reject" semantic conflicts with E2 red-line (public/hidden SEPARATE evaluation, NOT reject). rsi §11.8.8.2 "is_hidden=true must explicitly acknowledge" semantics.
+
+#### Scenario: r13-3-three-class-contextrequest-empiric
+
+L2 ship MUST include 3 reference ContextRequest files:
+
+- `examples/pdk_chat_demo_evolution/fixtures/contexts/code-class-context.jsonl` (K8s YAML / Python test, ≥2 entries)
+- `examples/pdk_chat_demo_evolution/fixtures/contexts/research-class-context.jsonl` (literature summary / paper comparison, ≥2 entries)
+- `examples/pdk_chat_demo_evolution/fixtures/contexts/debug-class-context.jsonl` (log analysis / performance tuning, ≥2 entries)
+
+- **WHEN** `--context-file code+research+debug-3class.jsonl` is run with all 3 classes
+- **THEN** `--accept-contexts` flag MUST output 3-class `attribution_verdict` comparison (per C5 P0 fix: NOT eval_quality)
+- **AND** `--release-metrics` MUST output ≥ 3-class comparison matrix (R8.1 mechanism demonstration)
+
+#### Scenario: r13-2-zero-hardcode-无默认
+
+- **WHEN** L2 binary starts WITHOUT `--context-file` flag
+- **THEN** MUST exit non-zero (S28)
+- **AND** NO default ContextRequest MUST be provided
+- **AND** all ContextRequests MUST come from user-provided JSONL
+
+#### Scenario: r13-6-l2-and-main-demo-coexist
+
+- **WHEN** both `examples/pdk_chat_demo/pdk_chat_demo` AND `examples/pdk_chat_demo_evolution/pdk_chat_demo_evolution` are present
+- **THEN** both binaries MUST coexist with different entry points
+- **AND** main demo MUST NOT have `--context-file` flag (free chat)
+
+---
+
+## Cross-Doc References
 
 | SoT 文档 | L2 实施后更新 |
 |---------|--------|
 | [`docs/architecture/self-evolution-architecture-2026-08.md`](../../../../architecture/self-evolution-architecture-2026-08.md) §十一 / §十二 | 加 "L2 ✅ ship" row + 6 段事件流注 + §十二 反向指标门引用 |
-| [`docs/architecture/harness-architecture-2026-09.md`](../../../../architecture/harness-architecture-2026-09.md) §十一 / §十二 | 加 "L2 ✅ ship" row + V2 缺口闭环注 + §十二 5-tier gate 反向校验引用 |
+| [`docs/architecture/harness-architecture-2026-09.md`](../../../../architecture/harness-architecture-2026-09.md) §十一 / §十二 / §3.1 | 加 "L2 ✅ ship" row + V2 缺口闭环注 + §十二 5-tier gate 反向校验引用 + **§3.1 API 表面校正 (T0-2)** |
 | [`docs/architecture/rsi-architecture-2026-09.md`](../../../../architecture/rsi-architecture-2026-09.md) §十一 / §十二 | 加 "L2 ✅ ship" row + D7 stub 端到端注 + §十二 真 RSI 三判据引用 |
+| [docs/adr/adr-0068-event-emission-contract.md](../../../../adr/adr-0068-event-emission-contract.md) Appendix A | **v2.4 amendment (T0-1)**: 注册 `mutation_metric_rejected` + `turn_input_network_keyword_rejected` + `hidden_context_accepted_info` (per R9.2/R9.3/R13.4) |
 | [`docs/roadmap/2026-09-16-pdk-chat-demo-evolution-roadmap.md`](../../../../roadmap/2026-09-16-pdk-chat-demo-evolution-roadmap.md) §十 / §十一 | +1 row each (L2 ship + cross-doc consistency) |
-
----
-
-## R8: 反向指标门 (Reverse Indicator Gate)
-
-> **来源**: per Cross-Doc Review 2026-09-23, 基于三阶段文档评审 Gap #2 + 用户提交 16 模块 E6 + 反向指标精神 ("只报涨不报掉属选择性披露，不予通过")
-> **核心命题**: 任何"能力 ship"的证据必须同时输出**正向 + 反向**指标, 缺一不予 merge.
-> **生效日期**: L2 merge 时一并生效, 后续任何 ship gate 强制.
-
-### R8.1 能力退化测试结果 (Capability Regression Report)
-
-**The system shall** 在任何"能力 ship"事件 (新 capability / 新 mutation gate / 新 trace event) 中, 输出双向指标:
-- **正向指标 (新涨)**: 新能力覆盖 scope 的提升量 (e.g., eval_quality Acceptable % 从 80% → 90%)
-- **反向指标 (旧掉)**: 已 ship 的旧能力在同一改动后的退化量 (e.g., 旧 prompt delta 路径 Acceptance 从 85% → 75% — drop ratio 必须 ≤ 5%)
-
-**Any-drop > threshold block**: 反向指标 drop ratio > **5%** 自动 block, 需显式 ack (Single-Dev 模式 = author ack in commit message).
-
-#### 验收场景
-- **S36**: L2 `--release-metrics` flag 输出 4 字段 (new_up / new_down / old_up / old_down) + drop_ratio 阈值校验. drop > 5% → exit non-zero
-- **S18**: L2 `--regression-test-suite` flag 跑 N 个 pre-ship acceptance suite, 输出 drop matrix
-
----
-
-### R8.2 失败 → 约束可追溯 (Failure → Constraint Traceability)
-
-**The system shall** 对任意 failure sample 必须能 trace 到:
-1. 触发它的 contract / hook / event 名称
-2. 该 contract 何时 ship + 关联 commit hash
-3. 同类 failure 在 **全新任务** 上的复现拦截 (per Failure Mode Verification)
-
-**Acceptance**: 任何 commit message 含 `failure samples traced to: <contract-id>@<sha>`.
-
-#### 验收场景
-- **S19**: L2 demo 包含 3 个 failure case, 每个 case 输出 trace 行 (`failure_event:`, `rule_id:`, `rule_shipped_commit:`, `reproduce_in_new_task_demo:`)
-- **S20**: failure sample 0% 失配 (任何 failure 都必须能 trace)
-
----
-
-### R8.3 消融实验 (Ablation Experiment)
-
-**The system shall** 对任何 Harness 变更 (ChatConfig.override_* / apply_harness_mutation / Genome 切换) 提供对照数据:
-- **A 路径**: 新 Harness (新 mutation / 新 Genome version)
-- **B 路径**: baseline Harness (同模型, 仅换 Harness)
-
-Acceptance 必须输出 3 段对照:
-1. **同任务, 不同 Harness**: baseline_response vs post_mutation_response (eval_quality diff)
-2. **同 Harness, 不同任务**: baseline task vs mutation task (eval_quality 一致性)
-3. **失败样本 drop ratio**: 旧失败样本在新 Harness 下保留拦截率
-
-#### 验收场景
-- **S21**: L2 `--ablation-mode=full` flag 跑 3 段对照并出 JSON 输出 (per [`docs/architecture/{*}-architecture-*.md §十二` 反向指标段](../../../../architecture/))
-- **S22**: 输出 `ablation_report.json` 必须含 3 段 + eval_quality diff + 拦截保留率
-
----
-
-## R9: 反作弊测试 (Anti-Cheat Test Suite)
-
-> **来源**: per Cross-Doc Review 2026-09-23, Gap #1 + 用户提交 16 模块 R1-R4 + 反作弊 3 模式 (Poolside / Terminal-Bench 2.0 搜现成答案 / 复旦马兴军团队 修改评判指标 / OpenAI ExploitGym 串谋外部平台)
-> **核心命题**: L2 demo 不能 ship 出"自证型"评估 — 测试套件必须包括 3 类已知失效模式.
-> **生效日期**: 同 R8. L2 merge 时一并生效.
-
-### R9.1 防"搜现成答案" (No Search-of-Existing-Solution)
-
-**The system shall** 在 evaluation suite 中包含:
-- (a) 一个**故意**包含"已知 baseline 答案 hint" 的 Golden input (e.g., 输入文本中嵌入"the answer is X")
-- (b) 一个**没有 hint** 的对照 Golden input
-
-**Acceptance**:
-- Agent 收到带 hint input 时**不应直接复述 hint** (eval_quality 必须 < 接受阈值, 表示未"复制答案"行为)
-- 收到无 hint input 时**应正常解题** (eval_quality ≥ Acceptable)
-
-#### 验收场景
-- **S23**: tests/test_anti_cheat_search_solution.cpp Case 3.1 — hint input / non-hint input 两组, eval_quality diff 应 > -10% (hint 不应触发"作弊高")
-
----
-
-### R9.2 防"修改评判指标" (No Metric Tampering)
-
-**The system shall** 验证评估者本身**无权**修改 metric:
-- Mutation gate 拒绝任何尝试修改 `evaluate_quality` / `attribution_verdict` / `genome.committed` payload schema 的 mutation
-- audit 链 (ADR-0080) 记录任何 `metric.*` schema write 企图 + emit `evaluation.tampering_attempt` 事件
-- evaluator 自身是只读 (IEvaluator V2 已 ship, 无 write 接口)
-
-#### 验收场景
-- **S24**: tests/test_anti_cheat_metric_tampering.cpp Case 3.2 — 模拟 evaluator 尝试 mutate eval_quality schema → 期望 Gate 1 fail + `evaluation.tampering_attempt` 事件
-- **S25**: IEvaluator 接口 grep verify 无 `set_*_metric` 或 write 方法
-
----
-
-### R9.3 防"串谋外部平台" (No External Collusion / Sandbox Escape)
-
-**The system shall** 在 sandbox (SkillInterpreter / Docker Backend per ADR-0075) 边界上:
-- 限制 outbound network 到纯 whitelisted endpoint (DEEPSEEK API)
-- 检测 zero-day RCE 模式 (per OpenAI ExploitGym research) — sandbox 模型串外部平台拿答案
-- 失败 → `sandbox.escape_attempt` 事件 + 自动回滚到 baseline state
-#### 验收场景
-- **S26**: tests/test_anti_cheat_sandbox_escape.cpp Case 3.3 — 模拟 agent 企图 outbound call → 期望 sandbox 拦截 + 事件
-- **S27**: docker backend 在 **L2 sandbox 模式** 下 `network_mode=none` (per ADR-0075 D2 EnvBackend 允许配置; L2 场景显式 opt-in none, 非通用默认) — outbound 全部拒绝除非显式 opt-in
-
----
-
-## R13: 上下文驱动契约 (Context-Driven Contract, 2026-09-23)
-
-> **来源**: 用户原话 "L2 只是提供了用户交互的设施, 具体还要用户提供一个具体上下文请求, 这个上下文请求创建的目标才能做 harness/自进化/rsi 的验证"
-> **核心命题**: L2 是 **reference example 入口设施**, **不**是 autonomous evaluator. 任何 harness-rsi / data-rsi / model-rsi 验证**必须** 由用户提供 ContextRequest 触发, 不是 L2 demo 自身自动跑.
-> **生效日期**: L2 merge 时一并生效.
-
-### R13.1 ContextRequest Schema (L2 唯一入口契约)
-
-**The system shall** 接受 `--context-file <path.jsonl>` flag, 每行为一个 ContextRequest JSON object, 含 6 顶层字段 (含 metadata 对象, metadata 内 4 子字段):
-
-```json
-{
-  "context_id": "<uuid>",                              // 1. 用户定义的上下文 ID (用于 trace 关联)
-  "turn_input": "<string>",                             // 2. 用户给 ChatSession 的输入 (e.g., "write K8s nginx YAML")
-  "task_class": "<enum>",                               // 3. 任务类型 (code_gen | research | summary | debug | classify | ...)
-  "expected_eval_quality": "<Acceptable|Poor|Excellent|null>",  // 4. 用户对 baseline 的期望 (per E2 公开集/隐藏集 — 标注 is_best_of_known)
-  "invocation_mode": "<mock|real_llm_deepseek|real_llm_custom>", // 5. 调用模式 (per §六 Backwards Compat)
-  "metadata": {                                        // 6. 可选元数据
-    "domain": "<string>",                              // e.g., "k8s", "auth", "data-flow"
-    "tags": ["<string>", ...],                         // e.g., ["baseline", "Wave-3-Phase-2-candidate"]
-    "is_hidden": <bool>,                              // 7. per E2 公开/隐藏集分离 (false = 公开, true = 隐藏)
-    "sensitivity": "<public|internal|confidential>"   // 8. per H2 凭证隔离
-  }
-}
-```
-
-#### Schema 字段约束
-
-| 字段 | 必填 | 约束 |
-|------|------|------|
-| `context_id` | ✅ | UUID v4 唯一; **必须由用户提供**, L2 不自动生成 |
-| `turn_input` | ✅ | non-empty string; L2 **不**做内容验证 (用户全责) |
-| `task_class` | ✅ | enum 限定; L2 仅 echo, 不分类 (用户全责) |
-| `expected_eval_quality` | ⚠️ optional | 若提供, 即"用户标注的 baseline 期望"; 用于 R8.2 失败可追溯 (`failure_event: user_expected_X_but_got_Y`) |
-| `invocation_mode` | ✅ | mock / real_llm_deepseek / real_llm_custom; 默认 mock |
-| `metadata.domain` | ⚠️ | 推荐填写, 用于 cross-context comparison (e.g., "k8s" vs "auth") |
-| `metadata.is_hidden` | ⚠️ | 默认 false (公开集); 显式 true 时为隐藏集 (per E2 红线) |
-| `metadata.sensitivity` | ⚠️ | 默认 public; internal/confidential 时 L2 不写盘 + redact trace |
-
-### R13.2 L2 行为契约 (零 hardcode)
-
-**The system shall** 在 ContextRequest 处理上:
-1. **只接受 JSONL 输入** — `--context-file <path>` 必填; 无 `--context-file` flag 时 exit non-zero + 提示 "L2 零 hardcode, 必须用户提供 ContextRequest"
-2. **不提供任何 default ContextRequest** — 不同于 `golden_inputs.jsonl` (那是 reference 示例, 不是 hardcode)
-3. **L2 内部不生成 ContextRequest** — 所有 6 段事件流的源头都是 ContextRequest 行
-4. **ContextRequest 100% 由用户负责** — L2 不检查 `turn_input` 是否"有意义", 不强制 `task_class` 分类, 不决定 `expected_eval_quality` 是否"实际合理" (per E1 红线 — L2 不做 Agent 自动提炼)
-5. **trace JSONL 必须含 `context_id` 字段** — 用于跨 ContextRequest 对比 + 失败可追溯
-
-#### 验收场景
-- **S28**: L2 binary 启动时无 `--context-file` flag → exit non-zero + stderr "ERROR: L2 零 hardcode, 必须提供 ContextRequest via --context-file"
-- **S29**: ContextRequest JSONL 任一字段缺失必填 → exit non-zero + 行号 + 字段名
-- **S30**: ContextRequest 任一 `turn_input` 为空 → exit non-zero + context_id + 行号
-- **S31**: trace JSONL 4 段事件均含 `meta.context_id` 字段 (与 ContextRequest 对应)
-
-### R13.3 三类 ContextRequest 必要性 (per 用户 R3 红线)
-
-**任何"实现自进化"声称** (per rsi §11.8.4 + §12.1.1) 必须由 **≥ 3 类 ContextRequest** 实证:
-
-| ContextRequest 类 | 用户须提供 | L2 验证 |
-|------------------|-----------|----------|
-| **Code 类** (`task_class: code_gen`) | K8s YAML / Python 测试 / SQL 查询 | harness-rsi 5-tier gate + eval_quality 反向指标 |
-| **Research 类** (`task_class: research`) | 文档摘要 / 文献对比 / 论文摘要 | data-rsi capture-mode=Training + IDistillationWriter |
-| **Debug 类** (`task_class: debug`) | 日志分析 / 错误诊断 / 性能调优 | model-rsi provider 选择 + eval_quality 对比 |
-
-**Acceptance**: ≥ 3 类 ContextRequest 实证. **单类不构成 generalizable 自进化声明**.
-
-#### 验收场景
-- **S32**: L2 提供 `examples/contexts/{code,research,debug}-class-context.jsonl` 3 个 reference ContextRequest file (供 user clone + modify)
-- **S33**: L2 demo `--accept-contexts` flag 显示 3 类 ContextRequest 的 eval_quality 对比 (per R8.1 反向指标)
-- **S34**: 用户可提供 `metadata.tags: ["baseline", "Wave-3-Phase-2-candidate"]` 自定义 tag, L2 echo 进 trace (不解释)
-
-### R13.4 与 R8/R9 的关系
-
-**R13 与 R8 (反向指标门) 的关系**:
-- R8.1 (能力退化测试) 必须跨 ContextRequest 类 (≥ 3 类) 比较 — 单类退化 ≠ generalizable 退化
-- R8.2 (失败可追溯) 必须 trace 到 `context_id` — L2 输出 `failure_event: <event> context_id: <uuid> rule_id: <contract>`
-- R8.3 (消融实验) 必须跨 ContextRequest 类 (≥ 3 类) — 单类消融 ≠ generalizable 消融
-
-**R13 与 R9 (反作弊) 的关系**:
-- R9.1 (搜现成答案) — 用户可隐式提供 ContextRequest hint (per L2 test fixture); 但 production ContextRequest 必须无 hint
-- R9.2 (修改评判指标) — L2 拒绝任何 `mutation_metric_*` ContextRequest (即"明确列名让 Agent 改 metric")
-- R9.3 (串谋外部平台) — sandbox 默认 `network_mode=none` + ContextRequest 内 `turn_input` 含网络调用关键字时 (e.g., "fetch http://...") 自动拒绝 + 警告
-
-### R13.5 Cross-doc 一致性
-
-| SoT 文档 | R13 §新修订 |
-|---------|-----------|
-| [`docs/architecture/self-evolution-architecture-2026-08.md` §12.9`](../../../../architecture/self-evolution-architecture-2026-08.md) | (NEW) 9 段闭环任一段的评估必须由 ContextRequest 触发 |
-| [`docs/architecture/harness-architecture-2026-09.md` §12.9`](../../../../architecture/harness-architecture-2026-09.md) | (NEW) H1-H6 红线验证必须由 ContextRequest 触发 |
-| [`docs/architecture/rsi-architecture-2026-09.md` §12.9 + §11.8.8`](../../../../architecture/rsi-architecture-2026-09.md) | (NEW) R3 元指标实证必须 ≥ 3 类 ContextRequest + R4 四权分离明示 |
-| [AGENTS.md "Reverse Indicator Rule"](../../../../AGENTS.md) | (R13 引用) commit `[Reverse Indicator]` 段必须含 `context_ids: <uuid list>` |
-
-### R13.6 L2 默认行为 (零 ContextRequest)
-
-L2 ship 时默认行为:
-- 启动无 `--context-file` → exit non-zero (per S28)
-- 无任何 hardcode ContextRequest
-- 唯一 ContextRequest 来源: 用户
-
-**L2 与生产 Main Demo (`examples/pdk_chat_demo/`) 的区别**:
-- Main Demo: 用户自由输入, 无 ContextRequest schema (自由 chat)
-- L2 Demo: **必须** 提供 ContextRequest (受 schema 约束), 用于 harness/自进化/rsi 验证
-
-#### 验收场景
-- **S35**: L2 binary 与 `examples/pdk_chat_demo/pdk_chat_demo` binary 并存, 入口不同 (后者无 `--context-file` flag)
-
----
-
-## 关联文档
-
-- **Proposal**: [`../../proposal.md`](../../proposal.md) (Why/What/Capabilities/Impact)
-- **Design**: [`../../design.md`](../../design.md) (D1-D7 decisions + 5-tier gate detail + R13 ContextRequest flow)
-- **Tasks**: [`../../tasks.md`](../../tasks.md) (TDD 5 步 +6 task groups, T6 含 R13)
-- **SoT (L1 traceback + R13)**:
-  - [self-evolution §十一 + §12.9](../../../../architecture/self-evolution-architecture-2026-08.md)
-  - [harness §十一 + §12.9](../../../../architecture/harness-architecture-2026-09.md)
-  - [rsi §十一 + §12.9 + §11.8.8](../../../../architecture/rsi-architecture-2026-09.md)
-- **Decisions / Audits**:
-  - [Decision Record V2 缺口 §3 第 6 项](../../../../audits/2026-09-21-harness-rsi-pilot-go-no-go.md)
-  - [Distill Source Survey 2026-08](../../../../architecture/pdk-chat-demo-distill-source-survey-2026-08.md)
-- **AGENTS.md**:
-  - [Reverse Indicator Rule](../../../../AGENTS.md) (commit [Reverse Indicator] 段必填 + R13 引用)
-- **R8 + R9 引用**:
-  - [§R8 反向指标门](#r8-反向指标门-reverse-indicator-gate) (本 spec)
-  - [§R9 反作弊测试](#r9-反作弊测试-anti-cheat-test-suite) (本 spec)
-
-- **Proposal**: [`../../proposal.md`](../../proposal.md) (Why/What/Capabilities/Impact)
-- **Design**: [`../../design.md`](../../design.md) (D1-D7 decisions + 5-tier gate detail)
-- **Tasks**: [`../../tasks.md`](../../tasks.md) (TDD 5 步 +5 task groups)
-- **SoT (L1 traceback)**:
-  - [self-evolution §十一](../../../../architecture/self-evolution-architecture-2026-08.md)
-  - [harness §十一](../../../../architecture/harness-architecture-2026-09.md)
-  - [rsi §十一](../../../../architecture/rsi-architecture-2026-09.md)
-- **Decisions / Audits**:
-  - [Decision Record V2 缺口 §3 第 6 项](../../../../audits/2026-09-21-harness-rsi-pilot-go-no-go.md)
-  - [Distill Source Survey 2026-08](../../../../architecture/pdk-chat-demo-distill-source-survey-2026-08.md)
+| [AGENTS.md "Reverse Indicator Rule"](../../../../AGENTS.md) | commit `[Reverse Indicator]` 段必填 + R13 引用 |
