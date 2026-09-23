@@ -1000,4 +1000,79 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 1. The graph auto-updates on file changes (via hooks).
 2. Use `detect_changes` for code review.
 3. Use `get_affected_flows` to understand impact.
+
+---
+
+## REVERSE INDICATOR RULE (反向指标门, 2026-09-23 升级)
+
+> **新增段 (2026-09-23)**: 来源 = Cross-Doc Review 2026-09-23 + 用户提交 16 模块 E6 + 用户原文 "只报涨不报掉属选择性披露，不予通过". 与三份 SoT 文档 `§十二 Verification Matrix` + L2 spec `§R8 反向指标门` 配套.
+
+### 核心规则
+
+**任何** 自进化 / Harness / RSI 的 ship gate (commit message / OpenSpec change archive / 任意 capability claim) **必须同时** 输出正向 + 反向指标, 缺一不予 merge.
+
+### 三档必须 (per L2 spec R8 + SoT §十二)
+
+| # | 指标 | 阈值 / 行为 |
+|---|------|--------------|
+| **1** | **正向 (新涨)** — 新 capability 覆盖 scope 提升量 | 任何 +x% 都算 (无下限) |
+| **2** | **反向 (旧掉)** — 已 ship 旧 capability 在同一改动后的退化量 | **drop_ratio ≤ 5%** → 自动 block |
+| **3** | **失败 → 约束可追溯** | 100% 失败样本必须链到 contract/hook/event + ship commit hash |
+| **4** | **消融实验** (Harness 变化时) | 3 段对照 (新/旧 × 同任务/同 Harness × 拦截保留率) |
+
+### 在本项目中的实施
+
+#### Source of Truth 引用
+- [`docs/architecture/self-evolution-architecture-2026-08.md` v1.5 §十二](../architecture/self-evolution-architecture-2026-08.md) — 9 段闭环反向指标门
+- [`docs/architecture/harness-architecture-2026-09.md` v1.0 §十二](../architecture/harness-architecture-2026-09.md) — H1-H6 红线 + 5-tier gate 反向校验
+- [`docs/architecture/rsi-architecture-2026-09.md` v1.0 §十二](../architecture/rsi-architecture-2026-09.md) — R1-R4 真 RSI 三判据 + 反作弊三模式
+- [L2 spec §R8 + §R9](../openspec/changes/pdk-chat-demo-evolution-reference-example/specs/pdk-chat-demo-evolution/spec.md) — 反向指标门 + 反作弊测试用例
+
+#### 在 commit message 中的强制字段
+任何 ship commit 应包含:
+```
+[Reverse Indicator]
++ new_up: <正向指标 (新涨)>
+- old_down: <反向指标 (旧掉, drop_ratio=X%>
+failure_traces: <失败样本 → 约束 ids>
+ablation: <消融对照数据, if Harness changed>
+```
+
+#### drop_ratio > 5% 自动 block (R8.1 红线)
+- L2 spec S17: `--release-metrics` flag 输出 drop_ratio, >5% → exit non-zero
+- 任何 OpenSpec change archive 前必须满足反向指标门
+- **Single-Dev 模式 = author 自审时显式 ack, 不能"忘了写"** (per Cross-Doc Review §12.7 red-line)
+
+#### 反作弊三模式 (per L2 spec R9)
+- **R9.1 搜现成答案** (Poolside / Terminal-Bench 2.0) — input 含 baseline hint 时 Agent 不得速通复述
+- **R9.2 修改评判指标** (复旦马兴军团队实测) — IEvaluator 无 write 接口 + MutationGate 拦截 schema 改写
+- **R9.3 串谋外部平台** (OpenAI ExploitGym) — sandbox network_mode=none 默认 + zero-day RCE 检测
+
+#### 配套反 RSI 反作弊 (per 用户 16 模块 R4 红线)
+- **R3 元指标实证 缺失**: 任何"达到 R3 / 元指标提升"声称在 §十二 §12.1.1 未 ship 时不予承认
+- **R4 四权分离 缺失**: 项目当前 Solo Dev 模式 = author = reviewer = approver, **不应声称 L5 / R4**
+
+#### 上下文驱动约束 (NEW 2026-09-23, per L2 spec §R13)
+- **L2 零 hardcode**: `pdk_chat_demo_evolution` binary 仅接受 `--context-file <path.jsonl>`, 无 `--context-file` flag → exit non-zero. L2 **不**是 autonomous evaluator.
+- **ContextRequest schema**: 8 字段 (context_id / turn_input / task_class / expected_eval_quality / invocation_mode / metadata.{domain,tags,is_hidden,sensitivity}) — 完整定义见 [L2 spec §R13](../openspec/changes/pdk-chat-demo-evolution-reference-example/specs/pdk-chat-demo-evolution/spec.md)
+- **≥ 3 类实证**: R3 元指标必须 ≥ 3 类 ContextRequest (code/research/debug), 单类不构成 generalizable 自进化声称
+- **trace JSONL 必含 `meta.context_id`**: 跨 ContextRequest 关联 + 失败可追溯
+- **commit `[Reverse Indicator]` 段必须含 `context_ids: <uuid list>`** (本 commit 涉及哪些 ContextRequest)
+
+#### Reverse Indicator Rule 完整 5 档必须 (2026-09-23 综合)
+1. **正向 (新涨)**: `new_up: <正向指标>`
+2. **反向 (旧掉)**: `old_down: <drop_ratio=X%>` (≤ 5%)
+3. **失败 → 约束可追溯**: `failure_traces: <context_id>=<failure>=<rule_id>`
+4. **消融对照**: `ablation: <3 段对比>`
+5. **上下文 IDs** (NEW): `context_ids: <uuid list>` (本 commit 涉及哪些 ContextRequest)
+
+任何 drop ≥ 3 档缺失 → exit non-zero in L2 merge gate.
+
+### 维保
+
+| 触发 | 更新 |
+|------|------|
+| 任何 ADR state 翻转 | 更新 SoT §十二 §12.1 / §12.5 |
+| 任何 OpenSpec change archive | commit message 含 [Reverse Indicator] 段 |
+| Phase 2+ 立项 (Wave 3 Phase 2 / Wave 4) | 同步 R3 / R4 元指标定义 + 反作弊覆盖 |
 4. Use `query_graph` pattern="tests_for" to check coverage.

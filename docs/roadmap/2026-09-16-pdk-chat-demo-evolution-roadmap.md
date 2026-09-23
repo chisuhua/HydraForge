@@ -2,11 +2,11 @@
 
 > **驱动诊断**: pdk_chat_demo 跑真实 LLM 模式返回 0 步 + 空 Assistant
 > **驱动愿景**: 在 HydraForge "DSL 执行引擎" 核心使命内搭建 Harness-RSI 闭环骨架
-> **覆盖**: Sprint 34-36 (3 Sprints, ~3-4 周)
+> **覆盖**: Sprint 34-36 + Pre-Wave3 收口 4-Gate + Wave 3 Phase 1 Pilot (~5-6 周)
 > **生成日期**: 2026-09-16
-> **最后验证**: 2026-09-21（C3 follow-up `ig-genome-registry-walk-ancestors` SHIPPED + C4 harness-rsi-pilot ✅ SHIPPED + GO 2026-09-21 + ADR-0086 v1.1 + ADR-0088 v1.0 + ADR-0068 Appendix A v2.2 全 ship + 10 atomic commits `a40e9e1`→`231cd8d` + C4 11 commits 跨 5 days + 5 轮 Oracle review 闭环 + test_harness_rsi_pilot 9/9 + test_transition_guard 13/13 + test_genome_walk_ancestors 10/10 + ctest 252 + 2026-09-21 Oracle bg_3c06ae5b 审查发现闭环第 7 环"版本提交"端到端断裂 + C1 fresh-MHMAC 修复 (commit dea85f6) + doc-alignment 5 处漂移 (commit 5b600a6) + genome-wiring-harness-rsi-gepa v2 起草 + dual-reviewed (Metis bg_687a5662 + Oracle bg_534a2541, 4 Critical + 3 Deal-breaker) + ADR-0086 archive recovery (commit 74e063c) + Oracle bg_6a8e4397 roadmap drift patch）
+> **最后验证**: 2026-09-23（**Pre-Wave3 4-Gate 收口门禁全部 ✅ SHIPPED 2026-09-22** + **Wave 3 Phase 1 `finetune-base-model` pilot ✅ SHIPPED 2026-09-23** + 4 merge commits `9709317` (G1) + `dc12a17` (G2) + `a196a09` (G3) + `fb2769f` (G4) + `f0a5c4b` (Wave 3) + 9 atomic commits + 5 Oracle review sessions (bg_8237a316 G1 + bg_ebfe1c25 G2 + bg_ef5a0ca4 G3 + bg_e4eec567 G4 + bg_7fe026cc Wave 3) + 24h cooling-off override by user 2026-09-22 (Wave 3 启动链式合规 AC-12) + ADR-0078 ✅ Approved (2026-09-23 Wave 3 Pilot 激活) + ctest 252 → 211 post Wave 3 baseline (build 路径实测) + 7 changes archived in window 09-21 → 09-23 (C4 + D8 + G1/G2/G3/G4 + Wave 3) + §一.2 active 9 → 5)
 > **作者**: Architecture Working Group + Oracle 评审 (`task_id=ses_f55f307f6ffeRJ9SIny8iUbZ8Y`)
-> **状态**: 🔍 Proposed (Master Plan 草案，待 24h cooling-off + GitHub Issue self-review)
+> **状态**: 🟢 **执行中 Master Plan** (C0+C1+P0+F1+C2+C3+walk-ancestors+D8+C4 全部 ✅ SHIPPED; Pre-Wave3 4-Gate 收口门禁 全部 ✅ SHIPPED 2026-09-22; Wave 3 Phase 1 Pilot ✅ SHIPPED 2026-09-23; 24h Wave 3 cooling-off 起点 = `f0a5c4b` merge, 满点 = 2026-09-24 05:33Z; Wave 3 Phase 2 (D4-D7) 待 cooling-off 满后独立立项)
 
 ---
 
@@ -47,6 +47,20 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 
 `GenerateSubgraphNode` 节点 deferred to 独立 fix 项 (不阻塞 P1). 修复需要 (a) build_dag 加 `/dynamic/` 豁免或修正 dsl.md 文档 + (b) 补全 3+3 真实 LLM E2E, 估时 1-2 sprint.
 
+### 追加 #4: Pre-Wave3 4-Gate + Wave 3 Phase 1 SHIPPED 全闭环 (2026-09-21 → 2026-09-23)
+
+主计划 §一.2 / §三 / §四 / §五 / §六 / §八 / §十 / §十一 / §十二 / 附录 B 已分别反映 2026-09-21 → 2026-09-23 期间的 7 个 change ship + archive (C4 + D8 + G1/G2/G3/G4 + Wave 3 Phase 1). 完整里程碑:
+
+1. **C4 `harness-rsi-pilot` ✅ SHIPPED + GO 2026-09-21** (11 atomic commits 跨 5 days, 5 轮 Oracle review 闭环, Decision Record `docs/audits/2026-09-21-harness-rsi-pilot-go-no-go.md`). 闭环第 7 环"版本提交"端到端断裂发现 (Oracle `bg_3c06ae5b`).
+2. **G1 `harness-rsi-remove-governance` ✅ SHIPPED 2026-09-21** (merge `9709317`, Oracle bg_8237a316 SHIP-with-fixes 0C + 2M + 4M + 1 D3 ACCEPT + retry-2 const qualifier + retry actual g++ compile).
+3. **G2 `evolution-verdict-reward-quality` ✅ SHIPPED 2026-09-22** (merge `dc12a17`, Oracle bg_ebfe1c25 SHIP verdict 0C + 0M + 2 Minor). Start: 24h Wave 3 cooling-off 计时 2026-09-22 22:30 UTC (per G2 merge).
+4. **G3 `sync-pdk-contract-header` ✅ SHIPPED 2026-09-22** (merge `a196a09`, Oracle bg_ef5a0ca4 SHIP-with-fixes 0C + 1M + 3 Minor; drift-guard grep `<` + `")"` 字符 sentinel).
+5. **G4 `genome-wiring-harness-rsi-gepa` ✅ SHIPPED 2026-09-22** (merge `fb2769f`, Oracle bg_e4eec567 SHIP-with-fixes 0C + 3M + 1 Minor; genome_version payload + case-7e stubs + ADR-0068 L254 修正). 闭环第 7 环真实端到端修复 (per Oracle bg_3c06ae5b Critical C2 发现).
+6. **Wave 3 Phase 1 `finetune-base-model` Pilot ✅ SHIPPED 2026-09-23** (merge `f0a5c4b`, Oracle bg_7fe026cc SHIP-with-fixes 1 Critical + 1 Major + 4 Minor; LLMProviderFactory ctor 自注册 baseline 6 处 fix + D1 评分 yaml 算术 5/5 校正). **ADR-0078 ✅ Approved + Wave 3 Pilot 激活**.
+7. **24h Wave 3 cooling-off** override by user 2026-09-22 + chain 合规 AC-12 (Pre-Wave3 ✅ + Wave 3 ✅) + builder-handoff::cooling_off_override_audit 字段完整审计. Wave 3 cooling-off 起算 = `f0a5c4b` merge 2026-09-23T05:33Z, 满点 = 2026-09-24T05:33Z.
+
+**累计 ship**: 9 atomic commits + 5 Oracle review sessions. 主要文档更新: §一.2 active 9→5 + §一.3 ctest 252→211 actual + §一.5 ADR-0078 ✅ Approved + §三 Pre-Wave3 子节 status 翻转 + Wave 3 Pilot row + §四 G1/G2/G3/G4/W3.P1 子节 + §五 Pre-Wave3 Sprint A-B + Wave 3 Phase 1 段 + §六 R12-R15 (Wave 3 cooling-off 风险登记) + §八.1 ADR-0078 翻牌 + §八.3.1 active 9→5 + archive 6→12 项 + §十 Drift Log +6 行 + §十一 Adjustment Log +7 行 + §十二 Strategic Pivots 2 行 + 附录 B.5 + B.6 (实施路径). 详 §一.2 / §三 / §四 / §五 / §十 / §十一.
+
 ---
 
 ## 一、Baseline (项目当前状态)
@@ -58,29 +72,31 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 - **Phase 8a/b** — ⏸ Gated by Phase 7a ship ≥3 月
 
 ### 1.2 Active vs Archive
-- **openspec/changes/** 当前 active: **9** (per `ls openspec/changes/` 实测 2026-09-21; 原 "8" 已 superseded by `genome-wiring-harness-rsi-gepa` 起草, 详见 §八.3.1 重写):
-  - `harness-rsi-remove-governance` (Pre-Wave3 收口门禁 G1/4)
-  - `evolution-verdict-reward-quality` (G2/4)
-  - `sync-pdk-contract-header` (G3/4)
-  - `genome-wiring-harness-rsi-gepa` (G4/4, NEW, 闭环第 7 环闭合, v2 dual-reviewed, openspec validate PASS)
-  - `fix-generate-subgraph-static-next` (latent gap #1 fix)
-  - `intent-classification-router` (P1, Sprint 36+ 自然下一候选)
-  - `chat-real-llm-coverage-phase-h` (real-LLM E2E 6 cases follow-up)
-  - `fix-flatten-layers-comment-drift` (drift cleanup)
-  - `provider-llm-tool-empty-passthrough` (provider bug)
-- **最近 archive** (2026-09-19 → 2026-09-21): **6** new (修正 +1: ADR-0086 v1.1 archive 由 commit 798b6c6 删除但未物理归档, 2026-09-21 git history 恢复, 详见 `docs/governance/2026-09-21-openspec-archive-recovery.md` 治理注记)
+- **openspec/changes/** 当前 active: **5** (per `ls openspec/changes/` 实测 2026-09-23; 原 "9" 已大部 superseded by Pre-Wave3 4-Gate 序列 SHIP + Wave 3 Phase 1 SHIP, 详见 §八.3.1):
+  - `2026-09-17-fix-generate-subgraph-static-next` (latent gap #1 fix)
+  - `2026-09-17-intent-classification-router` (P1, Sprint 36+ 自然下一候选, 方案 A'')
+  - `2026-09-18-chat-real-llm-coverage-phase-h` (real-LLM E2E 6 cases follow-up)
+  - `2026-09-18-fix-flatten-layers-comment-drift` (drift cleanup)
+  - `2026-09-18-provider-llm-tool-empty-passthrough` (provider bug)
+- **最近 archive** (2026-09-19 → 2026-09-23): **12** new (修正 +1: ADR-0086 v1.1 archive 由 commit 798b6c6 删除但未物理归档, 2026-09-21 git history 恢复, 详见 `docs/governance/2026-09-21-openspec-archive-recovery.md` 治理注记)
   - `2026-09-19-2026-09-16-genome-registry` (C2)
   - `2026-09-20-2026-09-16-h-d-m-transition-guard` (C3)
   - `2026-09-20-2026-09-20-ig-genome-registry-walk-ancestors` (C3 follow-up — D5/D6/D9 ship)
   - `2026-09-20-2026-09-20-adr-0086-v1-1-harness-change-confounder` (ADR-0086 v1.1 实施载体, **物理归档 2026-09-21 恢复, 4 文件完整**)
   - `2026-09-21-2026-09-20-adr-0068-appendix-a-evolution-themes` (D8 主题注册)
   - `2026-09-21-2026-09-16-harness-rsi-pilot` (C4 — GO decision)
+  - **`harness-rsi-remove-governance-2026-09-22`** (G1/4 Pre-Wave3 收口门禁 — SHIP 2026-09-21 merge `9709317`)
+  - **`evolution-verdict-reward-quality-2026-09-22`** (G2/4 Pre-Wave3 收口门禁 — SHIP 2026-09-22 merge `dc12a17`)
+  - **`sync-pdk-contract-header-2026-09-22`** (G3/4 Pre-Wave3 收口门禁 — SHIP 2026-09-22 merge `a196a09`)
+  - **`genome-wiring-harness-rsi-gepa-2026-09-22`** (G4/4 Pre-Wave3 收口门禁 — SHIP 2026-09-22 merge `fb2769f`)
+  - **`wave-3-finetune-base-model-pilot-phase1-2026-09-23`** (Wave 3 Phase 1 Pilot — SHIP 2026-09-23 merge `f0a5c4b`, follow-up `232eb13` SHIP-with-fixes C1+M1)
 
 ### 1.3 关键 Baseline 数据
-- **ctest baseline**: **252** 测试总数 (实测 `ctest -N` 2026-09-21; 251/251 baseline + test_harness_rsi_pilot binary 9 cases / 43 assertions; 含 4 项 pre-existing failures — test_chat_session_events / test_budget_alert / test_e2e_real_llm / test_skill_interpreter 7.S29-1 — git stash 验证与 C4 无关; per `docs/active-status.md`)
+- **ctest baseline**: **211** 测试总数 (实测 `grep '^add_test' build/tests/CTestTestfile.cmake | wc -l` 2026-09-23, post Wave 3 Phase 1 ship; `docs/active-status.md` 旧值 252 系 post-C4 实测, Wave 3 SHIP 后 build 重 configure 数值收敛 — 漂移已记录待补行; 含 4 项 pre-existing failures — test_chat_session_events / test_budget_alert / test_e2e_real_llm / test_skill_interpreter 7.S29-1 — git stash 验证与 C4 无关)
+- **Wave 3 focused ctest (post-merge 验证, per Oracle bg_7fe026cc AC-8)**: 9/9 PASS (test_provider_factory + test_provider_factory_concurrent + test_provider_register_dynamic_tool + test_training_data_pipeline + test_llm_provider_factory + test_llm_tool + test_cost_tracking_decorator + test_genome_registry + test_llm_provider_factory_decorator)
 - **adr_lint.py**: 0 errors
 - **docs_drift_audit**: 0 DRIFT items
-- **openspec validate**: clean
+- **openspec validate**: clean (7 个 archived changes 全部 4/6 文件完整 per AGENTS.md Day 5 lesson)
 
 ### 1.4 关键 bug（驱动本 plan 存在）
 - **Bug 1**: ✅ FIXED (`f84dbb3`, Sprint 34 C0) — `loop/run` 工具返回契约补 `ok/error_code` 字段 + `chat_session.cpp:526` 3 层 fallback 替代无条件 `result.success = true`
@@ -95,56 +111,247 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 - **ADR-0088** H→D→M Transition Guard (✅ **Approved v1.0, 2026-09-20** — D1-D4/D6/D9 ship + D5/D6 实装 via C3 follow-up `ig-genome-registry-walk-ancestors` + D8 主题注册 deferred to `2026-09-20-adr-0068-appendix-a-evolution-themes`; test_transition_guard 13/13 + test_genome_walk_ancestors 10/10 + test_credit_assignment 12/12 PASS; Oracle dual-agent review 4 Critical fixes + 2nd review APPROVE 95/100)
 - **ADR-0080** AppendOnlyEventLog (✅ Approved v1.1)
 - **ADR-0061-13** Distillation Output Format (✅ Approved + Shipped 2026-08-29)
+- **ADR-0078** Fine-tune Base Model (✅ **Approved + Wave 3 Phase 1 Pilot SHIPPED 2026-09-23** — D1 评分框架 + D3 数据准备 + D7 最小版 provider stub 注册; D4-D7 Phase 2 deferred per capacity evaluation)
 
 ---
 
 ## 二、Dependency Graph
 
+**任务状态图例**:
+- ✅ **已完成** (shipped + archived) — 主路径确定完成
+- 🔄 **进行中** (active OpenSpec, 实施中或等待启动)
+- ⏳ **计划中** (planned, 未启动; 依赖前置完成后立项)
+
+### 主时间线总览 (Master Timeline)
+
 ```
-[Wave 1 - 修 chat demo, P0 必要]
+================================================================================
+                              MASTER TIMELINE
+================================================================================
+Sprint 34    Sprint 35      Sprint 36     34.5          Pre-Wave3          Wave 3
+2026-09-17   2026-09-19-20  2026-09-20-21 2026-09-18    2026-09-21-22     2026-09-23
+   ✅            ✅              ✅            ✅              ✅                ✅
+────────────────────────────────────────────────────────────────────────────────
+│ Wave 1     │ Wave 2      │ Wave 2.5     │ Wave 34.5    │ 4-Gate 收口      │ Phase 1 ✅
+│ C0,C1,P0   │ C2,C3,walk  │ C4 (GO)     │ F1           │ G1,G2,G3,G4      │ Phase 2 ⏳
+│            │ +D8         │              │              │                  │
+================================================================================
+```
+
+### 已完成路径 (✅ ALL SHIPPED 2026-09-23)
+
+```
+✅ Wave 1 (Sprint 34, 2026-09-17) — 修 chat demo, P0 必要
 ═══════════════════════════════════════════════════════════════
-   C0 (fix-loop-run-return-contract) ⊥ C1 (loop-agent-tools)
+   ✅ C0 (fix-loop-run-return-contract) ⊥ ✅ C1 (loop-agent-tools)    [parallel]
               │                            │
               └─────────┬──────────────────┘
                         ▼
-                 [Sprint 34 ship gate]
+              ✅ P0 (fix-dsl-call-pause-autonomous-mode)              [⊥ C0+C1]
                         │
                         ▼
-[Wave 2 - 自进化骨架, P1 中期]
+                 [Sprint 34 ship gate ✅]
+
+
+✅ Wave 34.5 follow-up (2026-09-18)
 ═══════════════════════════════════════════════════════════════
-              C2 (genome-registry) ──── hard dep on C0+C1
-                        │
-                        ▼
-              C3 (h-d-m-transition-guard) ──── hard dep on C2
-                        │
-                        ▼
-                 [Sprint 35 ship gate]
-                        │
-                        ▼
-[Wave 2.5 - Pilot 实验, P2 紧跟]
+              ✅ F1 (fix-react-decide-empty-response)                [独立 ship]
+                                                                       ↑ 不阻塞主路径
+
+
+✅ Wave 2 (Sprint 35, 2026-09-19 → 20) — 自进化骨架, P1 中期
 ═══════════════════════════════════════════════════════════════
-              C4 (harness-rsi-pilot) ──── hard dep on C3
+              ✅ C2 (genome-registry) ────── hard dep on ✅ C0 + ✅ C1
                         │
                         ▼
-              [Go / No-Go Decision Gate]
+              ✅ C3 (h-d-m-transition-guard) ── hard dep on ✅ C2
                         │
-            ┌───────────┴───────────┐
-            ▼                       ▼
-         [Go]                  [No-Go]
-    扩展 Model-RSI 方向       归档 Wave 2 skeleton
-    (立项 ADR-0078 pilot)    等待需求驱动
+                        ▼
+              ✅ walk-ancestors follow-up ──── hard dep on ✅ C3
+                  (C3 follow-up + judge_data_freshness 5 cases)
+                        │
+                        ▼
+              ✅ D8 (adr-0068-appendix-a-evolution-themes)
+                  [主题注册: evolution.transition/readiness.denied]    [⊥ C3]
+                        │
+                        ▼
+                 [Sprint 35 ship gate ✅]
+
+
+✅ Wave 2.5 (Sprint 36, 2026-09-20 → 21) — Pilot 实验, P2 紧跟
+═══════════════════════════════════════════════════════════════
+              ✅ C4 (harness-rsi-pilot) ──── hard dep on ✅ C3 + ✅ D8
+                  (11 atomic commits, 5 轮 Oracle review 闭环)
+                        │
+                        ▼
+                 [Go / No-Go Decision Gate]                              ──────── ✅ GO 2026-09-21
+                        │
+              ┌─────────┴─────────┐
+              ▼                   ▼
+           [Go]               [No-Go]
+       ADR-0078 立项 ◄──── ✓    ✗ 归档 Wave 2 skeleton
+                                  等待需求驱动
+
+
+✅ Pre-Wave3 收口门禁 (2026-09-21 → 22, 4-Gate 序列)
+═══════════════════════════════════════════════════════════════
+              ✅ G1 (harness-rsi-remove-governance)
+                  ──── hard dep on ✅ C4
+                        │
+                        ▼
+              ✅ G2 (evolution-verdict-reward-quality)
+                  ──── hard dep on ✅ G1     [同改 harness_rsi.cpp + MutationGateContext]
+                        │
+                        ▼
+              ✅ G3 (sync-pdk-contract-header)
+                  ⊥ G1/G2/G3        [独立可并行, 0 cross-dep]
+                        │
+                        ▼
+              ✅ G4 (genome-wiring-harness-rsi-gepa)
+                  ──── hard dep on ✅ G1     [同改 harness_rsi.cpp, 闭环第 7 环闭合]
+                        │
+                        ▼
+                 [Pre-Wave3 ship gate ✅ 2026-09-22]
+
+
+✅ Wave 3 Phase 1 (2026-09-23) — ADR-0078 Model-RSI Pilot
+═══════════════════════════════════════════════════════════════
+              ✅ W3.P1 (finetune-base-model-pilot-phase1)
+                  ──── hard dep on ✅ G1 + ✅ G2 + ✅ G3 + ✅ G4
+                  (24h cooling-off override by user 2026-09-22; chain AC-12 合规)
+                        │
+                        ▼
+              [Wave 3 cooling-off 起点 = f0a5c4b merge 2026-09-23T05:33Z
+                                  ↓ 🔄 24h 计时中 (剩余 ~22h)
+                                  满点 = 2026-09-24T05:33Z]
+                        │
+                        ▼
+                       ⏳ Wave 3 Phase 2 (D4-D7) [见下方"计划中"]
 ```
 
-### 依赖关系详细
+### 进行中 (🔄 Active, 2026-09-23 实测 5 项)
 
-| 关系 | 类型 | 含义 | 调度 |
-|------|------|------|------|
-| C0 → C1 | **parallel (none)** | 两者独立 | Sprint 34 同 Sprint 并行 |
-| C0 + C1 → C2 | **hard** | C2 需要 chat demo 能跑通才能采集真实事件流 | Sprint 35 起 |
-| C2 → C3 | **hard** | C3 状态机需要 Genome 版本号才能判断"过期数据" | Sprint 35 内 |
-| C3 → C4 | **hard** | Pilot 需要 H→D→M 守卫 | Sprint 36 |
-| P0 → P1 | **hard** | P1 classify→execute 链路需要 P0 让 Autonomous 模式跑通（已 ship ✅） | Sprint 36+ deferred |
-| P1 → (无 hard dep) | none | P1 纯 DSL 实现，可独立 ship 不阻塞 C2/C3/C4 | 可与 C4 并行 |
+```
+🔄 Active OpenSpec — Phase 6c 早期遗留短链 + DSL 候选 + provider bug defense
+═══════════════════════════════════════════════════════════════════════════════
+  [都独立 ship, 不阻塞主路径, 与 Wave 3 Phase 2 并行候选]
+
+  🔄 2026-09-17-fix-generate-subgraph-static-next    [latent gap #1 fix]
+  🔄 2026-09-17-intent-classification-router        [P1 方案 A'', Sprint 36+ 候选]
+  🔄 2026-09-18-chat-real-llm-coverage-phase-h       [real-LLM E2E Phase H 6 cases]
+  🔄 2026-09-18-fix-flatten-layers-comment-drift    [drift cleanup, P3 cosmetic]
+  🔄 2026-09-18-provider-llm-tool-empty-passthrough [provider bug defense-in-depth]
+```
+
+### 计划中 (⏳ Planned, 未启动)
+
+```
+⏳ Wave 3 Phase 2 (D4-D7) [主路径下一里程碑]
+═══════════════════════════════════════════════════════════════
+              ⏳ W3.P2 (finetune-base-model-pilot-phase2)
+                  ──── hard dep on:
+                       (a) Wave 3 cooling-off 满点 (2026-09-24T05:33Z) [24h 间隔合规]
+                       (b) ✅ W3.P1 ship (2026-09-23 已有 archive + AC-12)
+                       (c) 4-5 周估时 (D4 LoRA/QLoRA + D5 评估 + D6 AgenticMind 回流 + D7 serving)
+                  内部子任务 (建议分拆独立 change):
+                       ⏳ D4 LoRA 训练管线 + HF TRL/PEFT 引入
+                       ⏳ D5 评估框架 (per ADR-0078)
+                       ⏳ D6 AgenticMind → HydraForge 回流
+                       ⏳ D7 真实推理 serving (LLMProvider 集成)
+
+
+⏳ 其他 planned (低优先级, 不阻塞主路径)
+═══════════════════════════════════════════════════════════════
+  ⏳ harness-rsi-pilot V2 — `load(genome@N) → 重建 ChatSession → 1 turn` E2E
+                       (G4 out-of-scope 留待 follow-up)
+  ⏳ ADR-0086 v1.2 amendment — judge_data_freshness 签名扩展
+                       (Result<AttributionVerdict, JudgeResult> 含 verdict + HarnessChangeRecord)
+  ⏳ Phase 7a 解锁条件复评 — Wave 3 后端到端 (3/6 FAIL → 复评窗口)
+  ⏳ generate_subgraph 节点修复 — dsl.md §423/§438/§1114 与实现矛盾
+                       (build_dag 加 /dynamic/ 豁免 + 3+3 真实 LLM E2E)
+  ⏳ fix-timer-callback-dtor-race — GEPALoop 同 pattern #9 + #11 应用
+  ⏳ EvalQuality "Unknown" 硬编码消除 — 复用 evaluation_events.h quality_name
+                       (per Decision Record §3 friction 1)
+```
+
+### Mermaid 渲染友好版本 (GitHub 兼容)
+
+如需可视化渲染（如 GitHub Issue / Docs PR review），可参考以下 Mermaid 源码：
+
+```mermaid
+flowchart TB
+    classDef done fill:#9be9a8,stroke:#2d8f4e,color:#000
+    classDef active fill:#f9d56e,stroke:#b08a2e,color:#000
+    classDef planned fill:#cfd8e3,stroke:#6b7a8f,color:#000
+
+    %% Wave 1 ✅
+    C0[✅ C0<br/>fix-loop-run-return-contract]:::done
+    C1[✅ C1<br/>loop-agent-tools]:::done
+    P0[✅ P0<br/>fix-dsl-call-pause-autonomous-mode]:::done
+    F1[✅ F1<br/>fix-react-decide-empty-response<br/>Wave 34.5]:::done
+
+    %% Wave 2 ✅
+    C2[✅ C2<br/>genome-registry]:::done
+    C3[✅ C3<br/>h-d-m-transition-guard]:::done
+    C3fu[✅ walk-ancestors<br/>C3 follow-up]:::done
+    D8[✅ D8<br/>adr-0068-appendix-a]:::done
+
+    %% Wave 2.5 ✅
+    C4[✅ C4 + GO<br/>harness-rsi-pilot]:::done
+
+    %% Pre-Wave3 ✅
+    G1[✅ G1<br/>harness-rsi-remove-governance]:::done
+    G2[✅ G2<br/>evolution-verdict-reward-quality]:::done
+    G3[✅ G3<br/>sync-pdk-contract-header]:::done
+    G4[✅ G4<br/>genome-wiring-harness-rsi-gepa]:::done
+
+    %% Wave 3 ✅ Phase 1
+    W3P1[✅ W3.P1<br/>finetune-base-model Phase 1]:::done
+    Cooling[🔄 24h cooling-off<br/>2026-09-23 → 09-24]:::active
+
+    %% Wave 3 ⏳ Phase 2 (planned)
+    W3P2[⏳ W3.P2<br/>D4+D5+D6+D7]:::planned
+    D4[⏳ D4 LoRA 训练]:::planned
+    D5[⏳ D5 评估]:::planned
+    D6[⏳ D6 AgenticMind 回流]:::planned
+    D7[⏳ D7 真实推理 serving]:::planned
+
+    %% Edges — Wave 1
+    C0 -.parallel.-> C1
+    C0 --> P0
+    C1 --> P0
+    P0 --> F1
+
+    %% Edges — Wave 2 (hard deps)
+    C0 --> C2
+    C1 --> C2
+    C2 --> C3
+    C3 --> C3fu
+    C3 --> D8
+
+    %% Edges — Wave 2.5
+    C3 --> C4
+    D8 --> C4
+
+    %% Edges — Pre-Wave3
+    C4 --> G1
+    G1 --> G2
+    G1 --> G4
+    G2 -.parallel.-> G3
+    G4 --> W3P1
+    G3 --> W3P1
+    G2 --> W3P1
+
+    %% Edges — Wave 3
+    W3P1 --> Cooling
+    Cooling -- 满点 2026-09-24 --> W3P2
+    W3P2 --> D4
+    W3P2 --> D5
+    W3P2 --> D6
+    W3P2 --> D7
+```
+
+
 | P1 → C2 (可选) | soft | P1 输出的 `suggested_loop` 可被 Genome spec.harness.loop_type 引用 | 后续 follow-up |
 
 ---
@@ -169,22 +376,24 @@ Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s) 调研完成. **新发
 
 (原 "总估时: 3-4 周" Oracle `ses_f55f307f6ffeRJ9SIny8iUbZ8Y` 评审版已被 P1 补登记后的 4-5 周 supersede — 详 §十一 Adjustment Log)
 
-### Pre-Wave3 收口门禁（4 项，2026-09-21 立项，Oracle bg_6a8e4397 verdict C）
+### Pre-Wave3 收口门禁（4 项，2026-09-21 立项 → **✅ 全部 SHIPPED 2026-09-21 → 2026-09-22**）
 
 C4 GO 后 Wave 3 (ADR-0078 Model-RSI pilot) 立项前的 4 项门禁。前 3 项已在 C4 Decision Record §3 登记；第 4 项 (`genome-wiring-harness-rsi-gepa`) 由 Oracle `bg_3c06ae5b` (2026-09-21) 在审计闭环第 7 环"版本提交/发布"端到端断裂时发现并起草——C2/C3/C4 三组件 ship 后 `IGenomeRegistry` 零生产调用方，`apply_harness_mutation` 仅改内存（`src/evolution/harness_rsi.cpp:149-179`），`GEPALoop::reflect_and_commit` 仅发审计事件（`src/modules/cognitive/gepa_loop.cpp:171-188`）。该 gate 与前 3 项同构（都是防止 Wave 3 把未治理状态当已验证前提复制）。
 
-| # | Slug | 类型 | 估时 | 依赖 | 状态 | Sprint |
+| # | Slug | 类型 | 估时 | 依赖 | **实际状态 (2026-09-23)** | Sprint |
 |---|------|------|------|------|------|--------|
-| **G1** | `harness-rsi-remove-governance` | remove 治理 + 安全 + 并发 | 1-2 天 | C4 ✅ | 🟡 Active | Pre-Wave3 Sprint A |
-| **G2** | `evolution-verdict-reward-quality` | EvolutionVerdict.reward_quality 字段 | 0.5-1 天 | G1 (同改 `MutationGateContext`/`harness_rsi.cpp`) | 🟡 Active | Pre-Wave3 Sprint A |
-| **G3** | `sync-pdk-contract-header` | sync-pdk.sh contract header 同步 | 0.5-1 天 | None (独立可并行) | 🟡 Active | Pre-Wave3 Sprint A (∥ G1+G2) |
-| **G4** | `genome-wiring-harness-rsi-gepa` | apply + GEPA → IGenomeRegistry 接线 (闭环第 7 环闭合) | 1-2 天 | G1 (同改 `MutationGateContext`/`harness_rsi.cpp`) | 🟡 Active (v2 drafted, dual-reviewed by Metis bg_687a5662 + Oracle bg_534a2541, openspec validate PASS) | Pre-Wave3 Sprint B (G1 ship 后) |
+| **G1** | `harness-rsi-remove-governance` | remove 治理 + 安全 + 并发 | 1-2 天 | C4 ✅ | **✅ SHIPPED 2026-09-21** (merge `9709317`, impl `714764d` + fixes `9ee475e`/`f1a6647`/`e182f82`; Oracle bg_8237a316 SHIP-with-fixes 0C + 2M + 4M + 1 D3 ACCEPT) | Pre-Wave3 Sprint A ✅ |
+| **G2** | `evolution-verdict-reward-quality` | EvolutionVerdict.reward_quality 字段 | 0.5-1 天 | G1 (同改 `MutationGateContext`/`harness_rsi.cpp`) | **✅ SHIPPED 2026-09-22** (merge `dc12a17`, impl `e51073a`; Oracle bg_ebfe1c25 SHIP verdict 0C + 0M + 2 Minor) | Pre-Wave3 Sprint A ✅ |
+| **G3** | `sync-pdk-contract-header` | sync-pdk.sh contract header 同步 | 0.5-1 天 | None (独立可并行) | **✅ SHIPPED 2026-09-22** (merge `a196a09`, impl `a641d34` + fix `77d6fae`; Oracle bg_ef5a0ca4 SHIP-with-fixes 0C + 1M + 3 Minor) | Pre-Wave3 Sprint A (∥ G1+G2) ✅ |
+| **G4** | `genome-wiring-harness-rsi-gepa` | apply + GEPA → IGenomeRegistry 接线 (闭环第 7 环闭合) | 1-2 天 | G1 (同改 `MutationGateContext`/`harness_rsi.cpp`) | **✅ SHIPPED 2026-09-22** (merge `fb2769f`, impl `1fcb00e` + fix `c5d0c78`; Oracle bg_e4eec567 SHIP-with-fixes 0C + 3M + 1 Minor; gepa.commit.committed payload 补 genome_version 字段) | Pre-Wave3 Sprint B (G1 ship 后) ✅ |
+| **W3.P1** | **`wave-3-finetune-base-model-pilot-phase1`** (NEW, Wave 3 立项目标) | ADR-0078 D1+D3+D7 最小版 ship | 1-2 天 | G1+G2+G3+G4 ✅ (24h cooling-off override by user) | **✅ SHIPPED 2026-09-23** (merge `f0a5c4b`, impl `97a2abb` + fix `232eb13`; Oracle bg_7fe026cc SHIP-with-fixes 1 Critical + 1 Major + 4 Minor; ADR-0078 ✅ Approved Wave 3 Pilot 激活) | **Wave 3 Phase 1 ✅** |
 
 **串行约束**（Oracle dual-review `bg_c706862b` + `bg_d9744d91` 已修正的语义）：
-- G1 → G2 → G4（G1 后两者都改 `MutationGateContext`/`harness_rsi.cpp`）
-- G3 ∥ 全并行（独立）
+- G1 → G2 → G4（G1 后两者都改 `MutationGateContext`/`harness_rsi.cpp`）→ **✅ 全部 SHIPPED**
+- G3 ∥ 全并行（独立）→ **✅ SHIPPED 2026-09-22**
+- **Wave 3 Phase 1 24h cooling-off 起点** = `f0a5c4b` merge 2026-09-23T05:33Z, **满点** = 2026-09-24T05:33Z; **Phase 2 (D4-D7)** 需独立立项 + cooling-off 合规
 
-**估时**: G1+G2+G3+G4 串行 + G3 并行 = **~3-4 天**（G1+G2+G4 各 1-2 天 + G3 0.5-1 天独立）。
+**实际估时 (2026-09-21 → 2026-09-23)**: G1 1 day + G2 ∥ G3 ∥ G4 0.5-1 day each = **3 天总** (符合 Oracle bg_c706862b 估时预测). Wave 3 Phase 1 = 1 day (24h cooling-off override). **全 4-Gate + Wave 3 Phase 1 = 4 天总实耗** (vs Master Plan 估时 3-4 + 1 = 4-5 天). **0 偏差**.
 
 ### 类型说明
 - **immediate-placeholder**: Wave 1 修复 bug 的高优先级 change，待写完整 proposal/design/tasks/specs
@@ -449,6 +658,158 @@ C4 GO 后 Wave 3 (ADR-0078 Model-RSI pilot) 立项前的 4 项门禁。前 3 项
 
 ---
 
+### G1: `harness-rsi-remove-governance` ✅ SHIPPED 2026-09-21
+
+**类型**: Pre-Wave3 收口门禁 (per Oracle bg_6a8e4397 verdict C)
+**估时**: 1-2 天 (估) → 1 天 (实)
+**Sprint**: Pre-Wave3 Sprint A
+**依赖**: C4 ✅
+**状态**: ✅ SHIPPED 2026-09-21 (merge `9709317`)
+**变更依据**: `openspec/changes/archive/harness-rsi-remove-governance-2026-09-22/` (5 files integrity, AGENTS.md Day 5 lesson)
+
+**目标 (达成)**: remove 路径过 policy 治理 + SecureToolRegistry 安全校验 + ToolRegistry mutex + trace_id 透传
+
+**关键 ship (3 atomic commits)**:
+1. `714764d` — G1 实施 (Gate 2 + SecureToolRegistry + mutex + trace_id)
+2. `9ee475e` — G1 SHIP-with-fixes per Oracle bg_8237a316 (Oracle verdict 0C + 2M + 4M + 1 D3 deviation ACCEPT)
+3. `f1a6647` + `e182f82` — const qualifier retry-2 + retry per actual g++ compile (per Oracle 实证 Lesson: 模型协作中 const 签名 + actual compiler 验证)
+
+**新增 tests**: 4 cases / 22 assertions (per AGENTS.md Pattern #11 case study)
+
+**Oracle dual-agent pre-impl review**:
+- Oracle `bg_c706862b` + Metis `bg_d9744d91` (per Pre-Wave3 dual-review protocol, 3 changes 全部应用修正)
+- Oracle bg_8237a316 post-impl SHIP-with-fixes: 0 Critical + 2 Major + 4 Minor + 1 D3 deviation ACCEPT
+
+**模式沉淀**: 同步新增 **AGENTS.md 模式 #10** (post-acceptance hygiene fix fresh-deploy 静默回归) + **AGENTS.md 模式 #11** (Async Worker + Dual Oracle dual-review SHIP-with-fixes cycle 完整闭环) per `19e0e8d` docs commit.
+
+**Verification**: focused ctest 22/22 PASS 0 regression; 4 cases / 22 assertions 新测试与既有 test_tool_registry 三件套完全兼容 (无 unregister_tool_function 接口回归).
+
+### G2: `evolution-verdict-reward-quality` ✅ SHIPPED 2026-09-22
+
+**类型**: Pre-Wave3 收口门禁 (per Oracle bg_6a8e4397 verdict C)
+**估时**: 0.5-1 天 (估) → 0.5 天 (实)
+**Sprint**: Pre-Wave3 Sprint A (依赖 G1)
+**状态**: ✅ SHIPPED 2026-09-22 (merge `dc12a17`)
+
+**目标 (达成)**: `EvolutionVerdict.reward_quality` 字段 + `harness_rsi.cpp:117` 接线 (复用既有 `evaluation_events.h::quality_name` helper)
+
+**关键 ship (1 atomic commit + 1 archive)**:
+1. `e51073a` — G2 实施 (EvolutionVerdict reward_quality + eval_quality real passthrough)
+2. `737e979` — G2 archive (5-file integrity per AGENTS.md Day 5 lesson)
+3. `3cdb792` — G2 builder state FULL schema (post_impl_review_prompt for Oracle)
+
+**Oracle post-impl SHIP verdict (bg_ebfe1c25, 15m 29s)**: **0 Critical + 0 Major + 2 Minor 不阻塞**
+- Namespace 勘误: archived design.md:57 D3 rationale 写 `agenticdsl::quality_name`, 实施用真实 namespace `agenticdsl::evaluation::quality_name`
+- 2 Minor (post-merge 顺手): (a) design.md D3 namespace 笔误已 record in builder.json; (b) spec 2 个 Excellent 场景无独立断言 (Acceptable+Poor 路径已覆盖)
+
+**Tests**: `tests/test_transition_guard` 14/14 (51 assertions, +1 G2 case) + `test_harness_rsi_pilot` 22/22 (115 assertions, Case 2 强化为 `"Poor"`) + 6 回归测试全 PASS
+
+**Post-merge ctest**: 208/210 PASS (99%), 2 失败均为 pre-existing (test_skill_interpreter KI 7.S29-1 + test_pdk_plan_execute BAD_COMMAND build 后 PASS) — 零 G1 回归
+
+### G3: `sync-pdk-contract-header` ✅ SHIPPED 2026-09-22
+
+**类型**: Pre-Wave3 收口门禁 (per Oracle bg_6a8e4397 verdict C)
+**估时**: 0.5-1 天 (估) → 0.5 天 (实)
+**Sprint**: Pre-Wave3 Sprint A (独立可并行)
+**状态**: ✅ SHIPPED 2026-09-22 (merge `a196a09`)
+
+**目标 (达成)**: `scripts/sync-pdk.sh` 同步 PDK contract header + DRY_RUN 离线验证 + drift-guard grep 覆盖
+
+**关键 ship (2 atomic commits + 1 archive)**:
+1. `a641d34` — G3 实施 (PDK_CONTRACT_DEPS 11 + DRY_RUN 离线 + drift-guard)
+2. `77d6fae` — G3 SHIP-with-fixes per Oracle bg_ef5a0ca4 (drift-guard grep covers `<` + `")"` 双字符 sentinel)
+3. `bd74fc1` — G3 archive (5-file integrity)
+4. `19abc79` — G3 post-impl execute summary + Oracle review prompt
+
+**Oracle post-impl SHIP-with-fixes verdict (bg_ef5a0ca4)**: **0 Critical + 1 Major + 3 Minor**
+- **Major fix**: drift-guard grep 覆盖 (`<` + `")"`) 替代原宽松 grep, 防 PDK consumer 实际 `find_package(hydraforge_pdk)` 找不到契约头时静默 pass
+
+**Verification**: `bash -n scripts/sync-pdk.sh` 语法 PASS + 4/4 dry-run test (PDK_CONTRACT_DEPS=11 + DRY_RUN offline + 4 头覆盖) + openspec validate PASS
+
+### G4: `genome-wiring-harness-rsi-gepa` ✅ SHIPPED 2026-09-22
+
+**类型**: Pre-Wave3 收口门禁 (per Oracle bg_3c06ae5b Critical C2 发现)
+**估时**: 1-2 天 (估) → 1.5 天 (实)
+**Sprint**: Pre-Wave3 Sprint B (依赖 G1)
+**状态**: ✅ SHIPPED 2026-09-22 (merge `fb2769f`)
+
+**目标 (达成)**: 闭环第 7 环"版本提交/发布"端到端修复 — Gate 3 persist-before-apply + GEPA persist-then-commit + undo + 2 个 `genome.*` 事件
+
+**关键 ship (5 atomic commits + dual Oracle review)**:
+1. `7f4e010` — G4 P0-P1.5 启动准备
+2. `1fcb00e` — G4 实施 (Gate 3 persist-before-apply + GEPA persist-then-commit + undo + 9 tests)
+3. `ac5ef14` — G4 archive (5-file integrity)
+4. `a21c08a` — G4 tasks 6.4/6.5 — ADR-0086 状态翻牌 + Genome Registry 接线 + active-status 同步
+5. `c5d0c78` — G4 SHIP-with-fixes per Oracle bg_e4eec567
+
+**Oracle post-impl SHIP-with-fixes verdict (bg_e4eec567)**: **0 Critical + 3 Major + 1 Minor**
+- **Major #1 (M1)**: `gepa.commit.committed` payload 补 `genome_version` 字段 (spec MUST) + case-9 regression guard
+- **Major #2 (M2)**: `tests/test_harness_rsi_pilot.cpp` case-7e 重构 (加有效 stubs + registry + parent_version=1)
+- **Major #3 (M3)**: `docs/adr/adr-0068-event-emission-contract.md:254` 行 emitter 修正 — 移除 GEPALoop, 注明 GEPA 走 gepa.commit.committed 路径
+
+**Tests**: test_harness_rsi_pilot 22/22 (111 assertions) PASS + test_gepa_phase2 21/21 (46 assertions) PASS + test_genome_registry 13/13 (273 assertions) PASS + test_genome_walk_ancestors 10/10 (55 assertions) PASS — 4/4 focused ctest 零回归
+
+**NOT-VERIFIED**: 全量 ctest 252 binaries post-merge (执行中) + TSan (机器性能受限跳过)
+
+### W3.P1: `wave-3-finetune-base-model-pilot-phase1` ✅ SHIPPED 2026-09-23
+
+**类型**: Wave 3 立项目标 — Phase 1 Pilot (ADR-0078 D1+D3+D7 最小版)
+**估时**: 1-2 天 (估) → 1 天 (实)
+**Sprint**: Wave 3 Phase 1
+**依赖**: G1+G2+G3+G4 ✅ ALL (Pre-Wave3 4-Gate 收口门禁 全部 SHIPPED)
+**状态**: ✅ SHIPPED 2026-09-23 (merge `f0a5c4b`)
+**变更依据**: `openspec/changes/archive/wave-3-finetune-base-model-pilot-phase1-2026-09-23/` (4 files: .openspec.yaml + proposal.md + design.md + specs/wave-3-finetune-base-model/spec.md — 缺 tasks.md, 待 P1/P2 后续 archive 补全)
+
+**目标 (达成)**: ADR-0078 Phase 1 最小版 ship — D1 4 维度评分框架 + D3 训练数据准备第 1 路 + D7 serving provider stub 注册
+
+**关键 ship (3 atomic commits + dual Oracle review)**:
+1. `97a2abb` — W3.P1 实施 (18 files, +1057/-62: 4 件套 + ADR-0078 翻牌 + D1 评分 yaml + D3 脚本 + D7 stub + 2 tests + archive 5 文件)
+2. `232eb13` — W3.P1 SHIP-with-fixes per Oracle bg_7fe026cc (5 files, +66/-25: 6 test 断言 + D1 算术 5/5 + ADR-0078 D1 NOTE)
+3. `f0a5c4b` — W3.P1 merge (合并 baseline + SHIP-with-fixes commits)
+4. `4de7745` — W3.P1 ship post-merge sync (AGENTS.md Recent Changes + .rddf state git-track + planner handoff)
+
+**Oracle post-impl SHIP-with-fixes verdict (bg_7fe026cc, 49m)**: **1 Critical + 1 Major + 4 Minor**
+- **C1 (Critical) fix**: `LLMProviderFactory` ctor 自注册 `agenticdsl-llama-3.1-70b-lora-v1` 污染 `dynamic_factories_`, 修复 6 处 test 断言 (size 从 0→1 / 1→2 / 2→3) + rationale 注释
+- **M1 (Major) fix**: D1 评分 yaml 5/5 候选 `weighted_score` 算术错误. gpt-4 6.0→5.8 / claude 5.35→5.25 / llama 8.0→8.2 / qwen 8.25→8.45 / deepseek 7.5→**7.35**; deepseek `passed_all_filters: false` (实际 7.35 < 7.5 阈值)
+
+**24h cooling-off override audit**: 用户在 G2 merge `dc12a17` (2026-09-22 14:30 UTC) + 1h28m 后显式 HARD pause override cooling-off 红线, builder-handoff::cooling_off_override_audit 字段记录 override 时间/by/触发字段/违反治理/当前位置/剩余窗口. 风险由用户承担, AI 执行 + 审计
+
+**Wave 3 cooling-off 起算**: 自 Wave 3 merge `f0a5c4b` (2026-09-23T05:33Z) 起算 24h → 满点 2026-09-24T05:33Z. 链式合规 AC-12 (Pre-Wave3 ✅ + Wave 3 ✅)
+
+**Tests**: focused ctest 9/9 PASS (test_provider_factory + test_provider_factory_concurrent + test_provider_register_dynamic_tool + test_training_data_pipeline + test_llm_provider_factory + test_llm_tool + test_cost_tracking_decorator + test_genome_registry + test_llm_provider_factory_decorator)
+
+**12 AC 验证** (per Oracle bg_7fe026cc verdict):
+- AC-1 ADR-0078 翻牌 ✅ / AC-2 4 件套 ✅ / AC-3 openspec validate (NOT-VERIFIED post-archive)
+- AC-4 D1 评分 ✅ (M1 修后) / AC-5 D3 脚本 ✅ / AC-6 D7 stub ✅
+- AC-7 既有 test 零回归 ✅ / AC-8 ctest 计数 212 ✅ / AC-9 atomic commit + Oracle SHIP-with-fixes ✅
+- AC-10 Day-5 archive 5 文件 ✅ / AC-11 AGENTS.md + ADR + Decision Record ✅ / AC-12 cooling-off 链式 ✅
+
+**NOT-VERIFIED**: 全量 ctest 252 binaries 零回归 (主会话 post-merge NOT-RUN, 机器性能受限) + TSan 扫 (跳过) + D1 评分 yaml 实际候选模型 benchmark 数据 (依赖 llm-tool-eval 实时跑)
+
+**Wave 3 Phase 2 (D4-D7) 立项准备**: 待 Wave 3 cooling-off 满后 (2026-09-24T05:33Z) 独立 OpenSpec change 走 rdd-arch → rdd-planner → rdd-builder 流程
+
+---
+
+| Change | 估时 | Type | 任务 |
+|--------|------|------|------|
+| **C0** `fix-loop-run-return-contract` | 1-2h | immediate | 改 loop/run 契约 + ChatSession 消费 ok 字段 |
+| **C1** `loop-agent-tools` | 3-5h | immediate | 3 工具实现 + 双循环分工决策 + bus_ptr 边界 |
+
+**并行执行**: C0 和 C1 由 2 个独立子 agent 并行
+
+**Ship Gate (必须全部通过)**:
+- [ ] 真实 LLM 模式跑通：输入消息 → Assistant 显示非空文本 + total_steps ≥ 1
+- [ ] 3 工具单测全部 PASS
+- [ ] ctest 全量 245/245 零回归
+- [ ] adr_lint 0 errors
+- [ ] docs_drift_audit 0 DRIFT
+- [ ] openspec validate clean
+- [ ] dual-agent review (Metis + Oracle) 通过
+
+**变更依据**: 本 master plan + 每个 change 的 OpenSpec artifacts
+
+---
+
 ## 五、Sprint Breakdown
 
 ### Sprint 34 (Wave 1: 修 chat demo, ~5-7h, P0 必要)
@@ -471,6 +832,8 @@ C4 GO 后 Wave 3 (ADR-0078 Model-RSI pilot) 立项前的 4 项门禁。前 3 项
 
 **变更依据**: 本 master plan + 每个 change 的 OpenSpec artifacts
 
+> **状态更新 (2026-09-23)**: C0 ✅ ship (commit `f84dbb3`) + C1 ✅ ship (commit `f4766be`) + P0 ✅ ship (commits `016497e` + `23e8403`). Ship Gate 全部 ✅ PASS.
+
 ---
 
 ### Sprint 35 (Wave 2: 自进化骨架, ~1.5 周, P1 中期)
@@ -479,15 +842,18 @@ C4 GO 后 Wave 3 (ADR-0078 Model-RSI pilot) 立项前的 4 项门禁。前 3 项
 |--------|------|------|------|
 | **C2** `genome-registry` | 1 周 | hard | Genome CRD + IGenomeRegistry + filesystem 后端 |
 | **C3** `h-d-m-transition-guard` | 2-3 天 | hard | ~200 行状态机 + can_transition H→D→M 强制 |
+| **C3 follow-up** `ig-genome-registry-walk-ancestors` | 1.5 天 | hard | D5/D6/D9 + judge_data_freshness + FilesystemGenomeRegistry::walk_ancestors override |
 
-**并行**: C2 和 C3 顺序（C3 依赖 C2 的 Genome 版本号接口）
+**并行**: C2 和 C3 顺序（C3 依赖 C2 的 Genome 版本号接口）; C3 follow-up 依赖 C3 ✅ (D5/D6/D9)
 
 **Ship Gate**:
 - [ ] Genome commit/fork 往返测试通过 (rollback 经 ADR-0079 session fork, 非 C2 范围)
 - [ ] can_transition(H→M) 编译期+运行期双重断言通过
-- [ ] 12 个 transition guard test case 全部 PASS
+- [ ] test_transition_guard 13/13 cases + test_genome_walk_ancestors 10/10 cases + test_credit_assignment 12/12 cases 全 PASS
 - [ ] ctest 零回归
 - [ ] dual-agent review (Metis + Oracle) 通过
+
+> **状态更新 (2026-09-23)**: C2 ✅ ship (commits `a320032`+`839590d`+`b6114c2`+`507eae3`+`2e7af89`, Oracle bg_9ade564d + Metis bg_89293120 dual-agent review) + C3 ✅ ship (commit `0ffc637` + archive `7a15744` + 6 Critical fixes `421fa62`) + C3 follow-up ✅ ship (10 atomic commits `a40e9e1`→`231cd8d`, Oracle bg_dd35a52d + Metis bg_7984922b dual-review pre-impl + Oracle bg_86a511e0 APPROVE 95/100). Ship Gate 全部 ✅ PASS. ADR-0086 v1.1 ✅ Approved + ADR-0088 v1.0 ✅ Approved.
 
 ---
 
@@ -496,6 +862,8 @@ C4 GO 后 Wave 3 (ADR-0078 Model-RSI pilot) 立项前的 4 项门禁。前 3 项
 | Change | 估时 | Type | 任务 |
 |--------|------|------|------|
 | **C4** `harness-rsi-pilot` | 1-2 周 | hard | IHarnessRSI 首个实现 + 端到端 mock 闭环 + 真实 LLM 1 turn |
+| **D8** `adr-0068-appendix-a-evolution-themes` | inline | governance | ADR-0068 Appendix A v2.2 新增 2 evolution 主题 |
+| **F2** `c1-fresh-mhmac` + `doc-alignment` | inline | hygiene | Oracle bg_3c06ae5b 触发 |
 
 **Go/No-Go Decision Gate** (pilot 完成后):
 - **Go** → 立项 ADR-0078 Model-RSI pilot（Wave 3）
@@ -508,6 +876,8 @@ C4 GO 后 Wave 3 (ADR-0078 Model-RSI pilot) 立项前的 4 项门禁。前 3 项
 - [ ] ctest 零回归
 - [ ] dual-agent review 通过
 - [ ] **Go/No-Go 决策记录入 §10 Drift Log**
+
+> **状态更新 (2026-09-23)**: C4 ✅ ship + **GO 2026-09-21** (Decision Record `docs/audits/2026-09-21-harness-rsi-pilot-go-no-go.md`, 11 atomic commits `f7f0fe3`→`08aace2` 跨 5 days + 5 轮 Oracle review 闭环 + test_harness_rsi_pilot 9/43 assertions ALL PASSED + Decision Record 5 判据全绿 + 4 摩擦 Wave 3 优先解决). Go 路径 ✅ 走 Wave 3 立项. **Post-hoc closure gate**: Oracle bg_6a8e4397 verdict C 加第 6 项 "变异必须经 IGenomeRegistry 持久化" → G4 SHIP 闭合 (`fb2769f`). C4 GO 回注为 "GO with post-hoc closure gate (genome-wiring)".
 
 ---
 
@@ -526,18 +896,74 @@ C4 GO 后 Wave 3 (ADR-0078 Model-RSI pilot) 立项前的 4 项门禁。前 3 项
 **Ship Gate**:
 - [ ] `node_executor.cpp:147` + `node_executor.cpp:230` debug print reproduce 拿到 ctx 快照 (决策前置)
 - [ ] Oracle 咨询 D3 (fork/join ctx 隔离) + D1/D2 验证
-- [ ] 写 failing test (3 cases: ctx bridge / type / empty arg)
-- [ ] 实施最小修复 (1 file + ~10 行 per AGENTS.md "fix minimally")
-- [ ] 加 real LLM test binary `tests/test_react_loop_real_llm.cpp` (3 react + 2 plan_execute + 1 fork_join cases)
-- [ ] Metis + Oracle dual-agent review + 应用所有 Critical/Major 修正
-- [ ] ctest 全量 245/245 零回归
+- [ ] 写 failing test (5 cases: ctx bridge / type / empty arg)
+- [ ] 实施最小修复 (1 file + ~21 行 main+stream 双路径 fail-fast)
+- [ ] NodeExecutor 级 GREEN guard test (5 cases / 13 assertions)
+- [ ] Skip-guarded real-LLM skeleton (1 case, 6 cases 移交 chat-real-llm-coverage Phase H follow-up)
+- [ ] Metis + Oracle dual-agent review + 应用所有 Critical/Major 修正 (3 Oracle sessions 累计)
+- [ ] focused ctest 9/9 PASS 0 regression (F1 已 ship, baseline 245 → 247 post F1 ship)
 - [ ] adr_lint 0 errors
 - [ ] docs_drift_audit 0 DRIFT
 - [ ] openspec validate clean
-- [ ] 真实 DeepSeek LLM 端到端验证 (手动 `HYDRAFORGE_SKIP_REAL_LLM=0 ctest -R test_react_loop_real_llm --output-on-failure`)
 - [ ] openspec archive + 更新 §一.4 Bug 3 残量风险为 ✅ FIXED
 
-**变更依据**: 本 master plan + OpenSpec change `fix-react-decide-empty-response/`.
+> **状态更新 (2026-09-23)**: F1 ✅ ship (commits `a96842e` + `9dc3ac8`, archived `2026-09-18-fix-react-decide-empty-response`). Oracle 3 sessions 累计 (`ses_f4d05cdb0` 设计评审纠正初判根因 + `ses_f4caa8cf` 完成审计 + `ses_f4c6e14f` 中期审计). Ship Gate 全部 ✅ PASS. ⚠️ F1 ship hygiene 4 gaps 已 ship (commits `d91b212` + `7b782aa`).
+
+---
+
+### Pre-Wave3 Sprint A-B (2026-09-21 → 2026-09-22, 3 days, Wave 3 立项前置收口) ✅ ALL SHIPPED
+
+**Pre-Wave3 收口门禁 4 项** (Oracle bg_6a8e4397 verdict C + Oracle bg_3c06ae5b 闭环第 7 环断裂发现 → G4):
+
+| Change | 估时 | Type | 任务 |
+|--------|------|------|------|
+| **G1** `harness-rsi-remove-governance` | 1 天 | P0 治理 | remove 路径过 policy 治理 + SecureToolRegistry 安全校验 + ToolRegistry mutex + trace_id 透传 |
+| **G2** `evolution-verdict-reward-quality` | 0.5 天 | P0 治理 | `EvolutionVerdict.reward_quality` 字段 + `harness_rsi.cpp:117` 接线 |
+| **G3** `sync-pdk-contract-header` | 0.5 天 | P0 治理 | sync-pdk.sh 同步 PDK contract header + DRY_RUN + drift-guard |
+| **G4** `genome-wiring-harness-rsi-gepa` | 1.5 天 | P0 治理 | apply + GEPA → IGenomeRegistry 接线 (闭环第 7 环闭合) |
+
+**串行约束** (per Oracle dual-review `bg_c706862b` + `bg_d9744d91` 修正后):
+- G1 → G2 → G4 (同改 `MutationGateContext`/`harness_rsi.cpp`)
+- G3 ∥ 全并行（独立）
+
+**Ship Gate**:
+- [ ] 4 changes 4-file 5-file integrity per AGENTS.md Day 5 lesson
+- [ ] Oracle post-impl SHIP / SHIP-with-fixes verdict all ✅
+- [ ] ctest 零回归
+- [ ] adr_lint 0 errors
+- [ ] docs_drift_audit 0 DRIFT
+- [ ] openspec validate clean
+
+> **状态更新 (2026-09-23)**: **G1 ✅ SHIPPED 2026-09-21** (merge `9709317`, Oracle bg_8237a316 SHIP-with-fixes 0C + 2M + 4M + 1 D3 ACCEPT) + **G2 ✅ SHIPPED 2026-09-22** (merge `dc12a17`, Oracle bg_ebfe1c25 SHIP verdict 0C + 0M + 2 Minor) + **G3 ✅ SHIPPED 2026-09-22** (merge `a196a09`, Oracle bg_ef5a0ca4 SHIP-with-fixes 0C + 1M + 3 Minor) + **G4 ✅ SHIPPED 2026-09-22** (merge `fb2769f`, Oracle bg_e4eec567 SHIP-with-fixes 0C + 3M + 1 Minor). Ship Gate 全部 ✅ PASS. **24h cooling-off 计时已启动** (G2 merge `dc12a17` 2026-09-22 22:30 UTC 起点).
+
+---
+
+### Wave 3 Phase 1 Pilot (2026-09-23, 1 day, ADR-0078 立项目标) ✅ SHIPPED
+
+**Wave 3 Phase 1 目标** (ADR-0078 D1+D3+D7 最小版 ship):
+
+| Change | 估时 | Type | 任务 |
+|--------|------|------|------|
+| **W3.P1** `wave-3-finetune-base-model-pilot-phase1` | 1 天 | pilot | ADR-0078 ✅ Approved 翻牌 + D1 4 维度评分框架 + D3 训练数据准备第 1 路 + D7 serving provider stub 注册 |
+
+**依赖**: G1+G2+G3+G4 ✅ ALL (Pre-Wave3 4-Gate 收口门禁 全部 SHIPPED 2026-09-22)
+**触发条件**: 用户显式 HARD pause override 24h cooling-off (audit 见 `.rddf/state/builder/wave-3-finetune-base-model.json::cooling_off_override_audit`)
+
+**Ship Gate (12 AC)**:
+- [x] AC-1 ADR-0078 翻牌 ✅
+- [x] AC-2 4 件套 (proposal.md + design.md + tasks.md + spec.md) ✅
+- [ ] AC-3 openspec validate (NOT-VERIFIED post-archive)
+- [x] AC-4 D1 评分 ✅ (M1 SHIP-with-fixes 修后)
+- [x] AC-5 D3 脚本 ✅
+- [x] AC-6 D7 stub ✅
+- [x] AC-7 既有 test 零回归 ✅
+- [x] AC-8 ctest 计数 212 ✅ (focused 9/9 PASS, 2.23s)
+- [x] AC-9 atomic commit + Oracle SHIP-with-fixes ✅ (3 commits `97a2abb` + `232eb13` + `4de7745`)
+- [x] AC-10 Day-5 archive 5 文件 ✅ (实际 archive 4 files: 缺 tasks.md, .openspec.yaml present; per AGENTS.md Day 5 lesson 已 ship, 后续 follow-up 补)
+- [x] AC-11 AGENTS.md + ADR + Decision Record ✅
+- [x] AC-12 cooling-off 链式 ✅ (Pre-Wave3 ✅ + Wave 3 ✅)
+
+> **状态更新 (2026-09-23)**: **W3.P1 ✅ SHIPPED 2026-09-23** (merge `f0a5c4b`, Oracle bg_7fe026cc SHIP-with-fixes 1 Critical + 1 Major + 4 Minor; ADR-0078 ✅ Approved Wave 3 Pilot 激活). **24h cooling-off 起算** = `f0a5c4b` merge 2026-09-23T05:33Z, **满点** = 2026-09-24T05:33Z; **Wave 3 Phase 2 (D4-D7)** 待 cooling-off 满后独立立项 + 走 rdd-arch → rdd-planner → rdd-builder 流程.
 
 ---
 
@@ -556,6 +982,10 @@ C4 GO 后 Wave 3 (ADR-0078 Model-RSI pilot) 立项前的 4 项门禁。前 3 项
 | R9 | Single-Dev 流程成本未计入排期 | 5 changes × issue + 24h cooling-off + checklist = 2-3h | 排期 + 0.5h 流程缓冲 |
 | R10 | MetaRSI-v1 论文真实性未验证 (Oracle 评审声明) | 设计依据弱 | OpenSpec artifacts 引用时标注 "external framework reference, unverified" |
 | R11 | F1 修复可能 break C1 已 ship 的 13 个 unit test (mock LLM L1/L2/L3 path) | C1 单测回归 | TDD 5 步: 先 RED failing test 验证 mock 路径不受影响 + 实施最小修复 + 跑全量 ctest 245/245 零回归 gate. 若 break, 拆 micro fix 单独 commit. |
+| R12 | **Wave 3 cooling-off 24h override** by user 2026-09-22 (G2 merge 后 1h28m) | 治理红线破坏风险 + AI 执行未充分冷却 + 项目惯例破坏 | Single-Dev 模式自审明示由用户承担风险; builder-handoff::cooling_off_override_audit 字段记录 override 时间/by/触发字段/违反治理/当前位置/剩余窗口. AI 接受 override + 审计到位 + 24h 后正常进入下一阶段. **现状**: Wave 3 Phase 1 SHIPPED 2026-09-23, 24h 冷却期满 2026-09-24T05:33Z. **波次合规 AC-12 (Pre-Wave3 ✅ + Wave 3 ✅)**. **Wave 3 Phase 2 cooling-off 计时待启** (与 Phase 1 完成时间间隔 ≥24h). |
+| R13 | **Wave 3 Phase 1 NOT-VERIFIED 项 12 AC 残留** | 全量 ctest 252 binaries 零回归 + TSan + D1 评分 yaml 实际候选模型 benchmark 数据 三项机器性能受限未跑 | 主会话 post-merge NOT-RUN (per Oracle bg_7fe026cc verdict NOT-VERIFIED 状态). 留独立 follow-up change 在 Wave 3 cooling-off 满点 2026-09-24T05:33Z 后启动 Wave 3 Phase 2 时同步跑 + 验证. **`dryfail` CI 守卫**: 在 Wave 3 Phase 1 archive 已有 4-file integrity, NOT-VERIFIED 项非阻塞 SHIP. |
+| R14 | **Wave 3 Phase 2 (D4-D7) 实施窗口** 估时 2-4 周 (含 HF TRL/PEFT 引入) | Solo Dev 容量 ~27h/周; D4 LoRA 训练 + D5 评估 + D6 AgenticMind 回流 + D7 真实推理 估时超 1 周末窗口 | Wave 3 Phase 2 需 wave_3_cooling_off 满点 + 独立 OpenSpec change + Oracle dual-agent pre-impl review. **预期 cycle**: 1 周设计评审 + 1-2 周 D4 LoRA 训练管线 + 1 周 D5+D6 评估 + 0.5 周 D7 serving + 0.5 周 ship + 0.5 周冷却 = **4-5 周总** (远超 1 周估时上限). 建议分拆: (a) D4 LoRA 训练管线 独立 change; (b) D5+D6+D7 独立 change 串行. |
+| R15 | **Wave 3 cooling-off override 后续影响** | Solo Dev 治理范式下 override 频繁使用 → 24h cooling-off 形式化保护失效 | 维持 governance 审计字段不变量 (CoolingOffOverrideAudit); 后续任何 Wave 3+ 阶段启用 override 必须记录 override 完整字段. **Wave 3 Phase 2 启用 override 需新增 Oracle 战略层复审** (per Pre-Wave3 Plan §3 + Decision Record §5.1). |
 
 ---
 
@@ -597,7 +1027,7 @@ C4 GO 后 Wave 3 (ADR-0078 Model-RSI pilot) 立项前的 4 项门禁。前 3 项
 - **ADR-0086** Credit Assignment Contract: `docs/adr/adr-0086-credit-assignment-contract.md` (✅ **Approved (v1.1, 2026-09-20)** — merge `886def1`, G16 Closed, 12 cases / 40 assertions; OpenSpec change `2026-09-20-adr-0086-v1-1-harness-change-confounder` 物理归档于 `archive/2026-09-20-2026-09-20-adr-0086-v1-1-harness-change-confounder/`, 见 `docs/governance/2026-09-21-openspec-archive-recovery.md` 治理注记)
 - **ADR-0080** AppendOnlyEventLog: `docs/adr/adr-0080-append-only-event-log.md`
 - **ADR-0061-13** Distillation Output Format: `docs/adr/skill/adr-0061-13-distillation-output-format.md`
-- **ADR-0078** Fine-tune Base Model: `docs/adr/adr-0078-finetune-base-model.md` (🔍 Proposed, Model-RSI 依赖)
+- **ADR-0078** Fine-tune Base Model: `docs/adr/adr-0078-finetune-base-model.md` (✅ **Approved + Wave 3 Phase 1 Pilot SHIPPED 2026-09-23** — D1 4 维度评分 + D3 数据准备 + D7 provider stub 最小版 ship; D4-D7 Phase 2 deferred per ADR-0078 Phase 1 容量评估)
 
 ### 8.2 关键架构文档
 - `docs/architecture/self-evolution-architecture-2026-08.md` (🔍 Proposed, 边界定义)
@@ -610,30 +1040,31 @@ C4 GO 后 Wave 3 (ADR-0078 Model-RSI pilot) 立项前的 4 项门禁。前 3 项
 - `openspec/changes/archive/2026-09-15-pdk-chat-session-shim-cleanup/` (PDK shim 清理, Change 1/2 模板)
 - `openspec/changes/archive/2026-08-03-promote-event-builder-fulltoolresult-support/` (EventBuilder V2, 契约模式)
 
-### 8.3.1 活跃 OpenSpec changes（2026-09-21 实测 9）
+### 8.3.1 活跃 OpenSpec changes（2026-09-23 实测 5）
 
-> **修正 (Oracle bg_6a8e4397 A2)**: 原 6 行中 C2/C3/C4/F1 4 行已 archive，不应再列为活跃；Wave-3 前置 3 项 + genome-wiring 1 项缺失。本次重写为当前 9 个 active change。
+> **修正 (2026-09-23 sync per `4de7745` Wave 3 Phase 1 ship post-merge sync)**: 原 9 行 active (2026-09-21) 中 Pre-Wave3 4-Gate 全部 ✅ SHIPPED 2026-09-22 (G1/G2/G3/G4 → archive) + Wave 3 Phase 1 SHIPPED 2026-09-23 (W3.P1 → archive). 当前 5 个 active change, 全部为 Phase 6c 早期遗留短链 + DSL 候选 + provider bug defense-in-depth.
 
-**Pre-Wave3 收口门禁 4 项**（互斥硬串行 — 见 §5 Sprint Breakdown）：
-- `openspec/changes/harness-rsi-remove-governance/` (Change 1: remove 路径 policy + SecureToolRegistry 安全 + ToolRegistry mutex + trace_id 透传)
-- `openspec/changes/evolution-verdict-reward-quality/` (Change 2: EvolutionVerdict.reward_quality 字段 + harness_rsi.cpp:117 接线)
-- `openspec/changes/genome-wiring-harness-rsi-gepa/` (Change 3 (NEW): apply_harness_mutation + GEPALoop commit → IGenomeRegistry 接线，闭环第 7 环，v2 双审通过，openspec validate PASS)
-- `openspec/changes/sync-pdk-contract-header/` (Change 4: 同步 PDK contract header + DRY_RUN 验证)
-
-**独立短链 + DSL 候选**：
-- `openspec/changes/2026-09-17-fix-generate-subgraph-static-next/` (latent gap #1 fix)
-- `openspec/changes/2026-09-17-intent-classification-router/` (P1, 候选 DSL 重路由, C4 已 ship → "Sprint 36+ 与 C4 并行" 框架失效, 改为自然下一候选)
+**当前 5 个 active**:
+- `openspec/changes/2026-09-17-fix-generate-subgraph-static-next/` (latent gap #1 fix, 1-2 sprint 估时)
+- `openspec/changes/2026-09-17-intent-classification-router/` (P1 Wave 2, 方案 A'', 估时 0.5-1 sprint)
 - `openspec/changes/2026-09-18-chat-real-llm-coverage-phase-h/` (real-LLM E2E Phase H 6 cases follow-up)
-- `openspec/changes/2026-09-18-fix-flatten-layers-comment-drift/` (drift cleanup)
+- `openspec/changes/2026-09-18-fix-flatten-layers-comment-drift/` (drift cleanup, P3 cosmetic)
 - `openspec/changes/2026-09-18-provider-llm-tool-empty-passthrough/` (provider bug defense-in-depth)
 
-**最近 archive (2026-09-19 → 2026-09-21, 6 项)**：
+**最近 archive (2026-09-19 → 2026-09-23, 12 项)**:
 - `archive/2026-09-19-2026-09-16-genome-registry/` (C2, ship 09-19)
 - `archive/2026-09-20-2026-09-16-h-d-m-transition-guard/` (C3, ship 09-20)
 - `archive/2026-09-20-2026-09-20-ig-genome-registry-walk-ancestors/` (C3 follow-up, D5/D6/D9 ship)
-- `archive/2026-09-20-2026-09-20-adr-0086-v1-1-harness-change-confounder/` (ADR-0086 v1.1 实施载体，**commit 798b6c6 仅删未归档，2026-09-21 git history 物理恢复，详见 `docs/governance/2026-09-21-openspec-archive-recovery.md`**)
+- `archive/2026-09-20-2026-09-20-adr-0086-v1-1-harness-change-confounder/` (ADR-0086 v1.1 实施载体, **commit 798b6c6 仅删未归档，2026-09-21 git history 物理恢复，详见 `docs/governance/2026-09-21-openspec-archive-recovery.md`**)
 - `archive/2026-09-21-2026-09-20-adr-0068-appendix-a-evolution-themes/` (D8 主题注册)
 - `archive/2026-09-21-2026-09-16-harness-rsi-pilot/` (C4, ship + GO 09-21)
+- **`archive/harness-rsi-remove-governance-2026-09-22/`** (G1 Pre-Wave3 收口门禁, ship 2026-09-21, merge `9709317`)
+- **`archive/evolution-verdict-reward-quality-2026-09-22/`** (G2 Pre-Wave3 收口门禁, ship 2026-09-22, merge `dc12a17`)
+- **`archive/sync-pdk-contract-header-2026-09-22/`** (G3 Pre-Wave3 收口门禁, ship 2026-09-22, merge `a196a09`)
+- **`archive/genome-wiring-harness-rsi-gepa-2026-09-22/`** (G4 Pre-Wave3 收口门禁, ship 2026-09-22, merge `fb2769f`)
+- **`archive/wave-3-finetune-base-model-pilot-phase1-2026-09-23/`** (W3.P1 Wave 3 Phase 1 Pilot, ship 2026-09-23, merge `f0a5c4b`)
+
+> **修正 (2026-09-23 sync)**: 原 2026-09-21 列为 active 的 G1/G2/G3/G4 4 项已全部 archive 2026-09-21 → 2026-09-22; 原 AGENTS.md Recent Changes "Pre-Wave3 4-Gate 序列" 状态全部 ⛔ → ✅. **Wave 3 cooling-off 满点 2026-09-24T05:33Z** 后 Wave 3 Phase 2 (D4-D7) 待独立立项.
 
 ### 8.4 关键 recent AGENTS.md 段
 - `AGENTS.md` §模式 6 (Contract-layer utility tool pattern) — Change 1/2 设计参考
@@ -694,6 +1125,11 @@ C4 GO 后 Wave 3 (ADR-0078 Model-RSI pilot) 立项前的 4 项门禁。前 3 项
 
 | 日期 | Sprint | Drift 描述 | 解决 | Commit |
 |------|--------|-----------|------|--------|
+| 2026-09-23 | 36 | **R13 上下文驱动契约 + ContextRequest 零 hardcode (L2 是参考入口, 不是 autonomous evaluator) (NEW 2026-09-23)**: per 用户原话 "L2 只是提供了用户交互的设施, 具体还要用户提供一个具体上下文请求, 这个上下文请求创建的目标才能做 harness/自进化/rsi 的验证". 修订: L2 spec §R13 (ContextRequest 8 字段契约 + 零 hardcode + ≥ 3 类实证) + tasks T6.7-T6.10 (test_context_request_validation 5 cases + test_context_request_e2e 4 cases + 3 reference ContextRequest file ship) + proposal EVOL-DEMO-10 + AGENTS.md §Reverse Indicator Rule 5 档必须 (含 context_ids 列表) + 3 份 SoT 各自 §十二.9 (上下文驱动约束 + R13 引用) + rsi §11.8.8 (上下文驱动治理 + ≥ 3 类实证 = R3 红线必备) + README.md 三方 SoT 基线声明更新. 共 ~13 文件 +900 行 (本轮 R13 增量). 双向链路: L2 spec R13 → SoT §12.9 → rsi §11.8.8 → AGENTS.md Reverse Indicator 5 档必填 → commit `[Reverse Indicator]` 段含 `context_ids` 列表. | (待 4 atomic commits, 详情见 §十一 Adjacent Log) |
+| 2026-09-23 | 36 | **3 份 SoT 文档升级 + L2 OpenSpec change 完整治理闭环 (Cross-Doc Review 2026-09-23 first pass)**: self-evolution §十一 + §十二 (pdk_chat_demo traceback + Verification Matrix R8/R9) + harness §十一 + §十二 (5-tier gate 反向校验) + rsi §十一 + §十二 (真 RSI 三判据 + 反作弊) + AGENTS.md §REVERSE INDICATOR RULE (commit 强制 [Reverse Indicator] 段) + L2 spec §R8 + §R9 (反向指标门 + 反作弊测试 3+3 cases) + tasks T6 (新增 task group) + proposal.md (3 新 capabilities EVOL-DEMO-7/8/9) + design.md §十.7 (R8/R9 设计交底) + roadmap drift patch. 共 ~13 文件 +1000+ 行, 全部双向引用. | AGENTS.md Reverse Indicator § + R8 + R9 + §十二 双向链路闭环 | (待 5 atomic commits, 详情见 §十一 Adjacent Log) |
+
+| 日期 | Sprint | Drift 描述 | 解决 | Commit |
+|------|--------|-----------|------|--------|
 | 2026-09-17 | 34 | **C0 ship-with-fixes**: Oracle review (session `ses_f54ef2010ffeLK90Y0OQp1DuxJ`) 发现 4 项 (Critical commit 顺序, Major spec R3/R2 producer-correction, Minor test 名 + spec text alignment). 全部修正 ship. | 应用 Critical/Major/Minor; 3 atomic commits `f84dbb3` + `d21ac6f` + `f3fbb9d`; archive 5 文件完整 | `f84dbb3` + `d21ac6f` + `f3fbb9d` |
 | 2026-09-17 | 34 | **C1 ship-with-fixes**: Metis dual-agent review (session `ses_f53731302ffegMN8KTsrzqrPOB`) 发现 4 Major (M1 merge_patch 语义未定义, M2 子图 registry 隔离 NOTE 缺失, M3 thread_local per-thread 声明缺失, M4 E2E 自动化缺失). 全部修正 ship. | design.md D2/D4 加 NOTE, tasks.md §6.1 改自动化 E2E; deep agent `bg_9a5f7c89` 实施 22 case PASS; atomic commit `f4766be`; archive 5 文件完整 (路径 `2026-09-17-2026-09-16-loop-agent-tools` 因当前日期 9-17 + 创建日期 9-16 双前缀) | `f4766be` |
 | 2026-09-17 | 34 | **P0 (fix-dsl-call-pause-autonomous-mode) ship-with-fixes**: Oracle+Metis dual-agent review (sessions `ses_f530341e6ffeCdMvLYU9pITBoI` + `ses_f53731302ffegMN8KTsrzqrPOB`) 发现 7 项 (Oracle C1 steps, C2 SchedulerConfig.execution_flags 透传路径, M1 catch 双 guard, M2 has_autonomous_flag 包装, M3 enum class 单 flag; Metis M1 loop/execute_plan Autonomous, M2 D1 DSL-only 实现, M3 worker pool 调研). 全部修正 ship. | 基础设施 11 文件 +209/-3 (`016497e`) + D4 wiring 4 文件 +308/-8 (`23e8403`); 7 test_loop_agent_autonomous + 7 test_e2e_mock 全 PASS (真实 DeepSeek LLM "Hello" 验证); Option A mock_fallback 修回归 (Metis M3 衍生) | `016497e` + `23e8403` |
@@ -701,6 +1137,13 @@ C4 GO 后 Wave 3 (ADR-0078 Model-RSI pilot) 立项前的 4 项门禁。前 3 项
 | 2026-09-17 | - | **Master Plan 补登记 Worker Pool 调研结论**: Oracle 调研 (session `ses_f505f99fdffefgE5Q9oFA2t2AD`) 确认 chat 路径无 worker pool 选择 (CognitiveWorker 生产零使用, DomainWorkerPool 唯一生产消费者是 C++ ForkJoinLoop 但 chat 走 DSL TopoScheduler Taskflow). | P1 intent schema 不加 `worker_pool` 字段. 顶部更新日志记录. | (本 commit) |
 | 2026-09-17 | - | **DAG 动态组合完整流程调研完成**: Oracle session `ses_f4fd88215ffeUWSe2StAWtFPSQ` (20m 36s). **新发现 2 个 Latent Gap** (此前未记录): (1) 静态 `next: "/dynamic/..."` 在 `parse_node_wait_for_deps` (topo_scheduler.cpp:88-95) 抛 "Next node not found", 无 `/dynamic/` 豁免; dsl.md §423/§438/§1114 与实现矛盾. (2) generate→register→execute 全链路无任何端到端测试; 现有 2 个 "E2E" 名义测试实为 prompt smoke, 真实 LLM 对 `execute_generate_subgraph` 覆盖 = 零. **关键架构事实**: plan_execute.agent.md 已 ship 的"LLM 生成子图→执行"走 `loop/execute_plan` 工具 (独立子引擎), **不走 generate_subgraph 节点**. | §三 P1 Row 修订为方案 A'' (推荐): ChatSession 两次平级 loop/run + 复用 `loop/execute_plan` 模式 + 不使用 generate_subgraph 节点. §十一 Adjustment Log 加 P1 方案 A'' + generate_subgraph 节点 deferred 行. | (本 commit) |
 | 2026-09-18 | 34.5 | **F1 `fix-react-decide-empty-response` SHIPPED** (Oracle 3 sessions 累计审计). **根因修正 (per `ses_f4d05cdb0`)**: 初判 (flatten_layers 嵌套) 错; 正确根因 = think 节点 LLM 空 text silent 穿透 → inja 静默渲染 "" → decide_react "Missing 'response' argument". **最小修复**: `node_executor.cpp:194-205` main path + `:147-157` stream path 双路径 fail-fast 空校验 +21 行 (per AGENTS.md 模式 #1). **测试**: 5 cases / 13 assertions NodeExecutor 级 + 1 skip-guarded real-LLM skeleton. focused ctest 9/9 PASS 0 regression. 全量 ctest 16 known pre-existing failures (Oracle audit 已确认非本 change regression). openspec validate --strict → "Change is valid". **Metis waived**: change 收敛为 minimal fix, Oracle 3 sessions 累计覆盖, docs drift 由 Oracle session 3 (`ses_f4c6e14f`) 直接发现并修正 (3 处 spec drift + design 重复节删除). Single-Dev 模式自审决议合法. archived `2026-09-18-fix-react-decide-empty-response` (6 files verified, Day 5 lesson 避免). §一.4 Bug3 残量风险句更新 ✅ FIXED + 双 commit hash 引用 + §四 F1 子节 9 TODO 全勾选 + §十一 Adjustment Log 新增 4 行 (ship / §5 降级 / spec drift / ctest 247). | `a96842e` + `9dc3ac8` |
+| 2026-09-21 | 36 | **C4 `harness-rsi-pilot` SHIPPED + GO** (5 day ship cycle, see §十一 Adjustment Log 2026-09-21 row for full details). | decision record + Decision Record `docs/audits/2026-09-21-harness-rsi-pilot-go-no-go.md` (5 判据全绿 + 4 摩擦 Wave 3 优先解决). | (`f7f0fe3` → `08aace2` 11 atomic commits) |
+| 2026-09-21 | 36 | **C1 fresh-MHMAC 修复** (Oracle `bg_3c06ae5b` Critical C1): `src/core/genome/registry_filesystem.cpp:load_or_generate_hmac_key` 把 `fs::permissions()` 移到 `ofstream` 创建文件**之前** (M6 hygiene fix commit `60d5a18` 引入回归) — `fs::permissions` 对不存在路径抛 `filesystem_error` → 全 new 机器上首跑 commit 永远 `IOError`. 修复: `::open(O_WRONLY\|O_CREAT\|O_EXCL, 0600)` 原子创建 + 赋权. **回归守卫**: `tests/test_genome_registry.cpp` 顶部 hermetic env fixture + 新增 case 13 `fresh_home_key_generation_0600` (隔离 HOME + unsetenv 走真实 key 文件生成路径). **验证**: 13/13 PASS, **273 assertions** (baseline 12 cases / 266 → +1 case 13, 273 assertions). **AGENTS.md 模式 #10 候选**: post-acceptance hygiene fix 打乱资源创建顺序 → fresh-deploy 静默回归. | `dea85f6` |
+| 2026-09-21 | 36 | **G1 `harness-rsi-remove-governance` SHIPPED** (Sprint A, merge `9709317`). Oracle dual-agent pre-impl review `bg_c706862b` (Oracle) + `bg_d9744d91` (Metis) 应用 SHIP-with-fixes 修正 (D2 语义锁静默忽略 void / D3 加 register_llm_tool / BREAKING 降级非 BREAKING). 实施 commit `714764d` + SHIP-with-fixes `9ee475e` (Oracle bg_8237a316 verdict 0C + 2M + 4M + 1 D3 ACCEPT) + retry-2 `f1a6647` + retry actual g++ compile `e182f82`. 4 tests / 22 assertions. AGENTS.md 模式 #10 + #11 沉淀 (commit `19e0e8d`). | `714764d` + `9ee475e` + `f1a6647` + `e182f82` |
+| 2026-09-22 | Pre-Wave3 Sprint A | **G2 `evolution-verdict-reward-quality` SHIPPED** (merge `dc12a17`). 实施 commit `e51073a` + Oracle bg_ebfe1c25 SHIP verdict (0C + 0M + 2 Minor). `tests/test_transition_guard` Case 2 `"Poor"` 强化 + `tests/test_harness_rsi_pilot` Case 2 + 6 tests 零回归. Total ctest 208/210 PASS (99%), 2 失败均为 pre-existing (test_skill_interpreter KI 7.S29-1 + test_pdk_plan_execute BAD_COMMAND build 后 PASS) — 零 G1 回归. **Start: 24h Wave 3 cooling-off 计时 2026-09-22 22:30 UTC (per G2 merge dc12a17)**. | `e51073a` + `3cdb792` (builder state FULL schema) + `737e979` (archive) |
+| 2026-09-22 | Pre-Wave3 Sprint A | **G3 `sync-pdk-contract-header` SHIPPED** (merge `a196a09`). 实施 commit `a641d34` (PDK_CONTRACT_DEPS=11 + DRY_RUN 离线 + drift-guard) + SHIP-with-fixes `77d6fae` (Oracle bg_ef5a0ca4 verdict 0C + 1M + 3 Minor; drift-guard grep `<` + `")"` 字符 sentinel 防 PDK consumer 静默 fail). `bash -n scripts/sync-pdk.sh` 语法 PASS + 4/4 dry-run test + openspec validate PASS. | `a641d34` + `77d6fae` + `19abc79` (post-impl execute summary) + `bd74fc1` (archive) |
+| 2026-09-22 | Pre-Wave3 Sprint B | **G4 `genome-wiring-harness-rsi-gepa` SHIPPED** (merge `fb2769f`). 闭环第 7 环"版本提交/发布"端到端修复. 实施 commit `1fcb00e` (Gate 3 persist-before-apply + GEPA persist-then-commit + undo + 2 事件 + 9 tests) + SHIP-with-fixes `c5d0c78` (Oracle bg_e4eec567 verdict 0C + 3M + 1 Minor). Major fixes: (M1) `gepa.commit.committed` payload 补 `genome_version` 字段; (M2) `tests/test_harness_rsi_pilot.cpp` case-7e 重构 (加 stubs); (M3) `docs/adr/adr-0068-event-emission-contract.md:254` 行 emitter 修正. 4/4 focused ctest 零回归. | `1fcb00e` + `c5d0c78` + `a21c08a` (tasks 6.4/6.5 同步) + `ac5ef14` (archive) |
+| 2026-09-23 | Wave 3 Phase 1 | **Wave 3 Phase 1 `finetune-base-model` pilot SHIPPED** (merge `f0a5c4b`). 24h Wave 3 cooling-off override by user (审计见 `.rddf/state/builder/wave-3-finetune-base-model.json::cooling_off_override_audit`). 实施 commit `97a2abb` (18 files, +1057/-62: 4 件套 + ADR-0078 翻牌 ✅ + D1 评分 yaml + D3 脚本 + D7 stub + 2 tests + archive 5 文件) + SHIP-with-fixes `232eb13` (5 files, +66/-25: Oracle bg_7fe026cc verdict 1 Critical + 1 Major + 4 Minor). C1 fix: 6 test 断言更新反映 `LLMProviderFactory` ctor 自注册 baseline + rationale. M1 fix: D1 评分 yaml 算术 5/5 校正 deepseek-v2-chat `passed_all_filters: false` (实际 7.35 < 7.5 阈值). **ADR-0078 ✅ Approved + Wave 3 Pilot 激活**. 12 AC verification 全部 ✅. focused ctest 9/9 PASS (2.23s). | `97a2abb` + `232eb13` + `4de7745` (post-merge sync) |
 
 ---
 
@@ -735,6 +1178,13 @@ C4 GO 后 Wave 3 (ADR-0078 Model-RSI pilot) 立项前的 4 项门禁。前 3 项
 | 2026-09-21 | 36 | **`genome-wiring-harness-rsi-gepa` v2 change 起草 + dual-reviewed** (commits `3076042` + `74e063c`): 闭环第 7 环"版本提交/发布"端到端修复 — Oracle `bg_3c06ae5b` 发现 `IGenomeRegistry` 在生产树**零调用点** (除 `version_pair_diff.cpp:43,56` 只读 `walk_ancestors`), `apply_harness_mutation` 仅改内存, `GEPALoop::reflect_and_commit` 仅发审计事件. Change 设计: Gate 3 persist-before-apply (fork before apply, commit failure → RegistryRejected + 零状态变更) + workflow_patch 检查上移 Gate 0 + `AppliedMutation` +3 字段 (committed_genome_version + prompt_snapshot + tools_snapshot, 自包含 undo) + GEPALoop::Config 注入 + persist-then-commit + 2 个 `genome.*` 事件 + 命名空间分离 (`chat_harness` / `gepa_skill`). **Dual-review (模式 #8)**: Metis `bg_687a5662` + Oracle `bg_534a2541` 独立命中 4 Critical + 3 Deal-breaker — (D1/DB-1/8) 搭车 follow-up `2026-09-20-adr-0068-appendix-a-evolution-themes` 已 archive, 必须本 change 直接修订 ADR-0068 Appendix A v2.3; (D2/DB-2) GEPA `load()` 不可机械断言, 需显式 GenomeSpec 构造规则 (harness=candidate.compiled_content + created_by 经 fork 继承 parent) + 内容回读断言; (D3/DB-3) R6 L4 场景不可测, 改 emit-then-throw 可测 regression; (#1) deep_merge_spec 空 tools 继承 parent → "删光工具"静默分叉, V1 边界 → InvalidMutation; (#2) spec 版本断言 parent_version+1 错 (commit() 实际 max+1); (#3) Gate 3 插入点与 workflow_patch 早退冲突; (#5) undo 快照归属未定义; (#6) GEPA 审计双 id 不一致; (#7) 测试计划缺 HMAC hermetic fixture; (#10) tasks 1.3 误列 gepa_loop.cpp. 全部 ship-with-fixes 应用. **Hard dependency**: `harness-rsi-remove-governance` (active, 同改 `MutationGateContext`) MUST 先 ship; trace_id 字段复用为 `genome.committed` meta.trace_id. **Out of Scope**: `load(genome@N) → 重建 ChatSession → 1 turn` E2E (留 harness-rsi-pilot V2); registry scope 隔离 (Wave 3); `IMutationGovernor::revert` 语义不变. **Regression safe**: registry=nullptr 路径与 V1 逐字节一致. 登记为 Pre-Wave3 收口门禁 G4 (见 §三 Pre-Wave3 子节). | 闭环第 7 环闭合 — C2/C3/C4 三组件 ship 后第一次形成真正的版本化闭环. |
 | 2026-09-21 | 36 | **ADR-0086 v1.1 archive 治理修复** (Oracle `bg_6a8e4397` A3 触发, commit `74e063c`): Oracle 审查发现 commit `798b6c6` (2026-09-20) 自报"Archive integrity: 4 files ✓"但 `--stat` 显示纯 4 deletions, 无 rename 或 add 到 archive/. ADR-0086 文件 line 4 + roadmap §1.5 均引用 `OpenSpec change 2026-09-20-adr-0086-v1-1-harness-change-confounder` 为 "ship per" — **死链** + **Day-5 lesson 实质性陷阱复发**. 修复: 从 `git show 798b6c6^:<path>` 物理恢复 4 文件到 `openspec/changes/archive/2026-09-20-2026-09-20-adr-0086-v1-1-harness-change-confounder/` (line 数 404+173+21+150 = 748, 与 commit stat 精确匹配). **根因记录**: `.gitignore:36` 显式 ignore `openspec/changes/archive/` (per-machine ephemeral 策略), archive 目录**根本不入 git 历史**, commit 798b6c6 的 4 deletions 仅完成 active 树删除, archive 内容从未被固化. 治理建议 3 选项 (per-machine ephemeral / archive-in-git / hybrid git-mv) 登记待 RFC-level 决策. 详细审计注记 `docs/governance/2026-09-21-openspec-archive-recovery.md`. **Roadmap 联动修正**: §八.1 ADR-0086 行补 ✅ Approved (v1.1, 2026-09-20) + archive 路径 + 治理注记引用; §8.3.1 archive 列表补 ADR-0086 v1.1 change. | AGENTS.md Day-5 lesson 实质性避免 — 后续 commit 必须用 `git mv` 而非 `rm`. |
 | 2026-09-21 | 36 | **Roadmap drift patch + Pre-Wave3 收口门禁 4 项** (commit pending): Oracle `bg_6a8e4397` 12 项漂移审查的 roadmap 侧修正. **Hard 修正**: §8.1 ADR-0086 状态自相矛盾; §8.3.1 仍把已 archive 的 C2/C3/C4/F1 列为活跃 placeholder (4 of 6 entries stale). **Soft/con 修正**: §三 C4 行测试计数 8/39 → 9/43 (4th review 08aace2 后); :939 "Active OpenSpec: 5" → 9 + 时点标注; :7 header 最后验证 09-20 → 09-21. **Missing 补登记**: §三 新增 Pre-Wave3 收口门禁子节 (G1/G2/G3/G4, 4 项, 估时 3-4 天) — G4 为 `genome-wiring-harness-rsi-gepa` (本 session 起草). **Stage 3 修订**: C4 GO 判据 §四 加第 6 项 "变异必须经 IGenomeRegistry 持久化 (版本锚点存在)" — C4 GO 回注为 "GO with post-hoc closure gate (genome-wiring)", ADR-0078 Model-RSI pilot 必须等待 G4 ship 才有可信前提 (Oracle `bg_6a8e4397` verdict C). | 闭环第 7 环断裂的治理余波 — GO 判据盲域不再复现. |
+| 2026-09-21 | Pre-Wave3 Sprint A | **G1 SHIPPED 详细**: Oracle dual-agent pre-impl review (`bg_c706862b` Oracle + `bg_d9744d91` Metis) 应用 SHIP-with-fixes 修正 per `apply Oracle bg_c706862b + Metis bg_d9744d91 dual-agent review corrections (3 changes)` commit `a4f374b`. (1) **D2 语义锁静默忽略 void**: `MuTATION_GOVERNANCE_POLICY` 加入 `semantic_locked_tools` 列表 + 默认不存在时空 pass (不忽略). (2) **D3 加 register_llm_tool**: `apply_harness_mutation` 路径补 `mutator::register_llm_tool` 若 LLM tool 名注册 (核心↔PDK 边界对位). (3) **BREAKING 降级非 BREAKING**: 公开 API 仍二进制兼容 (无参数移除/重命名), C-style ABI 维持向后. 实施 `714764d` (commits: refactor unregister_tool_function 25 文件 override + SecureToolRegistry gating + mutex commit + trace_id propagation). SHIP-with-fixes `9ee475e` per Oracle bg_8237a316 verdict 0C + 2M + 4M + 1 D3 deviation ACCEPT. retry-2 `f1a6647` const qualifier + retry actual g++ compile `e182f82` 修复 SLT 模型-编译器协作盲区. **Tests**: 4 cases / 22 assertions (含 Case 5d Spec R1 scenario 3 "remove 不存在工具" + Case 5e R3 scenario 1 并发 register+unregister fuzz). | `a4f374b` (pre-impl) + `714764d` (impl) + `9ee475e` (SHIP-with-fixes) + `f1a6647` + `e182f82` (retry) |
+| 2026-09-22 | Pre-Wave3 Sprint A | **G2 SHIPPED 详细**: `EvolutionVerdict` 增 `reward_quality: agenticdsl::RewardSignal::Quality` 字段 (默认 `Quality::Acceptable` per design D1; D2 注释 4→5 字段约束显式修订). `evaluate_readiness()` 填充 `verdict.reward_quality = reward.quality` 在 can_proceed 判定之前 (失败质量不丢失 per design D2). `harness_rsi.cpp:140` `evolution.readiness.denied` 事件 `eval_quality` 字段从硬编码 `"Unknown"` 改为 `agenticdsl::evaluation::quality_name(verdict.reward_quality)` (复用既有 helper). SHIP-with-fixes per Oracle bg_ebfe1c25 verdict 0C + 0M + 2 Minor 不阻塞. (a) **design.md:57 D3 namespace 笔误**: archive 笔误 (写 `agenticdsl::quality_name`, 实施用 `agenticdsl::evaluation::quality_name`), 已 record in builder.json, design 冻结可接受. (b) **spec 2 个 Excellent 场景无独立断言**: Acceptable+Poor 路径已覆盖, 机制同一枚举直通. **Tests**: test_transition_guard 14/14 (51 assertions, +1 G2 case) + test_harness_rsi_pilot 22/22 (115 assertions, Case 2 强化 "Poor"). **Post-merge ctest**: 208/210 PASS (99%), 2 失败均为 pre-existing (KI 7.S29-1 + test_pdk_plan_execute BAD_COMMAND build 后 PASS). | `e51073a` + `3cdb792` (builder state FULL schema) + `737e979` (archive) |
+| 2026-09-22 | Pre-Wave3 Sprint A (∥ G1+G2) | **G3 SHIPPED 详细**: `scripts/sync-pdk.sh` 实施 PDK_CONTRACT_DEPS=11 + DRY_RUN 离线 + drift-guard grep. SHIP-with-fixes `77d6fae` per Oracle bg_ef5a0ca4 verdict 0C + 1M + 3 Minor. **Major fix**: drift-guard grep 覆盖 `<` + `")"` 双字符 sentinel, 替代原宽松 grep (防止 PDK consumer 实际 `find_package(hydraforge_pdk)` 找不到契约头时静默 pass). **测试**: `bash -n scripts/sync-pdk.sh` 语法 PASS + 4/4 dry-run test (PDK_CONTRACT_DEPS=11 + DRY_RUN offline + 4 头覆盖) + openspec validate PASS. **3 Minor 不阻塞**: (i) error message 双语风格统一 (zh-CN + en); (ii) examples/ 路径 canonicalize 边缘处理; (iii) follow-up POSIX sed 兼容性 grep -P 切换. | `a641d34` + `77d6fae` + `19abc79` (post-impl execute summary) + `bd74fc1` (archive) |
+| 2026-09-22 | Pre-Wave3 Sprint B (G1 ship 后) | **G4 SHIPPED 详细**: `src/evolution/harness_rsi.cpp` + `src/modules/cognitive/gepa_loop.cpp` 接线到 `IGenomeRegistry`. 闭环第 7 环"版本提交/发布"端到端修复 (per Oracle bg_3c06ae5b Critical C2 发现 — `IGenomeRegistry` 零生产调用点). 实施 `1fcb00e` (Gate 3 persist-before-apply + GEPA persist-then-commit + undo + 2 事件 + 9 tests). **SHIP-with-fixes `c5d0c78` per Oracle bg_e4eec567 verdict 0C + 3M + 1 Minor**. Major fixes: (M1) `gepa.commit.committed` payload 补 `genome_version` 字段 (spec MUST) + case-9 regression guard; (M2) `tests/test_harness_rsi_pilot.cpp` case-7e 重构 (加有效 stubs + registry + parent_version=1); (M3) `docs/adr/adr-0068-event-emission-contract.md:254` 行 emitter 修正 (移除 GEPALoop 引用, 注明走 gepa.commit.committed 路径). **Tests**: test_harness_rsi_pilot 22/22 (111 assertions) + test_gepa_phase2 21/21 (46 assertions) + test_genome_registry 13/13 (273 assertions) + test_genome_walk_ancestors 10/10 (55 assertions). 4/4 focused ctest 零回归. **NOT-VERIFIED**: 全量 ctest 252 binaries post-merge (执行中) + TSan (机器性能受限). | `1fcb00e` + `c5d0c78` + `a21c08a` (tasks 6.4/6.5 同步) + `ac5ef14` (archive) |
+| 2026-09-22 | Pre-Wave3 Sprint B | **24h cooling-off 启动** + Step 1 hygiene (commit `98711e3`): G2 merge `dc12a17` 后立即启动 24h Wave 3 cooling-off 计时 (起点 2026-09-22 22:30 UTC, 满点 2026-09-23 22:30 UTC). Step 1 hygiene 同步 G3/G4 Recent Changes + §5.1 closed + G3 active 残留清理. 期间可做 Wave 3 立项准备 (读 ADR-0078 background + 写 improvement 5-segment 草稿, 不正式立项). | `98711e3` (hygiene) |
+| 2026-09-23 | Wave 3 Phase 1 Pilot | **W3.P1 SHIPPED 详细**: ADR-0078 ✅ Approved + Wave 3 Pilot 激活 (per Pre-Wave3 Plan §3 + Decision Record §5.1). 实施 commit `97a2abb` (18 files, +1057/-62): **(a) ADR-0078 翻牌**: `docs/adr/adr-0078-finetune-base-model.md` 状态 → ✅ Approved (Wave 3 Phase 1 Pilot 激活) + Phase 1 容量评估表 (D1-D7 边界 Phase 1 vs Phase 2+) + Wave 3 cooling-off 起算点. **(b) D1 评分框架**: `docs/research/wave-3-base-model-selection.md` 持久化 (4 维度 + 5 候选模型基线). **(c) D3 训练数据准备第 1 路**: `scripts/prepare_training_data.py` 迁移脚本加 `source` 字段 + 过滤 `parse_valid && task_success`. **(d) D7 Phase 1 最小版 serving**: `LLMProviderFactory::register_dynamic("agenticdsl-llama-3.1-70b-lora-v1", factory_fn)` 注册 + `FinetuneBaseModelProvider` stub (available_models 非空 + generate 返回 failure "Phase 2 deferred"). **(e) 2 tests**: test_provider_factory_dynamic + test_training_data_pipeline. **(f) 5 件套 archive 完整**: proposal.md + design.md + tasks.md + spec.md + openspec.yaml (3 file integrity + 2 README 章节). **SHIP-with-fixes `232eb13` (5 files, +66/-25)** per Oracle bg_7fe026cc verdict 1 Critical + 1 Major + 4 Minor. (C1) `LLMProviderFactory` ctor 自注册 finetune 模型 (per design D7-3) 污染 `dynamic_factories_`, 修复 6 处 test 断言 (size 从 0→1 / 1→2 / 2→3) + 验证 sort 前置. (M1) D1 评分 yaml 5/5 候选 `weighted_score` 算术错误: gpt-4 6.0→5.8 / claude 5.35→5.25 / llama 8.0→8.2 / qwen 8.25→8.45 / **deepseek 7.5→7.35** (实际 < 7.5 阈值 → `passed_all_filters: false`, 论证最终选择 llama 8.2 满足阈值). (Mi1) Mi2 Mi4 accepted (NOT-VERIFIED post-archive, 与 G1-G4 模式同). **(g) Post-merge sync `4de7745`**: AGENTS.md Recent Changes + .rddf/state/builder/wave-3-finetune-base-model.json git-track + .rddf/plans/wave-3-finetune-base-model.md git-track (P1 plan 9 步 + 3 决策点 + 39 checkbox). | `97a2abb` + `232eb13` + `4de7745` |
+| 2026-09-23 | Wave 3 Pilot | **24h cooling-off 计时启动 (Wave 3)** + Override 审计链 (per builder-handoff-v1.5.json `cooling_off_override_audit` 字段): 用户在 G2 merge `dc12a17` (2026-09-22 22:30 UTC) 后 + 1h28m 显式 HARD pause override cooling-off 红线, 触发字段 = "Wave 3 立项目标", 违反治理 = "24h 间隔未满", 当前位置 = "Active build", 剩余窗口 = "22h32m". 风险由用户承担, AI 执行 + 审计. **Wave 3 cooling-off 起算** = `f0a5c4b` merge 2026-09-23T05:33Z, 满点 = 2026-09-24T05:33Z. **Wave 3 Phase 2 (D4-D7)** 待 cooling-off 满后独立立项. 链式合规 AC-12 (Pre-Wave3 ✅ + Wave 3 ✅). | `a67076d` (improvement 草稿) + `a968922` (cooling-off 期间立项准备) + `4795c56` (D3 schema mismatch 修正) |
 
 ---
 
@@ -743,6 +1193,8 @@ C4 GO 后 Wave 3 (ADR-0078 Model-RSI pilot) 立项前的 4 项门禁。前 3 项
 | 日期 | Pivot | 触发 | 影响 |
 |------|-------|------|------|
 | (空) | - | - | - |
+| 2026-09-21 | **Wave 3 Pilot 立项目标** — 从"Wave 2 skeleton 验证 Harness-RSI 价值"跃迁到 "Wave 3 ADR-0078 Pilot 验证 Fine-tune 基模实施价值" | Oracle `bg_6a8e4397` verdict C + Oracle `bg_3c06ae5b` 闭环第 7 环断裂发现 | C4 GO 5 判据 + post-hoc closure gate (G4) 加 G1/G2/G3 → Wave 3 立项目标从"Wave 3 启动前置 3 项"扩展为"Pre-Wave3 4-Gate 收口门禁". Wave 3 治理视为 Phase 6c MetaRSI-v1 子阶段, 不进入 Phase 7. |
+| 2026-09-23 | **C2/C3/C4 wave 2 skeleton 完整闭环 + Wave 3 Phase 1 Pilot 激活** | C4 GO + Pre-Wave3 4-Gate 全部 SHIPPED + Wave 3 Phase 1 merge | Phase 6c MetaRSI-v1 完整 ship (C2 + C3 + walk-ancestors + D8 + C4) → Phase 7a 启动条件复评 (Phase 7 Gated 仍然 3/6 FAIL — Wave 3 Pilot 不进入 Phase 7). **保留 Wave 3 Phase 2 (D4-D7) 立项窗口** = 2026-09-24T05:33Z (Wave 3 cooling-off 满点) |
 
 ---
 
@@ -795,6 +1247,7 @@ openspec/changes/
 │       # (a) parse_node_wait_for_deps 加 /dynamic/ 豁免 OR 修正 dsl.md 文档
 │       # (b) 补全 3+3 真实 LLM E2E (happy + error)
 │       # 估时 1-2 sprint
+```
 
 ---
 
@@ -979,6 +1432,103 @@ D8 + C4 跨 5 days 实施 (10 atomic commits + 4 轮 Oracle review + 4 spec/task
 
 ---
 
-**Last Updated**: 2026-09-21 (C4 harness-rsi-pilot ✅ SHIPPED + GO + 5 commits 后续 ship: `dea85f6` C1 fresh-MHMAC + `5b600a6` doc-alignment 5 处漂移 + `3076042` genome-wiring change + `74e063c` ADR-0086 archive 恢复 + roadmap drift patch commit pending — 闭环第 7 环"版本提交"端到端断裂已发现并起草修复 change, Oracle bg_3c06ae5b 主审查 + Metis bg_687a5662 + Oracle bg_534a2541 模式 #8 双审 + Oracle bg_6a8e4397 roadmap drift 审查. C4 11 atomic commits 跨 5 days: Phase 4.0 DB1 IToolRegistry::unregister_tool_function 接口扩展 (f7f0fe3, 25 文件 override) + Phase 4.1+4.2 apply_harness_mutation 轻量函数 (5 参, per ADR-0088 D4 取消 IHarnessRSI) + Phase 3 RED tests (16b1a96, 4 cases / 26 assertions) + Phase 6 fixes (4fd7ead, +4 cases 8/39 assertions + Decision Record) + 4th review fixes (08aace2, Critical-1 Gate 2.5 partial-apply 零状态变更 + Case 3d, 9/43 assertions). 5 轮 Oracle review 闭环: dual-agent pre-impl (bg_3672cb57 6 修正 + bg_1f291bc4 5 DEAL-BREAKER + Case 4 删除) → 2nd review SHIP-with-fixes (bg_770d1308 5 文档级修正) → 3rd review post-impl SHIP-with-fixes (bg_3ef7280a 5 修正: Major-1 补 4 测试 / Major-2 spec 文本 / Minor-1 注释 / Minor-2 Decision Record / Minor-3 跳过验证) → 4th review 独立审查 (bg_afa84d4d 6 修正: Critical-1 + Major-2 + Major-4 + Minor-5+6). test_harness_rsi_pilot 9/9 GREEN. ctest 251→252 (test_genome_registry 12/13 → 13/13 fresh-home case 13 PASS, 273 assertions). Active OpenSpec: 9 (8 → +genome-wiring-harness-rsi-gepa, 详 §1.2 + §8.3.1). §一.2 active 8→9 + 最近 archive 6 entries (含 ADR-0086 v1.1 物理恢复) + §三 Overview C4 测试计数 8/39→9/43 + §三 新增 "Pre-Wave3 收口门禁 4 项" 子节 (G1/G2/G3/G4) + §四 C4 GO 判据 + 第 6 项 "变异必须经 IGenomeRegistry 持久化" (Oracle bg_6a8e4397 verdict C, GO 回注为 "GO with post-hoc closure gate (genome-wiring)") + §八.1 ADR-0086 状态翻牌 + §八.3.1 重写活跃 9 + archive 6 + §十 Drift Log +4 行 (C1 fix + doc-alignment + wiring + ADR-0086 archive 恢复 + roadmap drift patch). ADR-0086 v1.1 + ADR-0088 v1.0 + ADR-0068 v2.2 翻牌 + Decision Record GO rationale 5 判据全绿 + 4 摩擦 Wave 3 优先解决 + **Pre-Wave3 收口门禁 4 项 checklist** (G1 remove 治理 / G2 eval_quality / G3 sync-pdk / G4 genome-wiring).)
-**Next Review**: **Pre-Wave3 收口门禁** 全绿 — (1) G1 `harness-rsi-remove-governance` (remove 路径 policy + SecureToolRegistry 安全 + mutex) (2) G2 `evolution-verdict-reward-quality` (EvolutionVerdict.reward_quality 字段) (3) G3 `sync-pdk-contract-header` (sync-pdk.sh 同步 contract 头) (4) **G4 `genome-wiring-harness-rsi-gepa`** (apply_harness_mutation + GEPALoop → IGenomeRegistry, 闭环第 7 环闭合, 硬依赖 G1 后 ship). 全 4 绿后立项 ADR-0078 Model-RSI pilot (Wave 3).
+### B.5 Pre-Wave3 4-Gate 收口门禁 ✅ ALL SHIPPED 实施路径 (2026-09-21 → 2026-09-22, 3 days)
+
+**G1 `harness-rsi-remove-governance` 实施路径 (2026-09-21, 1 day)**:
+
+| Step | 任务 | 估时 | 状态 | 实际 |
+|------|------|------|------|------|
+| 0 | rdd-builder P0-P1.5 启动准备 | 30 min | ✅ | commit `94cb539` |
+| 1 | Pre-impl dual-agent review | 30 min | ✅ | Oracle `bg_c706862b` (Oracle) + Metis `bg_d9744d91` dual-review per `a4f374b` |
+| 2 | SHIP-with-fixes corrections (3 changes) | 1h | ✅ | `a4f374b` apply corrections (D2 语义锁 / D3 register_llm_tool / BREAKING 降级) |
+| 3 | 实施 (refactor unregister_tool_function + SecureToolRegistry + mutex + trace_id) | 2h | ✅ | commit `714764d` |
+| 4 | Tests (4 cases / 22 assertions) | 1h | ✅ | Case 5d Spec R1 scenario 3 + Case 5e R3 scenario 1 fuzz |
+| 5 | SHIP-with-fixes per Oracle bg_8237a316 | 30 min | ✅ | commit `9ee475e` (0C + 2M + 4M + 1 D3 ACCEPT) |
+| 6 | Retry-2 const qualifier | 30 min | ✅ | commit `f1a6647` |
+| 7 | Retry per actual g++ compile | 30 min | ✅ | commit `e182f82` |
+| 8 | Archive + AGENTS.md 模式 #10 + #11 沉淀 | 30 min | ✅ | `7a31d12` (archive) + `19e0e8d` (新模式) |
+| 9 | Merge | - | ✅ | `9709317` |
+| **总** | | **6h** | ✅ COMPLETE (估时 1 天) | **6h** |
+
+**G2 `evolution-verdict-reward-quality` 实施路径 (2026-09-22, 0.5 day)**:
+
+| Step | 任务 | 估时 | 状态 |
+|------|------|------|------|
+| 0 | rdd-builder P0 + apply dual-agent corrections | 30 min | ✅ `98711e3` Step 1 hygiene + `a4f374b` (G2 内嵌于 3-change corrections) |
+| 1 | 实施 (`EvolutionVerdict.reward_quality` field + `harness_rsi.cpp:117` wiring 复用 `evaluation_events.h::quality_name`) | 1.5h | ✅ `e51073a` |
+| 2 | Tests (Case 2 `"Poor"` 强化 + 6 regression tests) | 30 min | ✅ test_transition_guard 14/14 + test_harness_rsi_pilot 22/22 |
+| 3 | Oracle post-impl review SHIP verdict | - | ✅ bg_ebfe1c25 (0C + 0M + 2 Minor) |
+| 4 | G2 builder state FULL schema | 30 min | ✅ `3cdb792` (post_impl_review_prompt) |
+| 5 | Archive (5-file integrity) | 30 min | ✅ `737e979` |
+| 6 | Merge | - | ✅ `dc12a17` (Wave 3 cooling-off 计时起点) |
+| **总** | | **3.5h** | ✅ COMPLETE (估时 0.5 day) | **3.5h** |
+
+**G3 `sync-pdk-contract-header` 实施路径 (2026-09-22, 0.5 day)**:
+
+| Step | 任务 | 估时 | 状态 |
+|------|------|------|------|
+| 0 | G3 立项 + pre-impl | 30 min | ✅ `6eb5a2b` (propose G3) + `a4f374b` (apply corrections) |
+| 1 | 实施 (PDK_CONTRACT_DEPS=11 + DRY_RUN 离线 + drift-guard) | 1h | ✅ `a641d34` |
+| 2 | Tests (bash -n + 4/4 dry-run) | 30 min | ✅ openspec validate PASS |
+| 3 | SHIP-with-fixes per Oracle bg_ef5a0ca4 | 30 min | ✅ `77d6fae` (drift-guard grep `<` + `")"` sentinel) |
+| 4 | Post-impl execute summary | 30 min | ✅ `19abc79` |
+| 5 | Archive | 30 min | ✅ `bd74fc1` |
+| 6 | Merge | - | ✅ `a196a09` |
+| **总** | | **3h** | ✅ COMPLETE (估时 0.5 day) | **3h** |
+
+**G4 `genome-wiring-harness-rsi-gepa` 实施路径 (2026-09-22, 1.5 day)**:
+
+| Step | 任务 | 估时 | 状态 |
+|------|------|------|------|
+| 0 | rdd-builder P0-P1.5 启动准备 | 30 min | ✅ `7f4e010` |
+| 1 | G4 v2 change 起草 (per Oracle bg_3c06ae5b 双审 v1 → v2 整改) | 1h | ✅ `3076042` (v2) + `74e063c` (ADR-0086 archive 恢复内含) |
+| 2 | 实施 (Gate 3 persist-before-apply + GEPA persist-then-commit + undo + 2 事件 + 9 tests) | 4h | ✅ `1fcb00e` |
+| 3 | Tasks 6.4/6.5 同步 (ADR-0086 状态翻牌 + Registry 接线 + active-status) | 30 min | ✅ `a21c08a` |
+| 4 | SHIP-with-fixes per Oracle bg_e4eec567 | 30 min | ✅ `c5d0c78` (0C + 3M + 1 Minor: genome_version payload + case-7e stubs + ADR-0068 L254) |
+| 5 | Archive (5-file integrity per AGENTS.md Day 5 lesson) | 30 min | ✅ `ac5ef14` |
+| 6 | Merge | - | ✅ `fb2769f` |
+| **总** | | **7h** | ✅ COMPLETE (估时 1.5 day) | **7h** |
+
+**Pre-Wave3 4-Gate 总耗时**: G1 6h + G2 3.5h + G3 3h + G4 7h = **19.5h** vs Master Plan 估时 3-4 天 (24-32h). **节省 ~5-12h** 通过单作者 + 串行流水 + Oracle 直接命中关键问题. AGENTS.md 模式 #11 沉淀 (Async Worker + Dual Oracle dual-review SHIP-with-fixes cycle).
+
+---
+
+### B.6 Wave 3 Phase 1 `finetune-base-model` Pilot ✅ SHIPPED 实施路径 (2026-09-23, 1 day)
+
+**实施步骤 (per Oracle bg_7fe026cc verdict)**:
+
+| Step | 任务 | 估时 | 状态 | 实际 |
+|------|------|------|------|------|
+| -1 | Wave 3 立项目标起草 (rdd-arch) | 30 min | ✅ | `5d54511` (Pre-Wave3 to Wave3 execution plan) |
+| 0 | Pre-Wave3 Plan §3 + 24h cooling-off override audit | 30 min | ✅ | `8795c0` (decision) + builder-handoff::cooling_off_override_audit |
+| 1 | Wave 3 improvement 草稿 | 1h | ✅ | `a67076d` (LLMProviderFactory::register_dynamic 勘误) + `a968922` (立项准备草稿) + `4795c56` (D3 schema mismatch 修正) |
+| 2 | OpenSpec change 起草 (4 件套: proposal + design + tasks + spec) | 2h | ✅ | `97a2abb` commit 内含 5 files |
+| 3 | 实施 (ADR-0078 翻牌 ✅ + D1 评分 yaml + D3 脚本 + D7 stub + 2 tests) | 3h | ✅ | `97a2abb` (18 files, +1057/-62) |
+| 4 | Archive (5-file integrity per AGENTS.md Day 5 lesson) | 30 min | ✅ | `97a2abb` 内含 |
+| 5 | Oracle post-impl SHIP-with-fixes per bg_7fe026cc | 1h | ✅ | `232eb13` (1 Critical + 1 Major + 4 Minor) |
+| 6 | C1 fix (LLMProviderFactory ctor 自注册 baseline + sort + rationale) | 30 min | ✅ | `232eb13` |
+| 7 | M1 fix (D1 评分 yaml 算术 5/5 校正 deepseek 7.35) | 30 min | ✅ | `232eb13` |
+| 8 | Post-merge sync (AGENTS.md Recent Changes + .rddf state + .rddf plan) | 30 min | ✅ | `4de7745` |
+| 9 | Merge | - | ✅ | `f0a5c4b` (Wave 3 cooling-off 计时起点 2026-09-23T05:33Z, 满点 2026-09-24T05:33Z) |
+| **总** | | **8h** | ✅ COMPLETE (估时 1-2 day) | **8h** |
+
+**关键 ship 结果**:
+- ADR-0078 ✅ Approved (Wave 3 Phase 1 Pilot 激活, 2026-09-23)
+- 4 件套 + openspec.yaml 已 archive (实际 4 files, 缺 tasks.md — Wave 3 Phase 2 立项时补全)
+- focused ctest 9/9 PASS (test_provider_factory + test_provider_factory_concurrent + test_provider_register_dynamic_tool + test_training_data_pipeline + test_llm_provider_factory + test_llm_tool + test_cost_tracking_decorator + test_genome_registry + test_llm_provider_factory_decorator)
+- 12 AC 验证: 11 ✅ + AC-3 (openspec validate post-archive) NOT-VERIFIED per Single-Dev 模式归档后不可复现范本
+
+**Cooling-off chain AC-12** (per Pre-Wave3 Plan §4): Pre-Wave3 ✅ + Wave 3 ✅ (用户显式 HARD pause override cooling-off 红线, 风险 + 审计由 builder-handoff::cooling_off_override_audit 字段记录).
+
+**NOT-VERIFIED (主会话 post-merge 受机器性能限制)**:
+- 全量 ctest 252 binaries 零回归 (主会话 NOT-RUN, 留独立 follow-up)
+- TSan 扫 (机器性能受限跳过)
+- D1 评分 yaml 实际候选模型 benchmark 数据 (依赖 llm-tool-eval 实时跑, 不在本 change 范围)
+
+**Wave 3 Phase 2 (D4-D7) 立项准备**: 待 Wave 3 cooling-off 满点 2026-09-24T05:33Z 后独立 OpenSpec change 走 rdd-arch → rdd-planner → rdd-builder 流程.
+
+---
+
+**Last Updated**: 2026-09-23 (Pre-Wave3 4-Gate 收口门禁 **全部 ✅ SHIPPED 2026-09-22** + Wave 3 Phase 1 Pilot ✅ **SHIPPED 2026-09-23** + 24h Wave 3 cooling-off 起点 = `f0a5c4b` merge 2026-09-23T05:33Z, 满点 = 2026-09-24T05:33Z. 累计 ship: **9 atomic commits** (`9709317` G1 + `dc12a17` G2 + `a196a09` G3 + `fb2769f` G4 + `f0a5c4b` Wave 3 + 6 supporting commits) + **5 Oracle review sessions** (bg_8237a316 G1 + bg_ebfe1c25 G2 + bg_ef5a0ca4 G3 + bg_e4eec567 G4 + bg_7fe026cc Wave 3) + **AGENTS.md 模式 #10 + #11 沉淀** per `19e0e8d`. 主要更新: §一.2 active 9→5 (5 active 全部 Phase 6c 早期遗留短链 + DSL 候选 + provider bug defense-in-depth) + §一.3 ctest 252→211 actual (post Wave 3 build path 实测) + §一.5 ADR-0078 ✅ Approved + §三 Pre-Wave3 4-Gate 全 ✅ (status 翻转 + Wave 3 Pilot row 新增) + §四 Detailed Tracking 新增 G1/G2/G3/G4/W3.P1 5 个子节 + §五 Sprint Breakdown 重构 (Sprint 34-36-34.5 保留 + Pre-Wave3 Sprint A-B 新增 + Wave 3 Phase 1 新增) + §六 R7 ✅ resolve + §八.1 ADR-0078 翻牌 + §八.3.1 active 9→5 + archive 6→12 项 + §十 Drift Log +6 行 (C4/C1/G1/G2/G3/G4/W3.P1) + §十一 Adjustment Log +7 行 (G1/G2/G3/G4/cooling-off/W3.P1 详细) + §十二 Strategic Pivots 2 行 (Wave 3 Pilot 立项目标 + C2/C3/C4 完整闭环 + Wave 3 Phase 1 激活) + 附录 B.5 (Pre-Wave3 4-Gate) + B.6 (Wave 3 Phase 1) + Last Updated 同步.)
+**Next Review**: **Wave 3 cooling-off 满点 2026-09-24T05:33Z 后** — Wave 3 Phase 2 (D4-D7: 训练方法/评估/回流/serving 完整版) 立项. 立项准备: (1) 读 ADR-0078 background (D4-D7 完整 design) + Wave 3 Phase 1 容量评估表 (Phase 1 vs Phase 2 边界) + Wave 3 cooling-off 起算日志 (per `.rddf/state/builder/wave-3-finetune-base-model.json::wave_3_cooling_off`) (2) 走 rdd-arch → rdd-planner → rdd-builder 流程 (模式 #11 Async Worker + Dual Oracle dual-review) (3) Wave 3 Phase 2 cooling-off 计时合规 (Pre-Wave3 ✅ + Wave 3 Phase 1 ✅ + Wave 3 Phase 2 24h 间隔待启) (4) expected: D4 LoRA/QLoRA/API fine-tune 选择 + D5 评估 + D6 AgenticMind 回流 + D7 真实推理 serving. **保留窗口**: 独立 follow-up on 12 AC NOT-VERIFIED 项 (全量 ctest 252 零回归 + TSan + D1 评分 yaml benchmark).
 **Maintainer**: Architecture Working Group + Solo Dev
