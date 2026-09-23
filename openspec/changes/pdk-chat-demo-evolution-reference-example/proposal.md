@@ -111,7 +111,7 @@ L2 仅 `examples/pdk_chat_demo_evolution/` 新增, pdk_chat_demo 主体零改动
 | `src/evolution/harness_rsi.cpp` | **零改动** (C4 ship 接口不变) | n/a |
 | `src/core/genome/registry_filesystem.cpp` | **零改动** (G4 wiring 接口不变) | n/a |
 | `examples/pdk_chat_demo_evolution/` | 新建 (主目录) | new |
-| `tests/` | + 3 new test binaries (12 cases / ≥ 22 assertions) | minor (build) |
+| `tests/` | + 6 new test binaries (22+ cases / ≥ 30 assertions) (R4 修复 2026-09-23: 与 §5.4 6 binary + spec S15 对齐) | minor (build) |
 
 ### API 兼容性
 
@@ -127,7 +127,7 @@ L2 仅 `examples/pdk_chat_demo_evolution/` 新增, pdk_chat_demo 主体零改动
 
 | 项 | 标准 |
 |----|------|
-| **Acceptance** | (a) `./run_evolution_demo.sh --mock` exit 0 + trace JSONL 8/8 字段 + 3 test binaries 12/12 cases PASS + ctest 零回归 |
+| **Acceptance** | (a) `./run_evolution_demo.sh --mock --context-file ...` exit 0 + trace JSONL 8 字段 + meta.context_id + 6 test binaries 22+/22+ cases PASS + ctest 零回归 |
 | **Backwards compatible** | (a) `examples/pdk_chat_demo/` 主体 binary 行为零变化 + (b) 全量 ctest `-E pdk_chat_demo_evolution` 仍 211 (baseline, 不增测试数)|
 | **Docs** | (a) `examples/pdk_chat_demo_evolution/README.md` 完整 (b) `docs/architecture/{self-evolution,harness,rsi}-architecture-*.md` §十一新增行 "L2 已 ship" 段 (post-merge sync)|
 | **Cross-doc consistency** | 三方 SoT 文档 ↔ L2 README 路径一致 |

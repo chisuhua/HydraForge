@@ -66,26 +66,35 @@ L2 的**唯一任务**: 实例化一个真实 demo 把这些接口**端到端串
                           │  (本 change 新建, N1 = 零改动主 demo) │
                           │                                  │
    ┌─────────────┐       │  ┌──────────────────────────────┐ │
-   │ main.cpp    │───────│─→│ evolution_session           │ │
-   │ --mock      │       │  │ 包装 ChatSession + 6 Agent   │ │
-   │ --real-llm  │       │  │ + Genome 操作               │ │
+   │ main.cpp    │───────│─→│ context_request.{h,cpp}     │ │  ← Phase E4 NEW (R13)
+   │ --mock      │       │  │ JSONL parser + schema 校验    │ │
+   │ --real-llm  │       │  │ (S28-S31: 零 hardcode)       │ │
    │ --trace     │       │  └──────────────┬───────────────┘ │
-   └─────────────┘       │                 │                   │
+   │ --context-file     │       │                 │                   │
+   │              │       │                 ▼                   │
+   └─────────────┘       │  ┌──────────────────────────────┐ │
+                          │  │ evolution_session           │ │
+                          │  │ 包装 ChatSession + 6 Agent   │ │
+                          │  │ + Genome 操作               │ │
+                          │  └──────────────┬───────────────┘ │
+                          │                 │                   │
                           │                 ▼                   │
                           │  ┌──────────────────────────────┐ │
                           │  │ evolution_tracer             │ │
                           │  │ 订阅 IInteractionBus,        │ │
                           │  │ 序列化为 JSONL stdout         │ │
+                          │  │ (含 meta.context_id, R13)    │ │
                           │  └──────────────┬───────────────┘ │
                           │                 │                   │
                           │  ┌──────────────┴───────────────┐ │
                           │  │ 6 段事件流 (按 proposal.md) │ │
                           │  │ baseline / mutation /        │ │
                           │  │ reload / compare / trace/    │ │
+                          │  │ 每段 trace 含 context_id     │ │
                           │  └──────────────────────────────┘ │
                           └────────────────────────────────┘
-                                         │
-                                         ▼  外部调用 (5-tier gate)
+                                          │
+                                          ▼  外部调用 (5-tier gate)
                           ┌────────────────────────────────┐
                           │ src/evolution/harness_rsi.cpp  │  (C4 ship)
                           │ src/core/genome/registry_*     │  (C2 + G4 ship)
@@ -94,25 +103,56 @@ L2 的**唯一任务**: 实例化一个真实 demo 把这些接口**端到端串
                           └────────────────────────────────┘
 ```
 
+> **§3.1 与 R13 (上下文驱动契约) 的关系**: `context_request.{h,cpp}` 是 L2 的**唯一输入入口** (per spec R13.1). main.cpp 启动时 `--context-file <path.jsonl>` 必填, 无 flag → exit non-zero (S28). 6 段事件流的 turn_input 全部来自 ContextRequest, **不是** fixtures/golden_inputs.jsonl (那是 reference 示例, 供用户 clone + modify, 见 spec R13.2).
+
+### 3.1.5 ContextRequest Flow (Phase E4, per spec R13)
+
+```
+[用户]  --context-file examples/contexts/{code,research,debug}-class-context.jsonl
+                                  │
+                                  ▼
+[0] ContextRequest::load(file)                    ← Phase E4 核心 (NEW)
+    ├── JSONL parser (nlohmann::json)
+    ├── schema 校验 (R13.1: context_id/turn_input/task_class/expected_eval_quality/
+    │               invocation_mode + metadata.{domain,tags,is_hidden,sensitivity})
+    ├── 无 --context-file → exit non-zero + stderr "ERROR: L2 零 hardcode..." (S28)
+    ├── 字段缺失必填 → exit non-zero + 行号 + 字段名 (S29)
+    ├── turn_input 为空 → exit non-zero + context_id + 行号 (S30)
+    ├── metadata.is_hidden=true → emit hidden_context_rejected + 拒绝 (E2 红线)
+    ├── mutation_metric_* turn_input → 自动拒绝 (R9.2/R13.4)
+    └── metadata.sensitivity=internal/confidential → 不写盘 + redact trace (H2 凭证隔离)
+                                  │
+                                  ▼  每行 ContextRequest 驱动一轮 6 段链
+[1..6] 原 6 段流程 (baseline/mutation/reload/compare)
+    ├── turn_input ← ContextRequest[i].turn_input          ← 替换硬编码
+    ├── trace.meta.context_id ← ContextRequest[i].context_id  ← 替换缺失字段
+    └── ContextRequest[i] 全部处理后, exit 0
+```
+
 ### 3.2 6 段端到端 (核心 happy path)
 
 ```
-[用户]  ./run_evolution_demo.sh --mock
-                                 │
-                                 ▼
+[用户]  ./run_evolution_demo.sh --mock --context-file examples/contexts/code-class-context.jsonl
+                                  │
+                                  ▼
+[0] ContextRequest::load(file)                        ← Phase E4 (R13, NEW)
+    ├── JSONL parser + schema 校验 (S28-S31)
+    └── contexts_ vector 填充 (每行一个 ContextRequest)
+                                  │
+                                  ▼
 [1] main::main(argc, argv)
-    args: --mock | --real-llm <provider> --trace-events --capture-mode={None|Training}
-                                 │
-                                 ▼
-[2] EvolutionSession::run(args)
+    args: --mock | --real-llm <provider> --trace-events --capture-mode={None|Training} --context-file <path>
+                                  │
+                                  ▼
+[2] EvolutionSession::run(args, contexts_)
     ├── capture_mode = args.capture_mode (默认 None; --capture-mode training 启用 IDistillationWriter)
     ├── ChatSession ctor (4 参: DSLEngine*, AgentConfig{ChatConfig{}}, ILLMProvider*, ITimerService*)
     ├── register 6 Agent: Chat / Loop / Provider / Session / Budget / FS / Shell (复用 pdk_chat_demo main.cpp 模式)
     └── Subscribe evolution_tracer to IInteractionBus (per event_log W3.P1 主题)
 
-[3] baseline_run(turn_input="write hello world in C++")  // fixture: fixtures/golden_inputs.jsonl Case 1
+[3] baseline_run(ContextRequest[i].turn_input)   // 来自 ContextRequest, NOT hardcoded fixture
     ├── ChatSession::handle_input(turn_input)
-    ├── tracer.record({"phase":"baseline", "response":<content>, "tokens":..., "cost_usd":...})
+    ├── tracer.record({"phase":"baseline", "context_id":<i.context_id>, "response":<content>, ...})
     └── 返回 baseline_response
 
 [4] MutationGateChain::apply(mutations)  // 6 字段 apply_harness_mutation
@@ -121,25 +161,26 @@ L2 的**唯一任务**: 实例化一个真实 demo 把这些接口**端到端串
     ├── G2 load: IGenomeRegistry::load(parent_version) + judge_data_freshness
     ├── G2.5 partial-apply: collect AppliedMutation (prompt_snapshot + tools_snapshot)
     ├── G3 persist-before-apply: fork(name, parent_version, final_spec) + commit(genome) (失败零状态变更)
-    ├── tracer.record({"phase":"mutation", "gate_passes":[...], "genome_version":..., "applied_tools":...})
+    ├── tracer.record({"phase":"mutation", "context_id":<i.context_id>, "gate_passes":[...], ...})
     └── 返回 AppliedMutation
 
-[5] reload_and_rerun(genome_version, turn_input="write hello world in C++")  // **V2 缺口闭环**
+[5] reload_and_rerun(ContextRequest[i].turn_input)  // **V2 缺口闭环**
     ├── IGenomeRegistry::load(name, version) → Genome
-    ├── Genome::to_chat_config(loaded) → ChatConfig
+    ├── Genome::to_chat_config(loaded) → ChatConfig  (M3: 本方法为 L2 新代码, 见 §8.1 修订)
     ├── ChatSession ctor (新 session, 用新 ChatConfig)  ←──── **L2 V2 关键**
     ├── ChatSession::handle_input(turn_input)
-    ├── tracer.record({"phase":"reload", "genome_version":..., "response":<content>})
+    ├── tracer.record({"phase":"reload", "context_id":<i.context_id>, "genome_version":..., "response":<content>})
     └── 返回 post_mutation_response
 
 [6] compare_traces(baseline, post_mutation)
     ├── BehavioralRegressionGate (IEvaluator V2 评估)
     ├── eval_quality 字段接受 Po/Por/Acpt (transition Guard G2 强依赖)
-    ├── tracer.record({"phase":"compare", "verdict":"approved|denied", "eval_quality":"...", "attribution_verdict":...})
+    ├── tracer.record({"phase":"compare", "context_id":<i.context_id>, "verdict":"approved|denied", ...})
     └── 返回 CompareResult
 
 [7] output JSONL stdout
-    └── 4 段事件 (baseline + mutation + reload + compare), 各 8 字段
+    └── 4 段事件 (baseline + mutation + reload + compare), 各 8 字段 + meta.context_id (R13)
+    └── 循环下一行 ContextRequest[i+1] → 回到 [3], 全部处理完后 exit 0
 ```
 
 ### 3.3 Trace JSONL Schema (稳定性保证)
@@ -161,12 +202,18 @@ L2 的**唯一任务**: 实例化一个真实 demo 把这些接口**端到端串
     "eval_quality": "Acceptable|Poor|Excellent | null",  // compare 段
     "attribution_verdict": "Attributed|Confounded|Insufficient|NotAttempted | null",  // compare 段
     "trace_id": "<uuid>",
-    "capture_mode": "None | Training"
+    "capture_mode": "None | Training",
+    "context_id": "<uuid>",             // ← R13 (M2 修复): 来源于 ContextRequest, 必填
+    "task_class": "<enum>",             // ← R13: 来源于 ContextRequest
+    "is_hidden": <bool>,                // ← R13: 来源于 ContextRequest (E2 公开/隐藏集)
+    "sensitivity": "<public|internal|confidential>"  // ← R13: 来源于 ContextRequest (H2 凭证隔离)
   }
 }
 ```
 
 > Schema 稳定性: **任何字段不能在未升档 spec.md 前删除**. 加字段可以 (向后兼容), 改字段名不可以 (破坏 consumer).
+>
+> **R13 集成 (2026-09-23 Oracle M2 修复)**: trace JSONL **必含** `meta.context_id` (per spec R13.2 第 5 条 + S31). 顶层 8 字段不变 (phase/timestamp/session_id/turn_input/response/tokens/cost_usd/meta), meta 内部新增 `context_id/task_class/is_hidden/sensitivity` 4 字段 (来源于 ContextRequest). S8 断言: 顶层 8 字段 + meta 内 8 字段 (原 4 + 新 4).
 
 ---
 
@@ -195,8 +242,7 @@ L2 的**唯一任务**: 实例化一个真实 demo 把这些接口**端到端串
 
 **实施**:
 - L2 mutation 实质 = `apply_harness_mutation` 的 L1 调用, 但 V2 reload 阶段用 `ChatConfig::override_*` 实例化
-- 也就是说: mutation 生成 `Genome`, Genome → ChatConfig 路径用现有 reverse engineering (per C4 的 `Genome::to_chat_config()`)
-
+- 也就是说: mutation 生成 `Genome`, Genome → ChatConfig 路径用 **L2 新代码 `Genome::to_chat_config()`** (M3 修复 2026-09-23: C4 从未 ship 此方法, 全仓库 grep=0; L2 需新增, 落点见 §8.1 — 内部 helper, 不触碰公共头)
 **拒绝的反方案**:
 - ❌ 新增 `Genome::materialize(ChatSession*)` 公共 API (N2 = break contracts)
 
@@ -264,33 +310,81 @@ int main(int argc, char** argv) {
   bool trace_events = false;
   std::string capture_mode_str = "None";  // 默认 None (训练模式用 --capture-mode training)
   std::string provider_str = "mock";       // --mock | --real-llm deepseek
+  std::string context_file;                // Phase E4: --context-file <path.jsonl> (R13 必填)
   
-  // 2. 实例化 EvolutionSession (封装 ChatSession + 6 Agent + tracer)
+  // 2. 加载 ContextRequest (Phase E4: R13 唯一输入入口, 零 hardcode)
+  //    无 --context-file → exit non-zero (S28)
+  auto contexts = context_request::load_context_file(context_file);
+  if (contexts.is_error()) {
+    std::cerr << "ERROR: " << contexts.error() << std::endl;
+    return 1;
+  }
+  
+  // 3. 实例化 EvolutionSession (封装 ChatSession + 6 Agent + tracer + contexts)
   EvolutionSession session(provider_str, capture_mode_str, trace_events);
+  session.set_contexts(contexts.value());  // Phase E4: 注入 ContextRequest
   
-  // 3. 跑 6 段端到端
+  // 4. 跑 6 段端到端 (每行 ContextRequest 驱动一轮)
   return session.run_6_phase_demo();
 }
 ```
 
-**估行数**: 60-80 行.
+**估行数**: 70-90 行 (含 ContextRequest 加载).
 
-### 5.2 `evolution_session.{h,cpp}` (核心)
+### 5.2 `context_request.{h,cpp}` (R13 唯一输入入口, Phase E4 NEW)
+
+```cpp
+// context_request.h — ContextRequest schema (per spec.md R13.1)
+struct Metadata {
+  std::string domain;                 // e.g., "k8s", "auth"
+  std::vector<std::string> tags;      // e.g., ["baseline", "Wave-3-Phase-2-candidate"]
+  bool is_hidden = false;             // 公开集/隐藏集分离 (E2 红线)
+  std::string sensitivity = "public"; // public | internal | confidential (H2 凭证隔离)
+};
+
+struct ContextRequest {
+  std::string context_id;                       // UUID v4, 用户定义 (L2 不生成)
+  std::string turn_input;                       // 用户给 ChatSession 的输入
+  std::string task_class;                       // code_gen | research | summary | debug | ...
+  std::optional<std::string> expected_eval_quality;  // Acceptable|Poor|Excellent|null
+  std::string invocation_mode = "mock";          // mock | real_llm_deepseek | real_llm_custom
+  Metadata metadata;
+};
+
+// context_request.cpp — parser + schema 校验 (S28-S31)
+Result<std::vector<ContextRequest>, std::string> load_context_file(const std::string& path);
+//   - 无 path → Err("L2 零 hardcode, 必须提供 --context-file")        (S28)
+//   - 字段缺失必填 → Err("<行号>: <字段名>")                          (S29)
+//   - turn_input 空 → Err("<行号>: turn_input 空")                    (S30)
+//   - is_hidden=true → emit hidden_context_rejected + 跳过           (E2)
+//   - mutation_metric_* turn_input → 自动拒绝 (R9.2/R13.4)
+//   - sensitivity=internal/confidential → 标记不写盘 + redact trace  (H2)
+
+json to_trace_meta(const ContextRequest& req);
+//   - 生成 meta.context_id + meta.task_class + meta.expected_eval_quality
+//   - 生成 meta.is_hidden + meta.sensitivity (redact 控制)
+```
+
+**估行数**: h (~60 行) + cpp (~120 行).
+
+### 5.3 `evolution_session.{h,cpp}` (核心)
 
 ```cpp
 class EvolutionSession {
 public:
   EvolutionSession(provider, capture_mode, trace_events);
   int run_6_phase_demo();  // 入口
+  void set_contexts(std::vector<ContextRequest> contexts);  // Phase E4: R13 输入
   
 private:
   // 6 段方法
-  void phase1_init();          // ChatSession + 6 Agent + tracer 注册
-  void phase2_baseline(turn);  // ChatSession::handle_input, tracer.record
-  void phase3_mutation(mutations);  // 5-tier gate
-  void phase4_reload_rerun(genome_version, turn);  // V2 缺口闭环核心
-  void phase5_compare();      // IEvaluator V2 + tracer.record
-  void phase6_emit_jsonl();   // stdout (per D5)
+  void phase0_load_contexts();     // Phase E4: ContextRequest::load + 校验 (R13)
+  void phase1_init();              // ChatSession + 6 Agent + tracer 注册
+  void phase2_baseline(const ContextRequest&);  // ChatSession::handle_input, tracer.record
+  void phase3_mutation(mutations, const ContextRequest&);  // 5-tier gate
+  void phase4_reload_rerun(genome_version, const ContextRequest&);  // V2 缺口闭环核心
+  void phase5_compare(const ContextRequest&);  // IEvaluator V2 + tracer.record
+  void phase6_emit_jsonl();        // stdout (per D5)
   
   // Members
   std::unique_ptr<DSLEngine> dsl_;
@@ -298,12 +392,14 @@ private:
   std::unique_ptr<ITimerService> timer_;
   std::unique_ptr<EvolutionTracer> tracer_;
   std::unique_ptr<IEvaluator> evaluator_;  // V2 实例
+  std::vector<ContextRequest> contexts_;   // Phase E4: R13 输入集合
+  size_t current_context_idx_ = 0;         // Phase E4: 当前处理的行
   ChatConfig current_config_;
-  std::optional<GenenomeVersion> last_genome_;
+  std::optional<GenomeVersion> last_genome_;
 };
 ```
 
-**估行数**: h (~80 行) + cpp (~250 行).
+**估行数**: h (~110 行) + cpp (~280 行).
 
 ### 5.3 `evolution_tracer.{h,cpp}` (输出)
 
@@ -312,29 +408,36 @@ class EvolutionTracer {
 public:
   EvolutionTracer();  // subscribe IInteractionBus 内部
   void enable(bool on);  // --trace-events flag
-  void record_phase(event);  // 4 段事件入口
+  void record_phase(event, const ContextRequest* req = nullptr);  // 4 段事件入口
 private:
   bool enabled_;
   void emit_jsonl(const json&);  // D5: stdout
-  json collect_meta();  // 8 字段统一 schema
+  json collect_meta(const ContextRequest* req);  // 8 字段统一 schema + context_id (R13)
 };
 ```
 
-**估行数**: h (~50) + cpp (~150).
+**估行数**: h (~60) + cpp (~170).
 
-### 5.4 测试 (3 个 binary / 12 cases)
+### 5.4 测试 (6 个 binary / 22 cases, Phase E4 R13 增量后)
 
 - `tests/test_evolution_session_mutation.cpp` — Case 1: mock mutation → 期望 6 gate 全 pass
 - `tests/test_evolution_session_load.cpp` — Case 2: V2 缺口 load(genome@N) → ChatSession ctor → 期望真实装载
 - `tests/test_distillation_capture_mode.cpp` — Case 3: capture-mode=Training → JSONL + IDistillationWriter 路径
+- `tests/test_context_request_validation.cpp` — Case 4 (R13.1, Phase E4 NEW): schema 校验 S28-S31 (5 cases)
+- `tests/test_context_request_e2e.cpp` — Case 5 (R13.3, Phase E4 NEW): ≥ 3 类 ContextRequest 实证 + is_hidden 拒绝 (4 cases)
+- `tests/test_reverse_indicators.cpp` — Case 6 (R8, 已在 T6.1): drop_ratio + failure trace + ablation (3 cases)
 
-每个 binary 4 cases / 6 assertions minimum.
+每个 binary 4 cases / 6 assertions minimum. **R13 增量后总 cases: 22+** (原 12 + R13 9 + R8 3).
 
 ### 5.5 `CMakeLists.txt`
 
 ```cmake
 add_executable(pdk_chat_demo_evolution
   main.cpp
+  context_request.cpp      # Phase E4: R13 parser (NEW)
+  evolution_session.cpp
+  evolution_tracer.cpp
+)
   evolution_session.cpp
   evolution_tracer.cpp
 )
@@ -367,7 +470,7 @@ endif()
 ### 6.2 Binary 兼容
 
 - `examples/pdk_chat_demo/pdk_chat_demo` binary 行为零变化 (N1 强制保证)
-- 全量 ctest `-E pdk_chat_demo_evolution` 不增测试数 (baseline 211, post-L2-merge 仍 211 + 3 new test binaries counted as 3 added)
+- 全量 ctest `-E pdk_chat_demo_evolution` baseline 211 零回归; L2 add 6 new test binaries (R3 修复 2026-09-23: 与 §5.4 6 binary + spec S15 "L2 add 6 new test binaries" 对齐)
 
 ### 6.3 数据兼容
 
@@ -400,11 +503,11 @@ endif()
 
 **GREEN (minimal impl)**:
 - 复用 5-tier gate + ChatConfig + IGenomeRegistry 现成接口
-- 唯一需要新写: `Genome::to_chat_config()` 反向映射 (in `src/core/genome/` per C4 决策, 现成)
+- **`Genome::to_chat_config()` 是 L2 新代码** (M3 修复 2026-09-23): 全仓库 grep `to_chat_config` = 0 代码命中 (Oracle 2026-09-23 验证), C4 从未 ship 此方法. L2 需在 `src/core/genome/genome.cpp` (或 L2 内部 helper) 新增, **明示为 L2 新代码而非"现成"**. 落点: Genome struct (name/version/parent/created_by/capture_mode/spec.{harness,tools,...}) → ChatConfig (system_prompt + tools + budget + model_routing). **注意**: 若落点在 `include/agenticdsl/genome/genome.h` 新增 public API, 违反 R7 S16 (`git diff include/` = 0) —— 建议作为 L2 内部 helper (namespace `agenticdsl::genome::detail` 或 L2 私有 translation-unit 函数), 不触碰公共头.
 
 **REFACTOR (清理)**:
 - 抽公共 helper (EvolutionTracer::record_phase)
-- D5 JSONL 输出统一 schema
+- D5 JSONL 输出统一 schema (含 context_id per M2)
 
 **Oracle dual-agent review**:
 - Metis: 路径完整性 + 边界
@@ -413,13 +516,31 @@ endif()
 **archive**:
 - 完整 4-file integrity per AGENTS.md Day 5 lesson
 
-### 8.2 验收场景 (per spec.md §R1)
+### 8.2 验收场景 (per spec.md §R1 + §R13)
 
-- **S1** (mock): `./run_evolution_demo.sh --mock` exit 0 + 4 段事件 + 8 字段 ✓
+- **S1** (mock): `./run_evolution_demo.sh --mock --context-file examples/contexts/code-class-context.jsonl` exit 0 + 4 段事件 + 8 字段 ✓
 - **S2** (real-LLM): DEEPSEEK_API_KEY set, `--real-llm deepseek` 在 30 秒内生成 4 段事件 ✓
-- **S3** (V2 缺口闭环): `phase4_reload_rerun` 真实装载 (load → ChatConfig → ChatSession) ✓
+- **S3** (V2 缺口闭环): `phase4_reload_rerun` 真实装载 (load → to_chat_config → ChatSession) ✓
 - **S4** (capture-mode=Training): trace JSONL + IDistillationWriter 写盘 1 个 record ✓
 - **S5** (zero regression): `examples/pdk_chat_demo/main.cpp` `git diff` 0 行 ✓
+- **S28-S31** (R13 零 hardcode): 无 --context-file → exit non-zero; 字段缺失 → exit non-zero; turn_input 空 → exit non-zero; trace 含 meta.context_id ✓
+- **S32-S34** (R13 ≥ 3 类): `examples/contexts/{code,research,debug}-class-context.jsonl` 3 reference file + `--accept-contexts` flag ✓
+- **S35** (L2 与 main demo 并存): 入口不同, 互不影响 ✓
+
+### 8.3 Test Strategy 与 R13 集成 (Phase E4)
+
+**T2 阶段 (6 段端到端) 必须先加载 ContextRequest**:
+- T2.1 RED `test_evolution_session_mutation` 使用 `ContextRequest` fixture (不是硬编码 turn_input)
+- T2.4 GREEN `phase4_reload_rerun(const ContextRequest&)` 签名带 ContextRequest
+
+**T3 阶段 (trace) 必须含 context_id**:
+- T3.1 Case 3.1 trace 断言从 8 字段 → 8 顶层 + meta 8 字段 (含 context_id/task_class/is_hidden/sensitivity)
+
+**T6.7-T6.10 (R13) 是 T2/T3 的输入源改造**:
+- T6.7 test_context_request_validation (S28-S31)
+- T6.8 context_request parser + --context-file flag
+- T6.9 test_context_request_e2e (S32-S34)
+- T6.10 examples/contexts/ 3 reference file + R13.4 集成
 
 ---
 

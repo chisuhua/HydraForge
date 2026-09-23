@@ -809,7 +809,7 @@ TEST_CASE("react_once forwards model name", "[contract][realllm-guard]") {
   - **Mi3 fix**: `.rddf/state/builder/wave-3-finetune-base-model.json` git-track (post_impl_execute_summary 主会话补完: commit hash + archive path + 12 AC 验证 + ctest 计数 + design_deviations)
   - **Mi2/Mi4 accepted**: openspec validate AC-3 事后不可复现 (change 已 archive, 同 G1-G4 模式 NOT-VERIFIED) + tasks.md Step 2 "4 件套" 措辞 (实际 5 文件含 .openspec.yaml) — 不阻塞 ship, 与 G1 同模式
   - **focused ctest 9/9 PASS** (2.23s): test_provider_factory (含 6 处修正断言) + test_provider_factory_concurrent + test_provider_register_dynamic_tool + test_training_data_pipeline + test_llm_provider_factory + test_llm_tool + test_cost_tracking_decorator + test_genome_registry (+ test_llm_provider_factory_decorator 匹配正则)
-  - **12 AC 验证**: AC-1 ADR-0078 翻牌 ✅ / AC-2 4 件套 ✅ / AC-3 openspec validate (NOT-VERIFIED post-archive) / AC-4 D1 评分 ✅ (M1 修后) / AC-5 D3 脚本 ✅ / AC-6 D7 stub ✅ / AC-7 既有 test 零回归 ✅ / AC-8 ctest 计数 212 ✅ / AC-9 atomic commit + Oracle SHIP-with-fixes ✅ / AC-10 Day-5 archive 5 文件 ✅ / AC-11 AGENTS.md + ADR + Decision Record ✅ / AC-12 cooling-off 链式 ✅
+  - **12 AC 验证**: AC-1 ADR-0078 翻牌 ✅ / AC-2 4 件套 ✅ / AC-3 openspec validate (NOT-VERIFIED post-archive) / AC-4 D1 评分 ✅ (M1 修后) / AC-5 D3 脚本 ✅ / AC-6 D7 stub ✅ / AC-7 既有 test 零回归 ✅ / AC-8 ctest 计数 211 ✅ (实测 `grep '^add_test' build/tests/CTestTestfile.cmake \| wc -l`; 早前 212 为手算偏差, per Mi3 校准 2026-09-23) / AC-9 atomic commit + Oracle SHIP-with-fixes ✅ / AC-10 Day-5 archive 5 文件 ✅ / AC-11 AGENTS.md + ADR + Decision Record ✅ / AC-12 cooling-off 链式 ✅
   - **24h cooling-off override 审计**: 用户在 G2 merge dc12a17 (2026-09-22 14:30 UTC) + 1h28m 后显式 HARD pause override cooling-off 红线, builder-handoff::cooling_off_override_audit 字段记录 override 时间/by/触发字段/违反治理/当前位置/剩余窗口. 风险由用户承担, AI 执行 + 审计.
   - **Wave 3 cooling-off 起算**: 自 Wave 3 merge `f0a5c4b` (2026-09-23T05:35Z) 起算 24h → 满点 2026-09-24T05:35Z. 链式合规 AC-12 (Pre-Wave3 ✅ + Wave 3 ✅). Wave 3 Phase 2 (D4-D7: 训练方法/评估/回流/serving-Phase 2) 需 Wave 3 cooling-off 满后独立立项.
   - **NOT-VERIFIED**: 全量 ctest 252 binaries 零回归 (主会话 post-merge NOT-RUN, 机器性能受限, 留独立 follow-up) + TSan 扫 (机器性能受限跳过) + D1 评分 yaml 实际候选模型 benchmark 数据 (依赖 llm-tool-eval 实时跑, 不在本 change 范围)
@@ -1039,7 +1039,7 @@ ablation: <消融对照数据, if Harness changed>
 ```
 
 #### drop_ratio > 5% 自动 block (R8.1 红线)
-- L2 spec S17: `--release-metrics` flag 输出 drop_ratio, >5% → exit non-zero
+- L2 spec S36: `--release-metrics` flag 输出 drop_ratio, >5% → exit non-zero
 - 任何 OpenSpec change archive 前必须满足反向指标门
 - **Single-Dev 模式 = author 自审时显式 ack, 不能"忘了写"** (per Cross-Doc Review §12.7 red-line)
 
@@ -1054,7 +1054,7 @@ ablation: <消融对照数据, if Harness changed>
 
 #### 上下文驱动约束 (NEW 2026-09-23, per L2 spec §R13)
 - **L2 零 hardcode**: `pdk_chat_demo_evolution` binary 仅接受 `--context-file <path.jsonl>`, 无 `--context-file` flag → exit non-zero. L2 **不**是 autonomous evaluator.
-- **ContextRequest schema**: 8 字段 (context_id / turn_input / task_class / expected_eval_quality / invocation_mode / metadata.{domain,tags,is_hidden,sensitivity}) — 完整定义见 [L2 spec §R13](../openspec/changes/pdk-chat-demo-evolution-reference-example/specs/pdk-chat-demo-evolution/spec.md)
+- **ContextRequest schema**: 6 顶层字段 (context_id / turn_input / task_class / expected_eval_quality / invocation_mode / metadata) + metadata 内 4 子字段 (domain/tags/is_hidden/sensitivity) — 完整定义见 [L2 spec §R13](../openspec/changes/pdk-chat-demo-evolution-reference-example/specs/pdk-chat-demo-evolution/spec.md)
 - **≥ 3 类实证**: R3 元指标必须 ≥ 3 类 ContextRequest (code/research/debug), 单类不构成 generalizable 自进化声称
 - **trace JSONL 必含 `meta.context_id`**: 跨 ContextRequest 关联 + 失败可追溯
 - **commit `[Reverse Indicator]` 段必须含 `context_ids: <uuid list>`** (本 commit 涉及哪些 ContextRequest)
@@ -1067,6 +1067,21 @@ ablation: <消融对照数据, if Harness changed>
 5. **上下文 IDs** (NEW): `context_ids: <uuid list>` (本 commit 涉及哪些 ContextRequest)
 
 任何 drop ≥ 3 档缺失 → exit non-zero in L2 merge gate.
+
+#### M4 修复 ack: 规则生效首批 commit 的反向指标 (2026-09-23)
+
+> **背景**: 建立本规则的 5 个 commit (`cb82e50` self-evolution v1.5 + `eab79b8` rsi v1.0 + `bed8c02` harness v1.0 + `4af2092` governance sync + `52b871d` L2 change) 因规则尚未生效而未携带 `[Reverse Indicator]` 段. 按 Single-Dev "不能忘了写" 纪律, 此处显式补记 (per Oracle 2026-09-23 M4 发现):
+
+```
+[Reverse Indicator] (retroactive ack for cb82e50 + eab79b8 + bed8c02 + 4af2092 + 52b871d)
++ new_up: 三方 SoT (self-evolution v1.5 + harness v1.0 + rsi v1.0) + AGENTS.md Reverse Indicator Rule + L2 spec R1-R13
+- old_down: drop_ratio=0% (纯文档 + OpenSpec 注册, 无代码行为变化, 无既有能力退化)
+failure_traces: N/A (文档 commit, 无失败样本)
+ablation: N/A (文档 commit, 无 Harness 变化)
+context_ids: N/A (文档 commit, 无 ContextRequest)
+```
+
+**教训**: 规则建立 commit 自身应示范规则格式 (dogfooding). 后续任何 commit 不得再出现"忘了写".
 
 ### 维保
 
