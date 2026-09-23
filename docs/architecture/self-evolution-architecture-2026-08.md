@@ -1,13 +1,13 @@
 # 自进化与协同进化架构定义（2026-08）
 
-**生成日期**: 2026-08-26（v1.4 增量同步 2026-09-21 — IDistillationWriter + Trajectory IR ship 状态对齐 §五/§七/§九）
-**最后验证**: 2026-09-21（v1.4，**ADR-0086 v1.0+v1.1 ✅ Approved 代码已 ship** (merge commit `886def1`) + ADR-0083 ✅ Approved 代码已 ship + ADR-0084 ✅ Approved V1 代码已 ship (G11 ✅ Closed) + ADR-0088 v1.0 ✅ Approved 代码已 ship (C3) + IDistillationWriter ✅ 已 ship (2026-08-29) + Trajectory IR ✅ 已 ship (2026-08-27/29)，验证命令见 §九）  
+**生成日期**: 2026-08-26（**v1.5 升档 2026-09-23** — Pre-Wave3 4-Gate + Wave 3 Phase 1 ship 状态对齐 + 状态 🔍 → ✅ Approved；详见 §十 升档说明）
+**最后验证**: 2026-09-23（v1.5，**11 项自进化基础设施 ✅ ship** + **C2 genome-registry ✅ ship 2026-09-19** + **C3 h-d-m-transition-guard v1.0 ✅ ship 2026-09-20** + **C4 harness-rsi-pilot ✅ ship + GO 2026-09-21** + **Pre-Wave3 4-Gate 全部 ✅ ship 2026-09-22** + **Wave 3 Phase 1 finetune-base-model pilot ✅ ship 2026-09-23** + **ADR-0078 ✅ Approved**；验证命令见 §九）
 **作者**: Architecture Working Group  
-**状态**: 🔍 Proposed
+**状态**: ✅ **Approved (v1.5, 2026-09-23 升档)** — 自进化方向架构 **Source of Truth**（与 [`./harness-architecture-2026-09.md`](./harness-architecture-2026-09.md) + [`./rsi-architecture-2026-09.md`](./rsi-architecture-2026-09.md) 共同构成 Self-Evolution / Harness / RSI 三方架构一致基线，详见 §十 升档说明）
 
-> **定位**: 本文是自进化方向的架构工作文档和 ADR-0084、T19/T20/T22 的证据输入，不是已批准的运行时契约。任何会改变变异权限、事件 schema、训练管线或 serving 行为的决定，必须提升为 ADR 或 ADR amendment。
+> **定位 (升档后 v1.5)**: 自 2026-09-23 起，本文档作为 HydraForge 自进化方向的 **架构契约层 Source of Truth**（与 `harness-architecture-2026-09.md` + `rsi-architecture-2026-09.md` 配套）。9 段闭环、4 项支撑平面、3 阶段路线（§六 S0-S4）构成的自进化架构已经过 5 阶段 ship 实证：Wave 1 修 chat demo + Wave 2 自进化骨架 + Wave 2.5 Pilot + Pre-Wave3 4-Gate + Wave 3 Phase 1。任何会改变变异权限、事件 schema、训练管线或 serving 行为的决定，仍必须通过 ADR 或 ADR amendment（本文不替代 ADR 决策权）。
 >
-> **核心边界**: HydraForge 当前定义的是“受治理的单编排器自进化闭环”，不是已经实现的多智能体协同进化平台。Agent-Agent 对等协同、在线权重更新、多教师池和 Meta Co-Evolution 均属于后续研究方向。
+> **核心边界 (升档后 v1.5)**: HydraForge 当前定义的是**“受治理的单编排器自进化闭环”**，不是已经实现的多智能体协同进化平台。Agent-Agent 对等协同、在线权重更新、多教师池和 Meta Co-Evolution 均属于 S4 阶段研究路径，需独立 spike + promotion criteria 后才能立项。Wave 3 Phase 1 ✅ ship = D1+D3+D7 最小版启用（ADR-0078 翻牌激活），但 D4 (LoRA/QLoRA 训练管线) + D5 (评估框架) + D6 (AgenticMind 回流) + D7 完整推理 serving 仍属 Wave 3 Phase 2 范畴（待冷却期满 2026-09-24T05:33Z 后立项）。
 >
 > **关联文档**:
 > - 研究输入：[`../research/agent-distillation-sota-2026-08.md`](../research/agent-distillation-sota-2026-08.md)
@@ -283,8 +283,331 @@ grep -n "受治理的单编排器自进化闭环\|不执行.*commit(PromptEdit)\
   docs/architecture/self-evolution-architecture-2026-08.md \
   docs/research/agent-distillation-sota-2026-08.md \
   docs/architecture/capability-application-map-2026-08.md
+
+# ---- 升档 v1.5 (2026-09-23) 新增验证 ----
+
+# §10 升档说明段存在
+grep -n "^## 十、v1.5 升档说明" docs/architecture/self-evolution-architecture-2026-08.md
+
+# 三方架构文档配套 (SoT 基线)
+test -f docs/architecture/harness-architecture-2026-09.md \
+  && test -f docs/architecture/rsi-architecture-2026-09.md \
+  && echo "Harness + RSI 配套 SoT 文档存在 ✅"
+
+# Wave 3 Phase 1 ship 状态（2026-09-23 merge f0a5c4b 后）
+git log --oneline -1 | grep -E "f0a5c4b" \
+  && echo "Wave 3 Phase 1 merge f0a5c4b 在 HEAD 链上 ✅"
+
+# ADR-0078 状态翻牌
+grep -m1 "Approved.*Wave 3 Phase 1 Pilot 激活" docs/adr/adr-0078-finetune-base-model.md
 ```
 
 ---
 
-**维护规则**: 当 ADR-0084、T15、T19、T21、T22 或任一协同进化 spike 状态变化时，更新本文 §五/§六/§七，并同步能力地图 §八；研究结论变化只更新研究文档，不得直接改变本文的批准状态。
+## 十、v1.5 升档说明（2026-09-23）
+
+### 10.1 升档触发条件
+
+本节记录 v1.4 → v1.5 升档的**触发条件**、**已 ship 证据矩阵**、**遗留缺口**、**配套治理文档**。原 🔍 Proposed 状态维持 7 个月，自 Wave 2 (C2 genome-registry) + Wave 2.5 (C4 harness-rsi-pilot) + Pre-Wave3 4-Gate + Wave 3 Phase 1 (ADR-0078 Pilot 激活) 全部 ship 后，于 2026-09-23 升档。
+
+### 10.2 已 ship 5 阶段实证（升档 evidence 矩阵）
+
+| 阶段 | Change | Ship 日期 | 关键证据 |
+|------|--------|-----------|----------|
+| **Wave 1** (Sprint 34, 2026-09-17) | C0 + C1 + P0 + F1 | 2026-09-17 + 18 | C0 commits `f84dbb3` + `d21ac6f` + `f3fbb9d`; C1 commit `f4766be` (22 case PASS); F1 commit `a96842e` + `9dc3ac8` (5 case / 13 assertion). |
+| **Wave 2** (Sprint 35, 2026-09-19-20) | C2 + C3 + walk-ancestors + D8 | 2026-09-19 + 20 | C2 commits `2e7af89`+`a320032`+`839590d`+`b6114c2`+`507eae3` (12 case / 266 assertion PASS); C3 commits `0ffc637`+`94f4ab4`+`421fa62`+`7a15744` (13 case / 47 assertion PASS); walk-ancestors 10 commits `a40e9e1`→`231cd8d` (10 case / 55 assertion PASS); D8 commits `c7187d0`+`f5bbec2`+`5424e91`. |
+| **Wave 2.5** (Sprint 36, 2026-09-20-21) | C4 + GO | 2026-09-21 | C4 11 commits `f7f0fe3`→`08aace2` 跨 5 days (9 case / 43 assertion PASS); Decision Record GO `docs/audits/2026-09-21-harness-rsi-pilot-go-no-go.md` (5 判据全绿). |
+| **Pre-Wave3 收口门禁** (2026-09-21-22) | G1+G2+G3+G4 | 2026-09-21 + 22 | G1 merge `9709317` (4 case / 22 assertion); G2 merge `dc12a17` (14 case / 51 assertion); G3 merge `a196a09` (4 dry-run test); G4 merge `fb2769f` (22 case / 111 assertion + gepa_phase2 21 case / 46). |
+| **Wave 3 Phase 1 Pilot** (2026-09-23) | W3.P1 | 2026-09-23 | merge `f0a5c4b` + SHIP-with-fixes `232eb13` (18 files, +1057/-62 + 5 files, +66/-25; focused ctest 9/9 PASS); **ADR-0078 ✅ Approved Wave 3 Pilot 激活**; 24h cooling-off 计时 2026-09-23T05:33Z → 满点 2026-09-24T05:33Z. |
+
+**累计 5 阶段 ship 实证**: 33 atomic commits + 5 Oracle review sessions (bg_a818a6a1 + bg_9ade564d + bg_89293120 + bg_f55f307f6ffe + bg_6a8e4397 + bg_3c06ae5b + bg_687a5662 + bg_534a2541 + bg_e4eec567 + bg_7fe026cc 等) + AGENTS.md 模式 #10 + #11 沉淀 (`19e0e8d`).
+
+### 10.3 升档边界与不在范围
+
+**已具备 (✅ Source of Truth 范围)**:
+- S0 证据闭环: EventLog + Session 4-scope + Trajectory IR + IEvaluator + ADR-0068 Appendix A v2.3 evolution.transition.denied/readiness.denied 主题
+- S1 反思候选: GEPALoop V1 + MCTSWorkflowSearch V1 + IEvaluator V2 + BehavioralRegressionGate
+- S2 受治理变异: ADR-0084 MutationGovernance (L1-L4 分级 + gate-and-audit) + ApprovalPolicy + 4 个 `mutation.*` 事件
+- S3 训练期蒸馏 (Phase 1 最小版): Wave 3 Phase 1 D1+D3+D7 ship, D4-D7 完整管线待 Phase 2
+- 信用分配契约: ADR-0086 v1.0+v1.1 + AttributionRecord + VersionPairDiff + ConfounderRecord 5 态混杂分层 + HarnessChange confounder v1.1 + judge_data_freshness fail-closed
+- H→D→M 守门: ADR-0088 + C3 TransitionGuard v1.0 + can_transition 5×5 编译期矩阵 + evaluate_readiness 三条件门控
+- Genome 版本提交 / 发布 (闭环第 7 环): C2 IGenomeRegistry + C4 harness-rsi-pilot + G4 wiring (fork before apply, commit failure → RegistryRejected + 零状态变更) + GEPALoop persist-then-commit + `genome.committed`/`genome.persist_failed` 事件
+
+**不在 v1.5 Source of Truth 范围**:
+- S3 训练期蒸馏完整管线 (D4 LoRA/QLoRA 训练 + D5 评估框架 + D6 AgenticMind 回流 + D7 真实推理) — Wave 3 Phase 2 范畴，待冷却期满后立项
+- S4 协同进化 (Agent-Agent / Agent-Environment / Meta Co-Evolution) — 需独立 spike + promotion criteria (信用分配已具备 ✅)，research 阶段
+- 协同进化的稳定性指标（多样性 + 反共谋检测 + 语义锚点）—— 见 §四.4 表格中的未定义项
+
+### 10.4 配套治理文档 (三方 SoT 基线)
+
+升档后，本文档是三方架构一致基线的**自进化维度**。其他两份配套：
+
+| 文档 | 维度 | 边界 |
+|------|------|------|
+| [`harness-architecture-2026-09.md`](./harness-architecture-2026-09.md) (NEW, 2026-09-23) | **Harness** — Agent 的完整配置 + 变更能力 + 持久化 + 守门整体 | Genome CRD `spec.harness` 字段 + apply_harness_mutation + MutationGovernance + IGenomeRegistry + H→D 守门 |
+| [`rsi-architecture-2026-09.md`](./rsi-architecture-2026-09.md) (MOVED from `research/`, 2026-09-23) | **RSI** — Harness/Data/Model 三算子叠加策略 | MetaRSI-v1 + 字节 Seed 三篇 + DeepSeek Harness 三权分立 → HydraForge 实施路径 |
+
+**三方关系**: 自进化架构 = 整体闭环 + 5 段流水线定义; RSI 架构 = 三算子拆分 (Data-RSI / Harness-RSI / Model-RSI); Harness 架构 = RSI 中 Harness-RSI 的纵深内容 (数据模型 + 装配 + 变更能力 + 守门 + 持久化). 三者无冲突, 互补. 任何变更任一方必须同步另两方边界段.
+
+### 10.5 升档后维护规则 (修订版)
+
+**v1.5 后, 维护触发**:
+- 任何 ADR 状态翻转 → 更新本文 §五 (§十旧 §七) + §七 (新增)
+- 任何 Pre-Wave3+Wave 3+ 阶段 ship 状态变化 → 更新本文 §十.2 已 ship 矩阵
+- 任何"超出 v1.5 Source of Truth 范围"项目立项 → 先更新本文 §十.3 边界段
+- 任何配套文档 (`harness-architecture` / `rsi-architecture`) 变更 → 同步复核本文 §十.4
+
+**保留 v1.0 维护规则**: 研究结论变化只更新研究文档, 不得直接改变本文的批准状态.
+
+### 10.6 不与 ADR 冲突保证
+
+升档依据以下已 ship ADR (v1.5 与现行 ADR 状态一致, 无冲突):
+- ✅ ADR-0083 (IEvaluator) - 与本文 §四.2 + §五不冲突
+- ✅ ADR-0084 (MutationGovernance) - 与本文 §四.2 + §五 "变异治理" 行不冲突
+- ✅ ADR-0086 v1.0+v1.1 (Credit Assignment) - 与本文 §一.3 + §五 "信用分配契约" 行不冲突
+- ✅ ADR-0088 (H→D→M Transition Guard) - 与本文 §五 "H→D→M Transition Guard v1.0" 行不冲突
+- ✅ ADR-0078 (Fine-tune) - 与本文 §六 "S3 训练期蒸馏" 阶段一致 (Phase 1 ✅ ship, Phase 2 ⏳)
+- ✅ ADR-0068 Appendix A v2.3 - 与本文 §五 "evolution.*" 主题对齐
+
+任何未来 ADR 决策若与本文 v1.5 冲突, 必须先升档 / amend 本文档 (经 Oracle dual-agent review + 24h cooling-off) 后才能 ship.
+
+---
+
+**维护规则**: 当 ADR-0084、T15、T19、T21、T22 或任一协同进化 spike 状态变化时，更新本文 §五/§六/§七；研究结论变化只更新研究文档，不得直接改变本文的批准状态。 (v1.5 升档后, 同步更新 §十 升档矩阵 + 边界段 + 配套文档指针)
+
+---
+
+## 十一、承载例: pdk_chat_demo Reference Traceback (2026-09-23)
+
+> **本节定位**: 让抽象的自进化闭环架构变得**可触达**——为每段架构概念 (评估 / 信用 / 治理 / 守门 / Genome) 标记 `examples/pdk_chat_demo/` 内的具体 file/line/test case, 让 future maintainer 第一天就能 grep 到落地路径. 这不是"pdk_chat_demo 必须承载", 而是"目前它是项目内最完整的 reference implementation, 优先以它做承载例".
+
+### 11.1 9 段闭环 → pdk_chat_demo 落地映射
+
+| 闭环阶段 (§三) | 概念 | pdk_chat_demo 落地 | 验证测试 |
+|----------------|------|------------------|----------|
+| 1. **运行观测** | EventLog + InteractionBus | `examples/pdk_chat_demo/event_handler.{h,cpp}` 接收 BusEvent | `test_chat_session_events.cpp` |
+| 2. **事件/会话/轨迹抽取** | SessionManager JSONL | `examples/pdk_chat_demo/main.cpp` 启动后 `SessionManager::open` 自动启用 | pdk-chat-demo-distill-source-survey-2026-08.md 已 ship |
+| 3. **质量评估 + 奖励信号** | IEvaluator | `--model deepseek-chat` + RewardSignal 经 CognitiveWorker 注入 (Sprint 22 ship) | `test_chat_session_events.cpp` Case 4 |
+| 4. **信用分配 + 变化归因** | `judge_data_freshness` (ADR-0086 v1.1) | **未启用** — 评估 cell 接受 reward signal, 但 credit assignment 路径未 wire 到 pdk_chat_demo (Phase 2) | — |
+| 5. **候选改进生成** | `apply_harness_mutation` (C4 ship) | `--model <name>` (`model_command.cpp`) 是 v1 的 prompt delta 来源; C4 完整 mutation 路径**未启用**于 pdk_chat_demo | `test_chat_session_loop_result_ok.cpp` (Loop OK 路径) |
+| 6. **安全/权限/资源/语义检查** | MutationGovernance policy | C4/G1 ship 后 `policy.semantic_locked_tools` 可在 pdk_chat_demo 启用 (V2) | — |
+| 7. **行为回归 + 独立锚点** | `BehavioralRegressionGate` (Sprint 22) | 命令级 `tree_command.cpp` 已可看 session tree, 但 mutation → regress gate 联动**未 wire** | (待 L2 立项) |
+| 8. **版本提交/发布** | `IGenomeRegistry::commit` (C2) + G4 wiring | **V2 缺口** — `load(genome@N) → 重建 ChatSession → 1 turn` 端到端未 wire (Decision Record §3 第 6 项 post-hoc closure gate) | G4 test_harness_rsi_pilot 22/22 (genome.committed 含 genome_version) 但未接入 chat session 实例 |
+| 9. **结果审计 + 下一轮观测** | AppendOnlyEventLog (ADR-0080) | 默认开启, 全部 mutation.* / evolution.* 事件进 IInteractionBus 后到 JSONL | `test_chat_session_events.cpp` |
+
+### 11.2 支撑平面 → pdk_chat_demo 落地映射
+
+| 支撑平面 (§四) | pdk_chat_demo 落地 |
+|--------------|------------------|
+| §4.1 证据与轨迹平面 | `examples/pdk_chat_demo/main.cpp` 默认装载 SessionManager + EventBuilder (L2 ship) + IDistillationWriter (D10 capture mode 可启用, per distill-source-survey) |
+| §4.2 评估/奖励/信用平面 | `examples/pdk_chat_demo/tests/test_budget_alert.cpp` (budget 评估) + `skills/` 内嵌 skill 可被 BehavioralRegressionGate 评测 |
+| §4.4 稳定性/探索/语义对齐平面 | `domain_worker_pool.cpp` + `budget_agent/` 提供预算与并发; ApprovalPolicy 链 `--fork` Session 4-scope (Phase 2 仍待 V2 完整接入) |
+| §4.5 更新与知识传递平面 | `LoopAgent` 提供 React/PlanExecute/ForkJoin 3 循环; **Wave 3 Phase 2 D4-D7** 接入 finetune-base-model provider (Phase 1 已注册 stub, Phase 2 wire `model_command.cpp` 选取) |
+
+### 11.3 升级路径 (pdk_chat_demo → 完整 self-evolution runtime)
+
+> 当前 pdk_chat_demo **已具备**: 9 段闭环的前 4 段 (观测/抽取/评估+奖励/G-Wire 缺) + 第 9 段 (审计); **缺失**: 第 5-8 段的 mutation → governance → regression → commit 端到端 wire.
+
+**Phase 1 ✅ ship (Wave 3, 2026-09-23)**: D7 `LLMProviderFactory::register_dynamic("agenticdsl-llama-3.1-70b-lora-v1", factory_fn)` 注册 finetune stub. **pdk_chat_demo 实际选择该 provider 的入口** → `examples/pdk_chat_demo/commands/model_command.cpp` + `provider_agent/` 需要在 Phase 2 添加 "agenticdsl-llama-3.1-70b-lora-v1" 名字到可用列表.
+
+**Phase 2 ⏳ (Wave 3 Phase 2, cooling-off 满后立项)**:
+- D4 LoRA 训练管线接入 (agenticdsl-llama-3.1-70b-lora-v1 服务注入)
+- D5 评估框架接入 BehavioralRegressionGate 真实比对 (而非 mock)
+- D6 AgenticMind 回流 → IDistillationWriter → Training pipeline 端到端
+- D7 serving provider `load(genome@N) → 重建 ChatSession → 1 turn` (per §十 / Decision Record §3 第 6 项)
+- 三段 [评估 → mutation → persistence] 完整 wire 入口建议在 `examples/pdk_chat_demo_evolution/` (L2 立项范畴, 详见 §11.4)
+
+### 11.4 承载例 vs Reference Example (L1 + L2 关系)
+
+- **L1 (本文)** — traceback 只标注"每段架构概念**已经**在 pdk_chat_demo 哪里落地" (✅ 已 ship) **或** "将在哪里落地" (⏳ Phase 2)
+- **L2 (`pdk_chat_demo_evolution`)** — 独立 example sub-project (≤ 1 周实施), 提供**可运行 harness-rsi + data-rsi + model-rsi reference example**, 不是主线 chat demo 的修改, 而是用 chat session 实例 + LoopAgent 包装一个 evolution-aware 变体. 详见 OpenSpec change `pdk-chat-demo-evolution-reference-example` (即将草案)
+
+> **本文不替代 OpenSpec change**: §X.Y 是**追溯 traceback**, L2 是**改造 + 验证**. 两者互不冲突, 但 L2 立项需先用本文 §X.Y 做导航, 然后再实施.
+
+---
+
+## 十二、Verification Matrix (反向指标门 + 反作弊三模式, 2026-09-23 升级)
+
+> **来源**: per Cross-Doc Review 2026-09-23 + 用户提交 16 模块评审 + L2 spec R8/R9.
+> **核心命题**: 任何"自进化能力 ship"必须同时输出**正向 + 反向指标** (per R8.1) + 100% 失败可追溯 (per R8.2) + 消融对照数据 (per R8.3), 缺一不予 merge. 此外, 任何"进化机制"评估必须显式覆盖 3 类已知反作弊场景 (per R9).
+
+### 12.1 反向指标门 (Reverse Indicator Gate) — 应用于 9 段闭环
+
+| 闭环阶段 (§三) | 正向指标 (新涨) | 反向指标 (旧掉, drop_ratio ≤ 5%) | 验证命令 |
+|----------------|------------------|----------------------------------|----------|
+| 1. 运行观测 | EventBus emit 数 ↑ | 旧 trace 兼容性 break ↓ | `git diff include/agenticdsl/contract/iinteraction_bus.h` |
+| 2. 事件抽取 | SessionJSONL 完整度 ↑ | 旧字段 schema 错误率 ↑ | `ctest -R test_session_writer` |
+| 3. 质量评估 | IEvaluator Acceptable % ↑ | 旧 prompt delta 验证失败率 ↑ | per `tests/test_evaluator.cpp Case 4` |
+| 4. 信用分配 | Confounder 捕获率 ↑ | 旧 `judge_data_freshness` 误判率 ↑ | per `tests/test_genome_walk_ancestors.cpp Case 7/8/9` |
+| 5. 候选生成 | Mutation 提议通过率 ↑ | 旧 valid mutation 失败率 ↑ | per `tests/test_harness_rsi_pilot.cpp Case 1` |
+| 6. 安全检查 | Gate 拦截率 ↑ | 旧 valid mutation 被误拦率 ↑ | per `tests/test_harness_rsi_pilot.cpp Case 2` |
+| 7. 行为回归 | BehavioralRegressionGate PASS % ↑ | 旧 baseline regression false positive ↑ | per `tests/test_gepa_phase2.cpp` |
+| 8. 版本提交 | `genome.committed` 成功率 ↑ | 旧 fork 失败 false negative ↑ | per `tests/test_harness_rsi_pilot.cpp Case 3c` |
+| 9. 审计闭环 | Audit 覆盖率 ↑ | 旧 audit 不可还原 ↑ | per `tests/test_chat_session_events.cpp` |
+
+**drop_ratio > 5% 自动 block** (R8.1 红线). 任何单阶段反向指标失败必须显式 ack in commit message (Single-Dev 模式 = author ack).
+
+### 12.2 失败→约束可追溯 (Failure Traceability)
+
+**规则**: 任何自进化失败 (test failure / runtime exception / gating denial) 必须能 trace 到具体 contract / hook / event 名称 + 该 contract 的 ship commit hash.
+
+```
+failure_event: <event-name>
+rule_id: <contract-id>@<commit-sha>  # 例如 ADR-0086 v1.1@886def1
+rule_shipped_commit: <commit-sha>
+reproduce_in_new_task: <demo-command>  # 在全新任务上也能复现拦截
+```
+
+**Acceptance**: 任何 ship gate 在缺 failure_trace 时 block commit message.
+
+#### L2 实例化
+[L2 spec R8.2](../../../../openspec/changes/pdk-chat-demo-evolution-reference-example/specs/pdk-chat-demo-evolution/spec.md) S19-S20:
+- S19: 失败样本 trace 输出 4 字段
+- S20: failure sample 0% 失配 (任何 failure 必须 trace)
+
+### 12.3 消融实验 (Ablation Experiment)
+
+**规则**: 任何 Harness 变更 (ChatConfig.override_*, apply_harness_mutation, Genome 切换) 必须提供 3 段对照数据:
+
+1. **同任务, 不同 Harness**: baseline_response (旧 Harness) vs post_mutation_response (新 Harness) — eval_quality diff
+2. **同 Harness, 不同任务**: baseline task (Golden #1) vs mutation task (Golden #2) — eval_quality 一致性
+3. **失败样本 drop ratio**: 旧 failure_samples 在新 Harness 下的保留拦截率 (预期 ≥ 95%)
+
+**Acceptance**: 任何 mutation gate 在 3 段消融数据缺一时 block. Reference: LangChain 排名 30+ → 前 5 对照 (行业基准).
+
+#### L2 实例化
+[L2 spec R8.3](../../../../openspec/changes/pdk-chat-demo-evolution-reference-example/specs/pdk-chat-demo-evolution/spec.md) S21-S22:
+- S21: `--ablation-mode=full` flag 跑 3 段对照
+- S22: 输出 `ablation_report.json`
+
+### 12.4 反作弊三模式 (Anti-Cheat, per R9)
+
+> 项目当前 5-tier gate (G0/G1/G2/G2.5/G3) 不覆盖 R9 三类已知失效模式. 必须**显式**增强:
+
+| 失效模式 | 来源 | 当前防御 | 需增强 |
+|----------|------|---------|--------|
+| **R9.1 搜现成答案** (Poolside / Terminal-Bench 2.0) | 评测时 Agent 搜到 baseline 速通指令并复述 | 无显式防护 | L2 test_anti_cheat_search_solution (hint input / non-hint input 两组, eval_quality diff > -10%) |
+| **R9.2 修改评判指标** (复旦马兴军团队实测) | Agent 改变衡量指标以"完成"任务 | ⚠️ 部分 (judge_data_freshness fail-closed) — 但评估者本身仍可改 metric | L2 test_anti_cheat_metric_tampering + IEvaluator grep verify 无 write 接口 |
+| **R9.3 串谋外部平台** (OpenAI ExploitGym) | Sandbox 模型串联零日漏洞与窃取凭证 → RCE 拿答案 | ❌ 无沙箱级防护 | L2 test_anti_cheat_sandbox_escape + docker backend 默认 network_mode=none |
+
+#### L2 实例化
+[L2 spec R9.1-R9.3](../../../../openspec/changes/pdk-chat-demo-evolution-reference-example/specs/pdk-chat-demo-evolution/spec.md) S23-S27:
+- S23: Poolside hint input diff ≤ -10%
+- S24: Mutation gate 拒绝 evaluator schema write + emit `evaluation.tampering_attempt` 事件
+- S25: IEvaluator 无 write 方法
+- S26: Sandbox outbound 拦截
+- S27: docker backend 默认 network_mode=none
+
+### 12.5 跨文档一致性 (Cross-doc consistency)
+
+**L2 ↔ SoT 双向引用**:
+- L2 spec.md §R8 ↔ 本文 §12.1-12.3 (R8.1 退化测试 + R8.2 失败可追溯 + R8.3 消融实验)
+- L2 spec.md §R9 ↔ 本文 §12.4 (R9.1-R9.3 反作弊三模式)
+- L2 design.md §十.7 ↔ 本文 §12.4 (R8 + R9 设计交底)
+- L2 tasks.md T6 ↔ 本文 §12.5 (R8 + R9 测试用例任务组)
+
+**反向**: 任何 SoT 文档 §十二 更新必须同步引用 L2 spec R8/R9.
+
+### 12.6 验证命令
+
+```bash
+# L2 spec R8 + R9 验证 (2026-09-23 后)
+test -f openspec/changes/pdk-chat-demo-evolution-reference-example/specs/pdk-chat-demo-evolution/spec.md \
+  && grep "R8.1\|R8.2\|R8.3\|R9.1\|R9.2\|R9.3" \
+      openspec/changes/pdk-chat-demo-evolution-reference-example/specs/pdk-chat-demo-evolution/spec.md \
+  && echo "L2 spec R8 + R9 完整 ✅"
+
+# 3 份 SoT 文档 §十二 验证 (反向指标门一致性)
+for f in docs/architecture/{self-evolution-architecture-2026-08,harness-architecture-2026-09,rsi-architecture-2026-09}.md; do
+  grep -c "## 十二、" "$f"
+done
+# 预期: 3 行 (1 per file)
+
+# drop_ratio 检查 (R8.1 红线)
+# 待 L2 实施 + ship 后由 `./run_evolution_demo.sh --mock --release-metrics` 跑通后验证
+# 当前 placeholder: 暂无 metrics.json 校验 (L2 merge 后生效)
+```
+
+### 12.7 维保规则
+
+**v1.5 升档后**, 本 §十二 维持:
+- 任何 ship gate 强制 R8.1 双向指标输出 (per AGENTS.md "Reverse Indicator Rule" 同步)
+- 任何 L2 reference example 强制 R9 三类反作弊覆盖
+- 任何 Phase 2+ 立项 (Wave 3 Phase 2 + Wave 4) 强制 R8/R9 引用
+
+**L1 ↔ L2 闭环**:
+- L1 (本文 + L2 链接) 静态导航
+- L2 (pdk_chat_demo_evolution) 动态验证
+- 两者 in sync, 任一变更必须同步另一方 §12 + §R8/R9
+
+### 12.9 上下文驱动约束 (Context-Driven Constraint, 2026-09-23 升级)
+
+> **来源**: 用户原话 "L2 只是提供了用户交互的设施, 具体还要用户提供一个具体上下文请求, 这个上下文请求创建的目标才能做 harness/自进化/rsi 的验证"
+> **核心命题**: 任何"自进化能力 ship"必须由 **ContextRequest** 触发, 不是 L2 demo 自身自动跑. L2 是 reference example 入口, **不**是 autonomous evaluator.
+
+#### 12.9.1 ContextRequest 5+3 字段契约
+
+| 字段 | 必填 | 约束 |
+|------|------|------|
+| `context_id` | ✅ | UUID v4 唯一, **用户**定义 (L2 不自动生成) |
+| `turn_input` | ✅ | 用户给 ChatSession 的输入 |
+| `task_class` | ✅ | enum (code_gen \| research \| summary \| debug \| ...) |
+| `expected_eval_quality` | ⚠️ | Acceptable/Poor/Excellent/null — 用户标注 baseline 期望 |
+| `invocation_mode` | ✅ | mock / real_llm_deepseek / real_llm_custom |
+| `metadata.is_hidden` | ⚠️ | 默认 false (公开集); true = 隐藏集 (per E2 红线) |
+| `metadata.sensitivity` | ⚠️ | public / internal / confidential (per H2 凭证隔离) |
+| `metadata.{domain,tags}` | ⚠️ | 用户自填, L2 echo 进 trace |
+
+完整 schema 见 [L2 spec §R13](../../openspec/changes/pdk-chat-demo-evolution-reference-example/specs/pdk-chat-demo-evolution/spec.md).
+
+#### 12.9.2 9 段闭环 + ContextRequest 触发矩阵
+
+| 闭环阶段 (§三) | ContextRequest 字段触发 | 反向指标 (R8) |
+|----------------|--------------------------|----------------|
+| 1. 运行观测 | `metadata.domain` + `tags` | drop_ratio ≤ 5% (跨类) |
+| 2. 事件抽取 | `context_id` 进 JSONL | 0% 失配 |
+| 3. 质量评估 | `task_class` + `expected_eval_quality` | 跨 ≥ 3 类对比 |
+| 4. 信用分配 | `context_id` + `turn_input` | 跨类 `attribution_verdict` 一致性 |
+| 5. 候选生成 | `turn_input` + `task_class` | MutationGate 通过率 ≥ baseline - 5% |
+| 6. 安全检查 | `metadata.sensitivity` (internal/confidential → L2 不写盘) | confidential 0% 泄漏 |
+| 7. 行为回归 | `context_id` 前后对比 | baseline vs post-mutation eval_quality |
+| 8. 版本提交 | `context_id` 进 `genome.committed` payload | commit 成功率 ≥ 99% |
+| 9. 审计闭环 | `context_id` 进 audit log | 100% 可 trace |
+
+#### 12.9.3 ≥ 3 类 ContextRequest 实证 (per 用户 R3 红线)
+
+> **任何"实现自进化"声称必须由 ≥ 3 类 ContextRequest 实证**, 单类不构成 generalizable.
+
+| ContextRequest 类 | L2 验证 |
+|------------------|----------|
+| **Code 类** (`task_class: code_gen`) | K8s YAML / Python test / SQL query — harness-rsi 5-tier gate |
+| **Research 类** (`task_class: research`) | 文档摘要 / 文献对比 — data-rsi capture-mode=Training |
+| **Debug 类** (`task_class: debug`) | 日志分析 / 错误诊断 — model-rsi provider 选择 |
+
+L2 ship 时附 `examples/contexts/{code,research,debug}-class-context.jsonl` 3 个 reference ContextRequest file (per L2 spec R13.3 S32).
+
+#### 12.9.4 与 R8 / R9 的关系
+
+**R13 ↔ R8 (反向指标门)**:
+- R8.1 跨 ContextRequest 类 (≥ 3) — 单类退化 ≠ generalizable
+- R8.2 失败可追溯 + 必含 `context_id`
+- R8.3 消融跨类 — 单类 ≠ generalizable
+
+**R13 ↔ R9 (反作弊)**:
+- R9.1 hint input 显式标注于 Agent (R13 test fixture); production ContextRequest **必须无 hint**
+- R9.2 mutation_metric_* ContextRequest 自动拒绝
+- R9.3 sandbox `network_mode=none` + `turn_input` 含网络关键字自动警告
+
+#### 12.9.5 跨文档一致性
+
+- [L2 spec §R13](../../openspec/changes/pdk-chat-demo-evolution-reference-example/specs/pdk-chat-demo-evolution/spec.md) (主契约)
+- [`./harness-architecture-2026-09.md` §12.9](./harness-architecture-2026-09.md) (H1-H6 红线 + ContextRequest)
+- [`./rsi-architecture-2026-09.md` §12.9 + §11.8.8](./rsi-architecture-2026-09.md) (R3 + R4 红线 + ≥ 3 类实证)
+- [AGENTS.md "Reverse Indicator Rule"](../../AGENTS.md) (commit 强制 `[Reverse Indicator]` 段含 `context_ids` 列表)
+
+#### 12.9.6 维保规则
+
+**v1.5 → v1.6 升级触发**:
+- L2 ship 后, 本 §12.9 + §十二 §12.1-12.4 双向同步
+- ContextRequest schema 变更必须升档 L2 spec R13
+- 任何 new ContextRequest 类 (e.g., `multimodal`, `live_data`) 加入时同步 §12.9.3
