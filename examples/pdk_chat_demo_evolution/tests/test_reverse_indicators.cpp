@@ -142,9 +142,14 @@ TEST_CASE("R8 reverse_indicators: meta.eval_quality always null (P0-4 C5)",
     pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
 }
 
-// --- R8.3 pre-cond: attribution_verdict distribution varies per context ---
-TEST_CASE("R8 reverse_indicators: attribution_verdict distribution per context",
+// --- R8.3 pre-cond: attribution_verdict phase-level distribution invariant ---
+TEST_CASE("R8 reverse_indicators: attribution_verdict phase-level distribution per context",
           "[l2-evolution]") {
+    // build_meta (evolution_session.cpp:95-113) sets verdict by phase:
+    //   Phase 0 (Baseline)         -> verdict = "Baseline"
+    //   Phase 3/4/5 (Mutation/Reload/Compare) -> verdict = "Attributed"
+    // This test asserts each context's verdict is phase-deterministic, NOT that
+    // verdicts differ per context class (current impl does not provide that).
     auto* guard = pdk_chat_demo_evolution::detail::setup_hermetic_home();
     REQUIRE(guard != nullptr);
 
@@ -163,21 +168,33 @@ TEST_CASE("R8 reverse_indicators: attribution_verdict distribution per context",
     auto events = parse_lines(cap.str());
     REQUIRE(events.size() == 12);
 
-    // Group by context_id, collect verdict distribution
-    std::map<std::string, std::set<std::string>> per_context_verdicts;
+    // Per-context phase-level verdict map
+    std::map<std::string, std::map<std::string, std::string>> per_ctx_phase_verdict;
     for (const auto& e : events) {
+        REQUIRE(e.contains("phase"));
         REQUIRE(e.contains("meta"));
         const auto& meta = e["meta"];
         REQUIRE(meta.contains("context_id"));
         REQUIRE(meta.contains("attribution_verdict"));
-        per_context_verdicts[meta["context_id"].get<std::string>()].insert(
-            meta["attribution_verdict"].get<std::string>());
+        per_ctx_phase_verdict[meta["context_id"].get<std::string>()]
+                             [e["phase"].get<std::string>()] =
+            meta["attribution_verdict"].get<std::string>();
     }
 
-    // 3 distinct contexts → 3 distinct verdict sets
-    CHECK(per_context_verdicts.size() == 3);
-    for (const auto& [ctx, verdicts] : per_context_verdicts) {
-        CHECK(!verdicts.empty());
+    // 3 contexts, each with 4 phases
+    CHECK(per_ctx_phase_verdict.size() == 3);
+    for (const auto& [ctx, phase_verdicts] : per_ctx_phase_verdict) {
+        CHECK(phase_verdicts.size() == 4);
+        // Baseline phase -> "Baseline" verdict
+        auto it_b = phase_verdicts.find("baseline");
+        REQUIRE(it_b != phase_verdicts.end());
+        CHECK(it_b->second == "Baseline");
+        // Mutation/Reload/Compare phases -> "Attributed" verdict
+        for (const auto& phase : {"mutation", "reload", "compare"}) {
+            auto it = phase_verdicts.find(phase);
+            REQUIRE(it != phase_verdicts.end());
+            CHECK(it->second == "Attributed");
+        }
     }
 
     pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
