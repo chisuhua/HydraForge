@@ -1,5 +1,6 @@
 #include "commands/compact_command.h"
 #include "commands/command_globals.h"
+#include <core/session_manager.h>
 
 namespace pdk_chat_demo {
 
@@ -10,9 +11,15 @@ hydraforge::pdk::CommandSpec make_compact_command_spec() {
   spec.usage = "/compact [max_tokens]";
   spec.plugin_origin = "pdk_chat_demo";
   spec.handler = [](agenticdsl::ToolCallContext&) -> std::string {
-    // Placeholder: full wiring requires LayeredContext + compactor injection
-    // Task 8 DSLEngine integration will register session/compact tool
-    return "Compaction not yet wired (session/compact tool pending Task 8 DSLEngine integration)";
+    if (g_session_manager == nullptr) {
+      return "SessionManager not injected";
+    }
+    const std::string sid = g_session_manager->current_session_id();
+    if (sid.empty()) {
+      return "no active session";
+    }
+    g_session_manager->compact();
+    return "Compacted session " + sid;
   };
   return spec;
 }
