@@ -55,8 +55,17 @@ class ProviderLLMTool : public ::agenticdsl::ILLMTool {
         }
         auto res = provider_.generate(req, cancellation_token_);
         if (res.has_value()) {
-            out.success = true;
             out.text = std::move(res).value().text;
+            // F1 Latent Site #3 (per AGENTS.md Pattern #1): defense-in-depth
+            // against silent empty text. Latent Sites #4 + #6 still deferred.
+            // See tests/test_provider_llm_tool_empty.cpp Case 3 source guard.
+            if (out.text.empty()) {
+                throw std::runtime_error(
+                    "ProviderLLMTool: LLM call succeeded but returned empty text. "
+                    "Provider: loop-agent-provider-bridge. "
+                    "Check provider model availability or prompt template.");
+            }
+            out.success = true;
             out.tokens_generated = res.value().completion_tokens;
         } else {
             out.success = false;
