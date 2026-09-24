@@ -19,8 +19,9 @@
 // - Case 7 (R6): stress test 100 calls 成功率 ≥ 95%
 //
 // Per AGENTS.md Pattern #3 (real-LLM assertion strength layering):
-// - R1/R3/R5: strict (precise assertion on response content)
-// - R2/R6: relaxed (LLM misbehaved by design; ≥1 ok + graceful error)
+// - R1/R2/R4: strict (precise assertion on response content)
+// - R3: relaxed (stateless generate() 不共享 cross-call context)
+// - R5/R6: capability (≥1/3 ok, ≥95% success rate)
 
 #include "catch_amalgamated.hpp"
 
@@ -47,6 +48,11 @@ namespace {
 // 不强求外部 LLM，但 Recording Provider 可在有 key 时精确录制 req。
 // 当前 helper 已返回真实 provider；Recording Provider 仅当未来需参数断言时
 // 引入 (per proposal.md §Recording Provider 守卫).
+//
+// Scope note (Oracle Stage 2 SHIP-with-fixes verdict ses_f2b41e215):
+// These tests are provider-level dispatch smoke. True loop-level E2E
+// (react think→decide→end steps, PlanExecute 3-phase, ForkJoin synthesize)
+// is deferred to follow-up improvement (per Pattern #10 hygiene).
 
 inline bool contains_keyword_ci(const std::string& text, const std::string& keyword) {
     if (text.size() < keyword.size()) return false;
@@ -72,13 +78,16 @@ inline void maybe_warn_llm_failure(const agenticdsl::Result<agenticdsl::Generati
 
 // Case 1 (R1): Real LLM "Hello" → verify non-empty text response
 //
-// 这是 F1 fix 的真实 LLM regression test — 确保 node_executor 空校验
-// 在真实 LLM 路径上不误报 (即真实 LLM 返回非空 text 时通过校验).
+// Scope (per Oracle Stage 2 ses_f2b41e215): provider-level dispatch smoke.
+// Indirectly verifies F1 fail-fast would NOT trigger on real LLM responses
+// (since provider returns non-empty), but does NOT route through
+// node_executor's empty-text check directly. True F1 regression coverage
+// is at test_dsl_engine_ctx_bridge.cpp Case 4-5 (mock-level).
 //
 // Per tests/AGENTS.md Pattern #5: 显式 set req.params.model = cfg.model
 // 避免 LLMConfig::model 默认 ("gpt-4o-mini") 遮蔽真实 model.
-TEST_CASE("react loop real LLM smoke: generate non-empty text passes F1 fail-fast",
-          "[realllm][react_loop][f1_smoke]") {
+TEST_CASE("real LLM provider smoke: generate returns non-empty text",
+          "[realllm][provider_smoke][r1_hello]") {
     require_real_llm_env();
     if (real_llm_env_skipped()) {
         SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1 (no real LLM env in CI sandbox)");
@@ -245,12 +254,15 @@ TEST_CASE("react loop real LLM R3: multi-turn prompt dispatch",
     }
 }
 
-// Case 5 (R4): plan_execute 三阶段端到端
+// Case 5 (R4): plan-style prompt capability (provider-level scope)
 //
-// Per AGENTS.md Pattern #3: 能力断言 (LoopResult.success == true).
-// plan → execute → verify 三阶段全部触发验证.
-TEST_CASE("react loop real LLM R4: plan_execute 三阶段端到端",
-          "[realllm][react_loop][r4_plan_execute]") {
+// Scope (per Oracle Stage 2 ses_f2b41e215): capability assertion on
+// provider-level dispatch. Real PlanExecute loop (3-phase plan → execute →
+// verify + LoopResult.success) is deferred to follow-up improvement
+// (per Pattern #10 hygiene). This test only verifies that a real LLM can
+// produce a structured plan-like response when prompted.
+TEST_CASE("real LLM provider capability: plan-style prompt response",
+          "[realllm][provider_smoke][r4_plan_capability]") {
     require_real_llm_env();
     if (real_llm_env_skipped()) {
         SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1 (no real LLM env in CI sandbox)");
@@ -283,13 +295,15 @@ TEST_CASE("react loop real LLM R4: plan_execute 三阶段端到端",
     }
 }
 
-// Case 6 (R5): fork_join 3 分支并行
+// Case 6 (R5): multi-branch sequential dispatch (provider-level scope)
 //
-// Per AGENTS.md Pattern #3: 能力断言 (3 分支结果聚合验证).
-// 注：实际 fork_join 验证需 ChatSession + LoopAgent infrastructure.
-// 当前 case 验证 provider 能并行处理 3 个独立 generate() 调用.
-TEST_CASE("react loop real LLM R5: fork_join 3 分支并行",
-          "[realllm][react_loop][r5_fork_join]") {
+// Scope (per Oracle Stage 2 ses_f2b41e215): sequential dispatch of 3
+// independent generate() calls (NOT parallel, NOT fork_join). Real ForkJoin
+// loop (parallel branches + synthesize node aggregation) is deferred to
+// follow-up improvement. This test only verifies provider can handle 3
+// sequential calls with ≥1/3 success rate.
+TEST_CASE("real LLM provider capability: 3-branch sequential dispatch",
+          "[realllm][provider_smoke][r5_multibranch]") {
     require_real_llm_env();
     if (real_llm_env_skipped()) {
         SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1 (no real LLM env in CI sandbox)");
@@ -301,7 +315,7 @@ TEST_CASE("react loop real LLM R5: fork_join 3 分支并行",
 
     auto cfg = real_llm_config();
 
-    // 3 个并行分支 (per R5 spec)
+    // 3 个 sequential 分支 (per R5 scope: provider-level, 非 fork_join parallel)
     std::vector<std::string> prompts = {
         "List one prime number (single number).",
         "List one Fibonacci number (single number).",
@@ -388,6 +402,9 @@ TEST_CASE("react loop real LLM R6: stress test 100 calls",
     std::sort(latencies_ms.begin(), latencies_ms.end());
     long long median_ms = latencies_ms[latencies_ms.size() / 2];
     INFO("Median latency: " + std::to_string(median_ms) + " ms");
+    // Minor 2 fix (Oracle Stage 2 ses_f2b41e215): enforce median latency
+    // ≤ 5s as capability assertion (per proposal.md D6).
+    REQUIRE(median_ms <= 5000);
     SUCCEED("Stress test: " + std::to_string(success_count) + "/" +
             std::to_string(kTotalCalls) + " successful, median " +
             std::to_string(median_ms) + "ms");
