@@ -1,6 +1,6 @@
 # Proposal: Chat-Real-LLM Coverage Phase H — React Loop End-to-End Tests
 
-> **STATUS: PLACEHOLDER** ⚠️
+> **STATUS**: 🔍 Proposed (2026-09-25 re-evaluation, per DECISION B(c) ses_f2b923412)
 > **触发**: F1 `fix-react-decide-empty-response` SHIPPED 后 (2026-09-18) §5 降级遗留 — 6 real-LLM E2E cases 移交
 > **追溯范围**: F1 archived `openspec/changes/archive/2026-09-18-fix-react-decide-empty-response/` tasks.md §5 标记 [→] deferred
 > **优先级**: P2 (test coverage gap, 真实 LLM 路径端到端验证)
