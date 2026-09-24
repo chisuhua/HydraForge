@@ -254,6 +254,12 @@ if(AGENTICDSL_BUILD_EXAMPLES)
     # 关联: examples/pdk_chat_demo/DESIGN.md (784 行, 15 节)
     add_subdirectory(examples/pdk_chat_demo)
 
+    # --- pdk_chat_demo_evolution (L2 reference example, OpenSpec change pdk-chat-demo-evolution-reference-example) ---
+    # 关联: openspec/changes/pdk-chat-demo-evolution-reference-example/
+    #      docs/architecture/harness-architecture-2026-09.md §11.7
+    # 零修改 examples/pdk_chat_demo/ (N1 hard-block)
+    add_subdirectory(examples/pdk_chat_demo_evolution)
+
     # --- pkm_temporal_demo (Temporal workflow demo, Task 4-6) ---
     add_subdirectory(examples/pkm_temporal_demo)
 endif()
