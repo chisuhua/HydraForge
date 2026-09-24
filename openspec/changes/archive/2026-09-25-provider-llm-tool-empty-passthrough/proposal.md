@@ -135,3 +135,30 @@
 - Oracle session: `ses_f4d05cdb0ffe0BhMdEADyfsdTz` (F1 root cause correction)
 - AGENTS.md Pattern #1 step 4: systematic latent sites recording
 - Latent Sites table: `openspec/changes/archive/2026-09-18-fix-react-decide-empty-response/design.md` (待查)
+---
+
+## 📦 ARCHIVED (2026-09-25)
+
+**STATUS**: ✅ **SHIPPED + ARCHIVED** (per Day 5 4-file integrity lesson)
+
+**Ship commits**:
+- `c0d276a feat(loop_agent): ProviderLLMTool empty text fail-fast guard (F1 Latent Site #3)`
+  (3 files, +372/-17: pdk/loop_agent/src/pdk_entry.cpp ProviderLLMTool `if (out.text.empty())` fail-fast
+  guard + tests/test_provider_llm_tool_empty.cpp 3 cases/11 assertions new + tasks.md TDD 5-step plan)
+- `ed60230 fix(loop_agent): SHIP-with-fixes for c0d276a (Oracle Stage 2 verdict ses_f2b5f9198ffexoosRhoaAfpLHu)`
+  (2 files, +87/-123: Oracle Stage 2 M1 Case 3 exact-string source guard fix 防假阴性 +
+  M2 D4 acceptance 改自闭环记录 + M2b umbrella already-shipped 校正 + Mi1 ~30 TDD checkbox 补勾 +
+  Mi2 D3 全量 ctest deferred 标注 + Mi3 D1 throw-not-produce-LLMResult 措辞修正)
+
+**Oracle verdict**: SHIP-with-fixes (0 Critical / 2 Major / 3 Minor)
+
+**Verification**:
+- ctest `test_provider_llm_tool_empty`: 11/11 PASS
+- focused regression: test_dsl_engine_ctx_bridge (13/13) + test_executor (20/20) +
+  test_executor_with_mock_provider (17/17) + test_chat_session_consumer (67/67)
+- N1/N2/N5 hard-blocks maintained ✅
+
+**Linked follow-ups** (per AGENTS.md Pattern #10 hygiene):
+- F1 Latent Sites #4 (`loop/process_task` empty passthrough) — pending
+- F1 Latent Sites #6 (`GenerationRequest.model` default) — covered by archived umbrella
+  `2026-09-08-fix-generation-request-model-default`
