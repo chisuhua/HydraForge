@@ -131,6 +131,9 @@ class SessionManager {
   /// @brief 析构 — 关闭当前打开的文件 (如有) — 头文件外定义 (PIMPL-lite)
   ~SessionManager();
 
+  std::filesystem::path dir() const;
+  std::string current_session_id() const;
+
   // 禁止拷贝/移动 (mutex + 文件句柄不可复制)
   SessionManager(const SessionManager&) = delete;
   SessionManager& operator=(const SessionManager&) = delete;

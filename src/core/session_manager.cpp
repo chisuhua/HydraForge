@@ -56,6 +56,10 @@ SessionManager::SessionManager(std::filesystem::path dir)
 
 SessionManager::~SessionManager() = default;
 
+std::filesystem::path SessionManager::dir() const { return dir_; }
+
+std::string SessionManager::current_session_id() const { return current_session_id_; }
+
 SessionHandle SessionManager::open(const std::string& session_id) {
   std::lock_guard<std::mutex> lock(write_mutex_);
 

@@ -715,3 +715,45 @@ TEST_CASE("SessionManager::compact preserves append-only invariant",
 
   REQUIRE(line_count == 5);
 }
+
+TEST_CASE("SessionManager::dir() returns the directory passed at construction",
+          "[session_manager][pdk_chat_demo_dedup][getter]") {
+  TempDirGuard tmp("getter_dir");
+  agenticdsl::SessionManager mgr(tmp.path);
+  REQUIRE(mgr.dir() == tmp.path);
+}
+
+TEST_CASE("SessionManager::current_session_id() reflects open() state",
+          "[session_manager][pdk_chat_demo_dedup][getter]") {
+  TempDirGuard tmp("getter_session_id");
+  agenticdsl::SessionManager mgr(tmp.path);
+  REQUIRE(mgr.current_session_id().empty());
+
+  mgr.open("alpha");
+  REQUIRE(mgr.current_session_id() == "alpha");
+
+  mgr.open("beta");
+  REQUIRE(mgr.current_session_id() == "beta");
+}
+
+TEST_CASE("SessionManager getters are const and thread-safe (100x concurrent)",
+          "[session_manager][pdk_chat_demo_dedup][getter]") {
+  TempDirGuard tmp("getter_const_thread");
+  agenticdsl::SessionManager mgr(tmp.path);
+  mgr.open("main");
+
+  constexpr int kThreads = 8;
+  constexpr int kIters = 1250;
+  std::vector<std::thread> ts;
+  std::atomic<int> mismatches{0};
+  for (int i = 0; i < kThreads; ++i) {
+    ts.emplace_back([&] {
+      for (int j = 0; j < kIters; ++j) {
+        if (mgr.dir() != tmp.path) ++mismatches;
+        if (mgr.current_session_id() != "main") ++mismatches;
+      }
+    });
+  }
+  for (auto& t : ts) t.join();
+  REQUIRE(mismatches.load() == 0);
+}
