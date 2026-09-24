@@ -253,6 +253,14 @@ skills/code_review/               # Code Review Skill（SKILL.md）
 }
 ```
 
+> **`infra.session` 插件（pdk/session_agent）的 dormant 状态说明**（2026-09-24 架构审查结论）：
+>
+> 该插件基于 `SessionStore`（扁平 messages + `persisted_count_` 游标），与 ChatSession 实际使用的 `SessionManager`（树状 nodes/branches）**数据模型不兼容**。Demo 生产代码（`main.cpp` / `commands/` / `tools/`）从未调用任何 `session/*` SessionStore 工具（grep 验证：`call_tool("session/"` 在 examples/ 生产代码中返回 0 行）。SessionStore 由 G3 knowledge base（`test_service_v1`）与 session_agent 自身 tests 消费，不参与 demo 闭环。
+>
+> **保留加载**：lazy lifecycle + `onTool:session/persist` 激活条件（永不触发），无运行时副作用，作为 PDK 生态完整性演示保留。
+>
+> **统一两套 session 后端**需独立 ADR（数据模型对齐：扁平 vs 树状），不在当前 `pdk-chat-demo-deduplicate` change 范围。详见 `openspec/changes/pdk-chat-demo-deduplicate/specs/pdk-chat-demo-dedup/spec.md` §Requirement: session-agent-dormancy-documented。
+
 ---
 
 ## 五、Agent 详细设计

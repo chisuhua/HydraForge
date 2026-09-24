@@ -198,6 +198,22 @@ Null-guard fallback: 测试二进制未初始化全局时，`g_cancellation_regi
 | `LLM generation failed` | API key 无效或未设置 | `echo $DEEPSEEK_API_KEY` 确认已 export |
 | demo 启动后无响应 | provider/resolve 死锁（已修复） | 更新至最新 commit |
 
+## 添加新命令 / 工具（贡献指南）
+
+**原则（per `pdk-chat-demo-deduplicate` spec §`pdk-chat-demo-dedup`）**：
+
+1. **禁止死代码 stub 工具**：注册任何工具名以 `_stub` / `_wip` 结尾的桩 MUST 在文件头注释标明过期时间表（如 `// remove after YYYY-MM-DD`），无过期标注的 stub 不接受合并。Demo 现有 `provider_switch_stub` 已 ship 后删除，遵循此原则。
+
+2. **禁止直接访问 core 内部成员**：example 代码 MUST NOT 直接访问 `agenticdsl::SessionManager` 的实现细节成员（`dir_` / `current_session_id_` / `current_path_` / `current_branch_`）。经公开 getter 调用（2026-09-24 ship：`dir()` / `current_session_id()`）。
+
+3. **session 操作优先 SessionManager（树状）**：当前 demo 的活动 session 后端是 `agenticdsl::SessionManager`（被 `ChatSession::persist_turn` 使用），不是 `pdk/session_agent` 的 `SessionStore`。新增 session 相关工具应基于 SessionManager 树 API（`fork(node_id, name)` / `compact()` / `get_branch_leaf` 等），不要接入 SessionStore 的 `session/*` 工具（数据模型不兼容，会破坏 `/tree` 树语义）。
+
+4. **命令层直接调用 core API 是 OK 的**：`tree_command` / `compact_command` 直接调用 `g_session_manager->...()`（经全局指针），与 `fork` / `clone` 经 ToolCoordinator 间接调用是两种合法模式。优先直接调用（更易测试），仅当 agent-facing DSL 调用是预期时才注册为工具。
+
+5. **新增会话相关 / 模型切换功能时检查 follow-up 列表**：
+   - SessionStore 与 SessionManager 双后端合并（需 ADR）
+   - `main.cpp` 设置 `pdk_provider_agent::factory_slot()` 启用 `provider/switch`（需先确定 demo 是否展示动态 provider 切换 UX）
+
 ## 设计文档
 
 完整设计见 [DESIGN.md](./DESIGN.md)（784 行），包括:
