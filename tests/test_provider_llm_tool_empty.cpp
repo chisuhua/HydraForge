@@ -169,9 +169,8 @@ TEST_CASE("ProviderLLMTool: production source pdk_entry.cpp has the fail-fast gu
     std::string content((std::istreambuf_iterator<char>(in)),
                          std::istreambuf_iterator<char>());
 
-    // The fix should mention ProviderLLMTool + empty text in a runtime_error
-    bool has_guard = content.find("ProviderLLMTool") != std::string::npos &&
-                     content.find("empty text") != std::string::npos &&
-                     content.find("runtime_error") != std::string::npos;
+    static constexpr const char* kGuardSignature =
+        "ProviderLLMTool: LLM call succeeded but returned empty text";
+    bool has_guard = content.find(kGuardSignature) != std::string::npos;
     REQUIRE(has_guard);
 }
