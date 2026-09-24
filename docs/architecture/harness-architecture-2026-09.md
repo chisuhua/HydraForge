@@ -517,7 +517,7 @@ grep -E "evolution\.(transition|readiness)\.denied|genome\.(committed|persist_fa
 | OpenSpec SHIP-with-fixes | ✅ ship 2026-09-23 | Stage 4 Oracle APPROVE; `c3b4844` (14 fixes: 4 P0' + 6 P1 + 4 P2) + `78b6098` (follow-up: Oracle M1/M2 + m3/m4/m5) |
 | Plan generation | ✅ ship 2026-09-24 | `.rddf/plans/pdk-chat-demo-evolution-reference-example.md` (923 lines / 12 tasks / 74 checkboxes) |
 | ADR-0068 v2.4 amendment | ✅ ship 2026-09-24 | 4 新主题注册 (R9.1/R9.2/R9.3/R13.4) |
-| 实施 Batch 1 (Tasks 0-3) | ✅ shipped 2026-09-24 (commit `a380ec7`) | Oracle SHIP-with-fixes (3M/6m); Stage 3 SHIP-with-fixes 修复 pending |
+| 实施 Batch 1 (Tasks 0-3) | ✅ shipped 2026-09-24 (commit `a380ec7`) | Oracle SHIP-with-fixes (3M/6m); Stage 3 SHIP-with-fixes 修复 applied (commit `e3d182f`) |
 | 实施 Batch 2-4 (Tasks 4-12) | 📋 待启动 | per plan 4-batch 拆分 |
 
 > **L1 + L2 组合价值**: L1 让人 grep 到落地路径 (30 分钟), L2 让人 clone 后能 `cd examples/pdk_chat_demo_evolution && ./run_evolution_demo` 看 Harness-RSI 实际效果 (2-3 天). 两者互不冲突, L2 必须先 follow L1 的导航.
