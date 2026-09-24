@@ -552,6 +552,7 @@ grep "^add_test" build/tests/CTestTestfile.cmake | wc -l
 | **Wave 3 Phase 2 D5 评估框架** (⏳) | BehavioralRegressionGate 接入 chat_session.cpp 的 mutation diff | (Phase 2 ⏳) |
 | **Wave 3 Phase 2 D6 AgenticMind 回流** (⏳) | pdk_chat_demo 暂无外部 data flow; V2 需 wire external_data_flow | (Phase 2 ⏳) |
 | **Wave 3 Phase 2 D7 完整推理 serving** (⏳) | `model_command.cpp` V2 接入真实 finetune provider (而非 stub) | (Phase 2 ⏳) |
+| **L2 reference example demo** (✅ ship 2026-09-24, `cc8739d`) | `pdk_chat_demo_evolution/` 提供 9-flag CLI + 9 test binaries / 39 cases / ~245 assertions + hermetic HOME + 4 emit_event sites (R9.1/R9.2/R9.3/R13.4) — end-to-end Data-RSI + Harness-RSI + Model-RSI reference, archive `2026-09-24-pdk-chat-demo-evolution-reference-example` | `cd examples/pdk_chat_demo_evolution && ./run_evolution_demo.sh mock --trace-events` (4-phase JSONL stdout) |
 
 ### 11.4 H→D→M 守门 (横向) → pdk_chat_demo
 

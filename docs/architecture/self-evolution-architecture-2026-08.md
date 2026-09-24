@@ -422,6 +422,8 @@ grep -m1 "Approved.*Wave 3 Phase 1 Pilot 激活" docs/adr/adr-0078-finetune-base
 - **L1 (本文)** — traceback 只标注"每段架构概念**已经**在 pdk_chat_demo 哪里落地" (✅ 已 ship) **或** "将在哪里落地" (⏳ Phase 2)
 - **L2 (`pdk_chat_demo_evolution`)** — 独立 example sub-project (≤ 1 周实施), 提供**可运行 harness-rsi + data-rsi + model-rsi reference example**, 不是主线 chat demo 的修改, 而是用 chat session 实例 + LoopAgent 包装一个 evolution-aware 变体. 详见 OpenSpec change `pdk-chat-demo-evolution-reference-example` (已注册 2026-09-23, 4 件套完整, commit `52b871d`; 状态 PLACEHOLDER 待 rdd-builder 实施)
 
+**L2 ✅ shipped 2026-09-24** (commits `a380ec7` + `e3d182f` + `ad2f42c` + `9b9967f` + `e5098c1` + `14dccde` + `cc8739d`): 9 test binaries / 39 cases / ~245 assertions, hermetic HOME fixture, 9-CLI main.cpp, archive `2026-09-24-pdk-chat-demo-evolution-reference-example` (5 files per Day 5 lesson). Per 模式 #11 Stage 1+2+3 cycle 全闭环. Batch 1+2+3+4 累计: ~17h estimated → 实际.
+
 > **本文不替代 OpenSpec change**: §X.Y 是**追溯 traceback**, L2 是**改造 + 验证**. 两者互不冲突, 但 L2 立项需先用本文 §X.Y 做导航, 然后再实施.
 
 ---

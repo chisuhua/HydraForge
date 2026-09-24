@@ -518,7 +518,9 @@ grep -E "evolution\.(transition|readiness)\.denied|genome\.(committed|persist_fa
 | Plan generation | ✅ ship 2026-09-24 | `.rddf/plans/pdk-chat-demo-evolution-reference-example.md` (923 lines / 12 tasks / 74 checkboxes) |
 | ADR-0068 v2.4 amendment | ✅ ship 2026-09-24 | 4 新主题注册 (R9.1/R9.2/R9.3/R13.4) |
 | 实施 Batch 1 (Tasks 0-3) | ✅ shipped 2026-09-24 (commit `a380ec7`) | Oracle SHIP-with-fixes (3M/6m); Stage 3 SHIP-with-fixes 修复 applied (commit `e3d182f`) |
-| 实施 Batch 2-4 (Tasks 4-12) | 📋 待启动 | per plan 4-batch 拆分 |
+| 实施 Batch 2 (Tasks 4-5) | ✅ shipped 2026-09-24 (commit `ad2f42c`) | evolution_tracer + evolution_session + T6.8a closure gate; Oracle bg_2f8797f7 SHIP-with-fixes (2M/3m) → commit `9b9967f` |
+| 实施 Batch 3 (Tasks 6-7) | ✅ shipped 2026-09-24 (commit `e5098c1`) | 4 R9 anti-cheat + 1 R8 reverse-indicators test binaries; Oracle bg_62441b88 SHIP-with-fixes (2M/4m) → commit `14dccde` |
+| 实施 Batch 4 (Task 10 + archive) | ✅ shipped 2026-09-24 (commit `cc8739d`) | main.cpp (9 CLI flags) + run_evolution_demo.sh + README.md; T6.8a closure gate verified 5/5 PASS via test_l2_event_emission; archive `2026-09-24-pdk-chat-demo-evolution-reference-example` (+11 added specs) |
 
 > **L1 + L2 组合价值**: L1 让人 grep 到落地路径 (30 分钟), L2 让人 clone 后能 `cd examples/pdk_chat_demo_evolution && ./run_evolution_demo` 看 Harness-RSI 实际效果 (2-3 天). 两者互不冲突, L2 必须先 follow L1 的导航.
 
