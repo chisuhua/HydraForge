@@ -28,12 +28,18 @@ struct HermeticHomeGuard {
 // Sets HOME + HYDRAFORGE_GENOME_DIR env vars and creates .hydraforge/genomes/.
 // Returns ownership of HermeticHomeGuard* (caller must cleanup_hermetic_home).
 //
-// Idempotent on the same thread — returns the same guard on repeated calls
-// within one thread (per test_hermetic_home case 2).
+// Per-thread idempotent: returns a NEW guard pointing to the same path on
+// repeated calls within the same thread (per test_hermetic_home case 2).
+// Cross-thread usage is UNSAFE — setenv("HOME") is process-global, so two
+// threads each calling setup_hermetic_home() will clobber each other's
+// HOME (last writer wins) and cleanup races. Use single-threaded fixtures
+// only, or wrap in a process-wide lock.
 HermeticHomeGuard* setup_hermetic_home();
 
 // Remove the hermetic HOME directory and free the guard. Safe to call with
-// nullptr (no-op). Double-cleanup is safe (no-op on already-cleaned guard).
+// nullptr (no-op). Calling cleanup() TWICE on the same non-null pointer is
+// double-free UB. It IS safe to call cleanup() on two distinct guards whose
+// home dirs point to the same path (second remove_all fails silently).
 void cleanup_hermetic_home(HermeticHomeGuard* guard);
 
 }  // namespace pdk_chat_demo_evolution::detail

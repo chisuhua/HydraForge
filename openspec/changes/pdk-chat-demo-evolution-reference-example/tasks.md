@@ -297,6 +297,36 @@
 - [ ] 任一 ContextRequest 字段缺失 → exit non-zero + 行号 + 字段名 (per S29-S30)
 - [ ] 测试 PASS
 
+#### T6.8a ⚠️ Design Deviation (Batch 1 ship, 2026-09-24, Oracle bg_1acb78c5 Major #1)
+
+**事实**: Batch 1 ship (`a380ec7`) 的 `context_request.cpp` **未实现** `emit_event(bus, ...)` 调用。计划 T6.8 隐含假设 parser 内部发射 4 个 ADR-0068 v2.4 事件:
+1. `mutation_metric_rejected` (R9.2 prefix-rejection)
+2. `turn_input_network_keyword_rejected` (R9.3 keyword-rejection)
+3. `hint_containment_rejected` (R9.1 parser-side regex detection)
+4. `hidden_context_accepted_info` (R13.4 is_hidden=true accepted)
+
+**根因**: Batch 1 scope 仅 Tasks 0-3 (skeleton + hermetic_home + context_request parser), 无 IInteractionBus 注入路径。`load_context_file(path, errors)` 签名无 bus 参数。
+
+**影响**:
+- Plan Task 6 (R9 反作弊测试) "expect fail until Task 3 emits events" — 即原本预期 Batch 1 完成事件发射，但 Batch 1 跳过
+- `hidden_context_accepted_info` 事件同样推迟 (is_hidden 桶接受路径)
+- 当前 `test_context_request_validation` 仅验证 parser 逻辑正确性（12 cases / 55 assertions PASS），不验证事件发射
+
+**修复路径** (Batch 2 Task 5 必做):
+- [ ] `evolution_session.{h,cpp}` 构造期注入 `IInteractionBus*` 参数 (per ADR-0019 + ADR-0068 event topic payload schema)
+- [ ] `load_context_file` 签名扩展: `load_context_file(path, errors, bus*)` (新增第 3 个参数，opt-in nullptr fallback for backward compat)
+- [ ] 4 个事件发射点 (parser 内每条 detection 分支):
+  - R9.1 hint detection → `emit_event(bus, "hint_containment_rejected", {context_id, turn_input_preview, matched_pattern})`
+  - R9.3 network keyword → `emit_event(bus, "turn_input_network_keyword_rejected", {context_id, turn_input_preview, keyword})`
+  - R9.2 prefix-rejection → `emit_event(bus, "mutation_metric_rejected", {context_id, task_class_preview, reason})`
+  - R13.4 is_hidden accept → `emit_event(bus, "hidden_context_accepted_info", {context_id, task_class, is_hidden, bucket="hidden"})`
+- [ ] Task 6 (Batch 3) R9 tests 完成后应全部 PASS (anti-cheat fixtures 触发 detection → emit → verify)
+- [ ] 验证: `grep "emit_event" examples/pdk_chat_demo_evolution/context_request.cpp | wc -l` ≥ 4
+
+**Affirmation**: 此 deviation 不阻塞 Batch 2 ship, 但必须在 Batch 2 Task 5 内闭环（5 event emission + bus injection + load_context_file 签名扩展）。否则 Batch 3 Task 6 R9 tests 永远 fail。
+
+---
+
 #### T6.9 [RED] test_context_request_e2e (R13.3 ≥ 3 类 ContextRequest 实证)
 - [ ] 写 `tests/test_context_request_e2e.cpp` 4 cases (**CMake LABELS "l2-evolution"**):
   - Case R13.3.1: `--context-file code-class.jsonl` (单类, 1 个 ContextRequest) → 期望 `accept-contexts` flag 输出单类 `attribution_verdict` (per C5 P0 fix: 不输出 eval_quality, L2 不计算; 单类不构成 generalizable)
