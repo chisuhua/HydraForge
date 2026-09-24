@@ -46,4 +46,9 @@ add_l2_test(test_evolution_session_mutation test_evolution_session_mutation.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../hermetic_home.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../context_request.cpp)
 
+# --- Test 5: l2_event_emission (T6.8a closure verification, 4 emit sites via bus) ---
+add_l2_test(test_l2_event_emission test_l2_event_emission.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../context_request.cpp)
+target_link_libraries(test_l2_event_emission PRIVATE agenticdsl_contract)
+
 # Tests 5-10 will be added in Tasks 5-8
