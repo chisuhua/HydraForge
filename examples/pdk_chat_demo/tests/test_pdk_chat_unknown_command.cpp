@@ -9,7 +9,7 @@
 #include "commands/help_command.h"
 #include "commands/compact_command.h"
 #include "commands/model_command.h"
-#include "tools/provider_switch_stub.h"
+#include "tools/session_fork.h"
 
 using agenticdsl::AgentModePolicy;
 using agenticdsl::ApprovalCallback;
@@ -22,7 +22,7 @@ using agenticdsl::ToolRegistry;
 
 TEST_CASE("unregistered slash command is not resolvable", "[chat-slash-cmd]") {
   ToolRegistry registry;
-  pdk_chat_demo::register_provider_switch_stub_tool(registry);
+  pdk_chat_demo::register_session_fork_tool(registry);
   auto policy = std::make_shared<AgentModePolicy>();
   ApprovalCallback cb = make_test_auto_callback(true);
   ToolCoordinator coord(registry, policy, cb);

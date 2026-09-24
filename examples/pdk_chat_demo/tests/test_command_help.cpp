@@ -8,7 +8,7 @@
 //   A.1.5 render_help 输出含 7 个注册命令 + /exit 保留字
 //
 // 依赖模式 (参照 test_pdk_chat_unknown_command.cpp):
-//   ToolRegistry → register_provider_switch_stub_tool → AgentModePolicy
+//   ToolRegistry → register_session_fork_tool → AgentModePolicy
 //   → ApprovalCallback → ToolCoordinator → CommandRegistry → register specs
 
 #include <catch_amalgamated.hpp>
@@ -26,7 +26,7 @@
 #include "commands/fork_command.h"
 #include "commands/clone_command.h"
 #include "commands/cancel_command.h"
-#include "tools/provider_switch_stub.h"
+#include "tools/session_fork.h"
 
 using agenticdsl::AgentModePolicy;
 using agenticdsl::ApprovalCallback;
@@ -63,7 +63,7 @@ struct CommandRegistryFixture {
         callback(make_test_auto_callback(true)),
         coordinator(registry, policy, callback),
         cmd_reg(&coordinator) {
-    pdk_chat_demo::register_provider_switch_stub_tool(registry);
+    pdk_chat_demo::register_session_fork_tool(registry);
     cmd_reg.register_command(pdk_chat_demo::make_help_command_spec());
     cmd_reg.register_command(pdk_chat_demo::make_compact_command_spec());
     cmd_reg.register_command(pdk_chat_demo::make_model_command_spec());

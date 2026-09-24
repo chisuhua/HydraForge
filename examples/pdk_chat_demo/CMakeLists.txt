@@ -16,7 +16,6 @@ set(SOURCES
     commands/fork_command.cpp
     commands/clone_command.cpp
     commands/cancel_command.cpp
-    tools/provider_switch_stub.cpp
     tools/session_fork.cpp
     tools/session_clone.cpp
     tui/tree_renderer.cpp
@@ -35,7 +34,6 @@ set(HEADERS
     commands/fork_command.h
     commands/clone_command.h
     commands/cancel_command.h
-    tools/provider_switch_stub.h
     tools/session_fork.h
     tools/session_clone.h
     tui/tree_renderer.h

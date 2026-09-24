@@ -54,7 +54,6 @@
 #include "commands/clone_command.h"
 #include "commands/cancel_command.h"
 #include <agenticdsl/pdk/cancellation_globals.h>
-#include "tools/provider_switch_stub.h"
 #include "tools/session_fork.h"
 #include "tools/session_clone.h"
 
@@ -531,7 +530,6 @@ int main(int argc, char* argv[]) {
     pdk_chat_demo::g_command_session = &session;
     pdk_chat_demo::g_command_registry = &command_registry;
 
-    pdk_chat_demo::register_provider_switch_stub_tool(engine->get_tool_registry());
     pdk_chat_demo::register_session_fork_tool(engine->get_tool_registry());
     pdk_chat_demo::register_session_clone_tool(engine->get_tool_registry());
 
