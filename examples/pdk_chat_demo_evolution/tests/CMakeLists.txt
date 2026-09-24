@@ -51,4 +51,27 @@ add_l2_test(test_l2_event_emission test_l2_event_emission.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../context_request.cpp)
 target_link_libraries(test_l2_event_emission PRIVATE agenticdsl_contract)
 
-# Tests 5-10 will be added in Tasks 5-8
+# --- Test 6: anti-cheat_search_solution (Task 6, R9.1 hint regex) ---
+add_l2_test(test_anti_cheat_search_solution test_anti_cheat_search_solution.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../context_request.cpp)
+target_link_libraries(test_anti_cheat_search_solution PRIVATE agenticdsl_contract)
+
+# --- Test 7: anti-cheat_metric_tampering (Task 6, R9.2 prefix-rejection + IEvaluator guard) ---
+add_l2_test(test_anti_cheat_metric_tampering test_anti_cheat_metric_tampering.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../context_request.cpp)
+target_link_libraries(test_anti_cheat_metric_tampering PRIVATE agenticdsl_contract)
+
+# --- Test 8: anti-cheat_sandbox_escape (Task 6, R9.3 network-keyword) ---
+add_l2_test(test_anti_cheat_sandbox_escape test_anti_cheat_sandbox_escape.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../context_request.cpp)
+target_link_libraries(test_anti_cheat_sandbox_escape PRIVATE agenticdsl_contract)
+
+# --- Test 9: reverse_indicators (Task 7, R8 framework invariants) ---
+add_l2_test(test_reverse_indicators test_reverse_indicators.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../evolution_session.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../evolution_tracer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../hermetic_home.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../context_request.cpp)
+target_link_libraries(test_reverse_indicators PRIVATE agenticdsl_contract)
+
+# Tests 10 will be added in Task 8 (deferred to Batch 4 per Oracle M1)
