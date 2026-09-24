@@ -12,11 +12,13 @@
 //   8. task_class closed enum (InvalidTaskClass S31)
 //   9. invocation_mode closed enum (InvalidInvocationMode)
 //
-// Note: This implementation does NOT actually emit events to an IInteractionBus
-// (Batch 1 stub). The event types are documented in ADR-0068 v2.4 + spec R8/R9/R13.
-// Full event emission wires in Task 5 (Batch 2) when IInteractionBus is plumbed in.
+// T6.8a closure gate: 4 ADR-0068 v2.4 events emitted via IInteractionBus when
+// non-null.  See tasks.md T6.8a design_deviation block for full fix history.
 
 #include "context_request.h"
+
+#include <agenticdsl/contract/event_builder.h>
+#include <agenticdsl/contract/iinteraction_bus.h>
 
 #include <algorithm>
 #include <fstream>
@@ -31,30 +33,24 @@ namespace pdk_chat_demo_evolution {
 
 namespace {
 
-// Per P0'-1: prefix-rejection runs BEFORE closed-enum validation
-const std::vector<std::string> RESERVED_PREFIXES = {"mutation_metric_"};
+const std::vector<std::string> RervedPrefixes = {"mutation_metric_"};
 
-// Per P0'-2: parser-side regex (not LLM-mediated)
 const std::regex HINT_PATTERN(R"(the answer is \w+)");
 
-// Per P0-6: keyword-rejection for R9.3 (defer Wave 4)
 const std::regex NETWORK_KEYWORD(R"(fetch http://)");
 
-// Closed enum per R13.1 (with `other` fallback per P0-7)
-const std::set<std::string> VALID_TASK_CLASSES = {
+const std::set<std::string> ValidTaskClasses = {
     "code_gen", "research", "summary", "debug", "classify", "other"
 };
 
-const std::set<std::string> VALID_INVOCATION_MODES = {
+const std::set<std::string> ValidInvocationModes = {
     "mock", "real_llm_deepseek", "real_llm_custom"
 };
 
-// Generate a v4 UUID (simple version, no external dep)
 std::string generate_uuid_v4() {
     static thread_local std::mt19937_64 rng{std::random_device{}()};
     uint64_t a = rng();
     uint64_t b = rng();
-    // Set version (4) and variant (10) bits
     a = (a & 0xFFFFFFFFFFFF0FFFULL) | 0x0000000000004000ULL;
     b = (b & 0x3FFFFFFFFFFFFFFFULL) | 0x8000000000000000ULL;
     char buf[37];
@@ -67,10 +63,22 @@ std::string generate_uuid_v4() {
     return std::string(buf);
 }
 
+std::string truncate_preview(const std::string& s, size_t n) {
+    return s.size() <= n ? s : s.substr(0, n);
+}
+
+void emit_l2_event(agenticdsl::IInteractionBus* bus,
+                   const std::string& topic,
+                   const nlohmann::json& args) {
+    if (!bus) return;
+    bus->emit(agenticdsl::EventBuilder(topic).args(args).build());
+}
+
 }  // namespace
 
 std::vector<ContextRequest> load_context_file(const std::string& path,
-                                              std::vector<LoadError>& errors) {
+                                              std::vector<LoadError>& errors,
+                                              agenticdsl::IInteractionBus* bus) {
     std::vector<ContextRequest> out;
     std::ifstream f(path);
     if (!f) {
@@ -85,7 +93,6 @@ std::vector<ContextRequest> load_context_file(const std::string& path,
         ++line_no;
         if (line.empty()) continue;
 
-        // Strip UTF-8 BOM if present (nlohmann::json doesn't handle BOM)
         if (line_no == 1 && line.size() >= 3 &&
             static_cast<unsigned char>(line[0]) == 0xEF &&
             static_cast<unsigned char>(line[1]) == 0xBB &&
@@ -121,15 +128,25 @@ std::vector<ContextRequest> load_context_file(const std::string& path,
             continue;
         }
 
-        // 4. P0'-2 hint regex (R9.1)
+        // 4. P0'-2 hint regex (R9.1) + emit hint_containment_rejected
         if (std::regex_search(r.turn_input, HINT_PATTERN)) {
+            emit_l2_event(bus, "hint_containment_rejected", {
+                {"context_id", r.context_id},
+                {"turn_input_preview", truncate_preview(r.turn_input, 100)},
+                {"matched_pattern", "the_answer_is_word"}
+            });
             errors.push_back({LoadResult::HintContained,
                               "hint pattern detected", line_no, r.context_id});
             continue;
         }
 
-        // 5. P0-6 network keyword (R9.3)
+        // 5. P0-6 network keyword (R9.3) + emit turn_input_network_keyword_rejected
         if (std::regex_search(r.turn_input, NETWORK_KEYWORD)) {
+            emit_l2_event(bus, "turn_input_network_keyword_rejected", {
+                {"context_id", r.context_id},
+                {"turn_input_preview", truncate_preview(r.turn_input, 100)},
+                {"keyword", "fetch_http"}
+            });
             errors.push_back({LoadResult::NetworkKeywordContained,
                               "network keyword detected", line_no, r.context_id});
             continue;
@@ -142,11 +159,16 @@ std::vector<ContextRequest> load_context_file(const std::string& path,
         }
         r.task_class = j["task_class"];
 
-        // 7. P0'-1 prefix-rejection BEFORE enum (R9.2)
+        // 7. P0'-1 prefix-rejection BEFORE enum (R9.2) + emit mutation_metric_rejected
         bool is_prefix_reserved = false;
-        for (const auto& p : RESERVED_PREFIXES) {
+        for (const auto& p : RervedPrefixes) {
             if (r.task_class.compare(0, p.size(), p) == 0) {
                 is_prefix_reserved = true;
+                emit_l2_event(bus, "mutation_metric_rejected", {
+                    {"context_id", r.context_id},
+                    {"task_class_preview", r.task_class},
+                    {"reason", std::string("R9.2 prefix-rejection (reserved: ") + p + ")"}
+                });
                 errors.push_back({LoadResult::PrefixRejected,
                                   "reserved prefix: " + p, line_no, r.context_id});
                 break;
@@ -155,7 +177,7 @@ std::vector<ContextRequest> load_context_file(const std::string& path,
         if (is_prefix_reserved) continue;
 
         // 8. task_class closed enum (S31)
-        if (VALID_TASK_CLASSES.find(r.task_class) == VALID_TASK_CLASSES.end()) {
+        if (ValidTaskClasses.find(r.task_class) == ValidTaskClasses.end()) {
             errors.push_back({LoadResult::InvalidTaskClass,
                               r.task_class, line_no, r.context_id});
             continue;
@@ -164,21 +186,19 @@ std::vector<ContextRequest> load_context_file(const std::string& path,
         // 9. invocation_mode (optional)
         if (j.contains("invocation_mode") && j["invocation_mode"].is_string()) {
             r.invocation_mode = j["invocation_mode"];
-            if (VALID_INVOCATION_MODES.find(r.invocation_mode) ==
-                VALID_INVOCATION_MODES.end()) {
+            if (ValidInvocationModes.find(r.invocation_mode) ==
+                ValidInvocationModes.end()) {
                 errors.push_back({LoadResult::InvalidInvocationMode,
                                   r.invocation_mode, line_no, r.context_id});
                 continue;
             }
         }
 
-        // Optional expected_eval_quality
         if (j.contains("expected_eval_quality") &&
             j["expected_eval_quality"].is_string()) {
             r.expected_eval_quality = j["expected_eval_quality"];
         }
 
-        // Metadata (optional, 4 sub-fields per spec)
         if (j.contains("metadata") && j["metadata"].is_object()) {
             const auto& m = j["metadata"];
             if (m.contains("domain") && m["domain"].is_string()) {
@@ -195,6 +215,16 @@ std::vector<ContextRequest> load_context_file(const std::string& path,
             if (m.contains("sensitivity") && m["sensitivity"].is_string()) {
                 r.metadata.sensitivity = m["sensitivity"];
             }
+
+            // R13.4 (P0 + P2-3 MUST): is_hidden=true → accept + emit hidden_context_accepted_info
+            if (r.metadata.is_hidden) {
+                emit_l2_event(bus, "hidden_context_accepted_info", {
+                    {"context_id", r.context_id},
+                    {"task_class", r.task_class},
+                    {"is_hidden", true},
+                    {"bucket", "hidden"}
+                });
+            }
         }
 
         out.push_back(std::move(r));
@@ -207,7 +237,7 @@ nlohmann::json to_trace_meta(const ContextRequest& req) {
         {"context_id", req.context_id},
         {"task_class", req.task_class},
         {"is_hidden", req.metadata.is_hidden},
-        {"hidden_bucket", req.metadata.is_hidden},  // dual-field per R13.4 P2-3
+        {"hidden_bucket", req.metadata.is_hidden},
         {"sensitivity", req.metadata.sensitivity},
         {"expected_eval_quality", req.expected_eval_quality.value_or("")},
         {"trace_id", generate_uuid_v4()},

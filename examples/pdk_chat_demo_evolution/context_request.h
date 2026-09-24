@@ -29,6 +29,10 @@
 #include <string>
 #include <vector>
 
+namespace agenticdsl {
+class IInteractionBus;
+}
+
 namespace pdk_chat_demo_evolution {
 
 struct ContextRequest {
@@ -67,8 +71,11 @@ struct LoadError {
 
 // Load JSONL file line-by-line; return accepted ContextRequests + structured errors.
 // Per R13: 3 prefix/keyword rejections run BEFORE closed-enum validation (P0'-1 invariant).
+// bus: optional IInteractionBus for ADR-0068 v2.4 event emission (T6.8a closure gate).
+//       nullptr fallback preserves backward compat with existing call sites.
 std::vector<ContextRequest> load_context_file(const std::string& path,
-                                              std::vector<LoadError>& errors);
+                                              std::vector<LoadError>& errors,
+                                              agenticdsl::IInteractionBus* bus = nullptr);
 
 // Convert a ContextRequest into the trace JSONL meta field (8 top + meta fields per R3).
 // Per R13.4 P2-3: emits dual is_hidden + hidden_bucket fields for hidden contexts.

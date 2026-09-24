@@ -11,7 +11,9 @@ add_executable(pdk_chat_demo_evolution
     # Task 3: context_request.cpp
     context_request.cpp
     # Task 4: evolution_tracer.cpp
+    evolution_tracer.cpp
     # Task 5: evolution_session.cpp + to_agent_config.cpp (L2 internal helper)
+    evolution_session.cpp
 )
 
 target_include_directories(pdk_chat_demo_evolution PRIVATE

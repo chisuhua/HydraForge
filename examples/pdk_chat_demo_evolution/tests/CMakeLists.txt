@@ -35,4 +35,15 @@ add_l2_test(test_hermetic_home test_hermetic_home.cpp
 add_l2_test(test_context_request_validation test_context_request_validation.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../context_request.cpp)
 
-# Tests 3-10 will be added in Tasks 6-8
+# --- Test 3: evolution_tracer_schema (Task 4) ---
+add_l2_test(test_evolution_tracer_schema test_evolution_tracer_schema.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../evolution_tracer.cpp)
+
+# --- Test 4: evolution_session_mutation (Task 5, Case 1 mock mutation) ---
+add_l2_test(test_evolution_session_mutation test_evolution_session_mutation.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../evolution_session.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../evolution_tracer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../hermetic_home.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../context_request.cpp)
+
+# Tests 5-10 will be added in Tasks 5-8
