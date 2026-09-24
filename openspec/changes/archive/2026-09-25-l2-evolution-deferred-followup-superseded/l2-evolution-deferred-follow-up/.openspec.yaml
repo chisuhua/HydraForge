@@ -1,0 +1,6 @@
+slug: l2-evolution-deferred-follow-up
+status: proposed
+created: 2026-09-24
+title: "L2 Evolution Deferred Follow-up: Wave 4 Sandbox + R8 Full Metrics + workflow_patch"
+dependencies: [pdk-chat-demo-evolution-reference-example]
+tags: [l2, evolution, wave4, r8, r9, anti-cheat]
