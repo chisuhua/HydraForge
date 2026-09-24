@@ -37,10 +37,10 @@ void register_session_clone_tool(agenticdsl::IToolRegistry& registry) {
         std::ostringstream ss;
         ss << "clone-" << now;
         auto new_session_id = ss.str();
-        fs::path src = g_session_manager->dir_ /
-                       (g_session_manager->current_session_id_ +
+        fs::path src = g_session_manager->dir() /
+                       (g_session_manager->current_session_id() +
                         std::string(agenticdsl::kSessionFileExt));
-        fs::path dst = g_session_manager->dir_ /
+        fs::path dst = g_session_manager->dir() /
                        (new_session_id + std::string(agenticdsl::kSessionFileExt));
         if (fs::exists(src)) {
           fs::copy_file(src, dst, fs::copy_options::overwrite_existing);
