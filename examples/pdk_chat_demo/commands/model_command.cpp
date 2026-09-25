@@ -27,7 +27,7 @@ hydraforge::pdk::CommandSpec make_model_command_spec() {
       return "Usage: /model <provider_name>[/<model_name>]";
     }
     if (g_command_session->request_model_switch(provider_name)) {
-      return "Model switched to " + provider_name + " (next turn)";
+      return "Recorded model preference: " + provider_name + ". Note: actual provider switch is not yet wired (see README D2).";
     }
     return "error: model switch rejected (e.g., mock mode + non-mock provider)";
   };

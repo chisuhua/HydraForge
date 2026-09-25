@@ -11,6 +11,7 @@
 #include <agenticdsl/contract/event_builder.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <agenticdsl/contract/inmemory_bus.h>
+#include <common/tools/registry.h>
 #include <core/engine.h>
 #include <core/types/budget.h>
 #include <modules/budget/budget_controller.h>
@@ -23,6 +24,43 @@
 #include <vector>
 
 using namespace hydraforge::pdk;
+
+// helper: 注册 mock loop/run（test_chat_session_events 需 mock 否则 loop/run 工具未注册导致 chat() 失败）
+static void register_mock_loop_run(agenticdsl::ToolRegistry& reg, bool return_error = false) {
+    reg.register_tool_function(
+        "loop/run",
+        agenticdsl::ToolMetadata{
+            .name = "loop/run",
+            .description = "mock loop/run for test",
+            .domain = "loop",
+            .category = agenticdsl::ToolCategory::Execute,
+            .min_layer = agenticdsl::LayerProfile::Workflow,
+            .approval = agenticdsl::ApprovalPolicy{
+                .requires_approval_in_plan = false,
+                .requires_approval_in_agent = true,
+                .requires_approval_in_yolo = false,
+                .force_approval_always = false},
+            .allowed_layers = {agenticdsl::LayerProfile::Workflow}},
+        [return_error](const std::unordered_map<std::string, std::string>&) -> nlohmann::json {
+            if (return_error) {
+                return nlohmann::json{{"ok", false},
+                                      {"success", false},
+                                      {"error_code", "BudgetExceeded"},
+                                      {"error", "budget exceeded"},
+                                      {"response", ""},
+                                      {"steps", 0},
+                                      {"tokens_used", 0},
+                                      {"cost_usd", 0.0}};
+            }
+            return nlohmann::json{{"ok", true},
+                                   {"success", true},
+                                   {"error_code", nullptr},
+                                   {"response", ""},
+                                   {"steps", 1},
+                                   {"tokens_used", 0},
+                                   {"cost_usd", 0.0}};
+        });
+}
 
 namespace {
 
@@ -58,7 +96,9 @@ TEST_CASE("ChatSession emits session.persisted after successful save", "[chat_se
     SessionConfig session_cfg;
     session_cfg.persist_dir = tmp.str();
 
-    ChatSession session(&engine, bus, &engine.get_tool_registry(), agent_cfg, session_cfg);
+    agenticdsl::ToolRegistry local_registry;
+    register_mock_loop_run(local_registry);
+    ChatSession session(&engine, bus, &local_registry, agent_cfg, session_cfg);
 
     bool found_persisted = false;
     std::string persisted_path;
@@ -109,7 +149,9 @@ TEST_CASE("ChatSession emits user.input via EventBuilder", "[chat_session][event
     SessionConfig session_cfg;
     session_cfg.persist_dir = "";  // 不触发持久化
 
-    ChatSession session(&engine, bus, &engine.get_tool_registry(), agent_cfg, session_cfg);
+    agenticdsl::ToolRegistry local_registry;
+    register_mock_loop_run(local_registry);
+    ChatSession session(&engine, bus, &local_registry, agent_cfg, session_cfg);
 
     const std::string user_input = "hello world";
     bool found_user_input = false;
@@ -136,7 +178,9 @@ TEST_CASE("ChatSession emits loop.done via EventBuilder", "[chat_session][event]
     SessionConfig session_cfg;
     session_cfg.persist_dir = "";
 
-    ChatSession session(&engine, bus, &engine.get_tool_registry(), agent_cfg, session_cfg);
+    agenticdsl::ToolRegistry local_registry;
+    register_mock_loop_run(local_registry);
+    ChatSession session(&engine, bus, &local_registry, agent_cfg, session_cfg);
 
     bool found_loop_done = false;
     bus->subscribe("loop.done", [&](const agenticdsl::BusEvent& ev) {
@@ -165,7 +209,9 @@ TEST_CASE("ChatSession emits session.persist_request via EventBuilder", "[chat_s
     SessionConfig session_cfg;
     session_cfg.persist_dir = tmp.str();
 
-    ChatSession session(&engine, bus, &engine.get_tool_registry(), agent_cfg, session_cfg);
+    agenticdsl::ToolRegistry local_registry;
+    register_mock_loop_run(local_registry);
+    ChatSession session(&engine, bus, &local_registry, agent_cfg, session_cfg);
 
     bool found_request = false;
     bus->subscribe("session.persist_request", [&](const agenticdsl::BusEvent& ev) {
@@ -203,7 +249,9 @@ TEST_CASE("ChatSession emits budget.checked via EventBuilder when exceeded", "[c
     SessionConfig session_cfg;
     session_cfg.persist_dir = tmp.str();
 
-    ChatSession session(&engine, bus, &engine.get_tool_registry(), agent_cfg, session_cfg);
+    agenticdsl::ToolRegistry local_registry;
+    register_mock_loop_run(local_registry, true);
+    ChatSession session(&engine, bus, &local_registry, agent_cfg, session_cfg);
 
     bool found_budget_checked = false;
     bus->subscribe("budget.checked", [&](const agenticdsl::BusEvent& ev) {

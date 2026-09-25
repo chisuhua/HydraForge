@@ -644,12 +644,7 @@ int main(int argc, char* argv[]) {
     //    dangling function pointer → SIGSEGV
     // ============================================================
     bus->emit(agenticdsl::EventBuilder("app.shutdown").build());
-    // 跳出局部 scope 以销毁 ChatSession 和 DSLEngine
-    //（它们的析构函数会清理 ToolRegistry 中的 plugin 引用）
-    {
-        hydraforge::pdk::ChatSession discard(nullptr, nullptr, nullptr, {}, {});
-        guard.reset_engine();
-    }
+    guard.reset_engine();
     unload_all_plugins(loader);
     std::cout << std::endl << "[main] Goodbye!" << std::endl;
 
