@@ -1,5 +1,25 @@
 # Proposal: Fix Flatten Layers Comment Drift
 
+> ## 📦 Cancellation Note (2026-09-25)
+>
+> **STATUS**: ❌ **CANCELLED PLACEHOLDER** (7 days inactive, 2026-09-18 → 2026-09-25)
+>
+> **Reason** (per Single-Dev 串行纪律 + Pattern #10 hygiene, 2026-09-25):
+> - F1 `fix-react-decide-empty-response` SHIPPED (2026-09-18, commits `a96842e` + `9dc3ac8`) **已闭环 4/5 个 Acceptance 项** (D1 code comments / D2 plan docs / D4 test comments / D5 docs drift gate), 详见 Oracle `ses_f4d05cdb0` + `ses_f4c6e14f` 累计审计
+> - 仅 D3 (AGENTS.md Pattern #1 step 4 "初判与确认根因分离" 子条目) 边际价值不足, 待独立的"初判错"future case study 出现时按需补充 (走 `add-improve` skill)
+> - 7 天 PLACEHOLDER 状态未推进, 污染 `openspec/changes/` active 列表 (WIP 上限 2, 本周被 DECISION B/C 路径占满)
+>
+> **Re-trigger**: 见 `.rddf/improvements/fix-flatten-layers-comment-drift.md` (D3 唯一遗留 follow-up tracker)
+>
+> **Verification** (Sprint 36 / 2026-09-25 grep):
+> - ✅ `tests/test_dsl_engine_ctx_bridge.cpp:3` 已含 "Oracle ses_f4d05cdb0 纠正根因: flatten_layers 不在 react.agent.md 执行路径上"
+> - ✅ `docs/roadmap/2026-09-16-pdk-chat-demo-evolution-roadmap.md` §四 L619-620 / §十一 L1139 / §三.5 L1163 均用 "**初判（错）**" + Oracle `ses_f4d05cdb0` cite
+> - ✅ `openspec validate` 通过 (Functional ship-ready state)
+
+---
+
+## Original Proposal (Preserved)
+
 > **STATUS: PLACEHOLDER** ⚠️
 > **触发**: F1 `fix-react-decide-empty-response` SHIPPED 后 (2026-09-18) 残留 drift
 > **追溯范围**: `docs/roadmap/2026-09-16-pdk-chat-demo-evolution-roadmap.md` §四 F1 子节 + §十 Drift Log + 各种 code comments
