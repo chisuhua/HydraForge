@@ -47,6 +47,19 @@ const std::set<std::string> ValidInvocationModes = {
     "mock", "real_llm_deepseek", "real_llm_custom"
 };
 
+std::string truncate_preview(const std::string& s, size_t n) {
+    return s.size() <= n ? s : s.substr(0, n);
+}
+
+void emit_l2_event(agenticdsl::IInteractionBus* bus,
+                   const std::string& topic,
+                   const nlohmann::json& args) {
+    if (!bus) return;
+    bus->emit(agenticdsl::EventBuilder(topic).args(args).build());
+}
+
+}  // namespace
+
 std::string generate_uuid_v4() {
     static thread_local std::mt19937_64 rng{std::random_device{}()};
     uint64_t a = rng();
@@ -62,19 +75,6 @@ std::string generate_uuid_v4() {
                   static_cast<unsigned long long>(b & 0xFFFFFFFFFFFFULL));
     return std::string(buf);
 }
-
-std::string truncate_preview(const std::string& s, size_t n) {
-    return s.size() <= n ? s : s.substr(0, n);
-}
-
-void emit_l2_event(agenticdsl::IInteractionBus* bus,
-                   const std::string& topic,
-                   const nlohmann::json& args) {
-    if (!bus) return;
-    bus->emit(agenticdsl::EventBuilder(topic).args(args).build());
-}
-
-}  // namespace
 
 std::vector<ContextRequest> load_context_file(const std::string& path,
                                               std::vector<LoadError>& errors,

@@ -34,32 +34,30 @@ constexpr const char* kUsage =
     "  --context-file <path.jsonl>      ContextRequest JSONL file (R13.1 schema)\n"
     "\n"
     "R1 (Provider / mode):\n"
-    "  --provider <mock|deepseek|custom>  LLM provider (default: mock)\n"
+    "  --real-llm <provider>             Real LLM provider (default: mock via --mock)\n"
     "  --capture-mode <None|Training>    Distillation capture mode (default: None)\n"
     "  --trace-events                    Emit 4-phase trace JSONL to stdout\n"
-    "  --mock                            Shortcut for --provider mock\n"
+    "  --mock                            Shortcut for --real-llm mock\n"
     "\n"
     "R8 (Reverse indicators):\n"
     "  --release-metrics                 Verify drop_ratio <= 5% (S40); exit\n"
     "                                    non-zero if exceeded\n"
     "  --ablation-mode=<full|none>       Emit ablation_report.json (R8.3);\n"
     "                                    full=write, none=skip (default: none)\n"
-    "  --failure-event-format=<v1|v2>    Failure event schema (default: v1)\n"
     "\n"
     "R13 helper:\n"
-    "  --accept-contexts=<list>          Comma-separated context_ids to run;\n"
-    "                                    empty=all=run all (default: all)\n"
+    "  --accept-contexts=<list>         Comma-separated context_ids;\n"
+    "                                    outputs diagnostic list to stderr\n"
     "\n"
     "Per S28: missing --context-file -> exit non-zero + stderr 'L2 zero-hardcode'\n";
 
 struct Options {
     std::string context_file;
-    std::string provider = "mock";
+    std::string real_llm;
     std::string capture_mode = "None";
     bool trace_events = false;
     bool release_metrics = false;
     std::string ablation_mode = "none";
-    std::string failure_event_format = "v1";
     std::vector<std::string> accept_contexts;
     bool show_help = false;
     bool parse_error = false;
@@ -111,31 +109,28 @@ Options parse_args(int argc, char** argv) {
     Options opts;
     for (int i = 1; i < argc; ++i) {
         std::string v;
+        bool dummy_bool = false;
         // Try --flag=VALUE syntax first (no advance needed)
         if (parse_flag_value_eq(argv[i], "--context-file", v)) {
             opts.context_file = v;
         } else if (parse_flag_value_next(i, argc, argv, "--context-file", v, opts.parse_error)) {
             opts.context_file = v;
-        } else if (parse_flag_value_eq(argv[i], "--provider", v)) {
-            opts.provider = v;
-        } else if (parse_flag_value_next(i, argc, argv, "--provider", v, opts.parse_error)) {
-            opts.provider = v;
+        } else if (parse_flag_value_eq(argv[i], "--real-llm", v)) {
+            opts.real_llm = v;
+        } else if (parse_flag_value_next(i, argc, argv, "--real-llm", v, opts.parse_error)) {
+            opts.real_llm = v;
         } else if (parse_flag_value_eq(argv[i], "--capture-mode", v)) {
             opts.capture_mode = v;
         } else if (parse_flag_value_next(i, argc, argv, "--capture-mode", v, opts.parse_error)) {
             opts.capture_mode = v;
         } else if (parse_flag_bool(argv[i], "--trace-events", opts.trace_events)) {
-        } else if (parse_flag_bool(argv[i], "--mock", opts.trace_events)) {
-            opts.provider = "mock";
+        } else if (parse_flag_bool(argv[i], "--mock", dummy_bool)) {
+            opts.real_llm = "mock";
         } else if (parse_flag_bool(argv[i], "--release-metrics", opts.release_metrics)) {
         } else if (parse_flag_value_eq(argv[i], "--ablation-mode", v)) {
             opts.ablation_mode = v;
         } else if (parse_flag_value_next(i, argc, argv, "--ablation-mode", v, opts.parse_error)) {
             opts.ablation_mode = v;
-        } else if (parse_flag_value_eq(argv[i], "--failure-event-format", v)) {
-            opts.failure_event_format = v;
-        } else if (parse_flag_value_next(i, argc, argv, "--failure-event-format", v, opts.parse_error)) {
-            opts.failure_event_format = v;
         } else if (parse_flag_value_eq(argv[i], "--accept-contexts", v)) {
             opts.accept_contexts = split_csv(v);
         } else if (parse_flag_value_next(i, argc, argv, "--accept-contexts", v, opts.parse_error)) {
@@ -190,29 +185,24 @@ int main(int argc, char** argv) {
         return 4;
     }
 
-    // R13 helper: filter by --accept-contexts
-    if (!opts.accept_contexts.empty()) {
-        std::vector<pdk_chat_demo_evolution::ContextRequest> filtered;
-        for (const auto& c : contexts) {
-            for (const auto& accepted : opts.accept_contexts) {
-                if (c.context_id == accepted) {
-                    filtered.push_back(c);
-                    break;
-                }
-            }
-        }
-        contexts = std::move(filtered);
-    }
-
     // Setup hermetic HOME (Batch 1 P0'-4 foundation)
     auto* guard = pdk_chat_demo_evolution::detail::setup_hermetic_home();
 
     pdk_chat_demo_evolution::EvolutionSession session(
-        opts.provider, opts.capture_mode, opts.trace_events);
+        opts.real_llm, opts.capture_mode, opts.trace_events);
     session.set_contexts(contexts);
     session.set_hermetic_home(guard);
 
     int rc = session.run_6_phase_demo();
+
+    if (!opts.accept_contexts.empty()) {
+        std::cerr << "[accept-contexts] accepted contexts:" << std::endl;
+        for (const auto& id : opts.accept_contexts) {
+            std::cerr << "  context_id=" << id << std::endl;
+        }
+    } else {
+        std::cerr << "[accept-contexts] accepted: all (" << contexts.size() << " contexts)" << std::endl;
+    }
 
     pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
 

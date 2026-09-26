@@ -67,7 +67,7 @@ void EvolutionSession::phase1_init() {
 }
 
 void EvolutionSession::phase2_baseline(const ContextRequest& ctx) {
-    nlohmann::json event = {{"meta", build_meta(ctx, 0, 0, "Baseline")}};
+    nlohmann::json event = {{"meta", build_meta(ctx, 0, 0, "NotAttempted")}};
     tracer_->record_phase(TracePhase::Baseline, event);
 }
 
@@ -103,7 +103,7 @@ nlohmann::json EvolutionSession::build_meta(const ContextRequest& ctx,
         {"hidden_bucket", ctx.metadata.is_hidden},
         {"sensitivity", ctx.metadata.sensitivity},
         {"expected_eval_quality", ctx.expected_eval_quality.value_or("")},
-        {"trace_id", std::string("trace-") + ctx.context_id},
+        {"trace_id", generate_uuid_v4()},
         {"capture_mode", capture_mode_str_},
         {"genome_version", genome_version},
         {"gate_passes", gate_passes},

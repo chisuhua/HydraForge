@@ -38,14 +38,13 @@ export DEEPSEEK_API_KEY=sk-...
 | Flag | R-class | Default | Description |
 |------|---------|---------|-------------|
 | `--context-file <path.jsonl>` | R1 (req) | — | ContextRequest JSONL file (R13.1 schema) |
-| `--provider <mock\|deepseek\|custom>` | R1 | `mock` | LLM provider |
+| `--real-llm <mock\|deepseek\|custom>` | R1 | — | LLM provider (per spec R1; CLI string only, real wiring is Change 2 scope) |
 | `--capture-mode <None\|Training>` | R1 | `None` | Distillation capture mode |
 | `--trace-events` | R1 | off | Emit 4-phase trace JSONL to stdout |
-| `--mock` | R1 | off | Shortcut for `--provider mock` |
-| `--release-metrics` | R8 | off | Verify `drop_ratio <= 5%` (S40); exit non-zero if exceeded |
+| `--mock` | R1 | off | Shortcut for `--real-llm mock` (does NOT enable trace-events) |
+| `--release-metrics` | R8 | off | Verify `drop_ratio <= 5%` (S40); stub in Change 1, real wiring in Change 2 |
 | `--ablation-mode=<full\|none>` | R8 | `none` | Emit `ablation_report.json` (R8.3) |
-| `--failure-event-format=<v1\|v2>` | R8 | `v1` | Failure event schema |
-| `--accept-contexts=<list>` | R13 | all | Comma-separated context_ids to run |
+| `--accept-contexts=<list>` | R13 | all | Diagnostic stderr list (spec R13.4); does NOT filter run set |
 
 ## 14 fixture catalog (3 SHIPPED + 11 test)
 

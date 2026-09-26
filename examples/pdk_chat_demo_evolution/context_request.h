@@ -81,4 +81,7 @@ std::vector<ContextRequest> load_context_file(const std::string& path,
 // Per R13.4 P2-3: emits dual is_hidden + hidden_bucket fields for hidden contexts.
 nlohmann::json to_trace_meta(const ContextRequest& req);
 
+// Generate a random UUID v4 string (used for trace_id in build_meta).
+std::string generate_uuid_v4();
+
 }  // namespace pdk_chat_demo_evolution

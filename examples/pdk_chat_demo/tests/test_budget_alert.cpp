@@ -26,8 +26,45 @@
 #include <core/engine.h>
 #include <modules/budget/budget_controller.h>
 #include <common/llm/mock_provider.h>
+#include <common/tools/registry.h>
 
 using namespace hydraforge::pdk;
+
+static void register_mock_loop_run(agenticdsl::ToolRegistry& reg, bool return_error = false) {
+    reg.register_tool_function(
+        "loop/run",
+        agenticdsl::ToolMetadata{
+            .name = "loop/run",
+            .description = "mock loop/run for test",
+            .domain = "loop",
+            .category = agenticdsl::ToolCategory::Execute,
+            .min_layer = agenticdsl::LayerProfile::Workflow,
+            .approval = agenticdsl::ApprovalPolicy{
+                .requires_approval_in_plan = false,
+                .requires_approval_in_agent = true,
+                .requires_approval_in_yolo = false,
+                .force_approval_always = false},
+            .allowed_layers = {agenticdsl::LayerProfile::Workflow}},
+        [return_error](const std::unordered_map<std::string, std::string>&) -> nlohmann::json {
+            if (return_error) {
+                return nlohmann::json{{"ok", false},
+                                      {"success", false},
+                                      {"error_code", "BudgetExceeded"},
+                                      {"error", "budget exceeded"},
+                                      {"response", ""},
+                                      {"steps", 0},
+                                      {"tokens_used", 0},
+                                      {"cost_usd", 0.0}};
+            }
+            return nlohmann::json{{"ok", true},
+                                   {"success", true},
+                                   {"error_code", nullptr},
+                                   {"response", ""},
+                                   {"steps", 1},
+                                   {"tokens_used", 0},
+                                   {"cost_usd", 0.0}};
+        });
+}
 
 namespace {
 
@@ -80,7 +117,9 @@ TEST_CASE("budget alert: exceeded triggers budget.checked event", "[budget][aler
     SessionConfig sess;
     sess.persist_dir = "";
 
-    ChatSession session(engine.get(), bus, &engine->get_tool_registry(), agent, sess);
+    agenticdsl::ToolRegistry local_registry;
+    register_mock_loop_run(local_registry, true);
+    ChatSession session(engine.get(), bus, &local_registry, agent, sess);
 
     // 使用 MockLLMProvider 避免真实 LLM 调用
     auto mock = std::make_unique<agenticdsl::MockLLMProvider>();
@@ -128,7 +167,9 @@ TEST_CASE("budget alert: exactly at limit does not alert", "[budget][alert]") {
     SessionConfig sess;
     sess.persist_dir = "";
 
-    ChatSession session(engine.get(), bus, &engine->get_tool_registry(), agent, sess);
+    agenticdsl::ToolRegistry local_registry;
+    register_mock_loop_run(local_registry, false);
+    ChatSession session(engine.get(), bus, &local_registry, agent, sess);
 
     auto mock = std::make_unique<agenticdsl::MockLLMProvider>();
     mock->enqueue_response(R"({"content":"hello","tool_calls":[]})");
@@ -154,7 +195,9 @@ TEST_CASE("budget alert: bus callback does not touch TUI directly", "[budget][al
     SessionConfig sess;
     sess.persist_dir = "";
 
-    ChatSession session(engine.get(), bus, &engine->get_tool_registry(), agent, sess);
+    agenticdsl::ToolRegistry local_registry;
+    register_mock_loop_run(local_registry, false);
+    ChatSession session(engine.get(), bus, &local_registry, agent, sess);
 
     // budget_alert_flag_ 初始为 false
     REQUIRE_FALSE(session.consume_budget_alert());
@@ -209,7 +252,9 @@ TEST_CASE("budget alert: payload includes required fields", "[budget][alert]") {
     SessionConfig sess;
     sess.persist_dir = "";
 
-    ChatSession session(engine.get(), bus, &engine->get_tool_registry(), agent, sess);
+    agenticdsl::ToolRegistry local_registry;
+    register_mock_loop_run(local_registry, false);
+    ChatSession session(engine.get(), bus, &local_registry, agent, sess);
 
     auto mock = std::make_unique<agenticdsl::MockLLMProvider>();
     mock->enqueue_response(R"({"content":"hi","tool_calls":[]})");

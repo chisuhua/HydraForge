@@ -62,7 +62,7 @@ case "$MODE" in
             echo "ERROR: DEEPSEEK_API_KEY required for real-llm mode" >&2
             exit 2
         fi
-        "$BINARY" --provider real_llm_deepseek --context-file "$CTX" "${EXTRA_ARGS[@]}"
+        "$BINARY" --real-llm real_llm_deepseek --context-file "$CTX" "${EXTRA_ARGS[@]}"
         ;;
     *)
         echo "Usage: $0 <mock|real-llm> [context-file.jsonl] [extra-flags...]" >&2
