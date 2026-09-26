@@ -21,7 +21,7 @@ SHIP-with-fixes verdict, the L2 reference example binary
   - `--ablation-mode=full` — flag parsed but ablation_report.json never written
   - capture-mode=Training — IDistillationWriter not wired
   - `--real-llm` mode — only stores string, no LLMProviderFactory path
-  - `--regression-test-suite` — spec R1 9th flag
+  - `--regression-test-suite` — **already deleted in commit `f456336`** (not stubbed); CLI ships with 9 flags = 8 existing + --metrics-output (this change)
 
 - **Housekeeping debt accumulated during Sprint 36**:
   - `build/tests/` + `build/examples-tests/` nested CMake configure residue
@@ -113,12 +113,12 @@ prevents spec-vs-impl drift from accumulating further.
 |-------|--------------|-------------------------|
 | Phase 0 Housekeeping | 1 SP | 0.5 day |
 | Phase 1 phase5_compare | 3 SP | 1 day |
-| Phase 2 phase3_mutation | 5 SP | 2 days |
+| Phase 2 phase3_mutation | **6 SP** (+0.5 day vs initial — Oracle M6 finding: seed commit + bootstrap attribution + budget controller + attribution/evaluator/budget/bus 6 required fields + Result handling) | 2.5 days |
 | Phase 3 phase4_reload_rerun | 5 SP | 2 days |
 | Phase 4 metrics path | 2 SP | 0.5 day |
 | Phase 5 capture-mode | 3 SP | 1 day |
 | Phase 6 commit + sync | 1 SP | 0.5 day |
-| **Total** | **~20 SP** | **~1 week** |
+| **Total** | **~21 SP** | **~8 working days (~1.5 weeks)** |
 
 ## Sequencing & Dependencies
 
@@ -132,7 +132,7 @@ prevents spec-vs-impl drift from accumulating further.
 
 - `--real-llm` mode → CloudLLMAdapter (DeepSeek "Insufficient Balance" environment blocker; CI skip via `HYDRAFORGE_SKIP_REAL_LLM=1` 兜底)
 - `--ablation-mode=full` → ablation_report.json (Phase C #6, 3 SP, requires Phase 1+2 done for verdict distribution)
-- `--regression-test-suite` flag (recommended: spec 降级 to 8 flags, lower cost than implementation)
+- `--regression-test-suite` flag — already deleted in commit `f456336` (no action)
 - Wave 3 Phase 2 D4 LoRA training pipeline (separate change after this archive)
 
 ## Oracle Verdict Reference
