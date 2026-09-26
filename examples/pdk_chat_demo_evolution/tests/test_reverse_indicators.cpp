@@ -185,10 +185,10 @@ TEST_CASE("R8 reverse_indicators: attribution_verdict phase-level distribution p
     CHECK(per_ctx_phase_verdict.size() == 3);
     for (const auto& [ctx, phase_verdicts] : per_ctx_phase_verdict) {
         CHECK(phase_verdicts.size() == 4);
-        // Baseline phase -> "Baseline" verdict
+        // Baseline phase -> "NotAttempted" verdict (pre-attribution per spec R4 enum)
         auto it_b = phase_verdicts.find("baseline");
         REQUIRE(it_b != phase_verdicts.end());
-        CHECK(it_b->second == "Baseline");
+        CHECK(it_b->second == "NotAttempted");
         // Mutation/Reload phases -> "Attributed" verdict (Phase B: mutation is still a stub)
         // Compare phase -> "NotAttempted" (honest: single-turn IEvaluator returns NotAttempted
         // due to kMinBaselineSamples=5 per ADR-0086)
@@ -203,6 +203,44 @@ TEST_CASE("R8 reverse_indicators: attribution_verdict phase-level distribution p
             CHECK(it_c->second == "NotAttempted");
         }
     }
+
+    pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
+}
+
+// --- R13.4: confidential/internal sensitivity redacts turn_input + response ---
+TEST_CASE("R13.4 reverse_indicators: confidential sensitivity redacts turn_input",
+          "[l2-evolution]") {
+    auto* guard = pdk_chat_demo_evolution::detail::setup_hermetic_home();
+    REQUIRE(guard != nullptr);
+
+    pdk_chat_demo_evolution::ContextRequest ctx;
+    ctx.context_id = "r13-4-confidential-test-001";
+    ctx.turn_input = "secret internal diagnosis: server room breached";
+    ctx.task_class = "debug";
+    ctx.expected_eval_quality = "Acceptable";
+    ctx.invocation_mode = "mock";
+    ctx.metadata.domain = "internal-infra";
+    ctx.metadata.tags = {"r13-4", "confidential"};
+    ctx.metadata.is_hidden = false;
+    ctx.metadata.sensitivity = "confidential";
+
+    pdk_chat_demo_evolution::EvolutionSession session(
+        "mock", "None", /*trace_events=*/true);
+    session.set_contexts({ctx});
+    session.set_hermetic_home(guard);
+
+    StdoutCapture cap;
+    session.run_6_phase_demo();
+
+    auto events = parse_lines(cap.str());
+    REQUIRE(events.size() >= 1);
+
+    auto baseline = std::find_if(events.begin(), events.end(),
+        [](const auto& e) { return e.value("phase", "") == "baseline"; });
+    REQUIRE(baseline != events.end());
+
+    CHECK(baseline->value("turn_input", "") == "[REDACTED-confidential]");
+    CHECK(baseline->value("response", "") == "[REDACTED-confidential]");
 
     pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
 }

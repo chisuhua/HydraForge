@@ -129,7 +129,8 @@ void EvolutionSession::phase2_baseline(const ContextRequest& ctx) {
         cost = result.cost_usd;
     }
 
-    nlohmann::json meta = build_meta(ctx, 0, 0, "Baseline");
+    // baseline phase is pre-attribution → NotAttempted per spec R4 enum
+    nlohmann::json meta = build_meta(ctx, 0, 0, "NotAttempted");
     nlohmann::json event = {
         {"meta", meta},
         {"turn_input", ctx.turn_input},
@@ -138,6 +139,12 @@ void EvolutionSession::phase2_baseline(const ContextRequest& ctx) {
         {"tokens", tokens},
         {"cost_usd", cost}
     };
+    // R13.4: redact turn_input/response per sensitivity before emit
+    if (!ctx.metadata.sensitivity.empty() &&
+        (ctx.metadata.sensitivity == "internal" ||
+         ctx.metadata.sensitivity == "confidential")) {
+        event = detail::redact_trace_fields(std::move(event), ctx.metadata.sensitivity);
+    }
     tracer_->record_phase(TracePhase::Baseline, event);
     if (ok) last_baseline_response_ = response;
 }
