@@ -1,0 +1,18 @@
+name: l2-evolution-finalization
+status: 🔍 Proposed
+created: 2026-09-26
+type: feature
+priority: P0
+supersedes:
+  - 2026-09-26-l2-evolution-real-execution-chain
+predecessor:
+  - 2026-09-24-pdk-chat-demo-evolution-reference-example (archived 2026-09-24)
+  - 2026-09-26-l2-evolution-real-execution-chain (Phase A+B ship in d42b47b)
+oracle_audit_session: ses_f259746caffe9yK0YoIQ6FOgWp
+supersession_rationale: |
+  Active change `2026-09-26-l2-evolution-real-execution-chain` (created in
+  d42b47b) shipped Phase A+B (real phase1+phase2 + --release-metrics + 3 SoTs
+  ship rows) but explicitly deferred phase3/4/5 + capture-mode + real-llm
+  to "Phase C". This new change picks up exactly those deferred items +
+  housekeeping cleanup, completing the L2 reference example loop end-to-end.
+  After this change ships, the predecessor will be archived.
