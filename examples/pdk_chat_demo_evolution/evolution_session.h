@@ -18,12 +18,15 @@
 #include <string>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
+#include <agenticdsl/pdk/chat_session.h>
+
 #include "context_request.h"
 
+// Forward declarations for types used as unique_ptr members
 namespace agenticdsl {
 class DSLEngine;
-class IInteractionBus;
-class IToolRegistry;
 }  // namespace agenticdsl
 
 namespace pdk_chat_demo_evolution {
@@ -32,6 +35,9 @@ class EvolutionTracer;
 
 namespace detail {
 struct HermeticHomeGuard;
+
+// L2 internal helper: redact trace fields per sensitivity level (R13.4)
+nlohmann::json redact_trace_fields(nlohmann::json event, const std::string& sensitivity);
 }  // namespace detail
 
 class EvolutionSession {
@@ -50,6 +56,11 @@ public:
     void set_hermetic_home(detail::HermeticHomeGuard* g);
 
     agenticdsl::IInteractionBus* bus() const { return bus_.get(); }
+
+    // --release-metrics result accessor (for main.cpp)
+    int baseline_total() const { return baseline_total_; }
+    int baseline_failures() const { return baseline_failures_; }
+    int mutated_passes() const { return mutated_passes_; }
 
 private:
     void phase0_load_contexts();
@@ -73,6 +84,17 @@ private:
     std::unique_ptr<EvolutionTracer> tracer_;
 
     detail::HermeticHomeGuard* hermetic_guard_ = nullptr;
+
+    // Phase B: real wiring members
+    std::unique_ptr<agenticdsl::DSLEngine> engine_;
+    std::unique_ptr<hydraforge::pdk::ChatSession> chat_session_;
+    hydraforge::pdk::AgentConfig agent_cfg_;
+    std::string last_baseline_response_;
+
+    // --release-metrics counters
+    int baseline_total_ = 0;
+    int baseline_failures_ = 0;
+    int mutated_passes_ = 0;
 };
 
 }  // namespace pdk_chat_demo_evolution

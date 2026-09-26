@@ -206,15 +206,38 @@ int main(int argc, char** argv) {
 
     pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
 
-    // R8 release-metrics gate (S40: drop_ratio <= 5%)
-    // Per P0-4 C5: L2 does NOT compute eval_quality; use attribution_verdict
-    // distribution for drop_ratio proxy (per P0'-3 fix).  Without real eval,
-    // assume zero regression (drop_ratio=0%) -> exit 0 unless explicitly
-    // overridden by future R8 implementation.  Stub emits stderr note.
+// R8 release-metrics gate (S40: drop_ratio <= 5%)
+    // Phase B implementation: real drop_ratio from session counters
     if (opts.release_metrics) {
-        std::cerr << "[release-metrics] drop_ratio=0% (eval_quality always "
-                     "null per P0-4 C5; real metrics require IEvaluator V2 wiring "
-                     "in future)" << std::endl;
+        int baseline_total = session.baseline_total();
+        int baseline_failures = session.baseline_failures();
+        int mutated_passes = session.mutated_passes();
+        double drop_ratio = baseline_total > 0
+            ? static_cast<double>(baseline_failures - mutated_passes) / baseline_total
+            : 0.0;
+
+        nlohmann::json metrics;
+        metrics["baseline_total"] = baseline_total;
+        metrics["baseline_failures"] = baseline_failures;
+        metrics["mutated_passes"] = mutated_passes;
+        metrics["drop_ratio"] = drop_ratio;
+        metrics["original_drop_ratio"] = 0.0;
+        metrics["new_up"] = "phase1-2 real execution chain (Phase B)";
+        metrics["old_down"] = "drop_ratio=" + std::to_string(drop_ratio);
+
+        // Write metrics.json
+        std::ofstream mf("metrics.json");
+        if (mf) {
+            mf << metrics.dump(2) << std::endl;
+            std::cerr << "[release-metrics] wrote metrics.json: drop_ratio="
+                      << drop_ratio << " (threshold=5%)" << std::endl;
+        }
+
+        if (drop_ratio > 0.05) {
+            std::cerr << "ERROR: drop_ratio " << drop_ratio
+                      << " > 5% (threshold)" << std::endl;
+            return 1;
+        }
     }
 
     return rc;

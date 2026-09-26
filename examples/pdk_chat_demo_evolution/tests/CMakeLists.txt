@@ -45,6 +45,7 @@ add_l2_test(test_evolution_session_mutation test_evolution_session_mutation.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../evolution_tracer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../hermetic_home.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../context_request.cpp)
+target_link_libraries(test_evolution_session_mutation PRIVATE pdk_chat_session)
 
 # --- Test 5: l2_event_emission (T6.8a closure verification, 4 emit sites via bus) ---
 add_l2_test(test_l2_event_emission test_l2_event_emission.cpp
@@ -72,6 +73,6 @@ add_l2_test(test_reverse_indicators test_reverse_indicators.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../evolution_tracer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../hermetic_home.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../context_request.cpp)
-target_link_libraries(test_reverse_indicators PRIVATE agenticdsl_contract)
+target_link_libraries(test_reverse_indicators PRIVATE pdk_chat_session)
 
 # Tests 10 will be added in Task 8 (deferred to Batch 4 per Oracle M1)

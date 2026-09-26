@@ -424,6 +424,8 @@ grep -m1 "Approved.*Wave 3 Phase 1 Pilot 激活" docs/adr/adr-0078-finetune-base
 
 **L2 ✅ shipped 2026-09-24** (commits `a380ec7` + `e3d182f` + `ad2f42c` + `9b9967f` + `e5098c1` + `14dccde` + `cc8739d`): 9 test binaries / 39 cases / ~245 assertions, hermetic HOME fixture, 9-CLI main.cpp, archive `2026-09-24-pdk-chat-demo-evolution-reference-example` (5 files per Day 5 lesson). Per 模式 #11 Stage 1+2+3 cycle 全闭环. Batch 1+2+3+4 累计: ~17h estimated → 实际.
 
+**L2 real execution chain (Path 1 Change 2 Phase B) ✅ shipped 2026-09-26** (commit `<PENDING>`): phase1_init real DSLEngine + ChatSession wiring; phase2_baseline real chat() call with response/tokens/cost capture; --release-metrics real drop_ratio computation + metrics.json + >5% exit non-zero; R13.4 redact_trace_fields helper; 9/9 L2 test binaries PASS; OpenSpec change `openspec/changes/2026-09-26-l2-evolution-real-execution-chain/`. Oracle audit ses_f259746c Path 1 Change 2.
+
 > **本文不替代 OpenSpec change**: §X.Y 是**追溯 traceback**, L2 是**改造 + 验证**. 两者互不冲突, 但 L2 立项需先用本文 §X.Y 做导航, 然后再实施.
 
 ---

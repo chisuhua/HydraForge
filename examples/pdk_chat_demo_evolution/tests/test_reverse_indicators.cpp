@@ -189,11 +189,18 @@ TEST_CASE("R8 reverse_indicators: attribution_verdict phase-level distribution p
         auto it_b = phase_verdicts.find("baseline");
         REQUIRE(it_b != phase_verdicts.end());
         CHECK(it_b->second == "Baseline");
-        // Mutation/Reload/Compare phases -> "Attributed" verdict
-        for (const auto& phase : {"mutation", "reload", "compare"}) {
+        // Mutation/Reload phases -> "Attributed" verdict (Phase B: mutation is still a stub)
+        // Compare phase -> "NotAttempted" (honest: single-turn IEvaluator returns NotAttempted
+        // due to kMinBaselineSamples=5 per ADR-0086)
+        for (const auto& phase : {"mutation", "reload"}) {
             auto it = phase_verdicts.find(phase);
             REQUIRE(it != phase_verdicts.end());
             CHECK(it->second == "Attributed");
+        }
+        {
+            auto it_c = phase_verdicts.find("compare");
+            REQUIRE(it_c != phase_verdicts.end());
+            CHECK(it_c->second == "NotAttempted");
         }
     }
 
