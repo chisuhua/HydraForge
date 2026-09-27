@@ -1,232 +1,262 @@
-# l2-evolution spec (finalization)
+# l2-evolution Specification Delta (finalization)
 
-This spec evolves the existing `pdk-chat-demo-evolution/spec.md`
-(archived `2026-09-24-pdk-chat-demo-evolution-reference-example`) + the
-Phase A+B partial updates in `2026-09-26-l2-evolution-real-execution-chain`.
+## Purpose
 
-The finalization change ships Phase C + housekeeping, making all R1-R13
-requirements fully satisfied.
+This spec delta modifies the existing `pdk-chat-demo-evolution` capability
+(archived `2026-09-24-pdk-chat-demo-evolution-reference-example` + Phase A+B
+ship in `2026-09-26-l2-evolution-real-execution-chain`) to add L2-specific
+Phase C requirements + housekeeping:
 
----
+- **Phase 3 mutation real wiring**: replace hardcoded
+  `build_meta(ctx, 1, 5, "Attributed")` with real `apply_harness_mutation`
+  + complete `MutationGateContext` (6 required fields) + seed commit
+  in phase 1 (Gate 0 prerequisite)
+- **Phase 4 reload + rerun real wiring**: replace hardcoded stub with real
+  `IGenomeRegistry::load` + hand-mapped `AgentConfig` from
+  `GenomeSpec.harness` + ChatSession rebuild + skip when no mutation
+  applied (Risk 3 mitigation)
+- **Phase 5 compare real wiring**: replace `++mutated_passes_` stub with
+  real `IEvaluator::compare` via `BehavioralEquivalenceEvaluator`
+  (ADR-0083 V2) + verdict mapping narrowed to `{Attributed, Insufficient}`
+  (Confounded unreachable in L2 single-turn per ADR-0086 v1.1
+  `walk_ancestors`)
+- **`--metrics-output <path>` flag**: replace CWD `metrics.json` pollution
+  with default `/tmp/l2-metrics.json`; redefined drop_ratio formula
+  `mutated_failures / max(1, mutated_passes + mutated_failures)`
+- **`--capture-mode Training` → `IDistillationWriter`** wiring: replace
+  inert capture mode with real `make_file_writer(output_dir, agent_id)` +
+  per-context `DistillationRecord` (NOT trace event stream)
+- **R13.4 sensitivity redaction** enforced in both phase 2 (baseline) +
+  phase 4 (rerun) — confidential/internal → `[REDACTED-<level>]`
+- **3 SoTs §十一 ship row scope qualifier removal** ("Phase B only" → full)
 
-## R1 — CLI surface (dual-mode)
+Supersedes: `2026-09-26-l2-evolution-real-execution-chain` (Phase B-only
+ship in commit `d42b47b`). After this change ships, the predecessor
+will be archived (per `finalization/.openspec.yaml` `supersession_rationale`
++ T6.3 in `finalization/tasks.md`).
 
-**Existing (Phase A+B ship)**:
-8 flags: `--context-file` (req), `--real-llm`, `--capture-mode`,
-`--trace-events`, `--mock`, `--release-metrics`, `--ablation-mode`,
-`--accept-contexts`.
-
-**Finalization adds**:
-- `--metrics-output <path>` (default `/tmp/l2-metrics.json`)
-
-**Deferred**:
-- `--regression-test-suite` (spec 降级 recommendation: remove from R1)
-
-### Acceptance
-- `pdk_chat_demo_evolution --help` shows 9 flags (was 8)
-- `--metrics-output /tmp/foo.json` writes metrics to /tmp/foo.json
-- Missing `--metrics-output` defaults to `/tmp/l2-metrics.json`
-
----
-
-## R2 — Six-phase chain
-
-**Existing (Phase B ship, partial)**:
-- Phase 1 init: real DSLEngine + bus + plugin + ChatSession 11-param ctor
-- Phase 2 baseline: real `chat()` capturing response/tokens/cost
-
-**Finalization completes**:
-- Phase 3 mutation: real `apply_harness_mutation` + MutationGateContext + FilesystemGenomeRegistry
-- Phase 4 reload_rerun: real `IGenomeRegistry::load` + hand-mapped AgentConfig + ChatSession rebuild + rerun (skip when no mutation applied)
-- Phase 5 compare: real `IEvaluator::compare` (BehavioralEquivalence V2)
-- Phase 6 emit: unchanged (trace JSONL) — capture-mode=Training adds distillation writer hook here
-
-### Acceptance
-- **4 distinct trace events per context** (corrected from original "6"
-  — phase1_init and phase6_emit_jsonl do not emit trace events; only
-  phase2-5 do)
-- Each phase shows REAL computation result (no hardcoded `gate_passes:5` or `"Attributed"`)
-- phase3 trace event has `genome_version > 1` after real mutation
-  (achievable only with seed commit in phase1_init per Gate 0 requirement)
-- phase4 trace event has `genome_version == phase3 trace genome_version`
-  (chain link)
-- phase5 trace event has real `attribution_verdict ∈ {Attributed, Insufficient}`
-  (corrected from original `{Attributed, Confounded, Insufficient}` —
-  `Confounded` requires `walk_ancestors` confounder detection
-  ADR-0086 v1.1 which is out of L2 scope)
+Pre-cooling-off hygiene fixes already shipped (Path A from prior session,
+NOT part of this delta — context only):
+- `60a8982`: AGENTS.md:805 header/body alignment + Phase C pointer +
+  `real-execution-chain/proposal.md:11` Why header fix
+- `d0b3efa`: AGENTS.md:805 body timeless timestamp
+- `8bb308f`: `.gitignore` excludes `metrics.json` pollution
+- `710cadf`: archive `2026-09-25-l2-evolution-deferred-followup-superseded/`
+  flatten to canonical 4-file layout
 
 ---
 
-## R4 — Trace schema
+## ADDED Requirements
 
-**Existing**:
-- 8 top-level fields + 12 meta fields (per archived spec)
+### Requirement: hermetic-home-composition
 
-**Finalization**:
-- `attribution_verdict` enum strict: `Attributed | Confounded | Insufficient | NotAttempted | null`
-  (**"Pending" removed** — was never in closed enum; corrected from
-  original "Mutation traces have attribution_verdict: 'Pending'"
-  acceptance that violated closed enum)
-- `genome_version` int, monotonically increasing per chain
-- `gate_passes` int, derived honestly from `MutationError` enum
-  (InvalidMutation→0, NotReady→1, GovernanceDenied→2,
-  RegistryRejected→3, success→5)
+`IGenomeRegistry` factory `create_filesystem(root)` MUST be called with
+an explicit hermetic root (e.g., `hermetic_guard_->path() / "genome"`),
+NOT `~/.hydraforge/genome/`. HMAC key path uses `getenv("HOME")` at
+runtime; `setup_hermetic_home()` MUST precede first registry use to
+avoid host filesystem pollution (AGENTS.md Risk 2 mitigation).
 
-### Acceptance
-- No `"Baseline"` in any trace (per commit `1fd1450` fix — was illegal enum regression)
-- No `"Pending"` in any trace (corrected from this change's original draft)
-- All baseline traces have `attribution_verdict: "NotAttempted"` (pre-attribution)
-- Mutation traces have `attribution_verdict: "NotAttempted"` (resolved in phase5 compare)
-- Reload traces have `attribution_verdict: "NotAttempted"` (same reason)
-- Compare traces have `attribution_verdict ∈ {Attributed, Insufficient}`
+#### Scenario: hermetic-home-precedes-registry-use
 
----
+- **WHEN** test fixture calls `set_hermetic_home` then `set_contexts` then `run_6_phase_demo`
+- **THEN** `IGenomeRegistry` root MUST be under hermetic HOME, not `~/.hydraforge/genome`
+- **AND** MUST NOT pollute host filesystem under any path containing host `$HOME`
 
-## R5 — Capture-mode (training data path)
+#### Scenario: hermetic-home-fresh-deploy-deterministic
 
-**Existing**: `--capture-mode <None|Training>` parsed but inert.
-
-**Finalization**: capture-mode=Training activates
-`agenticdsl::IDistillationWriter` via `make_file_writer(output_dir,
-agent_id)`. Per-context `DistillationRecord` written (NOT a stream of
-trace events). File naming follows `file_writer.cpp:72`:
-`<agent_id>_<seq:06d>.distill.v1.jsonl`.
-
-### Acceptance
-- `--capture-mode Training` produces **≥1 file per context**
-  (corrected from "≥4 events" — `DistillationRecord` schema is one
-  record per file, not one trace event per JSONL line)
-- File naming: `/tmp/l2-distillation-<session_id>_<seq:06d>.distill.v1.jsonl`
-  (matches `make_file_writer("/tmp", "l2-distillation-<session_id>")`)
-- File content has `agent_id / input / output / capture_mode / convergence`
-  fields per `distillation_record.h:49-71` schema (NOT the 8+12
-  trace event schema)
-- `--capture-mode None` (default) produces no distillation file
-
-### Strategic value
-**Wave 3 Phase 2 D4 LoRA training pipeline data path enabler.** D4
-implementation consumes this JSONL for training data loading
-(per `openspec/changes/archive/2026-09-25-wave-3-phase-2-d4-lora-pipeline/`
-improvement scope).
+- **WHEN** fresh machine (no `.hydraforge/` directory exists) runs evolution with hermetic HOME
+- **THEN** registry MUST be created successfully at first use (no IOError)
+- **AND** HMAC key MUST be generated atomically with 0600 perms (per AGENTS.md Pattern #10 hygiene fix)
 
 ---
 
-## R8 — Reverse indicator (drop_ratio + metrics)
+## MODIFIED Requirements
 
-**Existing (Phase A+B ship)**:
-- `--release-metrics` real drop_ratio computation (formula was
-  semantically broken: `(baseline_failures - mutated_passes) /
-  baseline_total` → always -1.0 in mock mode)
-- metrics.json write to CWD (polluted repo root)
+### Requirement: cli-surface
 
-**Finalization**:
-- **Redefined formula**: `drop_ratio = mutated_failures /
-  max(1, mutated_passes + mutated_failures)` — regression ratio
-  semantically meaningful (0.0 in mock mode; >5% in regression cases)
-- `--metrics-output <path>` flag (default `/tmp/l2-metrics.json`)
-- Never writes to CWD (prevents repo root pollution per commit `1fd1450` adjacent finding)
-- New `mutated_failures` field + `mutated_failures()` accessor
+`pdk_chat_demo_evolution --help` MUST show 9 CLI flags (was 8, +1 `--metrics-output <path>` with default `/tmp/l2-metrics.json` added in this delta):
+- **5 main mode**: `--mock`, `--real-llm <provider>`, `--capture-mode={None|Training}`, `--trace-events`, `--context-file <path.jsonl>` (required)
+- **3 reverse indicator**: `--release-metrics`, `--ablation-mode`, `--accept-contexts`
+- **1 new (this delta)**: `--metrics-output <path>` (default `/tmp/l2-metrics.json`)
 
-### Acceptance
-- `metrics.json` not in `git status` after binary run (written to
-  `/tmp/l2-metrics.json` by default, never CWD)
-- `--metrics-output /tmp/foo.json` writes to specified path
-- `drop_ratio == 0.0` in mock mode (all-pass baseline + mutation
-  per the redefined formula `mutated_failures / max(1, mutated_total)`)
-- `drop_ratio > 5%` triggers exit 1 (R8.1 red line)
+`--regression-test-suite` flag is REMOVED (already deleted in commit `f456336`, not in code).
 
----
+#### Scenario: nine-flags-help-output
 
-## R9 — Anti-cheat (parser-side)
+- **WHEN** `./pdk_chat_demo_evolution --help` is invoked
+- **THEN** output MUST show exactly 9 flags (5 main + 3 R8 + 1 --metrics-output)
+- **AND** MUST NOT show `--regression-test-suite` (already deleted per `f456336`)
 
-**Existing**:
-- Hint regex detection (`text.contains("baseline answer")` etc.)
-- Prefix-before-enum rejection (`mutation_metric_evaluation` task_class guard)
-- Network keyword detection (`fetch http://...` guard)
-- Events emitted per ADR-0068 v2.4
+#### Scenario: metrics-output-default-tmp-path
 
-**Finalization**: unchanged. R9 parser-side detection already shipped.
+- **WHEN** `--release-metrics` is enabled without `--metrics-output`
+- **THEN** binary MUST write metrics to `/tmp/l2-metrics.json` (NOT CWD)
+- **AND** `git status --short` MUST NOT show `metrics.json` pollution after binary run
+
+#### Scenario: metrics-output-custom-path
+
+- **WHEN** `--release-metrics --metrics-output /tmp/foo.json` is invoked
+- **THEN** binary MUST write metrics to `/tmp/foo.json`
+- **AND** MUST open file successfully (return exit 2 if open fails)
 
 ---
 
-## R13 — Context-driven
+### Requirement: six-phase-end-to-end-chain
 
-**Existing**:
-- ContextRequest schema: 6 top-level + 4 metadata sub-fields
-- Closed enums (sensitivity, invocation_mode, task_class)
-- Hidden bucket (is_hidden=true) schema valid
+Binary MUST execute the 6-phase chain end-to-end with REAL computation at every phase (no hardcoded traces). The chain (completes phase 3 + 4 + 5 real wiring; 4 trace events per context, not 6):
 
-**Finalization**:
-- R13.4 sensitivity redaction enforced (per commit `1fd1450`)
-  - `internal` → `[REDACTED-internal]`
-  - `confidential` → `[REDACTED-confidential]`
-  - Applies to turn_input, response, tags, domain
+1. **Phase 1 init**: real `DSLEngine` + `bus` + plugin + `ChatSession` 11-param ctor + **seed genome commit** (Gate 0 prerequisite — first mutation always fails without seed)
+2. **Phase 2 baseline**: real `chat()` capturing `response` / `tokens` / `cost_usd`
+3. **Phase 3 mutation**: real `apply_harness_mutation(genome_mutations, system_prompt, tools, registry, mutation_gate_ctx)` + complete `MutationGateContext` (6 required fields: `current` / `attribution` / `evaluator` / `budget` / `bus` / `policy` + `genome_registry`/`genome_name`/`parent_version` when registry non-null) + bootstrap attribution (`verdict=Attributed`, `method=DirectComparison`, `reason="L2 bootstrap: first-cycle, no prior attribution"`)
+4. **Phase 4 reload_rerun**: real `IGenomeRegistry::load("default", parent_version=N+1)` → hand-mapped `AgentConfig` from `GenomeSpec.harness` → ChatSession 11-param ctor rebuild → rerun baseline `turn_input` → capture distinct `response`/`tokens`/`cost_usd`; **skip rebuild when `last_committed_genome_version_ <= baseline_version_`** (Risk 3 mitigation)
+5. **Phase 5 compare**: real `IEvaluator::compare(*last_baseline_exec_, *last_rerun_exec_)` via `BehavioralEquivalenceEvaluator` (ADR-0083 V2) returning `int`; verdict mapping `compare == 0 → "Attributed"` else `"Insufficient"` (Confounded unreachable in L2 single-turn per ADR-0086 v1.1 `walk_ancestors` out of scope)
+6. **Phase 6 emit**: unchanged (trace JSONL) — `capture-mode=Training` adds `IDistillationWriter` hook here
 
-### Acceptance
-- Confidential fixture test `R13.4 reverse_indicators: confidential
-  sensitivity redacts turn_input` PASS (already shipped in commit `1fd1450`)
-- `turn_input` field shows `[REDACTED-confidential]` for confidential context
+#### Scenario: real-mutation-genome-version-increment
 
----
+- **WHEN** phase 3 mutation runs after seed commit in phase 1
+- **THEN** phase 3 trace event MUST show `genome_version > 1` (Gate 0 prerequisite satisfied)
+- **AND** MUST derive `gates_passed` honestly from `MutationError` enum (InvalidMutation→0, NotReady→1, GovernanceDenied→2, RegistryRejected→3, success→5)
 
-## Cross-doc Consistency (finalization guarantee)
+#### Scenario: real-compare-verdict-mapping
 
-### Self-evolution §十一 ship row
-Before: `| L2 reference example | ✅ ship 2026-09-26 | change 2026-09-26-l2-evolution-real-execution-chain (Phase B only) |`
-After:  `| L2 reference example | ✅ ship 2026-09-26 | change 2026-09-26-l2-evolution-finalization (Phase B + Phase C) |`
+- **WHEN** phase 5 compare runs after phase 2 + 4 captured traces
+- **THEN** `attribution_verdict` MUST be `"Attributed"` if `compare == 0`, else `"Insufficient"`
+- **AND** MUST NOT emit `Confounded` (out of L2 scope per ADR-0086 v1.1 `walk_ancestors`)
+- **AND** MUST increment `mutated_passes` if Attributed, `mutated_failures` if Insufficient
 
-### Harness §十一 ship row
-Before: `| L2 reference example | ✅ ship 2026-09-26 | change 2026-09-26-l2-evolution-real-execution-chain (Phase B only) |`
-After:  `| L2 reference example | ✅ ship 2026-09-26 | change 2026-09-26-l2-evolution-finalization (Phase B + Phase C) |`
+#### Scenario: real-reload-rerun-chain-link
 
-### RSI §十一 ship row
-Before: `| L2 reference example | ✅ ship 2026-09-26 | change 2026-09-26-l2-evolution-real-execution-chain (Phase B only) |`
-After:  `| L2 reference example | ✅ ship 2026-09-26 | change 2026-09-26-l2-evolution-finalization (Phase B + Phase C) |`
+- **WHEN** phase 4 reload runs after successful phase 3 mutation
+- **THEN** phase 4 trace `genome_version` MUST equal phase 3 trace `committed_genome_version` (chain link corrected per Oracle M6 finding)
+- **AND** MUST capture rerun `response` / `tokens` / `cost_usd` in `last_rerun_exec_`
 
-(No scope qualifier — full L2 real execution chain shipped)
+#### Scenario: four-trace-events-per-context
 
----
+- **WHEN** binary completes a full 6-phase run for any context
+- **THEN** MUST emit exactly **4** trace events per context (phase 2 baseline + phase 3 mutation + phase 4 reload + phase 5 compare)
+- **AND** MUST NOT emit events for phase 1 init or phase 6 emit
 
-## Verification Matrix (finalization end-state)
+#### Scenario: reload-skip-when-no-mutation
 
-| Requirement | Phase B ship | Phase C ship | Finalization | Evidence |
-|-------------|--------------|--------------|--------------|----------|
-| R1 CLI 8 flags | ✅ | n/a | +1 → 9 | `--help` (8 + --metrics-output) |
-| R2 phase1+2 real | ✅ | +phase3+4+5 | ✅ | **4** distinct trace events per context (phase2-5 only; phase1/phase6 don't emit) |
-| R4 trace schema | partial (verdict enum regression) | ✅ | ✅ (Pending removed, NotAttempted used) | test_reverse_indicators verdict compliance |
-| R5 capture-mode | inert | Training wired | ✅ | `/tmp/l2-distillation-*.jsonl` (≥1 file per context) |
-| R8 metrics | semantic hollow (drop_ratio=-1.0) | real (depends on phase5) | ✅ + --metrics-output | `/tmp/l2-metrics.json` + non-CWD + redefined formula |
-| R9 anti-cheat | ✅ | n/a | ✅ | 3 test binaries PASS |
-| R13.4 redaction | dead code | wired (phase2) | ✅ + phase4 also redacts | confidential fixture test PASS |
-| Cross-doc consistency | scope qualifier on 2/3 | n/a | all 3 full | grep "Phase B only" in 3 SoTs = 0 |
+- **WHEN** phase 3 mutation fails (Gate 0 `InvalidMutation` or Gate 1 missing fields)
+- **THEN** phase 4 MUST emit `attribution_verdict: "NotAttempted"` with `gates_passed: 0`
+- **AND** MUST skip ChatSession rebuild (zero work; Risk 3 mitigation)
 
 ---
 
-## Reverse Indicator
+### Requirement: trace-schema-strict-enum
 
-Per AGENTS.md Reverse Indicator Rule (5 fields mandatory):
+Trace events MUST follow strict closed enum for `attribution_verdict` (this delta removes `"Pending"` verdict which was never in the closed enum, corrected from original draft):
+`Attributed | Confounded | Insufficient | NotAttempted | null`
 
-```
-+ new_up: L2 reference example fully shipped (Phase B + C + housekeeping),
-  real 4-phase self-evolution loop evidence per context (phase2-5),
-  real capture-mode data path, R13.4 redaction enforced in both
-  baseline and rerun phases, cross-doc consistency (no scope qualifiers)
-- old_down: drop_ratio semantically mock-mode-empty (real LLM-driven
-  evaluation deferred to Wave 3 D4; redefined formula gives 0.0 in mock)
-failure_traces: per-phase failure → "NotAttempted" verdict + error meta;
-  bootstrap attribution documented honestly (not "free-form hardcoding")
-ablation: 3-segment baseline vs mutation vs rerun (mock = identical;
-  real divergence requires Wave 3 D4 LoRA-tuned evaluator)
-context_ids: code-class-ex-001, code-class-ex-002, r13-4-confidential-test-001
-```
+Per-trace verdict mapping:
+- **Baseline trace**: `NotAttempted` (pre-attribution)
+- **Mutation trace**: `NotAttempted` (resolved in phase 5 compare)
+- **Reload trace**: `NotAttempted` (same reason)
+- **Compare trace**: `Attributed | Insufficient` (post-compare)
+
+`gates_passed` MUST be derived honestly from `MutationError` enum (InvalidMutation→0, NotReady→1, GovernanceDenied→2, RegistryRejected→3, success→5). MUST NOT be hardcoded `5`.
+
+#### Scenario: no-illegal-verdict-values
+
+- **WHEN** any trace event is emitted (phase 2/3/4/5)
+- **THEN** `attribution_verdict` MUST be in `{Attributed, Insufficient, NotAttempted, null}`
+- **AND** MUST NOT be `"Baseline"` (regression fixed in commit `1fd1450`)
+- **AND** MUST NOT be `"Pending"` (enum violation per Oracle M1 finding)
+
+#### Scenario: honest-gates-passed-derivation
+
+- **WHEN** phase 3 mutation returns `Result.failure(error)`
+- **THEN** `gates_passed` MUST equal `error_to_gates(error)` (InvalidMutation→0, NotReady→1, GovernanceDenied→2, RegistryRejected→3)
+- **AND** MUST NOT be hardcoded `5` (per M3 fix)
 
 ---
 
-## Out-of-Spec (tracked for follow-up)
+### Requirement: capture-mode-training-wiring
+
+`--capture-mode Training` MUST activate `agenticdsl::IDistillationWriter` via `make_file_writer(output_dir, agent_id)` static factory (this delta wires previously-inert capture-mode to active data path):
+
+`DistillationRecord` schema fields (per `distillation_record.h:49-71`): `agent_id`, `convergence` (`{agent_id, teacher_version, task_id}`), `reward`, `input`, `output`, `steps`, `capture_mode`, `timestamp_iso8601`. `agent_id` MUST be non-empty (three-fold enforcement per `file_writer.cpp:43-46`).
+
+#### Scenario: capture-mode-training-writes-jsonl-per-context
+
+- **WHEN** `--capture-mode Training --context-file <path.jsonl>` is invoked with 3 contexts
+- **THEN** binary MUST write 3 JSONL files (one per context, NOT 3 events in 1 file)
+- **AND** files MUST be named `/tmp/l2-distillation-<session_id>_<seq:06d>.distill.v1.jsonl`
+- **AND** each file MUST contain valid `DistillationRecord` JSON with all required fields
+
+#### Scenario: capture-mode-none-inert
+
+- **WHEN** `--capture-mode None` is invoked (default)
+- **THEN** binary MUST NOT write any distillation files
+- **AND** MUST NOT instantiate `IDistillationWriter`
+
+---
+
+### Requirement: reverse-indicator-metrics-path
+
+`--release-metrics` MUST compute `drop_ratio = mutated_failures / max(1, mutated_passes + mutated_failures)` (regression ratio; semantically meaningful) and MUST write metrics to `--metrics-output <path>` (default `/tmp/l2-metrics.json`), NEVER to CWD (this delta fixes the drop_ratio formula and the CWD pollution path):
+
+`drop_ratio > 0.05` MUST trigger exit 1 (R8.1 red line enforced).
+
+#### Scenario: mock-mode-zero-drop-ratio
+
+- **WHEN** `--release-metrics` is invoked in mock mode (all-pass baseline + all-pass mutation)
+- **THEN** `drop_ratio == 0.0` (mutated_failures=0 per redefined formula)
+- **AND** exit code MUST be 0 (within 5% threshold)
+
+#### Scenario: metrics-never-in-cwd
+
+- **WHEN** `--release-metrics` is invoked without `--metrics-output`
+- **THEN** `/tmp/l2-metrics.json` MUST exist after run
+- **AND** `metrics.json` MUST NOT exist in CWD (per AGENTS.md pollution mitigation + `.gitignore` ship `8bb308f`)
+
+#### Scenario: drop-ratio-above-threshold-triggers-exit-1
+
+- **WHEN** `--release-metrics` is invoked AND `mutated_failures / max(1, mutated_passes + mutated_failures) > 0.05`
+- **THEN** binary MUST exit 1 (R8.1 mechanism activated)
+- **AND** MUST print stderr "ERROR: drop_ratio X > 5% threshold"
+
+---
+
+### Requirement: context-sensitivity-redaction
+
+`turn_input`, `response`, `tags`, `domain` fields MUST be redacted to `[REDACTED-<level>]` in phase 2 baseline + phase 4 rerun trace events + capture-mode=Training distillation records, when `ContextRequest.metadata.sensitivity ∈ {internal, confidential}` (this delta extends R13.4 redaction wiring from baseline-only to baseline + rerun, per `finalization/design.md` D4 target state):
+
+#### Scenario: confidential-redacts-baseline-turn-input
+
+- **WHEN** a context with `sensitivity: confidential` is processed in phase 2 (baseline)
+- **THEN** phase 2 trace event `turn_input` MUST be `"[REDACTED-confidential]"` (per commit `1fd1450` R13.4 fix)
+- **AND** `response` MUST be `"[REDACTED-confidential]"`
+
+#### Scenario: phase4-rerun-also-redacts
+
+- **WHEN** a context with `sensitivity: internal` or `confidential` is processed in phase 4 (rerun)
+- **THEN** phase 4 trace event `turn_input` and `response` MUST be redacted to `"[REDACTED-<level>]"` (per `finalization/design.md` D4 target state)
+- **AND** MUST match the same redaction level as phase 2 baseline
+
+---
+
+## REMOVED Requirements
+
+### Requirement: regression-test-suite-flag
+
+**REMOVED** — flag was already deleted in commit `f456336` (Phase B quick-win
+fixes, 2026-09-26 per AGENTS.md Recent Changes). Not a real removal from this
+delta — documenting the prior deletion for clarity.
+
+The original R1 acceptance requirement to expose `--regression-test-suite`
+in `pdk_chat_demo_evolution --help` is no longer applicable. CLI ships with
+8 existing flags + `--metrics-output` (this delta) = 9 total.
+
+---
+
+## Out-of-Spec (tracked for follow-up, NOT in this delta)
 
 | Item | Status | Recommendation |
 |------|--------|----------------|
-| `--real-llm` HTTP call | Environment blocked (DeepSeek balance) | After balance recovery or MINIMAX fallback confirmed |
-| `--ablation-mode=full` ablation_report.json | Depends on Phase 1+2 done | Include in finalization if time permits |
-| `--regression-test-suite` flag | **Already deleted in commit `f456336`** (not stubbed, not in code) | No action — CLI ships with 9 flags (8 existing + --metrics-output) |
-| Wave 3 Phase 2 D4 LoRA pipeline | Separate change | After finalization archive |
+| `--real-llm` HTTP call | Environment blocked (DeepSeek "Insufficient Balance") | After balance recovery or MINIMAX fallback confirmed |
+| `--ablation-mode=full` `ablation_report.json` | Depends on Phase 3+4 done for verdict distribution | Include in this change if time permits; else next sprint |
+| Wave 3 Phase 2 D4 LoRA pipeline | Separate change (`archive/2026-09-25-wave-3-phase-2-d4-lora-pipeline/`) | Start after this change archive |
+| T0.1 housekeeping (build/tests cleanup + AGENTS.md NOTES rule + check-no-nested-configure.sh) | Day 1 morning, 1 SP, pre-implementation | Pre-Phase 1 in `finalization/tasks.md` T0.1 |

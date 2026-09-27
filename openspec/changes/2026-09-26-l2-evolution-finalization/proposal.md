@@ -146,6 +146,77 @@ output for full priority + effort analysis. This change implements:
 Deferred items (real-llm / ablation-mode / regression-test-suite) explicitly
 listed in Non-Goals above for tracking.
 
+## Plan of Record (cooling-off governance + pre-cooling-off hygiene)
+
+Per Oracle + Metis dual-agent review sessions
+`ses_f216b0b26ffeEHc6xKCxUyIou0` + `ses_f216b0c2affeUoUWQP1cNBcTIg`
+(post-`5a7e553` OpenSpec doc ship):
+
+### Pre-cooling-off hygiene fixes (shipped, NOT part of this change)
+
+- **`60a8982`** `docs(openspec): align L2 review entries with plan of record` —
+  AGENTS.md:805 header/body alignment (header "ship" → timeless
+  "planning docs only, implementation pending") + line 809 stale Phase C
+  pointer redirect (`...real-execution-chain` → `...finalization`) +
+  real-execution-chain proposal.md `## Why (动机)` → `## Why` (H2 fix
+  preventing T6.3 archive parse failure).
+- **`d0b3efa`** `docs(AGENTS.md): timeless L1 body timestamp` — line 805
+  body hard timestamp `expire 2026-09-27 22:11:34 +08:00` →
+  `24h cooling-off from change creation per finalization/proposal.md §Cooling-Off`.
+- **`8bb308f`** `chore(.gitignore): exclude metrics.json pollution` —
+  `/metrics.json` + `metrics.json` entries added (AGENTS.md
+  `--release-metrics` ship-with-known-issue pollution mitigation).
+- **`710cadf`** `chore(openspec): flatten malformed 4-file archive` —
+  `archive/2026-09-25-l2-evolution-deferred-followup-superseded/` nested
+  → canonical 4-file layout (Day-5 4-file integrity lesson).
+
+### Cooling-off governance
+
+- **Anchor**: `a903d41` (this change's creation commit).
+- **Duration**: 24h from change creation per §Cooling-Off below.
+- **Implementation constraint**: Implementation MUST NOT begin before
+  anchor + 24h expiry (per AGENTS.md §SINGLE-DEVELOPER MODE + ADR
+  cooling-off chain + 5a7e553 documented plan of record).
+- **Verified by Oracle**: do NOT pre-emptively archive predecessor
+  during cooling-off window (Option E+ recommendation; Option C merge
+  explicitly rejected by Oracle as contradicting recorded `supersedes`
+  metadata in `finalization/.openspec.yaml`).
+
+### Predecessor sequencing
+
+- `2026-09-26-l2-evolution-real-execution-chain` supersession is correct
+  (Phase A+B ship in commit `d42b47b` + `2916d2f` + `1fd1450` is honest;
+  Phase C explicitly deferred to this change per Oracle Path 1 verdict).
+- Both OpenSpec changes co-exist in active list during cooling-off
+  window by design (supersession chain, not drift).
+- This change's T6.3 archives predecessor via **`git mv`-only** —
+  **NOT** `openspec archive` CLI (H1: spec delta format now resolved,
+  but project archive precedent per `e643dae`/`2cd4dce` uses manual
+  `git mv`, NOT CLI).
+- T6.3 implementation MUST correct `openspec archive` + `mv`
+  double-command script to single `git mv` (latent bug noted in
+  `finalization/tasks.md` T6.3).
+
+### Implementation discipline (per AGENTS.md Pattern #11)
+
+- Branch `feat/l2-evolution-finalization` + worktree (per Pattern #11).
+- Async Sisyphus-Junior worker (`run_in_background=true`) with 6-segment
+  delegation prompt (TASK / EXPECTED_OUTCOME / REQUIRED_TOOLS / MUST DO /
+  MUST NOT DO / CONTEXT).
+- Worker TDD 5-step per sub-phase + atomic commit on worktree.
+- Dual-Oracle post-impl SHIP-with-fixes review per phase (single Critical
+  blocks ship; Major → atomic SHIP-with-fixes commit).
+- Main session MUST verify via `git show` + `git ls-files` —
+  never trust worker final-report (Pattern #11 lesson #d: Sisyphus-Junior
+  async worker final-report can be misleading; Oracle audit caught
+  similar mis-report in G1 case study 2026-09-22).
+
+### Provenance
+
+- **T1 brief**: `.rddf/state/plan/l2-evolution-t1-brief.md` (persisted
+  cross-session artifact; pre-implementation checklist + commit
+  templates + pitfalls).
+
 ## Cooling-Off
 
 This change supersedes an already-shipped change (`2026-09-26-l2-evolution-real-execution-chain`).
