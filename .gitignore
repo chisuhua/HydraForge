@@ -5,6 +5,10 @@
 build/
 # Root symlink to build/compile_commands.json (for clangd, etc.) — generated, do not commit
 /compile_commands.json
+# metrics.json — emitted by `pdk_chat_demo_evolution --release-metrics` (per AGENTS.md
+# "ship-with-known-issue" pollution risk; tracked tooling lives at `tools/doc_metrics.py`)
+/metrics.json
+metrics.json
 # ThreadSanitizer build directory (rebuild with: cmake -B build_tsan -DAGENTICDSL_ENABLE_TSAN=ON)
 build_tsan/
 # Alternate TSan build directory (per-machine ephemeral; same purpose as build_tsan/)
