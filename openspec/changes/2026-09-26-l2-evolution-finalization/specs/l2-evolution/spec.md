@@ -247,6 +247,27 @@ Per-trace verdict mapping:
 
 ---
 
+### Requirement: cross-doc-consistency-three-SoT-ship-row
+
+Three Source-of-Truth documents MUST carry a "L2 ✅ ship" row in §十一 referencing this change (with NO scope qualifier — full L2 real execution chain shipped, replacing prior "Phase B only" qualifier). After this delta ships, `grep "Phase B only"` across the 3 SoTs MUST return 0 matches:
+
+| Document | § | Post-ship row content |
+|----------|---|------------------------|
+| `docs/architecture/harness-architecture-2026-09.md` | §十一 | L2 reference example ✅ ship 2026-09-26 (full chain) |
+| `docs/architecture/rsi-architecture-2026-09.md` | §十一 | L2 reference example ✅ ship 2026-09-26 (full chain) |
+| `docs/architecture/self-evolution-architecture-2026-08.md` | §十一 | L2 reference example ✅ ship 2026-09-26 (full chain) |
+
+Per `finalization/design.md` D7 SoT scope updates.
+
+#### Scenario: three-sots-have-full-ship-row-no-phase-b-only
+
+- **WHEN** this delta's Phase 6 (T6.3) commits the SoT updates
+- **THEN** `grep -n "Phase B only" docs/architecture/{harness,rsi,self-evolution}-architecture-*.md` MUST return 0 matches
+- **AND** each of the 3 SoTs §十一 MUST reference `2026-09-26-l2-evolution-finalization` (NOT the prior `real-execution-chain` slug)
+- **AND** the `verification_matrix` (per `openspec/specs/pdk-chat-demo-evolution/spec.md:278`) "Cross-doc consistency" row MUST read "all 3 full" (not "scope qualifier on 2/3")
+
+---
+
 ## REMOVED Requirements
 
 ### Requirement: regression-test-suite-flag
