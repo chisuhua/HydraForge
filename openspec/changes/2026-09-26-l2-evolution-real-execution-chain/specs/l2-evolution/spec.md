@@ -25,6 +25,13 @@ This change is superseded by `2026-09-26-l2-evolution-finalization` (per
 `real-execution-chain/proposal.md` line 7 + `finalization/.openspec.yaml`
 `supersedes: [2026-09-26-l2-evolution-real-execution-chain]`).
 
+> **Archive guard (per Oracle SHIP-with-fixes verdict)**: This delta
+> is filed under new capability `l2-evolution`; requirement names
+> do NOT map 1:1 to canonical `pdk-chat-demo-evolution/spec.md`.
+> Archive MUST be `git mv`-only per Plan of Record §Predecessor
+> sequencing + AGENTS.md Pattern #11 precedent (`e643dae`/`2cd4dce`)
+> — **DO NOT run `openspec archive` CLI** on this change.
+
 ---
 
 ## ADDED Requirements

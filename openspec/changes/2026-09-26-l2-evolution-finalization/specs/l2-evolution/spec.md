@@ -35,6 +35,15 @@ ship in commit `d42b47b`). After this change ships, the predecessor
 will be archived (per `finalization/.openspec.yaml` `supersession_rationale`
 + T6.3 in `finalization/tasks.md`).
 
+> **Archive guard (per Oracle SHIP-with-fixes verdict)**: This delta
+> is filed under new capability `l2-evolution`; requirement names do
+> NOT map 1:1 to canonical `pdk-chat-demo-evolution/spec.md` (e.g.,
+> `cli-surface` vs canonical `standalone-binary-and-dual-mode`,
+> `trace-schema-strict-enum` vs `trace-jsonl-schema-stability`, etc.).
+> Archive MUST be `git mv`-only per Plan of Record §Predecessor
+> sequencing + AGENTS.md Pattern #11 precedent (`e643dae`/`2cd4dce`)
+> — **DO NOT run `openspec archive` CLI** on this change.
+
 Pre-cooling-off hygiene fixes already shipped (Path A from prior session,
 NOT part of this delta — context only):
 - `60a8982`: AGENTS.md:805 header/body alignment + Phase C pointer +
