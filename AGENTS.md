@@ -799,6 +799,7 @@ TEST_CASE("react_once forwards model name", "[contract][realllm-guard]") {
 - **2026-08-25 ground truth**: `ctest --output-on-failure` = **184/184 PASS, 0 failures** (cap-map L385 实证 2026-08-25, T14 + T16 ship 后). 后续 Sprint 25+ 详见 Recent Changes.
 - **cpp-httplib CVE 升级** (2026-09-10, vendored 0.18.4 → v0.54.1): 覆盖 4 client 侧 advisory (CVE-2026-33745 High 7.4 + 3 GHSA). 守卫脚本 `scripts/check-httplib-no-follow-location.sh` (sentinel 注入→FAIL 验证). 详见 Recent Changes.
 - **sandbox bash 网络限制**: `curl`/`wget` 无外网 (IPv4 timeout 30s). 大文件 vendored 升级 (~30k+ 行如 httplib.h) 经验: **优先 fire `category=deep` agent + Python urllib 一次性写入** (走 libssl+glibc resolver 绕过 sandbox), 避免 webfetch 受 435 行 truncation 限制.
+- **禁止 `cmake -B build/<subdir>` 嵌套 configure**: 只允许顶层 `cmake -S . -B build` + 子 build 目录 `cmake -S <example> -B build/<example>`。嵌套 configure 会污染 CTestTestfile 致 `ctest` 从 project root 报 `No tests were found!!!`。守卫脚本 `scripts/check-no-nested-configure.sh` (注册为 ctest `housekeeping_no_nested_configure`，per L2 finalization T0.1)。污染时 fix: `rm -rf build/tests build/examples-tests` (CI/CD 应始终从 clean start)。
 
 ## Recent Changes
 

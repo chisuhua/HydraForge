@@ -332,3 +332,16 @@ add_test(NAME test_sync_pdk_contract
          COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_sync_pdk_contract.sh
          WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
+# ─────────────────────────────────────────────────────────────
+# L2 evolution finalization T0.1 — nested configure detection.
+# Detects build/tests/CMakeCache.txt + build/examples-tests/CMakeCache.txt
+# which clobber the outer CTestTestfile causing "No tests were found!!!"
+# from project root ctest invocation.
+# 详见: scripts/check-no-nested-configure.sh
+# 关联 spec: openspec/changes/2026-09-26-l2-evolution-finalization/specs/l2-evolution/spec.md
+#            (Requirement: hermetic-home-composition + housekeeping)
+# ─────────────────────────────────────────────────────────────
+add_test(NAME housekeeping_no_nested_configure
+         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+         COMMAND bash ${PROJECT_SOURCE_DIR}/scripts/check-no-nested-configure.sh)
+
