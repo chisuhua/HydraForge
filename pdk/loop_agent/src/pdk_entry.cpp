@@ -18,6 +18,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "common/log/log.h"
 #include <agenticdsl/contract/bus_event.h>
 #include <agenticdsl/contract/iinteraction_bus.h>
 #include <agenticdsl/contract/itool_registry.h>
@@ -394,8 +395,8 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                             {"error_code", "InvalidParams"}, {"error", "Null provider_ptr"}};
                 }
                 if (tls_parent_provider && tls_parent_provider != new_provider) {
-                    std::cerr << "[loop_agent] WARNING: overwriting parent provider "
-                              << tls_parent_provider << " → " << new_provider << std::endl;
+                    LOG_WARN("[loop_agent] WARNING: overwriting parent provider "
+                             << tls_parent_provider << " → " << new_provider);
                 }
                 tls_parent_provider = new_provider;
                 return {{"success", true}, {"ok", true}, {"error_code", nullptr}};
