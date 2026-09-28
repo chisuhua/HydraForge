@@ -9,7 +9,7 @@
 
 ## Phase 0 — Housekeeping (Day 1 morning, 1 SP)
 
-### T0.1 — Verify ctest pollution state (refactored per Oracle Mi1)
+### T0.1 — Verify ctest pollution state (refactored per Oracle Mi1) ✅ ship 4d66c81
 **TDD Step 1 (Write failing test)**: Add to `scripts/check-no-nested-configure.sh`
 (NOT `tests/test_housekeeping.cpp` — concerns separation, per Oracle Mi1):
 ```bash
@@ -48,7 +48,7 @@ context_ids: N/A
 
 ---
 
-## Phase 1 — phase5_compare real wiring (Day 1 afternoon, 3 SP)
+## Phase 1 — phase5_compare real wiring (Day 1 afternoon, 3 SP) ✅ ship e0cfc37 + 38e8702
 
 ### T1.1 — Write failing test
 `tests/test_reverse_indicators.cpp` add new case:
@@ -91,7 +91,7 @@ context_ids: code-class-ex-001, code-class-ex-002
 
 ---
 
-## Phase 2 — phase3_mutation real wiring (Day 2-3, **6 SP**, +0.5 day vs initial estimate per Oracle M6 finding)
+## Phase 2 — phase3_mutation real wiring (Day 2-3, **6 SP**, +0.5 day vs initial estimate per Oracle M6 finding) ✅ ship 0c1b713 + 643c492
 
 ### T2.1 — Write failing test for MutationGateContext required fields
 `tests/test_evolution_session_mutation.cpp` add:
@@ -152,7 +152,7 @@ context_ids: code-class-ex-001, code-class-ex-002
 
 ---
 
-## Phase 3 — phase4_reload_rerun real wiring (Day 4, 5 SP)
+## Phase 3 — phase4_reload_rerun real wiring (Day 4, 5 SP) ✅ ship cad372f + 643c492
 
 ### T3.1 — Write failing test
 ```cpp
@@ -225,7 +225,7 @@ session_cfg_ default-initialized with `enable_input_thread=false`
 
 ---
 
-## Phase 4 — --release-metrics semantic + output path fix (Day 5 morning, 2 SP)
+## Phase 4 — --release-metrics semantic + output path fix (Day 5 morning, 2 SP) ✅ ship 315a167 (merge c2b7e0d)
 
 ### T4.1 — Write failing test (in-process, per Oracle Mi4 finding)
 ```cpp
@@ -288,7 +288,7 @@ context_ids: code-class-ex-001
 
 ---
 
-## Phase 5 — capture-mode=Training → IDistillationWriter (Day 5 afternoon, 3 SP)
+## Phase 5 — capture-mode=Training → IDistillationWriter (Day 5 afternoon, 3 SP) ✅ ship b72e065 + e1c5202
 
 ### T5.1 — Write failing test (refactored per Oracle Mi4 finding)
 ```cpp
@@ -359,7 +359,7 @@ context_ids: code-class-ex-001
 
 ---
 
-## Phase 6 — Commit + sync + archive (Day 6, 1 SP)
+## Phase 6 — Commit + sync + archive (Day 6, 1 SP) ✅ ship ce22076 (T6.2) + f672cee (T6.3) + <this-commit> (T6.1+T6.4)
 
 ### T6.1 — AGENTS.md Recent Changes entry + 5-field Reverse Indicator block
 Add entry referencing this change with:
