@@ -239,11 +239,17 @@ void EvolutionSession::phase3_mutation(const ContextRequest& ctx) {
             case agenticdsl::evolution::MutationError::GovernanceDenied:
                 gates_passed = 2; break;
             case agenticdsl::evolution::MutationError::RegistryRejected:
+                // Floor approximation: RegistryRejected covers both Gate 2.5 (3 passed)
+                // and Gate 3 persist failure (4 passed); enum can't disambiguate.
                 gates_passed = 3; break;
             case agenticdsl::evolution::MutationError::UnsupportedVariant:
                 gates_passed = 0; break;
         }
     }
+
+    // Multi-context: mutations chain across contexts in one session — ctx N's
+    // mutation parents ctx N-1's v (v2→v3→...); skip applies only when
+    // last_committed <= baseline (global, not per-context). L2 mock scope.
 
     nlohmann::json meta = build_meta(ctx, new_version, gates_passed, verdict);
     tracer_->record_phase(TracePhase::Mutation, {{"meta", std::move(meta)}});
@@ -285,6 +291,9 @@ void EvolutionSession::phase4_reload_rerun(const ContextRequest& ctx) {
 
     nlohmann::json rerun_event = {
         {"meta", build_meta(ctx, last_committed_genome_version_,
+                            // Reload is not a gate sequence; reuse 5 to mirror
+                            // mutation gates_passed so chain-link stays uniform
+                            // (Oracle m4 L2 finalization SHIP-with-fixes 2026-09-28).
                             /*gates*/5, "NotAttempted")},
         {"turn_input", ctx.turn_input},
         {"response", result.success ? nlohmann::json(result.response)
@@ -313,16 +322,9 @@ void EvolutionSession::phase4_reload_rerun(const ContextRequest& ctx) {
 
 void EvolutionSession::phase5_compare(const ContextRequest& ctx) {
     // Phase C (finalization): real IEvaluator::compare(before, after)
-    // Per design.md D2: skip with NotAttempted when trace evidence missing
-    //
-    // Note on genome_version (per Oracle SHIP-with-fixes verdict 2026-09-28):
-    //   last_committed_genome_version_ is init=0 in T1 (no seed commit yet).
-    //   phase3_mutation + phase4_reload_rerun still hardcode `1` in build_meta
-    //   (Phase B stubs; T2 will wire real apply_harness_mutation + seed commit
-    //   per design.md D3, and T3.1 will add chain-link semantics per Oracle M6).
-    //   The 0-vs-1 split is the designed intermediate state of T1/T2/T3
-    //   decomposition; phase5's `0` is semantically honest ("no mutation
-    //   committed yet"). Self-resolves at T2/T3 wire.
+    // Skip with NotAttempted when trace evidence missing. genome_version is
+    // live state post T2/T3 (seed v1, fork v2+, chain-link per Oracle M6).
+    // 0 only if no mutation was attempted.
     if (!last_baseline_exec_.has_value() || !last_rerun_exec_.has_value()) {
         nlohmann::json meta = build_meta(
             ctx, last_committed_genome_version_, /*gates*/0,
