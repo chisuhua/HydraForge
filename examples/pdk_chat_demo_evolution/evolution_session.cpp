@@ -10,10 +10,13 @@
 
 #include <agenticdsl/contract/inmemory_bus.h>
 #include <agenticdsl/contract/itool_registry.h>
+#include <agenticdsl/contract/idistillation_writer.h>
+#include <agenticdsl/types/distillation_record.h>
 #include <core/engine.h>
 
 #include <iostream>
 #include <filesystem>
+#include <chrono>
 #include <utility>
 
 #include "context_request.h"
@@ -46,6 +49,10 @@ void EvolutionSession::set_contexts(std::vector<ContextRequest> contexts) {
 
 void EvolutionSession::set_hermetic_home(detail::HermeticHomeGuard* g) {
     hermetic_guard_ = g;
+}
+
+void EvolutionSession::set_distillation_output_dir(const std::filesystem::path& dir) {
+    distillation_output_dir_ = dir;
 }
 
 int EvolutionSession::run_6_phase_demo() {
@@ -183,6 +190,7 @@ void EvolutionSession::phase2_baseline(const ContextRequest& ctx) {
     }
     tracer_->record_phase(TracePhase::Baseline, event);
     if (ok) last_baseline_response_ = response;
+    context_outputs_.push_back(ok ? response : std::string(""));
 
     // Populate last_baseline_exec_ for Phase 5 compare
     agenticdsl::ToolResult tr;
@@ -317,6 +325,12 @@ void EvolutionSession::phase4_reload_rerun(const ContextRequest& ctx) {
     last_rerun_exec_ = agenticdsl::ExecutionTrace{
         std::move(tr), "rerun-" + ctx.context_id, {}};
 
+    // T5: prefer rerun output when mutation actually reloaded (design D6:
+    // "output = last_baseline_response_ or rerun if rerun succeeded")
+    if (result.success && !context_outputs_.empty()) {
+        context_outputs_.back() = result.response;
+    }
+
     tracer_->record_phase(TracePhase::Reload, rerun_event);
 }
 
@@ -342,6 +356,7 @@ void EvolutionSession::phase5_compare(const ContextRequest& ctx) {
 
     if (cmp == 0) ++mutated_passes_;
     else ++mutated_failures_;
+    context_verdicts_.push_back(verdict);
 
     nlohmann::json meta = build_meta(
         ctx, last_committed_genome_version_, /*gates*/5, verdict);
@@ -349,8 +364,63 @@ void EvolutionSession::phase5_compare(const ContextRequest& ctx) {
 }
 
 void EvolutionSession::phase6_emit_jsonl() {
-    // Per-context traces already flushed by tracer as they are emitted.
-    // Future: write metrics.json here if --release-metrics.
+    // T5: capture-mode=Training → IDistillationWriter per-context wiring (design D6).
+    // Only Training produces distillation files; None/Off leave no artifacts.
+    if (capture_mode_str_ != "Training") return;
+
+    if (contexts_.empty()) return;
+
+    // agent_id must be non-empty (FileDistillationWriter three-fold enforcement).
+    const std::string agent_id = "l2-distillation-" + tracer_->session_id();
+    auto writer = agenticdsl::IDistillationWriter::make_file_writer(
+        distillation_output_dir_, agent_id);
+
+    for (size_t i = 0; i < contexts_.size(); ++i) {
+        const auto& ctx = contexts_[i];
+
+        // R13.4: redact input/output for internal/confidential metadata
+        std::string input = ctx.turn_input;
+        std::string output =
+            (i < context_outputs_.size()) ? context_outputs_[i] : std::string("");
+        if (ctx.metadata.sensitivity == "internal" ||
+            ctx.metadata.sensitivity == "confidential") {
+            input = "[REDACTED-" + ctx.metadata.sensitivity + "]";
+            if (!output.empty()) output = "[REDACTED-" + ctx.metadata.sensitivity + "]";
+        }
+
+        agenticdsl::DistillationRecord rec;
+        rec.agent_id = agent_id;
+        rec.input = input;
+        rec.output = output;
+        rec.capture_mode = agenticdsl::CaptureMode::Training;
+        rec.teacher_version = "l2-bootstrap-2026-09-26";
+        rec.trace_id = "l2-distill-" + ctx.context_id;
+        rec.generation_timestamp_ms = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count());
+
+        // Reward mapped from phase5 compare verdict (design D6)
+        std::string verdict = (i < context_verdicts_.size()) ? context_verdicts_[i] : "NotAttempted";
+        rec.reward = (verdict == "Insufficient")
+            ? agenticdsl::RewardSignal::poor()
+            : agenticdsl::RewardSignal::acceptable();
+
+        rec.convergence.agent_id = "l2-mock";
+        rec.convergence.teacher_version = "l2-bootstrap-2026-09-26";
+        rec.convergence.task_id = ctx.context_id;
+        rec.convergence.trace_id = rec.trace_id;
+
+        writer->write_record(rec);
+    }
+
+    agenticdsl::DistillationMetadata meta;
+    meta.version = "v1";
+    meta.total_examples = contexts_.size();
+    meta.generation_config = {{"agent_id", agent_id},
+                              {"session_id", tracer_->session_id()},
+                              {"context_count", contexts_.size()}};
+    writer->finalize(meta);
+    writer->close();
 }
 
 nlohmann::json EvolutionSession::build_meta(const ContextRequest& ctx,

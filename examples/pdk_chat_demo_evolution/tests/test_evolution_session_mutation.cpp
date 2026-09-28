@@ -15,6 +15,7 @@
 #include "hermetic_home.h"
 
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -53,6 +54,13 @@ private:
     std::stringstream captured_;
     std::streambuf* old_;
 };
+
+std::string read_file(const fs::path& p) {
+    std::ifstream ifs(p);
+    std::ostringstream oss;
+    oss << ifs.rdbuf();
+    return oss.str();
+}
 
 }  // namespace
 
@@ -161,6 +169,23 @@ nlohmann::json parse_lines(const std::string& in) {
         } catch (...) {}
     }
     return arr;
+}
+
+// --- Helper (T5 / Oracle Mi4 refactor): setup distillation writer output dir ---
+void setup_distillation_writer(pdk_chat_demo_evolution::EvolutionSession& session,
+                               const fs::path& output_dir) {
+    fs::remove_all(output_dir);
+    session.set_distillation_output_dir(output_dir);
+}
+
+// --- Helper (T5): list *.distill.v1.jsonl files under a dir (glob via directory_iterator) ---
+std::vector<fs::path> list_distillation_files(const fs::path& dir) {
+    std::vector<fs::path> files;
+    if (!fs::exists(dir)) return files;
+    for (auto& e : fs::directory_iterator(dir)) {
+        if (e.path().string().ends_with(".distill.v1.jsonl")) files.push_back(e.path());
+    }
+    return files;
 }
 
 // --- Case 2 (T2): mutation genome_version > 1 after real wiring ---
@@ -273,5 +298,70 @@ TEST_CASE("evolution_session: reload verdict is R4 closed-enum legal",
     CHECK((verdict == "NotAttempted" || verdict == "Attributed" ||
            verdict == "Insufficient" || verdict == "Confounded"));
 
+    pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
+}
+
+// --- T5.1 (RED): capture-mode=Training emits IDistillationWriter JSONL ---
+TEST_CASE("capture-mode=Training: emits IDistillationWriter JSONL", "[l2-evolution]") {
+    auto* guard = pdk_chat_demo_evolution::detail::setup_hermetic_home();
+    REQUIRE(guard != nullptr);
+
+    std::vector<pdk_chat_demo_evolution::LoadError> errors;
+    auto contexts = load_fixture("valid_3class_combined.jsonl", errors);
+    REQUIRE(contexts.size() == 3);
+
+    pdk_chat_demo_evolution::EvolutionSession session(
+        "mock", "Training", /*trace_events=*/true);
+    session.set_contexts(contexts);
+    session.set_hermetic_home(guard);
+
+    auto writer_root = fs::temp_directory_path() / "l2-distillation-test";
+    setup_distillation_writer(session, writer_root);
+
+    int rc = session.run_6_phase_demo();
+    CHECK(rc == 0);
+
+    auto files = list_distillation_files(writer_root);
+    CHECK(files.size() >= 3);  // 1 per context
+
+    if (!files.empty()) {
+        auto rec = nlohmann::json::parse(read_file(files[0]));
+        CHECK(rec.contains("agent_id"));
+        CHECK(rec.contains("input"));
+        CHECK(rec.contains("output"));
+        CHECK(rec.contains("capture_mode"));
+        CHECK(rec.contains("convergence"));
+        CHECK(rec["agent_id"].get<std::string>().starts_with("l2-distillation-"));
+        CHECK(rec["capture_mode"].get<std::string>() == "Training");
+    }
+
+    fs::remove_all(writer_root);
+    pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
+}
+
+// --- T5.2 (RED): capture-mode=None does NOT emit distillation file ---
+TEST_CASE("capture-mode=None: does NOT emit distillation file", "[l2-evolution]") {
+    auto* guard = pdk_chat_demo_evolution::detail::setup_hermetic_home();
+    REQUIRE(guard != nullptr);
+
+    std::vector<pdk_chat_demo_evolution::LoadError> errors;
+    auto contexts = load_fixture("valid_single_code.jsonl", errors);
+    REQUIRE(contexts.size() == 1);
+
+    pdk_chat_demo_evolution::EvolutionSession session(
+        "mock", "None", /*trace_events=*/true);
+    session.set_contexts(contexts);
+    session.set_hermetic_home(guard);
+
+    auto writer_root = fs::temp_directory_path() / "l2-distillation-test-none";
+    setup_distillation_writer(session, writer_root);
+
+    int rc = session.run_6_phase_demo();
+    CHECK(rc == 0);
+
+    auto files = list_distillation_files(writer_root);
+    CHECK(files.empty());
+
+    fs::remove_all(writer_root);
     pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
 }

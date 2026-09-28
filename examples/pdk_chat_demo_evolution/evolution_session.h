@@ -19,6 +19,8 @@
 #include <string>
 #include <vector>
 
+#include <filesystem>
+
 #include <nlohmann/json.hpp>
 
 #include <agenticdsl/contract/ievaluator.h>
@@ -62,6 +64,9 @@ public:
 
     void set_contexts(std::vector<ContextRequest> contexts);
     void set_hermetic_home(detail::HermeticHomeGuard* g);
+    // T5: per-context IDistillationWriter output root (design D6). capture=Training
+    // writes <agent_id>_<seq:06d>.distill.v1.jsonl under this dir; None writes nothing.
+    void set_distillation_output_dir(const std::filesystem::path& dir);
 
     agenticdsl::IInteractionBus* bus() const { return bus_.get(); }
 
@@ -121,6 +126,11 @@ private:
     // Phase C (finalization, T3): reload_rerun members
     uint64_t baseline_version_ = 0;
     hydraforge::pdk::SessionConfig session_cfg_;
+
+    // Phase C (finalization, T5): distillation output + per-context capture data
+    std::filesystem::path distillation_output_dir_ = "/tmp";
+    std::vector<std::string> context_outputs_;   // index-aligned with contexts_ (baseline or rerun response)
+    std::vector<std::string> context_verdicts_;  // index-aligned with contexts_ (R4 enum verdict)
 };
 
 }  // namespace pdk_chat_demo_evolution

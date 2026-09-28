@@ -31,6 +31,7 @@ public:
     void enable(bool on);
     void record_phase(TracePhase phase, const nlohmann::json& event);
     void subscribe_to_bus(agenticdsl::IInteractionBus* bus);
+    const std::string& session_id() const { return session_id_; }
 private:
     bool enabled_ = false;
     std::string session_id_;
