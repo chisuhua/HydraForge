@@ -186,7 +186,7 @@ Per-trace verdict mapping:
 
 `--capture-mode Training` MUST activate `agenticdsl::IDistillationWriter` via `make_file_writer(output_dir, agent_id)` static factory (this delta wires previously-inert capture-mode to active data path):
 
-`DistillationRecord` schema fields (per `distillation_record.h:49-71`): `agent_id`, `convergence` (`{agent_id, teacher_version, task_id}`), `reward`, `input`, `output`, `steps`, `capture_mode`, `timestamp_iso8601`. `agent_id` MUST be non-empty (three-fold enforcement per `file_writer.cpp:43-46`).
+`DistillationRecord` schema fields (per `distillation_record.h:49-71`): `agent_id`, `convergence` (`{agent_id, teacher_version, task_id}`), `reward`, `input`, `output`, `steps`, `capture_mode`, `generation_timestamp_ms`. `agent_id` MUST be non-empty (three-fold enforcement per `file_writer.cpp:43-46`).
 
 #### Scenario: capture-mode-training-writes-jsonl-per-context
 
