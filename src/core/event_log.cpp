@@ -9,6 +9,7 @@
 #include "agenticdsl/contract/event_builder.h"
 #include "agenticdsl/contract/iinteraction_bus.h"
 #include "agenticdsl/types/capture_mode.h"
+#include "common/log/log.h"
 
 #include <iostream>
 #include <chrono>
@@ -46,8 +47,8 @@ void validate_training_mode(const EventLogConfig& cfg, const std::string& output
   }
 
   // 保护 #3: WARNING 记录（v1.1 emit WARNING 事件）
-  std::cerr << "[WARNING] EventLogConfig in Training mode — PII capture risk. "
-            << "Ensure agent_id is set and output path: " << output_path << std::endl;
+  LOG_WARN("[event_log] EventLogConfig in Training mode — PII capture risk. "
+           << "Ensure agent_id is set and output path: " << output_path);
 }
 
 // Online → Training 降级检测
