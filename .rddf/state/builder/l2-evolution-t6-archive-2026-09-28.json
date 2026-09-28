@@ -1,0 +1,71 @@
+{
+  "schema": "builder-handoff-v1.5",
+  "improvement": "l2-evolution-finalization",
+  "iteration_id": "t6-archive-2026-09-28",
+  "branch": "feat/l2-evolution-finalization",
+  "head_commit": "TBD-post-t5-merge",
+  "scope": {
+    "phase": "A5-archive-housekeeping",
+    "depends_on": ["T2 phase3_mutation", "T3 phase4_reload_rerun", "T5 capture-mode=Training"],
+    "task": {"id": "T6", "title": "Commit + sync + archive", "sp": 1},
+    "atomic_commits": 2,
+    "bundled_audit_fixes": ["B3 l2-evolution-finalization/tasks.md checkbox sync", "M3 .rddf/state/ handoff commit decision"]
+  },
+  "tasks": {
+    "T6.1_AGENTS_md_Recent_Changes": {
+      "action": "Add AGENTS.md Recent Changes entry with 5-field Reverse Indicator block",
+      "template": {
+        "+ new_up": "L2 reference example fully shipped (Phase B+C, no scope qualifier)",
+        "- old_down": "drop_ratio semantic still mock-mode-empty (real LLM-driven evaluation is Wave 3 D4 scope)",
+        "failure_traces": "N/A (all phases ship clean)",
+        "ablation": "3-segment baseline vs mutation vs rerun (mock = identical; real divergence requires Wave 3 D4 LoRA-tuned evaluator)",
+        "context_ids": "code-class-ex-001, code-class-ex-002, r13-4-confidential-test-001"
+      }
+    },
+    "T6.2_3_SoTs_section11_ship_row_update": {
+      "files": [
+        "docs/architecture/self-evolution-architecture-2026-08.md §十一",
+        "docs/architecture/harness-architecture-2026-09.md §十一",
+        "docs/architecture/rsi-architecture-2026-09.md §十一"
+      ],
+      "old_text": "| L2 reference example | ✅ ship 2026-09-26 | change 2026-09-26-l2-evolution-real-execution-chain (Phase B only) |",
+      "new_text": "| L2 reference example | ✅ ship 2026-09-26 | change 2026-09-26-l2-evolution-finalization (Phase B + Phase C) |"
+    },
+    "T6.3_archive_predecessor": {
+      "action": "Archive the predecessor change",
+      "commands": [
+        "openspec archive 2026-09-26-l2-evolution-real-execution-chain",
+        "mv openspec/changes/2026-09-26-l2-evolution-real-execution-chain/ openspec/changes/archive/"
+      ]
+    },
+    "T6.4_final_atomic_commit": {
+      "commit_message_template": "docs(architecture): L2 reference example full ship (Phase B + Phase C)\n\n3 SoTs §十一 ship row scope updated from 'Phase B only' → 'Phase B + Phase C'.\nPredecessor change 2026-09-26-l2-evolution-real-execution-chain archived.\n\n[Reverse Indicator]\n+ new_up: SoT cross-doc consistency (no scope qualifier in any of 3 docs)\n- old_down: 0%\nfailure_traces: N/A\nablation: N/A\ncontext_ids: code-class-ex-001",
+      "bundled": ["B3 tasks.md checkbox sync", "M3 handoff files gitignore decision"]
+    }
+  },
+  "final_verification_checklist": [
+    "cmake --build build --target pdk_chat_demo_evolution (clean)",
+    "cd build && ctest -L l2-evolution -j1 --output-on-failure (expect 9+N/9+N)",
+    "ctest -R test_chat_session -j1 (expect 7/7 zero regression)",
+    "./build/examples/pdk_chat_demo_evolution/pdk_chat_demo_evolution --mock --release-metrics --context-file=.../valid_3class_combined.jsonl",
+    "cat /tmp/l2-metrics.json | jq . (drop_ratio != -1.0)",
+    "git status --short (expect: nothing)",
+    "./build/examples/pdk_chat_demo_evolution/pdk_chat_demo_evolution --mock --trace-events --capture-mode Training --context-file=.../valid_3class_combined.jsonl",
+    "ls /tmp/l2-distillation-*.jsonl (≥1 file per context)"
+  ],
+  "anti_patterns_blocked": [
+    "No hardcoded trace data (per Oracle audit finding 1)",
+    "No helper without caller (per redact_trace_fields dead code lesson)",
+    "No .gitignore-less CWD writes (per metrics.json pollution lesson)",
+    "No '改测试匹配实现' (per baseline verdict enum regression lesson)",
+    "Atomic commits per sub-phase (no amend, per Pattern #4)",
+    "5-field Reverse Indicator per commit (per Reverse Indicator Rule)"
+  ],
+  "evidence_required": [
+    "T6.4 commit hash",
+    "ctest -L l2-evolution output",
+    "ls /tmp/l2-distillation-*.jsonl output",
+    "cat /tmp/l2-metrics.json | jq . output",
+    "git ls-files openspec/changes/ 验证 archive 状态"
+  ]
+}
