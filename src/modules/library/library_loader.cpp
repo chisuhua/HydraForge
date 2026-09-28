@@ -1,5 +1,6 @@
 // modules/library/src/library_loader.cpp
 #include "library_loader.h"
+#include "common/log/log.h"
 #include "modules/parser/markdown_parser.h"
 #include <filesystem>
 #include <fstream>
@@ -62,6 +63,7 @@ void StandardLibraryLoader::load_from_directory(const std::string& lib_dir) {
 
     for (const auto& entry : fs::recursive_directory_iterator(lib_dir)) {
         if (entry.is_regular_file() && entry.path().extension() == ".md") {
+            const std::string file_path = entry.path().string();
             std::ifstream file(entry.path());
             std::stringstream buffer;
             buffer << file.rdbuf();
@@ -69,18 +71,19 @@ void StandardLibraryLoader::load_from_directory(const std::string& lib_dir) {
                 auto graphs = parser_->parse_from_string(buffer.str());
                 for (const auto& g : graphs) {
                     if (g.is_standard_library) {
-                        LibraryEntry entry;
-                        entry.path = g.path;
-                        entry.signature = g.signature;
-                        entry.output_schema = g.output_schema; // From parser (v3.1)
-                        entry.permissions = g.permissions;
-                        entry.is_subgraph = true;
-                        libraries_.push_back(std::move(entry));
+                        LibraryEntry lib_entry;
+                        lib_entry.path = g.path;
+                        lib_entry.signature = g.signature;
+                        lib_entry.output_schema = g.output_schema; // From parser (v3.1)
+                        lib_entry.permissions = g.permissions;
+                        lib_entry.is_subgraph = true;
+                        libraries_.push_back(std::move(lib_entry));
                     }
                 }
             } catch (const std::exception& e) {
                 // Log error, but don't interrupt loading
-                // [DEBUG-removed] std::cerr << "[WARNING] Failed to load library from " << entry.path() << ": " << e.what() << std::endl;
+                LOG_WARN("[library_loader] Failed to load library from "
+                         << file_path << ": " << e.what());
                 continue;
             }
         }
