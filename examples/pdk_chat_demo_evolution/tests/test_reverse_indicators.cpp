@@ -146,8 +146,10 @@ TEST_CASE("R8 reverse_indicators: meta.eval_quality always null (P0-4 C5)",
 TEST_CASE("R8 reverse_indicators: attribution_verdict phase-level distribution per context",
           "[l2-evolution]") {
     // build_meta (evolution_session.cpp:95-113) sets verdict by phase:
-    //   Phase 0 (Baseline)         -> verdict = "Baseline"
-    //   Phase 3/4/5 (Mutation/Reload/Compare) -> verdict = "Attributed"
+    //   Phase 0 (Baseline)         -> verdict = "NotAttempted" (post-fix 1fd1450; was "Baseline" regression)
+    //   Phase 3/4 (Mutation/Reload) -> verdict = "Attributed" (Phase B stubs; T2/T3 will replace)
+    //   Phase 5 (Compare)          -> verdict ∈ {"Attributed","Insufficient"} via real IEvaluator::compare
+    //                                  (Confounded unreachable in L2 single-turn per ADR-0086 v1.1)
     // This test asserts each context's verdict is phase-deterministic, NOT that
     // verdicts differ per context class (current impl does not provide that).
     auto* guard = pdk_chat_demo_evolution::detail::setup_hermetic_home();
@@ -189,9 +191,11 @@ TEST_CASE("R8 reverse_indicators: attribution_verdict phase-level distribution p
         auto it_b = phase_verdicts.find("baseline");
         REQUIRE(it_b != phase_verdicts.end());
         CHECK(it_b->second == "NotAttempted");
-        // Mutation/Reload phases -> "Attributed" verdict (Phase B: mutation is still a stub)
-        // Compare phase -> "NotAttempted" (honest: single-turn IEvaluator returns NotAttempted
-        // due to kMinBaselineSamples=5 per ADR-0086)
+        // Mutation/Reload phases -> "Attributed" verdict (Phase B: mutation is still a stub;
+        //   T2 will wire real apply_harness_mutation + seed commit, see finalization/tasks.md T2)
+        // Compare phase -> {"Attributed","Insufficient"} via real IEvaluator::compare
+        //   (mock mode: identical traces → cmp==0 → "Attributed"; real mode post-T2:
+        //    non-trivial mutation diverges → cmp!=0 → "Insufficient"; Confounded unreachable in L2)
         for (const auto& phase : {"mutation", "reload"}) {
             auto it = phase_verdicts.find(phase);
             REQUIRE(it != phase_verdicts.end());
@@ -200,9 +204,54 @@ TEST_CASE("R8 reverse_indicators: attribution_verdict phase-level distribution p
         {
             auto it_c = phase_verdicts.find("compare");
             REQUIRE(it_c != phase_verdicts.end());
-            CHECK(it_c->second == "NotAttempted");
+            // Phase 5 compare now uses real IEvaluator::compare → verdict is Attributed (mock identical)
+            CHECK((it_c->second == "Attributed" || it_c->second == "Insufficient"));
         }
     }
+
+    pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
+}
+
+// --- Phase 5 compare: real attribution verdict from IEvaluator::compare (L2 finalization T1) ---
+TEST_CASE("phase5_compare: real attribution verdict from IEvaluator::compare",
+          "[l2-evolution]") {
+    // Verdict must NOT be hardcoded "NotAttempted" when compare ran with populated traces
+    auto* guard = pdk_chat_demo_evolution::detail::setup_hermetic_home();
+    REQUIRE(guard != nullptr);
+
+    pdk_chat_demo_evolution::ContextRequest ctx;
+    ctx.context_id = "t1-compare-verdict-001";
+    ctx.turn_input = "Implement a is_even function in Python";
+    ctx.task_class = "code";
+    ctx.expected_eval_quality = "Acceptable";
+    ctx.invocation_mode = "mock";
+    ctx.metadata.domain = "code";
+    ctx.metadata.tags = {"t1", "compare"};
+    ctx.metadata.is_hidden = false;
+    ctx.metadata.sensitivity = "none";
+
+    pdk_chat_demo_evolution::EvolutionSession session(
+        "mock", "None", /*trace_events=*/true);
+    session.set_contexts({ctx});
+    session.set_hermetic_home(guard);
+
+    StdoutCapture cap;
+    session.run_6_phase_demo();
+
+    auto events = parse_lines(cap.str());
+    REQUIRE(events.size() >= 1);
+
+    auto compare = std::find_if(events.begin(), events.end(),
+        [](const auto& e) { return e.value("phase", "") == "compare"; });
+    REQUIRE(compare != events.end());
+
+    const auto& meta = (*compare)["meta"];
+    REQUIRE(meta.contains("attribution_verdict"));
+    const auto& verdict = meta["attribution_verdict"].get<std::string>();
+
+    // Real verdict from IEvaluator::compare — not hardcoded stub
+    CHECK(verdict != "NotAttempted");
+    CHECK((verdict == "Attributed" || verdict == "Insufficient"));
 
     pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
 }

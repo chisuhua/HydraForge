@@ -27,7 +27,8 @@ EvolutionSession::EvolutionSession(const std::string& provider_str,
     : provider_str_(provider_str)
     , capture_mode_str_(capture_mode_str)
     , bus_(std::make_shared<agenticdsl::InMemoryBus>())
-    , tracer_(std::make_unique<EvolutionTracer>(trace_events)) {
+    , tracer_(std::make_unique<EvolutionTracer>(trace_events))
+    , evaluator_(std::make_unique<agenticdsl::BehavioralEquivalenceEvaluator>()) {
     tracer_->subscribe_to_bus(bus_.get());
 }
 
@@ -147,6 +148,13 @@ void EvolutionSession::phase2_baseline(const ContextRequest& ctx) {
     }
     tracer_->record_phase(TracePhase::Baseline, event);
     if (ok) last_baseline_response_ = response;
+
+    // Populate last_baseline_exec_ for Phase 5 compare
+    agenticdsl::ToolResult tr;
+    tr.ok = ok;
+    tr.data = {{"response", response}, {"tokens", tokens}, {"cost_usd", cost}};
+    std::string trace_id = "baseline-" + ctx.context_id;
+    last_baseline_exec_ = agenticdsl::ExecutionTrace{std::move(tr), trace_id, {}};
 }
 
 void EvolutionSession::phase3_mutation(const ContextRequest& ctx) {
@@ -157,18 +165,65 @@ void EvolutionSession::phase3_mutation(const ContextRequest& ctx) {
 }
 
 void EvolutionSession::phase4_reload_rerun(const ContextRequest& ctx) {
-    // Phase C: real IGenomeRegistry::load + ChatSession rebuild
-    // stub: record identity trace
+    // Phase C: real IGenomeRegistry::load + ChatSession rebuild (T2 scope)
+    // For T1: minimal rerun to populate last_rerun_exec_ for phase5_compare
+    std::string response;
+    int tokens = 0;
+    double cost = 0.0;
+    bool ok = false;
+
+    if (chat_session_) {
+        auto result = chat_session_->chat(ctx.turn_input);
+        ok = result.success;
+        response = result.response;
+        tokens = result.total_tokens;
+        cost = result.cost_usd;
+    }
+
+    // Populate last_rerun_exec_ for Phase 5 compare
+    agenticdsl::ToolResult tr;
+    tr.ok = ok;
+    tr.data = {{"response", response}, {"tokens", tokens}, {"cost_usd", cost}};
+    std::string trace_id = "rerun-" + ctx.context_id;
+    last_rerun_exec_ = agenticdsl::ExecutionTrace{std::move(tr), trace_id, {}};
+
     nlohmann::json meta = build_meta(ctx, 1, 5, "Attributed");
     tracer_->record_phase(TracePhase::Reload, {{"meta", std::move(meta)}});
 }
 
 void EvolutionSession::phase5_compare(const ContextRequest& ctx) {
-    // Phase C: real IEvaluator::compare(before, after)
-    // stub: record identity trace with NotAttempted verdict (honest single-turn limit)
-    nlohmann::json meta = build_meta(ctx, 1, 5, "NotAttempted");
+    // Phase C (finalization): real IEvaluator::compare(before, after)
+    // Per design.md D2: skip with NotAttempted when trace evidence missing
+    //
+    // Note on genome_version (per Oracle SHIP-with-fixes verdict 2026-09-28):
+    //   last_committed_genome_version_ is init=0 in T1 (no seed commit yet).
+    //   phase3_mutation + phase4_reload_rerun still hardcode `1` in build_meta
+    //   (Phase B stubs; T2 will wire real apply_harness_mutation + seed commit
+    //   per design.md D3, and T3.1 will add chain-link semantics per Oracle M6).
+    //   The 0-vs-1 split is the designed intermediate state of T1/T2/T3
+    //   decomposition; phase5's `0` is semantically honest ("no mutation
+    //   committed yet"). Self-resolves at T2/T3 wire.
+    if (!last_baseline_exec_.has_value() || !last_rerun_exec_.has_value()) {
+        nlohmann::json meta = build_meta(
+            ctx, last_committed_genome_version_, /*gates*/0,
+            /*verdict*/ "NotAttempted");
+        tracer_->record_phase(TracePhase::Compare, {{"meta", std::move(meta)}});
+        return;
+    }
+
+    int cmp = evaluator_->compare(*last_baseline_exec_, *last_rerun_exec_);
+    // Verdict mapping per Oracle decision (design.md D2):
+    //   compare == 0  → "Attributed" (behaviors equivalent)
+    //   compare != 0  → "Insufficient" (regression detected or inconclusive)
+    // Confounded is unreachable in L2 single-turn scope (ADR-0086 v1.1)
+    std::string verdict = (cmp == 0) ? "Attributed" : "Insufficient";
+
+    if (cmp == 0) ++mutated_passes_;
+    else ++mutated_failures_;
+
+    nlohmann::json meta = build_meta(
+        ctx, last_committed_genome_version_, /*gates*/5, verdict);
     tracer_->record_phase(TracePhase::Compare, {{"meta", std::move(meta)}});
-    ++mutated_passes_;
 }
 
 void EvolutionSession::phase6_emit_jsonl() {
