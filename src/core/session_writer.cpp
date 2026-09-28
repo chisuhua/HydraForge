@@ -9,6 +9,7 @@
 
 #include "agenticdsl/contract/bus_event.h"
 #include "agenticdsl/contract/iinteraction_bus.h"
+#include "common/log/log.h"
 
 #include <chrono>
 #include <cstdint>
@@ -229,7 +230,11 @@ std::vector<nlohmann::json> SessionWriter::read(
     if (line.empty()) continue;
     try {
       records.push_back(nlohmann::json::parse(line));
-    } catch (...) {}
+    } catch (const std::exception& e) {
+      // 不可静默吞掉畸形行, 否则 load() 端 records.size() 与文件行数失配
+      LOG_WARN("[session_writer] malformed JSONL line skipped in "
+               << session_id << ".v1.jsonl: " << e.what());
+    }
   }
   return records;
 }

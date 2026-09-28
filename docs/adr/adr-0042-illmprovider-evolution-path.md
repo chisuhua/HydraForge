@@ -7,7 +7,7 @@
 > - **PluginLoader V2** — 5 符号查找 + lifecycle + ABI v2 (`CURRENT_ABI_VERSION` 1→2)
 > - **LlamaAdapter 弃用** — `LlamaAdapter` + `LlamaAdapterProvider` 加 `[[deprecated]]` 标注
 >
-> ADR 整体状态仍保持 🔍 Proposed（C16 仅实施部分决策，C17+ 演进路径需独立 change 跟踪）。
+> ADR 状态 2026-09-03 翻牌为 🟡 Partial（C16 仅实施部分决策，C17+ 演进路径需独立 change 跟踪）。
 
 ## 状态
 
