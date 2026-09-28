@@ -52,6 +52,10 @@ build_ninja/
 .rddf/state/.env-cache.json
 # rdd-quick mode per-machine ephemeral state (per AGENTS.md Mode: cross-section)
 .rddf/state/.quick-history.jsonl
+# L2 evolution in-flight briefs (per-AI-process planning notes, not commit-worthy)
+.rddf/state/plan/
+# Session handoff files (cross-opencode-session handoff context, ephemeral)
+.rddf/state/handoff-*.md
 # note: .rddf/state/builder/ is intentionally tracked (rdd-builder state machine depends on it
 # to resume P0 across sessions). Per-machine ephemeral subdirs go in .quick-history.jsonl instead.
 # _lib is a per-machine symlink to ~/.agents/skills/_lib/ (rdd-workflow canonical)
