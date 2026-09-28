@@ -25,6 +25,10 @@
 #include <agenticdsl/types/execution_trace.h>
 #include <agenticdsl/cognitive/behavioral_equivalence_evaluator.h>
 #include <agenticdsl/pdk/chat_session.h>
+#include <agenticdsl/genome/genome.h>
+#include <agenticdsl/evolution/harness_rsi.h>
+#include <agenticdsl/types/attribution_record.h>
+#include <modules/budget/budget_controller.h>
 
 #include "context_request.h"
 
@@ -107,6 +111,12 @@ private:
     std::optional<agenticdsl::ExecutionTrace> last_rerun_exec_;
     std::unique_ptr<agenticdsl::IEvaluator> evaluator_;
     uint64_t last_committed_genome_version_ = 0;
+
+    // Phase C (finalization, T2): mutation wiring members
+    std::unique_ptr<agenticdsl::genome::IGenomeRegistry> genome_registry_;
+    agenticdsl::evolution::AttributionRecord bootstrap_attribution_;
+    std::unique_ptr<agenticdsl::IBudgetController> budget_;
+    std::vector<std::string> tool_names_snapshot_;
 };
 
 }  // namespace pdk_chat_demo_evolution

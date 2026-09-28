@@ -148,3 +148,52 @@ TEST_CASE("evolution_session: 3 contexts emit 12 JSONL lines", "[l2-evolution]")
 
     pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
 }
+
+// --- Helper: parse JSONL output into array ---
+nlohmann::json parse_lines(const std::string& in) {
+    nlohmann::json arr = nlohmann::json::array();
+    std::stringstream ss(in);
+    std::string line;
+    while (std::getline(ss, line)) {
+        if (line.empty()) continue;
+        try {
+            arr.push_back(nlohmann::json::parse(line));
+        } catch (...) {}
+    }
+    return arr;
+}
+
+// --- Case 2 (T2): mutation genome_version > 1 after real wiring ---
+TEST_CASE("evolution_session: mutation genome_version > 1 (real mutation)",
+          "[l2-evolution]") {
+    auto* guard = pdk_chat_demo_evolution::detail::setup_hermetic_home();
+    REQUIRE(guard != nullptr);
+
+    std::vector<pdk_chat_demo_evolution::LoadError> errors;
+    auto contexts = load_fixture("valid_single_code.jsonl", errors);
+    REQUIRE(contexts.size() == 1);
+
+    pdk_chat_demo_evolution::EvolutionSession session(
+        "mock", "None", /*trace_events=*/true);
+    session.set_contexts(contexts);
+    session.set_hermetic_home(guard);
+
+    StdoutCapture cap;
+    int rc = session.run_6_phase_demo();
+    CHECK(rc == 0);
+
+    auto events = parse_lines(cap.str());
+    REQUIRE(events.size() >= 4);
+
+    // Find mutation phase and verify genome_version > 1
+    auto mutation = std::find_if(events.begin(), events.end(),
+        [](const auto& e) { return e.value("phase", "") == "mutation"; });
+    REQUIRE(mutation != events.end());
+    REQUIRE(mutation->contains("meta"));
+    const auto& meta = (*mutation)["meta"];
+    REQUIRE(meta.contains("genome_version"));
+    // After seed commit (version 1) + mutation fork (version 2) → genome_version > 1
+    CHECK(meta["genome_version"].get<int>() > 1);
+
+    pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
+}

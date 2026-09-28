@@ -19,6 +19,7 @@ function(add_l2_test TEST_NAME)
     target_link_libraries(${TEST_NAME} PRIVATE
         agenticdsl_includes
         agenticdsl_core
+        agenticdsl_evolution
     )
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES

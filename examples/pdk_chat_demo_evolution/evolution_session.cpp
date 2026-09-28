@@ -13,6 +13,7 @@
 #include <core/engine.h>
 
 #include <iostream>
+#include <filesystem>
 #include <utility>
 
 #include "context_request.h"
@@ -28,8 +29,13 @@ EvolutionSession::EvolutionSession(const std::string& provider_str,
     , capture_mode_str_(capture_mode_str)
     , bus_(std::make_shared<agenticdsl::InMemoryBus>())
     , tracer_(std::make_unique<EvolutionTracer>(trace_events))
-    , evaluator_(std::make_unique<agenticdsl::BehavioralEquivalenceEvaluator>()) {
+    , evaluator_(std::make_unique<agenticdsl::BehavioralEquivalenceEvaluator>())
+    , budget_(std::make_unique<agenticdsl::BudgetController>()) {
     tracer_->subscribe_to_bus(bus_.get());
+    bootstrap_attribution_.verdict = agenticdsl::evolution::AttributionVerdict::Attributed;
+    bootstrap_attribution_.method = agenticdsl::evolution::AttributionMethod::DirectComparison;
+    bootstrap_attribution_.reason =
+        "L2 bootstrap: first-cycle, no prior attribution";
 }
 
 EvolutionSession::~EvolutionSession() = default;
@@ -112,6 +118,34 @@ void EvolutionSession::phase1_init() {
         nullptr,  // session_manager (no JSONL persistence)
         std::nullopt  // resume (fresh session)
     );
+
+    // T2: Genome registry at hermetic root (Gate 0 prerequisite). Per design D3,
+    // create_filesystem(root) takes an explicit root path (NOT ~/.hydraforge/...);
+    // HOME was redirected by setup_hermetic_home() before phase1_init.
+    if (hermetic_guard_) {
+        genome_registry_ = agenticdsl::genome::IGenomeRegistry::create_filesystem(
+            hermetic_guard_->genome_dir);
+    } else {
+        genome_registry_ = agenticdsl::genome::IGenomeRegistry::create_filesystem(
+            std::filesystem::temp_directory_path() / "l2-evolution-genome");
+    }
+
+    // Snapshot tool names from registry (used as Genome::spec.tools + Gate 3 final_tools)
+    tool_names_snapshot_ = engine_->get_tool_registry().list_tools();
+
+    // Seed genome commit (Gate 0: parent_version must be > 0 before first mutation)
+    agenticdsl::genome::Genome root;
+    root.metadata.name = "default";
+    root.metadata.capture_mode = "mock";
+    root.spec.harness = agent_cfg_.system_prompt;
+    root.spec.tools = tool_names_snapshot_;
+    auto seed = genome_registry_->commit(root);
+    if (seed.has_value()) {
+        last_committed_genome_version_ = seed.value().version;
+    } else {
+        std::cerr << "ERROR: genome seed commit failed (mutation will fail Gate 0)"
+                  << std::endl;
+    }
 }
 
 void EvolutionSession::phase2_baseline(const ContextRequest& ctx) {
@@ -158,9 +192,59 @@ void EvolutionSession::phase2_baseline(const ContextRequest& ctx) {
 }
 
 void EvolutionSession::phase3_mutation(const ContextRequest& ctx) {
-    // Phase C: real apply_harness_mutation
-    // stub: record identity trace with realistic-looking gate_passes
-    nlohmann::json meta = build_meta(ctx, 1, 5, "Attributed");
+    if (!genome_registry_) {
+        nlohmann::json meta = build_meta(ctx, 0, 0, "NotAttempted");
+        tracer_->record_phase(TracePhase::Mutation, {{"meta", std::move(meta)}});
+        return;
+    }
+
+    agenticdsl::evolution::MutationGateContext mctx;
+    mctx.current = agenticdsl::evolution::EvolutionState::Harness;
+    mctx.attribution = &bootstrap_attribution_;
+    mctx.evaluator = evaluator_.get();
+    mctx.budget = budget_.get();
+    mctx.bus = bus_.get();
+    mctx.policy = {};
+    mctx.genome_registry = genome_registry_.get();
+    mctx.genome_name = "default";
+    mctx.parent_version = last_committed_genome_version_;
+    mctx.trace_id = "l2-mutation-" + ctx.context_id;
+
+    // Minimal honest test mutation: prompt_delta only (no tools add/remove → avoids
+    // Gate 2.5 RegistryRejected on nonexistent tools).
+    agenticdsl::evolution::GenomeMutations mutations;
+    mutations.prompt_delta = "\n\n# Mutation: harness refinement from context "
+                             + ctx.context_id;
+
+    std::string sys_prompt = agent_cfg_.system_prompt;
+    auto result = agenticdsl::evolution::apply_harness_mutation(
+        mutations, sys_prompt, tool_names_snapshot_,
+        engine_->get_tool_registry(), mctx);
+
+    uint64_t new_version = last_committed_genome_version_;
+    int gates_passed = 0;
+    std::string verdict = "NotAttempted";
+    if (result.has_value()) {
+        new_version = result.value().committed_genome_version;
+        gates_passed = 5;
+        last_committed_genome_version_ = new_version;
+        agent_cfg_.system_prompt = sys_prompt;
+    } else {
+        switch (result.error()) {
+            case agenticdsl::evolution::MutationError::InvalidMutation:
+                gates_passed = 0; break;
+            case agenticdsl::evolution::MutationError::NotReady:
+                gates_passed = 1; break;
+            case agenticdsl::evolution::MutationError::GovernanceDenied:
+                gates_passed = 2; break;
+            case agenticdsl::evolution::MutationError::RegistryRejected:
+                gates_passed = 3; break;
+            case agenticdsl::evolution::MutationError::UnsupportedVariant:
+                gates_passed = 0; break;
+        }
+    }
+
+    nlohmann::json meta = build_meta(ctx, new_version, gates_passed, verdict);
     tracer_->record_phase(TracePhase::Mutation, {{"meta", std::move(meta)}});
 }
 
