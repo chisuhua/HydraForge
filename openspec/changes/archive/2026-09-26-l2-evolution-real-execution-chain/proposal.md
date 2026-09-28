@@ -1,10 +1,11 @@
 # l2-evolution-real-execution-chain — Proposal
 
 > **Change Slug**: `l2-evolution-real-execution-chain`
-> **Status**: 🔍 Proposed
+> **Status**: 🔍 Proposed → ✅ Archived 2026-09-28
 > **Created**: 2026-09-26
 > **Oracle Audit Session**: `ses_f259746caffe9yK0YoIQ6FOgWp` Path 1 Change 2
 > **Supersedes**: `archive/2026-09-24-pdk-chat-demo-evolution-reference-example/`
+> **Superseded by**: `archive/2026-09-26-l2-evolution-finalization/` (T2 + T3 + T5 ship + T6 archive; merge commit `f26e157` on main). Phase B (this change) is fully subsumed by Phase C; readers MUST consult finalization for current state. Per Oracle T6 plan M2 supersession pointer requirement (Day-5 4-file integrity).
 
 ---
 
