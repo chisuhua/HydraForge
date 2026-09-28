@@ -19,8 +19,10 @@
 #include "core/types/tool_result.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <random>
 #include <string>
@@ -204,7 +206,15 @@ MCTSWorkflowSearch::CommitResult MCTSWorkflowSearch::commit_chain(
     const std::vector<WorkflowNode::Axis6CognitiveDomain>& chain) {
   CommitResult cr;
   cr.failure_mode = "unknown";
-  cr.mutation_id = "axis6:" + std::to_string(reinterpret_cast<uintptr_t>(&chain));
+  // ASLR-safe ID: 指针地址在 ASLR 下每次运行不同 (audit C3, 2026-09-28).
+  static std::atomic<uint64_t> mutation_seq{0};
+  const uint64_t seq = mutation_seq.fetch_add(1, std::memory_order_relaxed);
+  std::size_t chain_hash = 0;
+  for (auto d : chain) {
+    chain_hash ^= std::hash<int>{}(static_cast<int>(d)) + 0x9e3779b9
+                  + (chain_hash << 6) + (chain_hash >> 2);
+  }
+  cr.mutation_id = "axis6:" + std::to_string(seq) + ":" + std::to_string(chain_hash);
 
   // 决策 5 兜底: chain 为空或 None
   if (chain.empty() || (chain.size() == 1 && chain[0] == WorkflowNode::Axis6CognitiveDomain::None)) {
