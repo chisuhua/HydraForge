@@ -42,6 +42,9 @@ constexpr const char* kUsage =
     "R8 (Reverse indicators):\n"
     "  --release-metrics                 Verify drop_ratio <= 5% (S40); exit\n"
     "                                    non-zero if exceeded\n"
+    "  --metrics-output <path>           Write metrics JSON to <path>\n"
+    "                                    (default: /tmp/l2-metrics.json);\n"
+    "                                    never writes to CWD\n"
     "  --ablation-mode=<full|none>       Emit ablation_report.json (R8.3);\n"
     "                                    full=write, none=skip (default: none)\n"
     "\n"
@@ -57,6 +60,7 @@ struct Options {
     std::string capture_mode = "None";
     bool trace_events = false;
     bool release_metrics = false;
+    std::string metrics_output_path = "/tmp/l2-metrics.json";
     std::string ablation_mode = "none";
     std::vector<std::string> accept_contexts;
     bool show_help = false;
@@ -127,6 +131,10 @@ Options parse_args(int argc, char** argv) {
         } else if (parse_flag_bool(argv[i], "--mock", dummy_bool)) {
             opts.real_llm = "mock";
         } else if (parse_flag_bool(argv[i], "--release-metrics", opts.release_metrics)) {
+        } else if (parse_flag_value_eq(argv[i], "--metrics-output", v)) {
+            opts.metrics_output_path = v;
+        } else if (parse_flag_value_next(i, argc, argv, "--metrics-output", v, opts.parse_error)) {
+            opts.metrics_output_path = v;
         } else if (parse_flag_value_eq(argv[i], "--ablation-mode", v)) {
             opts.ablation_mode = v;
         } else if (parse_flag_value_next(i, argc, argv, "--ablation-mode", v, opts.parse_error)) {
@@ -207,31 +215,33 @@ int main(int argc, char** argv) {
     pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
 
 // R8 release-metrics gate (S40: drop_ratio <= 5%)
-    // Phase B implementation: real drop_ratio from session counters
     if (opts.release_metrics) {
         int baseline_total = session.baseline_total();
         int baseline_failures = session.baseline_failures();
         int mutated_passes = session.mutated_passes();
-        double drop_ratio = baseline_total > 0
-            ? static_cast<double>(baseline_failures - mutated_passes) / baseline_total
+        int mutated_failures = session.mutated_failures();
+        int mutated_total = mutated_passes + mutated_failures;
+        double drop_ratio = (mutated_total > 0)
+            ? static_cast<double>(mutated_failures) / mutated_total
             : 0.0;
 
-        nlohmann::json metrics;
-        metrics["baseline_total"] = baseline_total;
-        metrics["baseline_failures"] = baseline_failures;
-        metrics["mutated_passes"] = mutated_passes;
-        metrics["drop_ratio"] = drop_ratio;
-        metrics["original_drop_ratio"] = 0.0;
-        metrics["new_up"] = "phase1-2 real execution chain (Phase B)";
-        metrics["old_down"] = "drop_ratio=" + std::to_string(drop_ratio);
+        nlohmann::json metrics = {
+            {"baseline_total", baseline_total},
+            {"baseline_failures", baseline_failures},
+            {"mutated_passes", mutated_passes},
+            {"mutated_failures", mutated_failures},
+            {"drop_ratio", drop_ratio}
+        };
 
-        // Write metrics.json
-        std::ofstream mf("metrics.json");
-        if (mf) {
-            mf << metrics.dump(2) << std::endl;
-            std::cerr << "[release-metrics] wrote metrics.json: drop_ratio="
-                      << drop_ratio << " (threshold=5%)" << std::endl;
+        std::ofstream mf(opts.metrics_output_path);
+        if (!mf.is_open()) {
+            std::cerr << "ERROR: cannot open metrics output: "
+                      << opts.metrics_output_path << std::endl;
+            return 2;
         }
+        mf << metrics.dump(2) << std::endl;
+        std::cerr << "[release-metrics] wrote " << opts.metrics_output_path
+                  << ": drop_ratio=" << drop_ratio << " (threshold=5%)" << std::endl;
 
         if (drop_ratio > 0.05) {
             std::cerr << "ERROR: drop_ratio " << drop_ratio
