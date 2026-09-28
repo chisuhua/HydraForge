@@ -322,7 +322,7 @@ TEST_CASE("capture-mode=Training: emits IDistillationWriter JSONL", "[l2-evoluti
     CHECK(rc == 0);
 
     auto files = list_distillation_files(writer_root);
-    CHECK(files.size() >= 3);  // 1 per context
+    CHECK(files.size() == 3);  // exactly 1 per context (Oracle m2)
 
     if (!files.empty()) {
         auto rec = nlohmann::json::parse(read_file(files[0]));
@@ -361,6 +361,48 @@ TEST_CASE("capture-mode=None: does NOT emit distillation file", "[l2-evolution]"
 
     auto files = list_distillation_files(writer_root);
     CHECK(files.empty());
+
+    fs::remove_all(writer_root);
+    pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
+}
+
+// --- Oracle M1: distillation-record redaction for confidential sensitivity ---
+// §12.9.3 confidential 0% leak red-line adjacent. distill files are Wave 3
+// Phase 2 D4 LoRA training data source — leaked confidential enters training.
+TEST_CASE("distillation-redaction: confidential sensitivity redacts input/output",
+          "[l2-evolution]") {
+    auto* guard = pdk_chat_demo_evolution::detail::setup_hermetic_home();
+    REQUIRE(guard != nullptr);
+
+    pdk_chat_demo_evolution::ContextRequest ctx;
+    ctx.context_id = "distill-redact-confidential-001";
+    ctx.turn_input = "secret internal diagnosis: server room breached";
+    ctx.task_class = "debug";
+    ctx.expected_eval_quality = "Acceptable";
+    ctx.invocation_mode = "mock";
+    ctx.metadata.domain = "internal-infra";
+    ctx.metadata.tags = {"r13-4", "confidential", "distill-redact"};
+    ctx.metadata.is_hidden = false;
+    ctx.metadata.sensitivity = "confidential";
+
+    auto writer_root = fs::temp_directory_path() / "l2-distillation-redact-test";
+    fs::remove_all(writer_root);
+
+    pdk_chat_demo_evolution::EvolutionSession session(
+        "mock", "Training", /*trace_events=*/false);
+    session.set_contexts({ctx});
+    session.set_hermetic_home(guard);
+    session.set_distillation_output_dir(writer_root);
+
+    int rc = session.run_6_phase_demo();
+    CHECK(rc == 0);
+
+    auto files = list_distillation_files(writer_root);
+    REQUIRE(files.size() == 1);
+
+    auto rec = nlohmann::json::parse(read_file(files[0]));
+    CHECK(rec["input"].get<std::string>() == "[REDACTED-confidential]");
+    CHECK(rec["output"].get<std::string>() == "[REDACTED-confidential]");
 
     fs::remove_all(writer_root);
     pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);

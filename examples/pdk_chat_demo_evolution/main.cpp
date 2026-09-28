@@ -168,6 +168,15 @@ int main(int argc, char** argv) {
         return 2;
     }
 
+    // Per Oracle m1: --capture-mode must be "None" or "Training" (fail-fast).
+    // Any typo silently degrades to "no distillation files" without notice.
+    if (opts.capture_mode != "None" && opts.capture_mode != "Training") {
+        std::cerr << "ERROR: --capture-mode must be 'None' or 'Training', got '"
+                  << opts.capture_mode << "'" << std::endl;
+        std::cerr << kUsage;
+        return 2;
+    }
+
     // Per S28: missing --context-file -> exit non-zero + stderr "L2 zero-hardcode"
     if (opts.context_file.empty()) {
         std::cerr << "ERROR: L2 zero-hardcode, must provide ContextRequest via "
