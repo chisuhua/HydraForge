@@ -1,0 +1,63 @@
+{
+  "schema": "builder-handoff-v1.5",
+  "improvement": "l2-evolution-finalization",
+  "iteration_id": "t5-2026-09-28",
+  "branch": "feat/l2-evolution-finalization",
+  "head_commit": "TBD-post-t2t3-merge",
+  "scope": {
+    "phase": "A4-capture-mode-training",
+    "depends_on": ["T2 phase3_mutation", "T3 phase4_reload_rerun"],
+    "task": {"id": "T5", "title": "capture-mode=Training → IDistillationWriter", "sp": 3},
+    "atomic_commit": true,
+    "design_reference": "openspec/changes/2026-09-26-l2-evolution-finalization/design.md §D6"
+  },
+  "design_summary": {
+    "trigger": "capture_mode_str_ == \"Training\" enables IDistillationWriter per-context",
+    "factory_api": "agenticdsl::IDistillationWriter::make_file_writer(output_dir, agent_id)",
+    "record_schema": "DistillationRecord{agent_id, convergence, reward, input, output, capture_mode, timestamp_iso8601, steps, ...}",
+    "file_pattern": "<agent_id>_<seq:06d>.distill.v1.jsonl (one record per file)",
+    "acceptance": [
+      "--capture-mode Training produces ≥1 file per context",
+      "File naming matches <agent_id>_<seq:06d>.distill.v1.jsonl",
+      "File content has agent_id + input/output/capture_mode/convergence fields per DistillationRecord schema",
+      "--capture-mode None (default) produces NO distillation files"
+    ],
+    "pre_implementation_gotchas": [
+      "IDistillationWriter namespace is agenticdsl, NOT agenticdsl::stdx (fictional)",
+      "Static factory make_file_writer(output_dir, agent_id), NOT create_session_writer(path)",
+      "Methods write_record(DistillationRecord), close(), finalize(meta), NOT write_event(json)",
+      "agent_id non-empty required (three-fold enforcement in file_writer.cpp:43-46)",
+      "Per-context record construction (after phase4 / phase5), NOT from raw bus event stream"
+    ]
+  },
+  "post_merge_actions": [
+    "Trigger A5 T6 archive + housekeeping (bundles B3 tasks.md sync + M3 handoff commit)"
+  ],
+  "anti_patterns_blocked": [
+    "Creating fake/empty distillation files",
+    "Bus event subscription for DistillationRecord (use per-context construction instead)",
+    "amend baseline commit",
+    "skip Oracle review"
+  ],
+  "verification_requirements": {
+    "worker_self_check": [
+      "git show HEAD 看真实 diff",
+      "ls /tmp/l2-distillation-*.jsonl 实际验证 (不只信 worker final report)",
+      "ctest --test-dir build -L l2-evolution -V 看新测试 PASS",
+      "JSONL file content grep 验证 field schema"
+    ],
+    "merge_gating": [
+      "Oracle SHIP-with-fixes OR SHIP 判定",
+      "ctest -l2-evolution 全 PASS (含 T5 新增)",
+      "Reverse Indicator 5-field block",
+      "3 acceptance criteria 全部 hit"
+    ]
+  },
+  "strategic_value": "Wave 3 Phase 2 D4 LoRA training pipeline data path enabler (per design.md §D6 Strategic value)",
+  "evidence_required": [
+    "T5 atomic commit hash",
+    "ctest output (l2-evolution label)",
+    "ls /tmp/l2-distillation-*.jsonl output (≥1 file per context)",
+    "File content sample (first 1-2 records with full schema)"
+  ]
+}
