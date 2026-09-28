@@ -148,3 +148,130 @@ TEST_CASE("evolution_session: 3 contexts emit 12 JSONL lines", "[l2-evolution]")
 
     pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
 }
+
+// --- Helper: parse JSONL output into array ---
+nlohmann::json parse_lines(const std::string& in) {
+    nlohmann::json arr = nlohmann::json::array();
+    std::stringstream ss(in);
+    std::string line;
+    while (std::getline(ss, line)) {
+        if (line.empty()) continue;
+        try {
+            arr.push_back(nlohmann::json::parse(line));
+        } catch (...) {}
+    }
+    return arr;
+}
+
+// --- Case 2 (T2): mutation genome_version > 1 after real wiring ---
+TEST_CASE("evolution_session: mutation genome_version > 1 (real mutation)",
+          "[l2-evolution]") {
+    auto* guard = pdk_chat_demo_evolution::detail::setup_hermetic_home();
+    REQUIRE(guard != nullptr);
+
+    std::vector<pdk_chat_demo_evolution::LoadError> errors;
+    auto contexts = load_fixture("valid_single_code.jsonl", errors);
+    REQUIRE(contexts.size() == 1);
+
+    pdk_chat_demo_evolution::EvolutionSession session(
+        "mock", "None", /*trace_events=*/true);
+    session.set_contexts(contexts);
+    session.set_hermetic_home(guard);
+
+    StdoutCapture cap;
+    int rc = session.run_6_phase_demo();
+    CHECK(rc == 0);
+
+    auto events = parse_lines(cap.str());
+    REQUIRE(events.size() >= 4);
+
+    // Find mutation phase and verify genome_version > 1
+    auto mutation = std::find_if(events.begin(), events.end(),
+        [](const auto& e) { return e.value("phase", "") == "mutation"; });
+    REQUIRE(mutation != events.end());
+    REQUIRE(mutation->contains("meta"));
+    const auto& meta = (*mutation)["meta"];
+    REQUIRE(meta.contains("genome_version"));
+    // After seed commit (version 1) + mutation fork (version 2) → genome_version > 1
+    CHECK(meta["genome_version"].get<int>() > 1);
+
+    pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
+}
+
+// --- Case 3 (T3): reload genome_version chain-links to phase3 mutation version ---
+TEST_CASE("evolution_session: reload genome_version == mutation genome_version (chain-link)",
+          "[l2-evolution]") {
+    auto* guard = pdk_chat_demo_evolution::detail::setup_hermetic_home();
+    REQUIRE(guard != nullptr);
+
+    std::vector<pdk_chat_demo_evolution::LoadError> errors;
+    auto contexts = load_fixture("valid_single_code.jsonl", errors);
+    REQUIRE(contexts.size() == 1);
+
+    pdk_chat_demo_evolution::EvolutionSession session(
+        "mock", "None", /*trace_events=*/true);
+    session.set_contexts(contexts);
+    session.set_hermetic_home(guard);
+
+    StdoutCapture cap;
+    int rc = session.run_6_phase_demo();
+    CHECK(rc == 0);
+
+    auto events = parse_lines(cap.str());
+    REQUIRE(events.size() >= 4);
+
+    auto mutation = std::find_if(events.begin(), events.end(),
+        [](const auto& e) { return e.value("phase", "") == "mutation"; });
+    REQUIRE(mutation != events.end());
+    REQUIRE(mutation->contains("meta"));
+    const auto& mut_meta = (*mutation)["meta"];
+    REQUIRE(mut_meta.contains("genome_version"));
+    int mut_version = mut_meta["genome_version"].get<int>();
+
+    auto reload = std::find_if(events.begin(), events.end(),
+        [](const auto& e) { return e.value("phase", "") == "reload"; });
+    REQUIRE(reload != events.end());
+    REQUIRE(reload->contains("meta"));
+    const auto& rel_meta = (*reload)["meta"];
+    REQUIRE(rel_meta.contains("genome_version"));
+
+    // Chain-link: reload reloads mutation.new_version (per design T3.1 Oracle M6)
+    CHECK(rel_meta["genome_version"].get<int>() == mut_version);
+
+    pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
+}
+
+// --- Case 4 (T3): reload verdict is a legal closed-enum value (R4) ---
+TEST_CASE("evolution_session: reload verdict is R4 closed-enum legal",
+          "[l2-evolution]") {
+    auto* guard = pdk_chat_demo_evolution::detail::setup_hermetic_home();
+    REQUIRE(guard != nullptr);
+
+    std::vector<pdk_chat_demo_evolution::LoadError> errors;
+    auto contexts = load_fixture("valid_single_code.jsonl", errors);
+    REQUIRE(contexts.size() == 1);
+
+    pdk_chat_demo_evolution::EvolutionSession session(
+        "mock", "None", /*trace_events=*/true);
+    session.set_contexts(contexts);
+    session.set_hermetic_home(guard);
+
+    StdoutCapture cap;
+    int rc = session.run_6_phase_demo();
+    CHECK(rc == 0);
+
+    auto events = parse_lines(cap.str());
+    REQUIRE(events.size() >= 4);
+
+    auto reload = std::find_if(events.begin(), events.end(),
+        [](const auto& e) { return e.value("phase", "") == "reload"; });
+    REQUIRE(reload != events.end());
+    REQUIRE(reload->contains("meta"));
+    const auto& meta = (*reload)["meta"];
+    REQUIRE(meta.contains("attribution_verdict"));
+    const auto& verdict = meta["attribution_verdict"].get<std::string>();
+    CHECK((verdict == "NotAttempted" || verdict == "Attributed" ||
+           verdict == "Insufficient" || verdict == "Confounded"));
+
+    pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
+}

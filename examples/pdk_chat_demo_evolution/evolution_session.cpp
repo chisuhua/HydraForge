@@ -13,6 +13,7 @@
 #include <core/engine.h>
 
 #include <iostream>
+#include <filesystem>
 #include <utility>
 
 #include "context_request.h"
@@ -28,8 +29,13 @@ EvolutionSession::EvolutionSession(const std::string& provider_str,
     , capture_mode_str_(capture_mode_str)
     , bus_(std::make_shared<agenticdsl::InMemoryBus>())
     , tracer_(std::make_unique<EvolutionTracer>(trace_events))
-    , evaluator_(std::make_unique<agenticdsl::BehavioralEquivalenceEvaluator>()) {
+    , evaluator_(std::make_unique<agenticdsl::BehavioralEquivalenceEvaluator>())
+    , budget_(std::make_unique<agenticdsl::BudgetController>()) {
     tracer_->subscribe_to_bus(bus_.get());
+    bootstrap_attribution_.verdict = agenticdsl::evolution::AttributionVerdict::Attributed;
+    bootstrap_attribution_.method = agenticdsl::evolution::AttributionMethod::DirectComparison;
+    bootstrap_attribution_.reason =
+        "L2 bootstrap: first-cycle, no prior attribution";
 }
 
 EvolutionSession::~EvolutionSession() = default;
@@ -112,6 +118,35 @@ void EvolutionSession::phase1_init() {
         nullptr,  // session_manager (no JSONL persistence)
         std::nullopt  // resume (fresh session)
     );
+
+    // T2: Genome registry at hermetic root (Gate 0 prerequisite). Per design D3,
+    // create_filesystem(root) takes an explicit root path (NOT ~/.hydraforge/...);
+    // HOME was redirected by setup_hermetic_home() before phase1_init.
+    if (hermetic_guard_) {
+        genome_registry_ = agenticdsl::genome::IGenomeRegistry::create_filesystem(
+            hermetic_guard_->genome_dir);
+    } else {
+        genome_registry_ = agenticdsl::genome::IGenomeRegistry::create_filesystem(
+            std::filesystem::temp_directory_path() / "l2-evolution-genome");
+    }
+
+    // Snapshot tool names from registry (used as Genome::spec.tools + Gate 3 final_tools)
+    tool_names_snapshot_ = engine_->get_tool_registry().list_tools();
+
+    // Seed genome commit (Gate 0: parent_version must be > 0 before first mutation)
+    agenticdsl::genome::Genome root;
+    root.metadata.name = "default";
+    root.metadata.capture_mode = "mock";
+    root.spec.harness = agent_cfg_.system_prompt;
+    root.spec.tools = tool_names_snapshot_;
+    auto seed = genome_registry_->commit(root);
+    if (seed.has_value()) {
+        last_committed_genome_version_ = seed.value().version;
+        baseline_version_ = last_committed_genome_version_;
+    } else {
+        std::cerr << "ERROR: genome seed commit failed (mutation will fail Gate 0)"
+                  << std::endl;
+    }
 }
 
 void EvolutionSession::phase2_baseline(const ContextRequest& ctx) {
@@ -158,51 +193,138 @@ void EvolutionSession::phase2_baseline(const ContextRequest& ctx) {
 }
 
 void EvolutionSession::phase3_mutation(const ContextRequest& ctx) {
-    // Phase C: real apply_harness_mutation
-    // stub: record identity trace with realistic-looking gate_passes
-    nlohmann::json meta = build_meta(ctx, 1, 5, "Attributed");
+    if (!genome_registry_) {
+        nlohmann::json meta = build_meta(ctx, 0, 0, "NotAttempted");
+        tracer_->record_phase(TracePhase::Mutation, {{"meta", std::move(meta)}});
+        return;
+    }
+
+    agenticdsl::evolution::MutationGateContext mctx;
+    mctx.current = agenticdsl::evolution::EvolutionState::Harness;
+    mctx.attribution = &bootstrap_attribution_;
+    mctx.evaluator = evaluator_.get();
+    mctx.budget = budget_.get();
+    mctx.bus = bus_.get();
+    mctx.policy = {};
+    mctx.genome_registry = genome_registry_.get();
+    mctx.genome_name = "default";
+    mctx.parent_version = last_committed_genome_version_;
+    mctx.trace_id = "l2-mutation-" + ctx.context_id;
+
+    // Minimal honest test mutation: prompt_delta only (no tools add/remove → avoids
+    // Gate 2.5 RegistryRejected on nonexistent tools).
+    agenticdsl::evolution::GenomeMutations mutations;
+    mutations.prompt_delta = "\n\n# Mutation: harness refinement from context "
+                             + ctx.context_id;
+
+    std::string sys_prompt = agent_cfg_.system_prompt;
+    auto result = agenticdsl::evolution::apply_harness_mutation(
+        mutations, sys_prompt, tool_names_snapshot_,
+        engine_->get_tool_registry(), mctx);
+
+    uint64_t new_version = last_committed_genome_version_;
+    int gates_passed = 0;
+    std::string verdict = "NotAttempted";
+    if (result.has_value()) {
+        new_version = result.value().committed_genome_version;
+        gates_passed = 5;
+        last_committed_genome_version_ = new_version;
+        agent_cfg_.system_prompt = sys_prompt;
+    } else {
+        switch (result.error()) {
+            case agenticdsl::evolution::MutationError::InvalidMutation:
+                gates_passed = 0; break;
+            case agenticdsl::evolution::MutationError::NotReady:
+                gates_passed = 1; break;
+            case agenticdsl::evolution::MutationError::GovernanceDenied:
+                gates_passed = 2; break;
+            case agenticdsl::evolution::MutationError::RegistryRejected:
+                // Floor approximation: RegistryRejected covers both Gate 2.5 (3 passed)
+                // and Gate 3 persist failure (4 passed); enum can't disambiguate.
+                gates_passed = 3; break;
+            case agenticdsl::evolution::MutationError::UnsupportedVariant:
+                gates_passed = 0; break;
+        }
+    }
+
+    // Multi-context: mutations chain across contexts in one session — ctx N's
+    // mutation parents ctx N-1's v (v2→v3→...); skip applies only when
+    // last_committed <= baseline (global, not per-context). L2 mock scope.
+
+    nlohmann::json meta = build_meta(ctx, new_version, gates_passed, verdict);
     tracer_->record_phase(TracePhase::Mutation, {{"meta", std::move(meta)}});
 }
 
 void EvolutionSession::phase4_reload_rerun(const ContextRequest& ctx) {
-    // Phase C: real IGenomeRegistry::load + ChatSession rebuild (T2 scope)
-    // For T1: minimal rerun to populate last_rerun_exec_ for phase5_compare
-    std::string response;
-    int tokens = 0;
-    double cost = 0.0;
-    bool ok = false;
-
-    if (chat_session_) {
-        auto result = chat_session_->chat(ctx.turn_input);
-        ok = result.success;
-        response = result.response;
-        tokens = result.total_tokens;
-        cost = result.cost_usd;
+    // Skip rebuild when no mutation actually applied (design D4 Risk 3 mitigation)
+    if (last_committed_genome_version_ <= baseline_version_ || !genome_registry_) {
+        nlohmann::json meta = build_meta(
+            ctx, last_committed_genome_version_, /*gates*/0,
+            /*verdict*/ "NotAttempted");
+        tracer_->record_phase(TracePhase::Reload, {{"meta", std::move(meta)}});
+        return;
     }
 
-    // Populate last_rerun_exec_ for Phase 5 compare
-    agenticdsl::ToolResult tr;
-    tr.ok = ok;
-    tr.data = {{"response", response}, {"tokens", tokens}, {"cost_usd", cost}};
-    std::string trace_id = "rerun-" + ctx.context_id;
-    last_rerun_exec_ = agenticdsl::ExecutionTrace{std::move(tr), trace_id, {}};
+    auto genome_result = genome_registry_->load(
+        "default", last_committed_genome_version_);
+    if (!genome_result.has_value()) {
+        nlohmann::json meta = build_meta(
+            ctx, last_committed_genome_version_, /*gates*/3,
+            /*verdict*/ "NotAttempted");
+        meta["error"] = "load_failed";
+        tracer_->record_phase(TracePhase::Reload, {{"meta", std::move(meta)}});
+        return;
+    }
 
-    nlohmann::json meta = build_meta(ctx, 1, 5, "Attributed");
-    tracer_->record_phase(TracePhase::Reload, {{"meta", std::move(meta)}});
+    // Hand-mapped AgentConfig from Genome (Oracle M4: only system_prompt matches
+    // AgentConfig; tools/budget/model_routing don't exist there → dropped)
+    auto new_agent_cfg = agent_cfg_;
+    new_agent_cfg.system_prompt = genome_result.value().spec.harness;
+
+    // Build new ChatSession with mutated config
+    auto session_v2 = std::make_unique<hydraforge::pdk::ChatSession>(
+        engine_.get(), bus_, &engine_->get_tool_registry(),
+        new_agent_cfg, session_cfg_,
+        nullptr, nullptr, nullptr, nullptr, nullptr, std::nullopt);
+
+    auto result = session_v2->chat(ctx.turn_input);
+
+    nlohmann::json rerun_event = {
+        {"meta", build_meta(ctx, last_committed_genome_version_,
+                            // Reload is not a gate sequence; reuse 5 to mirror
+                            // mutation gates_passed so chain-link stays uniform
+                            // (Oracle m4 L2 finalization SHIP-with-fixes 2026-09-28).
+                            /*gates*/5, "NotAttempted")},
+        {"turn_input", ctx.turn_input},
+        {"response", result.success ? nlohmann::json(result.response)
+                                    : nlohmann::json(nullptr)},
+        {"tokens", result.total_tokens},
+        {"cost_usd", result.cost_usd}
+    };
+
+    // R13.4: redact turn_input/response per sensitivity
+    if (ctx.metadata.sensitivity == "internal" ||
+        ctx.metadata.sensitivity == "confidential") {
+        rerun_event = detail::redact_trace_fields(
+            std::move(rerun_event), ctx.metadata.sensitivity);
+    }
+
+    // Convert ChatResult → ExecutionTrace for phase5 compare
+    agenticdsl::ToolResult tr;
+    tr.ok = result.success;
+    tr.data = {{"response", result.response}, {"tokens", result.total_tokens},
+               {"cost_usd", result.cost_usd}};
+    last_rerun_exec_ = agenticdsl::ExecutionTrace{
+        std::move(tr), "rerun-" + ctx.context_id, {}};
+
+    tracer_->record_phase(TracePhase::Reload, rerun_event);
 }
 
 void EvolutionSession::phase5_compare(const ContextRequest& ctx) {
     // Phase C (finalization): real IEvaluator::compare(before, after)
-    // Per design.md D2: skip with NotAttempted when trace evidence missing
-    //
-    // Note on genome_version (per Oracle SHIP-with-fixes verdict 2026-09-28):
-    //   last_committed_genome_version_ is init=0 in T1 (no seed commit yet).
-    //   phase3_mutation + phase4_reload_rerun still hardcode `1` in build_meta
-    //   (Phase B stubs; T2 will wire real apply_harness_mutation + seed commit
-    //   per design.md D3, and T3.1 will add chain-link semantics per Oracle M6).
-    //   The 0-vs-1 split is the designed intermediate state of T1/T2/T3
-    //   decomposition; phase5's `0` is semantically honest ("no mutation
-    //   committed yet"). Self-resolves at T2/T3 wire.
+    // Skip with NotAttempted when trace evidence missing. genome_version is
+    // live state post T2/T3 (seed v1, fork v2+, chain-link per Oracle M6).
+    // 0 only if no mutation was attempted.
     if (!last_baseline_exec_.has_value() || !last_rerun_exec_.has_value()) {
         nlohmann::json meta = build_meta(
             ctx, last_committed_genome_version_, /*gates*/0,

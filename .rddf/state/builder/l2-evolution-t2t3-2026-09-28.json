@@ -1,0 +1,49 @@
+{
+  "schema": "builder-handoff-v1.5",
+  "improvement": "l2-evolution-finalization",
+  "iteration_id": "t2t3-2026-09-28",
+  "branch": "feat/l2-evolution-finalization",
+  "head_commit": "d1cd4f6",
+  "scope": {
+    "phase": "P2-execute",
+    "tasks": [
+      {"id": "T2", "title": "phase3_mutation real", "sp": 6, "risk": "highest", "atomic_commit": true},
+      {"id": "T3", "title": "phase4_reload_rerun real", "sp": 4, "risk": "medium", "depends_on": "T2", "atomic_commit": true}
+    ],
+    "combined_oracle_review": true,
+    "rationale": "T2 + T3 共享 gate 语义 + hermetic HOME ordering + seed commit 上下文, 1 次 Oracle 复评节省 ~30 min vs 2 次"
+  },
+  "oracle_review_mode": "combined",
+  "atomic_commits_expected": 2,
+  "verification_requirements": {
+    "worker_self_check": [
+      "git show HEAD~0..HEAD 看真实 diff (不信 worker final report)",
+      "git ls-files openspec/changes/2026-09-26-l2-evolution-finalization/ 验证 4-file 完整",
+      "实际跑 ctest -L l2-evolution 验证 (不只信 'PASS')",
+      "bash -n .rddf/state/builder/wave-3-finetune-base-model.json 类比: builder json 语法"
+    ],
+    "merge_gating": [
+      "Oracle SHIP-with-fixes OR SHIP 判定",
+      "ctest -l2-evolution 9+N 全 PASS (N = 新增)",
+      "Reverse Indicator 5-field block 在 commit message"
+    ]
+  },
+  "post_merge_actions": [
+    "Run ctest --test-dir build -j$(nproc) (focused subset if A3 TSan 跑过则全量)",
+    "Trigger A3 TSan scan on CTestTestfile subset l2-evolution+domain_worker_pool+cognitive",
+    "Trigger A4 T5 worker (capture-mode=Training)"
+  ],
+  "rollback_plan": "git worktree remove --force ../wt-l2-finalization-t2t3 + git branch -D feat/l2-evolution-finalization (pre-merge); git revert <merge_commit> (post-merge)",
+  "anti_patterns_blocked": [
+    "worker final-report 不可信 (Pattern #11 教训)",
+    "amend baseline commit (Pattern #4)",
+    "skip Oracle review (Pattern #11)",
+    "merge 不重 build main working tree"
+  ],
+  "evidence_required": [
+    "T2 atomic commit hash",
+    "T3 atomic commit hash",
+    "Oracle verdict session ID",
+    "ctest output (l2-evolution label)"
+  ]
+}

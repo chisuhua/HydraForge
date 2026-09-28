@@ -24,6 +24,7 @@ target_link_libraries(pdk_chat_demo_evolution PRIVATE
     agenticdsl_includes
     agenticdsl_core
     agenticdsl_common
+    agenticdsl_evolution
     hydraforge_pdk
     pdk_chat_session
     Threads::Threads

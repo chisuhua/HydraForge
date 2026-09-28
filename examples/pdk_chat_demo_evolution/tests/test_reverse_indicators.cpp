@@ -191,15 +191,21 @@ TEST_CASE("R8 reverse_indicators: attribution_verdict phase-level distribution p
         auto it_b = phase_verdicts.find("baseline");
         REQUIRE(it_b != phase_verdicts.end());
         CHECK(it_b->second == "NotAttempted");
-        // Mutation/Reload phases -> "Attributed" verdict (Phase B: mutation is still a stub;
-        //   T2 will wire real apply_harness_mutation + seed commit, see finalization/tasks.md T2)
         // Compare phase -> {"Attributed","Insufficient"} via real IEvaluator::compare
         //   (mock mode: identical traces → cmp==0 → "Attributed"; real mode post-T2:
         //    non-trivial mutation diverges → cmp!=0 → "Insufficient"; Confounded unreachable in L2)
-        for (const auto& phase : {"mutation", "reload"}) {
-            auto it = phase_verdicts.find(phase);
-            REQUIRE(it != phase_verdicts.end());
-            CHECK(it->second == "Attributed");
+        // Mutation phase -> "NotAttempted" (T2: real apply_harness_mutation emits R4-compliant
+        //   pre-resolution verdict; resolved in phase5_compare)
+        {
+            auto it_m = phase_verdicts.find("mutation");
+            REQUIRE(it_m != phase_verdicts.end());
+            CHECK(it_m->second == "NotAttempted");
+        }
+        // Reload phase -> "NotAttempted" (T3: real genome load+rerun; pre-resolution verdict)
+        {
+            auto it_r = phase_verdicts.find("reload");
+            REQUIRE(it_r != phase_verdicts.end());
+            CHECK(it_r->second == "NotAttempted");
         }
         {
             auto it_c = phase_verdicts.find("compare");
