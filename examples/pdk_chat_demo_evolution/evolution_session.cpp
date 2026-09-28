@@ -194,6 +194,15 @@ void EvolutionSession::phase4_reload_rerun(const ContextRequest& ctx) {
 void EvolutionSession::phase5_compare(const ContextRequest& ctx) {
     // Phase C (finalization): real IEvaluator::compare(before, after)
     // Per design.md D2: skip with NotAttempted when trace evidence missing
+    //
+    // Note on genome_version (per Oracle SHIP-with-fixes verdict 2026-09-28):
+    //   last_committed_genome_version_ is init=0 in T1 (no seed commit yet).
+    //   phase3_mutation + phase4_reload_rerun still hardcode `1` in build_meta
+    //   (Phase B stubs; T2 will wire real apply_harness_mutation + seed commit
+    //   per design.md D3, and T3.1 will add chain-link semantics per Oracle M6).
+    //   The 0-vs-1 split is the designed intermediate state of T1/T2/T3
+    //   decomposition; phase5's `0` is semantically honest ("no mutation
+    //   committed yet"). Self-resolves at T2/T3 wire.
     if (!last_baseline_exec_.has_value() || !last_rerun_exec_.has_value()) {
         nlohmann::json meta = build_meta(
             ctx, last_committed_genome_version_, /*gates*/0,
