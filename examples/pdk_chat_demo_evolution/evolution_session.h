@@ -117,6 +117,10 @@ private:
     agenticdsl::evolution::AttributionRecord bootstrap_attribution_;
     std::unique_ptr<agenticdsl::IBudgetController> budget_;
     std::vector<std::string> tool_names_snapshot_;
+
+    // Phase C (finalization, T3): reload_rerun members
+    uint64_t baseline_version_ = 0;
+    hydraforge::pdk::SessionConfig session_cfg_;
 };
 
 }  // namespace pdk_chat_demo_evolution

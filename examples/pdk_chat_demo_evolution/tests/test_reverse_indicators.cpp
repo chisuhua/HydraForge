@@ -201,11 +201,11 @@ TEST_CASE("R8 reverse_indicators: attribution_verdict phase-level distribution p
             REQUIRE(it_m != phase_verdicts.end());
             CHECK(it_m->second == "NotAttempted");
         }
-        // Reload phase -> "Attributed" (Phase B stub; T3 will wire real reload)
+        // Reload phase -> "NotAttempted" (T3: real genome load+rerun; pre-resolution verdict)
         {
             auto it_r = phase_verdicts.find("reload");
             REQUIRE(it_r != phase_verdicts.end());
-            CHECK(it_r->second == "Attributed");
+            CHECK(it_r->second == "NotAttempted");
         }
         {
             auto it_c = phase_verdicts.find("compare");

@@ -142,6 +142,7 @@ void EvolutionSession::phase1_init() {
     auto seed = genome_registry_->commit(root);
     if (seed.has_value()) {
         last_committed_genome_version_ = seed.value().version;
+        baseline_version_ = last_committed_genome_version_;
     } else {
         std::cerr << "ERROR: genome seed commit failed (mutation will fail Gate 0)"
                   << std::endl;
@@ -249,30 +250,65 @@ void EvolutionSession::phase3_mutation(const ContextRequest& ctx) {
 }
 
 void EvolutionSession::phase4_reload_rerun(const ContextRequest& ctx) {
-    // Phase C: real IGenomeRegistry::load + ChatSession rebuild (T2 scope)
-    // For T1: minimal rerun to populate last_rerun_exec_ for phase5_compare
-    std::string response;
-    int tokens = 0;
-    double cost = 0.0;
-    bool ok = false;
-
-    if (chat_session_) {
-        auto result = chat_session_->chat(ctx.turn_input);
-        ok = result.success;
-        response = result.response;
-        tokens = result.total_tokens;
-        cost = result.cost_usd;
+    // Skip rebuild when no mutation actually applied (design D4 Risk 3 mitigation)
+    if (last_committed_genome_version_ <= baseline_version_ || !genome_registry_) {
+        nlohmann::json meta = build_meta(
+            ctx, last_committed_genome_version_, /*gates*/0,
+            /*verdict*/ "NotAttempted");
+        tracer_->record_phase(TracePhase::Reload, {{"meta", std::move(meta)}});
+        return;
     }
 
-    // Populate last_rerun_exec_ for Phase 5 compare
-    agenticdsl::ToolResult tr;
-    tr.ok = ok;
-    tr.data = {{"response", response}, {"tokens", tokens}, {"cost_usd", cost}};
-    std::string trace_id = "rerun-" + ctx.context_id;
-    last_rerun_exec_ = agenticdsl::ExecutionTrace{std::move(tr), trace_id, {}};
+    auto genome_result = genome_registry_->load(
+        "default", last_committed_genome_version_);
+    if (!genome_result.has_value()) {
+        nlohmann::json meta = build_meta(
+            ctx, last_committed_genome_version_, /*gates*/3,
+            /*verdict*/ "NotAttempted");
+        meta["error"] = "load_failed";
+        tracer_->record_phase(TracePhase::Reload, {{"meta", std::move(meta)}});
+        return;
+    }
 
-    nlohmann::json meta = build_meta(ctx, 1, 5, "Attributed");
-    tracer_->record_phase(TracePhase::Reload, {{"meta", std::move(meta)}});
+    // Hand-mapped AgentConfig from Genome (Oracle M4: only system_prompt matches
+    // AgentConfig; tools/budget/model_routing don't exist there → dropped)
+    auto new_agent_cfg = agent_cfg_;
+    new_agent_cfg.system_prompt = genome_result.value().spec.harness;
+
+    // Build new ChatSession with mutated config
+    auto session_v2 = std::make_unique<hydraforge::pdk::ChatSession>(
+        engine_.get(), bus_, &engine_->get_tool_registry(),
+        new_agent_cfg, session_cfg_,
+        nullptr, nullptr, nullptr, nullptr, nullptr, std::nullopt);
+
+    auto result = session_v2->chat(ctx.turn_input);
+
+    nlohmann::json rerun_event = {
+        {"meta", build_meta(ctx, last_committed_genome_version_,
+                            /*gates*/5, "NotAttempted")},
+        {"turn_input", ctx.turn_input},
+        {"response", result.success ? nlohmann::json(result.response)
+                                    : nlohmann::json(nullptr)},
+        {"tokens", result.total_tokens},
+        {"cost_usd", result.cost_usd}
+    };
+
+    // R13.4: redact turn_input/response per sensitivity
+    if (ctx.metadata.sensitivity == "internal" ||
+        ctx.metadata.sensitivity == "confidential") {
+        rerun_event = detail::redact_trace_fields(
+            std::move(rerun_event), ctx.metadata.sensitivity);
+    }
+
+    // Convert ChatResult → ExecutionTrace for phase5 compare
+    agenticdsl::ToolResult tr;
+    tr.ok = result.success;
+    tr.data = {{"response", result.response}, {"tokens", result.total_tokens},
+               {"cost_usd", result.cost_usd}};
+    last_rerun_exec_ = agenticdsl::ExecutionTrace{
+        std::move(tr), "rerun-" + ctx.context_id, {}};
+
+    tracer_->record_phase(TracePhase::Reload, rerun_event);
 }
 
 void EvolutionSession::phase5_compare(const ContextRequest& ctx) {
