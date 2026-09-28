@@ -200,9 +200,54 @@ TEST_CASE("R8 reverse_indicators: attribution_verdict phase-level distribution p
         {
             auto it_c = phase_verdicts.find("compare");
             REQUIRE(it_c != phase_verdicts.end());
-            CHECK(it_c->second == "NotAttempted");
+            // Phase 5 compare now uses real IEvaluator::compare → verdict is Attributed (mock identical)
+            CHECK((it_c->second == "Attributed" || it_c->second == "Insufficient"));
         }
     }
+
+    pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
+}
+
+// --- Phase 5 compare: real attribution verdict from IEvaluator::compare (L2 finalization T1) ---
+TEST_CASE("phase5_compare: real attribution verdict from IEvaluator::compare",
+          "[l2-evolution]") {
+    // Verdict must NOT be hardcoded "NotAttempted" when compare ran with populated traces
+    auto* guard = pdk_chat_demo_evolution::detail::setup_hermetic_home();
+    REQUIRE(guard != nullptr);
+
+    pdk_chat_demo_evolution::ContextRequest ctx;
+    ctx.context_id = "t1-compare-verdict-001";
+    ctx.turn_input = "Implement a is_even function in Python";
+    ctx.task_class = "code";
+    ctx.expected_eval_quality = "Acceptable";
+    ctx.invocation_mode = "mock";
+    ctx.metadata.domain = "code";
+    ctx.metadata.tags = {"t1", "compare"};
+    ctx.metadata.is_hidden = false;
+    ctx.metadata.sensitivity = "none";
+
+    pdk_chat_demo_evolution::EvolutionSession session(
+        "mock", "None", /*trace_events=*/true);
+    session.set_contexts({ctx});
+    session.set_hermetic_home(guard);
+
+    StdoutCapture cap;
+    session.run_6_phase_demo();
+
+    auto events = parse_lines(cap.str());
+    REQUIRE(events.size() >= 1);
+
+    auto compare = std::find_if(events.begin(), events.end(),
+        [](const auto& e) { return e.value("phase", "") == "compare"; });
+    REQUIRE(compare != events.end());
+
+    const auto& meta = (*compare)["meta"];
+    REQUIRE(meta.contains("attribution_verdict"));
+    const auto& verdict = meta["attribution_verdict"].get<std::string>();
+
+    // Real verdict from IEvaluator::compare — not hardcoded stub
+    CHECK(verdict != "NotAttempted");
+    CHECK((verdict == "Attributed" || verdict == "Insufficient"));
 
     pdk_chat_demo_evolution::detail::cleanup_hermetic_home(guard);
 }

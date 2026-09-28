@@ -15,11 +15,15 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include <nlohmann/json.hpp>
 
+#include <agenticdsl/contract/ievaluator.h>
+#include <agenticdsl/types/execution_trace.h>
+#include <agenticdsl/cognitive/behavioral_equivalence_evaluator.h>
 #include <agenticdsl/pdk/chat_session.h>
 
 #include "context_request.h"
@@ -61,6 +65,7 @@ public:
     int baseline_total() const { return baseline_total_; }
     int baseline_failures() const { return baseline_failures_; }
     int mutated_passes() const { return mutated_passes_; }
+    int mutated_failures() const { return mutated_failures_; }
 
 private:
     void phase0_load_contexts();
@@ -95,6 +100,13 @@ private:
     int baseline_total_ = 0;
     int baseline_failures_ = 0;
     int mutated_passes_ = 0;
+    int mutated_failures_ = 0;
+
+    // Phase C (finalization): compare members
+    std::optional<agenticdsl::ExecutionTrace> last_baseline_exec_;
+    std::optional<agenticdsl::ExecutionTrace> last_rerun_exec_;
+    std::unique_ptr<agenticdsl::IEvaluator> evaluator_;
+    uint64_t last_committed_genome_version_ = 0;
 };
 
 }  // namespace pdk_chat_demo_evolution
