@@ -310,3 +310,51 @@ ls build/tests/test_*real_llm* build/tests/test_*realllm* 2>/dev/null
 ```
 
 **禁止**只写 "21/21 ctest 100% PASS" 不区分 mock/real。
+
+### 7.6 Mock 测试"通过"的真实含义（防 audit 误导）
+
+**核心事实**: 大多数 mock test 的"通过"**与 LLM 行为无关**。
+
+```bash
+# 检验测试是否真依赖 ILLMProvider
+for t in tests/test_*.cpp; do
+  count=$(grep -c "ILLMProvider\|MockLLM\|RecordingLLM\|StubLLM" "$t" 2>/dev/null)
+  [ "$count" -gt 0 ] && echo "依赖 LLM: $t ($count 引用)"
+done | head -10
+```
+
+**实测结果（2026-09-29 审计）**:
+
+| 测试 | 类别 | LLM 是否参与 | 通过原因 |
+|------|------|--------------|----------|
+| test_harness_rsi_pilot (22 cases) | **纯状态机测试** | ❌ 不需要 | 测试 gate 状态机，**根本不构造 ILLMProvider** |
+| test_genome_registry (13 cases) | **纯算法测试** | ❌ | 文件系统持久化测试 |
+| test_gepa_phase2 (21 cases) | **Mock + Canned** | ⚠️ 有 MockLLMProvider | MockLLMProvider 返回硬编码 `"Reflection note: Add error handling for X"`；测试 GEPA 编排，**不验证 LLM 真输出** |
+| test_react_loop_real_llm (7 cases) | **Real LLM** | ✅ DeepSeek | React Loop 端到端真实路径 |
+
+**关键洞察**: 
+- 11/12 个 mock test 与 LLM **完全无关**，它们通过的根本原因是它们**测试的不是 LLM**
+- 只有 test_gepa_phase2 涉及 LLM，且用 canned response — 验证的是 GEPA 编排逻辑，**不是 LLM 真行为**
+- **没有 real_llm 覆盖 = 真实盲点** (如 GEPA Loop)
+
+### 7.7 审计"通过" vs 真覆盖
+
+**审计中声称"21/21 PASS"** 的真实含义:
+
+| 测试类别 | 数量 | 真正覆盖 | 真实盲点 |
+|----------|------|----------|----------|
+| 纯算法/状态机测试（无 LLM） | 11 | 该算法/状态机正确 | 无 |
+| Mock LLM 测试 | 1 (GEPA) | 编排逻辑正确 | LLM 真行为未验证 |
+| Real LLM 测试 | 0 (审计 §0-§11) | 端到端 | **核心盲点** |
+| Real LLM 测试 (用户充值后补充) | 2 (React + PlanExecute) | React/PlanExecute 端到端 | **GEPA 仍缺 real_llm** |
+
+**修正方法**: 任何 audit 必须区分 "测试通过" vs "LLM 路径真实可达"。Mock 测试通过的 ≠ LLM 真能跑通。
+
+### 7.8 已知真实盲点清单（需 OpenSpec follow-up 立项）
+
+| 盲点 | 缺失的 test | 建议路径 |
+|------|--------------|----------|
+| GEPA Loop DeepSeek 真实路径 | `test_gepa_loop_real_llm.cpp` | 新建（参考 test_react_loop_real_llm pattern） |
+| MiniMax API 路径 | `test_*minimax*` 全缺失 | 用 MINIMAX_API_KEY 实测 |
+| Harness-RSI gate 真实 LLM | N/A（正确设计：gate 不调用 LLM） | — |
+| Distillation capture-mode 真实路径 | 集成测试，not bundled | 用 `real_llm_provider() + CaptureMode::Training` |

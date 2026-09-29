@@ -11,9 +11,9 @@
 
 **核心结论（一句话）**: 三套系统的 V1 最小闭环都在生产代码 + 测试 + commit hash 三重维度有实证证据；但 SoT 文档**明确标注**当前是 V1 最小闭环 + V2 缺口，不构成"完整的自适应自进化平台"。详见下文每节的具体证据 + 可手工复现的验证命令。
 
-> ## ⚠️ 诚实披露 (Honest Disclosure, 2026-09-29 补)
+> ## ⚠️ 诚实披露 (Honest Disclosure, 2026-09-29 补, 用户充值后再次更新)
 >
-> **本审计所列的 21 个 ctest 全部是 mock / deterministic unit test，**未调用真实 DeepSeek API。证据链:
+> **本审计所列的 21 个 ctest 全部是 mock / deterministic unit test，未调用真实 DeepSeek API。**证据链:
 >
 > | 维度 | 实测数据 | 含义 |
 > |------|----------|------|
@@ -21,9 +21,13 @@
 > | 12 个 core test 源码中 `real_llm_env` 引用 | **0 / 12** | 无 real_llm helper 调用 |
 > | 9 个 L2 test 源码中 `real_llm_provider` 引用 | **0 / 9** | 同上 |
 >
-> 真实 LLM 验证见 §0.5 + §12。本审计范围 = **mock 路径覆盖率 100%（21/21 PASS）**，但**真实 DeepSeek API 路径未验证**（DEEPSEEK_API_KEY 余额不足导致 test_react_loop_real_llm 5/7 + test_plan_execute_realllm 0/3 失败，证明网络调用真发生但 API key 余额为 0）。
+> **修正后状态** (用户充值 DEEPSEEK_API_KEY 后 2026-09-29 重跑):
+> - test_react_loop_real_llm: **7/7 PASS** (25 assertions) — React Loop DeepSeek 路径端到端验证
+> - test_plan_execute_realllm: **3/3 PASS** (14 assertions) — PlanExecute Loop DeepSeek 路径端到端验证
 >
-> 详见 §12 "Real LLM 验证 (诚实披露)" + 修正方法论 §7 (per [`METHODOLOGY.md`](./METHODOLOGY.md))。
+> **综合覆盖**: Mock 21/21 ✅ + Real LLM (DeepSeek React+PlanExecute) 10/10 ✅ + GEPA Loop 仍是 mock only 真实盲点。
+>
+> 详见 §12 "Real LLM 验证 (诚实披露)" §12.3 + §12.5 + 修正方法论 §7 (per [`METHODOLOGY.md`](./METHODOLOGY.md))。
 
 ---
 
@@ -424,15 +428,19 @@ grep -E "未触发|未 wire|V2 缺|V2 defer" docs/architecture/harness-architect
 
 ## §6 综合判定矩阵
 
-### 6.1 ✅ 已 ship 并有测试通过证据（实测 2026-09-29）
+### 6.1 ✅ 已 ship 并有测试通过证据（实测 2026-09-29，含 mock + real LLM）
 
-| 系统 | 验证项 | 数字 |
-|------|--------|------|
-| **Harness** | 5-tier gate + apply_harness_mutation + Genome + 信用分配 + 守门 | **5 个核心 test binary，72 cases / 534 assertions 全 PASS** |
-| **自进化** | GEPA + SkillCompiler + TrajectoryIR + Distillation + BehavioralRegression + Causal | **7 个核心 test binary，73 cases / 481 assertions 全 PASS** |
-| **RSI** | Data-RSI + Harness-RSI + Model-RSI Phase 1 + L2 reference example | **9 个 L2 binary + 12 个核心 binary 全 PASS** |
-| **综合 12 ctest** | 12/12 PASS, 0 失败 | **已实测 ✅** |
-| **L2 evolution 9 ctest** | 9/9 PASS, 0 失败 | **已实测 ✅** |
+| 系统 | 验证项 | 数字 | 类别 |
+|------|--------|------|------|
+| **Harness** | 5-tier gate + apply_harness_mutation + Genome + 信用分配 + 守门 | **5 个核心 test binary，72 cases / 534 assertions 全 PASS** | Mock |
+| **自进化** | GEPA + SkillCompiler + TrajectoryIR + Distillation + BehavioralRegression + Causal | **7 个核心 test binary，73 cases / 481 assertions 全 PASS** | Mock |
+| **RSI** | Data-RSI + Harness-RSI + Model-RSI Phase 1 + L2 reference example | **9 个 L2 binary + 12 个核心 binary 全 PASS** | Mock |
+| **React Loop DeepSeek 路径** | ReactLoop 真 LLM 端到端 (smoke + R2 CJK + R6 100 calls stress) | **test_react_loop_real_llm: 7/7 cases / 25 assertions 全 PASS** | **Real LLM** |
+| **PlanExecute Loop DeepSeek 路径** | PlanExecute 真 LLM 端到端 (plan_phase + verify_phase + e2e) | **test_plan_execute_realllm: 3/3 cases / 14 assertions 全 PASS** | **Real LLM** |
+| **综合 12 ctest** (Mock) | 12/12 PASS, 0 失败 | **已实测 ✅ (mock)** |
+| **L2 evolution 9 ctest** (Mock) | 9/9 PASS, 0 失败 | **已实测 ✅ (mock)** |
+| **Real LLM React Loop** | test_react_loop_real_llm: 7/7 PASS | **已实测 ✅ (real DeepSeek)** |
+| **Real LLM PlanExecute Loop** | test_plan_execute_realllm: 3/3 PASS | **已实测 ✅ (real DeepSeek)** |
 | **全项目 ctest 规模** | `find build -name "test_*" -type f -executable` = **98 binaries**；`ctest --test-dir build -N` 列 **167 tests / Total Tests: 266**（含 examples 子树） | **已枚举 ✅** |
 
 ### 6.2 ⚠️ SoT 明确标注的缺口
@@ -574,9 +582,11 @@ python3 tools/adr_lint.py 2>&1 | tail -1
 
 ## §11 一句话最终结论（再浓缩）
 
-> **Harness / 自进化 / RSI 三套系统的 V1 最小闭环都在生产代码 + 测试 + commit hash 三重维度有实证证据；但 SoT 自承认多个 V2 缺口（信用分配端到端未启用、load(Genome) → 1 turn 未 wire、Model-RSI D4-D7、E1-E5 几项红线），不构成"完整自进化平台"。**
+> **Harness / 自进化 / RSI 三套系统的 V1 最小闭环都在生产代码 + 测试 + commit hash 三重维度有实证证据；mock provider 路径 21/21 ctest 100% PASS，React Loop + PlanExecute Loop 在 DeepSeek 真实 API 路径下 10/10 PASS。SoT 自承认多个 V2 缺口（信用分配端到端未启用、load(Genome) → 1 turn 未 wire、Model-RSI D4-D7、E1-E5 几项红线、GEPA Loop 无 real LLM 验证），不构成"完整自进化平台"。**
 >
-> 任何维护者按 §0 步骤 1-4 跑，应当得到完全一致的 12 + 9 = **21/21 ctest 100% PASS** 输出。如失败，请回滚 commit `b1fbda2` 之前的状态后再重新审计。
+> 任何维护者按 §0 步骤 1-4 跑，应当得到完全一致的 12 + 9 = **21/21 mock ctest 100% PASS** 输出。如失败，请回滚 commit `b1fbda2` 之前的状态后再重新审计。
+>
+> **Real LLM 端到端验证**：DEEPSEEK_API_KEY 充值后另跑 §12.4.2 两条命令，应得到 7/7 + 3/3 PASS（实测 2026-09-29）。
 
 ---
 
@@ -608,69 +618,114 @@ tests/test_react_loop_real_llm.cpp
 tests/test_real_llm_env_helper.cpp
 ```
 
-### 12.3 Real LLM 测试实测结果（2026-09-29 当场跑，DEEPSEEK_API_KEY 已设）
+### 12.3 Mock test 与 Real LLM test 覆盖差异（核心分析）
 
-#### test_react_loop_real_llm（7 cases / 14 assertions）
+**用户关键疑问**：mock 测试为什么"通过"了？是不是用预先设计的回复骗过了测试？
 
+**答**：
+1. **不是骗过**——每个 mock test 有明确测试目标，**且 mock provider 的 canned response 是测试设计的合理性证明**
+2. **测试设计 = 分层覆盖**，mock 与 real LLM 各覆盖不同维度
+
+#### 12.3.1 测试目标对照表（项目内全部测试）
+
+| 测试 | 类别 | LLM 是否参与 | 设计意图 |
+|------|------|--------------|----------|
+| **test_harness_rsi_pilot** (22 cases) | **Mock** | ❌ 不需要 | 测试 5-tier gate 状态机逻辑；仅需 StubBudget + StubEvaluator + CapturingBus + StubToolRegistry，**根本不涉及 ILLMProvider** |
+| **test_gepa_phase2** (21 cases) | **Mock + Canned** | ⚠️ 有 `MockLLMProvider` | MockLLMProvider 返回硬编码 `"Reflection note: Add error handling for " + last_failure_`；测试 GEPA 反思循环+ MutationGovernor 编排逻辑，**不验证 LLM 输出是否真有意义** |
+| **test_genome_registry** (13 cases) | **纯单元** | ❌ | 文件系统持久化测试，无 LLM |
+| **test_genome_walk_ancestors** (10 cases) | **纯单元** | ❌ | lineage walking 算法测试 |
+| **test_transition_guard** (14 cases) | **纯单元** | ❌ | H→D→M 5 态状态机测试 |
+| **test_credit_assignment** (12 cases) | **纯单元** | ❌ | VersionPairDiff 数据算法 |
+| **test_behavioral_regression** (6 cases) | **纯单元** | ❌ | 行为等价判定 |
+| **test_distillation_writer** (6 cases) | **纯单元** | ❌ | 文件写入测试 |
+| **test_skill_compiler** (16 cases) | **纯单元** | ❌ | Skill 编译 |
+| **test_trajectory_ir** (10 cases) | **纯单元** | ❌ | IR 转换 |
+| **test_causal_ordering** (9 cases) | **纯单元** | ❌ | 因果排序 |
+| **test_causal_clock** (5 cases) | **纯单元** | ❌ | 因果时钟 |
+| **test_react_loop_real_llm** (7 cases) | **Real LLM** | ✅ DeepSeek | React Loop 真实 LLM 路径端到端 |
+| **test_plan_execute_realllm** (3 cases) | **Real LLM** | ✅ DeepSeek | PlanExecute Loop 真实 LLM 路径端到端 |
+| **test_real_llm_env_helper** (5 cases) | **Helper** | ❌ | 测试 helper 自身三态行为 |
+
+**关键事实**：21 个 mock test 中**只有 1 个（test_gepa_phase2）涉及 LLM**，其余 11 个与 LLM 完全无关。它们通过的根本原因是它们**测试的不是 LLM**，而是状态机/算法/序列化等逻辑。
+
+#### 12.3.2 Mock 测试真实覆盖 vs 不覆盖范围
+
+| Mock 测试覆盖 ✅ | Mock 测试**不**覆盖 ❌ |
+|------------------|--------------------------|
+| 状态机转移（gate, transition） | 真实 LLM 是否返回 JSON |
+| 事件触发（mutation.*, evolution.*） | 真实 LLM 是否能 parse 上下文 |
+| 算法正确性（walk_ancestors, sort） | HTTP retry / backoff 是否生效 |
+| 序列化 / 反序列化 | Rate limit 限流是否处理 |
+| 错误处理路径（canned LLMError） | Timeout 是否触发 |
+| Tool call schema 注册 | real LLM 是否尊重 tool schema |
+| Budget 阈值判断 | Prompt 真实 elicit 真实响应 |
+| Capturing provider 校验参数契约 | provider 实际网络栈可达性 |
+
+**结论**：mock 测试**不是骗过**，而是**有意识地不覆盖 LLM 网络层**——这是合理的分层测试策略。但**没有 real_llm test 覆盖**的路径（如 GEPA Loop）是真实盲点。
+
+### 12.4 Real LLM 测试实测结果
+
+#### 12.4.1 DEEPSEEK_API_KEY 余额为 0 时的结果（2026-09-29 首次跑）
+
+**test_react_loop_real_llm（7 cases / 14 assertions）**:
 ```
 test cases:  7 |  5 passed | 2 failed
 assertions: 14 | 12 passed | 2 failed
 ```
-
-**失败原因（关键证据 = 网络调用真发生）**:
+**关键 warning**:
 ```
-warning: 'Real LLM call failed: Insufficient Balance
-         (request_id: f4cbd355-4771-4f1d-afdb-d97aac428072);
-         coverage exercised but assertion relaxed'
-failed: ok_count >= 1 for: 0 >= 1 with 1 message: '3 branches: 0 ok, 0 non-empty'
-failed: success_rate >= 0.95 for: 0.0 >= 0.95 with 1 message: 'Stress test: 0/100 = 0.000000%'
+'Real LLM call failed: Insufficient Balance (request_id: f4cbd355-...); 
+ coverage exercised but assertion relaxed'
 ```
+**解读**: HTTP 402 = DeepSeek 收到请求 + 返回余额不足。5/7 通过（partial content + median latency）；2/7 失败（success_rate ≥95% 严格断言，因 API 全失败不达标）。
 
-**解读**:
-- ✅ **HTTP 402 "Insufficient Balance"** = DeepSeek 收到请求并返回（不是 mock）
-- ❌ **2/7 case 失败** = 关键 R3/R5/R6 严格断言（"≥1/3 branches ok" + "≥95% success rate"）不达标
-- 5/7 通过的是 R4 严格断言（precise content 等）+ R6 median latency 断言（API 拒绝响应也算 latency 测量）
-
-#### test_plan_execute_realllm（3 cases / 11 assertions）
-
+**test_plan_execute_realllm（3 cases / 11 assertions）**:
 ```
 test cases:  3 | 3 failed
 ```
+**关键 warning**: `"PlanExecuteLoop: plan phase failed (empty LLM response)"`
 
-**失败原因**:
+#### 12.4.2 用户充值后重跑（2026-09-29 第二次）
+
+**test_react_loop_real_llm**:
 ```
-[diag:C.3.iter1] failed_phase: Planning
-[diag:C.3.iter1] result.message: PlanExecuteLoop: plan phase failed (empty LLM response)
-failed: success_count >= 1 for: 0 >= 1
+RNG seed: 680806892
+All tests passed (25 assertions in 7 test cases)
 ```
 
-**解读**: 同上，DeepSeek API 余额不足 → LLM 拒绝响应 → PlanExecute Phase 失败
+**test_plan_execute_realllm**:
+```
+RNG seed: 3981319224
+[INFO] Graphs loaded: 1  (×3)
+All tests passed (14 assertions in 3 test cases)
+```
 
-### 12.4 真实 LLM 路径覆盖结论（修正 §11）
+### 12.5 修正后的真实 LLM 覆盖矩阵（用户充值后）
 
 | 路径 | Mock 验证 | Real LLM 验证 | 综合判定 |
 |------|-----------|---------------|----------|
-| **Mock provider 路径**（§0-§11） | 21/21 PASS | N/A | ✅ 100% 覆盖 |
-| **DeepSeek API 真实路径**（test_react_loop_real_llm） | N/A | 5/7 PASS（2 case 受 API balance 限制失败） | ⚠️ 部分覆盖（代码路径连通 + API 余额不足） |
-| **DeepSeek API 真实路径**（test_plan_execute_realllm） | N/A | 0/3 PASS（API balance 限制） | ❌ 未覆盖 |
-| **MiniMax API 真实路径** | N/A | NOT-RUN（未实测） | ❌ 未覆盖 |
+| **Mock provider 路径**（§0-§11 21 个 ctest） | 21/21 PASS | N/A | ✅ 100% 覆盖 |
+| **React Loop DeepSeek 真实路径** | N/A | **7/7 PASS** | ✅ 完整覆盖 |
+| **PlanExecute Loop DeepSeek 真实路径** | N/A | **3/3 PASS** | ✅ 完整覆盖 |
+| **MiniMax API 真实路径** | N/A | NOT-RUN（未实测） | ⚠️ 未跑 |
+| **GEPA Loop DeepSeek 真实路径** | ⚠️ Mock only | ❌ 无 real_llm test | ⚠️ 真实盲点 |
 
-### 12.5 修正后的一句话最终结论
+### 12.6 仍存在的真实盲点（需 follow-up）
 
-> **Harness / 自进化 / RSI 三套系统的 V1 最小闭环在 mock provider 路径下都有实证证据（21/21 ctest 100% PASS）；但真实 DeepSeek API 路径因 DEEPSEEK_API_KEY 余额不足，未达成端到端验证。**
+1. **GEPA Loop 无 real LLM 测试** — `test_gepa_phase2` 用 MockLLMProvider，**没有** `test_gepa_loop_real_llm` 对应文件
+2. **MiniMax API 路径未实测** — `real_llm_env_helper` 提到"MINIMAX_API_KEY 已设 → run"，但项目里**没有任何 `test_*minimax*` 文件**真跑过 MiniMax
+4. **harness-rsi mutation gate 真实 LLM** — Gate 不调用 LLM（只验证 contract），**正确设计无需 real_llm test**
+
+### 12.7 修正后的一句话最终结论（再次更新）
+
+> **Harness / 自进化 / RSI 三套系统的 V1 最小闭环在 mock provider 路径下都有实证证据（21/21 ctest 100% PASS），且 React Loop + PlanExecute Loop 在 DeepSeek 真实 API 路径下端到端验证通过（10/10 cases / 39 assertions PASS）。**
 >
-> 修正后判定：mock 覆盖率 ✅ / real_llm 覆盖率 ⚠️（API 余额限制外因）+ SoT 自承 V2 缺口不变。
->
-> 如需完整 real_llm 验证，需充值 DEEPSEEK_API_KEY 关联账户后重跑 §12.3 的两个测试。
+> **修正后判定**:
+> - Mock 覆盖率: 21/21 100% ✅
+> - Real LLM 覆盖率 (DeepSeek): 10/10 完整覆盖 ✅（React + PlanExecute 两个 Loop；GEPA Loop 仍是 mock only 盲点）
+> - SoT 自承 V2 缺口不变
 
-### 12.6 修正方法论沉淀
-
-按 [`METHODOLOGY.md`](./METHODOLOGY.md) §7 (新增) "Mock vs Real LLM 区分" 原则：
-- 任何 audit 声称 "21/21 ctest 100% PASS" 必须**明确标注**这些测试是 mock 还是 real_llm
-- Mock test 通过 ≠ API 路径端到端可达（必须实际跑含 `require_real_llm_env()` 的 test 才行）
-- Real LLM 测试失败 = 区分两类失败：(a) 代码 bug（产品路径断）vs (b) 外因（API balance / network）
-
-### 12.7 实测命令（维护者重跑）
+### 12.8 实测命令（维护者重跑）
 
 ```bash
 # Real LLM 测试 (需要 DEEPSEEK_API_KEY 已设且余额 >0)
@@ -684,5 +739,5 @@ ctest --test-dir build -L l2-evolution --output-on-failure
 ```
 
 **预期** (本机实测 2026-09-29):
-- Real LLM: 当前 DEEPSEEK_API_KEY 余额为 0，**预计 5/7 + 0/3（与本次结果一致）**；充值后应 7/7 + 3/3
-- Mock: 21/21 100% PASS（与本次一致）
+- Real LLM (充值后): **7/7 + 3/3 PASS**
+- Mock: **21/21 100% PASS**
