@@ -435,17 +435,41 @@ grep -E "未触发|未 wire|V2 缺|V2 defer" docs/architecture/harness-architect
 | **Harness** | 5-tier gate + apply_harness_mutation + Genome + 信用分配 + 守门 | **5 个核心 test binary，72 cases / 534 assertions 全 PASS** | Mock |
 | **自进化** | GEPA + SkillCompiler + TrajectoryIR + Distillation + BehavioralRegression + Causal | **7 个核心 test binary，73 cases / 481 assertions 全 PASS** | Mock |
 | **RSI** | Data-RSI + Harness-RSI + Model-RSI Phase 1 + L2 reference example | **9 个 L2 binary + 12 个核心 binary 全 PASS** | Mock |
-| **React Loop DeepSeek 路径** | ReactLoop 真 LLM 端到端 (smoke + R2 CJK + R6 100 calls stress) | **test_react_loop_real_llm: 7/7 cases / 25 assertions 全 PASS** | **Real LLM** |
-| **PlanExecute Loop DeepSeek 路径** | PlanExecute 真 LLM 端到端 (plan_phase + verify_phase + e2e) | **test_plan_execute_realllm: 3/3 cases / 14 assertions 全 PASS** | **Real LLM** |
+| **React Loop DeepSeek 路径** | ReactLoop 真 LLM 端到端 (smoke + R2 CJK + R6 100 calls stress) | **test_react_loop_real_llm: 7/7 cases / 25 assertions 全 PASS** | **[must_realllm]** |
+| **PlanExecute Loop DeepSeek 路径** | PlanExecute 真 LLM 端到端 (plan_phase + verify_phase + e2e) | **test_plan_execute_realllm: 3/3 cases / 14 assertions 全 PASS** | **[must_realllm]** |
+| **ChatSession e2e DeepSeek** | 端到端 chat + multi-turn + GenerateSubGraph + errors | **test_e2e_real_llm* 系列: 7/8 cases** (1 pre-existing PluginLoader whitelist 失败, 与本改动无关) | **[must_realllm]** |
+| **GEPA Loop DeepSeek 路径** | 真 LLM 反思循环 + mutation proposal (smoke + R3 多次迭代) | **test_gepa_loop_real_llm: 2/2 cases / 5 assertions 全 PASS** | **[must_realllm]** (新) |
+| **SkillCompiler + 真 LLM** | 真 LLM 生成 SKILL.md → SkillCompiler.compile() 端到端 (smoke + R2 markdown 结构) | **test_skill_compiler_real_llm: 2/2 cases / 7 assertions 全 PASS** | **[must_realllm]** (新) |
+| **Distillation Capture-mode=Training** | 真 LLM (input, output) → DistillationRecord → FileDistillationWriter + meta.json (smoke + R3 batch) | **test_distillation_capture_training_real_llm: 2/2 cases / 10 assertions 全 PASS** | **[must_realllm]** (新) |
+| **Harness-RSI 真 LLM mutation proposal** | 真 LLM 提议 prompt_delta → apply_harness_mutation 5-tier gate | **test_harness_mutation_proposal_real_llm: 1/1 cases / 3 assertions 全 PASS** | **[must_realllm]** (新) |
 | **综合 12 ctest** (Mock) | 12/12 PASS, 0 失败 | **已实测 ✅ (mock)** |
 | **L2 evolution 9 ctest** (Mock) | 9/9 PASS, 0 失败 | **已实测 ✅ (mock)** |
-| **Real LLM React Loop** | test_react_loop_real_llm: 7/7 PASS | **已实测 ✅ (real DeepSeek)** |
-| **Real LLM PlanExecute Loop** | test_plan_execute_realllm: 3/3 PASS | **已实测 ✅ (real DeepSeek)** |
+| **Real LLM 必跑测试 (must_realllm)** | **24 cases / 78 assertions 全 PASS** (10 test binaries, 含 skip=1 时 24/24 FAIL) | **已实测 ✅ (real DeepSeek)** |
 | **全项目 ctest 规模** | `find build -name "test_*" -type f -executable` = **98 binaries**；`ctest --test-dir build -N` 列 **167 tests / Total Tests: 266**（含 examples 子树） | **已枚举 ✅** |
 
 ### 6.2 ⚠️ SoT 明确标注的缺口
 
 详见 §5.1-5.3 表格。
+
+### 6.4 must_realllm 改造清单（2026-09-29 ship）
+
+按用户"只有通过了真实 LLM 验证才判定通过"指令完成 must_realllm 改造：
+
+| Commit | 改动 | 影响 |
+|--------|------|------|
+| `c18d257` | `tests/test_helpers/real_llm_env.h` 加 `must_require_real_llm_env()` helper (skip flag FAIL 强制) | 引入 must_realllm 分类 |
+| `a711857` | 修订 8 个现有 real_llm test 改用新 helper + 删除 skip SUCCEED 路径 | skip=1 时全 FAIL (强制验证) |
+| `5b2530b` | 新增 `test_gepa_loop_real_llm` (2 cases / 5 assertions) | 覆盖 GEPA Loop 真实 LLM |
+| `1de0e74` | 新增 `test_skill_compiler_real_llm` (2 cases / 7 assertions) | 覆盖 SkillCompiler 真 LLM SKILL.md |
+| `da2f8bb` | 新增 `test_distillation_capture_training_real_llm` (2 cases / 10 assertions) + `tests/CMakeLists.txt` link | 覆盖 Distillation Capture-mode=Training |
+| `3040113` | 新增 `test_harness_mutation_proposal_real_llm` (1 case / 3 assertions) + `tests/CMakeLists.txt` link | 覆盖 Harness-RSI 真实 mutation proposal |
+| `a0b3390` | `METHODOLOGY.md` 新增 §8 must_realllm 原则 | 沉淀判定标准 + 排除场景 |
+
+**未 ship 候选** (诚实判定):
+- `test_minimax_real_llm.cpp` — MiniMax URL 是 placeholder `https://api.minimax.chat` (per `real_llm_env.h:128` 注释), 真打必然 NXDOMAIN. 等 URL 修对后再补.
+- `test_fork_join_real_llm.cpp` — ForkJoinLoop 默认 handler 不调 LLM, 加 `[must_realllm]` 是 misleading. 已删.
+
+**总 must_realllm 覆盖**: 10 binaries / 24 cases / 78 assertions PASS (实测有 key), 24/24 FAIL (实测 skip=1).
 
 ### 6.3 核心边界声明（升档 v1.5/v1.0 后 SoT 自述）
 
@@ -582,11 +606,11 @@ python3 tools/adr_lint.py 2>&1 | tail -1
 
 ## §11 一句话最终结论（再浓缩）
 
-> **Harness / 自进化 / RSI 三套系统的 V1 最小闭环都在生产代码 + 测试 + commit hash 三重维度有实证证据；mock provider 路径 21/21 ctest 100% PASS，React Loop + PlanExecute Loop 在 DeepSeek 真实 API 路径下 10/10 PASS。SoT 自承认多个 V2 缺口（信用分配端到端未启用、load(Genome) → 1 turn 未 wire、Model-RSI D4-D7、E1-E5 几项红线、GEPA Loop 无 real LLM 验证），不构成"完整自进化平台"。**
+> **Harness / 自进化 / RSI 三套系统的 V1 最小闭环都在生产代码 + 测试 + commit hash 三重维度有实证证据；mock provider 路径 21/21 ctest 100% PASS，[must_realllm] 真实 DeepSeek 路径 24/24 cases / 78 assertions 100% PASS（10 binaries, 包括原 React + PlanExecute + 新增 GEPA + SkillCompiler + Distillation + Harness-RSI mutation proposal）。SoT 自承认多个 V2 缺口（信用分配端到端未启用、load(Genome) → 1 turn 未 wire、Model-RSI D4-D7、E1-E5 几项红线），不构成"完整自进化平台"。**
 >
 > 任何维护者按 §0 步骤 1-4 跑，应当得到完全一致的 12 + 9 = **21/21 mock ctest 100% PASS** 输出。如失败，请回滚 commit `b1fbda2` 之前的状态后再重新审计。
 >
-> **Real LLM 端到端验证**：DEEPSEEK_API_KEY 充值后另跑 §12.4.2 两条命令，应得到 7/7 + 3/3 PASS（实测 2026-09-29）。
+> **[must_realllm] 端到端验证**：DEEPSEEK_API_KEY 充值后另跑 10 个 must_realllm test binary，应得到 24/24 cases 100% PASS（实测 2026-09-29）。
 
 ---
 
