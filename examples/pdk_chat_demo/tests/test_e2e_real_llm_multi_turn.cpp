@@ -13,17 +13,9 @@
 
 using namespace agenticdsl;
 using pdk_chat_demo::testing::real_llm_config;
-using pdk_chat_demo::testing::require_real_llm_env;
+using pdk_chat_demo::testing::must_require_real_llm_env;
 
 namespace {
-
-bool should_skip() {
-  if (const char* skip = std::getenv("HYDRAFORGE_SKIP_REAL_LLM");
-      skip && std::string(skip) == "1") {
-    return true;
-  }
-  return false;
-}
 
 struct TurnResult {
   bool ok = false;
@@ -49,11 +41,7 @@ TurnResult run_turn(ILLMProvider* provider, const std::string& model,
 
 TEST_CASE("Real LLM: 3-turn conversation context preservation",
           "[e2e][realllm][chat][phase-d][d2]") {
-  require_real_llm_env();
-  if (should_skip()) {
-    SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1");
-    return;
-  }
+  must_require_real_llm_env();
   auto cfg = real_llm_config();
   LLMConfig llm_cfg;
   llm_cfg.provider = cfg.provider;

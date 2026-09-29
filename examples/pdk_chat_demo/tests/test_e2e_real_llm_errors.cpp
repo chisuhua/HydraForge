@@ -13,17 +13,9 @@
 
 using namespace agenticdsl;
 using pdk_chat_demo::testing::real_llm_config;
-using pdk_chat_demo::testing::require_real_llm_env;
+using pdk_chat_demo::testing::must_require_real_llm_env;
 
 namespace {
-
-bool should_skip() {
-  if (const char* skip = std::getenv("HYDRAFORGE_SKIP_REAL_LLM");
-      skip && std::string(skip) == "1") {
-    return true;
-  }
-  return false;
-}
 
 class ScopedEnv {
  public:
@@ -50,11 +42,7 @@ class ScopedEnv {
 
 TEST_CASE("Real LLM: bad API key → AuthenticationError",
           "[e2e][realllm][chat][phase-g][g2]") {
-  require_real_llm_env();
-  if (should_skip()) {
-    SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1");
-    return;
-  }
+  must_require_real_llm_env();
   auto cfg = real_llm_config();
   ScopedEnv bad_key(cfg.env_used.c_str(), "invalid_key_for_test_xxxxxxxxxxxxx");
   LLMConfig llm_cfg;
@@ -80,11 +68,7 @@ TEST_CASE("Real LLM: bad API key → AuthenticationError",
 
 TEST_CASE("Real LLM: unreachable API URL → NetworkError",
           "[e2e][realllm][chat][phase-g][g4]") {
-  require_real_llm_env();
-  if (should_skip()) {
-    SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1");
-    return;
-  }
+  must_require_real_llm_env();
   LLMConfig llm_cfg;
   llm_cfg.provider = "deepseek";
   llm_cfg.model = "deepseek-chat";

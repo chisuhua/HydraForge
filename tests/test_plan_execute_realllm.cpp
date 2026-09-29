@@ -85,11 +85,7 @@ void diag_on_failure(const T& result, const std::string& case_name) {
 // ============================================================
 TEST_CASE("PlanExecuteLoop plan_phase produces parseable DSL with real LLM",
           "[plan_execute][realllm][phase-c][c1]") {
-  agenticdsl::test::require_real_llm_env();
-  if (agenticdsl::test::real_llm_env_skipped()) {
-    SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1 (no API key or CI skip)");
-    return;
-  }
+  agenticdsl::test::must_require_real_llm_env();
   // 本地有 key 时: 真实 deepseek 跑 plan_phase, 验证产出可解析 DSL
   // 注: 依赖 plan_execute_loop.h:208 的 req.params.model.clear() 已 ship
   // (Wave 2 Phase 1, fix-generation-request-model-default 体系扩展)
@@ -128,11 +124,7 @@ TEST_CASE("PlanExecuteLoop plan_phase produces parseable DSL with real LLM",
 // ============================================================
 TEST_CASE("PlanExecuteLoop verify_phase responds 'yes' with real LLM",
           "[plan_execute][realllm][phase-c][c2]") {
-  agenticdsl::test::require_real_llm_env();
-  if (agenticdsl::test::real_llm_env_skipped()) {
-    SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1 (no API key or CI skip)");
-    return;
-  }
+  agenticdsl::test::must_require_real_llm_env();
   // 本地有 key 时: 真实 deepseek 跑 verify_phase, 验证 LLM 响应含 "yes"
   // 注: 依赖 plan_execute_loop.h:254 的 req.params.model.clear() 已 ship
   auto provider = agenticdsl::test::real_llm_provider();
@@ -166,11 +158,7 @@ TEST_CASE("PlanExecuteLoop verify_phase responds 'yes' with real LLM",
 // ============================================================
 TEST_CASE("PlanExecuteLoop end-to-end run('compute 2+3') real LLM",
           "[plan_execute][realllm][phase-c][c3][e2e]") {
-  agenticdsl::test::require_real_llm_env();
-  if (agenticdsl::test::real_llm_env_skipped()) {
-    SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1 (no API key or CI skip)");
-    return;
-  }
+  agenticdsl::test::must_require_real_llm_env();
   // 本地有 key 时: 真实 deepseek 跑 plan + execute + verify 全链路
   // 多次串行 run 验证无 panic (graceful on flake, 鲁棒性)
   auto provider = agenticdsl::test::real_llm_provider();

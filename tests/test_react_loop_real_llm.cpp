@@ -38,9 +38,8 @@
 #include <vector>
 
 using agenticdsl::test::real_llm_config;
-using agenticdsl::test::real_llm_env_skipped;
+using agenticdsl::test::must_require_real_llm_env;
 using agenticdsl::test::real_llm_provider;
-using agenticdsl::test::require_real_llm_env;
 
 namespace {
 
@@ -88,11 +87,7 @@ inline void maybe_warn_llm_failure(const agenticdsl::Result<agenticdsl::Generati
 // 避免 LLMConfig::model 默认 ("gpt-4o-mini") 遮蔽真实 model.
 TEST_CASE("real LLM provider smoke: generate returns non-empty text",
           "[realllm][provider_smoke][r1_hello]") {
-    require_real_llm_env();
-    if (real_llm_env_skipped()) {
-        SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1 (no real LLM env in CI sandbox)");
-        return;
-    }
+    must_require_real_llm_env();
 
     auto provider = real_llm_provider();
     REQUIRE(provider != nullptr);
@@ -127,11 +122,7 @@ TEST_CASE("real LLM provider smoke: generate returns non-empty text",
 // 不验证 stream 内容 (stream 内容验证是后续 Phase)。
 TEST_CASE("react loop real LLM smoke: generate_stream returns without fail-fast",
           "[realllm][react_loop][f1_smoke][stream]") {
-    require_real_llm_env();
-    if (real_llm_env_skipped()) {
-        SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1 (no real LLM env in CI sandbox)");
-        return;
-    }
+    must_require_real_llm_env();
 
     auto provider = real_llm_provider();
     REQUIRE(provider != nullptr);
@@ -161,11 +152,7 @@ TEST_CASE("react loop real LLM smoke: generate_stream returns without fail-fast"
 // case-insensitive, 验证 CJK 字符正常编码).
 TEST_CASE("react loop real LLM R2: 中文 prompt 含 jthread 关键词",
           "[realllm][react_loop][r2_cjk]") {
-    require_real_llm_env();
-    if (real_llm_env_skipped()) {
-        SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1 (no real LLM env in CI sandbox)");
-        return;
-    }
+    must_require_real_llm_env();
 
     auto provider = real_llm_provider();
     REQUIRE(provider != nullptr);
@@ -202,11 +189,7 @@ TEST_CASE("react loop real LLM R2: 中文 prompt 含 jthread 关键词",
 // Phase H+ follow-up (out of scope here).
 TEST_CASE("react loop real LLM R3: multi-turn prompt dispatch",
           "[realllm][react_loop][r3_multiturn]") {
-    require_real_llm_env();
-    if (real_llm_env_skipped()) {
-        SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1 (no real LLM env in CI sandbox)");
-        return;
-    }
+    must_require_real_llm_env();
 
     auto provider = real_llm_provider();
     REQUIRE(provider != nullptr);
@@ -263,11 +246,7 @@ TEST_CASE("react loop real LLM R3: multi-turn prompt dispatch",
 // produce a structured plan-like response when prompted.
 TEST_CASE("real LLM provider capability: plan-style prompt response",
           "[realllm][provider_smoke][r4_plan_capability]") {
-    require_real_llm_env();
-    if (real_llm_env_skipped()) {
-        SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1 (no real LLM env in CI sandbox)");
-        return;
-    }
+    must_require_real_llm_env();
 
     auto provider = real_llm_provider();
     REQUIRE(provider != nullptr);
@@ -304,11 +283,7 @@ TEST_CASE("real LLM provider capability: plan-style prompt response",
 // sequential calls with ≥1/3 success rate.
 TEST_CASE("real LLM provider capability: 3-branch sequential dispatch",
           "[realllm][provider_smoke][r5_multibranch]") {
-    require_real_llm_env();
-    if (real_llm_env_skipped()) {
-        SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1 (no real LLM env in CI sandbox)");
-        return;
-    }
+    must_require_real_llm_env();
 
     auto provider = real_llm_provider();
     REQUIRE(provider != nullptr);
@@ -357,11 +332,7 @@ TEST_CASE("real LLM provider capability: 3-branch sequential dispatch",
 // 中位 latency < 5s.
 TEST_CASE("react loop real LLM R6: stress test 100 calls",
           "[realllm][react_loop][r6_stress]") {
-    require_real_llm_env();
-    if (real_llm_env_skipped()) {
-        SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1 (no real LLM env in CI sandbox)");
-        return;
-    }
+    must_require_real_llm_env();
 
     auto provider = real_llm_provider();
     REQUIRE(provider != nullptr);

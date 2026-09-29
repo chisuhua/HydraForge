@@ -67,7 +67,7 @@ static std::string ptr_to_str(void* p) {
 }
 
 TEST_CASE("Real LLM: deepseek-v4-flash responds to a simple prompt", "[e2e][realllm]") {
-    pdk_chat_demo::testing::require_real_llm_env();
+    pdk_chat_demo::testing::must_require_real_llm_env();
 
     auto cfg = pdk_chat_demo::testing::real_llm_config();
     const std::string& provider     = cfg.provider;
@@ -122,7 +122,7 @@ TEST_CASE("Real LLM: deepseek-v4-flash responds to a simple prompt", "[e2e][real
 }
 
 TEST_CASE("Real LLM: ChatSession with deepseek responds to user input", "[e2e][realllm][chat]") {
-    pdk_chat_demo::testing::require_real_llm_env();
+    pdk_chat_demo::testing::must_require_real_llm_env();
 
     auto cfg = pdk_chat_demo::testing::real_llm_config();
     const std::string& provider     = cfg.provider;
