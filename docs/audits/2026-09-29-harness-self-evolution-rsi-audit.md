@@ -7,6 +7,8 @@
 - [`docs/architecture/self-evolution-architecture-2026-08.md`](../architecture/self-evolution-architecture-2026-08.md) v1.5
 - [`docs/architecture/rsi-architecture-2026-09.md`](../architecture/rsi-architecture-2026-09.md) v1.0
 
+**审计方法论参考**: [`METHODOLOGY.md`](./METHODOLOGY.md)（审计命令模板 + ADR 状态字段双格式 awk 提取 + grep 陷阱 + 路径自动发现）
+
 **核心结论（一句话）**: 三套系统的 V1 最小闭环都在生产代码 + 测试 + commit hash 三重维度有实证证据；但 SoT 文档**明确标注**当前是 V1 最小闭环 + V2 缺口，不构成"完整的自适应自进化平台"。详见下文每节的具体证据 + 可手工复现的验证命令。
 
 ---
