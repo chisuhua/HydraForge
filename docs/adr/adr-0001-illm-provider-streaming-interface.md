@@ -9,6 +9,8 @@
 - `is_available()` / `name()` deferred indefinitely — 当前接口保留,未列入 Phase 5/6 修订范围;后续演进 (e.g., `[[deprecated]]` 或合并到 `available_models()` 返回的 `ModelInfo` 元数据) 待 Phase 6+ scoping ADR 决议。
 - `Result<T,E>` → `std::expected` 重命名 pending C++23 基线 — 等 HydraForge 升级到 C++23 编译器基线 (~2+ 年) 后,通过 `using Result = std::expected;` 一行替换完成。当前 `Result<T,E>` 保留 (per ADR-0042 §3 + OpenSpec change `phase5-illmprovider-call-chain-v2` Non-goals)。
 
+⏳ tracking: shipped
+
 ## 背景
 
 HydraForge Phase 1 需要支持多后端 LLM（OpenAI SSE、Anthropic SSE、llama-server HTTP），TUI 需要流式显示 token 实现打字机效果，同时需要支持 Ctrl+C 取消执行。现有的 `ILLMAdapter` 接口（同步 `generate()`，阻塞 `httplib::Client::Post`）无法满足需求。

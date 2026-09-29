@@ -6,6 +6,8 @@
 
 > **实施依据**: `phase5-llama-engine-plugin` (C14) 已 ship + archived (2026-07-08), 验证: `pdk/llama_engine/` 作为 SHARED 库构建 (per `pdk/llama_engine/CMakeLists.txt`) + ABI v2 协调 (per C16 PluginLoader 5 符号 + ADR-0041 lifecycle 钩子) + ADR-0021 §7 Dual-Repo Policy 同步 (vendored in monorepo `pdk/`, 后续由 `scripts/sync-pdk.sh` 异步同步至 standalone `hydraforge-pdk` repo)。详见 `docs/superpowers/plans/2026-07-03-phase5-self-bootstrapping.md` §三 C14 行 + `openspec/changes/archive/2026-07-08-phase5-llama-engine-plugin/`。
 
+⏳ tracking: shipped
+
 ## 领域
 
 基座 / PDK / Build & Delivery

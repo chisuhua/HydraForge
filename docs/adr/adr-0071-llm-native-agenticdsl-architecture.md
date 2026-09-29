@@ -4,6 +4,8 @@
 
 ✅ Approved (2026-08-02 — 顶层架构方向 ADR, 锚定 Phase 6+ 演化路径; Promotion 评审通过 2026-08-25; 实施分 4 Wave 派生子 ADR/Change)
 
+⏳ tracking: shipped
+
 ## 领域
 
 L0 运行时 / L1 OS Services / DSL 语言演进 / LLM-DSL 协同

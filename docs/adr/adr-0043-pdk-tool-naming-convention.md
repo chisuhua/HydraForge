@@ -6,6 +6,8 @@
 
 > **实施依据**: D3 决策 (per `docs/adversarial-reviews/decisions-2026-07-07.md` §D3) 已应用 — (1) C13 4 个 `lib/inference/*.md` schema 工具名统一 slash (`inference/prefix_cache/configure` 等); (2) C14 `pdk/llama_engine/` 12 个工具全部使用 slash 命名 (`inference/engine/init` 等); (3) `scripts/fix-adr-naming-policy-2026-07-08` 已 ship (2026-07-09) 修复命名约定残留 dot 风格。验证: `grep -rn "inference\\.[a-z]" pdk/ lib/inference/ → 0 matches` + C13/C14 ctest 65/65 + 0 回归 + `tools/adr_lint.py` exit 0。详见 `docs/superpowers/plans/2026-07-03-phase5-self-bootstrapping.md` §三 C13 + C14 行 + `docs/active-status.md` §五 2026-07-07 / 2026-07-08 行。
 
+⏳ tracking: shipped
+
 ## 领域
 
 基座 / PDK / Naming Convention

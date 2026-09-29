@@ -4,6 +4,8 @@
 
 ✅ Approved (2026-07-23 — Solo Dev 重估生效: Candidate B 结构性阻塞, 转向 PDK 生产化 + AgentForge MVP 验证。原始 Oracle 评估记录保留, 重开条件见 §Candidate B 重开条件)
 
+⏳ tracking: shipped
+
 ## 领域
 
 战略 / Phase 6 启动决策 / 服务化路径

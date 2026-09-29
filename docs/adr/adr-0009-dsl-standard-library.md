@@ -4,6 +4,8 @@
 
 **✅ Approved** (2026-05-12)
 
+⏳ tracking: shipped
+
 ## 背景
 
 HydraForge 的 `lib/` 目录目前几乎为空，只有 `math/add.md` 有实现。根据调研：

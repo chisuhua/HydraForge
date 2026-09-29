@@ -4,6 +4,8 @@
 
 ✅ Approved (2026-07-16, 架构评审确认)
 
+⏳ tracking: shipped
+
 ## 领域
 
 Agent-as-Plugin 架构 / 商业化与分发

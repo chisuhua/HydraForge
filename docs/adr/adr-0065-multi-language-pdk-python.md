@@ -5,6 +5,8 @@
 ✅ Approved (2026-07-16, 架构评审确认 + 调整为 Python 单一语言)
 **原计划** C++/Rust 多语言 SDK → **调整为** 仅 C++ → Wasm + Python → Wasm（Rust 不做）
 
+⏳ tracking: shipped
+
 ## 领域
 
 Agent-as-Plugin 架构 / 多语言生态

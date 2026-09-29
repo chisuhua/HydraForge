@@ -4,6 +4,8 @@
 
 **✅ Approved** (2026-05-12)
 
+⏳ tracking: shipped
+
 ## 背景
 
 HydraForge Phase 1 需要支持多 Agent 并发执行，每个 Agent 有独立的 DSLEngine 实例。Phase 2 计划支持沙箱隔离的多租户执行。现有的 `DSLEngine::run()` 存在以下问题：

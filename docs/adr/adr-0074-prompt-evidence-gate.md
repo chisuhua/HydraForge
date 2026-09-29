@@ -8,6 +8,8 @@
 
 > **隐含前置 (D7 主题注册)**: §决策 D7 设计 2 个新幻影主题 `llm.dsl.parse_failed` / `llm.dsl.schema_validation_failed`，需 ADR-0068 §附录 A amendment PR 注册。ADR-0068 Appendix A v1.2.2 已 ship (2026-08-27, 同步注册 `skill.compilation.*` 3 主题)，D7 主题注册前置 ✅ 满足（与 ADR-0068 amendment 集成 ship 路径明确）。
 
+⏳ tracking: shipped
+
 ## 领域
 
 L0 运行时 / L1 OS Services / LLM-DSL 协同 / Prompt Engineering / 训练数据采集 / 评估方法学

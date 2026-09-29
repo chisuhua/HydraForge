@@ -6,6 +6,8 @@
 
 > **实施依据**: `phase5-illmprovider-call-chain-v2` (C16) 已 ship + archived (2026-07-09), 验证: PluginLoader V2 升级 — 5 符号查找 (`pdk_plugin_info` + `pdk_register_tools` + `pdk_create_llm_provider` + **`pdk_plugin_init`** + **`pdk_plugin_fini`**) + PluginInfo v2 ABI (`dependencies[256]` 字段) + dual ABI dispatch (向后兼容 v1) + 拓扑排序依赖加载 + lifecycle 钩子 pair-test。详见 `docs/superpowers/plans/2026-07-03-phase5-self-bootstrapping.md` §三 C16 行 + `openspec/changes/archive/2026-07-09-phase5-illmprovider-call-chain-v2/` + `tests/test_plugin_loader.cpp` (Sprint 17 C7 + Sprint 21 C16 累计)。
 
+⏳ tracking: shipped
+
 ## 领域
 
 基座 / PDK / Plugin Loading Lifecycle

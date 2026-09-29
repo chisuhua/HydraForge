@@ -5,6 +5,8 @@
 ✅ Approved (2026-07-16, 架构评审确认)
 ✅ Updated (2026-07-16, 与 ADR-0060 的 6 种协作模式对齐)
 
+⏳ tracking: shipped
+
 ## 领域
 
 Agent-as-Plugin 架构 / 跨进程通信

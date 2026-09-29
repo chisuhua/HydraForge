@@ -8,6 +8,8 @@
 
 ---
 
+⏳ tracking: shipped
+
 ## 生命周期扩展对齐 (2026-07-06 追加)
 
 **与 ADR-0041 (PluginLoader 生命周期扩展) 的对齐说明**: 本 ADR 的 §决策 2 (符号约定) 当前仅定义 `pdk_register_tools` 和 `pdk_plugin_info` 两个符号。Phase 2+ 规划的 "完整 PluginLifecycle 钩子" (如 `pdk_plugin_init`/`pdk_plugin_fini`) 将由 [ADR-0041 (PluginLoader 生命周期扩展)](../adr-0041-pluginloader-lifecycle-extension.md) (P2, 待创建) 定义。GPU 初始化等有状态 Plugin 需求在当前阶段通过 `inference/engine/init` 工具手动触发, 不阻塞 PluginLoader core。

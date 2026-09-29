@@ -5,6 +5,8 @@
 ✅ Approved (2026-07-16, 架构评审确认)
 ✅ 实施完成 (2026-07-22, skill-interpreter-real-loading change ship, 18/18 tests pass)
 
+⏳ tracking: shipped
+
 ## 领域
 
 Agent-as-Plugin 架构 / SKILL 运行时

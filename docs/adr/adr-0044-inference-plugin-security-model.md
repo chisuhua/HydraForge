@@ -6,6 +6,8 @@
 
 > **实施依据**: `phase5-llama-engine-plugin` (C14) 已 ship + archived (2026-07-08), 验证: 三层安全模型完整应用于 12 个推理插件工具 — L1 路径白名单 (per ADR-0022 §2.1, `PluginLoader` 拒绝非白名单路径) + L2 ToolMetadata V2 (per ADR-0004 V2, `category` + `min_layer` + `approval_policy` 字段, 详见 `tests/test_llama_engine_plugin.cpp` 10 TC metadata 审批策略验证) + L3 ToolCoordinator (per ADR-0031 §决策 5, 层检查 → 审批 → 审计 pipeline)。`inference/engine/init` Category 经 P1 fix 修正为 `StateModify`。详见 `docs/superpowers/plans/2026-07-03-phase5-self-bootstrapping.md` §三 C14 行 + `tests/test_llama_engine_plugin.cpp` + `openspec/changes/archive/2026-07-08-phase5-llama-engine-plugin/`。
 
+⏳ tracking: shipped
+
 ## 领域
 
 基座 / Security / PDK Plugin

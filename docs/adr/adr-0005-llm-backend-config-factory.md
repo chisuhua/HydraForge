@@ -4,6 +4,8 @@
 
 **✅ Approved** (2026-05-12)
 
+⏳ tracking: shipped
+
 ## 背景
 
 HydraForge Phase 1 需要支持多后端 LLM（OpenAI、Anthropic、llama-server），通过配置驱动的工厂模式创建和管理 Provider 实例。

@@ -2,6 +2,8 @@
 
 ## 状态
 
+
+⏳ tracking: shipped
 **✅ Approved (2026-06-24, Sprint 5 ship) + Sprint 20 PlanExecute/ForkJoin 增量 ship (2026-08-01)** — V0.2。DECLARE_TOOL 宏 + DEFINE_AGENT 模板 (React + PlanExecute + ForkJoin, Sprint 20 完整 3 状态机) + SafeExec 封装 (超时+异常 MVP) 已实施 (15/15 ctest pass [5 React + 5 PlanExecute + 5 ForkJoin], 51/51 baseline 零回归)。Sprint 20 移除 agent_macros.h:51-53 static_assert 限制, 引入 LoopDispatcher 模板 + 3 specialization (React/PlanExecute/ForkJoin), 新增 `agent_loops/{loop_result,react_loop,plan_execute_loop,fork_join_loop}.h` 4 个头文件 + `tests/test_pdk_{plan_execute,fork_join}.cpp` 10 个新测试。monorepo `pdk/` 子目录先 ship (K3 决策, ADR-0021 §2.2 一致),`hydraforge-pdk` 独立仓库推送留 Sprint 5 ship 后异步 (T4b, 外部阻塞: GitHub 组织存在性)。Phase 1 智能体层 100% 收官，变更依据: `openspec/changes/tech-debt-and-phase1-closure/` + `openspec/changes/pdk-plan-execute-fork-join/` (Sprint 20)。
 
 > **Sprint 4 增量 (2026-06-19, OpenSpec change `2026-07-07-pdk-skeleton`)**：PDK 头文件落地（`include/agenticdsl/pdk/{tool_macros,agent_macros,safe_exec,pdk}.h`）+ monorepo `pdk/` 子目录 + INTERFACE 库 (`hydraforge_pdk`)。5 个新测试 + 31 基线 = 32/32 ctest pass, P3 静态链接验证 (PDK 头文件仅依赖 Runtime 契约接口 `agenticdsl/contract/*.h`)。Phase 2/3 后续: PlanExecute/ForkJoin 完整循环 + FakeStateStore/StubLLM/MockSandbox 测试替身 + PluginLifecycle + 完整 SafeExec (fork/cgroups/seccomp) + `hydraforge-pdk` 独立仓库发布。Sprint 5 后续: PluginLoader 通过 PDK 编译的 `.so` 加载 (T4b 异步, Sprint 5 收官变 ✅ Approved)。
@@ -9,7 +11,6 @@
 > **2026-07-08 update**: §8 SamplerStrategy 接口被 `docs/adversarial-reviews/decisions-2026-07-07.md` D1 决策撤销 (B2 实施前对齐)。采样器 clamp 逻辑内联到 llama_engine plugin 的 `inference/decoding/configure` 工具, 不再抽取独立 PDK 接口 (1 虚接口仅 1 个实现, `supports()` 永远 true)。变更依据: `openspec/changes/fix-adr-doc-alignment-p2-cleanup-2026-07-08/`。
 
 > **2026-07-23 update (v1.2 对齐)**: 架构文档 [`docs/specs/architecture.md`](../specs/architecture.md)（原 agent-as-plugin-architecture-v1.2，2026-07-22；2026-07-31 晋升为 specs 架构规范）将 PDK 概念细化为 L2 (Plugin 工具层) 与 L3 (PDK 接口契约层) 两个层级。本 ADR 的 P1-P6 原则不受影响；`DECLARE_TOOL`/`DEFINE_AGENT` 等宏属于 L3 契约层 (`include/agenticdsl/pdk/`), 而 `shell_tools`/`fs_tools`/`provider_agent` 等原子工具属于 L2 实现层 (`pdk/`)。详见 [ADR-0067 §决策 3](./adr-0067-layered-plugin-architecture-split.md)，该 ADR 记录了 L2/L3/L4 拆分的架构决策 (A13-A16 + 依赖规则 R1-R5)。
-
 ## 背景
 
 ### 问题

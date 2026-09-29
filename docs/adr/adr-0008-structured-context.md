@@ -13,6 +13,8 @@
 >
 > **向后兼容性**：所有现有调用方（6 个 DSLNode::execute 虚函数, DSLEngine::run, InjaTemplateRenderer）继续使用 flat Context，新代码可选用 LayeredContext + flatten() 桥接。
 
+⏳ tracking: shipped
+
 ## 背景
 
 HydraForge 的 Context 当前是 `using Context = nlohmann::json`——一个无结构的类型别名，所有数据混在一起。缺乏清晰的 schema 边界导致：

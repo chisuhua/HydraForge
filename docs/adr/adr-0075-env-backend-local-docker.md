@@ -2,6 +2,8 @@
 
 ## 状态
 
+
+⏳ tracking: shipped
 ✅ Approved (2026-08-18 — Wave 3-A `from-roadmap-phase-6c-execution-envbackend` ship: D1 IEnvBackend 接口 + D2 LocalBackend (C11, 8h) + D3 DockerBackend (C12, 8h, cpp-httplib 替代 libcurl 零新增依赖) + D5 EnvValidationHook (C13, 6h) 全部 ship。D4 `backend:` 字段 DSL 解析留 W5 独立前置提案, 不阻塞本 ADR ship。K8sBackend/SSHBackend 留 Phase 7+ follow-up)
 
 ### ship 证据 (2026-08-18)
@@ -28,7 +30,6 @@
 1. **libcurl → cpp-httplib**：proposal 假设 `external/libcurl/` 已 vendor, 实际未 vendor; 改用已 vendor 的 cpp-httplib (AF_UNIX client 支持 unix socket), 零新增外部依赖
 2. **ToolCategory::Dangerous → ToolCategory::Execute**：实际 enum 无 Dangerous 值, hook 目标改为 Execute (shell.exec 类工具对应类目)
 3. **IToolHook::pre() → PreHook std::function**：ADR-0069 hook 体系实际是 `IToolHookRegistry` + `PreHook` lambda, EnvValidationHook 以工厂函数形态产出 PreHook
-
 ## 领域
 
 L1 OS Services / 多环境执行抽象 / Backend 路由 / DSL 节点扩展

@@ -10,6 +10,8 @@
 
 > **C1 迁移注记 (2026-06-08, commit 3f28020)**：引擎 LLM 注入接口由 `LlamaAdapter*` 改为 `ILLMProvider*`（抽象流式接口，详见 ADR-0001）。原 `LlamaAdapter` 仍可用但需通过 `LlamaAdapterProvider` 包装。本 ADR 中 §2 的成员变量 `llm_provider_` 已同步更新。
 
+⏳ tracking: shipped
+
 ## 替代关系
 
 **本 ADR 替代 ADR-0006（HarnessEngine 后台线程模型）**。
