@@ -358,3 +358,105 @@ done | head -10
 | MiniMax API 路径 | `test_*minimax*` 全缺失 | 用 MINIMAX_API_KEY 实测 |
 | Harness-RSI gate 真实 LLM | N/A（正确设计：gate 不调用 LLM） | — |
 | Distillation capture-mode 真实路径 | 集成测试，not bundled | 用 `real_llm_provider() + CaptureMode::Training` |
+---
+
+## §8 must_realllm 强制真 LLM 验证原则（2026-09-29 沉淀）
+
+### 8.1 背景
+
+按用户 2026-09-29 指令 "只有通过了真实 LLM 验证才判定通过"，所有涉及 LLM 行为的 test 必须区分两类：
+- **`[realllm]`** — 可选 CI 短路 (用 `require_real_llm_env()`)
+- **`[must_realllm]`** — 强制真 LLM 验证 (用 `must_require_real_llm_env()`)
+
+### 8.2 两个 helper 的行为差异
+
+| env 状态 | `require_real_llm_env()` | `must_require_real_llm_env()` |
+|---------|---------------------------|--------------------------------|
+| `HYDRAFORGE_SKIP_REAL_LLM=1` | 静默 return (允许 CI 短路) | **FAIL** (强制真 LLM) |
+| `DEEPSEEK_API_KEY` 已设 | ok | ok |
+| `MINIMAX_API_KEY` 已设 | ok | ok |
+| 无 key + 无 skip | FAIL | FAIL |
+
+### 8.3 强制真 LLM 的应用判定
+
+不是所有 test 都需要 `must_realllm`。判定标准：
+
+| 场景 | 判定 | 理由 |
+|------|------|------|
+| `test_react_loop_real_llm` (React Loop) | ✓ must | LLM 真行为 |
+| `test_plan_execute_realllm` (PlanExecute Loop) | ✓ must | LLM 真行为 |
+| `test_e2e_real_llm*` (ChatSession e2e) | ✓ must | LLM 真行为 |
+| `test_gepa_loop_real_llm` (GEPA Loop) | ✓ must | LLM 真反思 |
+| `test_skill_compiler_real_llm` (SkillCompiler + 真 LLM 生成 SKILL.md) | ✓ must | LLM 真输出 |
+| `test_distillation_capture_training_real_llm` (Capture-mode=Training) | ✓ must | LLM 真产出蒸馏数据 |
+| `test_harness_mutation_proposal_real_llm` (apply_harness_mutation + 真 LLM) | ✓ must | 真 LLM prompt_delta 过 5-tier gate |
+| `test_minimax_real_llm` (MiniMax API 路径) | ❌ **无法 must** | helper URL 是 placeholder `https://api.minimax.chat` (per `real_llm_env.h` 注释), 真打必然失败 |
+| `test_fork_join_real_llm` (ForkJoinLoop) | ❌ **删除** | ForkJoinLoop 默认 handler 不打 LLM, 加 must_realllm 是 misleading |
+
+### 8.4 已知 MiniMax 路径缺口（V2 候选）
+
+```
+real_llm_env.h line 128-130:
+  cfg.api_url = "https://api.minimax.chat";  // placeholder URL, 当前未使用
+  cfg.api_endpoint = "/v1/text/chatcompletion_v2";
+```
+
+URL 不存在 (api.minimax.chat 是 fictional)。**MiniMax 路径在 helper 解析正确 + factory 识别 provider 名字正确**，但**真打 API 必然失败 (DNS NXDOMAIN)**。
+
+**修复路径 (out of scope for this change)**:
+1. 确认 MiniMax 实际 API endpoint
+2. 替换 placeholder URL + endpoint
+3. 写 `test_minimax_real_llm.cpp` 用 `must_require_real_llm_env()` 强制真 LLM
+
+### 8.5 test_fork_join_real_llm 删除原因
+
+ForkJoinLoop 默认 handler (`DomainWorkerPool::default_handler`) 返回 `{branch_id, data: args}` — 不调 LLM。原 plan 给 ForkJoinLoop 加 `must_realllm_env()` 是 misleading 设计：默认路径不依赖 LLM，强行加强制要求会误导未来 maintainer。
+
+**正确做法**: 
+- ForkJoinLoop 已有 `test_fork_join_loop_integration.cpp` (examples, mock provider) 验证编排逻辑
+- ForkJoinLoop 的 "真 LLM handler" 是 application 层的事 (用户注册 `DomainWorkerPool::register_domain_handler` 时决定是否调 LLM)，不在 ForkJoinLoop 核心契约范围
+
+### 8.6 must_realllm test 的 CI 配置
+
+CI 必须配 `DEEPSEEK_API_KEY` 或 `MINIMAX_API_KEY` secret，否则 `must_realllm` test 全部 FAIL (这是 by design，强制验证)。
+
+`HYDRAFORGE_SKIP_REAL_LLM=1` 对 `must_realllm` test 无效 — 故意防止 CI 跳过真 LLM。
+
+### 8.7 必须 must_realllm 的场景 — 完整清单 (per 2026-09-29 ship)
+
+| # | Test binary | Cases | Status |
+|---|-------------|-------|--------|
+| 1 | test_react_loop_real_llm | 7 | ✅ shipped (a711857 修订) |
+| 2 | test_plan_execute_realllm | 3 | ✅ shipped (a711857 修订) |
+| 3 | test_e2e_real_llm (examples) | 2 | ✅ shipped (a711857 修订) |
+| 4 | test_e2e_real_llm_errors (examples) | 2 | ✅ shipped (a711857 修订) |
+| 5 | test_e2e_real_llm_generate_subgraph (examples) | 2 | ✅ shipped (a711857 修订) |
+| 6 | test_e2e_real_llm_multi_turn (examples) | 1 | ✅ shipped (a711857 修订) |
+| 7 | test_gepa_loop_real_llm | 2 | ✅ shipped (5b2530b) |
+| 8 | test_skill_compiler_real_llm | 2 | ✅ shipped (1de0e74) |
+| 9 | test_distillation_capture_training_real_llm | 2 | ✅ shipped (da2f8bb) |
+| 10 | test_harness_mutation_proposal_real_llm | 1 | ✅ shipped (3040113) |
+
+**总: 10 test binaries / 24 cases / 78 assertions 全部 must_realllm PASS**（有 key 情况下实测）
+
+### 8.8 不属于 must_realllm 的 test (按用户判定原则排除)
+
+| Test | 排除原因 |
+|------|----------|
+| test_gepa_phase2 (21 cases) | 用 MockLLMProvider 验证 GEPA Loop 状态机, 不真打 LLM |
+| test_harness_rsi_pilot (22 cases) | 验证 5-tier gate 状态机 + StubEvaluator + StubToolRegistry, 完全不调 LLM |
+| test_genome_registry (13) | 文件系统持久化, 与 LLM 无关 |
+| test_distillation_writer (6) | FileDistillationWriter 写文件契约, 不真打 LLM |
+| test_skill_compiler (16) | SkillCompiler 纯函数式, 不调 LLM (V1 设计) |
+| test_gepa_loop_real_llm (new) | ✓ 强制 must_realllm (新增) |
+| ... (所有非 `[must_realllm]` 的 test) | 同理 |
+
+### 8.9 反模式警告
+
+❌ **反模式 1**: 写 `test_xxx_real_llm.cpp` 但用 mock provider — 与 mock 版本重复, 无新增验证价值
+
+❌ **反模式 2**: 写 `[must_realllm]` test 但实际不调 LLM — CI 必红 + 误导
+
+❌ **反模式 3**: 给不能调 LLM 的场景 (如 helper URL placeholder) 强行加 `[must_realllm]` — 永远 FAIL, 无意义
+
+✅ **正模式**: 先判定 "这个场景是否依赖真 LLM 行为"，再决定 `[realllm]` vs `[must_realllm]`
