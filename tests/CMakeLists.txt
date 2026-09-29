@@ -52,6 +52,10 @@ function(add_catch_test TEST_NAME)
     if(TEST_NAME STREQUAL "test_distillation_writer")
         target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_distillation)
     endif()
+    # Real-LLM only validation (2026-09-29): Distillation Capture Training 真 LLM 测试
+    if(TEST_NAME STREQUAL "test_distillation_capture_training_real_llm")
+        target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_distillation)
+    endif()
     # Phase 2 (capture-mode-and-distillation-writer-v1): TrajectoryIR bridge 测试需要 distillation 模块
     if(TEST_NAME STREQUAL "test_trajectory_bridge")
         target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_distillation)
