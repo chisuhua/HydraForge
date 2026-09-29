@@ -347,6 +347,7 @@ add_test(
 )
 set_tests_properties(test_e2e_real_llm PROPERTIES
     ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk"
+    LABELS "must_realllm"
     TIMEOUT 60
 )
 
@@ -381,6 +382,7 @@ add_test(
 )
 set_tests_properties(test_e2e_real_llm_generate_subgraph PROPERTIES
     ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk"
+    LABELS "must_realllm"
     TIMEOUT 120
 )
 
@@ -414,6 +416,7 @@ add_test(
 )
 set_tests_properties(test_e2e_real_llm_multi_turn PROPERTIES
     ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk"
+    LABELS "must_realllm"
     TIMEOUT 180
 )
 
@@ -447,6 +450,7 @@ add_test(
 )
 set_tests_properties(test_e2e_real_llm_errors PROPERTIES
     ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk"
+    LABELS "must_realllm"
     TIMEOUT 120
 )
 

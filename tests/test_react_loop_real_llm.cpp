@@ -86,7 +86,7 @@ inline void maybe_warn_llm_failure(const agenticdsl::Result<agenticdsl::Generati
 // Per tests/AGENTS.md Pattern #5: 显式 set req.params.model = cfg.model
 // 避免 LLMConfig::model 默认 ("gpt-4o-mini") 遮蔽真实 model.
 TEST_CASE("real LLM provider smoke: generate returns non-empty text",
-          "[realllm][provider_smoke][r1_hello]") {
+          "[must_realllm] [realllm] [react_loop] [provider_smoke] [r1_hello]") {
     must_require_real_llm_env();
 
     auto provider = real_llm_provider();
@@ -121,7 +121,7 @@ TEST_CASE("real LLM provider smoke: generate returns non-empty text",
 // 验证 generate_stream() 不立即触发 fail-fast (stream path 与 main path 共享 fail-fast).
 // 不验证 stream 内容 (stream 内容验证是后续 Phase)。
 TEST_CASE("react loop real LLM smoke: generate_stream returns without fail-fast",
-          "[realllm][react_loop][f1_smoke][stream]") {
+          "[must_realllm] [realllm] [react_loop] [stream_smoke] [f1_smoke] [stream]") {
     must_require_real_llm_env();
 
     auto provider = real_llm_provider();
@@ -151,7 +151,7 @@ TEST_CASE("react loop real LLM smoke: generate_stream returns without fail-fast"
 // Per AGENTS.md Pattern #3: 严格断言 (Assistant 必须含 "jthread" 关键词,
 // case-insensitive, 验证 CJK 字符正常编码).
 TEST_CASE("react loop real LLM R2: 中文 prompt 含 jthread 关键词",
-          "[realllm][react_loop][r2_cjk]") {
+          "[must_realllm] [realllm] [react_loop] [r2_cjk]") {
     must_require_real_llm_env();
 
     auto provider = real_llm_provider();
@@ -188,7 +188,7 @@ TEST_CASE("react loop real LLM R2: 中文 prompt 含 jthread 关键词",
 // True context-awareness multi-turn test deferred to ChatSession-level
 // Phase H+ follow-up (out of scope here).
 TEST_CASE("react loop real LLM R3: multi-turn prompt dispatch",
-          "[realllm][react_loop][r3_multiturn]") {
+          "[must_realllm] [realllm] [react_loop] [r3_multi_turn]") {
     must_require_real_llm_env();
 
     auto provider = real_llm_provider();
@@ -245,7 +245,7 @@ TEST_CASE("react loop real LLM R3: multi-turn prompt dispatch",
 // (per Pattern #10 hygiene). This test only verifies that a real LLM can
 // produce a structured plan-like response when prompted.
 TEST_CASE("real LLM provider capability: plan-style prompt response",
-          "[realllm][provider_smoke][r4_plan_capability]") {
+          "[must_realllm] [realllm] [react_loop] [provider_capability] [provider_smoke] [r4_plan_capability]") {
     must_require_real_llm_env();
 
     auto provider = real_llm_provider();
@@ -282,7 +282,7 @@ TEST_CASE("real LLM provider capability: plan-style prompt response",
 // follow-up improvement. This test only verifies provider can handle 3
 // sequential calls with ≥1/3 success rate.
 TEST_CASE("real LLM provider capability: 3-branch sequential dispatch",
-          "[realllm][provider_smoke][r5_multibranch]") {
+          "[must_realllm] [realllm] [react_loop] [provider_capability] [provider_smoke] [r5_multibranch]") {
     must_require_real_llm_env();
 
     auto provider = real_llm_provider();
@@ -331,7 +331,7 @@ TEST_CASE("real LLM provider capability: 3-branch sequential dispatch",
 // 100 calls 顺序执行 → 成功率 ≥ 95% (容许 ≤5 偶发失败).
 // 中位 latency < 5s.
 TEST_CASE("react loop real LLM R6: stress test 100 calls",
-          "[realllm][react_loop][r6_stress]") {
+          "[must_realllm] [realllm] [react_loop] [r6_stress]") {
     must_require_real_llm_env();
 
     auto provider = real_llm_provider();

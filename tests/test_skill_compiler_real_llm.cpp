@@ -69,7 +69,7 @@ std::string generate_skill_md_via_real_llm(
 
 }  // namespace
 
-TEST_CASE("SkillCompiler real LLM smoke: LLM-generated SKILL.md compiles",
+TEST_CASE("SkillCompiler real LLM smoke: LLM-generated SKILL.md compiles", "[must_realllm] [realllm] [skill_compiler] [smoke]",: LLM-generated SKILL.md compiles",
           "[skill_compiler][real_llm][must_realllm]") {
   must_require_real_llm_env();
 
@@ -107,7 +107,7 @@ TEST_CASE("SkillCompiler real LLM smoke: LLM-generated SKILL.md compiles",
   REQUIRE((compiled.ok || !compiled.failure_reason.empty()));
 }
 
-TEST_CASE("SkillCompiler real LLM R2: LLM 输出含 markdown 结构",
+TEST_CASE("SkillCompiler real LLM R2: LLM 输出含 markdown 结构", "[must_realllm] [realllm] [skill_compiler] [r2]",: LLM 输出含 markdown 结构",
           "[skill_compiler][real_llm][must_realllm][r2]") {
   must_require_real_llm_env();
 

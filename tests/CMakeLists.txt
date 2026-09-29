@@ -191,6 +191,14 @@ function(add_catch_test TEST_NAME)
         set_tests_properties(${TEST_NAME} PROPERTIES TIMEOUT 180)
     endif()
 
+    # Real-LLM only validation (2026-09-29): must_realllm label (per user
+    # "只有通过了真实 LLM 验证才判定通过" + AGENTS.md Reverse Indicator Rule)
+    # CI 跑两步: (1) ctest -LE must_realllm 跑所有非 LLM 测试;
+    #              (2) ctest -L must_realllm 跑真 LLM (需 DEEPSEEK_API_KEY/MINIMAX_API_KEY)
+    if(TEST_NAME MATCHES "^test_react_loop_real_llm$|^test_plan_execute_realllm$|^test_gepa_loop_real_llm$|^test_skill_compiler_real_llm$|^test_distillation_capture_training_real_llm$|^test_harness_mutation_proposal_real_llm$")
+        set_tests_properties(${TEST_NAME} PROPERTIES LABELS "must_realllm")
+    endif()
+
     # Real LLM stress test: 8 workers × 20 deepseek tasks = 160 API calls
     # SerializingDecorator 串行化 → 需 300s+ (单次 API 1-2s × 160 = 160-320s + 重试开销)
     if(TEST_NAME STREQUAL "test_cloud_adapter_multithread")

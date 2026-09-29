@@ -84,7 +84,7 @@ void diag_on_failure(const T& result, const std::string& case_name) {
 // C.1: plan_phase 真实 deepseek LLM 产出可解析 DSL
 // ============================================================
 TEST_CASE("PlanExecuteLoop plan_phase produces parseable DSL with real LLM",
-          "[plan_execute][realllm][phase-c][c1]") {
+          "[must_realllm] [realllm] [plan_execute] [plan_phase] [phase-c] [c1]") {
   agenticdsl::test::must_require_real_llm_env();
   // 本地有 key 时: 真实 deepseek 跑 plan_phase, 验证产出可解析 DSL
   // 注: 依赖 plan_execute_loop.h:208 的 req.params.model.clear() 已 ship
@@ -122,7 +122,7 @@ TEST_CASE("PlanExecuteLoop plan_phase produces parseable DSL with real LLM",
 // ============================================================
 // C.2: verify_phase 真实 deepseek LLM 含 "yes"
 // ============================================================
-TEST_CASE("PlanExecuteLoop verify_phase responds 'yes' with real LLM",
+TEST_CASE("PlanExecuteLoop verify_phase responds 'yes' with real LLM", "[must_realllm] [realllm] [plan_execute] [verify_phase]", 'yes' with real LLM",
           "[plan_execute][realllm][phase-c][c2]") {
   agenticdsl::test::must_require_real_llm_env();
   // 本地有 key 时: 真实 deepseek 跑 verify_phase, 验证 LLM 响应含 "yes"
@@ -156,7 +156,7 @@ TEST_CASE("PlanExecuteLoop verify_phase responds 'yes' with real LLM",
 // ============================================================
 // C.3: end-to-end 真实 deepseek run("compute 2+3") 全链路
 // ============================================================
-TEST_CASE("PlanExecuteLoop end-to-end run('compute 2+3') real LLM",
+TEST_CASE("PlanExecuteLoop end-to-end run('compute 2+3') real LLM", "[must_realllm] [realllm] [plan_execute] [e2e]", run('compute 2+3') real LLM",
           "[plan_execute][realllm][phase-c][c3][e2e]") {
   agenticdsl::test::must_require_real_llm_env();
   // 本地有 key 时: 真实 deepseek 跑 plan + execute + verify 全链路
