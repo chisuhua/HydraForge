@@ -64,6 +64,10 @@ function(add_catch_test TEST_NAME)
     if(TEST_NAME STREQUAL "test_credit_assignment")
         target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_evolution)
     endif()
+    # Real-LLM only validation (2026-09-29): Harness-RSI 真 LLM mutation proposal 测试
+    if(TEST_NAME STREQUAL "test_harness_mutation_proposal_real_llm")
+        target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_evolution)
+    endif()
     # Phase 6c (2026-09-16-h-d-m-transition-guard): Transition Guard 测试需要 evolution 模块
     if(TEST_NAME STREQUAL "test_transition_guard")
         target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_evolution)
