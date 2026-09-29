@@ -785,6 +785,170 @@ TEST_CASE("react_once forwards model name", "[contract][realllm-guard]") {
 - `openspec/changes/archive/chat-real-llm-coverage/` + `archive/real-llm-core-coverage/` (2 archived) + `2026-09-18-chat-real-llm-coverage-phase-h/` (active) — 3 阶段 ship 记录
 - ADR-0068 §3.1 — api_key 不入日志的协议
 
+## FULL REGRESSION TEST FLOW（完整回归测试流程）
+
+**沉淀时间**: 2026-09-29（must_realllm 强制真 LLM 验证改造后新增, commit `a21c92e` + `a904a5a`）。
+**目的**: 后续会话 / 新 maintainer 接手项目时, 一目了然知道**该跑什么测试 / 什么顺序 / 什么期望 / 失败如何处理** —— 避免"不知道有没有真 LLM 路径被默默跳过"或"token 浪费"。
+
+### 0. 决策树
+
+```
+我需要做的测试是什么?
+├── 纯单元测试 / 算法验证 / 状态机 (无 LLM)        → 阶段 1
+├── 真实 LLM 调用 (DEEPSEEK_API_KEY 或 MINIMAX_API_KEY) → 阶段 2
+├── L2 reference example (pdk_chat_demo_evolution)      → 阶段 3 (可选)
+├── Sanitizer (ASan / TSan)                              → 阶段 4 (CI 自动)
+└── 全量回归 ship gate                                  → 阶段 5
+```
+
+### 1. 阶段 1: 单元测试 mock 回归（必跑, 快速, ~2s）
+
+```bash
+cd /workspace/project/HydraForge
+
+# 核心 tree (98 个 binary / 167 个 ctest / Total Tests: 266)
+ctest --test-dir build -LE must_realllm --output-on-failure
+
+# examples tree (pdk_chat_demo, ~50 个 binary, 含 mock e2e)
+ctest --test-dir build/examples/pdk_chat_demo/tests -LE must_realllm --output-on-failure
+
+# examples tree (pdk_chat_demo_evolution, 10 binary, 含 L2 evolution)
+ctest --test-dir build/examples/pdk_chat_demo_evolution/tests -LE must_realllm --output-on-failure
+```
+
+**预期**: `100% tests passed, 0 tests failed out of N` 在每个 tree
+**耗时**: 1-3s (本地) / 30-60s (CI)
+**失败如何处理**: 单 test FAIL → 修代码, 不改 helper；多 test FAIL → 看是不是某次 commit 引入了 regression (git bisect)
+
+### 2. 阶段 2: must_realllm 真实 LLM 回归（消耗 token, ~120s）
+
+**前置条件**: `DEEPSEEK_API_KEY` 已设置且账户余额 > 0（或 `MINIMAX_API_KEY`，但 MiniMax URL placeholder 仍阻塞真打, 详见 METHODOLOGY.md §8.4）
+
+```bash
+# 必须先跑阶段 1 通过! 阶段 1 失败时不要进入阶段 2 (token 浪费)
+ctest --test-dir build -LE must_realllm --output-on-failure || exit 1
+
+# 阶段 2: 核心 tree (5 个 must_realllm binary)
+ctest --test-dir build -L must_realllm --output-on-failure
+
+# 阶段 2: examples tree (4 个 e2e_real_llm binary, 独立 CTest scope)
+ctest --test-dir build/examples/pdk_chat_demo/tests -L must_realllm --output-on-failure
+```
+
+**预期**: `9/10 PASS`（test_e2e_real_llm 1 失败是 pre-existing PluginLoader whitelist 问题, 与 must_realllm 改造无关 — per commit `a21c92e` 验收）
+**耗时**: ~120s (核心) + ~30s (examples)
+**失败如何处理**:
+- `Insufficient Balance` → 充值 API key 后重跑
+- `AuthenticationError` → key 无效, 检查 env
+- `NetworkError` → 网络问题, 重试
+- `parse failed` / `tool_call rejected` → **代码 bug**, 必须修复 (real LLM 才能发现)
+- `must_realllm test FAIL 但 mock PASS` → **典型的 production bug**, 高优先级 (per `§REVERSE INDICATOR RULE` 段)
+
+### 3. 阶段 3: L2 reference example 回归（可选, ~5s）
+
+```bash
+# L2 evolution 测试 (per l2-evolution label)
+ctest --test-dir build -L l2-evolution --output-on-failure
+
+# L2 example binary (pdk_chat_demo_evolution, 10 binaries)
+ctest --test-dir build/examples/pdk_chat_demo_evolution/tests --output-on-failure
+```
+
+**预期**: `9/9 + 9/9 = 18/18 PASS`（per audit `2026-09-29-harness-self-evolution-rsi-audit` 验证）
+**耗时**: 5-10s
+**HERMETIC_HOME**: 这些测试**自动**用 `setup_hermetic_home()` 创建 tmp 目录 (per `test_hermetic_home.cpp`), **不会污染** 真实 `~/.hydraforge/`
+
+### 4. 阶段 4: Sanitizer（CI 自动跑, 本地按需）
+
+```bash
+# ASan 模式 (per CMakePresets.json: asan preset)
+cmake --preset asan -DAGENTICDSL_BUILD_TESTS=ON
+cmake --build build-asan -j$(nproc)
+ctest --test-dir build-asan -LE must_realllm --output-on-failure
+
+# TSan 模式
+cmake --preset tsan -DAGENTICDSL_BUILD_TESTS=ON
+cmake --build build-tsan -j$(nproc)
+ctest --test-dir build-tsan -LE must_realllm --output-on-failure
+```
+
+**预期**: ASan 100% PASS (无内存泄漏 / use-after-free); TSan 100% PASS (无 data race)
+**已知 baseline 不通过**: `test_skill_interpreter 7.S29-1` (per AGENTS.md §Reverse Indicator Rule TSan baseline, 单独跑 PASS)
+**失败如何处理**: 数据竞争 → 用 ThreadSanitizer report 定位; 内存错误 → 用 AddressSanitizer + gdb
+
+### 5. 阶段 5: ship gate 全量回归（commit 前必跑）
+
+按 `AGENTS.md §Reverse Indicator Rule` 的"5 字段必须" 要求:
+
+```bash
+# 1. 单元测试 + mock
+ctest --test-dir build -LE must_realllm --output-on-failure
+
+# 2. must_realllm 真实 LLM (有 key 时)
+ctest --test-dir build -L must_realllm --output-on-failure
+
+# 3. L2 evolution (Hermetic Home 测试)
+ctest --test-dir build -L l2-evolution --output-on-failure
+
+# 4. ASan / TSan (CI 自动; 本地按需)
+# ctest --test-dir build-asan -LE must_realllm
+# ctest --test-dir build-tsan -LE must_realllm
+
+# 5. tools/adr_lint.py + docs_drift_audit.py
+python3 tools/adr_lint.py 2>&1 | tail -3       # 预期: "✓ 所有 ADR 通过 lint 检查"
+python3 tools/docs_drift_audit.py 2>&1 | grep SUMMARY  # 预期: SUMMARY: N DRIFT, M WARNING (已知 3 + 1)
+
+# 6. AGENTS.md / METHODOLOGY.md / audit 报告同步更新
+git status --short  # 应该干净或只含本次 ship 范围
+```
+
+### 6. CTest Label 速查
+
+| Label | 含义 | 命令 |
+|-------|------|------|
+| `must_realllm` | 必须真 LLM, skip=1 FAIL (强制验证) | `ctest -L must_realllm` |
+| `realllm` | (旧 tag, 同 must_realllm 现在) | (已 deprecated, 见 METHODOLOGY §8) |
+| `l2-evolution` | L2 reference example (hermetic home) | `ctest -L l2-evolution` |
+| `live` | 需 AGENTICDSL_ENABLE_LIVE_TESTS=ON (默认 OFF) | 不用 |
+
+**注册位置**: `tests/CMakeLists.txt` `add_catch_test()` 函数内部 (在 `add_test` 之后 set_tests_properties)
+**注册规则**: Catch2 tag 在 TEST_CASE 内 (e.g. `[must_realllm]`); CTest label 在 CMakeLists (e.g. `LABELS "must_realllm"`)
+
+### 7. 时间预算速查
+
+| 阶段 | 本地耗时 | CI 耗时 | Token 成本 |
+|------|---------|--------|-----------|
+| 阶段 1 (mock) | 2-5s | 30-60s | 0 |
+| 阶段 2 (must_realllm) | 60-180s | 5-15min | 10-50 calls |
+| 阶段 3 (L2 evolution) | 5-10s | 30-60s | 0 |
+| 阶段 4 (sanitizer) | 30-60s | 5-10min | 0 |
+| **总计** | ~3 min | ~30 min | ~10-50 LLM calls |
+
+### 8. 失败决策树
+
+```
+阶段 1 FAIL?
+├── 单个 test → 修代码, 重跑该 test (ctest -R <name>)
+├── 多个 test 同模块 → 看 git log 最近改动
+└── 全部 test FAIL → 检查 build 环境 / ctest 配置
+
+阶段 2 FAIL?
+├── HTTP 402 Insufficient Balance → 充值 DEEPSEEK_API_KEY 后重跑
+├── HTTP 401 Auth → DEEPSEEK_API_KEY 无效, 检查 env
+├── NetworkError → 重试 (可能是 sandbox 网络抖动)
+├── Parse/Schema error → **代码 bug**, 看 helper 字段 (must_realllm 改造目的就是发现此类)
+└── 必须 FAIL 但 mock PASS → production bug, 高优先级
+
+阶段 4 (sanitizer) FAIL?
+├── TSan data race → 看 ThreadSanitizer report, 用 mutex / atomic 修复
+├── ASan: heap-use-after-free / leak → 看 AddressSanitizer stack trace
+└── 通常是 race condition / 生命周期 bug, 必须修
+```
+
+### 9. 治理链完整性
+
+任何 ship 段**必须**按 `AGENTS.md §Reverse Indicator Rule` 5 字段 (`new_up` / `old_down` / `failure_traces` / `ablation` / `context_ids`) 填写 commit message. `failure_traces` 必须**精确**记录哪个 test 在哪个 commit 失败 (避免"看似通过实际是 mock"的虚假通过).
+
 ## NOTES
 - **跨模块 include**: ADR-0019 §1.4 ✅ Approved 2026-06-18, `engine.h` 跨模块 include 收敛至 1 (`common/llm/llm_types.h` types 例外). 演进史见 archive `2026-06-15-residual-engine-h-decoupling` + `2026-06-30-decompose-execution-session-h` + Sprint 15 ToolCoordinator opt-in 修正 (audit 修正后增补 3 policy 头文件, ADR-0031 §决策 5 保持).
 - **PDK Dual-Repo 同步操作** (ADR-0021 §7): monorepo `pdk/` ↔ standalone `hydraforge-pdk` GitHub repo. 触发时机: 每 Sprint ship 后 / PDK 头文件 API 变更 / 紧急 patch. 路径: `scripts/sync-pdk.sh` (preflight + copy + README + commit/push + standalone build). 外部消费者 `find_package(hydraforge_pdk 0.1 REQUIRED)`.
