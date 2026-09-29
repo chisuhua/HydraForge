@@ -73,6 +73,26 @@ inline void require_real_llm_env() {
        "or set HYDRAFORGE_SKIP_REAL_LLM=1 to opt-in skip");
 }
 
+inline void must_require_real_llm_env() {
+  if (const char* skip = std::getenv("HYDRAFORGE_SKIP_REAL_LLM");
+      skip && std::string(skip) == "1") {
+    FAIL("[must_realllm] test cannot opt-in skip via HYDRAFORGE_SKIP_REAL_LLM=1; "
+         "real LLM validation is REQUIRED. Unset the env var and provide "
+         "DEEPSEEK_API_KEY or MINIMAX_API_KEY (e.g. via CI secret).");
+    return;
+  }
+  if (const char* ds = std::getenv("DEEPSEEK_API_KEY");
+      ds && ds[0] != '\0') {
+    return;
+  }
+  if (const char* mm = std::getenv("MINIMAX_API_KEY");
+      mm && mm[0] != '\0') {
+    return;
+  }
+  FAIL("[must_realllm] test requires DEEPSEEK_API_KEY or MINIMAX_API_KEY. "
+       "Real LLM validation is REQUIRED (no mock-only fallback).");
+}
+
 // 查询 skip flag — 供测试主体在 require_real_llm_env() 后 short-circuit:
 //   require_real_llm_env();
 //   if (real_llm_env_skipped()) { SUCCEED("skipped: HYDRAFORGE_SKIP_REAL_LLM=1"); return; }
