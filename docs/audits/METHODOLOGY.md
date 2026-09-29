@@ -239,3 +239,74 @@ python3 tools/adr_lint.py 2>&1 | grep "WARNING\[" | wc -l   # 不应持续增长
 | 任何 ADR 头部格式变更 | 更新 §1 awk 模板 |
 
 **版本追踪**: 本文档首版 2026-09-29，未来扩展按 §6 规则持续维护。
+
+---
+
+## §7 Mock vs Real LLM 区分原则（防 audit 误导）
+
+### 7.1 问题
+
+Mock test 全部 PASS ≠ Real LLM 路径端到端可达。这是 2026-09-29 audit 报告识别出的**关键盲点**：
+
+```
+原审计报告: "21/21 ctest 100% PASS" 
+实际真相:    21 个全部是 mock (1.90s 内跑完 145 cases 不可能打 API)
+真实 LLM 路径: test_react_loop_real_llm 5/7 + test_plan_execute_realllm 0/3
+             (DEEPSEEK_API_KEY 余额不足, 但网络调用真发生 → HTTP 402)
+```
+
+### 7.2 区分原则
+
+任何 audit 声称"N/M ctest PASS"必须**明确标注**每条 ctest 是 mock 还是 real_llm。
+
+```bash
+# 1. 查 test 源码是否引用 real_llm helper
+for t in tests/test_*.cpp; do
+  count=$(grep -c "require_real_llm_env\|real_llm_env_skipped\|real_llm_provider\|DEEPSEEK_API_KEY\|MINIMAX_API_KEY" "$t" 2>/dev/null)
+  [ "$count" -gt 0 ] && echo "REAL_LLM: $t ($count 引用)"
+done | head -20
+
+# 2. 列出所有 real_llm 测试 binary
+ls build/tests/test_*real_llm* build/tests/test_*realllm* 2>/dev/null
+```
+
+### 7.3 4 类典型结果分类
+
+| Mock/Real | 结果 | 解读 |
+|-----------|------|------|
+| Mock PASS | ✅ | 单元逻辑正确，但**未证** API 路径连通 |
+| Mock FAIL | ❌ | 单元逻辑错误（即使 API 通也无意义） |
+| Real PASS | ✅ | 单元逻辑 + API 路径都通（最强证据） |
+| Real FAIL (HTTP 402/429/timeout) | ⚠️ | 单元逻辑**可能对**，但 API 外因失败（区分: 余额/限流 vs 代码 bug） |
+
+### 7.4 Real LLM test 失败分类法
+
+```bash
+# 看 warning 行的 request_id / 错误码
+./build/tests/test_react_loop_real_llm --reporter compact 2>&1 | grep -E "warning|failed" | head -5
+```
+
+典型模式识别:
+- `Insufficient Balance (request_id: ...)` → DeepSeek 余额不足 (外因，代码 OK)
+- `Authentication failed` → API key 无效 (配置错)
+- `Network timeout` → 网络问题
+- `LLM response parse failed` → **代码 bug**（JSON schema 不兼容）
+- `tool_call rejected` → 代码 bug 或 LLM 不支持该 tool schema
+
+### 7.5 Audit 报告标准格式
+
+每个 audit 的 "已实测 PASS" 段必须**分类标注**:
+
+```markdown
+## 已实测 PASS
+
+### Mock 路径 (无网络调用)
+- test_harness_rsi_pilot: 22 cases / 115 assertions ✅
+- ...
+
+### Real LLM 路径 (需 DEEPSEEK_API_KEY)
+- test_react_loop_real_llm: 5/7 cases / 12/14 assertions ⚠️ (2 case 受 API balance 限制)
+- test_plan_execute_realllm: 0/3 ❌ (API balance 限制)
+```
+
+**禁止**只写 "21/21 ctest 100% PASS" 不区分 mock/real。
