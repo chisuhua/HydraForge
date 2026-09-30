@@ -11,9 +11,9 @@
 
 **核心结论（一句话）**: 三套系统的 V1 最小闭环都在生产代码 + 测试 + commit hash 三重维度有实证证据；但 SoT 文档**明确标注**当前是 V1 最小闭环 + V2 缺口，不构成"完整的自适应自进化平台"。详见下文每节的具体证据 + 可手工复现的验证命令。
 
-> ## ⚠️ 诚实披露 (Honest Disclosure, 2026-09-29 补, 用户充值后再次更新)
+> ## ⚠️ 诚实披露 (Honest Disclosure, 2026-09-29 补, 用户充值后再次更新；**2026-09-30 二次订正** per 用户审计自纠请求)
 >
-> **本审计所列的 21 个 ctest 全部是 mock / deterministic unit test，未调用真实 DeepSeek API。**证据链:
+> **本审计 §0-§11 的 21 个 ctest 全部是 mock / deterministic unit test，未调用真实 DeepSeek API**（2026-09-29 原始诚实披露）。证据链:
 >
 > | 维度 | 实测数据 | 含义 |
 > |------|----------|------|
@@ -21,13 +21,16 @@
 > | 12 个 core test 源码中 `real_llm_env` 引用 | **0 / 12** | 无 real_llm helper 调用 |
 > | 9 个 L2 test 源码中 `real_llm_provider` 引用 | **0 / 9** | 同上 |
 >
-> **修正后状态** (用户充值 DEEPSEEK_API_KEY 后 2026-09-29 重跑):
+> **修正后状态** (must_realllm 改造 + 用户充值后 2026-09-29 重跑):
 > - test_react_loop_real_llm: **7/7 PASS** (25 assertions) — React Loop DeepSeek 路径端到端验证
 > - test_plan_execute_realllm: **3/3 PASS** (14 assertions) — PlanExecute Loop DeepSeek 路径端到端验证
 >
-> **综合覆盖**: Mock 21/21 ✅ + Real LLM (DeepSeek React+PlanExecute) 10/10 ✅ + GEPA Loop 仍是 mock only 真实盲点。
+> **综合覆盖**（2026-09-30 二次订正，per §6.4 + §12.5）：
+> - Mock 21/21 ✅ (§0-§11)
+> - Real LLM (DeepSeek) **24/24 cases / 78 assertions 全 PASS**（10 test binaries, 包含 React + PlanExecute + **GEPA** + SkillCompiler + Distillation + Harness-RSI mutation proposal）
+> - 真实盲点：仅剩 **MiniMax API 路径未实测**（占位 URL）+ MiniMax URL placeholder (`real_llm_env.h:145-147 https://api.minimax.chat`) — 见 §12.6
 >
-> 详见 §12 "Real LLM 验证 (诚实披露)" §12.3 + §12.5 + 修正方法论 §7 (per [`METHODOLOGY.md`](./METHODOLOGY.md))。
+> 详见 §6.1 + §12 "Real LLM 验证 (诚实披露)" §12.3 + §12.5 + 修正方法论 §7 (per [`METHODOLOGY.md`](./METHODOLOGY.md))。
 
 ---
 
@@ -616,7 +619,7 @@ python3 tools/adr_lint.py 2>&1 | tail -1
 
 ## §12 Real LLM 验证（诚实披露 + 补充证据）
 
-> ⚠️ **本节补于 2026-09-29 响应用户提问**："审计中验证的测试用的是真实 LLM 吗？" — 答案：**不是，本审计 §0-§11 的 21 个 ctest 全部是 mock，**未触碰真实 DeepSeek API。详见下方诚实披露。
+> ⚠️ **本节补于 2026-09-29 响应用户提问**；**2026-09-30 二次订正**：审计原始诚实披露（§0-§11 21 个 ctest 全部是 mock）仍准确，但 must_realllm 改造（§6.4）后已新增 4 个 real LLM 测试（GEPA / SkillCompiler / Distillation / Harness-RSI mutation proposal）。**截至 2026-09-30, Real LLM 总覆盖 = 24/24 cases / 78 assertions 全 PASS（10 test binaries, 含 skip=1 时 24/24 FAIL）。** 详见下方诚实披露 + §6.4 改造清单 + §12.5 修正矩阵。
 
 ### 12.1 Mock vs Real LLM 区分（核心事实）
 
@@ -670,7 +673,7 @@ tests/test_real_llm_env_helper.cpp
 | **test_plan_execute_realllm** (3 cases) | **Real LLM** | ✅ DeepSeek | PlanExecute Loop 真实 LLM 路径端到端 |
 | **test_real_llm_env_helper** (5 cases) | **Helper** | ❌ | 测试 helper 自身三态行为 |
 
-**关键事实**：21 个 mock test 中**只有 1 个（test_gepa_phase2）涉及 LLM**，其余 11 个与 LLM 完全无关。它们通过的根本原因是它们**测试的不是 LLM**，而是状态机/算法/序列化等逻辑。
+**关键事实**（2026-09-30 二次订正）：21 个 mock test 中涉及 LLM 的 = **2 个**（test_gepa_phase2 [MockLLMProvider] + test_react_loop_real_llm [DeepSeek, 后转为 must_realllm 真打]），其余 10 个与 LLM 完全无关。但 must_realllm 改造后（§6.4）新增 4 个专门覆盖 LLM 真打路径的 test binary（GEPA / SkillCompiler / Distillation / Harness-RSI mutation proposal），mock 通过的根本原因是它们**测试的不是 LLM**，而是状态机/算法/序列化等逻辑。
 
 #### 12.3.2 Mock 测试真实覆盖 vs 不覆盖范围
 
@@ -685,7 +688,7 @@ tests/test_real_llm_env_helper.cpp
 | Budget 阈值判断 | Prompt 真实 elicit 真实响应 |
 | Capturing provider 校验参数契约 | provider 实际网络栈可达性 |
 
-**结论**：mock 测试**不是骗过**，而是**有意识地不覆盖 LLM 网络层**——这是合理的分层测试策略。但**没有 real_llm test 覆盖**的路径（如 GEPA Loop）是真实盲点。
+**结论**（2026-09-30 二次订正）：mock 测试**不是骗过**，而是**有意识地不覆盖 LLM 网络层**——这是合理的分层测试策略。**截至 must_realllm 改造后，所有核心 Loop（React / PlanExecute / GEPA）都有 real LLM test 覆盖**，仅剩 MiniMax API 路径与 Harness-RSI mutation gate 为真实盲点（Harness-RSI gate 设计不调 LLM，正确无需 real_llm test）。
 
 ### 12.4 Real LLM 测试实测结果
 
@@ -724,38 +727,68 @@ RNG seed: 3981319224
 All tests passed (14 assertions in 3 test cases)
 ```
 
-### 12.5 修正后的真实 LLM 覆盖矩阵（用户充值后）
+### 12.5 修正后的真实 LLM 覆盖矩阵（must_realllm 改造后）
 
 | 路径 | Mock 验证 | Real LLM 验证 | 综合判定 |
 |------|-----------|---------------|----------|
 | **Mock provider 路径**（§0-§11 21 个 ctest） | 21/21 PASS | N/A | ✅ 100% 覆盖 |
-| **React Loop DeepSeek 真实路径** | N/A | **7/7 PASS** | ✅ 完整覆盖 |
-| **PlanExecute Loop DeepSeek 真实路径** | N/A | **3/3 PASS** | ✅ 完整覆盖 |
+| **React Loop DeepSeek 真实路径** | N/A | **7/7 PASS** (25 assertions) | ✅ 完整覆盖 |
+| **PlanExecute Loop DeepSeek 真实路径** | N/A | **3/3 PASS** (14 assertions) | ✅ 完整覆盖 |
+| **GEPA Loop DeepSeek 真实路径** | 21/21 PASS (test_gepa_phase2, mock) | **2/2 PASS** (test_gepa_loop_real_llm, must_realllm 真打) | ✅ **双层覆盖** |
+| **SkillCompiler + 真 LLM** | N/A | **2/2 PASS** (test_skill_compiler_real_llm, must_realllm) | ✅ 完整覆盖 |
+| **Distillation Capture-mode=Training + 真 LLM** | N/A | **2/2 PASS** (test_distillation_capture_training_real_llm, must_realllm) | ✅ 完整覆盖 |
+| **Harness-RSI 真 LLM mutation proposal** | 22/22 PASS (test_harness_rsi_pilot, mock) | **1/1 PASS** (test_harness_mutation_proposal_real_llm, must_realllm) | ✅ **双层覆盖** |
+| **综合 must_realllm** | N/A | **24/24 cases / 78 assertions 全 PASS** (10 test binaries, skip=1 时 24/24 FAIL) | ✅ 强制真 LLM 验证 |
 | **MiniMax API 真实路径** | N/A | NOT-RUN（未实测） | ⚠️ 未跑 |
-| **GEPA Loop DeepSeek 真实路径** | ⚠️ Mock only | ❌ 无 real_llm test | ⚠️ 真实盲点 |
 
 ### 12.6 仍存在的真实盲点（需 follow-up）
 
-1. **GEPA Loop 无 real LLM 测试** — `test_gepa_phase2` 用 MockLLMProvider，**没有** `test_gepa_loop_real_llm` 对应文件
-2. **MiniMax API 路径未实测** — `real_llm_env_helper` 提到"MINIMAX_API_KEY 已设 → run"，但项目里**没有任何 `test_*minimax*` 文件**真跑过 MiniMax
-4. **harness-rsi mutation gate 真实 LLM** — Gate 不调用 LLM（只验证 contract），**正确设计无需 real_llm test**
+1. ~~**GEPA Loop 无 real LLM 测试**~~ — **2026-09-29 已修复** (commit `5b2530b`): `test_gepa_loop_real_llm` 2/2 PASS under [must_realllm]
+2. **MiniMax API 路径未实测** — `real_llm_env.h:145-147` placeholder URL `https://api.minimax.chat` (NXDOMAIN, per METHODOLOGY §8.4)；项目里**没有任何 `test_*minimax*` 文件**真跑过 MiniMax；等 URL 修对后再补
+3. **harness-rsi mutation gate 真实 LLM** — Gate 不调用 LLM（只验证 contract），**正确设计无需 real_llm test**（与 `test_harness_mutation_proposal_real_llm` 互补：前者验证 gate 状态机，后者验证真 LLM proposal 输出经 5-tier gate 流转）
 
-### 12.7 修正后的一句话最终结论（再次更新）
+### 12.7 修正后的一句话最终结论（2026-09-30 must_realllm 改造后更新）
 
-> **Harness / 自进化 / RSI 三套系统的 V1 最小闭环在 mock provider 路径下都有实证证据（21/21 ctest 100% PASS），且 React Loop + PlanExecute Loop 在 DeepSeek 真实 API 路径下端到端验证通过（10/10 cases / 39 assertions PASS）。**
+> **Harness / 自进化 / RSI 三套系统的 V1 最小闭环在 mock provider 路径下都有实证证据（21/21 ctest 100% PASS），且 [must_realllm] 真实 DeepSeek 路径 24/24 cases / 78 assertions 100% PASS（10 test binaries, 包括 React + PlanExecute + GEPA + SkillCompiler + Distillation + Harness-RSI mutation proposal）。**
 >
-> **修正后判定**:
+> **修正后判定**（2026-09-30）：
 > - Mock 覆盖率: 21/21 100% ✅
-> - Real LLM 覆盖率 (DeepSeek): 10/10 完整覆盖 ✅（React + PlanExecute 两个 Loop；GEPA Loop 仍是 mock only 盲点）
-> - SoT 自承 V2 缺口不变
+> - Real LLM 覆盖率 (DeepSeek): **24/24 cases / 78 assertions 完整覆盖** ✅（6 类核心路径：React / PlanExecute / GEPA / SkillCompiler / Distillation / Harness-RSI mutation proposal）
+> - 唯一真实盲点: MiniMax API 占位 URL（已知，METHODOLOGY §8.4 登记，等 URL 修对后再补）
+> - SoT 自承 V2 缺口不变（信用分配端到端 / load(Genome) → 1 turn / Model-RSI D4-D7 / E1-E5 红线）
 
-### 12.8 实测命令（维护者重跑）
+### 12.8 实测命令（维护者重跑，2026-09-30 更新覆盖全部 10 个 must_realllm binaries）
 
 ```bash
 # Real LLM 测试 (需要 DEEPSEEK_API_KEY 已设且余额 >0)
-cmake --build build --target test_react_loop_real_llm test_plan_execute_realllm -j$(nproc)
+# 全部 10 个 must_realllm test binary (per §6.4 改造清单):
+#   test_react_loop_real_llm                    (React Loop, 7 cases)
+#   test_plan_execute_realllm                   (PlanExecute Loop, 3 cases)
+#   test_gepa_loop_real_llm                     (GEPA Loop, 2 cases, 5b2530b)
+#   test_skill_compiler_real_llm                (SkillCompiler, 2 cases, 1de0e74)
+#   test_distillation_capture_training_real_llm (Distillation Training mode, 2 cases, da2f8bb)
+#   test_harness_mutation_proposal_real_llm     (Harness-RSI mutation proposal, 1 case, 3040113)
+#   + 4 个 examples tree (test_e2e_real_llm* 系列, 7/8 cases)
+
+# 两阶段 CI (per AGENTS.md §FULL REGRESSION TEST FLOW):
+# 阶段 1 (无 token, 必须先全 PASS): ctest --test-dir build -LE must_realllm --output-on-failure
+# 阶段 2 (耗 token, 需 DEEPSEEK_API_KEY 已设):
+ctest --test-dir build -L must_realllm --output-on-failure
+ctest --test-dir build/examples/pdk_chat_demo/tests -L must_realllm --output-on-failure
+
+# 或单个 binary 详细输出:
+cmake --build build --target test_react_loop_real_llm test_plan_execute_realllm \
+    test_gepa_loop_real_llm test_skill_compiler_real_llm \
+    test_distillation_capture_training_real_llm test_harness_mutation_proposal_real_llm -j$(nproc)
 ./build/tests/test_react_loop_real_llm --reporter compact
 ./build/tests/test_plan_execute_realllm --reporter compact
+./build/tests/test_gepa_loop_real_llm --reporter compact
+./build/tests/test_skill_compiler_real_llm --reporter compact
+./build/tests/test_distillation_capture_training_real_llm --reporter compact
+./build/tests/test_harness_mutation_proposal_real_llm --reporter compact
+
+# 预期输出（实测 2026-09-30, 24/24 cases / 78 assertions 全 PASS, skip=1 时 24/24 FAIL）
+```
 
 # Mock 测试 (本审计 §0-§11 已验证)
 ctest --test-dir build -R "harness_rsi_pilot|genome_walk_ancestors|genome_registry|gepa_phase2|transition_guard|behavioral_regression|distillation_writer|skill_compiler|trajectory_ir|causal_ordering|causal_clock|credit_assignment" --output-on-failure
