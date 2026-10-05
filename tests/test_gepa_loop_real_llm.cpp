@@ -122,8 +122,8 @@ std::unique_ptr<agenticdsl::GEPALoop> build_loop(
 
 }  // namespace
 
-TEST_CASE("GEPA Loop real LLM smoke: failed trace triggers LLM reflection", "[must_realllm] [realllm] [gepa] [smoke]",: failed trace triggers LLM reflection",
-          "[gepa][real_llm][must_realllm]") {
+TEST_CASE("GEPA Loop real LLM smoke: failed trace triggers LLM reflection",
+          "[must_realllm][realllm][gepa][smoke]") {
   must_require_real_llm_env();
 
   std::shared_ptr<StubMutationGovernor> governor;
@@ -141,8 +141,8 @@ TEST_CASE("GEPA Loop real LLM smoke: failed trace triggers LLM reflection", "[mu
   REQUIRE((result.success || !result.failure_mode.empty()));
 }
 
-TEST_CASE("GEPA Loop real LLM R3: 多次迭代真实 LLM 累加", "[must_realllm] [realllm] [gepa] [r3]",: 多次迭代真实 LLM 累加",
-          "[gepa][real_llm][must_realllm][r3]") {
+TEST_CASE("GEPA Loop real LLM R3: 多次迭代真实 LLM 累加",
+          "[must_realllm][realllm][gepa][r3]") {
   must_require_real_llm_env();
 
   std::shared_ptr<StubMutationGovernor> governor;

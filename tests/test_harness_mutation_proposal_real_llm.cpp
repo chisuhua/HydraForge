@@ -111,8 +111,8 @@ class StubToolRegistry : public agenticdsl::IToolRegistry {
 
 }  // namespace
 
-TEST_CASE("Harness-RSI real LLM smoke: LLM-generated prompt_delta applies", "[must_realllm] [realllm] [harness_rsi] [smoke]",: LLM-generated prompt_delta applies",
-          "[harness_rsi][real_llm][must_realllm]") {
+TEST_CASE("Harness-RSI real LLM smoke: LLM-generated prompt_delta applies",
+          "[must_realllm][realllm][harness_rsi][smoke]") {
   must_require_real_llm_env();
 
   auto cfg = real_llm_config();

@@ -134,8 +134,8 @@ TEST_CASE("Distillation capture-mode=Training real LLM smoke",
   std::filesystem::remove_all(tmp_dir);
 }
 
-TEST_CASE("Distillation capture-mode=Training R3: 5 records batched", "[must_realllm] [realllm] [distillation] [r3]", 5 records batched",
-          "[distillation][real_llm][must_realllm][r3]") {
+TEST_CASE("Distillation capture-mode=Training R3: 5 records batched",
+          "[must_realllm][realllm][distillation][r3]") {
   must_require_real_llm_env();
 
   auto cfg = real_llm_config();
