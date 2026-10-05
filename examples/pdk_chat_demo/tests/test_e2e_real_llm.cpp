@@ -34,6 +34,32 @@
 using namespace hydraforge::pdk;
 namespace fs = std::filesystem;
 
+// F1 V2 fix (per openspec/changes/2026-09-30-fix-chatsession-empty-llm-response):
+// Dynamic plugin dir discovery + setenv so direct binary runs work
+// cross-environment (clone to /home/user/work/HydraForge works too).
+namespace {
+std::string find_plugin_dir() {
+    if (const char* env = std::getenv("HYDRAFORGE_PLUGIN_PATH")) {
+        std::string s(env);
+        size_t colon = s.find(':');
+        return colon == std::string::npos ? s : s.substr(0, colon);
+    }
+    for (auto p = fs::current_path(); p != p.root_path(); p = p.parent_path()) {
+        auto candidate = p / "build" / "pdk";
+        if (fs::exists(candidate)) return candidate.string();
+    }
+    throw std::runtime_error("Plugin dir not found and HYDRAFORGE_PLUGIN_PATH not set");
+}
+
+struct PluginPathSetter {
+    PluginPathSetter() {
+        if (std::getenv("HYDRAFORGE_PLUGIN_PATH") == nullptr) {
+            setenv("HYDRAFORGE_PLUGIN_PATH", find_plugin_dir().c_str(), 1);
+        }
+    }
+} plugin_path_setter;
+}  // namespace
+
 static std::string find_loop_agent_so() {
 #ifdef LOOP_AGENT_SO_PATH
     const char* p = LOOP_AGENT_SO_PATH;

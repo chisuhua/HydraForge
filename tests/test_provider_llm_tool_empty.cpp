@@ -78,7 +78,7 @@ public:
 // Replica of ProviderLLMTool::generate logic (per pdk/loop_agent/src/pdk_entry.cpp:46-66).
 // This MUST stay in sync with the production code. If ProviderLLMTool logic
 // changes, update this replica AND verify ctest passes both.
-// Post-fix: should throw runtime_error when res.text() is empty.
+// Post-fix: should throw runtime_error when res.text() is empty or whitespace.
 LLMResult provider_llm_tool_generate_replica(
     ILLMProvider& provider, const std::string& prompt, const LLMParams& params) {
     LLMResult out;
@@ -91,12 +91,16 @@ LLMResult provider_llm_tool_generate_replica(
     auto res = provider.generate(req, std::stop_token{});
     if (res.has_value()) {
         out.text = std::move(res).value().text;
-        // F1 Latent Site #3 defense-in-depth (per AGENTS.md Pattern #1):
-        if (out.text.empty()) {
+        // F1 V2 fix (per openspec/changes/2026-09-30-fix-chatsession-empty-llm-response):
+        bool is_empty_text = out.text.empty() ||
+            std::all_of(out.text.begin(), out.text.end(),
+                [](unsigned char c){ return std::isspace(c); });
+        if (is_empty_text) {
             throw std::runtime_error(
-                "ProviderLLMTool: LLM call succeeded but returned empty text. "
-                "Provider: loop-agent-provider-bridge. "
-                "Check provider model availability or prompt template.");
+                "ProviderLLMTool: LLM returned empty/whitespace text. "
+                "Provider=" + std::string("loop-agent-provider-bridge") +
+                ", model=" + req.params.model + ". "
+                "Check provider model availability or response format.");
         }
         out.success = true;
         out.tokens_generated = res.value().completion_tokens;
@@ -118,15 +122,16 @@ TEST_CASE("ProviderLLMTool: empty text triggers fail-fast runtime_error",
         provider_llm_tool_generate_replica(provider, "test prompt", LLMParams{}),
         std::runtime_error);
 
-    // Verify error message contains diagnostic info (per F1 message format)
+    // Verify error message contains diagnostic info (per F1 V2 message format)
     try {
         provider_llm_tool_generate_replica(provider, "test prompt", LLMParams{});
     } catch (const std::runtime_error& e) {
         std::string msg(e.what());
-        REQUIRE(msg.find("empty text") != std::string::npos);
+        REQUIRE(msg.find("empty/whitespace text") != std::string::npos);
         REQUIRE(msg.find("ProviderLLMTool") != std::string::npos);
-        // Per F1 message format: include check guidance
-        REQUIRE(msg.find("Check provider model") != std::string::npos);
+        // Per F1 V2 message format: include provider name + model
+        REQUIRE(msg.find("Provider=loop-agent-provider-bridge") != std::string::npos);
+        REQUIRE(msg.find("Check provider model availability or response format") != std::string::npos);
     }
 }
 
@@ -170,7 +175,7 @@ TEST_CASE("ProviderLLMTool: production source pdk_entry.cpp has the fail-fast gu
                          std::istreambuf_iterator<char>());
 
     static constexpr const char* kGuardSignature =
-        "ProviderLLMTool: LLM call succeeded but returned empty text";
+        "ProviderLLMTool: LLM returned empty/whitespace text";
     bool has_guard = content.find(kGuardSignature) != std::string::npos;
     REQUIRE(has_guard);
 }

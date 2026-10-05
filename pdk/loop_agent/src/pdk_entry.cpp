@@ -15,6 +15,8 @@
 #include <chrono>
 #include <mutex>
 #include <atomic>
+#include <algorithm>
+#include <cctype>
 
 #include <nlohmann/json.hpp>
 
@@ -57,14 +59,18 @@ class ProviderLLMTool : public ::agenticdsl::ILLMTool {
         auto res = provider_.generate(req, cancellation_token_);
         if (res.has_value()) {
             out.text = std::move(res).value().text;
-            // F1 Latent Site #3 (per AGENTS.md Pattern #1): defense-in-depth
-            // against silent empty text. Latent Sites #4 + #6 still deferred.
-            // See tests/test_provider_llm_tool_empty.cpp Case 3 source guard.
-            if (out.text.empty()) {
+            // F1 V2 fix (per openspec/changes/2026-09-30-fix-chatsession-empty-llm-response):
+            // Extend empty-text check to whitespace-only (V2 new coverage).
+            // Uses this->name() (ILLMTool::name() returns "loop-agent-provider-bridge").
+            bool is_empty_text = out.text.empty() ||
+                std::all_of(out.text.begin(), out.text.end(),
+                    [](unsigned char c){ return std::isspace(c); });
+            if (is_empty_text) {
                 throw std::runtime_error(
-                    "ProviderLLMTool: LLM call succeeded but returned empty text. "
-                    "Provider: loop-agent-provider-bridge. "
-                    "Check provider model availability or prompt template.");
+                    "ProviderLLMTool: LLM returned empty/whitespace text. "
+                    "Provider=" + this->name() +
+                    ", model=" + req.params.model + ". "
+                    "Check provider model availability or response format.");
             }
             out.success = true;
             out.tokens_generated = res.value().completion_tokens;

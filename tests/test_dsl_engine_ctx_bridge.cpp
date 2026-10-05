@@ -143,10 +143,10 @@ TEST_CASE("NodeExecutor llm_call with empty text throws descriptive error (F1 fi
     Context ctx;
     ctx["user_input"] = "hello";
 
-    SECTION("Empty LLM text triggers F1 validation throw") {
+    SECTION("Empty LLM text triggers F1 V2 validation throw") {
         REQUIRE_THROWS_WITH(
             executor.execute_node(&node, ctx),
-            Catch::Matchers::ContainsSubstring("empty text") &&
+            Catch::Matchers::ContainsSubstring("null/empty/whitespace") &&
             Catch::Matchers::ContainsSubstring("llm_response"));
     }
 }

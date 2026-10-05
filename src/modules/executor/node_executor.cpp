@@ -11,7 +11,8 @@
 #include <stdexcept>
 #include <stop_token>
 #include <inja/inja.hpp> // For RenderError
-#include <algorithm> // For std::find
+#include <algorithm>
+#include <cctype>
 #include <thread> // For std::this_thread::sleep_for (if needed for mock)
 #include <chrono> // For std::chrono_literals + std::chrono::steady_clock
 #include <string>
@@ -143,17 +144,24 @@ Context NodeExecutor::execute_dsl_node(const DSLNode* node, const Context& ctx) 
                 throw std::runtime_error("LLM generation failed: " +
                     result.value("error", "Unknown error"));
             }
-            new_context[node->output_keys[0]] = result["text"].get<std::string>();
-            // F1 fix-react-decide-empty-response: stream 分支同主路径空校验
-            // (per Oracle ses_f4caa8cf0ffeajSx05M235DwDz AGENTS.md 模式 #1
-            //  step 4 "系统性记录同类潜伏站点" 要求)
-            if (new_context[node->output_keys[0]].is_string() &&
-                new_context[node->output_keys[0]].get<std::string>().empty()) {
-                throw std::runtime_error(
-                    "LLM call succeeded but returned empty text for node '" +
-                    node->path + "' output_key '" + node->output_keys[0] + "' "
-                    "(stream path). Check provider model availability.");
+            // F1 V2 fix (same as main path): check before get<string>() to
+            // handle null/non-string + whitespace-only (V2 adds whitespace coverage).
+            const auto& text_value = result["text"];
+            bool is_empty_response = false;
+            if (text_value.is_null()) {
+                is_empty_response = true;
+            } else if (text_value.is_string()) {
+                std::string s = text_value.get<std::string>();
+                is_empty_response = s.empty() || std::all_of(s.begin(), s.end(),
+                    [](unsigned char c){ return std::isspace(c); });
             }
+            if (is_empty_response) {
+                throw std::runtime_error(
+                    "LLM call returned null/empty/whitespace response for node '" +
+                    node->path + "' output_key '" + node->output_keys[0] + "' "
+                    "(stream path). Check provider model availability or response format.");
+            }
+            new_context[node->output_keys[0]] = text_value.get<std::string>();
         }
         // 切片输出值推送至 sink
         std::string text = new_context[node->output_keys[0]].dump();
@@ -200,18 +208,28 @@ Context NodeExecutor::execute_dsl_node(const DSLNode* node, const Context& ctx) 
             throw std::runtime_error("LLM generation failed: " + result.value("error", "Unknown error"));
         }
 
-        new_context[key] = result["text"].get<std::string>();
-        // F1 fix-react-decide-empty-response: llm_call 输出非空校验
-        // (Oracle ses_f4d05cdb0ffe0BhMdEADyfsdTz: 空文本 → decide 节点
-        //  args:response="{{llm_response}}" 渲染为空字符串 → decide_react
-        //  报 "Missing 'response' argument". 此校验把 silent empty 转为
-        //  显式错误, 让空 LLM 输出可见于 trace.)
-        if (new_context[key].is_string() && new_context[key].get<std::string>().empty()) {
-            throw std::runtime_error(
-                "LLM call succeeded but returned empty text for node '" +
-                node->path + "' output_key '" + key + "'. "
-                "Check provider model availability or prompt template.");
+        // F1 V2 fix (per openspec/changes/2026-09-30-fix-chatsession-empty-llm-response):
+        // 检查 result["text"] 在 get<string>() 之前, 避免 nlohmann::json::type_error.302
+        // 在赋值行提前抛 (null / non-string 类型). 覆盖 3 类空响应:
+        //   1. null JSON 值 (V2 新覆盖)
+        //   2. empty string (F1 保留, regression guard)
+        //   3. whitespace-only string "   \n\t  " (V2 新覆盖, 真正 silent pass)
+        const auto& text_value = result["text"];
+        bool is_empty_response = false;
+        if (text_value.is_null()) {
+            is_empty_response = true;
+        } else if (text_value.is_string()) {
+            std::string s = text_value.get<std::string>();
+            is_empty_response = s.empty() || std::all_of(s.begin(), s.end(),
+                [](unsigned char c){ return std::isspace(c); });
         }
+        if (is_empty_response) {
+            throw std::runtime_error(
+                "LLM call returned null/empty/whitespace response for node '" +
+                node->path + "' output_key '" + key + "'. "
+                "Check provider model availability, prompt template, or response format.");
+        }
+        new_context[key] = text_value.get<std::string>();
 
         // Phase 1 Sprint 1b (S1b.T3): 成功退出时推送 dsl.call.completed 事件
         if (bus_) {
