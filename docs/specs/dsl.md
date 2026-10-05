@@ -377,6 +377,15 @@ next: "/main/compute"
 **关键字段**：`tool`, `arguments`, `output_mapping`  
 **权限要求**：必须声明 `permissions`（如 `tool: web_search`）
 
+**`arguments` 字段契约**：
+- MUST 使用 canonical key `arguments:` (per `src/modules/parser/node_factory.cpp:176 make_tool_call`)
+- DO NOT 使用 `args:` — parser 静默丢弃 `args:`, 工具 dispatch 收到空 args, 触发 `Missing '<key>' argument` 错误
+- 历史上 lib/loop/{react,plan_execute,fork_join}.agent.md 3 文件 6 处使用 `args:` (从 `5a9ab2e` 2026-07-20 创建时引入), 已 ship `2026-09-30-fix-lib-loop-args-parsing` 修复
+- CI 验证: `tools/check_dsl_schema.sh` (grep-based, per `openspec/changes/2026-09-30-fix-lib-loop-args-parsing/D4`)
+
+**已知遗留**（独立 change scope, 不在本节契约内）：
+- `react.agent.md:33` `arguments: "{{decision.action_args}}"` 是字符串模板值, parser `is_object()` 检查跳过, act 节点 args 永远为空. 需 parser 扩展接受字符串值 (登记 `.rddf/improvements/parser-string-template-args.md`).
+
 ### 5.3 `codelet_call`
 **语义**：执行沙箱代码（带安全策略）  
 **关键字段**：`runtime`, `code`, `security`  

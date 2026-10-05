@@ -36,11 +36,11 @@
 
 ## 5. Ship Gate Verification (TDD Step 4)
 
-- [ ] 5.1 focused ctest PASS (`test_parser_dsl_schema` 4/4 + `test_e2e_real_llm` 8/8 + `test_provider_llm_tool_empty` 11/11 + `test_node_executor_empty_response` 6/6 + `test_dsl_engine_ctx_bridge` 5/5)
+- [ ] 5.1 focused ctest PASS (`test_parser_dsl_schema` 4/4 + `test_e2e_real_llm` 8/8 + `test_provider_llm_tool_empty` 12/12 + `test_node_executor_empty_response` 6/6 + `test_dsl_engine_ctx_bridge` 13/13)
 - [ ] 5.2 核心 tree full ctest `-LE must_realllm` 100% PASS (零回归)
 - [ ] 5.3 examples tree full ctest `-LE must_realllm` 100% PASS (零回归)
 - [ ] 5.4 `git status --short` clean (post-commit)
-- [ ] 5.5 `git show HEAD --stat` 列出 9 files changed (3 lib DSL + 1 parser + 1 test + 1 CI script + 1 spec + 1 AGENTS.md + 1 plan)
+- [ ] 5.5 `git show HEAD --stat` 列出 7 files changed (3 lib DSL + 1 new test + 1 CI script + 1 dsl.md spec + 1 AGENTS.md — per D2 RESOLVED no parser change)
 - [ ] 5.6 drop_ratio = 0% (rename 不影响功能)
 
 ## 6. Archive + Cooling-Off (TDD Step 5)

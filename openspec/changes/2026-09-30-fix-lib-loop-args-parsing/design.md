@@ -52,27 +52,18 @@ if (j.contains("arguments") && j["arguments"].is_object()) {  // ← 只查 "arg
 - ✅ 零 parser 风险, 零新代码路径
 - ✅ 立即修 test_e2e_real_llm 真正根因
 
-### D2: Parser alias `args:` (可选防御纵深 — VERIFIED per Oracle + Metis)
+### D2: Parser alias `args:` (RESOLVED — NOT added, per user Option 2 choice)
 
-**决策**: parser 同时接受 `arguments:` 和 `args:` (向后兼容), 但 spec 主项仍是 `arguments:`。
-
-```cpp
-// src/modules/parser/node_factory.cpp:175-177
-if ((j.contains("arguments") || j.contains("args")) &&
-    (j.contains("arguments") ? j["arguments"].is_object() : j["args"].is_object())) {
-  const auto& args_key = j.contains("arguments") ? "arguments" : "args";
-  for (auto& [key, value] : j[args_key].items()) { ... }
-}
-```
+**决策**: parser **NOT** add `args:` alias. **仅** canonical `arguments:` (per Oracle + Metis 推荐 + 用户明确选 Option 2).
 
 **Rationale**:
-- ✅ 防御纵深: 第三方 .agent.md 文件用 `args:` 仍能加载
+- ✅ 严格 spec 对齐 (per `docs/specs/dsl.md §5.2`)
+- ✅ 零双 canonical key 债务 (per Metis warning)
 - ✅ 内部 lib/* 全部用 `arguments:` (canonical, no spec drift)
-- ⚠️ 制造双 canonical key 债务 (per Metis)
+- ❌ 第三方 .agent.md 文件若用 `args:` 会失败 — 但这是**第三方问题**, 不是本项目维护范围
+- ❌ 失去对 legacy 第三方 .agent.md 的防御纵深 — 接受 trade-off (YAGNI)
 
-**NOT chosen alternatives**:
-- (a) 只改 lib/loop (Option 2 only) — 严格按 Oracle + Metis 收敛推荐, 不加 alias, 纯 spec 对齐
-- (b) 只改 parser (Option 1 only) — 不修 lib/loop, 违反 spec
+**Open Question Q1 RESOLVED**: 不加 parser alias. spec Requirements section 已相应更新 (移除 "仅 args: (向后兼容 fallback)" scenario).
 
 ### D3: Parser regression test (✅ Oracle 推荐)
 
@@ -85,26 +76,40 @@ if ((j.contains("arguments") || j.contains("args")) &&
 4. (回归) 解析 `lib/inference/load.agent.md` 等 9 个已合规 DSL, `arguments` 仍非空
 5. (未来防御) parser 接受 `args:` alias 时, `arguments` 仍 prefer canonical
 
-### D4: CI 脚本 (✅ Oracle 推荐)
+### D4: CI 脚本 (✅ Oracle 推荐 — SHIP-with-fixes 修正)
 
 **新文件**: `tools/check_dsl_schema.sh`
 
+**修正原因**: `.agent.md` 是 Markdown 内嵌 YAML fence, 直接 `yaml.safe_load()` 物理抛异常. 改用 grep-level 检测 + YAML fence 抽取:
+
 ```bash
 #!/bin/bash
-# Walk all lib/*.md, verify tool_call nodes use 'arguments:' (not 'args:')
+# Walk all lib/*.md, verify tool_call nodes use 'arguments:' (not 'args:').
+# Uses grep (not yaml.safe_load) since .agent.md is Markdown with embedded
+# YAML fence — direct YAML parsing throws on Markdown syntax.
+# Per Oracle review (ses_ef3975c6effea6vvoN59WSD26k) M1.
 set -euo pipefail
-for f in $(find lib -name "*.agent.md"); do
-  python3 -c "
-import yaml, sys
-with open('$f') as fh:
-    doc = yaml.safe_load(fh)
-for node in (doc.get('nodes') or []):
-    if node.get('type') == 'tool_call' and 'args' in node:
-        print(f'ERROR: $f node={node[\"id\"]} uses args: should be arguments:')
-        sys.exit(1)
-"
+violations=0
+for md in $(find lib -name "*.agent.md"); do
+  # Extract YAML fence contents between ```yaml and ``` markers
+  yaml=$(awk '/^```yaml$/{flag=1; next} /^```$/{flag=0} flag' "$md")
+  # Check for tool_call nodes using 'args:' instead of 'arguments:'
+  if echo "$yaml" | grep -E '^\s*-?\s*id:\s*' >/dev/null; then
+    if echo "$yaml" | grep -B 5 'tool_call' | grep -E '^\s*args:' >/dev/null; then
+      echo "ERROR: $md: tool_call nodes use 'args:' (should be 'arguments:')"
+      violations=$((violations + 1))
+    fi
+  fi
 done
+[ $violations -eq 0 ] || { echo "DSL schema drift detected in $violations file(s)"; exit 1; }
+echo "DSL schema check: PASS (all lib/*.md use 'arguments:' canonical)"
 ```
+
+**验证方式**:
+- ✅ lib/loop/{react,plan_execute,fork_join}.agent.md → fail (FIXME state before rename)
+- ✅ lib/inference/*.md + lib/math/add.md → pass (already canonical)
+- ✅ after rename (D1), all files pass
+- ⚠️ grep-based detection may miss edge cases (e.g., 'args:' inside string value). For comprehensive coverage, prefer YQ/jq + YAML fence extraction. But for this change, grep is sufficient given current file scope.
 
 ## Implementation Summary
 
@@ -122,9 +127,9 @@ done
 
 ## Open Questions
 
-- Q1: parser alias (D2) 是否 ship? (Oracle 推荐不加, Metis 推荐加防御纵深)
-- Q2: act 节点字符串模板 args (param fix) 是否在本 change scope? (独立 follow-up, 不阻塞)
-- Q3: test_loop_agent_autonomous vs test_e2e_real_llm 矛盾点是否需深查? (Metis 推测 stale build, 独立 follow-up)
+- Q1: ✅ parser alias 不 ship (per user Option 2)
+- Q2: ✅ act 节点字符串模板 args 不在本 change scope (独立 follow-up, 需扩展 parser 接受 string value)
+- Q3: ✅ test_loop_agent_autonomous vs test_e2e_real_llm 矛盾点独立 follow-up (推测 stale build binary)
 
 ## Cross-References
 

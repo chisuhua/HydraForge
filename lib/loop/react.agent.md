@@ -23,14 +23,14 @@ nodes:
   - id: decide
     type: tool_call
     tool: loop/decide_react
-    args:
+    arguments:
       response: "{{llm_response}}"
     output_keys: [decision]
     next: [/main/act]
   - id: act
     type: tool_call
     tool: "{{decision.action_tool}}"
-    args: "{{decision.action_args}}"
+    arguments: "{{decision.action_args}}"
     output_keys: [tool_result]
     next: [/main/observe]
   - id: observe

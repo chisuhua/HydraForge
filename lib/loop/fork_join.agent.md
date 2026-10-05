@@ -19,7 +19,7 @@ nodes:
   - id: task_a
     type: tool_call
     tool: loop/process_task
-    args:
+    arguments:
       task_id: "a"
       input: "{{user_input}}"
     output_keys: [result_a]
@@ -27,7 +27,7 @@ nodes:
   - id: task_b
     type: tool_call
     tool: loop/process_task
-    args:
+    arguments:
       task_id: "b"
       input: "{{user_input}}"
     output_keys: [result_b]
@@ -35,7 +35,7 @@ nodes:
   - id: task_c
     type: tool_call
     tool: loop/process_task
-    args:
+    arguments:
       task_id: "c"
       input: "{{user_input}}"
     output_keys: [result_c]

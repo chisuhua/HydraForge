@@ -22,24 +22,21 @@
 - **THEN** 每个节点 MUST 包含 `arguments: {input: "..."}` 字段
 - **AND** parser MUST 能读取 `input` 参数并在 dispatch 时传递给 `loop/process_task` 工具
 
-### Requirement: DSL parser schema 一致性 (防御纵深)
+### Requirement: DSL parser schema 一致性 (canonical-only, 无 alias)
 
-`src/modules/parser/node_factory.cpp` 的 `make_tool_call` MUST 接受 `arguments:` canonical key. 可选 alias (向后兼容): 同时接受 `args:` 但要优先 `arguments:`。
+`src/modules/parser/node_factory.cpp` 的 `make_tool_call` MUST 仅接受 `arguments:` canonical key per `docs/specs/dsl.md §5.2`. `args:` 不被接受 (避免双 canonical key 债务, per Oracle review 推荐).
 
-#### Scenario: arguments: canonical 优先
+#### Scenario: arguments: canonical 唯一
 
-- **WHEN** `tool_call` 节点同时包含 `arguments:` 和 `args:` 字段
-- **THEN** parser MUST 使用 `arguments:` 的值, 忽略 `args:`
+- **WHEN** `tool_call` 节点包含 `arguments:` 字段
+- **THEN** parser MUST 使用 `arguments:` 的值
 
-#### Scenario: 仅 args: (向后兼容 fallback)
+#### Scenario: 仅 args: (被 parser 丢弃 — NOT accepted)
 
-- **WHEN** `tool_call` 节点仅包含 `args:` 字段 (legacy 第三方 .agent.md)
-- **THEN** parser MUST 接受 `args:` 作为 fallback (向后兼容)
-
-#### Scenario: arguments 缺失 (无 fallback)
-
-- **WHEN** `tool_call` 节点既无 `arguments:` 也无 `args:`
-- **THEN** parser MUST 使用空 map, dispatch 时 args 为空
+- **WHEN** `tool_call` 节点仅包含 `args:` 字段 (lib/loop 3 文件 pre-fix 状态)
+- **THEN** parser MUST 丢弃 `args:`, 使用空 map
+- **AND** 工具 dispatch 时 args 为空, 工具响应 `Missing 'response' argument` 错误 (pre-fix failure mode)
+- **NOTE**: 这是当前 lib/loop/*.agent.md 实际行为. D1 rename 是修复此 scenario (canonical). Ship 后此 scenario 转为 `When: arguments: 字段, Then: parser MUST use arguments`.
 
 ### Requirement: lib/* DSL schema audit CI 脚本
 

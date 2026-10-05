@@ -21,7 +21,7 @@ nodes:
   - id: execute
     type: tool_call
     tool: loop/execute_plan
-    args:
+    arguments:
       plan: "{{plan_response}}"
     output_keys: [execution_result]
     next: [/main/verify]
