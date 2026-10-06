@@ -32,6 +32,8 @@
 #include <agenticdsl/types/attribution_record.h>
 #include <modules/budget/budget_controller.h>
 
+#include "common/llm/llm_types.h"  // agenticdsl::ILLMProvider (real LLM 接线)
+
 #include "context_request.h"
 
 // Forward declarations for types used as unique_ptr members
@@ -70,6 +72,17 @@ public:
 
     agenticdsl::IInteractionBus* bus() const { return bus_.get(); }
 
+    // Real LLM provider construction result (per design D1 + tasks 2.6).
+    // nullptr in mock mode (provider_str_ == "mock" / empty); non-null when
+    // LLMProviderFactory::create() succeeded for deepseek/minimax.
+    agenticdsl::ILLMProvider* real_llm_provider() const {
+        return real_provider_ ? real_provider_.get() : nullptr;
+    }
+
+    // Fail-fast error from real LLM provider construction (design D5).
+    // Empty in mock mode / on success.  main.cpp checks after construction.
+    const std::string& real_llm_error() const { return real_llm_error_; }
+
     // --release-metrics result accessor (for main.cpp)
     int baseline_total() const { return baseline_total_; }
     int baseline_failures() const { return baseline_failures_; }
@@ -85,6 +98,8 @@ private:
     void phase5_compare(const ContextRequest& ctx);
     void phase6_emit_jsonl();
 
+    void construct_real_provider();
+
     nlohmann::json build_meta(const ContextRequest& ctx,
                               int genome_version,
                               int gate_passes,
@@ -98,6 +113,14 @@ private:
     std::unique_ptr<EvolutionTracer> tracer_;
 
     detail::HermeticHomeGuard* hermetic_guard_ = nullptr;
+
+    // Real LLM provider (design D1): set when provider_str_ is deepseek/minimax;
+    // null in mock mode.  Used to inject parent provider into the engine so
+    // loop/run's real DSL path calls the real LLM.
+    std::unique_ptr<agenticdsl::ILLMProvider> real_provider_;
+    // Fail-fast construction error (design D5, risk R2).  Set instead of
+    // throwing from the ctor to keep EvolutionSession RAII-friendly.
+    std::string real_llm_error_;
 
     // Phase B: real wiring members
     std::unique_ptr<agenticdsl::DSLEngine> engine_;

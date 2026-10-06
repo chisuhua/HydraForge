@@ -14,6 +14,9 @@
 #include <agenticdsl/types/distillation_record.h>
 #include <core/engine.h>
 
+#include "common/llm/llm_config.h"
+#include "common/llm/llm_provider_factory.h"
+
 #include <iostream>
 #include <filesystem>
 #include <chrono>
@@ -39,6 +42,75 @@ EvolutionSession::EvolutionSession(const std::string& provider_str,
     bootstrap_attribution_.method = agenticdsl::evolution::AttributionMethod::DirectComparison;
     bootstrap_attribution_.reason =
         "L2 bootstrap: first-cycle, no prior attribution";
+
+    // Real LLM provider construction (design D1): provider != mock/empty →
+    // LLMProviderFactory::create() 注入真实 provider。失败时设 real_llm_error_
+    // (design D5 fail-fast), run_6_phase_demo() 开头检查并 exit non-zero。
+    if (!provider_str_.empty() && provider_str_ != "mock") {
+        construct_real_provider();
+    }
+}
+
+void EvolutionSession::construct_real_provider() {
+    // D5 case 1: unknown provider name → fail-fast (spec Scenario 4)
+    if (provider_str_ != "deepseek" && provider_str_ != "minimax") {
+        real_llm_error_ = "ERROR: unknown provider " + provider_str_
+                        + ", valid: mock, deepseek, minimax";
+        return;
+    }
+
+    std::string api_key_env;
+    if (provider_str_ == "deepseek") {
+        api_key_env = "DEEPSEEK_API_KEY";
+    } else {  // minimax
+        api_key_env = "MINIMAX_API_KEY";
+        // D5 case 3: placeholder URL fail-fast (spec Scenario 2).
+        // real_llm_env.h 的 minimax url 是 placeholder (api.minimax.chat),
+        // NXDOMAIN 前必须拦截 — 允许用户用 MINIMAX_API_URL env var 覆盖。
+        const char* mm_url = std::getenv("MINIMAX_API_URL");
+        std::string url = mm_url ? mm_url : "https://api.minimax.chat";
+        if (url.find("api.minimax.chat") != std::string::npos) {
+            real_llm_error_ = "ERROR: MINIMAX_API_URL placeholder, see AGENTS.md §G2";
+            return;
+        }
+    }
+
+    // D5 case 2: missing API key → fail-fast (spec Scenario 3).  real_llm_env.h
+    // helper 三态里 skip=1 是 test-framework 专属, binary 模式不 honor。
+    const char* key = std::getenv(api_key_env.c_str());
+    if (!key || key[0] == '\0') {
+        real_llm_error_ = "ERROR: real LLM requires " + api_key_env
+                        + " or HYDRAFORGE_SKIP_REAL_LLM=1";
+        return;
+    }
+
+    // 复用 LLMProviderFactory::create() (per real_llm_env.h::real_llm_config()
+    // 的 provider 语义: deepseek-chat 别名避免 reasoning mode, 见 helper 注释)。
+    agenticdsl::LLMConfig llm_cfg;
+    llm_cfg.provider = provider_str_;
+    if (provider_str_ == "deepseek") {
+        llm_cfg.model = "deepseek-chat";
+        llm_cfg.api_url = "https://api.deepseek.com";
+        llm_cfg.api_endpoint = "/chat/completions";
+    } else {
+        llm_cfg.model = "minimax-text-01";
+        const char* mm_url = std::getenv("MINIMAX_API_URL");
+        llm_cfg.api_url = mm_url ? mm_url : "https://api.minimax.chat";
+        llm_cfg.api_endpoint = "/v1/text/chatcompletion_v2";
+    }
+    llm_cfg.api_key_env = api_key_env;
+
+    try {
+        agenticdsl::LLMProviderFactory factory;
+        real_provider_ = factory.create(llm_cfg);
+    } catch (const std::exception& e) {
+        real_llm_error_ = std::string("ERROR: LLM provider construction failed: ")
+                        + e.what();
+        return;
+    }
+    if (!real_provider_) {
+        real_llm_error_ = "ERROR: LLM provider construction failed";
+    }
 }
 
 EvolutionSession::~EvolutionSession() = default;
@@ -56,6 +128,12 @@ void EvolutionSession::set_distillation_output_dir(const std::filesystem::path& 
 }
 
 int EvolutionSession::run_6_phase_demo() {
+    // Design D5 + risk R2: real LLM 配置错误在 ctor 已捕获 (real_llm_error_),
+    // 此处 fail-fast exit non-zero (RAII 友好, 不 throw)。
+    if (!real_llm_error_.empty()) {
+        std::cerr << real_llm_error_ << std::endl;
+        return 2;
+    }
     if (contexts_.empty()) {
         std::cerr << "ERROR: L2 zero-hardcode, must provide ContextRequest via "
                      "--context-file" << std::endl;
@@ -78,14 +156,69 @@ void EvolutionSession::phase0_load_contexts() {
 }
 
 void EvolutionSession::phase1_init() {
-    // Phase B: real DSLEngine + ChatSession wiring
     engine_ = std::make_unique<agenticdsl::DSLEngine>();
     engine_->set_interaction_bus(bus_);
 
-    // Register mock "loop/run" tool for ChatSession to work without LoopAgent .so
+    if (real_provider_) {
+        // Real LLM path: borrow the provider (non-owning) into the engine so
+        // child DSLEngines created inside loop/run can resolve it.  Ownership
+        // stays with real_provider_ (RAII, design D1).
+        engine_->set_borrowed_provider(*real_provider_);
+    }
+
+    // Register "loop/run" tool for ChatSession.  Real mode dispatches through
+    // real_provider_ (design D1); mock mode keeps the legacy mock handler so
+    // 9/9 mock tests stay zero-regression.
     agenticdsl::IToolRegistry& reg = engine_->get_tool_registry();
-    reg.register_tool_function("loop/run",
-        agenticdsl::ToolMetadata{
+    if (real_provider_) {
+        agenticdsl::ILLMProvider* provider = real_provider_.get();
+        reg.register_tool_function("loop/run",
+            agenticdsl::ToolMetadata{
+            .name = "loop/run",
+            .description = "real LLM loop/run for evolution_session (design D1)",
+            .domain = "loop",
+            .category = agenticdsl::ToolCategory::Execute,
+            .min_layer = agenticdsl::LayerProfile::Workflow,
+            .approval = agenticdsl::ApprovalPolicy{
+                .requires_approval_in_plan = false,
+                .requires_approval_in_agent = true,
+                .requires_approval_in_yolo = false,
+                .force_approval_always = false},
+            .allowed_layers = {agenticdsl::LayerProfile::Workflow}
+        },
+            [provider, this](const std::unordered_map<std::string, std::string>& args)
+                -> nlohmann::json {
+                // Real LLM single-shot react: pass user prompt to provider.
+                // Explicit model from available_models() (not the LLMConfig
+                // default "gpt-4o-mini" — cloud_adapter uses req.params.model
+                // when non-empty and DeepSeek would reject it, per tests/AGENTS.md
+                // §REAL-LLM TEST PATTERNS #5).
+                auto prompt_it = args.find("prompt");
+                std::string prompt = (prompt_it != args.end()) ? prompt_it->second : "";
+                agenticdsl::GenerationRequest req(prompt);
+                auto avail = provider->available_models();
+                if (!avail.empty()) req.params.model = avail.front().name;
+                auto res = provider->generate(req, std::stop_token{});
+                if (!res.has_value()) {
+                    return {{"ok", false}, {"success", false},
+                            {"error_code", "LLMError"},
+                            {"error", res.error().message},
+                            {"response", ""}, {"steps", 0},
+                            {"tokens_used", 0}, {"cost_usd", 0.0}};
+                }
+                int tokens = res.value().prompt_tokens + res.value().completion_tokens;
+                double cost_before = budget_->get_total_cost_usd();
+                budget_->record_llm_call(tokens, req.params.model);
+                double cost = budget_->get_total_cost_usd() - cost_before;
+                return {{"ok", true}, {"success", true},
+                        {"error_code", nullptr},
+                        {"response", res.value().text},
+                        {"steps", 1}, {"tokens_used", tokens},
+                        {"cost_usd", cost}};
+            });
+    } else {
+        reg.register_tool_function("loop/run",
+            agenticdsl::ToolMetadata{
             .name = "loop/run",
             .description = "mock loop/run for evolution_session (Phase B)",
             .domain = "loop",
@@ -98,15 +231,16 @@ void EvolutionSession::phase1_init() {
                 .force_approval_always = false},
             .allowed_layers = {agenticdsl::LayerProfile::Workflow}
         },
-        [](const std::unordered_map<std::string, std::string>&) -> nlohmann::json {
-            return nlohmann::json{
-                {"ok", true},
-                {"success", true},
-                {"response", "Mock evolution response"},
-                {"steps", 1},
-                {"tokens_used", 1},
-                {"cost_usd", 0.0}};
-        });
+            [](const std::unordered_map<std::string, std::string>&) -> nlohmann::json {
+                return nlohmann::json{
+                    {"ok", true},
+                    {"success", true},
+                    {"response", "Mock evolution response"},
+                    {"steps", 1},
+                    {"tokens_used", 1},
+                    {"cost_usd", 0.0}};
+            });
+    }
 
     agent_cfg_.provider = provider_str_.empty() ? "mock" : provider_str_;
     agent_cfg_.model = "test";

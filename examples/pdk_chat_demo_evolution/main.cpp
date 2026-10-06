@@ -210,6 +210,16 @@ int main(int argc, char** argv) {
     session.set_contexts(contexts);
     session.set_hermetic_home(guard);
 
+    // Design D5 fail-fast: real LLM 模式配置错误在 session ctor 已捕获
+    // (unknown provider / missing key / placeholder URL)。binary 立即
+    // exit non-zero, 不允许静默 fallback to mock (per spec Scenario 2-4)。
+    if (!opts.real_llm.empty() && opts.real_llm != "mock"
+        && session.real_llm_provider() == nullptr) {
+        std::cerr << session.real_llm_error() << std::endl;
+        std::cerr << kUsage;
+        return 2;
+    }
+
     int rc = session.run_6_phase_demo();
 
     if (!opts.accept_contexts.empty()) {
@@ -241,6 +251,13 @@ int main(int argc, char** argv) {
             {"mutated_failures", mutated_failures},
             {"drop_ratio", drop_ratio}
         };
+        // Spec `real-drop-ratio-le-5-percent-exit-zero`: metrics MUST contain
+        // context_ids for traceability (R8.1 红线触发时 context 可追溯)。
+        nlohmann::json context_ids = nlohmann::json::array();
+        for (const auto& ctx : contexts) {
+            context_ids.push_back(ctx.context_id);
+        }
+        metrics["context_ids"] = std::move(context_ids);
 
         std::ofstream mf(opts.metrics_output_path);
         if (!mf.is_open()) {
