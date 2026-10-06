@@ -1,0 +1,23 @@
+# openspec.yaml
+---
+schema_version: 1.4.1
+name: fix-parser-template-args
+status: 🔍 Proposed
+created: 2026-09-30
+updated: 2026-09-30
+owners:
+  - solo-dev
+supersedes:
+  - parser-string-template-args improvement (registered in `.rddf/improvements/parser-string-template-args.md`)
+depends_on:
+  - 2026-09-30-fix-lib-loop-args-parsing (shipped at 46a3958, parser accepts canonical `arguments:`)
+superseded_by: null
+cooling_off_until: 2026-10-01T00:00:00Z
+type: feature
+categories:
+  - parser
+  - executor
+  - real-llm
+related_changes:
+  - 2026-09-30-fix-chatsession-empty-llm-response (shipped 1c729e3)
+  - 2026-09-30-fix-lib-loop-args-parsing (shipped 46a3958)

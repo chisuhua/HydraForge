@@ -378,13 +378,22 @@ next: "/main/compute"
 **权限要求**：必须声明 `permissions`（如 `tool: web_search`）
 
 **`arguments` 字段契约**：
-- MUST 使用 canonical key `arguments:` (per `src/modules/parser/node_factory.cpp:176 make_tool_call`)
+- MUST 使用 canonical key `arguments:` (per `src/modules/parser/node_factory.cpp:171-189 make_tool_call`)
+- 接受两种形式:
+  - **object 形式**: key 为参数名, value 为字符串模板 (per `InjaTemplateRenderer` execute-time render)
+  - **string 形式**: 单一字符串模板值, wrap 为 `{"input": <value>}` 单参数 map (对齐 `parse_react_decision` L1/L2 fallback `{"input", args_str}` at pdk_entry.cpp:198/219, per 2026-09-30 ship `fix-parser-template-args`)
 - DO NOT 使用 `args:` — parser 静默丢弃 `args:`, 工具 dispatch 收到空 args, 触发 `Missing '<key>' argument` 错误
 - 历史上 lib/loop/{react,plan_execute,fork_join}.agent.md 3 文件 6 处使用 `args:` (从 `5a9ab2e` 2026-07-20 创建时引入), 已 ship `2026-09-30-fix-lib-loop-args-parsing` 修复
 - CI 验证: `tools/check_dsl_schema.sh` (grep-based, per `openspec/changes/2026-09-30-fix-lib-loop-args-parsing/D4`)
 
+**`tool` 字段契约**：
+- 接受字面值（如 `tool: "loop/decide_react"`）或模板字符串（如 `tool: "{{decision.action_tool}}"`）
+- 字面值: 直接使用, dispatcher 查 registry
+- 模板值: execute-time 通过 `InjaTemplateRenderer::render(node->tool_name, ctx)` 渲染, 渲染失败抛 `Template render error: ...` (per 2026-09-30 ship `fix-parser-template-args`)
+- 渲染后空字符串（如 `decision.final=true` 时 action_tool=""）: dispatcher 查 "" → 抛 `Tool '' not registered` 错误
+
 **已知遗留**（独立 change scope, 不在本节契约内）：
-- `react.agent.md:33` `arguments: "{{decision.action_args}}"` 是字符串模板值, parser `is_object()` 检查跳过, act 节点 args 永远为空. 需 parser 扩展接受字符串值 (登记 `.rddf/improvements/parser-string-template-args.md`).
+- `react.agent.md:33` act 节点无条件执行, 即使 `decision.final=true` (LLM 直接回答) 也尝试渲染空 `decision.action_args`. test_e2e_real_llm ChatSession case 仍 FAIL (Template render error: variable 'decision.action_args' not found). 需 react loop 流程控制扩展 (decision.final 路由), 已登记 `.rddf/improvements/react-loop-final-decision-tooling.md` 独立 follow-up.
 
 ### 5.3 `codelet_call`
 **语义**：执行沙箱代码（带安全策略）  

@@ -173,14 +173,18 @@ std::unique_ptr<Node> make_tool_call(const NodePath& path, const nlohmann::json&
   std::string tool = j.at("tool").get<std::string>();
   auto output_keys = parse_output_keys_local(j, path);
   std::unordered_map<std::string, std::string> args;
-  if (j.contains("arguments") && j["arguments"].is_object()) {
-    for (auto& [key, value] : j["arguments"].items()) {
-      if (value.is_string()) args[key] = value.get<std::string>();
-      else if (value.is_number_integer()) args[key] = std::to_string(value.get<long long>());
-      else if (value.is_number_float()) args[key] = std::to_string(value.get<double>());
-      else if (value.is_boolean()) args[key] = value.get<bool>() ? "true" : "false";
-      else if (value.is_object() || value.is_array()) args[key] = value.dump();
-      else throw std::runtime_error("Argument '" + key + "' has unsupported type");
+  if (j.contains("arguments")) {
+    if (j["arguments"].is_string()) {
+      args["input"] = j["arguments"].get<std::string>();
+    } else if (j["arguments"].is_object()) {
+      for (auto& [key, value] : j["arguments"].items()) {
+        if (value.is_string()) args[key] = value.get<std::string>();
+        else if (value.is_number_integer()) args[key] = std::to_string(value.get<long long>());
+        else if (value.is_number_float()) args[key] = std::to_string(value.get<double>());
+        else if (value.is_boolean()) args[key] = value.get<bool>() ? "true" : "false";
+        else if (value.is_object() || value.is_array()) args[key] = value.dump();
+        else throw std::runtime_error("Argument '" + key + "' has unsupported type");
+      }
     }
   }
   auto node = std::make_unique<ToolCallNode>(path, std::move(tool), std::move(args),

@@ -266,10 +266,11 @@ Context NodeExecutor::execute_tool_call(const ToolCallNode* node, const Context&
         for (const auto& [key, tmpl] : node->arguments) {
             rendered_args[key] = InjaTemplateRenderer::render(tmpl, ctx);
         }
-        if (!tool_registry_.has_tool(node->tool_name)) {
-            throw std::runtime_error("Tool '" + node->tool_name + "' not registered for node: " + node->path);
+        std::string rendered_tool_name = InjaTemplateRenderer::render(node->tool_name, ctx);
+        if (!tool_registry_.has_tool(rendered_tool_name)) {
+            throw std::runtime_error("Tool '" + rendered_tool_name + "' not registered for node: " + node->path);
         }
-        auto [tool_result, new_context] = dispatch_to_tool(node->tool_name, node->path, rendered_args);
+        auto [tool_result, new_context] = dispatch_to_tool(rendered_tool_name, node->path, rendered_args);
         new_context = ctx;
         if (!tool_result.ok && !handle_tool_errors(node, tool_result)) {
             return new_context;
@@ -291,11 +292,12 @@ Context NodeExecutor::execute_tool_call(const ToolCallNode* node, const Context&
         rendered_args[key] = InjaTemplateRenderer::render(tmpl, ctx);
     }
 
-    if (!tool_registry_.has_tool(node->tool_name)) {
-        throw std::runtime_error("Tool '" + node->tool_name + "' not registered for node: " + node->path);
+    std::string rendered_tool_name = InjaTemplateRenderer::render(node->tool_name, ctx);
+    if (!tool_registry_.has_tool(rendered_tool_name)) {
+        throw std::runtime_error("Tool '" + rendered_tool_name + "' not registered for node: " + node->path);
     }
 
-auto [tool_result, new_context] = dispatch_to_tool(node->tool_name, node->path, rendered_args);
+auto [tool_result, new_context] = dispatch_to_tool(rendered_tool_name, node->path, rendered_args);
     new_context = ctx;
     if (!tool_result.ok && !handle_tool_errors(node, tool_result)) {
         return new_context;  // Skip: 不处理 output_keys, 不 bus emit
