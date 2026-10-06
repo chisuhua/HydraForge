@@ -128,6 +128,8 @@ ToolResult ToolResult::from_json(const nlohmann::json& j) {
     }
     if (j.contains("data")) {
       r.data = j["data"];
+    } else {
+      r.data = j;
     }
     if (j.contains("meta")) {
       r.meta = j["meta"];

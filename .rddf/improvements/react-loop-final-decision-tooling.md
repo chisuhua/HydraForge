@@ -78,3 +78,19 @@
 ## Cooling-Off
 
 `2026-09-30-fix-parser-template-args` ship 后 24h cooling-off 触发。next change 在 cooling-off 满后独立立项。
+
+## Status: ✅ SHIPPED via `2026-09-30-react-loop-final-decision-tooling` (2026-09-30)
+
+**实施结果 (Path D Oracle dual-agent review 推荐)**:
+- ✅ `parse_react_decision` L3 fallback 改 3 行 (`action_tool="finish"` + `action_args=final_text`)
+- ✅ `finish` 工具三级取参 (`answer` → 非空 `input` → `"Task complete"`)
+- ✅ `loop/run` response 提取优先 `decision.response` (闭环补丁)
+- ✅ `ToolResult::from_json` 修复 (latent bug, PDK 工具 top-level JSON 不识别)
+- ✅ `step` 变量初始化 (latent bug, observe 节点模板渲染失败)
+- ✅ test_e2e_real_llm ChatSession case **PASS** (1.38 sec, 原始目标失败已修)
+- ✅ test_loop_agent_plugin 23/23 / 101 assertions PASS (新增 1 个 e2e case)
+- ✅ core tree ctest `-LE must_realllm` 263/263 PASS (零回归)
+- ✅ examples tree ctest `-LE must_realllm` 33/33 PASS (零回归)
+- ✅ drop_ratio = 0%
+
+**ship commit: pending** (per AGENTS.md Pattern #4 atomic commit + 24h cooling-off)

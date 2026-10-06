@@ -393,7 +393,14 @@ next: "/main/compute"
 - 渲染后空字符串（如 `decision.final=true` 时 action_tool=""）: dispatcher 查 "" → 抛 `Tool '' not registered` 错误
 
 **已知遗留**（独立 change scope, 不在本节契约内）：
-- `react.agent.md:33` act 节点无条件执行, 即使 `decision.final=true` (LLM 直接回答) 也尝试渲染空 `decision.action_args`. test_e2e_real_llm ChatSession case 仍 FAIL (Template render error: variable 'decision.action_args' not found). 需 react loop 流程控制扩展 (decision.final 路由), 已登记 `.rddf/improvements/react-loop-final-decision-tooling.md` 独立 follow-up.
+- (无 — react loop L3 final 终止路径已 ship in `2026-09-30-react-loop-final-decision-tooling`，test_e2e_real_llm ChatSession case PASS)
+
+**React loop L3 final 终止路径**（已 ship per `2026-09-30-react-loop-final-decision-tooling`）：
+- `parse_react_decision` L3 fallback 返回 `action_tool="finish"` + `action_args=final_text`（JSON string）+ `final=true`
+- `finish` 工具三级取参：`answer` → 非空 `input` → `"Task complete"`
+- `loop/run` response 提取优先 `decision.response`（parsed final text），fallback 到原有 chain
+- React loop `decision.final=true` 时 act 节点调 `finish` 工具作为终止语义（不引入新 NodeType）
+- 配合 `ToolResult::from_json` 修复（无 `data` 字段时回退整个 JSON object），react DSL 完整走通 think → decide → act(finish) → observe → end
 
 ### 5.3 `codelet_call`
 **语义**：执行沙箱代码（带安全策略）  

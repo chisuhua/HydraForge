@@ -994,6 +994,35 @@ git status --short  # 应该干净或只含本次 ship 范围
 
   - [Reverse Indicator for `<parser-template-args commit>`]: `+ new_up: parser string arguments wrap (react.act 节点 args 可执行); executor tool_name 模板渲染 (react.act 节点 tool 可执行); 5/5 regression cases PASS; 第 1 潜伏 gap (Missing 'response' argument) + 第 2 潜伏 gap (Tool not registered) 都消除` / `- old_down: drop_ratio = 0% (扩展非修改,既有路径行为不变)` / `failure_traces: test_e2e_real_llm ChatSession case 第 1 + 第 2 错误已修, 第 3 错误 (Template render error) 仍存` / `ablation: Mock-identical (parser 扩展不改变 happy path 行为)` / `context_ids: test_e2e_real_llm ChatSession case (the 1 pre-existing failure case)`
 
+- **2026-09-30 (Sprint 36 / react loop L3 final decision tooling + 3 latent bugs, atomic commit)**: ship on main `2026-09-30-react-loop-final-decision-tooling` (OpenSpec change 5 files + production 4 files + test 1 file + spec 1 file = 11 files). **核心改动 (per Oracle dual-agent review 推荐 Path D, ~10 行代码改动)**:
+  - `pdk/loop_agent/src/pdk_entry.cpp:248-252` `parse_react_decision` L3 fallback 改 3 行: `action_tool=""`→`"finish"` + `action_args=nullptr`→`final_text` (JSON string 而非 object, 避免双重包装) + `response=final_text`. 恢复原始设计意图 (per `pdk_entry.cpp:114-117` 注释 "act node, typically 'finish'").
+  - `pdk/loop_agent/src/pdk_entry.cpp:152-160` `finish` 工具三级取参: `answer` → 非空 `input` → `"Task complete"` (闭环补丁 1, 必须).
+  - `pdk/loop_agent/src/pdk_entry.cpp:779-800` `loop/run` response 提取优先 `decision.response` (parsed final text), fallback 到原 chain (闭环补丁 2, 必须 — 因 `llm_response` 先匹配 raw "Final Answer: ..." 文本).
+  - `pdk/loop_agent/src/pdk_entry.cpp:754` `ctx.working["step"] = 0;` — react.agent.md:39 observe 节点 `{{step + 1}}` 模板渲染需 `step` 变量初始化 (实施时发现的 pre-existing latent bug).
+  - `src/core/types/tool_result.cpp:130-133` `ToolResult::from_json` 当 `j.contains("data")` 为 false 时回退 `r.data = j` (整个 JSON object). PDK 工具在 `pdk_entry.cpp` 返回顶层 JSON (无 `data` wrapper), 否则 `r.data = {}` → `process_output_keys` 存空对象 → act 节点看到 `decision: {}` (实施时发现的 pre-existing latent bug, 影响所有 PDK 工具 dispatch).
+
+  - **测试更新**:
+    - `examples/pdk_chat_demo/tests/test_loop_agent_plugin.cpp:253-254` 2 条断言更新 (`""`→`"finish"`, `is_null()`→`is_string()` + `== "The result is 42."`).
+    - `examples/pdk_chat_demo/tests/test_loop_agent_plugin.cpp` 新增 1 个 e2e case "react loop L3 final answer completes without template render error" (MockProvider 返回 "Final Answer: ..." + 真实 DSL 路径 + 断言 `result.ok == true, response == "The result is 42.", steps >= 4`).
+    - 测试结果: 22 → 23 cases / 95 → 101 assertions PASS.
+
+  - **Ship Gate**:
+    - test_loop_agent_plugin 23/23 / 101 assertions PASS
+    - test_e2e_real_llm ChatSession case PASS (1.38 sec, 原始目标失败已修) + 3/3 其他 e2e cases PASS (generate_subgraph / multi_turn / errors)
+    - core tree ctest `-LE must_realllm` 263/263 PASS (100%, 零回归)
+    - examples tree ctest `-LE must_realllm` 33/33 PASS (100%, 零回归)
+    - tools/check_dsl_schema.sh GREEN
+    - python3 tools/adr_lint.py exit 0
+    - drop_ratio = 0% (must_realllm 10/10 ✅ + must_realllm case count 不变)
+
+  - **Pre-existing latent bugs 顺带修复** (实施时发现):
+    1. `ToolResult::from_json` PDK 工具 top-level JSON 不识别 — 影响所有 PDK 工具 dispatch (不限于 react loop).
+    2. `step` 变量未初始化 — react.agent.md observe 节点模板渲染失败 (LLM 多次迭代时 `step` counter 累加).
+
+  - **24h cooling-off 触发** (per AGENTS.md Pattern #4): cooling_off_until = 2026-10-01T00:00:00Z. 依赖 `ec92623` (parser-template-args) cooling-off 独立计时, 本 change 不阻塞 next change 立项.
+
+  - [Reverse Indicator for `<react-loop-final-decision-tooling commit>`]: `+ new_up: test_e2e_real_llm ChatSession case PASS (原始目标失败消除); test_loop_agent_plugin 23/23 + 1 new e2e case; 2 个 pre-existing latent bug 修复 (ToolResult::from_json + step init); react loop L3 final 终止路径完整走通 (think → decide → act(finish) → observe → end); must_realllm 8/10 → 10/10 ✅` / `- old_down: drop_ratio = 0% (扩展/修复而非重写,既有路径行为不变)` / `failure_traces: test_e2e_real_llm ChatSession case 第 3 错误 (Template render error: variable 'decision.action_args' not found) 已修 (ship 后 4/4 PASS)` / `ablation: Mock 3-segment baseline/mutated/rerun all mock-identical + real LLM 实测 ChatSession PASS` / `context_ids: test_e2e_real_llm ChatSession case (the 1 pre-existing failure case now PASS)`
+
 - **2026-09-29 (Sprint 36 / 用户充值后 real LLM 全 PASS, 修正 mock/real 覆盖分析)**: 用户充值 DEEPSEEK_API_KEY 后重跑 2 个 real_llm test, 全部 PASS: `test_react_loop_real_llm` 7/7 cases / 25 assertions (原 5/7); `test_plan_execute_realllm` 3/3 cases / 14 assertions (原 0/3)。**用户关键疑问**: "mock 测试是不是用预先设计的回复骗过了测试?" 诚实回答: 不是。11/12 个 mock test 与 LLM 完全无关 (测试状态机/持久化/算法), 通过的根本原因是测试目标非 LLM; test_gepa_phase2 用 MockLLMProvider 但其 canned response (`"Reflection note: Add error handling for X"`) 验证的是 GEPA 编排逻辑, 不是 LLM 真行为。**修正方法**: (a) METHODOLOGY.md 新增 §7.6 'Mock 测试通过的真实含义' + §7.7 '审计通过 vs 真覆盖' 对照表 + §7.8 '已知真实盲点清单' (GEPA Loop 无 real_llm / MiniMax 路径全缺); (b) audit 报告 §12.3.1 测试目标对照表 (15 个测试逐一标注 LLM 参与) + §12.3.2 Mock 覆盖 vs 不覆盖对照表; (c) audit 报告 §12.5 真实覆盖矩阵更新 (Mock 21/21 ✅ + Real LLM 10/10 ✅ + GEPA Loop real_llm 仍缺 ⚠️); (d) audit 报告 §6.1 / §11 / §0 警示块全部更新。**修正后判定**: Mock 覆盖率 21/21 ✅ / Real LLM (DeepSeek) 覆盖率 10/10 ✅ (React + PlanExecute 两个 Loop; GEPA Loop 仍 mock only) / SoT 自承 V2 缺口不变。**触发源**: 用户充值 + 用户对 mock 测试机制的合理质疑。**沉淀教训** (METHODOLOGY §7.6-7.8): (a) audit 声称 "21/21 PASS" 必须区分 mock vs real_llm; (b) Mock 通过 ≠ LLM 真能跑通; (c) GEPA Loop 是当前最大真实盲点, 建议新 OpenSpec 立项 test_gepa_loop_real_llm; (d) MiniMax 路径完全未实测。Commit `67782e1`。  - [Reverse Indicator for `67782e1`]: `+ new_up: 2 real_llm test 实测 PASS + §12.3 覆盖对照表 + §7.6-7.8 mock 局限性分析` / `- old_down: 0% (纯文档修正)` / `failure_traces: N/A` / `ablation: N/A` / `context_ids: N/A`
 
 - **2026-09-29 (Sprint 36 / must_realllm 强制真 LLM 验证改造 ship)**: 按用户指令 "只有通过了真实 LLM 验证才判定通过", 完成 must_realllm 强制真 LLM 验证改造: (a) `tests/test_helpers/real_llm_env.h` 加 `must_require_real_llm_env()` helper (skip flag FAIL 强制真 LLM, 与现有 `require_real_llm_env()` 区分 `[realllm]` vs `[must_realllm]`); (b) 修订 8 个现有 real_llm test 改用新 helper (commit a711857, 删 skip SUCCEED 路径); (c) 新增 4 个 must_realllm test: `test_gepa_loop_real_llm` (2/2, 5b2530b) + `test_skill_compiler_real_llm` (2/2, 1de0e74) + `test_distillation_capture_training_real_llm` (2/2, da2f8bb) + `test_harness_mutation_proposal_real_llm` (1/1, 3040113); (d) `METHODOLOGY.md` 新增 §8 must_realllm 原则 (a0b3390); (e) `audit 报告` §6.1/§11/§6.4 更新覆盖矩阵 (3ea0902). **总 must_realllm 覆盖**: 10 binaries / 24 cases / 78 assertions PASS (有 key), 24/24 FAIL (skip=1, 强制验证). **未 ship 候选诚实判定**: (1) `test_minimax_real_llm.cpp` — helper URL `https://api.minimax.chat` 是 placeholder (per `real_llm_env.h:128`), 真打 NXDOMAIN, 等 URL 修对后再补; (2) `test_fork_join_real_llm.cpp` — ForkJoinLoop 默认 handler 不调 LLM, 加 must_realllm 是 misleading, 已删. **触发源**: 用户 "梳理必须用真实 LLM 验证的测试和示例, 然后修订这些测试只有通过了真实 LLM 验证才判定通过" 指令. **沉淀教训**: (a) `[realllm]` vs `[must_realllm]` 必须显式区分, helper 三态 (skip / key / FAIL) 是关键; (b) 写 `[must_realllm]` test 前必须先确认场景真的依赖 LLM (如 ForkJoinLoop 默认 handler 不调 LLM, 强加 must_realllm 是错误); (c) URL placeholder 阻塞的真 LLM 路径 (如 MiniMax) 必须诚实承认是 V2 缺口, 不能 fake PASS.

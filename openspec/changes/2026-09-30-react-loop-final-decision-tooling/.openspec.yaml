@@ -1,0 +1,25 @@
+# openspec.yaml
+---
+schema_version: 1.4.1
+name: react-loop-final-decision-tooling
+status: 🔍 Proposed
+created: 2026-09-30
+updated: 2026-09-30
+owners:
+  - solo-dev
+supersedes: null
+depends_on:
+  - 2026-09-30-fix-parser-template-args (shipped at ec92623 — closes parser+executor gap, exposes react loop 流程控制 gap)
+superseded_by: null
+cooling_off_until: 2026-10-01T00:00:00Z
+type: feature
+categories:
+  - loop-agent
+  - react-loop
+  - real-llm
+related_changes:
+  - 2026-09-30-fix-chatsession-empty-llm-response (shipped 1c729e3, V2 fail-fast)
+  - 2026-09-30-fix-lib-loop-args-parsing (shipped 46a3958, parser rename)
+  - 2026-09-30-fix-parser-template-args (shipped ec92623, parser+executor template args)
+deferred_from:
+  - .rddf/improvements/react-loop-final-decision-tooling.md (P1 priority follow-up, now formalized as OpenSpec change)

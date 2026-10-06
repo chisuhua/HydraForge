@@ -150,8 +150,14 @@ inline void register_react_support_tools_for_child(::agenticdsl::DSLEngine& chil
             .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
         },
         [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
-            auto it = args.find("answer");
-            std::string answer = (it != args.end()) ? it->second : "Task complete";
+            std::string answer;
+            if (auto it = args.find("answer"); it != args.end() && !it->second.empty()) {
+                answer = it->second;
+            } else if (auto it = args.find("input"); it != args.end() && !it->second.empty()) {
+                answer = it->second;
+            } else {
+                answer = "Task complete";
+            }
             nlohmann::json r;
             r["ok"] = true;
             r["success"] = true;
@@ -241,8 +247,8 @@ nlohmann::json parse_react_decision(const std::string& response) {
 
     nlohmann::json out = ok_result(true);
     out["final"] = true;
-    out["action_tool"] = "";
-    out["action_args"] = nullptr;
+    out["action_tool"] = "finish";
+    out["action_args"] = final_text;
     out["response"] = final_text;
     return out;
 }
@@ -746,6 +752,7 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                 ctx.working["user_input"] = user_prompt;
                 ctx.working["system_prompt"] = str_arg(args, "system_prompt");
                 ctx.working["history"] = str_arg(args, "history");
+                ctx.working["step"] = 0;
 
                 // ADR-0068 附录 A: loop.turn.start
                 emit_loop_event(bus, session_id, "loop.turn.start",
@@ -770,14 +777,23 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                 output["error_code"] = result.success ? nullptr : nlohmann::json("Unknown");
                 output["error"]   = result.success ? "" : result.message;
                 std::string response_text;
-                for (const char* k : {"response", "output",
-                                      "llm_response", "plan_response",
-                                      "final_result"}) {
-                    auto v = result.final_context.find(k);
-                    if (v != result.final_context.end() && v->is_string() &&
-                        !v->get<std::string>().empty()) {
-                        response_text = v->get<std::string>();
-                        break;
+                if (auto dv = result.final_context.find("decision");
+                    dv != result.final_context.end() && dv->is_object()) {
+                    auto rv = dv->find("response");
+                    if (rv != dv->end() && rv->is_string() && !rv->get<std::string>().empty()) {
+                        response_text = rv->get<std::string>();
+                    }
+                }
+                if (response_text.empty()) {
+                    for (const char* k : {"response", "output",
+                                          "llm_response", "plan_response",
+                                          "final_result"}) {
+                        auto v = result.final_context.find(k);
+                        if (v != result.final_context.end() && v->is_string() &&
+                            !v->get<std::string>().empty()) {
+                            response_text = v->get<std::string>();
+                            break;
+                        }
                     }
                 }
                 if (response_text.empty()) response_text = result.message;

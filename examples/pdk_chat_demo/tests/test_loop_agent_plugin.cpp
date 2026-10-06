@@ -250,8 +250,9 @@ TEST_CASE("loop/decide_react: Final Answer keyword (L3 final)", "[loop-agent][pl
 
     REQUIRE(result.value("ok", false) == true);
     REQUIRE(result.value("final", true) == true);
-    REQUIRE(result.value("action_tool", "") == "");
-    REQUIRE(result["action_args"].is_null());
+    REQUIRE(result.value("action_tool", "") == "finish");
+    REQUIRE(result["action_args"].is_string());
+    REQUIRE(result["action_args"] == "The result is 42.");
     REQUIRE(result["response"] == "The result is 42.");
     engine.reset();
 }
@@ -468,5 +469,28 @@ TEST_CASE("E2E: PluginLoader + MockProvider + loop/run with valid decide_react r
     if (result.value("ok", false)) {
         REQUIRE(result.value("steps", 0) >= 1);
     }
+    engine.reset();
+}
+
+TEST_CASE("E2E: react loop L3 final answer completes without template render error",
+          "[loop-agent][plugin][e2e][react-final]") {
+    ensure_plugin_path_env();
+    hydraforge::PluginLoader loader;
+    auto engine = std::make_unique<DSLEngine>(std::vector<ParsedGraph>{});
+    REQUIRE(loader.load_so(find_loop_agent_so(), engine->get_tool_registry()));
+
+    MockLLMProvider mock;
+    mock.set_fixed_response("Final Answer: The result is 42.");
+    engine->get_tool_registry().call_tool("loop/set_parent_provider",
+        {{"provider_ptr", ptr_to_str(&mock)}});
+
+    auto result = engine->get_tool_registry().call_tool("loop/run",
+        {{"loop_type", "react"}, {"prompt", "hello"}});
+
+    REQUIRE(result.contains("ok"));
+    REQUIRE(result.value("ok", false) == true);
+    REQUIRE(result["error_code"].is_null());
+    REQUIRE(result.value("response", "") == "The result is 42.");
+    REQUIRE(result.value("steps", 0) >= 4);
     engine.reset();
 }
