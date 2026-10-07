@@ -76,4 +76,20 @@ add_l2_test(test_reverse_indicators test_reverse_indicators.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../context_request.cpp)
 target_link_libraries(test_reverse_indicators PRIVATE pdk_chat_session agenticdsl_distillation)
 
-# Tests 10 will be added in Task 8 (deferred to Batch 4 per Oracle M1)
+# --- Test 10: l2_real_llm_e2e (l2-evolution-real-llm-provider) ---
+# Real LLM end-to-end (5 cases).  Labels "must_realllm;l2-evolution" per
+# a21c92e precedent (set_tests_properties after add_test).  TIMEOUT 300 for
+# real DeepSeek latency under load.
+add_l2_test(test_l2_real_llm_e2e test_l2_real_llm_e2e.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../evolution_session.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../evolution_tracer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../hermetic_home.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../context_request.cpp)
+target_link_libraries(test_l2_real_llm_e2e PRIVATE pdk_chat_session agenticdsl_distillation)
+add_dependencies(test_l2_real_llm_e2e pdk_chat_demo_evolution)
+target_compile_definitions(test_l2_real_llm_e2e PRIVATE
+    L2_DEMO_BINARY="${CMAKE_CURRENT_BINARY_DIR}/../pdk_chat_demo_evolution")
+set_tests_properties(test_l2_real_llm_e2e PROPERTIES
+    LABELS "must_realllm;l2-evolution"
+    TIMEOUT 300
+)
