@@ -2,33 +2,33 @@
 # 文件头注释
 # 功能描述：TSan 容器化验证 (解决 ASLR 已知遗留, plan §3.3 H1)。
 #          1000x 并发测试在容器内 TSan 干净, 排除宿主 ASLR 假阳性 data race。
-#          基于 ubuntu:22.04 + gcc-13 + cmake + Ninja, ASLR=0 + TSAN_OPTIONS 严格化。
+#          基于 ubuntu:24.04 + gcc-14 + cmake + Ninja, ASLR=0 + TSAN_OPTIONS 严格化。
 # 设计依据：openspec/changes/2026-06-30-domain-worker-pool + ADR-0020 §2.2.1 P2
 #          + plan §3.3 H1 (TSan ASLR 已知遗留)
 # 作者：AgenticDSL Phase 1 Sprint 3
 # 最后修改日期：2026-06-19
 
 # === Stage 1: 编译 (build) ===
-FROM ubuntu:22.04 AS builder
+FROM ubuntu:24.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TSAN_OPTIONS="halt_on_error=1:abort_on_error=1:exitcode=66:second_deadlock_stack=1:history_size=7"
 
-# 安装编译工具链 (gcc-13 for C++20 std::jthread + std::stop_token 完整支持)
+# 安装编译工具链 (gcc-14 for C++23 完整支持)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
         ninja-build \
         git \
         ca-certificates \
-        g++-13 \
-        libstdc++-13-dev \
-    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100 \
-    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 \
-    && update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-13 100 \
+        g++-14 \
+        libstdc++-14-dev \
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100 \
+    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 \
+    && update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-14 100 \
     && rm -rf /var/lib/apt/lists/*
 
-# 验证 gcc-13 默认
+# 验证 gcc-14 默认
 RUN gcc --version | head -1 && g++ --version | head -1
 
 # 禁用 ASLR (容器内, 排除宿主 ASLR 假阳性)
@@ -51,7 +51,7 @@ COPY llm_config.json ./
 RUN mkdir -p build-tsan && cd build-tsan && \
     cmake .. -G Ninja \
         -DCMAKE_BUILD_TYPE=Debug \
-        -DCMAKE_CXX_COMPILER=g++-13 \
+        -DCMAKE_CXX_COMPILER=g++-14 \
         -DCMAKE_CXX_FLAGS="-fsanitize=thread -g -O1 -fno-omit-frame-pointer" \
         -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread" \
         -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=thread" \
@@ -59,7 +59,7 @@ RUN mkdir -p build-tsan && cd build-tsan && \
     && ninja -j$(nproc) test_domain_worker_pool
 
 # === Stage 2: 运行 (runtime) ===
-FROM ubuntu:22.04 AS runtime
+FROM ubuntu:24.04 AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TSAN_OPTIONS="halt_on_error=1:abort_on_error=1:exitcode=66:second_deadlock_stack=1:history_size=7"
