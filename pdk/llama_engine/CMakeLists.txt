@@ -9,6 +9,13 @@
 # 最后修改日期：2026-07-07
 
 # 主 .so: 聚合所有 12 个工具注册
+# 注意: EXCLUDE_FROM_ALL — 此插件依赖外部 llama.cpp 头文件/库
+# (external/AgenticLlama), 不在 .gitmodules / CI 中提供. ALL build 跳过
+# 以避免 sandbox / CI runner / 其他 worktree 缺失依赖时失败.
+# 装了 llama.cpp 的开发者可显式构建:
+#   cmake --build build/<preset> --target hydraforge_llama_engine \
+#     -DLLAMA_CPP_INCLUDE_DIR=/path/to/llama.cpp \
+#     -DLLAMA_CPP_LIB_DIR=/path/to/llama.cpp/build
 add_library(hydraforge_llama_engine SHARED
   src/llama_engine_entry.cpp    # entry point (pdk_register_tools + pdk_plugin_info)
   src/llama_engine.cpp          # 4 engine 工具: init/generate/stream/status
@@ -39,4 +46,5 @@ target_compile_features(hydraforge_llama_engine PRIVATE cxx_std_23)
 set_target_properties(hydraforge_llama_engine PROPERTIES
   PREFIX "lib"
   OUTPUT_NAME "hydraforge_llama_engine"
+  EXCLUDE_FROM_ALL TRUE
 )
