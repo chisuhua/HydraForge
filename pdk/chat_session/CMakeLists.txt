@@ -23,7 +23,7 @@ target_link_libraries(pdk_chat_session PUBLIC
     agenticdsl_common
 )
 
-target_compile_features(pdk_chat_session PUBLIC cxx_std_20)
+target_compile_features(pdk_chat_session PUBLIC cxx_std_23)
 
 # 被 PDK .so / 宿主二进制链接, 需 PIC
 set_target_properties(pdk_chat_session PROPERTIES POSITION_INDEPENDENT_CODE ON)

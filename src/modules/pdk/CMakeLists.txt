@@ -23,7 +23,7 @@ endif()
 target_include_directories(agenticdsl_modules_pdk PUBLIC ${NLOHMANN_JSON_INCLUDE_DIR})
 
 # C++20 + warnings per AGENTS.md
-target_compile_features(agenticdsl_modules_pdk PUBLIC cxx_std_20)
+target_compile_features(agenticdsl_modules_pdk PUBLIC cxx_std_23)
 target_compile_options(agenticdsl_modules_pdk PRIVATE
   -Wall -Wextra -Wpedantic
 )

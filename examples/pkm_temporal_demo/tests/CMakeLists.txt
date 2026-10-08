@@ -23,7 +23,7 @@ target_include_directories(test_demo_main PRIVATE
     ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
 )
 
-target_compile_features(test_demo_main PRIVATE cxx_std_20)
+target_compile_features(test_demo_main PRIVATE cxx_std_23)
 target_compile_definitions(test_demo_main PRIVATE CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1)
 
 add_test(NAME test_demo_main COMMAND test_demo_main)
@@ -44,7 +44,7 @@ target_include_directories(test_scenarios PRIVATE
     ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
 )
 
-target_compile_features(test_scenarios PRIVATE cxx_std_20)
+target_compile_features(test_scenarios PRIVATE cxx_std_23)
 target_compile_definitions(test_scenarios PRIVATE CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1)
 
 target_link_libraries(test_scenarios PRIVATE

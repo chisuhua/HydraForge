@@ -18,7 +18,7 @@ target_include_directories(agenticdsl_hdr_plugin INTERFACE
 )
 
 # C++20 标准 (PluginLoader 使用 std::filesystem 等)
-target_compile_features(agenticdsl_hdr_plugin INTERFACE cxx_std_20)
+target_compile_features(agenticdsl_hdr_plugin INTERFACE cxx_std_23)
 
 # 链接依赖: PluginLoader 需要 ToolRegistry 抽象接口 (P1 解耦)
 # (实际链接到 agenticdsl_core, 由 src/modules/plugin/CMakeLists.txt 处理)

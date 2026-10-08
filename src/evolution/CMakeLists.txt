@@ -20,4 +20,4 @@ target_link_libraries(agenticdsl_evolution
 )
 
 # 内部依赖: 当前 implementation 不依赖其他模块, 但暴露公共 API 给 future consumers
-target_compile_features(agenticdsl_evolution PUBLIC cxx_std_20)
+target_compile_features(agenticdsl_evolution PUBLIC cxx_std_23)

@@ -22,7 +22,7 @@ target_link_libraries(hydraforge_g3_knowledge_base PRIVATE
   hydraforge_pdk
 )
 
-target_compile_features(hydraforge_g3_knowledge_base PRIVATE cxx_std_20)
+target_compile_features(hydraforge_g3_knowledge_base PRIVATE cxx_std_23)
 
 set_target_properties(hydraforge_g3_knowledge_base PROPERTIES
   PREFIX "lib"

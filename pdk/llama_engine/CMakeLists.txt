@@ -33,7 +33,7 @@ target_link_libraries(hydraforge_llama_engine PRIVATE
   # ggml
 )
 
-target_compile_features(hydraforge_llama_engine PRIVATE cxx_std_20)
+target_compile_features(hydraforge_llama_engine PRIVATE cxx_std_23)
 
 # 输出命名: libhydraforge_llama_engine.so
 set_target_properties(hydraforge_llama_engine PROPERTIES

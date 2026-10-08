@@ -27,7 +27,7 @@ target_include_directories(pdk_temporal_agent PRIVATE
     ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
 )
 
-target_compile_features(pdk_temporal_agent PRIVATE cxx_std_20)
+target_compile_features(pdk_temporal_agent PRIVATE cxx_std_23)
 
 # 链接 PDK INTERFACE 头文件库 (ITemporalClient / tool_macros / plugin_info)
 target_link_libraries(pdk_temporal_agent PRIVATE

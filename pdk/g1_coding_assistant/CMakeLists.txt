@@ -23,7 +23,7 @@ target_link_libraries(hydraforge_g1_coding_assistant PRIVATE
   hydraforge_pdk
 )
 
-target_compile_features(hydraforge_g1_coding_assistant PRIVATE cxx_std_20)
+target_compile_features(hydraforge_g1_coding_assistant PRIVATE cxx_std_23)
 
 set_target_properties(hydraforge_g1_coding_assistant PROPERTIES
   PREFIX "lib"

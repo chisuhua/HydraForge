@@ -18,7 +18,7 @@ target_include_directories(agenticdsl_hdr_pdk INTERFACE
 )
 
 # C++20 标准 (PDK 使用 std::invoke_result_t + 后续 Phase 2/3 扩展)
-target_compile_features(agenticdsl_hdr_pdk INTERFACE cxx_std_20)
+target_compile_features(agenticdsl_hdr_pdk INTERFACE cxx_std_23)
 
 # 链接依赖: PDK 仅依赖 Runtime 契约接口 (P3 静态链接)
 # (MVP 不链接 agenticdsl_contract, 但 Phase 2 集成 IToolRegistry 时需要)

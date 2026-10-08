@@ -27,4 +27,4 @@ target_link_libraries(hydraforge_model_registry PRIVATE
   hydraforge_pdk
 )
 
-target_compile_features(hydraforge_model_registry PRIVATE cxx_std_20)
+target_compile_features(hydraforge_model_registry PRIVATE cxx_std_23)

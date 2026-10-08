@@ -25,4 +25,4 @@ target_link_libraries(hydraforge_model_router_latency PRIVATE
 )
 
 # C++20 标准
-target_compile_features(hydraforge_model_router_latency PRIVATE cxx_std_20)
+target_compile_features(hydraforge_model_router_latency PRIVATE cxx_std_23)

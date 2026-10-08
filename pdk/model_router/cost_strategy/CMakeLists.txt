@@ -25,4 +25,4 @@ target_link_libraries(hydraforge_model_router_cost PRIVATE
 )
 
 # C++20 标准
-target_compile_features(hydraforge_model_router_cost PRIVATE cxx_std_20)
+target_compile_features(hydraforge_model_router_cost PRIVATE cxx_std_23)
