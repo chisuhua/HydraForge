@@ -52,9 +52,9 @@ ComplianceDecorator::ComplianceDecorator(
     std::shared_ptr<IInteractionBus> bus)
     : ILLMProviderDecorator(std::move(inner)), bus_(std::move(bus)) {}
 
-Result<GenerationResult, LLMError> ComplianceDecorator::decorate_generate(
+std::expected<GenerationResult, LLMError> ComplianceDecorator::decorate_generate(
     const GenerationRequest& req,
-    Result<GenerationResult, LLMError> inner_result) {
+    std::expected<GenerationResult, LLMError> inner_result) {
   if (bus_ == nullptr) {
     return inner_result;  // 无 bus 不 emit (防御性)
   }

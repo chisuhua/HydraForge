@@ -21,7 +21,7 @@
 #include "agenticdsl/types/attribution_record.h"
 #include "agenticdsl/types/execution_trace.h"
 #include "agenticdsl/types/reward_signal.h"
-#include "common/llm/llm_types.h"  // Result<T, E>
+#include "common/llm/llm_types.h"  // std::expected<T, E>
 #include "modules/budget/budget_controller.h"  // BudgetController concrete class
 
 namespace agenticdsl::evolution {

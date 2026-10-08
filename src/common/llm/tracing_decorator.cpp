@@ -71,7 +71,7 @@ void TracingDecorator::emit_request(const GenerationRequest& req) {
 
 void TracingDecorator::emit_response(
     const GenerationRequest& req,
-    const Result<GenerationResult, LLMError>& inner_result,
+    const std::expected<GenerationResult, LLMError>& inner_result,
     std::chrono::steady_clock::duration duration) {
   (void)req;
   if (!bus_) return;
@@ -104,9 +104,9 @@ std::optional<LLMError> TracingDecorator::pre_check_generate(
   return std::nullopt;
 }
 
-Result<GenerationResult, LLMError> TracingDecorator::decorate_generate(
+std::expected<GenerationResult, LLMError> TracingDecorator::decorate_generate(
     const GenerationRequest& req,
-    Result<GenerationResult, LLMError> inner_result) {
+    std::expected<GenerationResult, LLMError> inner_result) {
   auto t1 = std::chrono::steady_clock::now();
   std::chrono::steady_clock::duration dur{0};
   if (request_start_) {

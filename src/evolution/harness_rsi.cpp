@@ -83,7 +83,7 @@ const char* evolution_state_name(EvolutionState s) {
 //   → Apply
 //
 // 失败路径零状态变更.
-Result<AppliedMutation, MutationError> apply_harness_mutation(
+std::expected<AppliedMutation, MutationError> apply_harness_mutation(
     const GenomeMutations& mutations,
     std::string& system_prompt,
     std::vector<std::string>& tools,
@@ -96,38 +96,38 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
   const bool has_tools_remove = !mutations.tools_remove.empty();
   const bool has_workflow = mutations.workflow_patch.has_value();
   if (!has_prompt && !has_tools_add && !has_tools_remove && !has_workflow) {
-    return Result<AppliedMutation, MutationError>::failure(
-        MutationError::InvalidMutation);
+    return std::unexpected(std::move(
+        MutationError::InvalidMutation));
   }
   // tools_add 与 tools_remove 同名 (互斥)
   for (const auto& a : mutations.tools_add) {
     for (const auto& r : mutations.tools_remove) {
       if (a == r) {
-        return Result<AppliedMutation, MutationError>::failure(
-            MutationError::InvalidMutation);
+        return std::unexpected(std::move(
+            MutationError::InvalidMutation));
       }
     }
   }
   // G4: workflow_patch → UnsupportedVariant at Gate 0 (先于所有后续门禁)
   if (has_workflow) {
-    return Result<AppliedMutation, MutationError>::failure(
-        MutationError::UnsupportedVariant);
+    return std::unexpected(std::move(
+        MutationError::UnsupportedVariant));
   }
   // G4: genome_name 空检查 (registry 非空时, Gate 0)
   if (ctx.genome_registry != nullptr && ctx.genome_name.empty()) {
-    return Result<AppliedMutation, MutationError>::failure(
-        MutationError::InvalidMutation);
+    return std::unexpected(std::move(
+        MutationError::InvalidMutation));
   }
   // G4: parent_version==0 (registry 非空时, Gate 0)
   if (ctx.genome_registry != nullptr && ctx.parent_version == 0) {
-    return Result<AppliedMutation, MutationError>::failure(
-        MutationError::InvalidMutation);
+    return std::unexpected(std::move(
+        MutationError::InvalidMutation));
   }
 
   // === Gate 1: evaluate_readiness ===
   if (!ctx.attribution || !ctx.evaluator || !ctx.budget) {
-    return Result<AppliedMutation, MutationError>::failure(
-        MutationError::InvalidMutation);
+    return std::unexpected(std::move(
+        MutationError::InvalidMutation));
   }
   auto verdict = evaluate_readiness(ctx.current, *ctx.attribution,
                                     *ctx.evaluator, *ctx.budget);
@@ -146,29 +146,29 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
       });
       ctx.bus->emit(event.build());
     }
-    return Result<AppliedMutation, MutationError>::failure(
-        MutationError::NotReady);
+    return std::unexpected(std::move(
+        MutationError::NotReady));
   }
 
   // === Gate 2: is_tool_allowed policy check ===
   for (const auto& tool_name : mutations.tools_add) {
     if (!is_tool_allowed(tool_name, ctx.policy)) {
-      return Result<AppliedMutation, MutationError>::failure(
-          MutationError::GovernanceDenied);
+      return std::unexpected(std::move(
+          MutationError::GovernanceDenied));
     }
   }
   for (const auto& tool_name : mutations.tools_remove) {
     if (!is_tool_allowed(tool_name, ctx.policy)) {
-      return Result<AppliedMutation, MutationError>::failure(
-          MutationError::GovernanceDenied);
+      return std::unexpected(std::move(
+          MutationError::GovernanceDenied));
     }
   }
 
   // === Gate 2.5: tools_add 全量 registry 预检 ===
   for (const auto& tool_name : mutations.tools_add) {
     if (!registry.has_tool(tool_name)) {
-      return Result<AppliedMutation, MutationError>::failure(
-          MutationError::RegistryRejected);
+      return std::unexpected(std::move(
+          MutationError::RegistryRejected));
     }
   }
 
@@ -193,8 +193,8 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
     }
     // 最终态 tools 为空 → InvalidMutation (V1 边界)
     if (final_tools.empty()) {
-      return Result<AppliedMutation, MutationError>::failure(
-          MutationError::InvalidMutation);
+      return std::unexpected(std::move(
+          MutationError::InvalidMutation));
     }
 
     genome::GenomeSpec spec;
@@ -212,8 +212,8 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
         event.meta(nlohmann::json{{"trace_id", ctx.trace_id}});
         ctx.bus->emit(event.build());
       }
-      return Result<AppliedMutation, MutationError>::failure(
-          MutationError::RegistryRejected);
+      return std::unexpected(std::move(
+          MutationError::RegistryRejected));
     }
     applied.committed_genome_version = fork_res.value().version;
 
@@ -246,7 +246,7 @@ Result<AppliedMutation, MutationError> apply_harness_mutation(
     applied.applied_tools_removed.push_back(tool_name);
   }
 
-  return Result<AppliedMutation, MutationError>::success(applied);
+  return std::expected<AppliedMutation, MutationError>{std::in_place, std::move(applied)};
 }
 
 void undo_applied_mutation(const AppliedMutation& applied,

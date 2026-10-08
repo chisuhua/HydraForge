@@ -20,6 +20,7 @@
 #include <sstream>
 #include <utility>
 #include <cstdint>
+#include <expected>
 
 namespace agenticdsl {
 
@@ -80,40 +81,11 @@ struct GenerationResult {
   std::string finish_reason;
 };
 
-template <typename T, typename E>
-class Result {
-public:
-  bool has_value() const { return has_val_; }
-  T& value() { return val_; }
-  const T& value() const { return val_; }
-  E& error() { return err_; }
-  const E& error() const { return err_; }
-
-  static Result success(T v) {
-    Result r;
-    r.has_val_ = true;
-    r.val_ = std::move(v);
-    return r;
-  }
-  static Result failure(E e) {
-    Result r;
-    r.has_val_ = false;
-    r.err_ = std::move(e);
-    return r;
-  }
-
-private:
-  Result() = default;
-  bool has_val_ = false;
-  T val_;
-  E err_;
-};
-
 class ILLMProvider {
 public:
   virtual ~ILLMProvider() = default;
 
-  virtual Result<GenerationResult, LLMError>
+  virtual std::expected<GenerationResult, LLMError>
       generate(const GenerationRequest& req, std::stop_token token) = 0;
 
   virtual std::unique_ptr<IGenerationStream>

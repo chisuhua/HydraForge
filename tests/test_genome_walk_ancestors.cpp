@@ -63,30 +63,30 @@ agenticdsl::genome::Genome make_genome(const std::string& name, uint64_t version
 TEST_CASE("walk_ancestors D9 default impl returns NotImplemented",
           "[walk-ancestors][d9-default]") {
     struct MockGenomeRegistry : agenticdsl::genome::IGenomeRegistry {
-        agenticdsl::genome::Result<agenticdsl::genome::Genome, agenticdsl::genome::GenomeError>
+        std::expected<agenticdsl::genome::Genome, agenticdsl::genome::GenomeError>
         load(const std::string&, uint64_t) override {
-            return agenticdsl::genome::Result<agenticdsl::genome::Genome, agenticdsl::genome::GenomeError>::failure(
-                agenticdsl::genome::GenomeError::NotFound);
+            return std::unexpected(std::move(
+                agenticdsl::genome::GenomeError::NotFound));
         }
-        agenticdsl::genome::Result<agenticdsl::genome::CommitResult, agenticdsl::genome::GenomeError>
+        std::expected<agenticdsl::genome::CommitResult, agenticdsl::genome::GenomeError>
         commit(const agenticdsl::genome::Genome&) override {
-            return agenticdsl::genome::Result<agenticdsl::genome::CommitResult, agenticdsl::genome::GenomeError>::failure(
-                agenticdsl::genome::GenomeError::NotFound);
+            return std::unexpected(std::move(
+                agenticdsl::genome::GenomeError::NotFound));
         }
-        agenticdsl::genome::Result<agenticdsl::genome::CommitResult, agenticdsl::genome::GenomeError>
+        std::expected<agenticdsl::genome::CommitResult, agenticdsl::genome::GenomeError>
         fork(const std::string&, uint64_t, const agenticdsl::genome::GenomeSpec&) override {
-            return agenticdsl::genome::Result<agenticdsl::genome::CommitResult, agenticdsl::genome::GenomeError>::failure(
-                agenticdsl::genome::GenomeError::NotFound);
+            return std::unexpected(std::move(
+                agenticdsl::genome::GenomeError::NotFound));
         }
-        agenticdsl::genome::Result<std::vector<uint64_t>, agenticdsl::genome::GenomeError>
+        std::expected<std::vector<uint64_t>, agenticdsl::genome::GenomeError>
         list_versions(const std::string&) override {
-            return agenticdsl::genome::Result<std::vector<uint64_t>, agenticdsl::genome::GenomeError>::failure(
-                agenticdsl::genome::GenomeError::NotFound);
+            return std::unexpected(std::move(
+                agenticdsl::genome::GenomeError::NotFound));
         }
-        agenticdsl::genome::Result<agenticdsl::genome::GenomeDiff, agenticdsl::genome::GenomeError>
+        std::expected<agenticdsl::genome::GenomeDiff, agenticdsl::genome::GenomeError>
         diff(const std::string&, uint64_t, uint64_t) override {
-            return agenticdsl::genome::Result<agenticdsl::genome::GenomeDiff, agenticdsl::genome::GenomeError>::failure(
-                agenticdsl::genome::GenomeError::NotFound);
+            return std::unexpected(std::move(
+                agenticdsl::genome::GenomeError::NotFound));
         }
         // walk_ancestors 不 override → D9 默认实现 → NotImplemented
     };

@@ -141,7 +141,9 @@ struct ShellGuard {
  * @brief 安全检查错误描述
  *
  * 用于 SecureToolRegistry 在拒绝调用时返回结构化错误。
- * 不使用 std::expected（C++23 才标准化）——改用 (error, message) 对。
+ * 保留 (error, message) 对而非 std::expected: 三态结果需区分
+ * 成功路径 (payload + SecurityError 双语义) 与 bool/json/SecurityError 三态,
+ * std::expected<T, SecurityError> 单值模式不匹配三态, 故保留本地结构体。
  */
 struct SecurityError {
   enum class Code {

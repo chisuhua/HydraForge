@@ -1,7 +1,7 @@
 // src/common/llm/llama_adapter_provider.cpp
 // 功能描述：LlamaAdapterProvider 实现
 //          把旧 LlamaAdapter 适配为新 ILLMProvider 接口
-//          把同步 throw-on-error 调用转换为 Result<T,E> 风格
+//          把同步 throw-on-error 调用转换为 std::expected<T,E> 风格
 // 设计依据：track-01-cloud-llm.md C₁.1、ADR-0001
 // 作者：AgenticDSL Track C₁
 // 最后修改日期：2026-06-08
@@ -90,12 +90,12 @@ LlamaAdapterProvider::available_models() const {
   };
 }
 
-Result<GenerationResult, LLMError>
+std::expected<GenerationResult, LLMError>
 LlamaAdapterProvider::generate(const GenerationRequest& req, std::stop_token token) {
     // 检查取消（调用前）
     if (token.stop_requested()) {
-        return Result<GenerationResult, LLMError>::failure(
-            LLMError{LLMError::Code::Cancelled, "Cancelled before generate"});
+        return std::unexpected(std::move(
+            LLMError{LLMError::Code::Cancelled, "Cancelled before generate"}));
     }
 
     try {
@@ -104,18 +104,18 @@ LlamaAdapterProvider::generate(const GenerationRequest& req, std::stop_token tok
 
         // 检查取消（generate 是阻塞调用，无法真正中断）
         if (token.stop_requested()) {
-            return Result<GenerationResult, LLMError>::failure(
-                LLMError{LLMError::Code::Cancelled, "Cancelled during generate"});
+            return std::unexpected(std::move(
+                LLMError{LLMError::Code::Cancelled, "Cancelled during generate"}));
         }
 
         GenerationResult result;
         result.text = std::move(text);
         result.finish_reason = "stop";
-        return Result<GenerationResult, LLMError>::success(std::move(result));
+        return std::expected<GenerationResult, LLMError>{std::in_place, std::move(std::move(result))};
     } catch (const std::exception& e) {
         // 转换异常为 LLMError
         LLMError err{LLMError::Code::ServerError, e.what()};
-        return Result<GenerationResult, LLMError>::failure(std::move(err));
+        return std::unexpected(std::move(std::move(err)));
     }
 }
 

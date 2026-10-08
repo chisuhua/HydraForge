@@ -19,10 +19,10 @@ namespace {
 
 class MockILLMProvider : public agenticdsl::ILLMProvider {
 public:
-    agenticdsl::Result<agenticdsl::GenerationResult, agenticdsl::LLMError>
+    std::expected<agenticdsl::GenerationResult, agenticdsl::LLMError>
     generate(const agenticdsl::GenerationRequest&, std::stop_token) override {
-        return agenticdsl::Result<agenticdsl::GenerationResult, agenticdsl::LLMError>::success(
-            agenticdsl::GenerationResult{});
+        return std::expected<agenticdsl::GenerationResult, agenticdsl::LLMError>{std::in_place, std::move(
+            agenticdsl::GenerationResult{})};
     }
     std::unique_ptr<agenticdsl::IGenerationStream> generate_stream(const agenticdsl::GenerationRequest&, std::stop_token) override {
         return nullptr;

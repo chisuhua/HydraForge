@@ -73,15 +73,15 @@ class StopAwareProvider : public ILLMProvider {
  public:
   mutable std::optional<bool> last_stop_requested;
 
-  Result<GenerationResult, LLMError>
+  std::expected<GenerationResult, LLMError>
   generate(const GenerationRequest& req, std::stop_token token) override {
     last_stop_requested = token.stop_requested();
     if (token.stop_requested()) {
-      return Result<GenerationResult, LLMError>::failure(
-          LLMError{LLMError::Code::Cancelled, "cancelled"});
+      return std::unexpected(std::move(
+          LLMError{LLMError::Code::Cancelled, "cancelled"}));
     }
-    return Result<GenerationResult, LLMError>::success(
-        GenerationResult{"ok", 1, 1, "stop"});
+    return std::expected<GenerationResult, LLMError>{std::in_place, std::move(
+        GenerationResult{"ok", 1, 1, "stop"})};
   }
   std::unique_ptr<IGenerationStream>
   generate_stream(const GenerationRequest&, std::stop_token) override {
@@ -130,10 +130,10 @@ TEST_CASE("OrchestrationILLMProvider rejects empty available_models via router",
   // Mock provider that returns empty available_models
   class EmptyMockProvider : public ILLMProvider {
    public:
-    Result<GenerationResult, LLMError>
+    std::expected<GenerationResult, LLMError>
     generate(const GenerationRequest&, std::stop_token) override {
-      return Result<GenerationResult, LLMError>::failure(
-          LLMError{LLMError::Code::InvalidRequest, "no models"});
+      return std::unexpected(std::move(
+          LLMError{LLMError::Code::InvalidRequest, "no models"}));
     }
     std::unique_ptr<IGenerationStream>
     generate_stream(const GenerationRequest&, std::stop_token) override {

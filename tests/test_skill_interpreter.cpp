@@ -355,12 +355,12 @@ class RecordingLLMProvider : public ILLMProvider {
    bool last_token_stop_possible = false;
    GenerationResult result;
 
-   Result<GenerationResult, LLMError> generate(
+   std::expected<GenerationResult, LLMError> generate(
        const GenerationRequest& req, std::stop_token token) override {
      last_model = req.params.model;
      last_token_stop_possible = token.stop_possible();
      ++generate_calls;
-     return Result<GenerationResult, LLMError>::success(result);
+     return std::expected<GenerationResult, LLMError>{std::in_place, std::move(result)};
    }
 
    std::unique_ptr<IGenerationStream> generate_stream(
@@ -380,7 +380,7 @@ class BlockingLLMProvider : public ILLMProvider {
   std::atomic<bool> entered{false};  // 记录是否进入 generate (供测试验证)
   std::atomic<bool> token_observed_cancelled{false};  // 记录 stop_token 是否被观察
 
-  Result<GenerationResult, LLMError> generate(
+  std::expected<GenerationResult, LLMError> generate(
       const GenerationRequest& req, std::stop_token token) override {
     ++generate_calls;
     entered.store(true);

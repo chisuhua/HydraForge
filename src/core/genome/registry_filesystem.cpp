@@ -151,7 +151,7 @@ bool is_valid_version_field(const std::string& s) {
 // C1 fix: cycle detection keyed on (name, version) pairs + depth cap.
 // Previous version-only key missed cross-name cycles (e.g. x@1 → a@1 → b@1 → a@1)
 // and could infinite-loop on adversarial/tampered lineage.
-Result<std::monostate, GenomeError> validate_lineage_no_cycle(
+std::expected<std::monostate, GenomeError> validate_lineage_no_cycle(
     const fs::path& root, const std::string& name, uint64_t version,
     const Genome& child) {
     std::unordered_set<std::string> visited;
@@ -167,36 +167,36 @@ Result<std::monostate, GenomeError> validate_lineage_no_cycle(
     size_t depth = 0;
     while (!cur_name.empty()) {
         if (++depth > kMaxLineageDepth) {
-            return Result<std::monostate, GenomeError>::failure(GenomeError::BrokenLineage);
+            return std::unexpected(std::move(GenomeError::BrokenLineage));
         }
         std::string key = cur_name + "@" + std::to_string(cur_version);
         if (visited.count(key)) {
-            return Result<std::monostate, GenomeError>::failure(GenomeError::BrokenLineage);
+            return std::unexpected(std::move(GenomeError::BrokenLineage));
         }
         visited.insert(key);
         fs::path yaml_path = root / cur_name / std::to_string(cur_version) / "genome.yaml";
         if (!fs::exists(yaml_path)) {
-            return Result<std::monostate, GenomeError>::failure(GenomeError::NotFound);
+            return std::unexpected(std::move(GenomeError::NotFound));
         }
         Genome parent_g;
         try {
             parent_g = parse_genome_yaml(yaml_path);
         } catch (const std::exception&) {
-            return Result<std::monostate, GenomeError>::failure(GenomeError::SchemaViolation);
+            return std::unexpected(std::move(GenomeError::SchemaViolation));
         }
         if (parent_g.metadata.parent.empty()) break;
         auto pp = parent_g.metadata.parent.find('@');
         if (pp == std::string::npos) {
-            return Result<std::monostate, GenomeError>::failure(GenomeError::SchemaViolation);
+            return std::unexpected(std::move(GenomeError::SchemaViolation));
         }
         cur_name = parent_g.metadata.parent.substr(0, pp);
         try {
             cur_version = std::stoull(parent_g.metadata.parent.substr(pp + 1));
         } catch (const std::exception&) {
-            return Result<std::monostate, GenomeError>::failure(GenomeError::SchemaViolation);
+            return std::unexpected(std::move(GenomeError::SchemaViolation));
         }
     }
-    return Result<std::monostate, GenomeError>::success(std::monostate{});
+    return std::expected<std::monostate, GenomeError>{std::in_place, std::move(std::monostate{})};
 }
 
 GenomeDiff diff_genomes(const Genome& a, const Genome& b) {
@@ -226,27 +226,27 @@ GenomeSpec deep_merge_spec(const GenomeSpec& parent, const GenomeSpec& mutations
 }
 
 // C2/M3 fix: atomic write returns success/failure; check stream state + handle exceptions
-Result<std::monostate, GenomeError> atomic_write(const fs::path& final_path, const std::string& content) {
+std::expected<std::monostate, GenomeError> atomic_write(const fs::path& final_path, const std::string& content) {
     fs::path tmp_path = final_path;
     tmp_path += ".tmp";
     try {
         {
             std::ofstream ofs(tmp_path, std::ios::trunc | std::ios::binary);
             if (!ofs.is_open()) {
-                return Result<std::monostate, GenomeError>::failure(GenomeError::IOError);
+                return std::unexpected(std::move(GenomeError::IOError));
             }
             ofs << content;
             ofs.flush();
             if (!ofs.good()) {
                 fs::remove(tmp_path);
-                return Result<std::monostate, GenomeError>::failure(GenomeError::IOError);
+                return std::unexpected(std::move(GenomeError::IOError));
             }
         }
         fs::rename(tmp_path, final_path);
     } catch (const std::filesystem::filesystem_error&) {
-        return Result<std::monostate, GenomeError>::failure(GenomeError::IOError);
+        return std::unexpected(std::move(GenomeError::IOError));
     }
-    return Result<std::monostate, GenomeError>::success(std::monostate{});
+    return std::expected<std::monostate, GenomeError>{std::in_place, std::move(std::monostate{})};
 }
 
 // m1 fix: fork generates fresh RFC3339 UTC timestamp (not inherit parent)
@@ -268,7 +268,7 @@ FilesystemGenomeRegistry::FilesystemGenomeRegistry(fs::path root)
     fs::create_directories(root_, ec);
 }
 
-Result<Genome, GenomeError> FilesystemGenomeRegistry::load(const std::string& name, uint64_t version) {
+std::expected<Genome, GenomeError> FilesystemGenomeRegistry::load(const std::string& name, uint64_t version) {
     fs::path version_dir = root_ / format_version_path(name, version);
     fs::path yaml_path = version_dir / "genome.yaml";
     fs::path sig_path = version_dir / "signature.hmac";
@@ -276,7 +276,7 @@ Result<Genome, GenomeError> FilesystemGenomeRegistry::load(const std::string& na
     // M1 fix: require BOTH files (atomicity half-state excluded)
     std::error_code ec;
     if (!fs::exists(yaml_path, ec) || !fs::exists(sig_path, ec)) {
-        return Result<Genome, GenomeError>::failure(GenomeError::NotFound);
+        return std::unexpected(std::move(GenomeError::NotFound));
     }
 
     std::string sig_hex;
@@ -286,22 +286,22 @@ Result<Genome, GenomeError> FilesystemGenomeRegistry::load(const std::string& na
         sig_ss << sig_ifs.rdbuf();
         sig_hex = sig_ss.str();
     } catch (const std::exception&) {
-        return Result<Genome, GenomeError>::failure(GenomeError::IOError);
+        return std::unexpected(std::move(GenomeError::IOError));
     }
 
     Genome g;
     try {
         g = parse_genome_yaml(yaml_path);
     } catch (const std::exception&) {
-        return Result<Genome, GenomeError>::failure(GenomeError::SchemaViolation);
+        return std::unexpected(std::move(GenomeError::SchemaViolation));
     }
 
     if (!is_valid_capture_mode(g.metadata.capture_mode)) {
-        return Result<Genome, GenomeError>::failure(GenomeError::SchemaViolation);
+        return std::unexpected(std::move(GenomeError::SchemaViolation));
     }
     // version consistency check (loaded version must match dir name)
     if (g.metadata.version != version) {
-        return Result<Genome, GenomeError>::failure(GenomeError::SchemaViolation);
+        return std::unexpected(std::move(GenomeError::SchemaViolation));
     }
 
     std::string canonical = canonical_yaml_serialize(g);
@@ -309,30 +309,30 @@ Result<Genome, GenomeError> FilesystemGenomeRegistry::load(const std::string& na
     try {
         key = load_or_generate_hmac_key();
     } catch (const std::exception&) {
-        return Result<Genome, GenomeError>::failure(GenomeError::IOError);
+        return std::unexpected(std::move(GenomeError::IOError));
     }
     if (!hmac_verify(key, canonical, sig_hex)) {
-        return Result<Genome, GenomeError>::failure(GenomeError::IntegrityViolation);
+        return std::unexpected(std::move(GenomeError::IntegrityViolation));
     }
 
     if (!g.metadata.parent.empty()) {
         auto cv = validate_lineage_no_cycle(root_, name, version, g);
         if (!cv.has_value()) {
-            return Result<Genome, GenomeError>::failure(cv.error());
+            return std::unexpected(std::move(cv.error()));
         }
     }
-    return Result<Genome, GenomeError>::success(g);
+    return std::expected<Genome, GenomeError>{std::in_place, std::move(g)};
 }
 
-Result<CommitResult, GenomeError> FilesystemGenomeRegistry::commit(const Genome& g) {
+std::expected<CommitResult, GenomeError> FilesystemGenomeRegistry::commit(const Genome& g) {
     // M4 fix: serialize concurrent commits via internal mutex
     std::lock_guard<std::mutex> lock(commit_mutex_);
 
     if (g.metadata.name.empty()) {
-        return Result<CommitResult, GenomeError>::failure(GenomeError::SchemaViolation);
+        return std::unexpected(std::move(GenomeError::SchemaViolation));
     }
     if (!is_valid_capture_mode(g.metadata.capture_mode)) {
-        return Result<CommitResult, GenomeError>::failure(GenomeError::SchemaViolation);
+        return std::unexpected(std::move(GenomeError::SchemaViolation));
     }
 
     uint64_t next_version = 1;
@@ -356,7 +356,7 @@ Result<CommitResult, GenomeError> FilesystemGenomeRegistry::commit(const Genome&
     if (!to_write.metadata.parent.empty()) {
         auto cv = validate_lineage_no_cycle(root_, g.metadata.name, next_version, to_write);
         if (!cv.has_value()) {
-            return Result<CommitResult, GenomeError>::failure(cv.error());
+            return std::unexpected(std::move(cv.error()));
         }
     }
 
@@ -365,7 +365,7 @@ Result<CommitResult, GenomeError> FilesystemGenomeRegistry::commit(const Genome&
     try {
         key = load_or_generate_hmac_key();
     } catch (const std::exception&) {
-        return Result<CommitResult, GenomeError>::failure(GenomeError::IOError);
+        return std::unexpected(std::move(GenomeError::IOError));
     }
     std::string sig = hmac_sign(key, canonical);
 
@@ -373,7 +373,7 @@ Result<CommitResult, GenomeError> FilesystemGenomeRegistry::commit(const Genome&
     std::error_code ec2;
     fs::create_directories(version_dir, ec2);
     if (ec2) {
-        return Result<CommitResult, GenomeError>::failure(GenomeError::IOError);
+        return std::unexpected(std::move(GenomeError::IOError));
     }
 
     // M1 fix: write signature FIRST, genome.yaml SECOND. Rationale: signature.hmac is
@@ -386,23 +386,23 @@ Result<CommitResult, GenomeError> FilesystemGenomeRegistry::commit(const Genome&
     if (!sig_res.has_value()) {
         std::error_code rmec;
         fs::remove_all(version_dir, rmec);
-        return Result<CommitResult, GenomeError>::failure(sig_res.error());
+        return std::unexpected(std::move(sig_res.error()));
     }
     auto yaml_res = atomic_write(version_dir / "genome.yaml", canonical);
     if (!yaml_res.has_value()) {
         std::error_code rmec;
         fs::remove_all(version_dir, rmec);
-        return Result<CommitResult, GenomeError>::failure(yaml_res.error());
+        return std::unexpected(std::move(yaml_res.error()));
     }
 
-    return Result<CommitResult, GenomeError>::success({next_version});
+    return std::expected<CommitResult, GenomeError>{std::in_place, CommitResult{next_version}};
 }
 
-Result<CommitResult, GenomeError> FilesystemGenomeRegistry::fork(
+std::expected<CommitResult, GenomeError> FilesystemGenomeRegistry::fork(
     const std::string& name, uint64_t parent_version, const GenomeSpec& mutations) {
     auto parent_res = load(name, parent_version);
     if (!parent_res.has_value()) {
-        return Result<CommitResult, GenomeError>::failure(parent_res.error());
+        return std::unexpected(std::move(parent_res.error()));
     }
     Genome parent = parent_res.value();
     Genome child;
@@ -415,13 +415,13 @@ Result<CommitResult, GenomeError> FilesystemGenomeRegistry::fork(
     return commit(child);
 }
 
-Result<std::vector<uint64_t>, GenomeError> FilesystemGenomeRegistry::list_versions(
+std::expected<std::vector<uint64_t>, GenomeError> FilesystemGenomeRegistry::list_versions(
     const std::string& name) {
     fs::path name_dir = root_ / name;
     std::vector<uint64_t> versions;
     std::error_code ec;
     if (!fs::exists(name_dir, ec)) {
-        return Result<std::vector<uint64_t>, GenomeError>::success(versions);
+        return std::expected<std::vector<uint64_t>, GenomeError>{std::in_place, std::move(versions)};
     }
     for (const auto& entry : fs::directory_iterator(name_dir, ec)) {
         if (entry.is_directory()) {
@@ -437,23 +437,23 @@ Result<std::vector<uint64_t>, GenomeError> FilesystemGenomeRegistry::list_versio
         }
     }
     std::sort(versions.begin(), versions.end());
-    return Result<std::vector<uint64_t>, GenomeError>::success(versions);
+    return std::expected<std::vector<uint64_t>, GenomeError>{std::in_place, std::move(versions)};
 }
 
-Result<GenomeDiff, GenomeError> FilesystemGenomeRegistry::diff(
+std::expected<GenomeDiff, GenomeError> FilesystemGenomeRegistry::diff(
     const std::string& name, uint64_t v1, uint64_t v2) {
     auto a = load(name, v1);
-    if (!a.has_value()) return Result<GenomeDiff, GenomeError>::failure(a.error());
+    if (!a.has_value()) return std::unexpected(std::move(a.error()));
     auto b = load(name, v2);
-    if (!b.has_value()) return Result<GenomeDiff, GenomeError>::failure(b.error());
-    return Result<GenomeDiff, GenomeError>::success(diff_genomes(a.value(), b.value()));
+    if (!b.has_value()) return std::unexpected(std::move(b.error()));
+    return std::expected<GenomeDiff, GenomeError>{std::in_place, std::move(diff_genomes(a.value(), b.value()))};
 }
 
 // D5 (C3 ship): walk_ancestors override — light parse + visited set cycle detection
 // Per Oracle O-2 Major + AGENTS.md pattern #4 性能: 不调 public load() (避免 O(n²) + 每次 HMAC key 读盘)
 // 直接复用 anonymous namespace parse_genome_yaml + 跳过 HMAC verify (walk 自身 visited set 检环)
 // v1 拒绝跨名 lineage (Critical C4 + AC-8) → BrokenLineage
-Result<LineageWalk, GenomeError> FilesystemGenomeRegistry::walk_ancestors(
+std::expected<LineageWalk, GenomeError> FilesystemGenomeRegistry::walk_ancestors(
     const std::string& name, uint64_t from_version,
     std::optional<uint64_t> to_version) {
     LineageWalk walk;
@@ -465,7 +465,7 @@ Result<LineageWalk, GenomeError> FilesystemGenomeRegistry::walk_ancestors(
     while (true) {
         std::string key = cur_name + "@" + std::to_string(cur_version);
         if (visited.count(key)) {
-            return Result<LineageWalk, GenomeError>::failure(GenomeError::BrokenLineage);
+            return std::unexpected(std::move(GenomeError::BrokenLineage));
         }
         visited.insert(key);
 
@@ -476,15 +476,15 @@ Result<LineageWalk, GenomeError> FilesystemGenomeRegistry::walk_ancestors(
             // First iteration (self) = from_version not exists → NotFound (per spec)
             // Subsequent iterations (parent) = broken lineage → BrokenLineage
             if (cur_name == name && cur_version == from_version) {
-                return Result<LineageWalk, GenomeError>::failure(GenomeError::NotFound);
+                return std::unexpected(std::move(GenomeError::NotFound));
             }
-            return Result<LineageWalk, GenomeError>::failure(GenomeError::BrokenLineage);
+            return std::unexpected(std::move(GenomeError::BrokenLineage));
         }
         Genome g;
         try {
             g = parse_genome_yaml(yaml_path);
         } catch (const std::exception&) {
-            return Result<LineageWalk, GenomeError>::failure(GenomeError::SchemaViolation);
+            return std::unexpected(std::move(GenomeError::SchemaViolation));
         }
 
         walk.intermediate_versions.push_back(cur_version);
@@ -500,7 +500,7 @@ Result<LineageWalk, GenomeError> FilesystemGenomeRegistry::walk_ancestors(
         if (cur_g.metadata.parent.empty()) {
             // If to_version provided but not reached → BrokenLineage
             if (to_version.has_value()) {
-                return Result<LineageWalk, GenomeError>::failure(GenomeError::BrokenLineage);
+                return std::unexpected(std::move(GenomeError::BrokenLineage));
             }
             break;
         }
@@ -508,23 +508,23 @@ Result<LineageWalk, GenomeError> FilesystemGenomeRegistry::walk_ancestors(
         // Parse parent pointer "name@version"
         auto p = cur_g.metadata.parent.find('@');
         if (p == std::string::npos) {
-            return Result<LineageWalk, GenomeError>::failure(GenomeError::SchemaViolation);
+            return std::unexpected(std::move(GenomeError::SchemaViolation));
         }
         std::string next_name = cur_g.metadata.parent.substr(0, p);
         try {
             cur_version = std::stoull(cur_g.metadata.parent.substr(p + 1));
         } catch (const std::exception&) {
-            return Result<LineageWalk, GenomeError>::failure(GenomeError::SchemaViolation);
+            return std::unexpected(std::move(GenomeError::SchemaViolation));
         }
 
         // Cross-name rejection (AC-8 v1 explicit limitation)
         if (next_name != name) {
-            return Result<LineageWalk, GenomeError>::failure(GenomeError::BrokenLineage);
+            return std::unexpected(std::move(GenomeError::BrokenLineage));
         }
         cur_name = next_name;
     }
 
-    return Result<LineageWalk, GenomeError>::success(std::move(walk));
+    return std::expected<LineageWalk, GenomeError>{std::in_place, std::move(std::move(walk))};
 }
 
 std::unique_ptr<IGenomeRegistry> IGenomeRegistry::create_filesystem(const fs::path& root) {

@@ -59,9 +59,9 @@ bool RateLimitDecorator::try_consume(int tokens) {
   return false;
 }
 
-Result<GenerationResult, LLMError> RateLimitDecorator::decorate_generate(
+std::expected<GenerationResult, LLMError> RateLimitDecorator::decorate_generate(
     const GenerationRequest& req,
-    Result<GenerationResult, LLMError> inner_result) {
+    std::expected<GenerationResult, LLMError> inner_result) {
   // Phase 5 修复: 预扣已迁移到 pre_check_generate (在基类调用 inner 之前)。
   // 本方法仅负责在 inner 调用完之后, 根据成功 / 失败退还预扣的配额。
   const int max_tokens = req.params.max_tokens;

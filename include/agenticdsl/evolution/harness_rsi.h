@@ -70,7 +70,7 @@ enum class MutationError {
 // DUAL-GATE ORDER: Gate 0 (含 workflow_patch) → evaluate_readiness → is_tool_allowed → apply.
 // G4 扩展: Gate 3 (persist-before-apply) 在 is_tool_allowed 之后、apply 之前.
 // 失败路径零状态变更. workflow_patch → UnsupportedVariant (Gate 0).
-agenticdsl::Result<AppliedMutation, MutationError> apply_harness_mutation(
+std::expected<AppliedMutation, MutationError> apply_harness_mutation(
     const GenomeMutations& mutations,
     std::string& system_prompt,
     std::vector<std::string>& tools,

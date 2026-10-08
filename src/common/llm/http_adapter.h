@@ -56,7 +56,7 @@ public:
    * @param token 取消 token（默认空，即不可取消）
    * @return 成功时返回 GenerationResult，失败时返回 LLMError
    */
-  Result<GenerationResult, LLMError>
+  std::expected<GenerationResult, LLMError>
       generate(const GenerationRequest& req, std::stop_token token) override;
 
   /**

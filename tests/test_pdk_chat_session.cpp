@@ -261,14 +261,13 @@ TEST_CASE("ChatSession does not call the LLM provider directly (loop/run is the 
     std::string last_model;
     int generate_calls = 0;
 
-    agenticdsl::Result<agenticdsl::GenerationResult, agenticdsl::LLMError> generate(
+    std::expected<agenticdsl::GenerationResult, agenticdsl::LLMError> generate(
         const agenticdsl::GenerationRequest& req, std::stop_token) override {
       last_model = req.params.model;
       ++generate_calls;
       agenticdsl::GenerationResult r;
       r.text = "direct-provider-response";
-      return agenticdsl::Result<agenticdsl::GenerationResult,
-                                agenticdsl::LLMError>::success(r);
+      return std::expected<agenticdsl::GenerationResult, agenticdsl::LLMError>{std::in_place, std::move(r)};
     }
     std::unique_ptr<agenticdsl::IGenerationStream> generate_stream(
         const agenticdsl::GenerationRequest&, std::stop_token) override {

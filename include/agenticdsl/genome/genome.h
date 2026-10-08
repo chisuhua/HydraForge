@@ -7,6 +7,7 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <filesystem>
 #include <memory>
 #include <optional>
@@ -26,33 +27,6 @@ enum class GenomeError {
     CycleDetected,
     IOError,
     NotImplemented,
-};
-
-// Result<T, E> — 复用 llm_types.h pattern
-template <typename T, typename E>
-class Result {
-public:
-    bool has_value() const { return has_val_; }
-    const T& value() const { return val_; }
-    const E& error() const { return err_; }
-
-    static Result success(T v) {
-        Result r;
-        r.has_val_ = true;
-        r.val_ = std::move(v);
-        return r;
-    }
-    static Result failure(E e) {
-        Result r;
-        r.has_val_ = false;
-        r.err_ = std::move(e);
-        return r;
-    }
-private:
-    Result() = default;
-    bool has_val_ = false;
-    T val_;
-    E err_;
 };
 
 // D2 Genome metadata — 单调整数 version (no semver, Oracle pitfall #5)
@@ -99,23 +73,23 @@ class IGenomeRegistry {
 public:
     virtual ~IGenomeRegistry() = default;
 
-    virtual Result<Genome, GenomeError> load(const std::string& name, uint64_t version) = 0;
-    virtual Result<CommitResult, GenomeError> commit(const Genome& genome) = 0;
-    virtual Result<CommitResult, GenomeError> fork(const std::string& name,
+    virtual std::expected<Genome, GenomeError> load(const std::string& name, uint64_t version) = 0;
+    virtual std::expected<CommitResult, GenomeError> commit(const Genome& genome) = 0;
+    virtual std::expected<CommitResult, GenomeError> fork(const std::string& name,
                                                     uint64_t parent_version,
                                                     const GenomeSpec& mutations) = 0;
-    virtual Result<std::vector<uint64_t>, GenomeError> list_versions(const std::string& name) = 0;
-    virtual Result<GenomeDiff, GenomeError> diff(const std::string& name,
+    virtual std::expected<std::vector<uint64_t>, GenomeError> list_versions(const std::string& name) = 0;
+    virtual std::expected<GenomeDiff, GenomeError> diff(const std::string& name,
                                                   uint64_t v1, uint64_t v2) = 0;
 
     // D5/D9 (C3 ship): walk_ancestors with default implementation returning NotImplemented
     // Default impl (not = 0) per AGENTS.md pattern #9 ITimerService precedent — avoids LSP cascade
     // for test mocks and future derivations. FilesystemGenomeRegistry overrides.
-    virtual Result<LineageWalk, GenomeError> walk_ancestors(
+    virtual std::expected<LineageWalk, GenomeError> walk_ancestors(
         const std::string& name, uint64_t from_version,
         std::optional<uint64_t> to_version = std::nullopt) {
         (void)name; (void)from_version; (void)to_version;
-        return Result<LineageWalk, GenomeError>::failure(GenomeError::NotImplemented);
+        return std::unexpected(std::move(GenomeError::NotImplemented));
     }
 
     // Factory: filesystem backend with custom root (per D9 + design.md)

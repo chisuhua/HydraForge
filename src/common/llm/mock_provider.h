@@ -94,7 +94,7 @@ public:
 
   // === ILLMProvider 接口 ===
 
-  Result<GenerationResult, LLMError>
+  std::expected<GenerationResult, LLMError>
       generate(const GenerationRequest& req, std::stop_token token) override;
 
   std::unique_ptr<IGenerationStream>

@@ -55,14 +55,14 @@ TEST_CASE("should_compact returns true strictly above threshold") {
 // Mock LLMProvider for testing compact()
 class MockLLMForCompact : public ILLMProvider {
 public:
-  Result<GenerationResult, LLMError>
+  std::expected<GenerationResult, LLMError>
       generate(const GenerationRequest& req, std::stop_token) override {
     ++call_count;
     last_prompt = req.prompt;
     GenerationResult gr;
     gr.text = "[SUMMARY] " + req.prompt.substr(0, 30);
     gr.completion_tokens = 10;
-    return Result<GenerationResult, LLMError>::success(std::move(gr));
+    return std::expected<GenerationResult, LLMError>{std::in_place, std::move(std::move(gr))};
   }
   std::unique_ptr<IGenerationStream>
       generate_stream(const GenerationRequest&, std::stop_token) override {
@@ -77,10 +77,10 @@ public:
 
 class FailingLLMForCompact : public ILLMProvider {
 public:
-  Result<GenerationResult, LLMError>
+  std::expected<GenerationResult, LLMError>
       generate(const GenerationRequest&, std::stop_token) override {
-    return Result<GenerationResult, LLMError>::failure(
-        LLMError{LLMError::Code::NetworkError, "timeout"});
+    return std::unexpected(std::move(
+        LLMError{LLMError::Code::NetworkError, "timeout"}));
   }
   std::unique_ptr<IGenerationStream>
       generate_stream(const GenerationRequest&, std::stop_token) override {
@@ -91,7 +91,7 @@ public:
 
 class ThrowingLLMForCompact : public ILLMProvider {
 public:
-  Result<GenerationResult, LLMError>
+  std::expected<GenerationResult, LLMError>
       generate(const GenerationRequest&, std::stop_token) override {
     throw std::runtime_error("boom");
   }
@@ -138,14 +138,14 @@ class RecordingLLMProvider_Compact : public ILLMProvider {
   std::string last_model;
   int generate_calls = 0;
 
-  Result<GenerationResult, LLMError>
+  std::expected<GenerationResult, LLMError>
       generate(const GenerationRequest& req, std::stop_token) override {
     last_model = req.params.model;
     ++generate_calls;
     GenerationResult gr;
     gr.text = "[SUMMARY_OK]";
     gr.completion_tokens = 5;
-    return Result<GenerationResult, LLMError>::success(std::move(gr));
+    return std::expected<GenerationResult, LLMError>{std::in_place, std::move(std::move(gr))};
   }
   std::unique_ptr<IGenerationStream>
       generate_stream(const GenerationRequest&, std::stop_token) override {

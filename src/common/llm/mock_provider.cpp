@@ -114,7 +114,7 @@ GenerationResult MockLLMProvider::next_response() {
   return GenerationResult{};  // 空响应
 }
 
-Result<GenerationResult, LLMError>
+std::expected<GenerationResult, LLMError>
 MockLLMProvider::generate(const GenerationRequest& req, std::stop_token token) {
   // 记录调用历史 — history_mutex_ 保护 (见 header 注释).
   {
@@ -129,8 +129,8 @@ MockLLMProvider::generate(const GenerationRequest& req, std::stop_token token) {
     const auto step = std::chrono::milliseconds(50);
     while (remaining.count() > 0) {
       if (token.stop_requested()) {
-        return Result<GenerationResult, LLMError>::failure(
-            LLMError{LLMError::Code::Cancelled, "Cancelled during delay"});
+        return std::unexpected(std::move(
+            LLMError{LLMError::Code::Cancelled, "Cancelled during delay"}));
       }
       auto sleep_for = std::min(step, remaining);
       std::this_thread::sleep_for(sleep_for);
@@ -140,10 +140,10 @@ MockLLMProvider::generate(const GenerationRequest& req, std::stop_token token) {
 
   // 错误注入
   if (simulated_error_.has_value()) {
-    return Result<GenerationResult, LLMError>::failure(*simulated_error_);
+    return std::unexpected(std::move(*simulated_error_));
   }
 
-  return Result<GenerationResult, LLMError>::success(next_response());
+  return std::expected<GenerationResult, LLMError>{std::in_place, std::move(next_response())};
 }
 
 std::unique_ptr<IGenerationStream>

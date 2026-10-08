@@ -195,11 +195,11 @@ HttpLLMAdapter::HttpResponse HttpLLMAdapter::do_post(
 // ILLMProvider 接口实现
 // =====================================================================
 
-Result<GenerationResult, LLMError>
+std::expected<GenerationResult, LLMError>
 HttpLLMAdapter::generate(const GenerationRequest& req, std::stop_token token) {
     if (!is_available()) {
-        return Result<GenerationResult, LLMError>::failure(
-            LLMError{LLMError::Code::InvalidRequest, "api_url not configured"});
+        return std::unexpected(std::move(
+            LLMError{LLMError::Code::InvalidRequest, "api_url not configured"}));
     }
 
     std::string body = build_request_body(req);
@@ -209,12 +209,12 @@ HttpLLMAdapter::generate(const GenerationRequest& req, std::stop_token token) {
     auto http_resp = do_post(endpoint, body, token);
 
     if (http_resp.network_error) {
-        return Result<GenerationResult, LLMError>::failure(
-            LLMError{LLMError::Code::NetworkError, http_resp.error_message});
+        return std::unexpected(std::move(
+            LLMError{LLMError::Code::NetworkError, http_resp.error_message}));
     }
     if (http_resp.status_code < 200 || http_resp.status_code >= 300) {
-        return Result<GenerationResult, LLMError>::failure(
-            map_http_error(http_resp.status_code, http_resp.body));
+        return std::unexpected(std::move(
+            map_http_error(http_resp.status_code, http_resp.body)));
     }
 
     // 解析 OpenAI 响应
@@ -241,11 +241,11 @@ HttpLLMAdapter::generate(const GenerationRequest& req, std::stop_token token) {
                     j["usage"]["completion_tokens"].get<int>();
             }
         }
-        return Result<GenerationResult, LLMError>::success(result);
+        return std::expected<GenerationResult, LLMError>{std::in_place, std::move(result)};
     } catch (const std::exception& e) {
-        return Result<GenerationResult, LLMError>::failure(
+        return std::unexpected(std::move(
             LLMError{LLMError::Code::InvalidRequest,
-                     std::string("Response parse error: ") + e.what()});
+                     std::string("Response parse error: ") + e.what()}));
     }
 }
 

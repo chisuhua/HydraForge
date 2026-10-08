@@ -34,7 +34,7 @@ class RecordingMockProvider : public ILLMProvider {
   std::chrono::milliseconds simulate_delay{0};
   GenerationResult fixed;
 
-  Result<GenerationResult, LLMError> generate(
+  std::expected<GenerationResult, LLMError> generate(
       const GenerationRequest& req, std::stop_token token) override {
     int now_active = active_calls.fetch_add(1) + 1;
     int prev_max = max_concurrent_observed.load();
@@ -50,15 +50,15 @@ class RecordingMockProvider : public ILLMProvider {
       while (std::chrono::steady_clock::now() < deadline) {
         if (token.stop_requested()) {
           active_calls.fetch_sub(1);
-          return Result<GenerationResult, LLMError>::failure(LLMError{
-              LLMError::Code::Cancelled, "RecordingMock: cancelled"});
+          return std::unexpected(std::move(LLMError{
+              LLMError::Code::Cancelled, "RecordingMock: cancelled"}));
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
       }
     }
 
     active_calls.fetch_sub(1);
-    return Result<GenerationResult, LLMError>::success(fixed);
+    return std::expected<GenerationResult, LLMError>{std::in_place, std::move(fixed)};
   }
 
   std::unique_ptr<IGenerationStream> generate_stream(

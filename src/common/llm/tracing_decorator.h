@@ -46,9 +46,9 @@ class TracingDecorator : public ILLMProviderDecorator {
   std::optional<LLMError> pre_check_generate(
       const GenerationRequest& req) override;
 
-  Result<GenerationResult, LLMError> decorate_generate(
+  std::expected<GenerationResult, LLMError> decorate_generate(
       const GenerationRequest& req,
-      Result<GenerationResult, LLMError> inner_result) override;
+      std::expected<GenerationResult, LLMError> inner_result) override;
 
  private:
   std::shared_ptr<IInteractionBus> bus_;
@@ -62,7 +62,7 @@ class TracingDecorator : public ILLMProviderDecorator {
 
   void emit_request(const GenerationRequest& req);
   void emit_response(const GenerationRequest& req,
-                     const Result<GenerationResult, LLMError>& inner_result,
+                     const std::expected<GenerationResult, LLMError>& inner_result,
                      std::chrono::steady_clock::duration duration);
 };
 

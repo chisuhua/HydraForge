@@ -59,7 +59,7 @@ class ILLMProviderDecorator : public ILLMProvider {
   // === final 转发层 ===
   // 标记 final 防止子类绕过钩子; 子类通过 override decorate_* 钩子注入逻辑
 
-  Result<GenerationResult, LLMError> generate(
+  std::expected<GenerationResult, LLMError> generate(
       const GenerationRequest& req, std::stop_token token) override final;
 
   std::unique_ptr<IGenerationStream> generate_stream(
@@ -136,9 +136,9 @@ class ILLMProviderDecorator : public ILLMProvider {
    *
    * 注意: 装饰器 MUST NOT 修改业务返回值 (REQ-IPD-002 §Scenario "同步 generate 计费")
    */
-  virtual Result<GenerationResult, LLMError> decorate_generate(
+  virtual std::expected<GenerationResult, LLMError> decorate_generate(
       const GenerationRequest& req,
-      Result<GenerationResult, LLMError> inner_result) {
+      std::expected<GenerationResult, LLMError> inner_result) {
     return inner_result;
   }
 

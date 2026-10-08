@@ -390,7 +390,7 @@ Context NodeExecutor::execute_generate_subgraph(const GenerateSubgraphNode* node
          // [DEBUG-removed] For now, assume budget info is added by the calling context or PromptBuilder
          // [DEBUG-removed] prompt_ctx["budget"] = ...; // Access budget from ExecutionSession
 
-        // 2. Call LLM（C₁.2: 使用 ILLMProvider 接口，Result<T,E> 风格）
+        // 2. Call LLM（C₁.2: 使用 ILLMProvider 接口，std::expected<T,E> 风格）
         std::string generated_dsl;
         if (llm_provider_) {
             GenerationRequest req;

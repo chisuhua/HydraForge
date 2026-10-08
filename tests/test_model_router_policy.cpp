@@ -54,9 +54,9 @@ class StubProvider : public ILLMProvider {
  public:
   explicit StubProvider(std::vector<ModelInfo> models) : models_(std::move(models)) {}
 
-  Result<GenerationResult, LLMError>
+  std::expected<GenerationResult, LLMError>
       generate(const GenerationRequest& /*req*/, std::stop_token /*token*/) override {
-    return Result<GenerationResult, LLMError>::failure(LLMError());
+    return std::unexpected(std::move(LLMError()));
   }
 
   std::unique_ptr<IGenerationStream>

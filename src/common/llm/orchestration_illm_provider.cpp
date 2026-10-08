@@ -20,12 +20,12 @@ OrchestrationILLMProvider::OrchestrationILLMProvider(
   // 这里只防御 nullptr, 不抛 (避免破坏 EXPECT/TEST 路径中的快速失败)
 }
 
-Result<GenerationResult, LLMError>
+std::expected<GenerationResult, LLMError>
 OrchestrationILLMProvider::generate(const GenerationRequest& req,
                                     std::stop_token token) {
   if (!inference_provider_) {
-    return Result<GenerationResult, LLMError>::failure(
-        LLMError{LLMError::Code::InvalidRequest, "no inference provider"});
+    return std::unexpected(std::move(
+        LLMError{LLMError::Code::InvalidRequest, "no inference provider"}));
   }
 
   // === Step 1: 路由选择 (若 router_ 注入) ===
@@ -34,8 +34,8 @@ OrchestrationILLMProvider::generate(const GenerationRequest& req,
   if (router_) {
     auto models = inference_provider_->available_models();
     if (models.empty()) {
-      return Result<GenerationResult, LLMError>::failure(
-          LLMError{LLMError::Code::InvalidRequest, "no models available"});
+      return std::unexpected(std::move(
+          LLMError{LLMError::Code::InvalidRequest, "no models available"}));
     }
     // 调用 router 但结果不强制修改 req (router 可作为日志/审计信号)
     // Note: full router integration 是 ADR-0045 §2.2 — Phase 5 ship MVP 仅做钩子
@@ -82,13 +82,13 @@ OrchestrationILLMProvider::available_models() const {
   return inference_provider_->available_models();
 }
 
-Result<GenerationResult, LLMError>
+std::expected<GenerationResult, LLMError>
 OrchestrationILLMProvider::direct_generate(const GenerationRequest& req,
                                           std::stop_token token) {
   // 双保险: 即使 generate() 已检查过, 这里也再确保一次
   if (!inference_provider_) {
-    return Result<GenerationResult, LLMError>::failure(
-        LLMError{LLMError::Code::InvalidRequest, "inference provider is null"});
+    return std::unexpected(std::move(
+        LLMError{LLMError::Code::InvalidRequest, "inference provider is null"}));
   }
   return inference_provider_->generate(req, token);
 }

@@ -29,7 +29,7 @@ namespace agenticdsl {
  * 行为 (token bucket 算法):
  *  - decorate_generate():
  *    1. try_consume(max_tokens) 预扣配额
- *    2. 若配额不足, 返回 Result::failure(LLMError{Code::RateLimited, ...})
+ *    2. 若配额不足, 返回 std::unexpected(LLMError{Code::RateLimited, ...})
  *    3. 若配额充足, 转发到 inner_->generate()
  *    4. inner 成功后, 退还差额: tokens_remaining += (max_tokens - actual_tokens)
  *  - decorate_generate_stream():
@@ -65,9 +65,9 @@ class RateLimitDecorator : public ILLMProviderDecorator {
       const GenerationRequest& req) override;
 
   /// 同步 generate: 仅负责根据成功 / 失败退还预扣的配额 (post-refund)
-  Result<GenerationResult, LLMError> decorate_generate(
+  std::expected<GenerationResult, LLMError> decorate_generate(
       const GenerationRequest& req,
-      Result<GenerationResult, LLMError> inner_result) override;
+      std::expected<GenerationResult, LLMError> inner_result) override;
 
   /// 流式 generate_stream: 包装 inner_stream 为 RateLimitStream (退款逻辑在
   /// RateLimitStream::next / ~RateLimitStream 中完成)

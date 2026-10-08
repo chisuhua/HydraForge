@@ -199,10 +199,10 @@ TEST_CASE("GenerationResult default constructor", "[llm_streaming][llm_provider]
 TEST_CASE("MockProvider generate returns text", "[llm_streaming][llm_provider]") {
   class MockProvider : public ILLMProvider {
   public:
-    Result<GenerationResult, LLMError>
+    std::expected<GenerationResult, LLMError>
         generate(const GenerationRequest& req, std::stop_token) override {
-      return Result<GenerationResult, LLMError>::success(
-          GenerationResult{"Mock response: " + req.prompt, 10, 5, "stop"});
+      return std::expected<GenerationResult, LLMError>{std::in_place, std::move(
+          GenerationResult{"Mock response: " + req.prompt, 10, 5, "stop"})};
     }
 
     std::unique_ptr<IGenerationStream>
@@ -237,10 +237,10 @@ TEST_CASE("MockProvider generate returns text", "[llm_streaming][llm_provider]")
 TEST_CASE("MockProvider generate_stream returns tokens", "[llm_streaming][llm_provider]") {
   class MockProvider : public ILLMProvider {
   public:
-    Result<GenerationResult, LLMError>
+    std::expected<GenerationResult, LLMError>
         generate(const GenerationRequest&, std::stop_token) override {
-      return Result<GenerationResult, LLMError>::success(
-          GenerationResult{"full text", 10, 10, "stop"});
+      return std::expected<GenerationResult, LLMError>{std::in_place, std::move(
+          GenerationResult{"full text", 10, 10, "stop"})};
     }
 
     std::unique_ptr<IGenerationStream>

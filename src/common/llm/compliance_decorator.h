@@ -58,9 +58,9 @@ class ComplianceDecorator : public ILLMProviderDecorator {
   // === 钩子实现 ===
 
   /// 同步 generate: emit prompt_hash + completion_hash compliance.log events
-  Result<GenerationResult, LLMError> decorate_generate(
+  std::expected<GenerationResult, LLMError> decorate_generate(
       const GenerationRequest& req,
-      Result<GenerationResult, LLMError> inner_result) override;
+      std::expected<GenerationResult, LLMError> inner_result) override;
 
   /// 流式 generate_stream: 返回 ComplianceStream 包装 inner_stream
   std::unique_ptr<IGenerationStream> decorate_generate_stream(

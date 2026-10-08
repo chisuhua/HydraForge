@@ -44,7 +44,7 @@ class OrchestrationILLMProvider : public ILLMProvider {
 
   ~OrchestrationILLMProvider() override = default;
 
-  Result<GenerationResult, LLMError>
+  std::expected<GenerationResult, LLMError>
   generate(const GenerationRequest& req, std::stop_token token) override;
 
   std::unique_ptr<IGenerationStream>
@@ -60,7 +60,7 @@ class OrchestrationILLMProvider : public ILLMProvider {
   /// 直连 generate 的核心; 调用方 prepare-and-forward
   /// ensure_session() 在 MVP 阶段为 no-op (会话由 DSLEngine 管理层注入, REQ-ICC-006)
   /// apply_per_request_config() 在 MVP 阶段为 identity (后续可注入 max_tokens 调整)
-  Result<GenerationResult, LLMError>
+  std::expected<GenerationResult, LLMError>
   direct_generate(const GenerationRequest& req, std::stop_token token);
 
   std::shared_ptr<ILLMProvider> inference_provider_;

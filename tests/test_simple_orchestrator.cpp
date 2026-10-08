@@ -34,16 +34,16 @@ class RecordingLLMProvider : public ILLMProvider {
   bool simulate_cancellation = false;  // fix-cancel-errorcode-semantics
   GenerationResult result;
 
-  Result<GenerationResult, LLMError> generate(
+  std::expected<GenerationResult, LLMError> generate(
       const GenerationRequest& req, std::stop_token token) override {
     last_model = req.params.model;
     last_token_stop_requested = token.stop_requested();
     ++generate_calls;
     if (simulate_cancellation) {
-      return Result<GenerationResult, LLMError>::failure(
-          LLMError{LLMError::Code::Cancelled, "simulated cancel"});
+      return std::unexpected(std::move(
+          LLMError{LLMError::Code::Cancelled, "simulated cancel"}));
     }
-    return Result<GenerationResult, LLMError>::success(result);
+    return std::expected<GenerationResult, LLMError>{std::in_place, std::move(result)};
   }
 
   std::unique_ptr<IGenerationStream> generate_stream(

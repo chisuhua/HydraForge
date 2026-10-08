@@ -65,7 +65,7 @@ inline bool contains_keyword_ci(const std::string& text, const std::string& keyw
     return it != text.end();
 }
 
-inline void maybe_warn_llm_failure(const agenticdsl::Result<agenticdsl::GenerationResult,
+inline void maybe_warn_llm_failure(const std::expected<agenticdsl::GenerationResult,
                                        agenticdsl::LLMError>& result) {
     if (!result.has_value()) {
         WARN("Real LLM call failed: " + result.error().message +

@@ -30,7 +30,7 @@ class FinetuneBaseModelProvider : public ILLMProvider {
   explicit FinetuneBaseModelProvider(LLMConfig config);
 
   // Phase 1 stub: 明确失败而非静默空响应 (fail-fast)
-  Result<GenerationResult, LLMError> generate(
+  std::expected<GenerationResult, LLMError> generate(
       const GenerationRequest& req, std::stop_token token) override;
 
   // Phase 1 无流式

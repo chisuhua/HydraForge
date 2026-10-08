@@ -41,12 +41,12 @@ namespace {
 // Simulates F1 Latent Site #3: provider succeeded but empty output.
 class MockLLMEmptyProvider : public ILLMProvider {
 public:
-    Result<GenerationResult, LLMError> generate(
+    std::expected<GenerationResult, LLMError> generate(
         const GenerationRequest& /*req*/, std::stop_token /*token*/) override {
         GenerationResult r;
         r.text = "";  // KEY: empty text — F1 Latent Site #3 scenario
         r.completion_tokens = 0;
-        return Result<GenerationResult, LLMError>::success(r);
+        return std::expected<GenerationResult, LLMError>{std::in_place, std::move(r)};
     }
     std::unique_ptr<IGenerationStream> generate_stream(
         const GenerationRequest& /*req*/, std::stop_token /*token*/) override {
@@ -60,12 +60,12 @@ class MockLLMNonEmptyProvider : public ILLMProvider {
 public:
     explicit MockLLMNonEmptyProvider(std::string expected)
         : expected_(std::move(expected)) {}
-    Result<GenerationResult, LLMError> generate(
+    std::expected<GenerationResult, LLMError> generate(
         const GenerationRequest& /*req*/, std::stop_token /*token*/) override {
         GenerationResult r;
         r.text = expected_;
         r.completion_tokens = 42;
-        return Result<GenerationResult, LLMError>::success(r);
+        return std::expected<GenerationResult, LLMError>{std::in_place, std::move(r)};
     }
     std::unique_ptr<IGenerationStream> generate_stream(
         const GenerationRequest& /*req*/, std::stop_token /*token*/) override {

@@ -19,12 +19,12 @@ constexpr const char* kPhase2DeferredMsg =
 FinetuneBaseModelProvider::FinetuneBaseModelProvider(LLMConfig config)
     : config_(std::move(config)) {}
 
-Result<GenerationResult, LLMError> FinetuneBaseModelProvider::generate(
+std::expected<GenerationResult, LLMError> FinetuneBaseModelProvider::generate(
     const GenerationRequest& /*req*/, std::stop_token /*token*/) {
   // fail-fast: 明确失败而非静默空响应 (design D7-2 设计原则).
   // Phase 1 不触发真实推理; Phase 2 替换为实际 fine-tune 推理.
-  return Result<GenerationResult, LLMError>::failure(
-      LLMError{LLMError::Code::Unknown, kPhase2DeferredMsg});
+  return std::unexpected(std::move(
+      LLMError{LLMError::Code::Unknown, kPhase2DeferredMsg}));
 }
 
 std::unique_ptr<IGenerationStream> FinetuneBaseModelProvider::generate_stream(

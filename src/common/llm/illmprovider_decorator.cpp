@@ -20,12 +20,12 @@ namespace agenticdsl {
 ILLMProviderDecorator::ILLMProviderDecorator(std::unique_ptr<ILLMProvider> inner)
     : inner_(std::move(inner)) {}
 
-Result<GenerationResult, LLMError> ILLMProviderDecorator::generate(
+std::expected<GenerationResult, LLMError> ILLMProviderDecorator::generate(
     const GenerationRequest& req, std::stop_token token) {
   // 0. pre-check 钩子: 让子类在内层调用前拒绝 (Phase 5 REQ-IPD-004 RateLimit)
   //    默认 nullopt → pass-through; 设置值 → 直接返回错误, inner 不被调用
   if (auto err = pre_check_generate(req)) {
-    return Result<GenerationResult, LLMError>::failure(std::move(*err));
+    return std::unexpected(std::move(std::move(*err)));
   }
   // 1. 转发到 inner provider (Result 是 move-only, 用 auto 持有)
   auto inner_result = inner_->generate(req, token);

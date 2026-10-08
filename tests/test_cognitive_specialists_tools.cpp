@@ -28,9 +28,9 @@ public:
 // 最小 ILLMProvider mock (复用 test_gepa_phase2.cpp MockLLMProvider 模式)
 class StubLLM : public ILLMProvider {
 public:
-    Result<GenerationResult, LLMError> generate(const GenerationRequest&, std::stop_token) override {
-        return Result<GenerationResult, LLMError>::success(
-            GenerationResult{"Reflection note", 0, 0, "stop"});
+    std::expected<GenerationResult, LLMError> generate(const GenerationRequest&, std::stop_token) override {
+        return std::expected<GenerationResult, LLMError>{std::in_place, std::move(
+            GenerationResult{"Reflection note", 0, 0, "stop"})};
     }
     std::unique_ptr<IGenerationStream> generate_stream(const GenerationRequest&, std::stop_token) override {
         return nullptr;

@@ -17,7 +17,7 @@ SerializingDecorator::SerializingDecorator(std::unique_ptr<ILLMProvider> inner,
   // inner_ 必非空 (调用方负责; 不检查避免在构造抛异常影响析构)
 }
 
-Result<GenerationResult, LLMError> SerializingDecorator::generate(
+std::expected<GenerationResult, LLMError> SerializingDecorator::generate(
     const GenerationRequest& req, std::stop_token token) {
   std::unique_lock<std::mutex> lock(mutex_);
   ++active_waiters_;
@@ -32,9 +32,9 @@ Result<GenerationResult, LLMError> SerializingDecorator::generate(
     // 取消: 释放 waiter 计数 + 唤醒其他 waiter (保持 invariant)
     --active_waiters_;
     cv_.notify_all();
-    return Result<GenerationResult, LLMError>::failure(LLMError{
+    return std::unexpected(std::move(LLMError{
         LLMError::Code::Cancelled,
-        "SerializingDecorator: cancelled while waiting for serializer"});
+        "SerializingDecorator: cancelled while waiting for serializer"}));
   }
 
   // 获得锁: 进入 inner call
@@ -43,7 +43,7 @@ Result<GenerationResult, LLMError> SerializingDecorator::generate(
   lock.unlock();  // 释放 mutex 允许其他 waiter 在 cv 上等待
 
   // 实际 inner call — 此时其他线程在 cv 上等待, 但 inner 已被本线程独占
-  Result<GenerationResult, LLMError> result = inner_->generate(req, token);
+  std::expected<GenerationResult, LLMError> result = inner_->generate(req, token);
 
   lock.lock();
   --concurrent_count_;

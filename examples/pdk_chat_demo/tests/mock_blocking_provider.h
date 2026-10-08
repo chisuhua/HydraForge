@@ -20,7 +20,7 @@ class MockBlockingProvider : public agenticdsl::ILLMProvider {
       std::chrono::milliseconds max_block = std::chrono::seconds(5))
       : max_block_(max_block) {}
 
-  agenticdsl::Result<agenticdsl::GenerationResult, agenticdsl::LLMError>
+  std::expected<agenticdsl::GenerationResult, agenticdsl::LLMError>
   generate(const agenticdsl::GenerationRequest& /*req*/,
            std::stop_token token) override {
     auto deadline = std::chrono::steady_clock::now() + max_block_;
@@ -28,16 +28,12 @@ class MockBlockingProvider : public agenticdsl::ILLMProvider {
       if (std::chrono::steady_clock::now() >= deadline) {
         agenticdsl::GenerationResult result;
         result.text = "MockBlockingProvider: completed";
-        return agenticdsl::Result<agenticdsl::GenerationResult,
-                                  agenticdsl::LLMError>::success(
-            std::move(result));
+        return std::expected<agenticdsl::GenerationResult, agenticdsl::LLMError>{std::in_place, std::move(result)};
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-    return agenticdsl::Result<agenticdsl::GenerationResult,
-                              agenticdsl::LLMError>::failure(
-        agenticdsl::LLMError(agenticdsl::LLMError::Code::Cancelled,
-                              "MockBlockingProvider cancelled by stop_token"));
+    return std::unexpected(agenticdsl::LLMError(agenticdsl::LLMError::Code::Cancelled,
+                                                "MockBlockingProvider cancelled by stop_token"));
   }
 
   std::unique_ptr<agenticdsl::IGenerationStream>
@@ -45,7 +41,7 @@ class MockBlockingProvider : public agenticdsl::ILLMProvider {
                   std::stop_token token) override {
     class SyncStream : public agenticdsl::IGenerationStream {
      public:
-      SyncStream(agenticdsl::Result<agenticdsl::GenerationResult,
+      SyncStream(std::expected<agenticdsl::GenerationResult,
                                     agenticdsl::LLMError> r,
                  std::stop_token t)
           : result_(std::move(r)), token_(t) {}
@@ -62,7 +58,7 @@ class MockBlockingProvider : public agenticdsl::ILLMProvider {
         return result_.error();
       }
      private:
-      agenticdsl::Result<agenticdsl::GenerationResult, agenticdsl::LLMError>
+      std::expected<agenticdsl::GenerationResult, agenticdsl::LLMError>
           result_;
       std::stop_token token_;
       bool emitted_ = false;

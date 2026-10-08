@@ -65,7 +65,7 @@ std::string ContextCompactorImpl::compact(const std::string& history_json,
   // 详见 openspec/changes/fix-generation-request-model-default/.
   req.params.model.clear();
   try {
-    Result<GenerationResult, LLMError> result =
+    std::expected<GenerationResult, LLMError> result =
         llm.generate(req, std::stop_token{});
     if (!result.has_value()) {
       return "";

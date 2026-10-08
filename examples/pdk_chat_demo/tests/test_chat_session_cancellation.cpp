@@ -20,7 +20,6 @@ using namespace pdk_chat_demo::testing;
 using agenticdsl::GenerationRequest;
 using agenticdsl::ILLMProvider;
 using agenticdsl::LLMError;
-using agenticdsl::Result;
 
 TEST_CASE("MockBlockingProvider cancels within 100ms on stop_requested",
           "[cancellation][e2e][mock]") {

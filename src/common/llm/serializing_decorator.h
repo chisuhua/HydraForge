@@ -80,7 +80,7 @@ class SerializingDecorator : public ILLMProvider {
   /// 串行化同步 generate
   /// - 等待 cv (concurrent_count_ == 0 OR token cancelled)
   /// - 唤醒后调 inner_->generate() 并返回 result
-  Result<GenerationResult, LLMError> generate(
+  std::expected<GenerationResult, LLMError> generate(
       const GenerationRequest& req, std::stop_token token) override;
 
   /// 串行化流式 generate_stream (获取 inner stream 时串行, 流本身不持锁)

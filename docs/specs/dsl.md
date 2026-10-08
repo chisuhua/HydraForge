@@ -1407,7 +1407,7 @@ class ToolAdapter:
 class ILLMProvider {
 public:
     virtual ~ILLMProvider() = default;
-    virtual Result<GenerationResult, LLMError>
+    virtual std::expected<GenerationResult, LLMError>
         generate(const GenerationRequest& req, std::stop_token token) = 0;
     virtual std::unique_ptr<IGenerationStream>
         generate_stream(const GenerationRequest& req, std::stop_token token) = 0;

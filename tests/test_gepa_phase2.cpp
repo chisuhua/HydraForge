@@ -134,12 +134,12 @@ class MockLLMProvider : public ILLMProvider {
 public:
   std::string last_failure_;
 
-  Result<GenerationResult, LLMError> generate(
+  std::expected<GenerationResult, LLMError> generate(
       const GenerationRequest& req,
       std::stop_token /*token*/) override {
-    return Result<GenerationResult, LLMError>::success(
+    return std::expected<GenerationResult, LLMError>{std::in_place, std::move(
         GenerationResult{"Reflection note: Add error handling for " + last_failure_,
-                         0, 0, "stop"});
+                         0, 0, "stop"})};
   }
 
   std::unique_ptr<IGenerationStream> generate_stream(

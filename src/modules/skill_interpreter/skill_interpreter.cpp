@@ -835,7 +835,7 @@ class SkillInterpreter::Impl {
     // 必现 crash. heap-化通过 shared_ptr 引用计数, detached worker 安全持有 state
     // (state 不再依赖 dispatch 栈帧生命周期, 进程退出时回收)
     struct SharedState {
-      std::unique_ptr<Result<GenerationResult, LLMError>> result_ptr;
+      std::unique_ptr<std::expected<GenerationResult, LLMError>> result_ptr;
       std::exception_ptr eptr;
       std::atomic<bool> done{false};
       std::mutex m;
@@ -846,8 +846,8 @@ class SkillInterpreter::Impl {
 
     // === Wave 4.5 D1: 独立 worker thread + cv.wait_for + kill_retry ===
     // 真正修复 misbehaved provider 永久 hang 场景 (不依赖 provider 自觉 stop_token).
-    // Result<T,E> 构造函数是 private (llm_types.h:106), 不能默认构造, 用
-    // unique_ptr<Result<>> 包装 (nullptr 表示未生成, factory 创建后 unique).
+    // std::expected<T,E> 构造函数是 private (llm_types.h:106), 不能默认构造, 用
+    // unique_ptr<std::expected<>> 包装 (nullptr 表示未生成, factory 创建后 unique).
     // Wave 4.7: lambda 改为按值捕获 state/llm_provider/token, 避免悬垂引用
     std::thread worker([state, token, llm_provider, prompt] {
       try {
@@ -862,7 +862,7 @@ class SkillInterpreter::Impl {
         auto r = llm_provider->generate(gen_req, token);  // fix-skill-interpreter-dispatch-llm-token: 替换硬编码 {} 为外部 token
         {
           std::lock_guard<std::mutex> lk(state->m);
-          state->result_ptr = std::make_unique<Result<GenerationResult, LLMError>>(std::move(r));
+          state->result_ptr = std::make_unique<std::expected<GenerationResult, LLMError>>(std::move(r));
         }
       } catch (...) {
         state->eptr = std::current_exception();

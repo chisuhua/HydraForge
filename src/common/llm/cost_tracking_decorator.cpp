@@ -29,9 +29,9 @@ CostTrackingDecorator::CostTrackingDecorator(
     std::shared_ptr<IBudgetController> budget)
     : ILLMProviderDecorator(std::move(inner)), budget_(std::move(budget)) {}
 
-Result<GenerationResult, LLMError> CostTrackingDecorator::decorate_generate(
+std::expected<GenerationResult, LLMError> CostTrackingDecorator::decorate_generate(
     const GenerationRequest& req,
-    Result<GenerationResult, LLMError> inner_result) {
+    std::expected<GenerationResult, LLMError> inner_result) {
   if (inner_result.has_value() && budget_ != nullptr) {
     const auto& result = inner_result.value();
     const int total_tokens = result.prompt_tokens + result.completion_tokens;
