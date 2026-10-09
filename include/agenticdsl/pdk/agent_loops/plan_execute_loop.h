@@ -1,20 +1,24 @@
 // include/agenticdsl/pdk/agent_loops/plan_execute_loop.h
 // 文件头注释
-// 功能描述：PlanExecuteLoop — PDK Agent 三阶段循环 (Sprint 20 实施, ADR-0021 §3.2)。
+// 功能描述：PlanExecuteLoop — PDK Agent 三阶段循环 (Sprint 20 实施, ADR-0021 §3.2,
+//          ADR-0089 v1.3 amendment 2026-10-09 薄壳化)。
 //          状态机: Planning → Executing → Verifying → Done / Retry
 //          Plan 阶段: LLM 生成 DSL 片段 (markdown)
 //          Execute 阶段: DSLEngine 解析 + 执行生成的 DSL (复用 Sprint 4 基础设施)
 //          Verify 阶段: LLM 评估 ExecutionResult, yes/no 决策
 //          Retry: Verify 失败时重新 Plan (最多 max_retries 次, 默认 3)
 //          复用 SimpleCognitiveOrchestrator 模式 (ADR-0020 §2.2.1): 委托 ILLMProvider::generate()
-// 设计依据：ADR-0021 §3.2 + ADR-0020 SimpleCognitiveOrchestrator + ADR-0008 LayeredContext
-//          + openspec/changes/pdk-plan-execute-fork-join
-// 作者：AgenticDSL Phase 1 Sprint 20
-// 最后修改日期：2026-08-01
+// 设计依据：ADR-0021 §3.2 + ADR-0089 v1.3 (D2.inv.api) + ADR-0020 SimpleCognitiveOrchestrator + ADR-0008 LayeredContext
+//          + openspec/changes/pdk-plan-execute-fork-join + openspec/changes/consolidate-loop-phases-to-shared-helpers
+//          Phase 逻辑单源化: plan/execute/verify 委托 loop_phases::run_* 自由函数 (见 loop_phases.h),
+//          公开 API 零变化 (LoopResult/State/state()/message 字面量全保留), retry 编排留本类内 (D2.inv.retry)
+// 作者：AgenticDSL Phase 1 Sprint 20 + Sprint 37+ (consolidate-loop-phases)
+// 最后修改日期：2026-10-09
 
 #pragma once
 
 #include "agenticdsl/contract/iinteraction_bus.h"
+#include "agenticdsl/pdk/agent_loops/loop_phases.h"
 #include "agenticdsl/pdk/agent_loops/loop_result.h"
 #include "agenticdsl/types/layered_context.h"
 #include "common/llm/llm_types.h"
@@ -209,29 +213,10 @@ class PlanExecuteLoop {
                                         const agenticdsl::LayeredContext& ctx,
                                         agenticdsl::ILLMProvider* llm,
                                         std::stop_token token = {}) {
-    agenticdsl::GenerationRequest req;
-    req.prompt =
-        "Goal: " + goal +
-        "\nContext: " + ctx.dump().dump() +
-        "\nGenerate AgenticDSL markdown for /main subgraph:";
-    // ⚠️ NOT redundant: LLMParams = LLMConfig 别名, 默认 model = "gpt-4o-mini"
-    // (非空). 若不清空, CloudLLMAdapter::build_request_body L164
-    // (req.params.model.empty() ? config_.model : req.params.model) 会拿默认
-    // "gpt-4o-mini" 遮蔽 adapter 构造时 factory 设置的真实 model
-    // (如 deepseek-v4-flash) → deepseek server 拒绝
-    // ("you passed gpt-4o-mini"). 站点无 model 概念 (model 由 adapter/factory 持有),
-    // 清空让 adapter fallback.
-    // 详见 openspec/changes/fix-generation-request-model-default/ + plan-execute-loop-realllm/.
-    req.params.model.clear();
-    auto gen_result = llm->generate(req, token);
-    if (!gen_result.has_value()) {
-      return std::nullopt;
-    }
-    const auto& text = gen_result.value().text;
-    if (text.empty()) {
-      return std::nullopt;
-    }
-    return text;
+    // 薄壳委托: 单源 phase 逻辑在 loop_phases::run_plan_phase (ADR-0089 v1.3).
+    // NOT redundant 注释 (req.params.model.clear() 语义) 已随 helper 抽取同步
+    // 至 loop_phases.h:49-57, 本类不再重复 — 单源原则下重复注释会漂移.
+    return loop_phases::run_plan_phase(*llm, goal, ctx, token);
   }
 
   /**
@@ -246,14 +231,18 @@ class PlanExecuteLoop {
   bool execute_phase(const std::string& generated_dsl,
                      const agenticdsl::LayeredContext& /*ctx*/,
                      LoopResult& result) {
-    try {
-      engine_->continue_with_generated_dsl(generated_dsl);
+    // 薄壳委托: 解析逻辑在 loop_phases::run_execute_phase (ADR-0089 v1.3).
+    // 保留 execute_error meta 写入 (run() L161-164 读取它拼 message).
+    std::optional<std::string> execute_error;
+    const bool ok =
+        loop_phases::run_execute_phase(*engine_, generated_dsl, execute_error);
+    if (ok) {
       result.final_context.working["meta"]["plan_appended"] = true;
-      return true;
-    } catch (const std::exception& e) {
-      result.final_context.working["meta"]["execute_error"] = e.what();
-      return false;
+    } else {
+      result.final_context.working["meta"]["execute_error"] =
+          execute_error.value_or("unknown");
     }
+    return ok;
   }
 
   /**
@@ -264,39 +253,16 @@ class PlanExecuteLoop {
                     const LoopResult& result,
                     agenticdsl::ILLMProvider* llm,
                     std::stop_token token = {}) {
-    // 确保 working["data"] 存在, 避免 dump() 在 null/const path 上失败
+    // 薄壳委托: 评估逻辑在 loop_phases::run_verify_phase (ADR-0089 v1.3).
+    // "Plan status: appended" 证据行 + req.params.model.clear() 已随 helper 抽取
+    // 同步至 loop_phases.h:116-125 (NOT redundant 注释单源).
+    // data 取值逻辑与 helper 契约对齐: working.is_object() && contains("data")
+    // 否则 {"{}"} (与旧 verify_phase L269-271 行为一致).
     const auto& working = result.final_context.working;
-    std::string data_dump = working.is_object() && working.contains("data")
-                                ? working["data"].dump()
-                                : std::string{"{}"};
-    // ⚠️ NOT redundant: 加 "Plan status: appended" 作为 execute_phase 成功证据。
-    // 根因: 旧 prompt "Goal: X\nResult: {}\nVerify success: answer yes or no:"
-    //       在 Result={} 时 (plan_execute_loop.h run() 重置 working.data = {})
-    //       deepseek 8/10 yes 但 2/10 no (空 data 无 evidence → LLM 合理判 no).
-    //       curl 实证: 新 prompt 加 "Plan status: appended" 后 10/10 yes.
-    // execute_phase 失败时不会调 verify (line 163 直接 return Verifying),
-    // 所以此处 plan_appended 必然 true → "appended" 是事实陈述非误导.
-    const std::string plan_status_line =
-        "Plan status: appended\n";
-    agenticdsl::GenerationRequest req;
-    req.prompt =
-        "Goal: " + goal +
-        "\n" + plan_status_line +
-        "Result: " + data_dump +
-        "\nVerify the plan was appended successfully (yes/no):";
-    // ⚠️ NOT redundant: 与 plan_phase 同理 (LLMParams 默认 model 遮蔽 adapter
-    // config_.model), 详见 plan_phase 上方注释 + openspec/changes/fix-generation-request-model-default/.
-    req.params.model.clear();
-    auto gen_result = llm->generate(req, token);
-    if (!gen_result.has_value()) {
-      return false;
-    }
-    const auto& text = gen_result.value().text;
-    std::string lower = text;
-    for (auto& c : lower) {
-      c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    }
-    return lower.find("yes") != std::string::npos;
+    const nlohmann::json data =
+        (working.is_object() && working.contains("data")) ? working["data"]
+                                                          : nlohmann::json::object();
+    return loop_phases::run_verify_phase(*llm, goal, data, token);
   }
 
   std::unique_ptr<agenticdsl::DSLEngine> engine_;
