@@ -129,9 +129,40 @@ thread_local atomic 开关（0=None, 1=Training）。真实采集属 C2/ADR-0080
 
 **错误**: 非法 mode → `InvalidParams`
 
-## 双循环架构（C1 决策矩阵）
+### `loop/run_plan`（Plan phase helper，ADR-0089 v1.3 D5）
 
-`lib/loop/*.agent.md` DSL 循环与 `include/agenticdsl/pdk/agent_loops/*` C++ 循环是**两套并行实现**：
+单源调用 `loop_phases::run_plan_phase`（LLM 生成 plan DSL）。DSL 可选调用，不强制改写 `lib/loop/*.agent.md`。
+
+**输入**:
+```json
+{ "goal": "用户目标" }
+```
+
+**输出**: `{ok, success, error_code, plan}`
+
+**错误**:
+- 缺 `goal` → `InvalidParams`
+- 未设 parent provider → `Unknown`
+- LLM 返回空 → `Unknown` ("Plan phase returned empty")
+
+### `loop/run_verify`（Verify phase helper，ADR-0089 v1.3 D5）
+
+单源调用 `loop_phases::run_verify_phase`（LLM 评估 result_data, 含 "yes" → verified=true）。DSL 可选调用。
+
+**输入**:
+```json
+{ "goal": "用户目标", "result_data": "{}" }
+```
+
+**输出**: `{ok, success, error_code, verified}`
+
+**错误**:
+- 缺 `goal` → `InvalidParams`
+- 未设 parent provider → `Unknown`
+
+## 双循环架构（C1 决策矩阵 + ADR-0089 v1.3 单源化）
+
+`lib/loop/*.agent.md` DSL 循环与 `include/agenticdsl/pdk/agent_loops/*` C++ 循环**共享 phase helper 单源实现**（ADR-0089 v1.3 amendment, 2026-10-09）：
 
 | 层 | 拥有者 | 节奏 | 同步语义 |
 |---|--------|------|---------|
@@ -140,14 +171,29 @@ thread_local atomic 开关（0=None, 1=Training）。真实采集属 C2/ADR-0080
 | 原语层 | C++ `agent_loops/*` (Sprint 4/20) | 性能敏感、编译期绑定场景 | 由调用方决定 |
 
 **规则**:
-- `loop/run` 及全部 4 个 C1 工具一律 **lock-step 同步**
+- `loop/run` 及全部 6 个 loop 工具（4 个 C1 + `loop/run_plan`/`loop/run_verify`）一律 **lock-step 同步**
 - fire-and-forget 长任务不属于 loop 工具语义（走 `pdk/temporal_agent`）
-- **统一重构触发条件**: 任一循环实现出现第 3 个消费者（当前: DSL 层消费者 = ChatSession；C++ 层消费者 = tests）
+
+### Phase helper 共享（ADR-0089 v1.3）
+
+`loop_phases.h` 提供 3 个无状态自由函数（`run_plan_phase` / `run_execute_phase` / `run_verify_phase`）作为 **phase 逻辑单一权威**：
+- `PlanExecuteLoop` / `ReactLoop` C++ 类内部**薄壳委托** helper，公开 API 零变化（`LoopResult` / `State` / `state()` / `message` 字面量全保留）
+- `ForkJoinLoop` 语义不变（DomainWorkerPool 4-worker + InMemoryBus 事件同步，用户决策 D4）
+- retry 编排（`while(true)` + `retries_used`）保留在 C++ 类内（DSL DAG 无环物理约束，Oracle C1）
+
+### DSL 可选调用（D5）
+
+`loop/run_plan` + `loop/run_verify` 工具暴露 helper 给 DSL 层（**可选调用**，不强制改写 `lib/loop/*.agent.md`）：
+- 输入: `loop/run_plan` 收 `goal`; `loop/run_verify` 收 `goal` + `result_data` (JSON)
+- 输出: `{ok, success, error_code, plan | verified}`
+- 遵循 D6 bus_ptr 边界规则: 不接收 bus_ptr, 不发射事件
+
+**统一重构触发条件已满足并完成**: 任一循环实现出现第 3 个消费者（DSL 层消费者 = ChatSession；C++ 层消费者 = tests）→ 2026-10-09 完成 phase helper 单源化重构。
 
 ## bus_ptr 边界规则（D6）
 
 - `bus_ptr` 字符串裸指针透传**仅保留**于 `loop/run`（legacy, C0 ship），`chat_session.cpp:495` 处有审计注释
-- C1 新 3 工具（`loop/decide_react` / `loop/execute_plan` / `loop/process_task`）**不接收** bus_ptr，**不发射事件**
+- C1 新 3 工具（`loop/decide_react` / `loop/execute_plan` / `loop/process_task`）+ ADR-0089 新 2 工具（`loop/run_plan` / `loop/run_verify`）**不接收** bus_ptr，**不发射事件**
 - 事件发射由 `loop/run` wrapper 层统一负责（ADR-0068 附录 A 语义单点）
 
 ## ErrorCode 值域

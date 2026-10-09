@@ -101,7 +101,8 @@ v1.2 将其拆分为 L2 (Plugin 工具层) + L3 (PDK 接口契约层) + L4 (Agen
 │  ├─ IModelRouter (2 pure virtual)      ← 模型路由            │
 │  ├─ IExecutionPolicy (5 pure virtual)  ← 执行策略            │
 │  ├─ IApprovalHandler (1 pure virtual)  ← 审批处理            │
-│  └─ AgentDescriptor (ADR-0053)         ← Agent 元数据         │
+│  ├─ AgentDescriptor (ADR-0053)         ← Agent 元数据         │
+│  └─ loop_phases::run_* (ADR-0089 v1.3) ← Phase 逻辑单源自由函数│
 │                                                              │
 │  注册机制:                                                    │
 │  ├─ DECLARE_TOOL 宏                   ← 工具注册脚手架       │
