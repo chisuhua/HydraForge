@@ -251,6 +251,8 @@ DEFINE_AGENT(coding_assistant, REACT_LOOP_TEMPLATE) {
 }
 ```
 
+> **实施注记 (2026-10-09)**: §3.2 Agent Loop 模板已按 [ADR-0089 v1.3 amendment](adr-0089-v1-3-amendment-loop-phase-shared-helpers.md) 修订 — `PlanExecuteLoop` / `ReactLoop` 类变**薄壳委托** `loop_phases::run_plan_phase` / `run_execute_phase` / `run_verify_phase` 自由函数 (phase 逻辑单源, `include/agenticdsl/pdk/agent_loops/loop_phases.h`)。公开 API 零变化 (`LoopResult` / `State` / `state()` / `message` 字面量), `DEFINE_AGENT` 宏 + `LoopDispatcher` 编译期路径零变化 (G1 + test_pdk_macros 不动)。`ForkJoinLoop` 语义不变 (DomainWorkerPool 4-worker, 用户决策 D4)。`loop/run_plan` + `loop/run_verify` 工具 (D5, DSL 可选调用) 已注册于 `pdk/loop_agent/src/pdk_entry.cpp`。
+
 #### 3.3 SafeExec 沙箱封装
 
 ```cpp
