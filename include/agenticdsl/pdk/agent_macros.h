@@ -49,6 +49,9 @@ enum class AgentLoopType {
  * 编译期通过 AgentLoopType 枚举值分发到具体循环类。
  * 0 运行时开销 (模板 specialization 编译期展开)。
  */
+// ADR-0089 v1.3 amendment (2026-10-09): 委托 shared phase helpers (per ADR-0021 §3.2 amendment)
+// LoopDispatcher specializations 保留 ReactLoop/PlanExecuteLoop/ForkJoinLoop 引用,
+// 类变薄壳委托 helper (见 loop_phases.h), 公开 API 零变化 (G1 + test_pdk_macros 不动)
 template <AgentLoopType T>
 struct LoopDispatcher;
 

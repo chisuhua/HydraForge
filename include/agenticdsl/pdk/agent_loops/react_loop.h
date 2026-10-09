@@ -1,20 +1,20 @@
 // include/agenticdsl/pdk/agent_loops/react_loop.h
 // 文件头注释
-// 功能描述：ReactLoop — PDK Agent 单轮 ReAct 循环实现 (Sprint 4 已 ship 模式升级)。
-//          内部委托 agenticdsl::SimpleCognitiveOrchestrator 单轮 ReAct
-//          (LLM 解析 tool_call JSON → 调用 ToolRegistry → 包装为 ToolResult)。
+// 功能描述：ReactLoop — PDK Agent 循环实现 (Sprint 4 已 ship 模式升级,
+//          ADR-0089 v1.3 amendment 2026-10-09 薄壳化)。
+//          单轮: Plan 风格 LLM 生成 (Plan/Act 简化版, per ADR-0089 v1.3 D2)。
 //          统一通过 LoopResult 接口返回, 与 PlanExecuteLoop / ForkJoinLoop 共享返回类型。
 //          Sprint 20 升级: 之前 DEFINE_AGENT 宏内联此逻辑, 本次提取为独立 class
 //          供 LoopDispatcher 模板分发使用 (ADR-0021 §3.2)。
-// 设计依据：ADR-0021 §3.2 + ADR-0020 §2.2.1 SimpleCognitiveOrchestrator
-//          + openspec/changes/pdk-plan-execute-fork-join
-// 作者：AgenticDSL Phase 1 Sprint 20
-// 最后修改日期：2026-08-01
+// 设计依据：ADR-0021 §3.2 + ADR-0089 v1.3 (D2.inv.api: ReactLoop 薄壳委托 run_plan_phase)
+//          + openspec/changes/pdk-plan-execute-fork-join + openspec/changes/consolidate-loop-phases-to-shared-helpers
+// 作者：AgenticDSL Phase 1 Sprint 20 + Sprint 37+ (consolidate-loop-phases)
+// 最后修改日期：2026-10-09
 
 #pragma once
 
 #include "agenticdsl/contract/iinteraction_bus.h"
-#include "agenticdsl/cognitive/simple_orchestrator.h"
+#include "agenticdsl/pdk/agent_loops/loop_phases.h"
 #include "agenticdsl/pdk/agent_loops/loop_result.h"
 #include "agenticdsl/types/layered_context.h"
 #include "core/engine.h"
@@ -26,19 +26,17 @@
 namespace hydraforge::pdk {
 
 /**
- * @brief ReactLoop — PDK Agent 单轮 ReAct 循环 (Sprint 4 MVP, Sprint 20 升级为 class)
+ * @brief ReactLoop — PDK Agent 单轮循环 (Sprint 4 MVP, Sprint 20 升级为 class,
+ *        ADR-0089 v1.3 薄壳化委托 run_plan_phase)
  *
  * 状态机:
  *   Thinking → Acting → Observing → Done (单轮即 Done, 不循环)
  *
- * 与 Sprint 4 DEFINE_AGENT 宏内联逻辑保持完全一致 — 仅形态从宏内联代码
- * 提升为独立 class, 以便 LoopDispatcher<AgentLoopType::React>::Type 引用。
- *
  * 行为契约:
- *   - run() 内部创建 SimpleCognitiveOrchestrator, 调用 process() 单轮 ReAct
- *   - ToolResult 写入 final_context.working.data[agent_output]
- *   - success 字段映射: ToolResult.ok = true → success = true
- *   - 引擎或工具为 null 时返回 success=false + message 描述原因
+ *   - run() 内部委托 loop_phases::run_plan_phase (Plan/Act 简化版, 单轮)
+ *   - LLM 生成文本写入 final_context.working.data[agent_output]
+ *   - success 字段映射: 生成非空 → success = true
+ *   - 引擎或 LLM provider 为 null 时返回 success=false + message 描述原因
  */
 class ReactLoop {
  public:
@@ -100,37 +98,37 @@ LoopResult run(const std::string& prompt, const agenticdsl::LayeredContext& ctx,
       return result;
     }
 
-    state_ = State::Thinking;
-    agenticdsl::SimpleCognitiveOrchestrator orch(
-        &engine_->get_tool_registry(), engine_->get_llm_provider());
+    agenticdsl::ILLMProvider* llm = engine_->get_llm_provider();
+    if (!llm) {
+      result.success = false;
+      result.message = "ReactLoop: LLM provider is null";
+      result.failed_phase = "Thinking";
+      state_ = State::Done;
+      return result;
+    }
 
+    state_ = State::Thinking;
+    // 薄壳委托: 单轮 Plan 风格 LLM 生成 (Plan/Act 简化版, per ADR-0089 v1.3 D2).
+    // 单源 phase 逻辑在 loop_phases::run_plan_phase (含 req.params.model.clear()
+    // NOT redundant 注释同步在 loop_phases.h:49-57). 公开 API 零变化 (D2.inv.api).
     state_ = State::Acting;
-    agenticdsl::ToolResult tool_result;
-    bool invoked = false;
-    orch.process(prompt, [&tool_result, &invoked](agenticdsl::ToolResult r) {
-      tool_result = std::move(r);
-      invoked = true;
-    });
+    std::optional<std::string> plan_output =
+        loop_phases::run_plan_phase(*llm, prompt, ctx, token);
 
     state_ = State::Observing;
-    if (!invoked) {
+    // 保持 final_context.working["data"] 恒为 object (test_pdk_macros L135 断言
+    // working["data"].is_object() 契约 + PlanExecuteLoop run() 同款初始化)
+    result.final_context.working["data"] = nlohmann::json::object();
+    // 同上: working["meta"] 恒为 object (test_pdk_macros L136 断言契约)
+    result.final_context.working["meta"] = nlohmann::json::object();
+    if (!plan_output.has_value() || plan_output->empty()) {
       result.success = false;
-      result.message = "ReactLoop: orchestrator did not invoke callback";
+      result.message = "React loop failed";
       result.failed_phase = "Observing";
     } else {
-      result.success = tool_result.ok;
-      result.message = tool_result.ok ? "React loop completed" : "React loop failed";
-      result.final_context.working["data"] = tool_result.data;
-      if (tool_result.error_code.has_value()) {
-        result.final_context.working["meta"]["error_code"] =
-            tool_result.error_code.value();
-      }
-      if (tool_result.meta.is_object()) {
-        result.final_context.working["meta"] = tool_result.meta;
-      }
-      if (!result.success) {
-        result.failed_phase = "Observing";
-      }
+      result.success = true;
+      result.message = "React loop completed";
+      result.final_context.working["data"]["agent_output"] = *plan_output;
     }
 
     state_ = State::Done;
