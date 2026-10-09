@@ -33,6 +33,7 @@
 // pdk-chat-session-shim-cleanup: cancellation_globals now lives in PDK
 #include <agenticdsl/pdk/cancellation_registry.h>
 #include <agenticdsl/pdk/cancellation_globals.h>
+#include <agenticdsl/pdk/agent_loops/loop_phases.h>  // ADR-0089 v1.3 D5: phase helper 复用
 
 namespace fs = std::filesystem;
 
@@ -808,6 +809,97 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                         {"error", e.what()},
                         {"response", ""}, {"steps", 0}, {"tokens_used", 0}, {"cost_usd", 0.0}};
             }
+        }
+    );
+
+    // ============================================================
+    // loop/run_plan — Plan phase helper (ADR-0089 v1.3 D5, DSL 可选调用)
+    // 单源: loop_phases::run_plan_phase. 不接收 bus_ptr, 不发射事件 (D6 bus 边界规则).
+    // ============================================================
+    registry.register_tool_function(
+        "loop/run_plan",
+        ::agenticdsl::ToolMetadata{
+            .name = "loop/run_plan",
+            .description = "Execute Plan phase: LLM generates plan DSL from context (single-source loop_phases helper)",
+            .domain = "loop",
+            .category = ::agenticdsl::ToolCategory::Execute,
+            .min_layer = ::agenticdsl::LayerProfile::Workflow,
+            .approval = ::agenticdsl::ApprovalPolicy{
+                .requires_approval_in_plan = false,
+                .requires_approval_in_agent = true,
+                .requires_approval_in_yolo = false,
+                .force_approval_always = false
+            },
+            .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
+        },
+        [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+            std::string goal = str_arg(args, "goal");
+            if (goal.empty()) {
+                return {{"ok", false}, {"success", false},
+                        {"error_code", "InvalidParams"},
+                        {"error", "Missing 'goal' argument"}};
+            }
+            if (!tls_parent_provider) {
+                return {{"ok", false}, {"success", false},
+                        {"error_code", "Unknown"},
+                        {"error", "Parent LLM provider not set. Call loop/set_parent_provider first."}};
+            }
+            ::agenticdsl::LayeredContext ctx;
+            ctx.working["user_input"] = goal;
+            auto plan_output = ::hydraforge::pdk::loop_phases::run_plan_phase(
+                *tls_parent_provider, goal, ctx, std::stop_token{});
+            if (!plan_output.has_value()) {
+                return {{"ok", false}, {"success", false},
+                        {"error_code", "Unknown"},
+                        {"error", "Plan phase returned empty"}};
+            }
+            return {{"ok", true}, {"success", true},
+                    {"error_code", nullptr},
+                    {"plan", *plan_output}};
+        }
+    );
+
+    // ============================================================
+    // loop/run_verify — Verify phase helper (ADR-0089 v1.3 D5, DSL 可选调用)
+    // 单源: loop_phases::run_verify_phase. 不接收 bus_ptr, 不发射事件 (D6 bus 边界规则).
+    // ============================================================
+    registry.register_tool_function(
+        "loop/run_verify",
+        ::agenticdsl::ToolMetadata{
+            .name = "loop/run_verify",
+            .description = "Execute Verify phase: LLM evaluates result data (single-source loop_phases helper)",
+            .domain = "loop",
+            .category = ::agenticdsl::ToolCategory::Execute,
+            .min_layer = ::agenticdsl::LayerProfile::Workflow,
+            .approval = ::agenticdsl::ApprovalPolicy{
+                .requires_approval_in_plan = false,
+                .requires_approval_in_agent = true,
+                .requires_approval_in_yolo = false,
+                .force_approval_always = false
+            },
+            .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
+        },
+        [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+            std::string goal = str_arg(args, "goal");
+            if (goal.empty()) {
+                return {{"ok", false}, {"success", false},
+                        {"error_code", "InvalidParams"},
+                        {"error", "Missing 'goal' argument"}};
+            }
+            if (!tls_parent_provider) {
+                return {{"ok", false}, {"success", false},
+                        {"error_code", "Unknown"},
+                        {"error", "Parent LLM provider not set. Call loop/set_parent_provider first."}};
+            }
+            nlohmann::json result_data = json_arg(args, "result_data");
+            if (result_data.is_null()) {
+                result_data = nlohmann::json::object();
+            }
+            bool verified = ::hydraforge::pdk::loop_phases::run_verify_phase(
+                *tls_parent_provider, goal, result_data, std::stop_token{});
+            return {{"ok", true}, {"success", true},
+                    {"error_code", nullptr},
+                    {"verified", verified}};
         }
     );
 }
