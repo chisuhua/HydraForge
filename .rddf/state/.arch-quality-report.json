@@ -1,5 +1,7 @@
 {
   "passed": true,
+  "arch_complete_at": "2026-10-09T12:00:00+00:00",
+  "new_adrs_since_last_arch_done": ["0089"],
   "warnings": [
     "arch_alignment",
     "file_size_limit"

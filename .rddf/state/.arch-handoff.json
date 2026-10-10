@@ -1,6 +1,6 @@
 {
-  "arch_complete_at": "2026-09-20T19:50:00+00:00",
-  "adr_count": 103,
+  "arch_complete_at": "2026-10-09T12:00:00+00:00",
+  "adr_count": 104,
   "completed_adr_ids": [
     "0001",
     "0002",
@@ -59,7 +59,8 @@
     "0076",
     "0077",
     "0078",
-    "0088"
+    "0088",
+    "0089"
   ],
   "roadmap_exists": true,
   "current_phase": "phase-6c (MetaRSI-v1, 2026-09-16 ~ ongoing) — ADR-0086 v1.1 ship 2026-09-20, ADR-0088 transition-guard 🔍 Proposed",

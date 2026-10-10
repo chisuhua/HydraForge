@@ -1,13 +1,11 @@
 {
   "schema": "planner-handoff-v1.1",
-  "version": 4,
+  "version": 5,
   "owner": "rdd-planner",
-  "planner_complete_at": "2026-09-22T15:48:14.378537+00:00",
-  "current_sprint": "sprint-2026-09",
+  "planner_complete_at": "2026-10-09T12:30:00+00:00",
+  "current_sprint": "sprint-2026-10",
   "proposals_ready": [
-    "2026-09-20-ig-genome-registry-walk-ancestors",
-    "2026-09-20-adr-0068-appendix-a-evolution-themes",
-    "wave-3-finetune-base-model"
+    "2026-10-09-consolidate-loop-phases-to-shared-helpers"
   ],
   "proposals_approved_count": 0,
   "proposals_archived_count": 1,
@@ -16,28 +14,32 @@
   ],
   "features_active": [
     {
-      "feature_id": "phase-6c-matarsi-v1",
-      "change_name": "h-d-m-transition-guard",
-      "priority": "P0",
-      "theme": "RSI meta-cognitive",
-      "status": "archived (C3 v1.0 ship 2026-09-20, merge 7a15744)",
-      "ship_commit": "7a15744",
-      "ship_evidence": "test_transition_guard 13/13 cases / 47 assertions GREEN + agenticdsl_evolution static lib + ADR-0088 ✅ Approved + openspec archive (8 specs)",
-      "adr_path": "docs/adr/adr-0088-h-d-m-transition-guard.md",
-      "feedback_status": "oracle-NEEDS_FIX-verdict-debt-cleanup (2 critical / 4 major / 4 minor)",
+      "feature_id": "phase-6c-loop-phase-consolidation",
+      "change_name": "2026-10-09-consolidate-loop-phases-to-shared-helpers",
+      "priority": "P1",
+      "theme": "PDK Agent Loop phase consolidation (ADR-0021 §3.2 amendment + new ADR-0089 v1.3)",
+      "status": "improvement 5-segment draft complete, awaiting OpenSpec change creation by rdd-builder P0",
+      "adr_path": "docs/adr/adr-0089-v1-3-amendment-loop-phase-shared-helpers.md (🔍 Proposed)",
+      "improvement_path": ".rddf/improvements/consolidate-loop-phases-to-shared-helpers.md (238 lines)",
+      "dual_review_sessions": [
+        "ses_edfe8b94effeLHZtjyKMyWFTXO (Metis: intent + ambiguity + AI failure modes)",
+        "ses_edfe8b7daffeysJHJPj9PaG5SZ (Oracle: architecture + test migration + ABI)"
+      ],
+      "feedback_status": "Oracle SHIP-with-fixes verdict: scope must narrow to phase-level shared helpers (not full DSL replacement); C++ classes become thin shells; retry control flow stays in C++ (DAG cannot express)",
       "mapped": true,
-      "deferred_followups": [
-        "2026-09-20-ig-genome-registry-walk-ancestors (D5 walk_ancestors interface + D6 judge_data_freshness 完整实装 + D9 default impl)",
-        "2026-09-20-adr-0068-appendix-a-evolution-themes (D8 evolution.transition.denied + evolution.readiness.denied 主题注册)"
+      "key_constraints": [
+        "DSL DAG cannot express back-edge (TopoScheduler:586) — retry must stay in C++",
+        "DEFINE_AGENT/LoopDispatcher compile-time dep on 3 C++ classes — G1 breaks if deleted",
+        "test_plan_execute_realllm 3 must_realllm cases assert exact C++ strings — no DSL equivalent",
+        "ForkJoinLoop semantics unchanged (user decision D4) — ADR-0087 benchmark preserved",
+        "model.clear() must be preserved in helper (fix-generation-request-model-default lineage)"
       ]
     }
   ],
   "awaiting_builder": [
-    "2026-09-20-ig-genome-registry-walk-ancestors",
-    "2026-09-20-adr-0068-appendix-a-evolution-themes",
-    "add-wave-3-finetune-base-model"
+    "2026-10-09-consolidate-loop-phases-to-shared-helpers"
   ],
   "recommended_route": "complex",
-  "governance_notes": "2026-09-20 rdd-builder P0-P3 完整 ship 闭环 + Oracle dual-agent review ship-with-fixes 6 Critical 修正应用 + openspec archive PASS + post-ship governance debt cleanup (per Oracle NEEDS_FIX verdict ALIGNMENT SCORE 62, pending follow-up change 实装). | 2026-09-22 rdd-planner review pass on wave-3-finetune-base-model: 5-segment draft validated (139 lines, complete), route=complex (P0 + ADR-0078 翻牌 + 4-6 files), added to active_projects (phase=phase-7-wave-3, theme=Wave 3 Model-RSI pilot). 24h cooling-off status: in-window (current 2026-09-22 ~23:38 Beijing ≈ T+1h08m from G2 merge dc12a17 @ 22:30), trigger 2026-09-23 22:30 Beijing = T+24h. rdd-builder P0 pause for cooling-off expiration before opening worktree.",
+  "governance_notes": "2026-10-09 rdd-arch stage DONE (ADR-0089 v1.3 🔍 Proposed, adr_count 103→104, arch-handoff.json updated) → rdd-planner stage DONE (improvement 5-segment draft 238 lines, capturing dual-agent review findings + 5-decision rationale + 5 invariant + must_realllm regression gate). | Metis DB-1/DB-2/DB-3 + Oracle C1/C2/M1/M3/M4 收敛点 = Pattern #8 dual-agent 最高置信度修正优先级. | rdd-builder P0 complex route (10 files, 1-2 day effort, architecture amendment, must_realllm regression gate). | 24h cooling-off applies to OpenSpec change (per AGENTS.md Single-Dev Mode), starts after rdd-builder P0 creates change artifacts. | rdd-builder P0 user-explicit pause for cooling-off expiration before opening worktree.",
   "active_objectives": []
 }

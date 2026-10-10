@@ -1,0 +1,124 @@
+{
+  "schema": "builder-handoff-v1",
+  "version": 2,
+  "owner": "rdd-builder",
+  "change_name": "consolidate-loop-phases-to-shared-helpers",
+  "current_phase": "phase-1-plan-gen",
+  "approval_status": "approved-with-cooling-off-override",
+  "plan_quality_status": "ready",
+  "approval_decision_at": "2026-10-09T18:53:00+00:00",
+  "approval_decision_by": "user-explicit-override-cooling-off",
+  "approval_context": "Per rdd-builder SKILL 阶段 0.0.5 自动决策表: planner advisory=complex + LLM=complex + AC count=many + cross-file(>=10 files) + architecture amendment(ADR-0021 §3.2) → 走完整 P1-P3 per decision table. P0 case 1 approve 由 dual-agent review (Metis ses_edfe8b94 + Oracle ses_edfe8b7d) 完成, Oracle verdict=SHIP-with-fixes (scope 收窄到 phase-level shared helpers, C++ 类变薄壳, retry 留 C++, execute_helper 必须无 retry 语义, model.clear() 保留). --- COOLING-OFF OVERRIDE (2026-10-09T19:08Z): 用户在 option prompt '(a) 等 24h 冷却 / (b) HARD pause override (含 audit trail, 用户担风险) / (c) 暂停' 明确选择 (b), 同意承担 Single-Dev Mode §24h Cooling-Off 违反风险. Override 触发字段: 多次 [internal] Continue 系统推 + user 显式选择 (b) + system clock 当前 ~2026-10-09T19:08Z (T+0h15m from cooling-off start 18:53Z, remaining window bypassed ~23h45m). 当前位置: phase-0-cooling-off → phase-1-plan-gen (cooling-off 跳过). 风险承担: 用户 + AI 双重记录在 cooling_off_audit.override_status='user-explicit-override-cooling-off'. 类比 Wave 3 G2 precedent (2026-09-22 G2 merge dc12a17 T+1h28m 用户 override → wave-3-finetune-base-model change ship).",
+  "pre_dual_review": {
+    "completed_at": "2026-10-09T12:00:00+00:00",
+    "metis_session": "ses_edfe8b94effeLHZtjyKMyWFTXO",
+    "metis_verdict": "Deal-breaker DB-1 (DSL plan_execute.agent.md 当前无 retry 单遍 linear) + DB-2 (DEFINE_AGENT/LoopDispatcher 编译期引用 3 C++ 类 + G1 是 ReactLoop 真实生产消费者) + DB-3 (must_realllm 3 cases 断言精确 C++ 字符串无 DSL 等价目标); Major M-1 (model.clear() vs ProviderLLMTool 语义分歧); 用户'移除'是真删还是 consolidate → consolidate (DEFINE_AGENT + PDK API + ABI + must_realllm 4 重硬约束禁删)",
+    "oracle_session": "ses_edfe8b7daffeysJHJPj9PaG5SZ",
+    "oracle_verdict": "Critical C1 (DSL DAG 无环 → retry 物理不可表达, TopoScheduler:586 拒绝环) + C2 (execute_phase 跨 retry 累积子图到 engine_, helper 化后 engine 归属需 class 持有); Major M1 (model.clear() 必保留) + M2 (must_realllm 字符串断言无迁移目标) + M3 (G1 DEFINE_AGENT 真实生产消费者, 类不能删) + M4 (ForkJoinLoop DomainWorkerPool 4-worker 与 DSL fork 语义完全不同机制); SHIP-with-fixes 收窄为 phase-level shared helpers (C++ 薄壳委托 + DSL 可选调用), 严禁'DSL 完整替代 C++ 状态机'声称",
+    "convergence_signals": [
+      "DAG 无环 → retry 不可表达 (Metis DB-1 + Oracle C1 独立交叉验证)",
+      "model.clear() vs ProviderLLMTool (Metis M-1 意图层 + Oracle M1 物理层)",
+      "'单源'意图 vs 状态机所有权 (Metis DB-3 测试断言无目标 + Oracle C2 engine 归属)",
+      "Pattern #8 dual-agent 最高置信度修正优先级 (3 个收敛点独立命中)"
+    ]
+  },
+  "execution_mode_decision": {
+    "mode": "worktree",
+    "reason": "complex per ADR-0048 + improvement draft 推荐路线; files=~10 production + ~3 doc (>2) AND AC count=many (>3) AND architecture amendment (ADR-0021 §3.2 + new ADR-0089 v1.3) + cross-module (include/agenticdsl/pdk + src/modules + pdk/loop_agent + docs/adr + docs/specs) + dual-agent review completed (Pattern #8)",
+    "decided_at": "2026-10-09T18:53:00+00:00",
+    "decided_by": "rdd-builder-P0-auto-decision",
+    "worktree_path": ".rddf/wt/consolidate-loop-phases",
+    "worktree_branch": "feat/consolidate-loop-phases",
+    "worktree_created_at": "2026-10-09T19:07:00+00:00",
+    "worktree_artifacts_synced": [
+      "docs/adr/adr-0089-v1-3-amendment-loop-phase-shared-helpers.md (301 lines, copied from main)",
+      ".rddf/improvements/consolidate-loop-phases-to-shared-helpers.md (296 lines, copied from main)",
+      "openspec/changes/consolidate-loop-phases-to-shared-helpers/proposal.md (208 lines)",
+      "openspec/changes/consolidate-loop-phases-to-shared-helpers/design.md (407 lines)",
+      "openspec/changes/consolidate-loop-phases-to-shared-helpers/tasks.md (175 lines)",
+      "openspec/changes/consolidate-loop-phases-to-shared-helpers/specs/loop-phases-shared-helpers/spec.md (340 lines)",
+      "openspec/changes/consolidate-loop-phases-to-shared-helpers/.openspec.yaml + README.md"
+    ]
+  },
+  "deps_status": {
+    "blockers": [
+      "24h cooling-off 治理门 (per AGENTS.md Single-Dev Mode): 起点 2026-10-09T18:53Z, 满点 2026-10-10T18:53Z, 当前 in-window (~24h 剩余)"
+    ],
+    "manual_deps": [
+      "用户 review 4 件套 (proposal + design + tasks + spec) + ADR-0089 v1.3 🔍 Proposed",
+      "可选派 Oracle post-proposal 复评 (无强制要求, P0 dual-agent 已完成)",
+      "用户决策: 走完 24h cooling-off OR 显式 HARD pause override (per Wave 3 G2 precedent: builder-handoff::approval_decision_by='user-explicit-override-cooling-off' + audit trail)"
+    ],
+    "cross_repo_pending": [
+      "scripts/sync-pdk.sh DEFINE_AGENT 注释同步 (本 change 仅加注释不改 macro, 但若下游 hydraforge-pdk standalone 消费者 grep 注释变化需告知, 无强制同步窗口)"
+    ],
+    "awaiting_phase_completion": [
+      "P0 case 1 approve ✅ (双委托 review 完成)",
+      "Cooling-off 满点 (2026-10-10T18:53Z) OR HARD pause override (用户决策)",
+      "P1 plan generation (post-cooling-off)",
+      "P1.5 deps + exec_mode (post-P1)",
+      "P2 execute (5 atomic commits, post-P1.5)",
+      "P2.5 Oracle SHIP-with-fixes review (post-P2)",
+      "P3 archive + AGENTS.md Recent Changes sync (post-P2.5 APPROVE)"
+    ]
+  },
+  "plan_summary": {
+    "proposal_path": "openspec/changes/consolidate-loop-phases-to-shared-helpers/proposal.md",
+    "design_path": "openspec/changes/consolidate-loop-phases-to-shared-helpers/design.md",
+    "tasks_path": "openspec/changes/consolidate-loop-phases-to-shared-helpers/tasks.md",
+    "spec_path": "openspec/changes/consolidate-loop-phases-to-shared-helpers/specs/loop-phases-shared-helpers/spec.md",
+    "improvement_path": ".rddf/improvements/consolidate-loop-phases-to-shared-helpers.md",
+    "adr_path": "docs/adr/adr-0089-v1-3-amendment-loop-phase-shared-helpers.md",
+    "spec_requirements": 11,
+    "spec_scenarios": 26,
+    "tasks_count": 62,
+    "implementation_steps": 9,
+    "decision_points": 5,
+    "decision_point_1": "D1 helper 抽取 (run_plan_phase + run_execute_phase + run_verify_phase) - commit 1",
+    "decision_point_2": "D2 PlanExecuteLoop 薄壳委托 (公开 API 零变化, message 字符串字面量零变化) - commit 2",
+    "decision_point_3": "D3 ReactLoop 薄壳委托 + agent_macros.h ADR 注释 - commit 3",
+    "decision_point_4": "D4 ForkJoinLoop 语义不变 (用户决策, 零代码改动, 仅 spec 同步) - 跨 commit 2/3 隐含",
+    "decision_point_5": "D5 pdk_entry 新增 loop/run_plan + loop/run_verify 工具 (DSL 可选调用, 不强制改写) - commit 4",
+    "tdd_5step_structure": "Step 1 RED → Step 2 GREEN → Step 3 REFACTOR → Step 4 ASSERT → Step 5 GATE (per tasks.md 2.1-2.14 / 3.1-3.7 / 7.1-7.4)",
+    "atomic_commits_planned": 5,
+    "atomic_commit_1": "feat(loop_phases): 抽 plan/verify/execute helper 自由函数 (Phase 0)",
+    "atomic_commit_2": "refactor(plan_execute): 内部委托 helper, 公开 API 不变 (Phase 1)",
+    "atomic_commit_3": "refactor(react_loop): 内部委托 helper, agent_macros.h ADR-0089 注释 (Phase 2)",
+    "atomic_commit_4": "feat(pdk_entry): 新增 loop/run_plan + loop/run_verify 工具 (Phase 3)",
+    "atomic_commit_5": "docs: pdk/loop_agent/README.md 双循环架构段改写 + specs/architecture.md L3 docMap 更新 (Phase 4)"
+  },
+  "cooling_off_audit": {
+    "policy": "AGENTS.md Single-Dev Mode §24h Cooling-Off (issue 创建后至少 24h 才执行)",
+    "open_spec_change_created_at": "2026-10-09T18:53:00+00:00",
+    "cooling_off_full_at": "2026-10-10T18:53:00+00:00",
+    "current_phase": "phase-0-cooling-off (P0 已 approve, P1-P3 在 cooling-off 期间冻结)",
+    "override_status": "none (用户尚未显式 HARD pause override)",
+    "override_precedent": "2026-09-22 G2 merge dc12a17 → Wave 3 finetune-base-model change 在 T+1h28m 时用户显式 override 冷却, audit 字段记录 override 时间/by/触发字段/违反治理/当前位置/剩余窗口. 当前 change 沿用同模式 (override_status='none' → 'user-explicit-override-cooling-off' 若用户决策)",
+    "override_required_artifacts_if_triggered": [
+      "approval_decision_by: 'user-explicit-override-cooling-off'",
+      "approval_context: 追加 override 决策记录 (时间/触发字段/违反治理/当前位置/剩余窗口)",
+      "cooling_off_audit.override_status: 'user-explicit-override-cooling-off'",
+      "冷却风险: AI 显式记录 + 用户承担"
+    ]
+  },
+  "pattern_11_lessons_applied": {
+    "lessons_from_g1": [
+      "Result<T,E> 解包用 .value() 非 -> (本 change 使用 std::expected 统一, 2026-10-08 ship)",
+      "Lambda by-value 捕获要求 operator() const-qualified (helper 设计遵循)",
+      "LSP stale cache ≠ 真实 compile fail (实施前用 g++ -std=c++23 验证, 不信 LSP)",
+      "Worker final-report 误导 — 主会话必须验证实际产物, 不信 report"
+    ],
+    "pattern_8_convergence_validation": "Dual-agent review (Metis + Oracle) 3 个收敛点 (DAG 无环 / model.clear() 分歧 / 状态机所有权) 独立交叉命中 = Pattern #8 最高置信度修正优先级",
+    "oracle_ship_with_fixes_required": "per Oracle verdict SHIP-with-fixes (非 SHIP), P2.5 阶段必派 Oracle post-impl review",
+    "atomic_commits_per_pattern_4": "5 atomic commits 拆分, 不 amend baseline, 每个 commit 含 [Reverse Indicator] 5 字段",
+    "fresh_deploy_warning": "post-hygiene fix 案例 (Pattern #10): 任何修改资源创建顺序的 commit 必须 hermetic env fixture 验证 (本 change 不涉及 fs 资源, 不适用)",
+    "memory_anti_pattern_check": "per Pattern #7 + Pattern #10: 避免 LSP 信 LSP 不信 g++; 验证 worker final report 用 git show + actual command, 不信 verbal"
+  },
+  "next_phase_ready": "phase-1-plan-gen (post-cooling-off OR post-override)",
+  "next_phase_entry_action": "fire async Sisyphus-Junior worker for P1 plan generation: load .rddf/state/builder/consolidate-loop-phases.json + openspec/changes/consolidate-loop-phases-to-shared-helpers/{proposal,design,tasks}.md → generate .rddf/plans/consolidate-loop-phases.md with TDD 5-step structure (2-5 min bite-sized tasks per AGENTS.md rdd-builder P1 plan gen phase)",
+  "user_decision_required": [
+    "(a) wait for 2026-10-10T18:53Z cooling-off expiration (~24h), no override",
+    "(b) HARD pause override (per Wave 3 G2 precedent), requires user explicit instruction + audit trail in builder-handoff.approval_decision_by='user-explicit-override-cooling-off'",
+    "(c) delegate to Sisyphus-Junior worker immediately (only after option a or b)"
+  ]
+}

@@ -1,20 +1,21 @@
 {
-  "version": 1,
-  "current_sprint": "sprint-2026-09",
+  "version": 2,
+  "current_sprint": "sprint-2026-10",
   "sprint_started_at": "2026-09-20T02:58:34+00:00",
-  "last_sync_at": "2026-09-22T15:48:14.378537+00:00",
+  "last_sync_at": "2026-10-09T12:30:00+00:00",
   "last_sync_status": "ok",
   "recommended_route": "complex",
   "active_projects": [
     {
-      "project_id": "phase-6c-adr-0086",
-      "proposal": "adr-0086-v1-1-harness-change-confounder",
+      "project_id": "phase-6c-loop-phase-consolidation",
+      "proposal": "consolidate-loop-phases-to-shared-helpers",
       "phase": "phase-6c",
-      "theme": "RSI meta-cognitive",
-      "priority": "P0",
+      "theme": "PDK Agent Loop phase consolidation (ADR-0021 §3.2 amendment + new ADR-0089 v1.3)",
+      "priority": "P1",
       "status": "active",
-      "proposal_path": ".rddf/improvements/adr-0086-v1-1-harness-change-confounder.md",
-      "feedback_status": "none",
+      "proposal_path": ".rddf/improvements/consolidate-loop-phases-to-shared-helpers.md",
+      "improvement_adr_path": "docs/adr/adr-0089-v1-3-amendment-loop-phase-shared-helpers.md",
+      "feedback_status": "Metis + Oracle dual-agent review completed (2026-10-09); Oracle SHIP-with-fixes verdict applied (scope narrowed to phase-level shared helpers)",
       "mapped": true
     },
     {
@@ -31,9 +32,9 @@
   ],
   "unmapped_proposals": [],
   "synced_proposals": [
-    "adr-0086-v1-1-harness-change-confounder",
+    "consolidate-loop-phases-to-shared-helpers",
     "wave-3-finetune-base-model"
   ],
   "previous_unmapped": [],
-  "state_revision": 2
+  "state_revision": 3
 }
