@@ -186,7 +186,7 @@
 
 满足下列任一即可启动本 future change:
 
-1. **观察期满触发**: ADR-0089 v1.4 ship (commit TBD) 后 ≥ 1-2 月 + 用户无 deprecation rollback 意图
+1. **观察期满触发**: ADR-0089 v1.4 ship (commits `7dc83a7` + `87aadc4` + `96172e3` + `f47acaa`, 2026-10-10) 后 ≥ 1-2 月 + 用户无 deprecation rollback 意图
 2. **用户显式启动**: 用户直接命令 "启动 fork-join-dsl-migration change"
 3. **强制触发**: ADR-0087 benchmark 4-worker 行为在未来 ship 中 regression (立即评估)
 4. **Wave-level 触发**: Wave 3 Phase 2 或 Phase 6+ 总线服务化需要 DSL 路径并行原语 (caller 提案)
