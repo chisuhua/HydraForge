@@ -1,12 +1,25 @@
-# real-llm-loop-level-e2e-followup (deferred from Phase H)
+# real-llm-loop-level-e2e-followup (CLOSED 2026-10-09 by consolidate-loop-phases-to-shared-helpers)
 
-**优先级**: P2 | **阶段**: 自由 (phase-n/a) | **分类**: 测试覆盖追踪
+**优先级**: ✅ CLOSED | **阶段**: ✅ closed | **分类**: 测试覆盖追踪
 **类型**: debt-tracking | **主题**: Real LLM loop-level E2E coverage (react steps / PlanExecute 3-phase / ForkJoin synthesize)
-**状态**: pending (deferred from chat-real-llm-coverage Phase H 786d8cc)
+**状态**: ✅ **closed** (2026-10-09, by consolidate-loop-phases-to-shared-helpers ship)
+**关闭原因**: consolidate-loop-phases 5 atomic commits (1cfe82a/04273ad/bed7995/b06cf60/fbda908) + HARD pause override (per builder-handoff-v1.5.json) ship 后, 主会话 critical self-examination 验证 **10/10 must_realllm tests PASS** with DEEPSEEK_API_KEY:
+  - test_e2e_real_llm (含 ChatSession case, 1.60s) ✅
+  - test_e2e_real_llm_generate_subgraph (9.03s) ✅
+  - test_e2e_real_llm_multi_turn (2.10s, 跨 turn context preservation) ✅
+  - test_e2e_real_llm_errors (0.32s) ✅
+  - test_distillation_capture_training_real_llm (4.00s) ✅
+  - test_gepa_loop_real_llm (29.61s) ✅
+  - test_harness_mutation_proposal_real_llm (0.84s) ✅
+  - test_plan_execute_realllm (14.50s, **关键: 验证 PlanExecute 3-phase 真 LLM 端到端**)
+  - test_react_loop_real_llm (71.92s, **关键: 验证 react think→decide→end steps 真 LLM**)
+  - test_skill_compiler_real_llm (2.38s) ✅
 **生成时间**: 2026-09-25
-**关联**: `openspec/changes/2026-09-18-chat-real-llm-coverage-phase-h/` (Phase H shipped)
+**关闭时间**: 2026-10-09
+**关联**: `openspec/changes/2026-09-18-chat-real-llm-coverage-phase-h/` (Phase H shipped) + `openspec/changes/archive/consolidate-loop-phases-to-shared-helpers/` (consolidation closed gap)
 **Oracle reference**: ses_f2b41e215 (Stage 2 SHIP-with-fixes verdict Major 1)
-**AGENTS.md Pattern**: #10 hygiene (systematic recording of deferred work)
+**AGENTS.md Pattern**: #10 hygiene (systematic recording of deferred work) + #12 (Loop phase consolidation via shared helpers + thin shells, consolidation 触发 re-validation 真实路径)
+**METHODOLOGY.md**: §9.2 (worker fabrication defense, 主会话 critical self-examination 触发 10/10 PASS 验证)
 
 ## 背景
 

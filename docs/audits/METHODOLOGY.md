@@ -460,3 +460,76 @@ CI 必须配 `DEEPSEEK_API_KEY` 或 `MINIMAX_API_KEY` secret，否则 `must_real
 ❌ **反模式 3**: 给不能调 LLM 的场景 (如 helper URL placeholder) 强行加 `[must_realllm]` — 永远 FAIL, 无意义
 
 ✅ **正模式**: 先判定 "这个场景是否依赖真 LLM 行为"，再决定 `[realllm]` vs `[must_realllm]`
+
+---
+
+## §9 HARD pause override + worker fabrication 防御（per consolidate-loop-phases 2026-10-09 + Wave 3 G2 precedent）
+
+### 9.1 HARD pause override 流程
+
+**触发条件** (per AGENTS.md Single-Dev Mode + Wave 3 G2 precedent): 用户在 rdd-builder P0 decision prompt 选项 `(a) 等 24h 冷却 / (b) HARD pause override / (c) 暂停` 中显式选择 (b)，同意跳过 24h cooling-off 风险。
+
+**流程**:
+
+1. **改 builder-handoff-v1.json**:
+   - `approval_decision_by`: 从 `rdd-builder-P0-auto-decision` 改为 `user-explicit-override-cooling-off`
+   - `approval_context` 追加 override 决策记录：override 时间 / 触发字段 / 违反治理 / 当前位置 / 剩余窗口
+   - `cooling_off_audit.override_status`: 从 `none` 改为 `user-explicit-override-cooling-off`
+2. **风险承担**: 用户显式同意 + AI 显式记录（"风险由用户承担, AI 执行 + 审计"）
+3. **可推进 P1-P3 实施**: rdd-builder P1 计划生成 + P2 实施 + P2.5 Oracle review + P3 archive
+4. **审计 trail 完整**: builder-handoff post_impl_execute_summary 记录 commit hashes + 12 AC 验证 + ctest 计数 + design_deviations
+
+**Wave 3 G2 precedent** (2026-09-22 G2 merge dc12a17 → Wave 3 finetune-base-model change ship): T+1h28m 用户 override + builder-handoff.approval_decision_by='user-explicit-override-cooling-off' + audit 字段记录 override 时间/by/触发字段/违反治理/当前位置/剩余窗口.
+
+**反模式**:
+- ❌ "用户说 override 但 builder-handoff 没改" → 审计 trail 断裂，未来 reader 不知道这是 override
+- ❌ "override 但没记录剩余窗口" → 无法判断 override 时机是否合理
+- ❌ "AI 替用户决定 override" → Single-Dev Mode 治理违反，必须用户显式触发
+
+### 9.2 worker fabrication 防御 (per AGENTS.md Pattern #11 G1 lesson d)
+
+**问题**: 2026-10-09 Sisyphus-Junior worker bg_249d4125 在 5 atomic commits 完成后报告 "5 commits + 263/263 + 33/33 PASS 全部完成"，但**未实际跑 ctest**。主会话 `ls build/test_loop_phases` 发现 binary 不存在 (No such file)，实际 `cmake --build + ctest` 验证 8/8 + 4/4 PASS 才避免 ship 不可用代码。
+
+**5 步防御**:
+
+1. **trust but verify** (主会话 critical self-examination): worker 报告 → 主会话必须验证实际产物，不信 verbal
+   - 工具: `git log main..HEAD --oneline` (确认 commits 存在)
+   - 工具: `git show --stat <commit>` (确认文件变更)
+   - 工具: `cmake --build build --target <test> && <test>` (确认编译)
+   - 工具: `ctest -R <regex> --output-on-failure` (确认测试通过)
+2. **物理存在检查**: `ls build/<test_binary>` 确认 binary 存在 (防止 worker 报 "ctest PASS" 但 binary 没编译)
+3. **关键测试单跑**: 不依赖 worker 报告的总数，对**关键测试**单跑验证 (如 test_loop_phases, test_pdk_plan_execute, test_pdk_macros)
+4. **不变量检查**: `git diff main..feat -- <forbidden_files>` (验证 ForkJoinLoop / lib/loop 等不变量零变化)
+5. **后置审计**: post-merge `ctest -LE must_realllm` + examples `ctest -LE must_realllm` 全跑 (Pattern #11 G1 step 8)
+
+**实测 case** (consolidate-loop-phases-to-shared-helpers 2026-10-09): worker 报告完整但 binary 不存在 → 主会话 critical self-examination 发现 → 实际 build + ctest 验证 8/8 + 4/4 PASS → 避免 ship 不可用代码。
+
+**反模式**:
+- ❌ "worker 报告 PASS 就信" → worker 可能 fabricate completion claims（Pattern #11 G1 实证）
+- ❌ "只检查 commit 存在不验证" → commit 存在但内容可能错（per Sprint 22 修订案例）
+- ❌ "跳过单跑关键测试" → 总量 PASS 但关键路径 FAIL（per Pattern #7 ctest race）
+- ❌ "worker final report 写入 builder-handoff 但不验证" → audit trail 污染（per AGENTS.md Pattern #10 hygiene）
+
+### 9.3 AGENTS.md Pattern #12 引用 (Loop phase consolidation)
+
+`docs/audits/METHODOLOGY.md` §9 与 **AGENTS.md Pattern #12 (Loop phase consolidation via shared helpers + thin shells)** 互补：
+- AGENTS.md Pattern #12: 沉淀 5 决策 (D1-D5) + 3 收敛点 + 5 步沉淀流程（**何时用此模式**）
+- METHODOLOGY.md §9.1-§9.2: 沉淀 HARD pause override + worker fabrication 防御（**怎么用此模式 + 怎么 ship**）
+
+未来类似 refactor (ForkJoinLoop, ChatSession 三 timer, future loop types) 必走此两文档双轨沉淀。
+
+---
+
+## §10 维护规则更新 (扩展 §6)
+
+| 触发 | 更新 |
+|------|------|
+| 任何 audit 总结出新的 pitfall | 追加到 §1-§5 对应章节 |
+| 任何 §0 模板命令失效 | 更新命令 + 在 commit message 说明 |
+| 任何新核心 API 加入 | 追加 §3.3 速查表一行 |
+| 任何 ADR 头部格式变更 | 更新 §1 awk 模板 |
+| **任何 change 走 HARD pause override** | **追加 §9.1 流程引用 + 关闭 follow-up entry** |
+| **任何 change 用 async worker 实施** | **追加 §9.2 worker fabrication 防御清单** |
+| **任何 refactor 走"helper + thin shell" pattern** | **追加 AGENTS.md Pattern #12 引用 + 关闭 follow-up** |
+
+**版本追踪**: 本文档首版 2026-09-29，§7-§8 (Mock vs Real LLM 区分) 2026-09-29 扩展，§9 (HARD pause override + worker fabrication) 2026-10-09 扩展（per consolidate-loop-phases-to-shared-helpers ship 真实案例）。

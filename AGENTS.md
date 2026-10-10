@@ -626,6 +626,35 @@ HydraForge/
 
 **Promoted ROI**: G1 case study 双 Oracle (pre bg_c706862b 5 SHIP-with-fixes + post bg_8237a316 0 Critical + 2 Major + 4 Minor) + 3 SHIP-with-fixes atomic commits (9ee475e + e182f82 + f1a6647) + 2 commit const retry. 总耗时: 1h37m worker + 12m23s Oracle post-impl + 30min 主会话 apply + verify. **vs 不走此模式**: 大 change ship 后 bug 拆 commit + 重新 dual-review ≈ 2-4h 浪费.
 
+#### 12. Loop phase consolidation via shared helpers + thin shells (✅ consolidate-loop-phases-to-shared-helpers 2026-10-09)
+
+**触发**: 发现"双轨实现" — 同一概念（如 agent loop 阶段逻辑）有 C++ 类 + DSL 两条独立实现路径，导致"测试覆盖 ≠ 生产路径"风险（C++ 类有完整单元测试，DSL 是生产 e2e 路径但测试覆盖薄）。
+
+**5 步沉淀** (per consolidate-loop-phases-to-shared-helpers 真实案例):
+
+1. **抽 helper 自由函数** — 命名空间 `hydraforge::pdk::loop_phases`，3 函数 (`run_plan_phase` / `run_execute_phase` / `run_verify_phase`)，header-only inline，**承接所有原 inline 逻辑**（含 `req.params.model.clear()` 等系统约束）
+2. **C++ 类变薄壳委托** — `PlanExecuteLoop` / `ReactLoop` 内部 `plan_phase()` / `execute_phase()` / `verify_phase()` 私有方法改为直接调 helper；公开 API + `result.message` 字符串字面量 + `State` 枚举零变化（**D2.inv.api 不变量**）
+3. **控制流 + 资源所有权留在类内** — `while(true)` retry 编排 + `engine_` 成员保留（DAG 无环硬约束 → retry 必须在 C++，helper 无 retry 语义；helper 接 `DSLEngine&` 引用而非 `unique_ptr`）
+4. **DEFINE_AGENT 兼容性** — `agent_macros.h` LoopDispatcher 模板 specialization 零变化，G1 + test_pdk_macros 编译通过
+5. **DSL 文件零修改 + 可选新工具** — `lib/loop/*.agent.md` 不改写（向后兼容），`pdk_entry.cpp` 可选注册 `loop/run_plan` / `loop/run_verify` 工具给 DSL 用
+
+**3 收敛点** (per Metis + Oracle dual-agent review 独立交叉命中, Pattern #8):
+
+- **DAG 无环 → retry 不可表达** (Metis DB-1 + Oracle C1): DSL 静态 DAG 无 back-edge，retry 编排必须在 C++，helper 故意无 retry 语义
+- **model.clear() vs ProviderLLMTool avail.front()** (Metis M-1 + Oracle M1): 抽取时**完整同步注释**，不是冗余 (`fix-generation-request-model-default` 修复链)
+- **"单源"意图 vs 状态机所有权** (Metis DB-3 + Oracle C2): 用户说"移除"=consolidate（DEFINE_AGENT + PDK ABI + must_realllm 4 重硬约束禁删），不是真删
+
+**反模式**:
+
+- ❌ "helper 抽完直接替换 C++ 类调用" — 公开 API 变了，5 现有 test binary 全 FAIL（D2.inv.api 必须零变化）
+- ❌ "helper 顺便 retry 也下沉" — DSL 表达不出，DAG 不可达
+- ❌ "删 DEFINE_AGENT 简化" — G1 + test_pdk_macros 编译断
+- ❌ "强改 lib/loop/*.agent.md 适配新 helper" — D5 inv.optional，DSL 路径向后兼容
+- ❌ "主会话信 worker 报告" — Pattern #11 G1 lesson d: Sisyphus-Junior worker bg_249d4125 未跑 ctest 就报告"5 commits PASS"，主会话 `ls build/test_loop_phases` 发现 binary 不存在，必须 `cmake --build + ctest` 实际验证
+- ❌ "fork_join_loop 同样改" — 用户决策 D4 暂缓，DomainWorkerPool 4-worker 不动（ADR-0087 benchmark 4-worker 3.3× 加速承载对象保留）
+
+**Promoted ROI** (consolidate-loop-phases-to-shared-helpers ship 2026-10-09): 5 atomic commits (1cfe82a/04273ad/bed7995/b06cf60/fbda908) + 12 AC 验证 ALL PASS + core 264/264 + examples 33/33 zero regression + drop_ratio 0%. 跨 3 个收敛点独立交叉命中 = Pattern #8 最高置信度. **推荐**: 所有发现"同一概念双轨实现 + 测试覆盖 ≠ 生产路径"的 change 必走此模式。
+
 ### 工程层 (Engineering)
 
 > 工程层模式沉淀在 `tests/AGENTS.md` (测试目录专属) + `src/common/llm/AGENTS.md` (LLM 模块专属).
