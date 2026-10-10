@@ -59,8 +59,16 @@ namespace hydraforge::pdk {
  * Retry 逻辑:
  *   - Verify 失败 → state = Retry, retries_used++, 重新进入 Planning
  *   - retries_used >= max_retries → 整体失败, LoopResult.success=false
+ *
+ * @deprecated 自 ADR-0089 v1.4 (2026-10-10) 起, 推荐使用 `lib/loop/plan_execute.agent.md`
+ *             DSL 路径 + `loop/run` 工具。类本身保留可编译使用 (含 must_realllm
+ *             test_plan_execute_realllm 3/3 守卫), 但将在 v1.4 观察期 (≥1-2 月) 后择机删除。
+ *             删除前必须完成 must_realllm 守卫镜像到 DSL 路径。
+ *             详见 docs/adr/adr-0089-v1-4-amendment-soft-deprecate-cpp-agent-loops.md D6/D9.
  */
-class PlanExecuteLoop {
+class [[deprecated(
+    "ADR-0089 v1.4: use lib/loop/plan_execute.agent.md DSL path (loop/run tool); "
+    "see docs/adr/adr-0089-v1-4-amendment-soft-deprecate-cpp-agent-loops.md")]] PlanExecuteLoop {
  public:
   /**
    * @brief 5 状态机 (Planning / Executing / Verifying / Done / Retry)

@@ -133,11 +133,19 @@ struct AgentRunner<AgentLoopType::ForkJoin> {
  *   - 返回类型从 ToolResult 统一为 LoopResult
  *   - React 内部仍委托 SimpleCognitiveOrchestrator 单轮 ReAct (零行为变化)
  *
+ * ADR-0089 v1.4 变更 (2026-10-10): 生成的 XXXAgent class 加 [[deprecated]] 属性。
+ *   注意: [[deprecated]] 不能标注宏本身 (预处理器符号非 C++ 实体), 故标注落在
+ *   宏展开的 class 定义上 — warning 产生于宏调用点而非宏定义点, 属预期 (D7.inv.compile-only-warning)。
+ *   宏签名 (参数列表) 零变化 → D7.inv.api 满足。
+ *
  * @param name      Agent 名 (展开为 class XXXAgent)
  * @param loop_type 循环类型 (React / PlanExecute / ForkJoin, Sprint 20 全支持)
  */
 #define DEFINE_AGENT(name, loop_type)                                              \
-  class name##Agent {                                                              \
+  class [[deprecated(                                                              \
+      "ADR-0089 v1.4: use lib/loop/<loop_type>.agent.md DSL path (loop/run tool); " \
+      "see docs/adr/adr-0089-v1-4-amendment-soft-deprecate-cpp-agent-loops.md")]]  \
+  name##Agent {                                                                    \
    public:                                                                         \
     using Loop = typename ::hydraforge::pdk::LoopDispatcher<loop_type>::Type;      \
     name##Agent(std::unique_ptr<agenticdsl::DSLEngine> engine,                     \

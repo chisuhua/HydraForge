@@ -27,7 +27,7 @@ namespace hydraforge::pdk {
 
 /**
  * @brief ReactLoop — PDK Agent 单轮循环 (Sprint 4 MVP, Sprint 20 升级为 class,
- *        ADR-0089 v1.3 薄壳化委托 run_plan_phase)
+ *        ADR-0089 v1.3 薄壳化委托 run_plan_phase, ADR-0089 v1.4 soft-deprecated)
  *
  * 状态机:
  *   Thinking → Acting → Observing → Done (单轮即 Done, 不循环)
@@ -37,8 +37,16 @@ namespace hydraforge::pdk {
  *   - LLM 生成文本写入 final_context.working.data[agent_output]
  *   - success 字段映射: 生成非空 → success = true
  *   - 引擎或 LLM provider 为 null 时返回 success=false + message 描述原因
+ *
+ * @deprecated 自 ADR-0089 v1.4 (2026-10-10) 起, 推荐使用 `lib/loop/react.agent.md`
+ *             DSL 路径 + `loop/run` 工具。类本身保留可编译使用 (含 g1_coding_assistant
+ *             M3 编译期依赖), 但将在 v1.4 观察期 (≥1-2 月) 后择机删除。
+ *             删除前必须完成 must_realllm 守卫镜像到 DSL 路径。
+ *             详见 docs/adr/adr-0089-v1-4-amendment-soft-deprecate-cpp-agent-loops.md D6/D9.
  */
-class ReactLoop {
+class [[deprecated(
+    "ADR-0089 v1.4: use lib/loop/react.agent.md DSL path (loop/run tool); "
+    "see docs/adr/adr-0089-v1-4-amendment-soft-deprecate-cpp-agent-loops.md")]] ReactLoop {
  public:
   /**
    * @brief 4 状态机 (单轮即 Done)

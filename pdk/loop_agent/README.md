@@ -160,7 +160,7 @@ thread_local atomic 开关（0=None, 1=Training）。真实采集属 C2/ADR-0080
 - 缺 `goal` → `InvalidParams`
 - 未设 parent provider → `Unknown`
 
-## 双循环架构（C1 决策矩阵 + ADR-0089 v1.3 单源化）
+## 双循环架构（C1 决策矩阵 + ADR-0089 v1.3 单源化 + v1.4 软停用）
 
 `lib/loop/*.agent.md` DSL 循环与 `include/agenticdsl/pdk/agent_loops/*` C++ 循环**共享 phase helper 单源实现**（ADR-0089 v1.3 amendment, 2026-10-09）：
 
@@ -188,7 +188,18 @@ thread_local atomic 开关（0=None, 1=Training）。真实采集属 C2/ADR-0080
 - 输出: `{ok, success, error_code, plan | verified}`
 - 遵循 D6 bus_ptr 边界规则: 不接收 bus_ptr, 不发射事件
 
-**统一重构触发条件已满足并完成**: 任一循环实现出现第 3 个消费者（DSL 层消费者 = ChatSession；C++ 层消费者 = tests）→ 2026-10-09 完成 phase helper 单源化重构。
+### Soft-deprecate C++ Agent Loop（ADR-0089 v1.4, 2026-10-10）
+
+自 ADR-0089 v1.4 起，C++ 原语层（`ReactLoop` / `PlanExecuteLoop` + `DEFINE_AGENT` 宏）被标记 **`[[deprecated]]`**（软停用），**推荐唯一生产路径 = `lib/loop/*.agent.md` DSL + `loop/run` 工具**：
+
+- **`ReactLoop`** / **`PlanExecuteLoop`** class 声明前加 `[[deprecated("ADR-0089 v1.4: use lib/loop/... DSL path")]]` — 类保留可编译使用（含 must_realllm 测试），但编译器对任何直接使用方发出 warning
+- **`DEFINE_AGENT`** 宏生成的 `XXXAgent` class 加 `[[deprecated]]` — 宏签名零变化，warning 产生于宏调用点（属预期）
+- **`ForkJoinLoop` 不在 deprecation 范围**（ADR-0089 v1.4 D8）: DomainWorkerPool 4-worker + ADR-0087 benchmark 3.3× speedup 承载对象完整保留
+- **观察期**: v1.4 ship 后 ≥ 1-2 月；期满后由用户决策是否启动 `delete-deprecated-cpp-loops` 独立 change（完全删除 C++ 类 + must_realllm 镜像到 DSL）
+- **ForkJoin DSL 迁移**: 独立 future change tracker 见 `.rddf/improvements/fork_join_dsl_migration.md`
+- 详见 `docs/adr/adr-0089-v1-4-amendment-soft-deprecate-cpp-agent-loops.md`
+
+**统一重构触发条件已满足并完成**: 任一循环实现出现第 3 个消费者（DSL 层消费者 = ChatSession；C++ 层消费者 = tests）→ 2026-10-09 完成 phase helper 单源化重构 → 2026-10-10 叠加软停用层（消除双轨认知负担）。
 
 ## bus_ptr 边界规则（D6）
 
