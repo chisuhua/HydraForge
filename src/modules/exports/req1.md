@@ -89,13 +89,13 @@ struct ContextMergePolicy {
 
 class ContextEngine {
 public:
-    struct Result {
+    struct SnapshotResult {
         Context new_context;
         std::optional<NodePath> snapshot_key; // 如果本次执行触发了快照
     };
 
     // 执行节点并根据需要处理快照（聚合接口）
-    Result execute_with_snapshot(
+    SnapshotResult execute_with_snapshot(
         std::function<Context(const Context&)> execute_func, // 执行节点的函数
         const Context& ctx,
         bool need_snapshot,
@@ -179,7 +179,7 @@ inline MergeStrategy get_merge_strategy_for_path(const std::string& path, const 
 
 // --- ContextEngine Implementation ---
 
-ContextEngine::Result ContextEngine::execute_with_snapshot(
+ContextEngine::SnapshotResult ContextEngine::execute_with_snapshot(
     std::function<Context(const Context&)> execute_func,
     const Context& ctx,
     bool need_snapshot,

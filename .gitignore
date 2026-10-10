@@ -56,6 +56,9 @@ build_ninja/
 .rddf/state/plan/
 # Session handoff files (cross-opencode-session handoff context, ephemeral)
 .rddf/state/handoff-*.md
+# LLM-generated retrospective analysis (per-AI-process output, self-declared "non-SoT, 教学参考材料")
+# Includes flat_map_profile/ subdir with benchmark cpp + binary build artifacts
+.rddf/analysis/
 # note: .rddf/state/builder/ is intentionally tracked (rdd-builder state machine depends on it
 # to resume P0 across sessions). Per-machine ephemeral subdirs go in .quick-history.jsonl instead.
 # _lib is a per-machine symlink to ~/.agents/skills/_lib/ (rdd-workflow canonical)
