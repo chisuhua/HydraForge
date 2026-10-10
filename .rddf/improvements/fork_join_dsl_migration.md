@@ -110,11 +110,11 @@
 | # | 缺陷 | 位置 | 影响 | 状态 |
 |---|---|---|---|---|
 | **BUG-1** | `register_react_support_tools_for_child` 只注册 react 工具 (decide_react + finish), **未注册 `loop/process_task` + `loop/execute_plan`** | `pdk/loop_agent/src/pdk_entry.cpp` | DSL fork_join.agent.md (task_a/b/c) + plan_execute.agent.md (execute 节点) 执行必失败 "Tool not registered" | ✅ **已修复** (本会话: 抽 run_process_task/run_execute_plan 文件级函数 + child 注册复用) |
-| **BUG-2** | `TopoScheduler` main loop **先 execute_node 再检查 FORK/JOIN 类型** → ForkNode/JoinNode 送到 NodeExecutor 抛 "scheduler routing bug" | `src/modules/scheduler/topo_scheduler.cpp:209-221` + `src/modules/executor/node_executor.cpp:66-68` | DSL fork_join.agent.md 完整 e2e 无法执行 (fork 节点崩溃) | ⚠️ **未修复** (核心调度器改动, 本 future change 范围) |
+| **BUG-2** | `TopoScheduler::handle_fork_node` + `start_fork_simulation` 未快照 working context, fork 后的 branch 节点 template variable (`{{user_input}}`) 无法解析 → "Template render error: variable 'user_input' not found" | `src/modules/scheduler/topo_scheduler.cpp:316-326` (`start_fork_simulation`) + `673-683` (`handle_fork_node`) | DSL fork_join.agent.md fork 之后的 branch 节点必崩; 原假设 "routing bug" 经 2026-10-10 实测不成立 (line 175 `handle_fork_branches_block` 在 execute_node 之前正确触发) | ⚠️ **未修复** (working context 快照传递机制改造, fork_join_dsl_migration future change 范围) |
 | **BUG-3** | `lib/loop/plan_execute.agent.md` plan 节点 prompt 生成**自然语言 plan**, 但 execute 节点调 `loop/execute_plan` 期望 **```yaml AgenticDSL block** — 语义不匹配 | `lib/loop/plan_execute.agent.md:14-19` + `pdk_entry.cpp` extract_agenticdsl_block | 真实 LLM plan 产出无法被 execute_plan 解析 ("plan is not AgenticDSL markdown") | ⚠️ **未修复** (DSL 文件设计问题, 需改 plan prompt 或 execute_plan 容错) |
 | **BUG-4** | `loop/run` 未注入 `{{context}}` 变量 (plan_execute.agent.md plan 节点引用) | `pdk/loop_agent/src/pdk_entry.cpp` | "Template render error: variable 'context' not found" | ✅ **已修复** (本会话: ctx.working["context"] 注入) |
 
-**实施本 future change 的 Gate**: BUG-2 + BUG-3 必须解决 (核心调度器 fork/join routing + plan prompt 语义对齐), 否则 DSL fork_join/plan_execute 路径无法作为 canonical 生产路径。
+**实施本 future change 的 Gate**: BUG-2 (working context 快照传递, fork 后 branch 节点 template render 修复) 必须解决, 否则 DSL fork_join 路径无法作为 canonical 生产路径. BUG-3 已 ship (commit `7e81c2f`, 2026-10-10).
 
 ---
 
