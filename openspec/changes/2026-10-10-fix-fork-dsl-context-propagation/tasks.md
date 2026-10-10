@@ -5,17 +5,15 @@
 
 ---
 
-## Phase 1 — RED tests + Oracle dual-review prep (commit 1)
+## Phase 1 — RED tests + Oracle dual-review prep (commit 1, 部分完成)
 
-- [ ] **Step 1 RED**: 新增 `tests/test_fork_dsl_context_propagation.cpp` (5 cases per design.md D3):
-  - Test 1: `lib/loop/fork_join.agent.md` 端到端 — 预期 FAIL (`Template render error: variable 'user_input' not found`)
-  - Test 2: 3-branch 并行执行 (state.executed_ 顺序断言)
-  - Test 3: YIELD 后 resume fork 仍正确
-  - Test 4: fork + join + synthesize 完整图执行
-  - Test 5: 并发 fuzz (50 iter × 4 thread per AGENTS.md Pattern #7)
-- [ ] **Step 2**: 升级 `examples/pdk_chat_demo/tests/test_loop_agent_fork_join.cpp` Test 2 严格断言 (success=true + 非 mock fallback + steps >= 3 + error 空) — 预期 FAIL (per fork-join-dsl-migration Phase 4 commit `469f495` 已记录)
-- [ ] **Step 3 RED verify**: 跑测试, 确认 Test 1 + Test 2 FAIL (RED 状态). Test 3/4/5 应 PASS (C++ ForkJoinLoop 不变)
-- [ ] **Step 4**: 捕获 RED 失败堆栈 (per AGENTS.md Pattern #1 step 4: 精确诊断)
+- [x] **Step 1 RED**: 新增 `tests/test_fork_dsl_context_propagation.cpp` (5 cases) + 升级 `test_loop_agent_fork_join.cpp` Test 2 严格断言 — commit `adb7910`
+- [x] **Step 2 RED verify (2026-10-10)**: Test 2 在 `loop/run fork_join` 调下失败错误: **"Node execution failed: ForkNode/JoinNode reached NodeExecutor - scheduler routing bug"** (commit `adb7910`)
+- [x] **Step 3 关键发现**: BUG-2 实际为**双 bug**:
+  1. **routing bug** (`TopoScheduler::run_main_loop` line 209-221 顺序错误)
+  2. **template context bug** (`handle_fork_node` + `start_fork_simulation` working context 快照传递, per fork-join-dsl-migration commit `469f495`)
+- [x] **Step 4 RED 失败堆栈捕获**: routing bug 已捕获. template context bug 需更深 RED 测试 (Test 1 期望 FAIL 但实际因 routing bug 在前崩溃, 暴露不全). Phase 3 GREEN 修复 routing bug 后 Test 1 会进一步暴露 template context bug
+- [ ] **Step 5**: 更新 proposal.md/design.md 反映双 bug (已 commit `adb7910` 后) + 派 Oracle dual-review bg 评审双 bug 修复方案
 
 ## Phase 2 — Oracle dual-review (post RED 失败堆栈, 阻塞 RED + 修复 commit)
 

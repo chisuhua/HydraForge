@@ -68,24 +68,35 @@ TEST_CASE("DSL fork_join.agent.md: branch 节点 working context 传递",
 - **D1.inv.minimal-mock**: 用 `MockLLMProvider` 模拟 LLM 调用, 避免依赖真实 API key
 - **D1.inv.lib-fork-join-agent-md**: 测试用项目自带 `lib/loop/fork_join.agent.md` (per fork-join-dsl-migration 调研, 此文件已 ship, 是 BUG-2 实际触发点)
 
-### Decision D2 — BUG-2 修复 (TBD, 实施阶段确定具体方案)
+### Decision D2 — BUG-2 双 bug 修复 (扩展范围)
 
-**候选方案** (RED 测试失败堆栈定位后选择):
+**位置**: 
+- 根因 A (routing): `src/modules/scheduler/topo_scheduler.cpp:209-221` (主循环) + `execution_session.cpp:174-178` (snapshot key)
+- 根因 B (template context): `src/modules/scheduler/topo_scheduler.cpp:316-326` (`start_fork_simulation`) + `673-683` (`handle_fork_node`) + `327-353` (`execute_fork_branches`)
 
-| 方案 | 描述 | 风险 | 适用条件 |
-|---|---|---|---|
-| **A** | `handle_fork_branches_block` 直接传 main_loop 的 `context` 给 `execute_single_branch`, 跳过 `get_snapshot` 路径 | 中 | snapshot 路径本身就是冗余 |
-| **B** | 修 `current_fork_node_path_` 在 fork 期间被错误重置 (e.g., YIELD 后 resume 错位) | 中 | RED 堆栈显示 path mismatch |
-| **C** | `save_snapshot` + `get_snapshot` key 一致性保证 (统一 key 生成器) | 低-中 | RED 堆栈显示 key mismatch |
-| **D** | `execute_with_snapshot` 语义修复 (先 save 后 execute_func) + 测试 snapshot 保存的内容 | 中 | RED 堆栈显示 save 顺序 bug |
+**双 bug 修复策略** (本 change 一次修两 bug):
+
+**A. routing bug 修复** (相对简单):
+- `TopoScheduler::run_main_loop` line 209-221: 在 `session_.execute_node(found.node, context)` 调用**之前**插入类型分发块
+- 移除原 line 215-221 的 post-execute 类型检查 (避免重复)
+- 修复后: FORK 节点在 `handle_fork_branches_block` (line 175) 之前先被 `handle_fork_node` 路由, `execute_node` 不会被调用 for FORK 节点
+- 风险: 中 (调度器核心但 ~10 行改动)
+
+**B. template context bug 修复** (相对复杂):
+- `execute_fork_branches` line 331: `const Context* fork_snapshot = session_.get_context_engine().get_snapshot(current_fork_node_path_.value())` — 当前 key 与保存 key 一致, 但 snapshot 内容可能缺
+- **候选方案** (RED 失败堆栈定位后选):
+  - 候选 A: `handle_fork_branches_block` 直接传 main_loop 的 `context` 给 `execute_single_branch`, 跳过 `get_snapshot` 路径 — **绕过 snapshot key mismatch 问题**
+  - 候选 B: 修 `current_fork_node_path_` 在 fork 期间被错误重置 (e.g., YIELD 后 resume 错位)
+  - 候选 C: `save_snapshot` + `get_snapshot` key 一致性保证 (统一 key 生成器)
+  - 候选 D: `execute_with_snapshot` 语义修复 (先 save 后 execute_func, 注释说 "before" 但代码先 execute_func)
+- 风险: 中-高 (ctx 生命周期 + 调度器状态机)
 
 **关键不变量** (无论选哪个方案):
 - **D2.inv.user_input-propagation**: 修复后 `task_a` 的 `{{user_input}}` template render 成功
-- **D2.inv.forkjoin-class-unchanged**: C++ `ForkJoinLoop` + `DomainWorkerPool` 4-worker 行为零变化 (per fork-join-dsl-migration D8)
-- **D2.inv.snapshot-no-leak**: snapshot map 不累积 (现有 `enforce_snapshot_budget` 机制保留)
-- **D2.inv.yield-resume-correct**: YIELD 后 resume fork 仍正确 (`current_fork_node_path_` 一致性)
-
-### Decision D3 — 回归测试 (TDD 5-step)
+- **D2.inv.routing-fix**: 修复后 FORK 节点不被 NodeExecutor 收到 (routing bug 不再触发)
+- **D2.inv.forkjoin-class-unchanged**: C++ `ForkJoinLoop` + `DomainWorkerPool` 4-worker 行为不变
+- **D2.inv.snapshot-no-leak**: snapshot map 不累积
+- **D2.inv.yield-resume-correct**: YIELD 后 resume fork 仍正确### Decision D3 — 回归测试 (TDD 5-step)
 
 **新增 `tests/test_fork_dsl_context_propagation.cpp`** (~200 行):
 - Test 1: `lib/loop/fork_join.agent.md` 端到端 RED (per D1)

@@ -4,23 +4,24 @@
 
 **BUG-2 现象** (2026-10-10 实测): 跑 `lib/loop/fork_join.agent.md` 实际错误是 `Node execution failed: Template render error: variable 'user_input' not found` (来自 task_a 节点的 `prompt_template: "{{user_input}}"` template render). 不是 BUG-2 原假设 ("ForkNode/JoinNode reached NodeExecutor" routing bug).
 
-**BUG-2 根因** (经 commit `469f495` 文档化):
-1. `TopoScheduler::run_main_loop` (line 175) 在 `execute_node` 之前调 `handle_fork_branches_block()`
-2. `handle_fork_branches_block()` → `execute_fork_branches()` (line 327-353)
-3. `execute_fork_branches` line 331: `const Context* fork_snapshot = session_.get_context_engine().get_snapshot(current_fork_node_path_.value())` — 从 snapshot map 拿 fork 前的 context
-4. `execute_fork_branches` line 340: `Context branch_initial_ctx = *fork_snapshot` — 复制 snapshot
-5. `execute_single_branch(branch_path, branch_initial_ctx)` 用这个 ctx 跑 branch 节点
-6. branch 节点的 `prompt_template: "{{user_input}}"` template render 失败 — **branch_initial_ctx 应含 user_input 但实际不含**
+**BUG-2 双重根因** (2026-10-10 RED 测试发现):
 
-**根因调查** (本次 change 实施阶段应继续深入):
-- 假设 1: snapshot 保存的 `context_with_resources` 缺少 `user_input` (main_loop 起始未传入)
-- 假设 2: snapshot 保存正确, branch 执行时被覆盖或 evict
-- 假设 3: `get_snapshot` key mismatch (`current_fork_node_path_` ≠ snapshot 保存时的 key)
-- 假设 4: snapshot 保存的 ctx 序列化/反序列化丢失 user_input 等顶层 scalar
+**症状 A (routing bug)** (Test 2 RED): 经 `loop/run loop_type=fork_join` 调用时, fork/join 节点崩溃, 错误 `"Node execution failed: ForkNode/JoinNode reached NodeExecutor - scheduler routing bug"`.
 
-**OpenSpec change 立项必要**: `fork-join-dsl-migration.md` tracker 明确"BUG-2 是 Gate 条件, 不修 DSL fork_join 路径无法作为 canonical 生产路径". 当前 self-evolve `fork-join-dsl-migration` partial 已 ship (BUG-3 修, BUG-2 文档化). 本 change 是其 Phase 3 续作 — 实施 BUG-2 实际修复.
+**症状 B (template context bug)** (fork-join-dsl-migration commit `469f495` 文档化): 直接调 `engine->run(fork_join.agent.md)` 时, fork 之后的 branch 节点 template render 失败, 错误 `"Template render error: variable 'user_input' not found"`.
 
-## What Changes
+**根因 A (routing bug)**: `TopoScheduler::run_main_loop` (`src/modules/scheduler/topo_scheduler.cpp:209-221`) **先 `session_.execute_node(found.node, context)` 后检查 `found.node->type == NodeType::FORK`**。fork/join 是**调度语义**而非节点执行语义 — `NodeExecutor` 不应收到它们 (`test_scheduler.cpp:4-5` 明记 "NodeExecutor::execute_fork 当前未实现, 无法通过 DSL 触发 fork")。
+
+**根因 B (template context bug)**: `TopoScheduler::handle_fork_node` + `start_fork_simulation` 创建子分支时**未快照 working context**, 各 branch 节点的 `{{user_input}}` template render 失败。
+
+**为什么症状 A 在 fork-join-dsl-migration commit `469f495` 调研时被误判为"非 routing bug"**: 直接调 `engine->run(fork_join.agent.md)` 经 `ExecutionSession::execute_node` 时**第一帧**就因 fork 节点 routing 顺序 bug 抛 logic_error — 但因 `engine->run` 异常处理路径短, 暴露的是 path/to/throw 的最早一帧, 而非 template render 失败. 经 `loop/run` 调用时, 因 `loop/run` 的异常捕获 + 重新走调度循环, symptoms 暴露更完整, routing bug 与 template context bug 都触发.
+
+**影响**: 自 Sprint 20 (2026-08-01) 以来 DSL fork/join 路径**从未真正工作过**, 所有 `lib/loop/fork_join.agent.md` / `examples/pdk_chat_demo/dsl/fork_join_example.agent.md` / `examples/pdk_chat_demo/tests/fixtures/fork_join_golden*.agent.md` / `examples/skill_porting/agenticdsl/axis*/` 多文件中 `type: fork` / `type: join` 节点执行必崩.
+
+**修复路径** (本 change scope):
+- 根因 A: 修 TopoScheduler main loop (~10 行) 把 FORK/JOIN 类型检查**移到 execute_node 之前**
+- 根因 B: 修 `handle_fork_node` + `start_fork_simulation` + `execute_fork_branches` working context 快照传递机制
+- 共同点: 都涉及 `src/modules/scheduler/topo_scheduler.cpp` + 可能 `execution_session.cpp` + `context_engine.cpp`. 风险中 (调度器核心), 完整 OpenSpec 流程 review.## What Changes
 
 - **修复 1 (BUG-2 根因 RED)**: 写最小复现 test — 直接调 `engine->run(fork_join.agent.md)` 加 mock provider, 断言 success=true + response 含 task_a 输出 (经 `{{user_input}}` 替换后). 当前 RED 应失败 (`Template render error`)
 - **修复 2 (BUG-2 实际修复)**: 根据 RED 失败堆栈定位根因 (假设 1-4 之一), 修相关 TopoScheduler/ExecutionSession/ContextEngine 代码. 候选:
