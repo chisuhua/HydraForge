@@ -103,6 +103,19 @@
 - ❌ 改 `loop_phases.h` (Phase 1 ship v1.3, D1 不变量保留)
 - ❌ 改 TopoScheduler fork/join DAG 节点（侵入核心引擎，风险过高，建议未来单独 ADR）
 
+### 已发现 pre-existing 缺陷 (2026-10-10 测试审计, 本 future change 实施前必须解决)
+
+> 来源: `test_loop_agent_fork_join` + `test_loop_agent_plan_execute_realllm` 审计 (ADR-0089 v1.4 GAP-2/3/5 补测时发现)。
+
+| # | 缺陷 | 位置 | 影响 | 状态 |
+|---|---|---|---|---|
+| **BUG-1** | `register_react_support_tools_for_child` 只注册 react 工具 (decide_react + finish), **未注册 `loop/process_task` + `loop/execute_plan`** | `pdk/loop_agent/src/pdk_entry.cpp` | DSL fork_join.agent.md (task_a/b/c) + plan_execute.agent.md (execute 节点) 执行必失败 "Tool not registered" | ✅ **已修复** (本会话: 抽 run_process_task/run_execute_plan 文件级函数 + child 注册复用) |
+| **BUG-2** | `TopoScheduler` main loop **先 execute_node 再检查 FORK/JOIN 类型** → ForkNode/JoinNode 送到 NodeExecutor 抛 "scheduler routing bug" | `src/modules/scheduler/topo_scheduler.cpp:209-221` + `src/modules/executor/node_executor.cpp:66-68` | DSL fork_join.agent.md 完整 e2e 无法执行 (fork 节点崩溃) | ⚠️ **未修复** (核心调度器改动, 本 future change 范围) |
+| **BUG-3** | `lib/loop/plan_execute.agent.md` plan 节点 prompt 生成**自然语言 plan**, 但 execute 节点调 `loop/execute_plan` 期望 **```yaml AgenticDSL block** — 语义不匹配 | `lib/loop/plan_execute.agent.md:14-19` + `pdk_entry.cpp` extract_agenticdsl_block | 真实 LLM plan 产出无法被 execute_plan 解析 ("plan is not AgenticDSL markdown") | ⚠️ **未修复** (DSL 文件设计问题, 需改 plan prompt 或 execute_plan 容错) |
+| **BUG-4** | `loop/run` 未注入 `{{context}}` 变量 (plan_execute.agent.md plan 节点引用) | `pdk/loop_agent/src/pdk_entry.cpp` | "Template render error: variable 'context' not found" | ✅ **已修复** (本会话: ctx.working["context"] 注入) |
+
+**实施本 future change 的 Gate**: BUG-2 + BUG-3 必须解决 (核心调度器 fork/join routing + plan prompt 语义对齐), 否则 DSL fork_join/plan_execute 路径无法作为 canonical 生产路径。
+
 ---
 
 ## Acceptance

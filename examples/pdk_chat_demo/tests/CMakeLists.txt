@@ -1130,3 +1130,76 @@ set_tests_properties(test_loop_agent_autonomous PROPERTIES
     ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk:${CMAKE_BINARY_DIR}/pdk"
     TIMEOUT 120
 )
+
+# test_loop_agent_fork_join — ADR-0089 v1.4 GAP-2/3: ForkJoin DSL 路径测试 (mock)
+add_executable(test_loop_agent_fork_join
+    test_loop_agent_fork_join.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_loop_agent_fork_join PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_loop_agent_fork_join PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/tests
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+target_compile_definitions(test_loop_agent_fork_join PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+    LOOP_AGENT_SO_PATH="${PROJECT_BINARY_DIR}/pdk/loop_agent/libLoopAgent.so"
+)
+target_link_options(test_loop_agent_fork_join PRIVATE -Wl,--export-dynamic)
+add_test(
+    NAME test_loop_agent_fork_join
+    COMMAND test_loop_agent_fork_join
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../..
+)
+set_tests_properties(test_loop_agent_fork_join PROPERTIES
+    ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk:${CMAKE_BINARY_DIR}/pdk"
+    TIMEOUT 120
+)
+
+# test_loop_agent_plan_execute_realllm — ADR-0089 v1.4 GAP-5: PlanExecute DSL 路径真实 LLM 测试
+add_executable(test_loop_agent_plan_execute_realllm
+    test_loop_agent_plan_execute_realllm.cpp
+    ${CATCH_INCLUDE_DIR}/catch_amalgamated.cpp
+    ${CATCH_INCLUDE_DIR}/main_test_runner.cpp
+)
+target_link_libraries(test_loop_agent_plan_execute_realllm PRIVATE
+    pdk_chat_demo_obj
+    agenticdsl_includes
+    agenticdsl_core
+    hydraforge_pdk
+    Threads::Threads
+)
+target_include_directories(test_loop_agent_plan_execute_realllm PRIVATE
+    ${CATCH_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/tests
+    ${PROJECT_SOURCE_DIR}/external/nlohmann_json/single_include
+)
+target_compile_definitions(test_loop_agent_plan_execute_realllm PRIVATE
+    CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS=1
+    LOOP_AGENT_SO_PATH="${PROJECT_BINARY_DIR}/pdk/loop_agent/libLoopAgent.so"
+)
+target_link_options(test_loop_agent_plan_execute_realllm PRIVATE -Wl,--export-dynamic)
+add_test(
+    NAME test_loop_agent_plan_execute_realllm
+    COMMAND test_loop_agent_plan_execute_realllm
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../..
+)
+set_tests_properties(test_loop_agent_plan_execute_realllm PROPERTIES
+    ENVIRONMENT "HYDRAFORGE_PLUGIN_PATH=${PROJECT_BINARY_DIR}/pdk:${CMAKE_BINARY_DIR}/pdk"
+    LABELS "must_realllm"
+    TIMEOUT 120
+)

@@ -109,6 +109,16 @@ inline nlohmann::json error_result(const std::string& ec, const std::string& err
 // 需要 forward decl 才能在 lambda 内部引用 (C++ 编译顺序约束)
 nlohmann::json parse_react_decision(const std::string& response);
 
+// Forward declaration: run_process_task 真实定义在 tls_parent_provider 之后
+// (ADR-0089 v1.4 GAP-2/3 fix: 供 child engine 注册 loop/process_task 使用)
+inline nlohmann::json run_process_task(
+    const std::unordered_map<std::string, std::string>& args);
+
+// Forward declaration: run_execute_plan 真实定义在 tls_parent_provider 之后
+// (ADR-0089 v1.4 GAP-5 fix: 供 child engine 注册 loop/execute_plan 使用)
+inline nlohmann::json run_execute_plan(
+    const std::unordered_map<std::string, std::string>& args);
+
 // ============================================================
 // Wave 2 P0: register_react_support_tools_for_child
 //   Child DSLEngine created by from_markdown has empty ToolRegistry.
@@ -165,6 +175,42 @@ inline void register_react_support_tools_for_child(::agenticdsl::DSLEngine& chil
             r["error_code"] = nullptr;
             r["answer"] = answer;
             return r;
+        });
+
+    // 3. loop/process_task — fork_join.agent.md 的 task_a/b/c 节点依赖
+    //    (ADR-0089 v1.4 GAP-2/3 fix: child engine 必须注册此工具,
+    //    否则 DSL fork_join 路径执行必失败 "Tool not registered")
+    child.register_tool(
+        "loop/process_task",
+        ::agenticdsl::ToolMetadata{
+            .name = "loop/process_task",
+            .description = "Execute a single task via one bridged LLM call (child engine)",
+            .domain = "loop",
+            .category = ::agenticdsl::ToolCategory::Execute,
+            .min_layer = ::agenticdsl::LayerProfile::Workflow,
+            .approval = ::agenticdsl::ApprovalPolicy{false, true, false, false},
+            .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
+        },
+        [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+            return run_process_task(args);
+        });
+
+    // 4. loop/execute_plan — plan_execute.agent.md 的 execute 节点依赖
+    //    (ADR-0089 v1.4 GAP-5 fix: child engine 必须注册此工具,
+    //    否则 DSL plan_execute 路径执行必失败 "Tool not registered")
+    child.register_tool(
+        "loop/execute_plan",
+        ::agenticdsl::ToolMetadata{
+            .name = "loop/execute_plan",
+            .description = "Execute an AgenticDSL plan as a child engine synchronously (child engine)",
+            .domain = "loop",
+            .category = ::agenticdsl::ToolCategory::Execute,
+            .min_layer = ::agenticdsl::LayerProfile::Workflow,
+            .approval = ::agenticdsl::ApprovalPolicy{false, true, false, false},
+            .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
+        },
+        [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+            return run_execute_plan(args);
         });
 }
 
@@ -278,6 +324,7 @@ std::string extract_agenticdsl_block(const std::string& plan) {
 // nullptr = not set, mock fallback path.
 static thread_local ::agenticdsl::ILLMProvider* tls_parent_provider = nullptr;
 
+
 // C1: thread_local capture mode (0=None, 1=Training)
 static thread_local std::atomic<int> tls_capture_mode{0};
 
@@ -308,6 +355,98 @@ inline std::string str_arg(const std::unordered_map<std::string, std::string>& a
     auto it = args.find(key);
     return (it != args.end()) ? it->second : default_val;
 }
+// ADR-0089 v1.4 GAP-2/3 fix: loop/process_task 抽为文件级函数, 供主 registry 与
+// child engine 注册复用. fork_join.agent.md 的 task_a/b/c 节点依赖此工具, child
+// engine 必须注册它, 否则 DSL fork_join 路径执行必失败 (Tool not registered).
+inline nlohmann::json run_process_task(
+    const std::unordered_map<std::string, std::string>& args) {
+    std::string task_id = str_arg(args, "task_id");
+    if (task_id.empty()) {
+        return error_result("InvalidParams", "Missing 'task_id' argument");
+    }
+    std::string input = str_arg(args, "input");
+    if (input.empty()) {
+        return error_result("InvalidParams", "Missing 'input' argument");
+    }
+    if (!tls_parent_provider) {
+        return error_result("Unknown",
+            "parent provider not set. Call loop/set_parent_provider first.");
+    }
+    try {
+        std::string prompt = "Task " + task_id + ": " + input;
+        ::agenticdsl::GenerationRequest req(prompt);
+        auto avail = tls_parent_provider->available_models();
+        if (!avail.empty()) {
+            req.params.model = avail.front().name;
+        }
+        auto res = tls_parent_provider->generate(req, std::stop_token{});
+        if (res.has_value()) {
+            nlohmann::json out = ok_result(true);
+            out["branch_id"] = task_id;
+            out["result"] = std::move(res).value().text;
+            return out;
+        }
+        return error_result("Unknown", res.error().message);
+    } catch (const std::exception& e) {
+        return error_result("Unknown", e.what());
+    }
+}
+
+// ADR-0089 v1.4 GAP-5 fix: loop/execute_plan 抽为文件级函数, 供主 registry 与
+// child engine 注册复用. plan_execute.agent.md 的 execute 节点依赖此工具, child
+// engine 必须注册它, 否则 DSL plan_execute 路径执行必失败 (Tool not registered).
+inline nlohmann::json run_execute_plan(
+    const std::unordered_map<std::string, std::string>& args) {
+    std::string plan = str_arg(args, "plan");
+    if (plan.empty()) {
+        return error_result("InvalidParams", "Missing 'plan' argument");
+    }
+    if (!tls_parent_provider) {
+        return error_result("Unknown",
+            "parent provider not set. Call loop/set_parent_provider first.");
+    }
+    std::string agenticdsl_md = extract_agenticdsl_block(plan);
+    if (agenticdsl_md.empty()) {
+        return error_result("InvalidParams",
+            "plan is not AgenticDSL markdown: no ```yaml AgenticDSL block found");
+    }
+    try {
+        auto child = ::agenticdsl::DSLEngine::from_markdown(
+            agenticdsl_md, *tls_parent_provider);
+        child->register_llm_tool(
+            "llama-default",
+            std::make_unique<ProviderLLMTool>(
+                *tls_parent_provider, std::stop_token{}));
+        register_react_support_tools_for_child(*child);
+        ::agenticdsl::LayeredContext ctx;
+        std::string context_str = str_arg(args, "context");
+        if (!context_str.empty()) {
+            try {
+                auto context_json = nlohmann::json::parse(context_str);
+                ctx.working.merge_patch(context_json);
+            } catch (const nlohmann::json::parse_error&) {
+                return error_result("InvalidParams",
+                    "context argument is not valid JSON");
+            }
+        }
+        auto result = child->run(ctx, ::agenticdsl::ExecutionFlag::Autonomous);
+        nlohmann::json output;
+        output["ok"] = result.success;
+        output["success"] = result.success;
+        output["error_code"] = result.success
+            ? nlohmann::json(nullptr)
+            : nlohmann::json("Unknown");
+        if (!result.success && !result.message.empty()) {
+            output["error"] = result.message;
+        }
+        output["results"] = result.final_context;
+        output["total_steps"] = static_cast<int>(child->get_last_traces().size());
+        return output;
+    } catch (const std::exception& e) {
+        return error_result("Unknown", e.what());
+    }
+}
+
 
 inline int int_arg(const std::unordered_map<std::string, std::string>& args,
                    const std::string& key, int default_val = 0) {
@@ -451,9 +590,8 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
         }
     );
 
-    // ============================================================
     // loop/execute_plan — 子图执行器 (C1, design D2)
-    // ============================================================
+    // ADR-0089 v1.4 GAP-5 fix: lambda 委托 run_execute_plan (单源, 与 child engine 注册复用)
     registry.register_tool_function(
         "loop/execute_plan",
         ::agenticdsl::ToolMetadata{
@@ -470,79 +608,14 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
             },
             .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
         },
-        [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
-            // 获取 plan 参数
-            std::string plan = str_arg(args, "plan");
-            if (plan.empty()) {
-                return error_result("InvalidParams", "Missing 'plan' argument");
-            }
-
-            // 需要 parent provider
-            if (!tls_parent_provider) {
-                return error_result("Unknown", "parent provider not set. Call loop/set_parent_provider first.");
-            }
-
-            // 提取 AgenticDSL fenced block
-            std::string agenticdsl_md = extract_agenticdsl_block(plan);
-            if (agenticdsl_md.empty()) {
-                return error_result("InvalidParams",
-                    "plan is not AgenticDSL markdown: no ```yaml AgenticDSL block found");
-            }
-
-            try {
-                // 创建子引擎 (借用 parent provider)
-                auto child = ::agenticdsl::DSLEngine::from_markdown(
-                    agenticdsl_md, *tls_parent_provider);
-
-                // 注册 ProviderLLMTool (子图内 llm_call 节点用)
-                child->register_llm_tool(
-                    "llama-default",
-                    std::make_unique<ProviderLLMTool>(
-                        *tls_parent_provider, std::stop_token{}));
-
-                // Wave 2 P0 D4: 同 loop/run, 注册 react support tools + Autonomous
-                // (子 plan DSL 可能含 llm_call + tool_call 节点)
-                register_react_support_tools_for_child(*child);
-
-                // 构造 context
-                ::agenticdsl::LayeredContext ctx;
-                std::string context_str = str_arg(args, "context");
-                if (!context_str.empty()) {
-                    try {
-                        auto context_json = nlohmann::json::parse(context_str);
-                        // RFC 7396 merge_patch: context 覆盖 ctx.working 同名 key
-                        ctx.working.merge_patch(context_json);
-                    } catch (const nlohmann::json::parse_error&) {
-                        return error_result("InvalidParams",
-                            "context argument is not valid JSON");
-                    }
-                }
-
-                // 同步执行 (lock-step, Wave 2 P0 Autonomous mode)
-                auto result = child->run(ctx, ::agenticdsl::ExecutionFlag::Autonomous);
-
-                // 构造输出
-                nlohmann::json output;
-                output["ok"] = result.success;
-                output["success"] = result.success;
-                output["error_code"] = result.success
-                    ? nlohmann::json(nullptr)
-                    : nlohmann::json("Unknown");
-                if (!result.success && !result.message.empty()) {
-                    output["error"] = result.message;
-                }
-                output["results"] = result.final_context;
-                // Wave 2 P0 Oracle C1: 真实步数
-                output["total_steps"] = static_cast<int>(child->get_last_traces().size());
-                return output;
-            } catch (const std::exception& e) {
-                return error_result("Unknown", e.what());
-            }
-        }
-    );
+         [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+             return run_execute_plan(args);
+         }
+     );
 
     // ============================================================
     // loop/process_task — 单分支执行器 (C1, design D3)
+    // ADR-0089 v1.4 GAP-2/3 fix: lambda 委托 run_process_task (单源, 与 child engine 注册复用)
     // ============================================================
     registry.register_tool_function(
         "loop/process_task",
@@ -561,44 +634,7 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
             .allowed_layers = {::agenticdsl::LayerProfile::Workflow}
         },
         [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
-            // 获取参数
-            std::string task_id = str_arg(args, "task_id");
-            if (task_id.empty()) {
-                return error_result("InvalidParams", "Missing 'task_id' argument");
-            }
-            std::string input = str_arg(args, "input");
-            if (input.empty()) {
-                return error_result("InvalidParams", "Missing 'input' argument");
-            }
-
-            // 需要 parent provider
-            if (!tls_parent_provider) {
-                return error_result("Unknown",
-                    "parent provider not set. Call loop/set_parent_provider first.");
-            }
-
-            try {
-                // 构造 prompt: 单线程单次 LLM 调用
-                std::string prompt = "Task " + task_id + ": " + input;
-
-                ::agenticdsl::GenerationRequest req(prompt);
-                auto avail = tls_parent_provider->available_models();
-                if (!avail.empty()) {
-                    req.params.model = avail.front().name;
-                }
-
-                auto res = tls_parent_provider->generate(req, std::stop_token{});
-                if (res.has_value()) {
-                    nlohmann::json out = ok_result(true);
-                    out["branch_id"] = task_id;
-                    out["result"] = std::move(res).value().text;
-                    return out;
-                } else {
-                    return error_result("Unknown", res.error().message);
-                }
-            } catch (const std::exception& e) {
-                return error_result("Unknown", e.what());
-            }
+            return run_process_task(args);
         }
     );
 
@@ -753,6 +789,11 @@ extern "C" void pdk_register_tools(::agenticdsl::IToolRegistry& registry) {
                 ctx.working["user_input"] = user_prompt;
                 ctx.working["system_prompt"] = str_arg(args, "system_prompt");
                 ctx.working["history"] = str_arg(args, "history");
+                // ADR-0089 v1.4 GAP-5 fix: plan_execute.agent.md plan 节点引用 {{context}}
+                // (prompt_template "Context: {{context}}"), 此前 loop/run 未注入导致
+                // "Template render error: variable 'context' not found" — DSL plan_execute
+                // 路径从创建起即失败. 注入 context (默认空, 与 history 语义一致).
+                ctx.working["context"] = str_arg(args, "context");
                 ctx.working["step"] = 0;
 
                 // ADR-0068 附录 A: loop.turn.start
