@@ -39,13 +39,13 @@ inline MergeStrategy get_merge_strategy_for_path(const std::string& path, const 
 
 // --- ContextEngine Implementation ---
 
-ContextEngine::Result ContextEngine::execute_with_snapshot(
+ContextEngine::SnapshotResult ContextEngine::execute_with_snapshot(
     std::function<Context(const Context&)> execute_func,
     const Context& ctx,
     bool need_snapshot,
     const NodePath& snapshot_node_path) {
 
-    Result res;
+    SnapshotResult res;
     res.new_context = execute_func(ctx);
 
     if (need_snapshot) {
