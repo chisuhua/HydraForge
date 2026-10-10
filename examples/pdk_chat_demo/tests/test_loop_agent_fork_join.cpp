@@ -113,9 +113,18 @@ TEST_CASE("loop/run fork_join: loop/process_task registered in child engine",
 
     INFO("fork_join DSL e2e result: " << run_ret.dump());
     auto err_str = run_ret.value("error", std::string{});
-    // 关键断言: process_task 已注册 (不再报 Tool not registered)
-    // 若 fork/join scheduler bug 未修, error 是 "ForkNode/JoinNode reached NodeExecutor"
+    // fix-fork-dsl-context-propagation Phase 1 RED 升级: 严格 e2e 断言
+    // BUG-2 fix 后应 success=true (per fork-join-dsl-migration Phase 4 同步升级约定)
+    REQUIRE(run_ret.value("success", false) == true);
+    auto resp_str = run_ret.value("response", std::string{});
+    REQUIRE_FALSE(resp_str.empty());
+    // 非 mock fallback (per test 1 一致)
+    REQUIRE(resp_str.find("[loop_agent/fork_join] Processed:") == std::string::npos);
+    // 至少 3 步 (fork 分支数, 后续 join + synthesize)
+    REQUIRE(run_ret.value("steps", 0) >= 3);
+    // 关键断言: 不再是 BUG-1 (Tool not registered) / BUG-2 (Template render error)
     REQUIRE(err_str.find("Tool 'loop/process_task' not registered") == std::string::npos);
+    REQUIRE(err_str.find("Template render error: variable 'user_input' not found") == std::string::npos);
 }
 
 // ============================================================
