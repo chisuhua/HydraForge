@@ -32,12 +32,17 @@ CostTrackingDecorator::CostTrackingDecorator(
 std::expected<GenerationResult, LLMError> CostTrackingDecorator::decorate_generate(
     const GenerationRequest& req,
     std::expected<GenerationResult, LLMError> inner_result) {
-  if (inner_result.has_value() && budget_ != nullptr) {
-    const auto& result = inner_result.value();
-    const int total_tokens = result.prompt_tokens + result.completion_tokens;
-    if (total_tokens > 0) {
-      budget_->record_llm_call(total_tokens, req.params.model);
-    }
+  // and_then 在 success 路径上注入副作用; 返回 inner_result 透传 (per
+  // openspec/changes/2026-10-09-std-expected-monadic-ops)
+  if (budget_ != nullptr) {
+    inner_result.and_then([&](const GenerationResult& r)
+                              -> std::expected<GenerationResult, LLMError> {
+      const int total_tokens = r.prompt_tokens + r.completion_tokens;
+      if (total_tokens > 0) {
+        budget_->record_llm_call(total_tokens, req.params.model);
+      }
+      return inner_result;
+    });
   }
   return inner_result;
 }
