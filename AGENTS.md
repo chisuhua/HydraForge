@@ -677,7 +677,8 @@ HydraForge/
 - v1.3 主体建立单源 + 薄壳 + DSL 调用（消除双轨 cov gap）
 - v1.4 在 v1.3 之上叠加软 deprecated 层（消除 cognitive overhead）+ 立 fork-join 迁移 future tracker（避免 1 Sprint 工作量拖累本会话）
 - **不反转** v1.3 D4（ForkJoinLoop 维持现状），**不硬删** ReactLoop / PlanExecuteLoop
-- 后续路径: v1.4 观察期（1-2 月）→ 启动 fork-join-migration change（独立 OpenSpec 流程）→ 启动 delete-deprecated-cpp-loops change（独立 OpenSpec 流程）
+- **v1.5 (fork-join-dsl-migration, 2026-10-10 ship 部分)**: BUG-3 (plan prompt + extract 容错) 修复, 解锁 plan_execute DSL 真 LLM 闭环. BUG-2 (fork context 快照) 重新调查发现根因为 working context 快照传递, **未实施** (风险中-高), 留待 fork_join_dsl_migration future change (立 OpenSpec change `2026-10-10-fork-join-dsl-migration`).
+- 后续路径: BUG-2 修复 (fork context 快照) → v1.4 观察期满（1-2 月）→ 启动 fork-join-migration future change → 启动 delete-deprecated-cpp-loops change
 
 **推荐触发条件** (何时启动 fork-join-migration change tracker):
 1. 用户决策启动
@@ -685,8 +686,9 @@ HydraForge/
 3. ADR-0087 benchmark 在其他 ship 中 regression
 4. Wave 3+ 需要 DSL 路径并行原语
 5. must_realllm 真 LLM 链路因 deprecation warning 出现回归
+6. **(新)** BUG-2 (fork context 快照传递修复完成, 解锁 DSL fork_join.agent.md 真 LLM 闭环)
 
-详见 `.rddf/improvements/fork_join_dsl_migration.md` (5-segment draft) + `docs/adr/adr-0089-v1-4-amendment-soft-deprecate-cpp-agent-loops.md` (D9 段).
+详见 `.rddf/improvements/fork_join_dsl_migration.md` (5-segment draft, BUG-2 真实根因 2026-10-10 文档化) + `openspec/changes/2026-10-10-fork-join-dsl-migration/` (OpenSpec change 5 文件 artifacts, BUG-3 fix commit `7e81c2f` + 文档化 commit `469f495`).
 
 ### 工程层 (Engineering)
 
@@ -1029,6 +1031,13 @@ git status --short  # 应该干净或只含本次 ship 范围
 
 ## Recent Changes
 - **2026-10-10 (adr-0089-v1-4-soft-deprecate-cpp-agent-loops ship, commits `7dc83a7` + `87aadc4` + `96172e3`)**: Soft-deprecate C++ Agent Loop（ReactLoop/PlanExecuteLoop/DEFINE_AGENT）+ 立 fork-join 迁移 future tracker。**用户原始问题**: "C++ 版本的 Agent Loop 可以停用，只暴露 DSL 路径吗？" → Metis (`ses_edbe24cc1ffeqFnkc2v9e56nqt`) + Oracle (`ses_edbe211c0ffemuq7g2KEC5qglC`) dual-agent review → **Z-1 路径决策**（本期仅 React/PlanExecute 软停用, ForkJoin 现状保留）+ **B 治理决策**（不走完整 OpenSpec 流程）。**Phase 1 docs `7dc83a7`**: 新建 `docs/adr/adr-0089-v1-4-amendment-soft-deprecate-cpp-agent-loops.md` (D6 软停用 React/PlanExecute + D7 软停用 DEFINE_AGENT 生成 class + D8 ForkJoin 维持现状逐字重申 v1.3 D4 + D9 future tracker) + 新建 `.rddf/improvements/fork_join_dsl_migration.md` (5-segment draft) + AGENTS.md Pattern #12 follow-up section + `fork_join_loop.h` 头部 ADR-0089 v1.3+v1.4 戳记（防 Pattern #10 post-acceptance hygiene 误删）. **Phase 2 code `87aadc4`**: `react_loop.h` + `plan_execute_loop.h` class 加 `[[deprecated("ADR-0089 v1.4: use lib/loop/*.agent.md DSL path")]]` (D6.inv.api 公开 API 零变化) + `agent_macros.h` DEFINE_AGENT 宏展开的生成 class 加 `[[deprecated]]` (D7.inv.api 宏签名零变化, warning 产生于宏调用点属预期) + `pdk/loop_agent/README.md` "双循环架构" 段新增 Soft-deprecate 指引. **Phase 2i `96172e3`**: ADR-0089 v1.4 状态翻牌 ✅ Approved + ship gate checklist 10/10 (9 checked + 1 NOT-RUN annotated). **Oracle post-impl verdict `bg_f3dad0b2` SHIP-with-fixes 全部应用**: Critical-1 (-Werror 排查: 全项目 0 命中 ✅) / Major-1 (deprecation message 统一含 ADR 引用 + DSL 迁移路径 ✅) / Major-2 (DEFINE_AGENT 只能在宏生成 class 上标注 ✅) / Minor-1 (forward decl 排查: 0 命中 ✅) / Minor-2 (状态翻牌 ✅). **Ship gate 验证**: `cmake --build build` 全量 exit 0 零 error（deprecation warnings 按预期出现在消费者: agent_macros.h:60/65/88/96/150 内部引用 + test_plan_execute_loop_integration + test_pdk_macros + g1_coding_assistant）; `ctest --test-dir build -LE must_realllm` **264/264 PASS 零回归**; M3 g1_coding_assistant 编译成功（warnings 指向 agent_macros.h 内部引用点, 编译期依赖保留）; must_realllm 测试 binary 重编成功（编译零 error）; **drop_ratio = 0%**. **NOT-RUN**: must_realllm 真 LLM 跑验（本环境无 DEEPSEEK_API_KEY, must_realllm skip 时强制 FAIL 是既有语义, 非本改动回归; 两个 binary 编译零 error 已验证）. **ForkJoinLoop 不在 deprecation 范围** (D8.inv.forkjoin): DomainWorkerPool 4-worker + ADR-0087 benchmark 3.3× speedup 承载对象完整保留. **ForkJoin DSL 迁移** = 独立 future change tracker (`.rddf/improvements/fork_join_dsl_migration.md`), 启动条件: v1.4 观察期 ≥1-2 月 + 用户决策. **后续路径**: v1.4 观察期 → fork-join-migration change (独立 OpenSpec) → delete-deprecated-cpp-loops change (独立 OpenSpec).
+- **2026-10-10 (fork-join-dsl-migration partial ship, commits `7e81c2f` + `469f495`)**: ADR-0089 v1.4 GAP-3 fix (BUG-3) + OpenSpec change 立项 + BUG-2 真实根因重新调查. **Phase 2 commit `7e81c2f`**: lib/loop/plan_execute.agent.md plan prompt 与 `loop_phases::run_plan_phase` 单源对齐 (Goal: + Context: + Generate AgenticDSL markdown 格式) + pdk_entry.cpp extract_agenticdsl_block 容错 4 种 fence (yaml/dsl/agenticdsl/markdown), 解锁 plan_execute DSL 真 LLM 闭环. test_loop_agent_plan_execute_realllm 19 assertions 3/3 PASS. **Phase 3 commit `469f495`**: OpenSpec change `2026-10-10-fork-join-dsl-migration/` 5 文件 artifacts (proposal + design + spec + tasks + specs/fork-join-dsl-completion/spec.md, openspec validate PASS) 立 + **BUG-2 真实根因重新调查**: 实测 fork_join.agent.md 错误是 "Template render error: variable user_input not found" (branch 节点 template render 失败), 不是原假设 routing bug. fork 节点 routing 顺序**已正确** (line 175 handle_fork_branches_block 在 execute_node 之前触发), 真正 BUG 是 fork 节点**未快照 working context 传递给各 branch 节点** (`handle_fork_node` + `start_fork_simulation` 需 ctx 快照机制). BUG-2 修复风险中-高, **未修**, 留待 fork_join_dsl_migration future change. **Cooling-off override (per ADR-0089 v1.4 HARD pause override precedent)**: 用户明确决策立 change + override + 本会话完成. **全量验证**: `ctest --test-dir build -LE must_realllm` 100% PASS (265/265 零回归). **Reverse Indicator**:
+  - `+ new_up`: plan_execute DSL 路径解锁 + OpenSpec 5 文件 artifacts + BUG-2 真实根因文档化 + ADR-0089 v1.4 ship gate NOT-RUN 项关闭 (本会话已用 DEEPSEEK_API_KEY 跑验 11/11 PASS)
+  - `- old_down`: drop_ratio = 0% (纯文档 + 1 文件 prompt 文本改动 + extract 容错扩展; ctest 265/265 PASS 零回归)
+  - `failure_traces`: N/A (Phase 2 + Phase 3 ship 全部 PASS, BUG-2 修复未实施且不计入本 change scope)
+  - `ablation`: mock-identical (PlanExecute prompt 文本 + extract 容错扩展, mock 行为不变)
+  - `context_ids`: N/A
+
   - [Reverse Indicator for `7dc83a7` (Phase 1 docs)]: `+ new_up: ADR-0089 v1.4 amendment 立 D6-D9 不变量 + Pattern #12 follow-up + fork_join_dsl_migration.md 5-segment draft + fork_join_loop.h ADR 戳记` / `- old_down: drop_ratio = 0% (纯文档, ctest 264/264 PASS)` / `failure_traces: N/A` / `ablation: N/A` / `context_ids: N/A`
   - [Reverse Indicator for `87aadc4` (Phase 2 code)]: `+ new_up: ReactLoop/PlanExecuteLoop [[deprecated]] + DEFINE_AGENT 生成 class [[deprecated]] + README 双循环架构段 Soft-deprecate 指引` / `- old_down: drop_ratio = 0% (纯 [[deprecated]] 属性, ctest 264/264 PASS + build exit 0 + warnings 按 Oracle 预期)` / `failure_traces: N/A (Oracle bg_f3dad0b2 SHIP-with-fixes 全部应用)` / `ablation: mock-identical` / `context_ids: N/A`
   - [Reverse Indicator for `96172e3` (Phase 2i 状态翻牌)]: `+ new_up: ADR-0089 v1.4 🔍 → ✅ Approved + ship gate checklist 10/10 (9 checked + 1 NOT-RUN annotated)` / `- old_down: drop_ratio = 0% (纯文档)` / `failure_traces: must_realllm 真 LLM NOT-RUN (无 key 环境, 编译零 error 已验证)` / `ablation: N/A` / `context_ids: N/A`

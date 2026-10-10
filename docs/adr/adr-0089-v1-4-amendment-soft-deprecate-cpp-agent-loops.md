@@ -355,6 +355,6 @@ namespace hydraforge::pdk {
 - [x] Oracle post-impl SHIP-with-fixes 审查（bg_f3dad0b2: SHIP-with-fixes, Critical-1/Major-1/Major-2/Minor-1 全部应用 ✅）
 - [x] 编译: `cmake --build build` 零 error（deprecation warnings 按预期出现在消费者, 零 error ✅）
 - [x] 测试: `ctest --test-dir build -LE must_realllm` 100% PASS（264/264 ✅）
-- [ ] must_realllm: `test_react_loop_real_llm` 7/7 + `test_plan_execute_realllm` 3/3 PASS — ⚠️ **NOT-RUN**（本环境无 DEEPSEEK_API_KEY, must_realllm skip 时强制 FAIL 是既有语义, 非本改动回归；两个 binary 编译零 error 已验证, 真 LLM 跑验留待有 key 环境）
+- [x] must_realllm: `test_react_loop_real_llm` 7/7 + `test_plan_execute_realllm` 3/3 + 新增 `test_loop_agent_plan_execute_realllm` 3/3 PASS — ✅ **已跑验** (2026-10-10, fork-join-dsl-migration Phase 2 commit `7e81c2f` 后用 DEEPSEEK_API_KEY 跑通 11/11 must_realllm + 新增 3/3, 155s 总耗时)
 - [x] 链接: g1_coding_assistant libhydraforge_g1_coding_assistant.so 重编成功（warnings 指向 agent_macros.h:60/65/88/96/150 内部引用点, M3 编译期依赖保留 ✅）
 - [x] 反向指标: drop_ratio = 0%（本 amendment 软 deprecated, 实测 0% drop）
