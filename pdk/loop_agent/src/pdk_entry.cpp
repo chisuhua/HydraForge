@@ -305,18 +305,24 @@ nlohmann::json parse_react_decision(const std::string& response) {
 // 返回完整 markdown（含 ### AgenticDSL 前缀）
 // ============================================================
 std::string extract_agenticdsl_block(const std::string& plan) {
-    // 查找 ```yaml ... ```
-    static const std::regex fence_re(
-        R"(```yaml\s*\n([\s\S]*?)\n```)",
-        std::regex::ECMAScript);
-    std::smatch m;
-    if (!std::regex_search(plan, m, fence_re)) {
-        return "";
+    // fork-join-dsl-migration BUG-3 fix: 容错接受 yaml/markdown/dsl/agenticdsl 任一 fence
+    // (per Oracle 评估: 真实 LLM 输出 fence 标识不一, helper prompt 不强制 yaml).
+    // regex 优先级: yaml > dsl/agenticdsl > markdown > 其它.
+    static const std::vector<std::regex> fence_patterns = {
+        std::regex(R"(```yaml\s*\n([\s\S]*?)\n```)", std::regex::ECMAScript),
+        std::regex(R"(```dsl\s*\n([\s\S]*?)\n```)", std::regex::ECMAScript),
+        std::regex(R"(```agenticdsl\s*\n([\s\S]*?)\n```)", std::regex::ECMAScript),
+        std::regex(R"(```markdown\s*\n([\s\S]*?)\n```)", std::regex::ECMAScript),
+    };
+    for (const auto& fence_re : fence_patterns) {
+        std::smatch m;
+        if (std::regex_search(plan, m, fence_re)) {
+            std::string yaml_content = m[1].str();
+            // 重新包装为完整 markdown: 需要 ### AgenticDSL header + ```yaml fence
+            return "### AgenticDSL `/main`\n```yaml\n" + yaml_content + "\n```\n";
+        }
     }
-    // 重新包装为完整 markdown: 需要 ### AgenticDSL header + ```yaml fence
-    std::string yaml_content = m[1].str();
-    std::string markdown = "### AgenticDSL `/main`\n```yaml\n" + yaml_content + "\n```\n";
-    return markdown;
+    return "";
 }
 
 // loop-agent-dsl-execution: thread_local storage for parent engine's LLM provider

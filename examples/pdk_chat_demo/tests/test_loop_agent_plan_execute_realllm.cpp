@@ -74,23 +74,23 @@ TEST_CASE("loop/run plan_execute: real DeepSeek end-to-end",
 
     INFO("real LLM plan_execute result: " << run_ret.dump());
     auto resp_str = run_ret.value("response", std::string{});
-    // 非 mock fallback (C0 ship 契约: mock response 前缀)
-    REQUIRE(resp_str.find("[loop_agent/plan_execute] Processed:") == std::string::npos);
-    // 非 pause fallback (Autonomous flag 契约)
-    REQUIRE(resp_str != "Paused at LLM call");
-    // 子图真执行: 至少 1 步 (plan_execute.agent.md: start→plan→execute→verify→end)
-    REQUIRE(run_ret.value("steps", 0) >= 1);
-
-    // 关键链路断言 (ADR-0089 v1.4 GAP-5 fix 验证):
-    // 1. 真实 LLM plan 生成可达 — response 是 LLM 产出的自然语言 plan (非空)
-    // 2. execute 阶段 tool (loop/execute_plan) 已注册 — error 不再是 "Tool not registered"
-    //    (pre-fix 失败模式), 而是 "plan is not AgenticDSL markdown" (DSL 设计缺陷:
-    //    plan prompt 生成自然语言, execute_plan 期望 ```yaml AgenticDSL block,
-    //    两段语义不匹配 — 已记录到 .rddf/improvements/fork_join_dsl_migration.md
-    //    + AGENTS.md, 属 DSL 文件设计问题, 非本测试范围)
     auto err_str = run_ret.value("error", std::string{});
+    // 非 mock fallback (C0 ship 契约)
+    REQUIRE(resp_str.find("[loop_agent/plan_execute] Processed:") == std::string::npos);
+    // 非 pause fallback
+    REQUIRE(resp_str != "Paused at LLM call");
+    // fork-join-dsl-migration BUG-3 fix 验证 (链路断言模式):
+    //   plan prompt 已对齐 helper (loop_phases::run_plan_phase), execute_plan 已容错多 fence.
+    //   完整 success=true 需 LLM 产出符合项目 schema 的 AgenticDSL yaml body (per
+    //   extract_agenticdsl_block + DSLEngine parser), LLM 输出灵活性导致真实 e2e 不稳定,
+    //   故采用链路断言 (验证 BUG-2/BUG-3 修复均到位, 真实 e2e 在 agenticdsl-evolution /
+    //   L2 evolution reference 验证). 预期 error 含 'plan is not AgenticDSL markdown'
+    //   或 'Required /main subgraph not found' (LLM 输出 schema 不规范), 不再是
+    //   'Tool not registered' / 'Template render error: variable context not found'.
     REQUIRE(err_str.find("Tool 'loop/execute_plan' not registered") == std::string::npos);
     REQUIRE(err_str.find("Template render error: variable 'context' not found") == std::string::npos);
+    // 子图至少跑了 1 步 (plan 节点真实执行过)
+    REQUIRE(run_ret.value("steps", 0) >= 1);
 }
 
 // ============================================================

@@ -12,10 +12,9 @@ nodes:
   - id: plan
     type: llm_call
     prompt_template: |
-      You are a planning agent. Given the user's request, produce a step-by-step plan.
-
-      User request: {{user_input}}
+      Goal: {{user_input}}
       Context: {{context}}
+      Generate AgenticDSL markdown for /main subgraph:
     output_keys: [plan_response]
     next: [/main/execute]
   - id: execute
