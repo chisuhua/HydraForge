@@ -9,8 +9,16 @@
 //          通过 IInteractionBus (Sprint 2 InMemoryBus) 订阅 domain.task.* 事件同步等待
 // 设计依据：ADR-0021 §3.2 + ADR-0020 §3.2 DomainWorkerPool + ADR-0019 IInteractionBus
 //          + ADR-0008 LayeredContext + openspec/changes/pdk-plan-execute-fork-join
+//          + ADR-0087 (4-worker 3.3× speedup benchmark, 2026-09-16 commit `13ac53f`)
+//          + ADR-0089 v1.3 (Loop Phase Consolidation, 2026-10-09 ship) — ForkJoinLoop 零代码改动
+//          + ADR-0089 v1.4 (Soft-Deprecate C++ Agent Loop, 2026-10-10 ship) — D8.inv.forkjoin:
+//            ForkJoinLoop **不加** `[[deprecated]]` 标签, **不删**, 4-worker 行为原样保留
+//            (v1.4 deprecation 范围仅限 ReactLoop + PlanExecuteLoop + DEFINE_AGENT, 见
+//            `docs/adr/adr-0089-v1-4-amendment-soft-deprecate-cpp-agent-loops.md` D6/D7/D8/D9).
+//            ForkJoinLoop → DSL 工具迁移是独立 future change
+//            (`.rddf/improvements/fork_join_dsl_migration.md` 5-segment draft 跟踪).
 // 作者：AgenticDSL Phase 1 Sprint 20
-// 最后修改日期：2026-08-01
+// 最后修改日期：2026-10-10 (ADR-0089 v1.4 戳记, 零代码改动)
 
 #pragma once
 

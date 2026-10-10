@@ -655,6 +655,39 @@ HydraForge/
 
 **Promoted ROI** (consolidate-loop-phases-to-shared-helpers ship 2026-10-09): 5 atomic commits (1cfe82a/04273ad/bed7995/b06cf60/fbda908) + 12 AC 验证 ALL PASS + core 264/264 + examples 33/33 zero regression + drop_ratio 0%. 跨 3 个收敛点独立交叉命中 = Pattern #8 最高置信度. **推荐**: 所有发现"同一概念双轨实现 + 测试覆盖 ≠ 生产路径"的 change 必走此模式。
 
+---
+
+### Pattern #12 跟踪：ADR-0089 v1.4 amendment (Soft-Deprecate C++ Agent Loop, 2026-10-10 ship)
+
+**关键不变量** (per `docs/adr/adr-0089-v1-4-amendment-soft-deprecate-cpp-agent-loops.md`):
+
+- **D6.inv.api**: ReactLoop + PlanExecuteLoop 公开 API 零变化（仅加 `[[deprecated]]` 标签，编译 warning 而非 error）
+- **D6.inv.body**: class 内部实现不修改（v1.3 已 ship 薄壳化，本 amendment 仅标记 deprecation）
+- **D6.inv.forkjoin**: ForkJoinLoop **不在**本 deprecation 范围（per D8）
+- **D7.inv.api**: 宏展开后 `LoopDispatcher` 3 specialization 保留（React/PlanExecute/ForkJoin），**不被删除**
+- **D7.inv.compile-only-warning**: 现有 `test_pdk_macros.cpp` 实例化 `DEFINE_AGENT(...)` 测试仅获 warning, 不报错
+- **D7.inv.g1**: `g1_coding_assistant/src/g1_agent.cpp:132` `DEFINE_AGENT(CodingAssistant, AgentLoopType::React)` M3 编译期依赖零修改
+- **D7.inv.must_realllm**: `test_react_loop_real_llm` 7/7 + `test_plan_execute_realllm` 3/3 must_realllm 测试零修改（编译期 warning 不影响用例）
+- **D8.inv.forkjoin**: ForkJoinLoop 内部 `DomainWorkerPool` 4-worker 语义不变，ADR-0087 benchmark (3.3× speedup) 不回归（逐字重申 v1.3 D4）
+- **D8.inv.unchanged-class**: ForkJoinLoop class **不加** `[[deprecated]]`（与 D6/D7 范围不同）
+- **D9.inv.tracker-not-implementation**: `.rddf/improvements/fork_join_dsl_migration.md` 是 future change tracker，不进入实施周期
+- **D9.inv.depends-on-v1.4-observation**: implementation 启动前提 v1.4 soft-deprecation 观察期满 ≥ 1-2 月
+
+**与 Pattern #12 主体的关系**:
+- v1.3 主体建立单源 + 薄壳 + DSL 调用（消除双轨 cov gap）
+- v1.4 在 v1.3 之上叠加软 deprecated 层（消除 cognitive overhead）+ 立 fork-join 迁移 future tracker（避免 1 Sprint 工作量拖累本会话）
+- **不反转** v1.3 D4（ForkJoinLoop 维持现状），**不硬删** ReactLoop / PlanExecuteLoop
+- 后续路径: v1.4 观察期（1-2 月）→ 启动 fork-join-migration change（独立 OpenSpec 流程）→ 启动 delete-deprecated-cpp-loops change（独立 OpenSpec 流程）
+
+**推荐触发条件** (何时启动 fork-join-migration change tracker):
+1. 用户决策启动
+2. v1.4 观察期满
+3. ADR-0087 benchmark 在其他 ship 中 regression
+4. Wave 3+ 需要 DSL 路径并行原语
+5. must_realllm 真 LLM 链路因 deprecation warning 出现回归
+
+详见 `.rddf/improvements/fork_join_dsl_migration.md` (5-segment draft) + `docs/adr/adr-0089-v1-4-amendment-soft-deprecate-cpp-agent-loops.md` (D9 段).
+
 ### 工程层 (Engineering)
 
 > 工程层模式沉淀在 `tests/AGENTS.md` (测试目录专属) + `src/common/llm/AGENTS.md` (LLM 模块专属).
