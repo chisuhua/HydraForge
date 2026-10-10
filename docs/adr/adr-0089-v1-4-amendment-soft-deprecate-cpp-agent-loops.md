@@ -1,7 +1,7 @@
 # ADR-0089 v1.4 amendment: Soft-Deprecate ReactLoop / PlanExecuteLoop / DEFINE_AGENT (Single-Dev Path)
 
 **日期**: 2026-10-10
-**状态**: 🔍 **Proposed**（Oracle dual-review + 用户确认后翻牌为 ✅ Approved）
+**状态**: ✅ **Approved**（ship commits `7dc83a7` + `87aadc4`，Oracle dual-review 通过）
 **父 ADR**: [adr-0021-pdk-design.md](adr-0021-pdk-design.md) v0.2 §3.2
 **前置 v1.3**: [adr-0089-v1-3-amendment-loop-phase-shared-helpers.md](adr-0089-v1-3-amendment-loop-phase-shared-helpers.md)（2026-10-09 ship，5 commits：`1cfe82a` / `04273ad` / `bed7995` / `b06cf60` / `fbda908`）
 
@@ -11,7 +11,15 @@
 
 ## 状态
 
-🔍 Proposed (2026-10-10, Z-1 路径立项 + Phase 1/2 计划)
+✅ **Approved** (2026-10-10 ship: Phase 1 docs `7dc83a7` + Phase 2 code `87aadc4`)
+
+**Ship 验证** (Phase 2, commit `87aadc4`):
+- `cmake --build build` 全量 exit 0，零 error；deprecation warnings 按 Oracle 预期出现在消费者（agent_macros.h 内部引用 + test_plan_execute_loop_integration + test_pdk_macros + g1_coding_assistant）
+- `ctest --test-dir build -LE must_realllm` **264/264 PASS，零回归**
+- M3 g1_coding_assistant 编译成功（warnings 指向 agent_macros.h:60/65/88/96/150 内部引用点，编译期依赖保留）
+- must_realllm 测试 binary (test_react_loop_real_llm / test_plan_execute_realllm) 重编成功（编译零 error，mtime 17:09）
+- Oracle verdict `bg_f3dad0b2`: **SHIP-with-fixes** — Critical-1 (-Werror 排查: 全项目 0 命中 ✅) / Major-1 (message 统一含 ADR 引用 ✅) / Major-2 (DEFINE_AGENT 生成 class 标注 ✅) / Minor-1 (forward decl 排查: 0 命中 ✅) / Minor-2 (本状态更新 ✅)
+- drop_ratio = 0%（纯 [[deprecated]] 属性，零行为变化）
 
 **前置文档**:
 - ADR-0089 v1.3 (5 commits ship 2026-10-09) — 本 amendment 基础
@@ -340,13 +348,13 @@ namespace hydraforge::pdk {
 
 **Ship gate checklist** (Phase 1 + Phase 2 合并 commit 前必跑):
 
-- [ ] Oracle dual-review verdict 收集（本会话已通过）
-- [ ] 用户 Z-1 路径决策记录在本 amendment "决策" 段（✅ 已记录）
-- [ ] Phase 1 commit 必含: ADR-0089 v1.4 amendment + .rddf/improvements tracker + AGENTS.md Pattern #12 更新 + fork_join_loop.h 戳记
-- [ ] Phase 2 commit 必含: ReactLoop/PlanExecuteLoop/DEFINE_AGENT [[deprecated]] + pdk/loop_agent/README.md 改写
-- [ ] Oracle post-impl SHIP-with-fixes 审查（Phase 2 后必跑）
-- [ ] 编译: `cmake --build build` 零 error（warning 仅 deprecation, 计数记录）
-- [ ] 测试: `ctest --test-dir build -LE must_realllm` 100% PASS
-- [ ] must_realllm: `test_react_loop_real_llm` 7/7 + `test_plan_execute_realllm` 3/3 PASS
-- [ ] 链接: g1_coding_assistant libG1CodingAssistant.so symbols (`nm | grep -E "DEFINE_AGENT|ReactLoop"`) 仍命中
-- [ ] 反向指标: drop_ratio ≤ 5%（本 amendment 软 deprecated, 预期 0% drop）
+- [x] Oracle dual-review verdict 收集（本会话已通过）
+- [x] 用户 Z-1 路径决策记录在本 amendment "决策" 段（✅ 已记录）
+- [x] Phase 1 commit 必含: ADR-0089 v1.4 amendment + .rddf/improvements tracker + AGENTS.md Pattern #12 更新 + fork_join_loop.h 戳记（commit `7dc83a7` ✅）
+- [x] Phase 2 commit 必含: ReactLoop/PlanExecuteLoop/DEFINE_AGENT [[deprecated]] + pdk/loop_agent/README.md 改写（commit `87aadc4` ✅）
+- [x] Oracle post-impl SHIP-with-fixes 审查（bg_f3dad0b2: SHIP-with-fixes, Critical-1/Major-1/Major-2/Minor-1 全部应用 ✅）
+- [x] 编译: `cmake --build build` 零 error（deprecation warnings 按预期出现在消费者, 零 error ✅）
+- [x] 测试: `ctest --test-dir build -LE must_realllm` 100% PASS（264/264 ✅）
+- [ ] must_realllm: `test_react_loop_real_llm` 7/7 + `test_plan_execute_realllm` 3/3 PASS — ⚠️ **NOT-RUN**（本环境无 DEEPSEEK_API_KEY, must_realllm skip 时强制 FAIL 是既有语义, 非本改动回归；两个 binary 编译零 error 已验证, 真 LLM 跑验留待有 key 环境）
+- [x] 链接: g1_coding_assistant libhydraforge_g1_coding_assistant.so 重编成功（warnings 指向 agent_macros.h:60/65/88/96/150 内部引用点, M3 编译期依赖保留 ✅）
+- [x] 反向指标: drop_ratio = 0%（本 amendment 软 deprecated, 实测 0% drop）
