@@ -6,6 +6,7 @@
 #include "core/types/node.h"
 #include "core/types/resource.h"
 #include "common/llm/llm_types.h"
+#include "common/log/log.h"
 #include "common/utils/parser_utils.h"
 
 #include <stdexcept>
@@ -209,7 +210,22 @@ std::unique_ptr<Node> make_resource(const NodePath& path, const nlohmann::json& 
 std::unique_ptr<Node> make_fork(const NodePath& path, const nlohmann::json& j) {
   auto ctx = parse_context(j);
   std::vector<NodePath> branches;
-  if (j.contains("fork") && j["fork"].contains("branches")) {
+  // 2026-10-10-fork-join-dsl-real-parallel BUG-4 fix (per design D3):
+  //   lib/loop/fork_join.agent.md 用扁平 schema `branches: [{path: "/main/task_a"}]`, 旧 fixture
+  //   (fork_join_example.agent.md) 用嵌套 schema `fork: {branches: ["/main/x"]}`. 双 schema 兼容,
+  //   新扁平 schema 优先, 旧嵌套 schema fallback + LOG_WARN 标记 deprecated.
+  //   若两 schema 同时存在 (冲突), 优先扁平 (新规范胜出), 不抛 parse error.
+  if (j.contains("branches") && j["branches"].is_array() && !j["branches"].empty()) {
+    const auto& bj = j["branches"];
+    for (const auto& b : bj) {
+      if (b.is_object() && b.contains("path")) {
+        branches.push_back(b["path"].get<std::string>());
+      } else if (b.is_string()) {
+        branches.push_back(b.get<std::string>());
+      }
+    }
+  } else if (j.contains("fork") && j["fork"].contains("branches")) {
+    LOG_WARN("DEPRECATED: nested fork.branches schema, migrate to flat branches:[{path}]");
     const auto& bj = j["fork"]["branches"];
     if (bj.is_array()) {
       for (const auto& b : bj) branches.push_back(b.get<std::string>());
@@ -226,19 +242,33 @@ std::unique_ptr<Node> make_join(const NodePath& path, const nlohmann::json& j) {
   auto ctx = parse_context(j);
   std::vector<NodePath> deps;
   std::string strategy = "error_on_conflict";
-  if (j.contains("join")) {
-    const auto& jo = j["join"];
-    if (jo.contains("wait_for")) {
-      const auto& dj = jo["wait_for"];
-      if (dj.is_array()) {
-        for (const auto& d : dj) deps.push_back(d.get<std::string>());
-      } else if (dj.is_string()) {
-        deps.push_back(dj.get<std::string>());
+  // 2026-10-10-fork-join-dsl-real-parallel BUG-4 fix (per design D3) — JOIN 同等支持双 schema:
+  //   新规范: 扁平 `wait_for: [...]` (lib/loop/fork_join.agent.md line 45 使用)
+  //   旧规范: 嵌套 `join: {wait_for: [...]}` (向后兼容)
+  //   优先扁平 schema, 旧嵌套 fallback + LOG_WARN 标记 deprecated.
+  if (j.contains("wait_for")) {
+    const auto& dj = j["wait_for"];
+    if (dj.is_array()) {
+      for (const auto& d : dj) {
+        if (d.is_string()) deps.push_back(d.get<std::string>());
       }
+    } else if (dj.is_string()) {
+      deps.push_back(dj.get<std::string>());
     }
-    if (jo.contains("merge_strategy")) {
-      strategy = jo["merge_strategy"].get<std::string>();
+  } else if (j.contains("join") && j["join"].contains("wait_for")) {
+    LOG_WARN("DEPRECATED: nested join.wait_for schema, migrate to flat wait_for:[...]");
+    const auto& dj = j["join"]["wait_for"];
+    if (dj.is_array()) {
+      for (const auto& d : dj) deps.push_back(d.get<std::string>());
+    } else if (dj.is_string()) {
+      deps.push_back(dj.get<std::string>());
     }
+  }
+  // merge_strategy 保持嵌套 join.merge_strategy (单字段无歧义, 不重复 deprecated warn)
+  if (j.contains("join") && j["join"].contains("merge_strategy")) {
+    strategy = j["join"]["merge_strategy"].get<std::string>();
+  } else if (j.contains("merge_strategy")) {
+    strategy = j["merge_strategy"].get<std::string>();
   }
   auto node = std::make_unique<JoinNode>(path, std::move(deps), std::move(strategy),
                                          std::move(ctx.next_paths));
