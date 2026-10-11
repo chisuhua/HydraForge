@@ -556,10 +556,18 @@ void TopoScheduler::finish_join_simulation(Context& main_context) {
     }
 
     // Clean up fork/join state
+    // 2026-10-10-fork-join-dsl-real-parallel Critical-2 fix (per Oracle post-impl verdict):
+    //   capture join path before reset — LOG_DEBUG 宏经 format_msg lambda **先求值**再 emit level gate,
+    //   即 .value() 无条件执行. optional 为空 → bad_optional_access 抛. 必炸点:
+    //   pre-fix 是死代码 (execute_node 先抛 logic_error), BUG-2 前移把 join 路由短路路径激活后
+    //   第一个跑通 join 的用例立即撞这里. 修后 join path 字符串缓存, reset 后日志安全.
+    std::string join_path_str = current_join_node_path_.has_value()
+                                    ? current_join_node_path_.value()
+                                    : std::string("<unknown>");
     current_join_node_path_.reset();
     current_fork_branch_results_.clear();
     join_wait_for_.clear();
-    LOG_DEBUG("Finished join simulation for node " << current_join_node_path_.value());
+    LOG_DEBUG("Finished join simulation for node " << join_path_str);
 }
 
 void TopoScheduler::load_graphs(const std::vector<std::unique_ptr<Node>>& nodes) {
@@ -700,7 +708,15 @@ std::optional<ExecutionResult> TopoScheduler::resolve_dynamic_waits(
 }
 
 void TopoScheduler::process_fork_join(Node* current_node, Context& context) {
-    start_join_simulation(dynamic_cast<const JoinNode*>(current_node));
+    // 2026-10-10-fork-join-dsl-real-parallel Major-2 fix (per Oracle post-impl verdict):
+    //   对齐 handle_fork_node:749-752 空检查. 若 type 标记与实例不符 (防御性), 不带检查的
+    //   dynamic_cast 会传 nullptr 给 start_join_simulation, line 530 join_node->wait_for 空指针解引用.
+    //   1 行对齐修复.
+    const JoinNode* join_node = dynamic_cast<const JoinNode*>(current_node);
+    if (!join_node) {
+        throw std::runtime_error("Node type JOIN but not JoinNode instance");
+    }
+    start_join_simulation(join_node);
     finish_join_simulation(context);
     finish_fork_simulation();
     LOG_DEBUG("Join completed, merged context.");
