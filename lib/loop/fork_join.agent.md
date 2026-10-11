@@ -23,7 +23,7 @@ nodes:
       task_id: "a"
       input: "{{user_input}}"
     output_keys: [result_a]
-    next: [/main/end]
+    next: [/main/join_results]
   - id: task_b
     type: tool_call
     tool: loop/process_task
@@ -31,7 +31,7 @@ nodes:
       task_id: "b"
       input: "{{user_input}}"
     output_keys: [result_b]
-    next: [/main/end]
+    next: [/main/join_results]
   - id: task_c
     type: tool_call
     tool: loop/process_task
@@ -39,7 +39,7 @@ nodes:
       task_id: "c"
       input: "{{user_input}}"
     output_keys: [result_c]
-    next: [/main/end]
+    next: [/main/join_results]
   - id: join_results
     type: join
     wait_for: [/main/task_a, /main/task_b, /main/task_c]
