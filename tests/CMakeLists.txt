@@ -358,6 +358,6 @@ add_test(NAME test_sync_pdk_contract
 #            (Requirement: hermetic-home-composition + housekeeping)
 # ─────────────────────────────────────────────────────────────
 add_test(NAME housekeeping_no_nested_configure
+
          WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
          COMMAND bash ${PROJECT_SOURCE_DIR}/scripts/check-no-nested-configure.sh)
-

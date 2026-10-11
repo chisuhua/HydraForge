@@ -324,13 +324,23 @@ void TopoScheduler::append_dynamic_graphs(std::vector<ParsedGraph> new_graphs) {
 }
 
 void TopoScheduler::start_fork_simulation(const ForkNode* fork_node, const Context& fork_context_snapshot) {
+    // fix-fork-dsl-context-propagation BUG-2-B fix (per ADR-0089 v1.4 follow-up commit 83883bc):
+    // 此前注释 "The fork_context_snapshot is already saved by ExecutionSession" — 但 routing fix
+    // (commit b51adea) 后 FORK 节点**不再**进 execute_node (handle_fork_node 在 execute_node 之前拦截),
+    // 所以 ExecutionSession.save_snapshot 从未被调用 → execute_fork_branches 的 get_snapshot 返回 nullptr.
+    // 必须显式保存 fork 前的 context snapshot, 含 user_input 等已注入 template variables,
+    // 各 branch 节点通过 execute_fork_branches line 340 的 `*fork_snapshot` 深拷贝继承.
+    // const_cast: save_snapshot 非 const 方法 (line 45) 而 get_context_engine() 是 const 返回 (line 111),
+    // 临时绕过 const 限制. 后续 cleanup 可考虑将 save_snapshot 改为 const (snapshot 修改涉及内部状态,
+    // 但 save_snapshot 语义上就是写操作, const 不合适). 用 mutable std 解决更优但需改 ContextEngine API.
+    const_cast<agenticdsl::ContextEngine&>(session_.get_context_engine())
+        .save_snapshot(fork_node->path, fork_context_snapshot);
+
     current_fork_node_path_ = fork_node->path;
     current_fork_branches_ = fork_node->branches; // Store the branches to execute
     current_fork_branch_results_.clear(); // Clear previous results if any
     current_fork_branch_index_ = 0;
     is_executing_fork_branches_ = true;
-    // The fork_context_snapshot is already saved by ExecutionSession
-    // We just need to remember the branches to execute.
     LOG_DEBUG("Started fork simulation for node " << fork_node->path << " with " << current_fork_branches_.size() << " branches.");
 }
 
