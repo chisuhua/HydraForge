@@ -420,11 +420,52 @@ on_failure: "/self/repair"
 
 ### 5.5 `fork` / `join`
 **语义**：显式并行控制  
-- `fork.branches`: 路径列表
-- `join.wait_for`: 依赖列表, `merge_strategy`
+- `fork` 节点: 分支并行调度入口 (`branches` 列路径, `next` 列后续节点)
+- `join` 节点: 合并依赖输出 (`wait_for` 列依赖路径, `merge_strategy` 列合并策略)
+
+**两种 schema 兼容** (per `openspec/changes/archive/2026-10-10-fork-join-dsl-real-parallel`):
+
+新规范 (扁平, 推荐):
+```yaml
+- id: fork_tasks
+  type: fork
+  branches:                              # 扁平对象数组
+    - path: /main/task_a
+    - path: /main/task_b
+  next: [/main/join_results]
+
+- id: join_results
+  type: join
+  wait_for: [/main/task_a, /main/task_b]  # 扁平字符串数组
+  next: [/main/synthesize]
+```
+
+旧规范 (嵌套, deprecated 但兼容):
+```yaml
+- id: fork_tasks
+  type: fork
+  fork:                                  # 嵌套 + 字符串数组
+    branches:
+      - /main/task_a
+      - /main/task_b
+  next: [/main/join_results]
+
+- id: join_results
+  type: join
+  join:                                  # 嵌套 + 字符串数组
+    wait_for:
+      - /main/task_a
+  merge_strategy: error_on_conflict      # 也可写在 join.merge_strategy
+```
+
+优先级: 扁平 schema 胜出 (DSL 文件同时含两种时 parser 选扁平). 嵌套 schema 触发 `LOG_WARN("DEPRECATED: nested fork.branches schema, migrate to flat branches:[{path}]")`.
 
 **依赖解析时机**：执行器必须在节点入调度队列前解析 `wait_for` 表达式  
 **禁止**：在执行中动态变更依赖拓扑
+
+**DAG 防双执行 (per `open spec changes/archive/2026-10-10-fork-join-dsl-real-parallel` D4)**: `fork` 节点的非空 `branches` 不会作为独立 in_degree=0 节点被 seed (build_dag 显式建 fork→branch 边让 branch in_degree > 0), 唯一调度入口是 fork handler 显式派发. 防 build_dag seed 一次 + execute_fork_branches 一次的 2× 重复执行.
+
+**Routing 短路 (per same change BUG-2 fix)**: fork/join 节点是调度语义, 不走 execute_node 逻辑 — 主循环在 execute_node 之前拦截调 handler, 避免 NodeExecutor 抛 `logic_error("ForkNode/JoinNode reached NodeExecutor")`.
 
 ### 5.6 `end`
 **语义**：终止当前子图  
