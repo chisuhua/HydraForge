@@ -185,6 +185,16 @@ ExecutionResult TopoScheduler::run_main_loop(DagState& state, Context& context) 
         if (auto rw_err = resolve_dynamic_waits(found.node, found.path, context, can_execute); rw_err.has_value()) return *rw_err;
         if (!can_execute) continue;
 
+        // fix-fork-dsl-context-propagation BUG-2-A fix (per ADR-0089 v1.4 follow-up commit 83883bc):
+        // FORK/JOIN 节点是调度语义 (非节点执行语义), 必须在 execute_node 之前路由.
+        // 此前 line 214-220 的 post-execute 类型检查永远走不到, 导致 NodeExecutor 抛 logic_error.
+        // 参考 line 192-204 YIELD 检查模式 — 但 YIELD 在 execute_node 后 (语义不同), FORK 必须在之前.
+        if (found.node->type == NodeType::FORK) {
+            handle_fork_node(found.node, context);
+            executed_.insert(found.path);
+            continue;
+        }
+
         auto session_result = session_.execute_node(found.node, context);
         if (!session_result.success) {
             if (process_jump(session_result.message, found.path)) continue;
@@ -211,10 +221,10 @@ ExecutionResult TopoScheduler::run_main_loop(DagState& state, Context& context) 
 
         executed_.insert(found.path);
 
-        if (found.node->type == NodeType::FORK) {
-            handle_fork_node(found.node, context);
-            continue;
-        }
+        // fix-fork-dsl-context-propagation BUG-2-A fix: 移除原 line 214-220 post-execute 类型检查
+        // (已前移到 execute_node 之前, 此处保留注释避免误回滚).
+        // if (found.node->type == NodeType::FORK) { handle_fork_node(...); continue; }  // ← removed
+        // if (found.node->type == NodeType::JOIN) { process_fork_join(...); }  // ← removed
         if (found.node->type == NodeType::JOIN) {
             process_fork_join(found.node, context);
         }
