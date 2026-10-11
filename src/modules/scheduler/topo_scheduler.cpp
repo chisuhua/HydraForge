@@ -109,6 +109,29 @@ void TopoScheduler::parse_node_wait_for_deps() {
             }
         }
     }
+
+    // 2026-10-10-fork-join-dsl-real-parallel D4 fix (per design D4):
+    //   fork→branch 边计为 in-edge (branch 节点 in_degree > 0).
+    //   此前 parse_node_wait_for_deps 只处理 node->next + wait_for, fork 的 branches 字段
+    //   未被 build_dag 引用, 导致 task_a/b/c in_degree=0 在 seed_initial_ready_queue 被 seed,
+    //   而 start_fork_simulation 调 execute_fork_branches 又执行一次 (BUG-4 fix 后会暴露双执行).
+    //   现在: fork→branch 显式边 → branch in_degree > 0 → seed 阶段跳过 → execute_fork_branches
+    //   显式调度是唯一触发点, 防双执行.
+    for (const auto& node_ptr : all_nodes_) {
+        Node* node = node_ptr.get();
+        if (node->type == NodeType::FORK) {
+            const auto* fork_node = dynamic_cast<const ForkNode*>(node);
+            if (fork_node && !fork_node->branches.empty()) {
+                for (const auto& branch_path : fork_node->branches) {
+                    if (node_map_.count(branch_path) == 0) {
+                        throw std::runtime_error("Fork branch node not found: " + branch_path);
+                    }
+                    reverse_edges_[branch_path].push_back(node->path);
+                    in_degree_[branch_path]++;
+                }
+            }
+        }
+    }
 }
 
 void TopoScheduler::collect_wait_for_deps(const nlohmann::json& wf, std::vector<NodePath>& deps) const {
@@ -189,9 +212,30 @@ ExecutionResult TopoScheduler::run_main_loop(DagState& state, Context& context) 
         // FORK/JOIN 节点是调度语义 (非节点执行语义), 必须在 execute_node 之前路由.
         // 此前 line 214-220 的 post-execute 类型检查永远走不到, 导致 NodeExecutor 抛 logic_error.
         // 参考 line 192-204 YIELD 检查模式 — 但 YIELD 在 execute_node 后 (语义不同), FORK 必须在之前.
+        // 2026-10-10-fork-join-dsl-real-parallel 修复 1+2 (BUG-2 JOIN 前移 + BUG-3 fork update_successors):
+        //   - JOIN 节点也必须前移到 execute_node 之前 (否则 execute_node 抛 logic_error, JOIN 永远不可达)
+        //   - FORK 路径调 handle_node_completion 推进 fork.next 边 (修 BUG-3: fork.next 死边)
         if (found.node->type == NodeType::FORK) {
             handle_fork_node(found.node, context);
             executed_.insert(found.path);
+            // BUG-3: 调用 handle_node_completion 推进 fork.next 边 (例 fork→join_results),
+            //   否则 join_results in_degree 永远不减 0, JOIN 节点永远不可达
+            NodeResult fork_fake_result;
+            fork_fake_result.success = true;
+            if (auto err = handle_node_completion(state, fork_fake_result,
+                                                 found.node, found.path); err) return *err;
+            continue;
+        }
+        if (found.node->type == NodeType::JOIN) {
+            // BUG-2: JOIN 是调度语义 (非节点执行语义), 前移到 execute_node 之前.
+            //   此前 line 228-230 post-execute JOIN check 是死代码 (execute_node 先抛 logic_error)
+            process_fork_join(found.node, context);
+            executed_.insert(found.path);
+            // JOIN 同样调 handle_node_completion 推进 next 边 (join_results.next = synthesize)
+            NodeResult join_fake_result;
+            join_fake_result.success = true;
+            if (auto err = handle_node_completion(state, join_fake_result,
+                                                 found.node, found.path); err) return *err;
             continue;
         }
 
@@ -221,13 +265,11 @@ ExecutionResult TopoScheduler::run_main_loop(DagState& state, Context& context) 
 
         executed_.insert(found.path);
 
-        // fix-fork-dsl-context-propagation BUG-2-A fix: 移除原 line 214-220 post-execute 类型检查
-        // (已前移到 execute_node 之前, 此处保留注释避免误回滚).
+        // fix-fork-dsl-context-propagation BUG-2-A + 2026-10-10-fork-join-dsl-real-parallel BUG-2 fix:
+        //   移除原 line 214-220 + line 228-230 的 post-execute 类型检查
+        //   (FORK 已在 line 192-208 处理, JOIN 已在 line 209-220 处理, 此处保留注释避免误回滚).
         // if (found.node->type == NodeType::FORK) { handle_fork_node(...); continue; }  // ← removed
         // if (found.node->type == NodeType::JOIN) { process_fork_join(...); }  // ← removed
-        if (found.node->type == NodeType::JOIN) {
-            process_fork_join(found.node, context);
-        }
         if (session_result.paused_at.has_value()) {
             return {true, "Paused at LLM call", context, session_result.paused_at};
         }
@@ -434,10 +476,23 @@ auto TopoScheduler::init_branch_state(const NodePath& branch_path)
   std::unordered_map<NodePath, int> branch_in_degree = in_degree_;
   std::unordered_map<NodePath, std::vector<NodePath>> branch_reverse_edges = reverse_edges_;
 
+  // 2026-10-10-fork-join-dsl-real-parallel D4 fix 协同:
+  //   parse_node_wait_for_deps 加了 fork→branch 边, 防止 seed_initial_ready_queue 误 seed branches.
+  //   但 init_branch_state 也用 in_degree_, 会导致 branch 节点 in_degree=1 (来自 fork→branch 边),
+  //   不被 seed. 协同修复: 在 init_branch_state 内, branch_path 自身 (或其在当前 fork 分支内的根节点)
+  //   必须被 seed, 不论 in_degree. 先找 start node 再 seed.
+  NodePath branch_root = find_branch_start_node(branch_path);
+  if (!branch_root.empty()) {
+    branch_ready_queue.push(branch_root);
+  }
+
+  // 其它分支内节点: 在 branch subgraph 内可达, 才 seed (即分支内还有分支或 wait_for 等)
   for (const auto& [path, node] : node_map_) {
-    if ((path.rfind(branch_path + "/", 0) == 0 || path == branch_path) &&
-        branch_in_degree[path] == 0) {
-      branch_ready_queue.push(path);
+    if (path == branch_root) continue;  // 已 seed
+    if (path.rfind(branch_path + "/", 0) == 0 || path == branch_path) {
+      if (branch_in_degree[path] == 0) {
+        branch_ready_queue.push(path);
+      }
     }
   }
 
