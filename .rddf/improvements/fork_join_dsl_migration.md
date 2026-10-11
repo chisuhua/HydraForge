@@ -5,9 +5,18 @@
 **类型**: refactor (DSL 路径承接 ForkJoinLoop 4-worker 并行能力)
 **主题**: ForkJoinLoop → DSL `loop/run_fork_join` 工具迁移
 
-> **状态**: 🔍 **Future Change Tracker**（仅记录提案，**不进入实施周期**；立项触发条件: ADR-0089 v1.4 soft-deprecation 观察期满 ≥ 1-2 月 + 用户明确启动）
+> **状态 update (2026-10-10)**: 🔍 **Future Change Tracker** (状态未变, 但 4 项 pre-existing BUG 已 ship closure, 见下)
 >
-> **关联文档**: `docs/adr/adr-0089-v1-4-amendment-soft-deprecate-cpp-agent-loops.md` D9 段
+> 本变更日 (`2026-10-10-fork-join-dsl-real-parallel` ship, commits `81b44d4` + `5a37f3c` + `fa4b040` + `21bca13` + `dd6237a`, Oracle SHIP-with-fixes session `ses_ed35f7205ffeCm6OlJTBrbVhtG`) 闭合 4 个 pre-existing bug:
+> - **BUG-2** 完全修复: routing 前移 (FORK + JOIN 都从 execute_node 之前拦截) + fork path 加 handle_node_completion 推进 fork.next 边 (per Oracle BUG-2-A + BUG-2-B 双 bug fix 在本会话合并)
+> - **BUG-4** 完全修复: parser make_fork/make_join 双 schema 兼容 (扁平优先 + 嵌套 fallback deprecated warn) + merge_strategy 双 schema
+> - **BUG-5** 新发现并完全修复: `lib/loop/fork_join.agent.md` task_a/b/c.next 应指向 `join_results` 而非 `end` (per Oracle static analysis 此前 fix-fork-join-agent-next-chain change BLOCKED + 本 change open)
+> - **Critical-2 + Major-2** (SHIP-with-fixes): finish_join_simulation 必炸点修复 + process_fork_join dynamic_cast 空检查对齐 FORK 侧
+>
+> **仍 deferred** (per Oracle Critical-1 follow-up):
+> - **完整 fork_join DSL e2e success=true**: branch 完成需反馈给主调度器 (`in_degree_[join_results]` 需正确递减), 当前架构下 join_results 仍不可达. 需 ~15 行 `execute_fork_branches` 加 branch→main scheduler completion feedback. 推荐留给独立 future change (per Oracle Option (a) deferred)
+>
+> **关联文档**: `docs/adr/adr-0089-v1-4-amendment-soft-deprecate-cpp-agent-loops.md` D9 段 + `openspec/changes/archive/2026-10-10-fork-join-dsl-real-parallel/` (本次 ship artifacts)
 
 ---
 
@@ -105,16 +114,18 @@
 
 ### 已发现 pre-existing 缺陷 (2026-10-10 测试审计, 本 future change 实施前必须解决)
 
-> 来源: `test_loop_agent_fork_join` + `test_loop_agent_plan_execute_realllm` 审计 (ADR-0089 v1.4 GAP-2/3/5 补测时发现)。
+> 来源: `test_loop_agent_fork_join` + `test_loop_agent_plan_execute_realllm` 审计 (ADR-0089 v1.4 GAP-2/3/5 补测时发现)。**2026-10-10-fork-join-dsl-real-parallel ship 后全部 BUG-2/3/4/5 已闭合**, 但完整 DSL e2e 仍不可达, 见下表 + 顶部 status update.
 
 | # | 缺陷 | 位置 | 影响 | 状态 |
 |---|---|---|---|---|
-| **BUG-1** | `register_react_support_tools_for_child` 只注册 react 工具 (decide_react + finish), **未注册 `loop/process_task` + `loop/execute_plan`** | `pdk/loop_agent/src/pdk_entry.cpp` | DSL fork_join.agent.md (task_a/b/c) + plan_execute.agent.md (execute 节点) 执行必失败 "Tool not registered" | ✅ **已修复** (本会话: 抽 run_process_task/run_execute_plan 文件级函数 + child 注册复用) |
-| **BUG-2 (已修部分)** | (A) routing bug: `TopoScheduler::run_main_loop` line 209-221 先 `execute_node` 后检查 `NodeType::FORK` → fork/join 节点被 NodeExecutor 收到抛 "scheduler routing bug". (B) template context bug: `start_fork_simulation` 未显式 save_snapshot, 各 branch 节点 template variable 解析失败. **已修 (commit `b706c31`)**: routing ~10 行前移到 execute_node 之前 + start_fork_simulation 显式 save_snapshot | (A) `topo_scheduler.cpp:209-221` (前移 FORK/JOIN 类型分发). (B) `topo_scheduler.cpp:316-326` (start_fork_simulation 加 save_snapshot 调用) | (A) routing bug fix 后 RED Test 2 不再抛 routing bug → 暴露下一个 bug. (B) defensive fix, 待 fork_join.agent.md next 链 bug 修后可见效果. | ✅ **已修 (commit `b706c31`)** |
-| **BUG-3** | `lib/loop/plan_execute.agent.md` plan 节点 prompt 生成**自然语言 plan**, 但 execute 节点调 `loop/execute_plan` 期望 **```yaml AgenticDSL block** — 语义不匹配 | `lib/loop/plan_execute.agent.md:14-19` + `pdk_entry.cpp` extract_agenticdsl_block | 真实 LLM plan 产出无法被 execute_plan 解析 ("plan is not AgenticDSL markdown") | ⚠️ **未修复** (DSL 文件设计问题, 需改 plan prompt 或 execute_plan 容错) |
-| **BUG-4** | `loop/run` 未注入 `{{context}}` 变量 (plan_execute.agent.md plan 节点引用) | `pdk/loop_agent/src/pdk_entry.cpp` | "Template render error: variable 'context' not found" | ✅ **已修复** (本会话: ctx.working["context"] 注入) |
+| **BUG-1** | `register_react_support_tools_for_child` 只注册 react 工具 (decide_react + finish), **未注册 `loop/process_task` + `loop/execute_plan`** | `pdk/loop_agent/src/pdk_entry.cpp` | DSL fork_join.agent.md (task_a/b/c) + plan_execute.agent.md (execute 节点) 执行必失败 "Tool not registered" | ✅ **已修复** (2026-09-18 chat-real-llm-coverage Phase A ship: 抽 run_process_task/run_execute_plan 文件级函数 + child 注册复用) |
+| **BUG-2** | (A) routing bug (FORK): `TopoScheduler::run_main_loop` 先 `execute_node` 后检查 `NodeType::FORK`. (B) routing bug (JOIN): 同位置 JOIN 检查是死代码 (execute_node 先抛 logic_error). (C) template context bug: `start_fork_simulation` 未显式 save_snapshot | `topo_scheduler.cpp` 主循环 + `topo_scheduler.cpp:316-326` | (A) FORK 抛 logic_error. (B) JOIN 永远不可达. (C) branch 节点 template variable 解析失败 | ✅ **完全修复** (本次 ship `81b44d4` + `b706c31`: FORK/JOIN 都前移到 execute_node 之前 + fork path 加 handle_node_completion + start_fork_simulation 加 save_snapshot) |
+| **BUG-3** | `lib/loop/plan_execute.agent.md` plan 节点 prompt 生成**自然语言 plan**, execute 节点期望 **`yaml` AgenticDSL block** — 语义不匹配 | `lib/loop/plan_execute.agent.md:14-19` + `pdk_entry.cpp` extract_agenticdsl_block | 真实 LLM plan 产出无法被 execute_plan 解析 ("plan is not AgenticDSL markdown") | ✅ **已修复** (2026-10-10 fork-join-dsl-migration partial ship `7e81c2f`: plan prompt 加 Goal/Context + markdown fence; extract_agenticdsl_block 加 4-fence 容错) |
+| **BUG-4** | `loop/run` 未注入 `{{context}}` 变量 (plan_execute.agent.md plan 节点引用) | `pdk/loop_agent/src/pdk_entry.cpp` | "Template render error: variable 'context' not found" | ✅ **已修复** (2026-09-24 pdk-chat-demo-deduplicate ship: ctx.working["context"] 注入) |
+| **BUG-5 (新发现, 2026-10-10 Oracle static analysis)** | `lib/loop/fork_join.agent.md` task_a/b/c `next:` 指向 `/main/end` 而非 `/main/join_results` — 单一修复 next 3 行无效果 (因 BUG-2 routing 阻塞) | `lib/loop/fork_join.agent.md:26,34,42` | join_results 在 routing 修后永远不可达 (in_degree 永不为 0) | ✅ **已修复** (本次 ship `fa4b040`: task_a/b/c.next → /main/join_results) |
+| **Critical-2 + Major-2 (SHIP-with-fixes Oracle verdict 2026-10-10)** | finish_join_simulation `LOG_DEBUG(... .value())` 在 `reset()` 后调用 → `bad_optional_access` 必抛. process_fork_join dynamic_cast 无空检查, 不对齐 handle_fork_node 模式 | `topo_scheduler.cpp:558-572` + `topo_scheduler.cpp:712-728` | pre-existing 死代码 (execute_node 先抛 logic_error), BUG-2 fix 把 join 路径激活后必炸 | ✅ **完全修复** (本次 ship `dd6237a`: reset 前 capture join_path_str + process_fork_join 加 dynamic_cast null check) |
 
-**实施本 future change 的 Gate**: ~~BUG-2 + BUG-3~~ 已 ship (commit `7e81c2f` BUG-3 + commit `b706c31` BUG-2). **下一剩余 bug**: lib/loop/fork_join.agent.md next 链设计 bug (task_a/b/c next 应指向 join_results 而非 end), 暴露为 routing fix 后的 "Unmet dependencies or cycles" 错误. 待 lib/loop fork_join.agent.md DSL 文件修正后此 tracker 才算 complete.
+**本 future change 实施前 Gate 状态 (2026-10-10 update)**: **全部结构性 BUG 闭合** (BUG-1/2/3/4/5 + Critical-2/Major-2). 唯一仍 deferred 项: **完整 fork_join DSL e2e success=true** (branch dispatch → main scheduler completion feedback 缺 ~15 行 `execute_fork_branches` 主调度器 in_degree 递减). 推荐留给独立 future change (per Oracle Option (a) deferred), 或本会话后续 ship.
 
 ---
 
