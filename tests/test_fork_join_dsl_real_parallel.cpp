@@ -14,6 +14,7 @@
 #include "modules/scheduler/resource_manager.h" // Sprint 19 D-8: PIMPL-lite 需 ResourceManager 完整类型
 #include "common/tools/registry.h"
 #include "common/llm/mock_provider.h"
+#include "common/llm/llm_tool.h"  // ILLMTool (synthesize llm_call node 依赖)
 #include "common/utils/yaml_json.h"
 #include "core/types/context.h"
 #include "core/types/node.h"
@@ -21,9 +22,15 @@
 #include <taskflow/taskflow.hpp>  // scheduler PIMPL 完整类型需要
 
 #include <yaml-cpp/yaml.h>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <string>
+#include <unordered_map>
 
 using namespace agenticdsl;
+
+namespace fs = std::filesystem;
 
 namespace {
 
@@ -31,6 +38,32 @@ namespace {
 nlohmann::json parse_yaml_str(const std::string& yaml_str) {
     YAML::Node node = YAML::Load(yaml_str);
     return yaml_to_json(node);
+}
+
+// Mock LLM tool — lib/loop/fork_join.agent.md 的 synthesize 节点是 `type: llm_call`
+// (default llm_tool_name = "llama-default"). 核心测试树不加载 PDK loop_agent plugin,
+// 故须显式注册一个 mock ILLMTool 让 synthesize 节点可执行.
+class ForkJoinMockLlmTool : public ILLMTool {
+public:
+    LLMResult generate(const std::string& prompt, const LLMParams& = {}) override {
+        LLMResult r;
+        r.success = true;
+        r.text = "synthesized: " + prompt;
+        r.tokens_generated = 7;
+        return r;
+    }
+    bool is_available() const override { return true; }
+    std::string name() const override { return "llama-default"; }
+};
+
+// 从 cwd 向上查找 lib/loop/fork_join.agent.md (与 tests/test_parser_dsl_schema.cpp 同策略).
+std::string find_lib_loop_fork_join_md() {
+    std::error_code ec;
+    for (auto p = fs::current_path(ec); !p.empty() && p != p.root_path(); p = p.parent_path()) {
+        auto cand = p / "lib" / "loop" / "fork_join.agent.md";
+        if (fs::exists(cand)) return cand.string();
+    }
+    return {};
 }
 
 }  // namespace
@@ -328,4 +361,63 @@ nodes:
             REQUIRE(engine != nullptr);
         }());
     }
+}
+
+// ============================================================
+// Case 6 — branch→main completion feedback (Oracle Critical-1 fix, 本 change 主验证)
+// ============================================================
+// RED (pre-fix): execute_fork_branches 内 branch 完成不调 update_successors + 不写成员 executed_
+//   → in_degree_[join_results] 永不为 0 → join_results 永远不可达
+//   → main loop `ready_queue_` 空 → break → finalize_execution 算 unexecuted 非空
+//   → result.success == false (确定性 FAIL "Unmet dependencies or cycles", 非 hang)
+// GREEN (post-fix D1+D2+C2): 每 branch 完成 decrement consumer in_degree
+//   + executed_.insert 修复让 finalize_execution 不再把 task_a/b/c 误判未执行
+//   → join_results 入 ready_queue_ → process_fork_join → synthesize → end → success == true
+//
+// 断言强度: success == true (强契约) + get_last_traces().size() >= 5 (留 mock/system-node buffer)
+//           + final_context 聚合含 result_a/result_b/result_c (per ContextEngine::merge)
+TEST_CASE("Fork/join full e2e success=true path completes join_results dispatch",
+          "[scheduler][fork-join-dsl-completion-feedback][e2e]") {
+    const std::string md_path = find_lib_loop_fork_join_md();
+    REQUIRE_FALSE(md_path.empty());
+    std::ifstream in(md_path);
+    REQUIRE(in.is_open());
+    std::stringstream buf;
+    buf << in.rdbuf();
+    const std::string markdown = buf.str();
+
+    MockLLMProvider mock_provider;
+    auto engine = DSLEngine::from_markdown(markdown, mock_provider);
+    REQUIRE(engine != nullptr);
+
+    // lib/loop/fork_join.agent.md 的 task_a/b/c 节点依赖 loop/process_task (PDK tool).
+    // 核心测试树不加载 PDK plugin, 故注册一个 mock 分支任务工具.
+    engine->register_tool(
+        "loop/process_task",
+        ToolMetadata{"loop/process_task", "mock branch task", "loop",
+                     ToolCategory::ReadOnly, LayerProfile::Workflow},
+        [](const std::unordered_map<std::string, std::string>& args) -> nlohmann::json {
+            std::string task_id = "?";
+            if (auto it = args.find("task_id"); it != args.end()) task_id = it->second;
+            return nlohmann::json{{"ok", true}, {"data", "result-" + task_id}};
+        });
+
+    // synthesize 节点是 llm_call → default llama-default; 注册 mock LLM tool.
+    engine->register_llm_tool("llama-default",
+                              std::make_unique<ForkJoinMockLlmTool>(), LLMParams{});
+
+    LayeredContext ctx;
+    ctx.working["user_input"] = "synthesize three parallel tasks";
+
+    // Autonomous: 跳过 DSL_CALL pause, 让 synthesize 后完整跑到 end + finalize_execution.
+    auto result = engine->run(ctx, ExecutionFlag::Autonomous);
+
+    INFO("e2e success=" << result.success << " message=" << result.message);
+    INFO("trace count=" << engine->get_last_traces().size());
+
+    REQUIRE(result.success == true);
+    REQUIRE(engine->get_last_traces().size() >= 5);
+    REQUIRE(result.final_context.contains("result_a"));
+    REQUIRE(result.final_context.contains("result_b"));
+    REQUIRE(result.final_context.contains("result_c"));
 }

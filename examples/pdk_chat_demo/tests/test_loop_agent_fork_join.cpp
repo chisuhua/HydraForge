@@ -93,14 +93,16 @@ TEST_CASE("loop/run fork_join: loop/process_task registered in child engine",
     REQUIRE(loader_obj->load_so(so_path, engine->get_tool_registry()));
 
     auto provider = std::make_unique<MockLLMProvider>();
+    // 2026-10-12-fork-join-dsl-completion-feedback: completion feedback 闭合后 synthesize
+    // 节点 (llm_call) 会真实执行; MockLLMProvider 默认返回空 text, 会被 ProviderLLMTool
+    // 的 empty/whitespace fail-fast 拒绝. 设固定非空 response 让 synthesize 成功.
+    provider->set_fixed_response("synthesized fork_join result");
     engine->get_tool_registry().call_tool("loop/set_parent_provider",
         std::unordered_map<std::string, std::string>{
             {"provider_ptr", std::to_string(reinterpret_cast<uintptr_t>(provider.get()))}
         });
 
     // 触发 loop/run 创建 child engine (fork_join.agent.md 被加载, process_task 应注册)
-    // 注: fork 节点会触发 scheduler routing bug 抛异常 → loop/run 返回 error
-    // 但 error 不再是 "Tool 'loop/process_task' not registered" (那是 pre-fix 的失败模式)
     auto run_ret = engine->get_tool_registry().call_tool("loop/run",
         std::unordered_map<std::string, std::string>{
             {"loop_type", "fork_join"},
@@ -113,19 +115,17 @@ TEST_CASE("loop/run fork_join: loop/process_task registered in child engine",
 
     INFO("fork_join DSL e2e result: " << run_ret.dump());
     auto err_str = run_ret.value("error", std::string{});
-    // 2026-10-10-fork-join-dsl-real-parallel ship 后, 结构性 bug 已修 (BUG-2/3/4/5):
-    //   - FORK/JOIN 节点不再抛 logic_error (routing 前移)
-    //   - fork→join_results 边正确递减 (handle_node_completion on fork path)
-    //   - parser 支持扁平 + 嵌套双 schema
-    //   - DSL task_a/b/c.next → join_results (链修复)
-    //   - build_dag 加 fork→branch 边 (防 branches 双执行)
-    // 实际 integration 仍需更深层 fork dispatch + main scheduler feedback (branch 完成触发
-    // join_results in_degree 递减), 完整 e2e success=true 留后续 sprint 跟踪. 本 test 锁定
-    // 当前可达: routing + structural bug 修复 + error 不再是 BUG-1/BUG-2 旧错误模式.
+    // 2026-10-10-fork-join-dsl-real-parallel ship 后, 结构性 bug 已修 (BUG-2/3/4/5).
+    // 2026-10-12-fork-join-dsl-completion-feedback ship 后, branch→main completion feedback
+    // 闭合 (execute_fork_branches 调 update_successors + executed_.insert), 完整 e2e success=true.
+    // loop/run 的 "steps" 字段 = child->get_last_traces().size() (pdk_entry.cpp:850), 与核心树
+    // Case 6 的 engine->get_last_traces() 同一表面.
     auto steps = run_ret.value("steps", 0);
+    INFO("step count post-completion-feedback fix: " << steps);
+    REQUIRE(run_ret.value("success", false) == true);
+    REQUIRE(steps >= 5);
     // step >= 7 = start + fork_tasks + task_a + task_b + task_c + synthesize + end (join_results
     //   是调度节点不计入 steps, 但 execute_fork_branches 跑完 3 branch 应到 steps=7)
-    INFO("step count post-BUG-2/3/4/5 fix: " << steps);
     REQUIRE(steps >= 7);
     // BUG-1 (Tool not registered) 已 ship 中修 — 必须不再出现
     REQUIRE(err_str.find("Tool 'loop/process_task' not registered") == std::string::npos);

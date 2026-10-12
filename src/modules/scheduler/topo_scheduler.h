@@ -132,7 +132,10 @@ private:
     // --- v3.1: Helper methods for Fork/Join ---
     void start_fork_simulation(const ForkNode* fork_node, const Context& fork_context_snapshot);
     void execute_fork_branches();
-    Context execute_single_branch(const NodePath& branch_path, const Context& initial_context);
+    // 2026-10-12-fork-join-dsl-completion-feedback D3: 返回值从 Context 扩展为
+    // std::pair<Context, NodePath> (final_ctx + 分支最后执行节点路径), 供 execute_fork_branches
+    // 调 update_successors 推进主调度器 consumer in_degree (branch→main completion feedback).
+    std::pair<Context, NodePath> execute_single_branch(const NodePath& branch_path, const Context& initial_context);
     void finish_fork_simulation();
     void start_join_simulation(const JoinNode* join_node);
     void finish_join_simulation(Context& main_context);

@@ -402,7 +402,24 @@ void TopoScheduler::execute_fork_branches() {
         Context branch_initial_ctx = *fork_snapshot; // Copy the snapshot
 
         try {
-            Context branch_final_ctx = execute_single_branch(branch_path, branch_initial_ctx);
+            // 2026-10-12-fork-join-dsl-completion-feedback D2: execute_single_branch 返回值
+            // 从 Context 扩展为 pair<Context, NodePath> (final_ctx + 最后执行节点路径).
+            auto [branch_final_ctx, last_node_path] = execute_single_branch(branch_path, branch_initial_ctx);
+
+            // 2026-10-12-fork-join-dsl-completion-feedback D1: branch→main scheduler completion feedback.
+            // 此前 execute_fork_branches 仅维护本地 branch_in_degree 副本, 不推进主调度器
+            // in_degree_[consumer] (例 join_results), 导致 join_results 永远不可达 → e2e 必现
+            // "Unmet dependencies or cycles" (Oracle ses_ed35f7205ffeCm6OlJTBrbVhtG Critical-1).
+            auto last_node_it = node_map_.find(last_node_path);
+            if (last_node_it != node_map_.end()) {
+                // M1 修正: node_map_ 是 unordered_map<NodePath, Node*>, .second 已是 Node*, 无 .get().
+                update_successors(last_node_it->second, last_node_path);
+                // C2 修复 (Oracle 静态分析): branch 节点必须写入成员 executed_, 否则
+                // finalize_execution (line 651-674) 计算 all_nodes_ - executed_ 时把 task_a/b/c
+                // 误判未执行 → result.success = false 即便 in_degree_ 全部清零.
+                executed_.insert(last_node_path);
+            }
+
             current_fork_branch_results_.push_back(std::move(branch_final_ctx));
             current_fork_branch_index_++;
         } catch (const HardEndException& e) {
@@ -417,7 +434,7 @@ void TopoScheduler::execute_fork_branches() {
     // The join logic will be handled when the corresponding JoinNode is encountered
     LOG_DEBUG("All fork branches completed. Ready for join.");
 }
-Context TopoScheduler::execute_single_branch(const NodePath& branch_path, const Context& initial_context) {
+std::pair<Context, NodePath> TopoScheduler::execute_single_branch(const NodePath& branch_path, const Context& initial_context) {
     NodePath start_node_path = find_branch_start_node(branch_path);
     LOG_DEBUG("Found start node for branch " << branch_path << ": " << start_node_path);
 
@@ -425,6 +442,9 @@ Context TopoScheduler::execute_single_branch(const NodePath& branch_path, const 
         init_branch_state(branch_path);
 
     Context current_ctx = initial_context;
+    // 2026-10-12-fork-join-dsl-completion-feedback D2: 跟踪分支最后执行的节点路径,
+    // 供 caller (execute_fork_branches) 调 update_successors 推进 consumer in_degree.
+    NodePath last_node_path;
     while (!branch_ready_queue.empty()) {
         NodePath current_path = branch_ready_queue.front();
         branch_ready_queue.pop();
@@ -443,6 +463,7 @@ Context TopoScheduler::execute_single_branch(const NodePath& branch_path, const 
         }
         current_ctx = std::move(session_result.new_context);
         branch_executed.insert(current_path);
+        last_node_path = current_path;  // D2: 每次 execute_node 成功后更新
 
         if (process_branch_end_node(node, current_path, branch_path, current_ctx)) {
             break;
@@ -455,7 +476,7 @@ Context TopoScheduler::execute_single_branch(const NodePath& branch_path, const 
         }
     }
 
-    return current_ctx;
+    return {std::move(current_ctx), last_node_path};
 }
 
 NodePath TopoScheduler::find_branch_start_node(const NodePath& branch_path) const {
