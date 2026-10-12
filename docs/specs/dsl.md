@@ -467,6 +467,8 @@ on_failure: "/self/repair"
 
 **Routing 短路 (per same change BUG-2 fix)**: fork/join 节点是调度语义, 不走 execute_node 逻辑 — 主循环在 execute_node 之前拦截调 handler, 避免 NodeExecutor 抛 `logic_error("ForkNode/JoinNode reached NodeExecutor")`.
 
+**Branch→main completion feedback** (per `openspec/changes/archive/2026-10-12-fork-join-dsl-completion-feedback` ship): fork handler 在 `execute_fork_branches` (topo_scheduler.cpp:389-419) 主循环每个 branch `execute_single_branch` 返回时**显式**调 `update_successors(last_node, last_node_path)`, 让主调度器 `in_degree_[consumer]` 递减 + push `ready_queue_`. 同时 `executed_.insert(last_node_path)` 同步写入 (per Oracle 静态分析 2026-10-12, `finalize_execution` 通过 `all_nodes_ - executed_` 算 unexecuted, branch 节点必须入 `executed_` 才能 `result.success == true`). `execute_single_branch` 返回值从 `Context` 扩展为 `std::pair<Context, NodePath>` (final_ctx + last_executed_node_path, 1 个内部 helper + 1 个调用方, 影响面 0). 头文件声明位置 `src/modules/scheduler/topo_scheduler.h:135` (NOT `include/agenticdsl/pdk/agent_loops/fork_join_loop.h`, 该 C++ PDK ForkJoinLoop class 头无 `execute_single_branch` 声明, per ADR-0089 v1.4 §D8.inv.forkjoin 不动).
+
 ### 5.6 `end`
 **语义**：终止当前子图  
 **关键字段**：

@@ -14,9 +14,11 @@
 > - **Critical-2 + Major-2** (SHIP-with-fixes): finish_join_simulation 必炸点修复 + process_fork_join dynamic_cast 空检查对齐 FORK 侧
 >
 > **仍 deferred** (per Oracle Critical-1 follow-up):
-> - **完整 fork_join DSL e2e success=true**: branch 完成需反馈给主调度器 (`in_degree_[join_results]` 需正确递减), 当前架构下 join_results 仍不可达. 需 ~15 行 `execute_fork_branches` 加 branch→main scheduler completion feedback. 推荐留给独立 future change (per Oracle Option (a) deferred)
+> - ~~**完整 fork_join DSL e2e success=true**~~: ✅ **Closed** (per `2026-10-12-fork-join-dsl-completion-feedback` ship, commit `ffc6e90`, 3 Critical dual-agent review bg_05d4e505 + bg_6ebeb899 SHIP-with-fixes 全应用 + 主会话接管补救 per Pattern #11 G1 case study lesson d). branch→main scheduler completion feedback + `executed_.insert` 修复 (per Oracle C2 静态分析 2026-10-12) 闭合 e2e 闭环. Case 6 GREEN `tests/test_fork_join_dsl_real_parallel.cpp` (1/1 PASS) + examples `test_loop_agent_fork_join.cpp` Test 2 强化.
 >
-> **关联文档**: `docs/adr/adr-0089-v1-4-amendment-soft-deprecate-cpp-agent-loops.md` D9 段 + `openspec/changes/archive/2026-10-10-fork-join-dsl-real-parallel/` (本次 ship artifacts)
+> **状态** (本 ship 后): 🔍 **Future Change Tracker** 维持 (per ADR-0089 v1.4 D9, 完整 ForkJoinLoop→DSL `loop/run_fork_join` 工具迁移仍 pending 1 Sprint, 启动条件 v1.4 观察期 ≥1-2 月 + 用户决策 + ADR-0087 benchmark 不退化)
+>
+> **关联文档**: `docs/adr/adr-0089-v1-4-amendment-soft-deprecate-cpp-agent-loops.md` D9 段 + `openspec/changes/archive/2026-10-10-fork-join-dsl-real-parallel/` (上 ship artifacts) + `openspec/changes/archive/2026-10-12-fork-join-dsl-completion-feedback/` (本 ship artifacts, e2e gap 闭合)
 
 ---
 
