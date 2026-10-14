@@ -32,3 +32,11 @@
 - `test_e2e_mock.cpp` 伪造事件全部移除，替换为真实管线测试。
 - ctest 全量零回归；`python3 tools/adr_lint.py` 0 错误；`python3 tools/docs_drift_audit.py` 0 DRIFT。
 - ADR-0068 附录 A 状态列同步更新（👻→✅）。
+
+
+## Status: ✅ SHIPPED (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- Commit `3eae4d7` "chore(openspec): archive adr-0068-event-emission-contract as Wave 1 partial ship". OpenSpec archive tracked. ADR-0068 ✅ Approved 2026-08-03 (Wave 1 §1-§5 全 ship + V2 EventBuilder).
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
