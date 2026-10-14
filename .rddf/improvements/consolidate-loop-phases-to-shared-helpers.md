@@ -295,3 +295,10 @@ context_ids:
   - Pattern #11 (Async Worker + Dual Oracle dual-review SHIP-with-fixes cycle)
   - §Reverse Indicator Rule (5 字段强制)
   - §FULL REGRESSION TEST FLOW (must_realllm 阶段 2 强制)
+
+## Status: ✅ SHIPPED (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- Commit `5658bc5` "chore(loop-phases): archive OpenSpec + sync governance records (post-merge finalize)". OpenSpec archive tracked. ADR-0089 v1.3 + v1.4 关联. Audit source: archive tracked.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
