@@ -50,3 +50,11 @@ ADR-0073（Tool JSON Schema 契约）创建于 2026-08-02，状态为 `🔍 Prop
 - [ ] `tools/docs_drift_audit.py` 无新增 DRIFT。
 - [ ] `openspec validate --strict` 通过。
 - [ ] `ctest` 输出保持 147/147，未引入代码变更。
+
+
+## Status: 🟡 PARTIAL (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- ADR-0073 🟡 Partial 2026-08-13 (证据基础, Phase 6a W1). ToolSchema 完整实施部分 ship. Audit source: ADR 🟡.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
