@@ -133,3 +133,11 @@ Short — 4-6 小时 (single developer)
 - `include/agenticdsl/pdk/tool_macros.h` (DECLARE_TOOL_V3 default ValidationMode)
 - `docs/adr/adr-0073-tool-json-schema-contract.md`
 - `docs/active-status.md`
+
+
+## Status: ✅ SHIPPED (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- ADR-0073 ✅ Approved 2026-08-18 (D2+D3+D4 全 ship). OpenSpec archive: `openspec/changes/archive/2026-08-23-from-roadmap-phase-6c-validation-refinements/`. Audit source: ADR ✅.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
