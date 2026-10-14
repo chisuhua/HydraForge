@@ -72,3 +72,11 @@
 - [ ] 3 阈值（parse-valid 85% / task-success L1 70% / parse-valid 临界带 90%）明确定义，与 ADR-0074 D4 原文对齐。
 - [ ] `docs/active-status.md` §一 Phase 6c 状态行 + §四 Phase 7 启动条件项 #1 已更新（24h 内）；Evidence Gate 决议结果（PASS/FAIL/CONDITIONAL/ABORT）在 §一可见。
 - [ ] ADR-0074 D4 状态：若决议 PASS → 状态从 🔍 Proposed 翻牌 🟡 Partial（W2 baseline 已 ship + Evidence Gate 已 ship）；若任一阈值 FAIL → 保持 🔍 Proposed，决议录入 ADR-0074 §决策 D4 实证字段。
+
+
+## Status: ✅ SHIPPED (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- ADR-0074 ✅ Approved 2026-08-03 (派生自 ADR-0071 §决策 D5, Wave 2 Phase 2.2 ADR). OpenSpec archive: `openspec/changes/archive/2026-09-01-from-roadmap-phase-6c-evidence-gate/`. Audit source: ADR ✅.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
