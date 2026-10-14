@@ -76,3 +76,11 @@ W2 (baseline 测量工具) ──→ C1 (few-shot 采集)
 - [ ] Baseline 测量报告 `docs/audits/<date>-execution-baseline-v1.md` 已生成，含 V1 vs V2 vs V3 parse-valid 对比表（目标 V3 ≥ 85%）和 task-success L1 数据（目标 ≥ 70%，C4 Gate 前仅记录，deferred to C4 判定）。
 - [ ] `ctest --output-on-failure` 全量零回归（ctest 不跑 golden suite，仅验证工具本身构建和基础测试通过）。
 - [ ] 文档更新：`lib/prompts/README.md` 补充 few-shot 和 golden suite 使用说明（含目录结构和 V1/V2/V3 差异说明）。
+
+
+## Status: ✅ SHIPPED (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- ADR-0074 ✅ Approved Phase 6a 2026-07-16 (12 个 Phase 6 ADR 之一). OpenSpec archive: `openspec/changes/archive/2026-08-18-from-roadmap-phase-6c-execution-baseline/`. Audit source: ADR ✅.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
