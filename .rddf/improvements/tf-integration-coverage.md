@@ -67,3 +67,11 @@
 - `tools/docs_drift_audit.py` 0 DRIFT
 - 现有依赖测试通过率: 0/49 → 49/49 维持 (本提案不删任何旧 case)
 - 失败注入 case 100% 触发 `process_jump` 或 `success=false` 路径 (grep `process_jump` 出现 ≥ 1 次)
+
+
+## Status: ✅ SHIPPED (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- Commit `1481d84` "ship: tf-integration-coverage — archive + cleanup" + Commit `2cf520f` "docs: address post-archive omissions". OpenSpec archive tracked. Audit source: ship commit + archive tracked.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
