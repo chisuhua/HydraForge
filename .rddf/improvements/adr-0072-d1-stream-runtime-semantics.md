@@ -68,3 +68,25 @@ Oracle 阶段 A 警告: 阶段 B 估时 4h 与新抽象面 + stop_token 复杂�
 - [ ] ctest 全量 211/212 PASS (1 pre-existing perf test fail 与本 change 无关)
 - [ ] `tools/adr_lint.py` 零错误
 - [ ] Oracle ac-verifier PASS
+
+## Status: ✅ SHIPPED (2026-09-04, Sprint 26 W4 阶段 B)
+
+**Ship evidence** (验证日期 2026-10-14 via dual-agent 调研 Oracle + Metis 独立交叉验证):
+- **OpenSpec archive**: `openspec/changes/archive/2026-09-04-adr-0072-d1-stream-runtime-semantics/` (4 files tracked)
+- **代码实证**:
+  - `include/agenticdsl/contract/i_stream_handle.h` — **5 虚函数** (3 consumer pull + 2 producer push/close) — `next` / `is_active` / `error` / `push` / `close`
+  - `src/common/runtime/stream_handle.{h,cpp}` — `BufferedStreamHandle` (pull) + `CallbackStreamHandle` (push+pull, RAII 析构顺序)
+  - `src/modules/executor/node_executor.h:82,108` — `set_stream_sink()` 注入点 (raw pointer, 与 set_tool_coordinator 模式一致)
+  - `src/modules/executor/node_executor.cpp:124-172,259-285` — 2 类节点 (tool_call / dsl_call) runtime 流式分支
+- **测试实证**: `tests/test_stream_runtime.cpp` — 5 类 TEST_CASE / 19 cases / **75 assertions**, 15 PASS + 4 集成测试 known-limitation
+- **Spec 实证**: `docs/specs/dsl.md:1600-1607` REQ-W4-001-B "✅ 已实现阶段 B (2026-09-04, Sprint 26 W4 阶段 B)"
+- **ADR 实施度**: 1/6 → 2/6 (D1 阶段 A+B 完整 ship)
+
+**重要修正**: 提案正文写"3 虚函数", 实际 ship 是 **5 虚函数** (Oracle 阶段 A 评审 M1 producer 侧扩展). 这是"代码有行为、提案无契约"的隐性 drift. Status 段同步纠正.
+
+**⚠️ 4 个 known-limitation (真实残余工作)**:
+- `dsl.md:1607` 记录 "15 PASS, 4 集成测试已知限制待 follow-up"
+- 不是 P0, 但属于"真流式 V2" follow-up 范围 — 已立为独立 improvement `adr-0072-d1-stream-v2-true-streaming.md` (Phase B 推进)
+- V1 切片回放 (post-hoc pseudo-streaming) **不满足**用户原始诉求 "长输出实时显示" (Metis 意图 B 隐藏需求)
+
+**Pattern 沉淀**: Pattern #10 drift 第 5 实例 (dual-agent 调研 2026-10-14). Oracle + Metis 独立识别 ship 状态 + "3→5 虚函数" 文档漂移. Status 段记录原因, 防未来 audit 误判.
