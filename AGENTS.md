@@ -1539,3 +1539,42 @@ context_ids: N/A (文档 commit, 无 ContextRequest)
 
 **验证**: `ctest --test-dir build -LE must_realllm` 242/243 PASS (1 pre-existing flaky = `test_skill_interpreter 7.S29-1`, AGENTS.md 多次记录 inherent limitation, 单独跑 PASS); `test_signal_shutdown` 9/9 PASS; `grep -rn use_direct_llm` = 0; ADR-0069 状态 `🟡 Partial` 维持。
 
+---
+
+## 2026-10-14 parser-string-template-args.md 已 ship 验证 + hygiene 修正 (ses_ec6a3b1b4ffe2Jv7AqxsZ2WAza)
+
+**触发**: 用户提问"请分析 parser-string-template-args.md 提案是否合理，是否值得继续实施"
+
+**推进路径**: 用户问"是否值得继续实施" → 本会话不直接评估"是否值得"，而是**先验真 AC ship 状态** → 4/4 AC 100% ship 发现 → 修正方向：从"立项实施"→"hygiene 修正" → 用户决策 A (按早 session 同样模式追加 Status 段) → 1 atomic commit。
+
+**✅ 提案 4 AC 100% ship** (验证日期 2026-10-14 via 本次实测):
+
+| AC | 描述 | 实证 |
+|----|------|------|
+| AC-1 | `make_tool_call` 接受 string arguments | `src/modules/parser/node_factory.cpp:172-188` (L173-175 `is_string` 分支 wrap 为 `{"input": <value>}`) |
+| AC-2 | test_e2e_real_llm ChatSession case 8/8 PASS | 实测 `test_e2e_real_llm` 10/2 PASS (DEEPSEEK_API_KEY 已设) |
+| AC-3 | regression test 覆盖 string+object 两种形式 | `tests/test_parser_template_args` 5/5 cases, 28 assertions PASS |
+| AC-4 | dsl.md §5.2 spec 更新 | `docs/specs/dsl.md:384` 明确说明 string 形式 + 引用 `fix-parser-template-args` ship |
+
+**OpenSpec archive**:
+- 主 change: `openspec/changes/archive/2026-09-30-fix-parser-template-args/` (Day-5 4-file integrity verified)
+- 父 chain: `openspec/changes/archive/2026-09-30-fix-lib-loop-args-parsing/`
+- Archive commit: `f6c903a` "chore(openspec): archive fix-parser-template-args"
+
+**Pattern 沉淀 (增量)**:
+1. **"tasks.md 50 checkboxes 10 done ≠ 未 ship" 教训** — 任何"提案是否 ship"判断必须三段式验证: (1) git log 代码 commit 验证 (2) ctest PASS 实跑 (3) 搜 spec 关键词验证。OpenSpec 内部 tasks.md 数字不代表 ship 状态。
+2. **"用户问是否值得" → "是否已做过" 优先级** — 用户问"是否合理 / 是否值得做"时, 第一步是"是否已做过"事实检查, 而非"是否容易做"难度评估。本会话因为先做事实验证, 4/4 AC ship 暴露 → 修正方向从"立项"→"hygiene 修正", 避免重复 ship。
+3. **AGENTS.md Pattern #10 drift 第 4 个实例** — 继早 session 3 个 P0 提案 (`fix-tool-registry-signal-handler-shutdown` / `fix-loop-agent-bypass` / `adr-0069-tool-coordinator-hooks`) 后, 第 4 个相同模式。完整 Pattern #10 实例清单 = 4 个 + 后续待排查的潜在 cases (`.rddf/improvements/` 33 OPEN 提案中可能有更多"已 ship 但未标"案例)。
+4. **Parser 接受 string-value arguments 是"flexible 兼容设计"案例** — L173-175 单行 `is_string` 分支 wrap 为 `{"input": <value>}` 显式契约, 与 `parse_react_decision` L1/L2 fallback `{"input", args_str}` at pdk_entry.cpp:198/219 对齐 (跨模块契约对位)。
+
+**跨 .rddf/improvements/ 状态盘点 (2026-10-14 本 session 增量)**:
+- ✅ DONE: 27 (早 session) → **+1 = 28** (本 session: parser-string-template-args)
+- 🟡 PARTIAL: 10
+- 🔴 OPEN: 33 (潜在 Pattern #10 drift 待排查)
+- ⏸ GATED: 6
+- ⛔ DESCOPED: 1
+
+**决策登记**: `.rddf/state/decisions/2026-10-14-parser-string-template-args-shipped.md` (5.8KB, 6 节, 含 AC 4/4 实证 + Pattern 沉淀 4 项)
+
+**验证**: ctest `--test-dir build -LE must_realllm` 266/266 PASS (本次跑无 flaky); `test_parser_template_args` 5/5 PASS; `test_e2e_real_llm` 10/2 PASS; `git show f6c903a` archive commit 验证。
+

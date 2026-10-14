@@ -58,4 +58,35 @@ Discovered during `2026-09-30-fix-lib-loop-args-parsing` (V2 fix ship + parser b
 
 ## Status
 
-📋 **登记但未立项**. 待 `2026-09-30-fix-lib-loop-args-parsing` ship 后, 独立 OpenSpec change 立项实施.
+📋 ~~**登记但未立项**. 待 `2026-09-30-fix-lib-loop-args-parsing` ship 后, 独立 OpenSpec change 立项实施.~~
+
+**Status: ✅ SHIPPED (2026-10-06) — 4/4 AC 全部 ship**
+
+**Ship evidence** (验证日期 2026-10-14 via 本次会话实测):
+
+| AC | 描述 | 实证 |
+|----|------|------|
+| **AC-1** | `make_tool_call` 接受 string arguments | `src/modules/parser/node_factory.cpp:172-188` (L173-175 `is_string` 分支 wrap 为 `{"input": <value>}`) |
+| **AC-2** | test_e2e_real_llm ChatSession case 8/8 PASS | 实测 `test_e2e_real_llm` 10/2 PASS (DEEPSEEK_API_KEY 已设) |
+| **AC-3** | regression test 覆盖 string+object 两种形式 | `tests/test_parser_template_args` 5/5 cases, 28 assertions PASS |
+| **AC-4** | dsl.md §5.2 spec 更新 | `docs/specs/dsl.md:384` 明确说明 string 形式 + 引用 `fix-parser-template-args` ship |
+
+**OpenSpec archive**:
+- 主 change: `openspec/changes/archive/2026-09-30-fix-parser-template-args/` (Day-5 4-file integrity verified)
+- 父 change (前序 rename): `openspec/changes/archive/2026-09-30-fix-lib-loop-args-parsing/`
+- Archive commit: `f6c903a` "chore(openspec): archive fix-parser-template-args (Day-5 4-file integrity verified)"
+
+**Code locations**:
+- `src/modules/parser/node_factory.cpp:172-188` parser `is_string` 分支 + 注释 "wrap 为 single-arg map with key `input`" (与 `parse_react_decision` L1/L2 fallback `{"input", args_str}` at pdk_entry.cpp:198/219 对齐)
+- `tests/test_parser_template_args.cpp` regression guard (5 cases)
+- `docs/specs/dsl.md:384-385` spec 明确说明 string 形式 + 历史 `args:` 修复链路
+
+**关联 ship**:
+- 父 chain: `2026-09-30-fix-lib-loop-args-parsing` (lib/loop `args:` → `arguments:` rename) → 本 ship (string-value `arguments:` 支持)
+- 关联 ADR-0068 Appendix A v2.4 ship 路径 (per AGENTS.md)
+- 后续: `2026-09-30-react-loop-final-decision-tooling` ship 闭合 react loop 流程 (per `2026-09-30-react-loop-final-decision-tooling` improvement)
+
+**Pattern 沉淀**:
+- 这是 AGENTS.md Pattern #10 hygiene drift 第 4 个实例 (前 3 个: `fix-tool-registry-signal-handler-shutdown` / `fix-loop-agent-bypass` / `adr-0069-tool-coordinator-hooks`, 2026-10-14 早 session 修复)
+- 教训: tasks.md 50 checkboxes 10 done 数字不代表 ship 状态; ship 状态以"代码 ship + 测试 PASS + spec 同步"为证据
+- 候选沉淀: Parser 接受 string-value arguments 作为"flexible 兼容设计"案例 (L173-175 单行 `is_string` 分支 wrap 为 `{"input": <value>}` 显式契约)
