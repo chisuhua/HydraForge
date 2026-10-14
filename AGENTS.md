@@ -1617,3 +1617,48 @@ context_ids: N/A (文档 commit, 无 ContextRequest)
 
 **未提交**: `openspec/changes/2026-10-09-std-expected-monadic-ops/` (其他 session 遗留, 不在本会话范围)
 
+---
+
+## 2026-10-14 P0 OPEN 4 提案 Dual-Agent 调研 (ses_ec5f47664ffesw8JNHgAwvAe1C)
+
+**触发**: 用户决策 "oracle + metis 调研P0 4个提案，给出后续推进建议"
+
+**推进路径**: 启动 Oracle + Metis subagent 并行审查 4 P0 提案 (per AGENTS.md Pattern #8 dual-agent review) → 独立交叉验证 4 项强命中 + 4 项独占发现 → 用户决策 Phase A 全 hygiene 修正 + Phase B 全 4 新立 + Phase C 启动 rdd-arch + 报告入 git-track → 启动 8+ commit sequence.
+
+**🎯 头条发现 (Pattern #10 drift 连续第 5-7 实例)**: Oracle + Metis 独立交叉验证 4 提案中 **3 已 ship (2026-09-03/04)**, 仅 1 真 OPEN:
+
+| 提案 | 实际 ship 状态 | 决策 |
+|------|--------------|------|
+| adr-0072-d1-stream-runtime-semantics | ✅ 已 ship 2026-09-04 (i_stream_handle.h 5 虚函数) | Phase A hygiene 修正 |
+| adr-0072-d1-stream-true-parser | ✅ 已 ship 2026-09-03 (commit c61a6d0) | Phase A hygiene 修正 |
+| adr-0072-d4-backend-parser | ✅ 已 ship 2026-09-03 (node_factory.cpp:37-47) | Phase A + ADR-0072:13 翻牌 |
+| harness-mutation-commit-real-llm | 🔴 唯一真 OPEN (2-3d, Medium) | Phase C rdd-arch |
+
+**🔄 Pattern #8 强交叉命中 (4 项)**:
+- A: 1/2/3 已 ship (Oracle 代码+archive+spec / Metis 实施+测试+archive, 100% 收敛)
+- B: 1 V1 切片回放 ≠ 真流式 (4 known-limitation + 意图 B "长输出实时显示"未满足)
+- C: 4 Case 4 drop_ratio 物理不可行 (1-2 contexts 0/50/100% + 单 context 二值)
+- D: 3 闭环缺口 (ADR-0072:13 stale + Coordinator/Hook 读取测试缺失)
+
+**4 项独占发现** (Metis 2 + Oracle 2):
+- **[E] env_vars secrets redaction 缺口** (Metis) — ADR-0068 §3.1 协议未覆盖 env_vars, 未来 event_log 写入会泄漏 secrets → B2 新立
+- **[F] kStreamChunkSize=64 UTF-8 切片 bug** (Metis) — CJK 文本多字节字符截断 → B3 新立
+- **[G] sink pointer RAII 生命周期 UAF** (Oracle) — NodeExecutor 持 raw pointer, sink owner 未明 → B4 新立
+- **[H] hermetic HOME 强制** (Oracle) — per 2026-09-21 C1 genome.key 教训, 提案 4 实施前置
+
+**Pattern 沉淀 (新增 2 项)**:
+1. **Pattern #8 实证 ROI**: 15 min dual-agent review 节省 ~2h 实施后调试 (4 强命中 + 4 独占发现)
+2. **Pattern #10 drift 连续性**: 累计 7 实例, 根因 = .rddf/improvements/ 是 5-segment 草稿文档而非 ship 状态数据库. **架构级 fix 候选**: `tools/audit-rddf-improvements.py` 在每次 commit 后自动跑 5 维静态 ship 判定
+
+**3 阶段推进路线**:
+- **Phase A** (≈35 min, 3 commits): 3 hygiene 修正 (A1 stream-true-parser + A2 backend-parser 含 ADR-0072:13 + A3 stream-runtime-semantics 含"3→5 虚函数"修正)
+- **Phase B** (≈20 min, 4 文件): 4 新立 improvement (B1 真流式 V2 / B2 env_vars redaction / B3 UTF-8 切片 / B4 sink UAF)
+- **Phase C** (≈30 min setup + 2-3d 实施): 启动 rdd-arch for 提案 4, 前置必须先修 3 设计缺陷 (Case 1/3 断言 redesign + Case 3 gate denied 确定性构造 + Case 4 drop_ratio descope) + 配 Recording Provider + hermetic HOME + must_realllm label
+
+**关联 subagent sessions**:
+- Oracle: `ses_ec5f38a92ffeLuZb4aIXmev0j3` (架构可行性 + 物理风险)
+- Metis: `ses_ec5f36ffaffeT3KEsoFqAUPq43` (隐藏意图 + AI 失败模式)
+
+**Audit 报告**: `.rddf/audits/2026-10-14-p0-proposals-dual-agent-review.md` (8 节详尽分析, 含工时估算 + 推进路径)
+**决策登记**: `.rddf/state/decisions/2026-10-14-p0-proposals-dual-agent-review.md` (4 项用户决策 + 实施路径)
+
