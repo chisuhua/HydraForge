@@ -24,3 +24,11 @@
 ## 验收标准
 - ctest -R test_interaction_bus_glob 全绿
 - ctest 全量零回归
+
+
+## Status: ✅ SHIPPED (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- Commit `4d1cee6` "ship: adr-0019-subscribe-glob — glob subscribe 验证完成". OpenSpec archive: `openspec/changes/archive/2026-07-29-adr-0019-subscribe-glob/` (untracked by .gitignore). Audit source: 5-维静态 ship 判定法 (commit message grep).
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
