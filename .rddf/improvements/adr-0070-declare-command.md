@@ -31,3 +31,11 @@
 - 1 个真实 plugin 命令落地（`/compact`）。
 - ctest 全量零回归；`python3 tools/adr_lint.py` 0 错误；`python3 tools/docs_drift_audit.py` 0 DRIFT。
 - ADR-0070 状态可转 🟡 Partial（转 Approved 条件见其 §决策 7）。
+
+
+## Status: 🟡 PARTIAL (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- ADR-0070 🟡 Partial 2026-08-04 (DECLARE_COMMAND 宏家族 + ICommandRegistry + /compact 真实命令 已 ship). 残余: DECLARE_SHORTCUT 实触发 / /tree TUI / command.invoked 事件 / CLI flag 重写. Audit source: ADR 🟡.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
