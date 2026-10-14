@@ -32,3 +32,15 @@
 - `test_loop_agent_plugin` 全绿（零改动）+ 新增 3 个真实发射测试通过。
 - ctest 全量零回归；`python3 tools/docs_drift_audit.py` 0 DRIFT。
 - ADR-0068 附录 A 中 3 个主题状态 👻 → ✅（随 adr-0068-event-emission-contract 统一更新亦可）。
+
+## Status: ✅ SHIPPED (2026-08-03)
+
+**Ship evidence** (验证日期 2026-10-14 via rdd-arch Phase 1 setup):
+- **OpenSpec archive**: `openspec/changes/archive/2026-08-03-fix-loop-agent-bypass/` (4-file integrity per Day-5 lesson)
+- **Code ship commit**: `a1ef463` "chore: ship fix-loop-agent-bypass (Wave 1 P0)"
+- **Archive commit**: `5ab2174` "archive(fix-loop-agent-bypass): archive completed"
+- **Validation**: `grep -rn "use_direct_llm" examples/` → 0 (短路分支已删除)
+- **loop_agent emission**: `loop.turn.start/end/decision` 3 主题真实发射载体上线 (per ADR-0068 §决策 3)
+- **下游解锁**: 4 个借鉴路径 (streaming/compaction/steering/工具并行) 不再被 X4 阻塞
+
+**Pattern 沉淀**: 标记为 AGENTS.md Pattern 候选 —"设计与代码脱节 (X4 hidden defect) 修复 — 双轨实现必须收敛到契约指定路径"模式。

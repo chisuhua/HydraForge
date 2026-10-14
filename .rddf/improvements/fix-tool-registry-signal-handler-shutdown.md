@@ -33,3 +33,18 @@
 - SIGINT 子进程测试 PASS（无 SIGSEGV，干净退出）。
 - ctest 全量零回归（pre-existing 失败保持不变）。
 - ASan 全量 0 新增 error。
+
+## Status: ✅ SHIPPED (2026-08-08)
+
+**Ship evidence** (验证日期 2026-10-14 via rdd-arch Phase 1 setup):
+- **OpenSpec archive**: `openspec/changes/archive/2026-08-08-fix-tool-registry-signal-handler-shutdown/` (4-file integrity: proposal.md + design.md + tasks.md + specs/)
+- **Code commit**: `29a7a06` "fix(pdk-chat-demo): route SIGINT/SIGTERM via atomic flag to prevent SIGSEGV"
+- **Archive commit**: `4a0c994` "archive: move fix-tool-registry-signal-handler-shutdown to archive/"
+- **Test result**: `build/examples/pdk_chat_demo/tests/test_signal_shutdown` 9/9 assertions PASS (2 test cases) — runtime 0.46s
+- **Code locations**:
+  - `examples/pdk_chat_demo/main.cpp:70-72` atomic flag `g_shutdown_requested`
+  - `examples/pdk_chat_demo/main.cpp:80-88` signal_handler 仅 set flag,禁止 std::exit()/unload_all_plugins()
+  - `examples/pdk_chat_demo/main.cpp:564-565` signal 注册 (SIGINT + SIGTERM)
+  - `examples/pdk_chat_demo/tests/test_signal_shutdown.cpp` 子进程回归测试
+
+**Pattern 沉淀**: 标记为 AGENTS.md Pattern 候选 —"signal handler async-signal-safe + atomic flag"模式。

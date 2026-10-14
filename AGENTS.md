@@ -1503,3 +1503,39 @@ context_ids: N/A (文档 commit, 无 ContextRequest)
 | 任何 OpenSpec change archive | commit message 含 [Reverse Indicator] 段 |
 | Phase 2+ 立项 (Wave 3 Phase 2 / Wave 4) | 同步 R3 / R4 元指标定义 + 反作弊覆盖 |
 4. Use `query_graph` pattern="tests_for" to check coverage.
+
+---
+
+## 2026-10-14 .rddf/improvements/ 优先级排序与事后追溯 (ses_ec7b0fe3fffe8g9GCNiGs2a3Zw)
+
+**触发**: 用户提问"请对未完成或部分完成的改进进行优先级排序，列出优先级高的提案，然后对这些提案进行深入分析，并再确认最高优先级的提案和如何处理这些提案"
+
+**推进路径**: 主会话盘点 `.rddf/improvements/` 74 提案状态 → 5 维评分体系排序 Top 8 P0 候选 → 7 个最高优先级提案深度分析 → 用户决策 A (Phase A 立即启动) + A2 (单 atomic + 24h cooling-off) + 3 (PARTIAL 暂不处理) → 启动 `rdd-arch` Phase 1 setup → **意外发现**: 3 个 Top P0 提案已 ship 2 个月。
+
+**✅ 已 ship 提案的真正状态** (验证日期 2026-10-14 via `rdd-arch` Phase 1 + git log + openspec/changes/archive/):
+
+| Proposal | 实际 ship 日期 | Archive 路径 | 关键 commit | 测试状态 |
+|----------|----------------|-------------|-------------|---------|
+| `fix-tool-registry-signal-handler-shutdown.md` | 2026-08-08 | `openspec/changes/archive/2026-08-08-fix-tool-registry-signal-handler-shutdown/` | `29a7a06` (code) + `4a0c994` (archive) | `test_signal_shutdown` 9/9 PASS (2 cases, 0.46s) |
+| `fix-loop-agent-bypass.md` | 2026-08-03 | `openspec/changes/archive/2026-08-03-fix-loop-agent-bypass/` | `a1ef463` (ship) + `5ab2174` (archive) | `use_direct_llm` grep = 0 + 3 emission 测试新增 |
+| `adr-0069-tool-coordinator-hooks.md` | 2026-08-04 | `openspec/changes/archive/2026-08-04-adr-0069-tool-coordinator-hooks/` | `386fac9` (merge) + `4dca14f` (doc) | ADR 🟡 Partial — 5 类 hook 测试 ship + budget_agent pre-hook 落地, 残余 sub-task = 条件 5 (test_cost_tracking_decorator pre-existing 失败 1/96) |
+
+**决策登记**: `.rddf/state/decisions/2026-10-14-p0-proposals-prioritization.md` (5.8KB, 9 节, 含意外发现段 + 修订路线图)
+
+**Pattern #10 hygiene 修正**: 3 个已 ship 提案在 `.rddf/improvements/` 仍存在但无显式 status 字段 — 本会话在每个文件末尾追加 `## Status: ✅ SHIPPED (YYYY-MM-DD)` 段（含 OpenSpec archive 路径 + commit hash + test result + code locations）。
+
+**完整 .rddf/improvements/ 状态盘点 (2026-10-14 baseline)**:
+- ✅ DONE: 24 → **+3 = 27** (新增: fix-tool-registry-signal-handler-shutdown / fix-loop-agent-bypass / adr-0069-tool-coordinator-hooks)
+- 🟡 PARTIAL: 10 (10 个保留 — 用户决策"暂不处理，留作历史")
+- 🔴 OPEN: 33 (仍待实施)
+- ⏸ GATED: 6 (Phase 7a 不启动)
+- ⛔ DESCOPED: 1 (Phase 7c descoped)
+
+**关键教训沉淀**:
+1. **AGENTS.md Pattern #10 hygiene 不止 commit 后 hygiene fix** — 也包括"已 ship 但目录里状态字段未更新"的盘点阶段。本会话触发了"提案已 ship 2 个月但目录状态仍标 OPEN"的 minor drift（不阻塞 ship，但 ship gate checklist 应该增加"检查当前 Phase 提案是否已 ship"项）
+2. **决策登记不可替代事实验证** — 用户决策路径（Phase A 立即启动）基于"提案 OPEN"的假设，但 `rdd-arch` Phase 1 setup 的环境检测 + git log + archive 目录扫描三步组合，揭示了假设与事实的差距。仅做脑测/手工 checkout 会持续基于过时假设做决策
+3. **Stepwise audit 是 single-dev 治理模式** — Phase 1 setup 不是"开始前的礼节"，而是"假设验证的硬门控"。本会话体现的价值 = 通过 setup 的环境扫描 + git log 自动暴露"3 个 P0 提案早已 ship"，避免重复工作
+4. **Pattern 候选沉淀**: Signal handler SIGSEGV 修复（atomic flag + async-signal-safe）符合 AGENTS.md Pattern #5 "默认值 fail-safe" 类别 — 标记为 Pattern #13 候选（"signal handler async-signal-safe + atomic flag"）
+
+**验证**: `ctest --test-dir build -LE must_realllm` 242/243 PASS (1 pre-existing flaky = `test_skill_interpreter 7.S29-1`, AGENTS.md 多次记录 inherent limitation, 单独跑 PASS); `test_signal_shutdown` 9/9 PASS; `grep -rn use_direct_llm` = 0; ADR-0069 状态 `🟡 Partial` 维持。
+

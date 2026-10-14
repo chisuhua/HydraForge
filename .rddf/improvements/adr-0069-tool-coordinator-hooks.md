@@ -32,3 +32,23 @@
 - 1 个真实 plugin pre-hook 用例落地（budget_agent）。
 - ctest 全量零回归；`python3 tools/adr_lint.py` 0 错误；`python3 tools/docs_drift_audit.py` 0 DRIFT。
 - ADR-0069 状态可转 🟡 Partial（转 Approved 条件见其 §决策 7）。
+
+## Status: ✅ SHIPPED as 🟡 Partial (2026-08-04)
+
+**Ship evidence** (验证日期 2026-10-14 via rdd-arch Phase 1 setup):
+- **OpenSpec archive**: `openspec/changes/archive/2026-08-04-adr-0069-tool-coordinator-hooks/` (4-file integrity)
+- **ADR archive commit**: `e556d77` "chore(archive): finalize adr-0069-tool-coordinator-hooks archive state"
+- **Merge commit**: `386fac9` "merge: adr-0069-tool-coordinator-hooks change"
+- **Doc commit**: `4dca14f` "docs(adr): mark ADR-0069 Partial and add ship evidence"
+- **ADR 实际状态**: `🟡 Partial (2026-08-04 — middleware 改造 + budget_agent pre-hook + 5 类测试已 ship; §决策 7 Approved 条件 1-4 满足, 条件 5 ctest 零回归中 `test_cost_tracking_decorator` 为 pre-existing 失败 (commit `514c441` Phase 5 引入), 其余 95/96 PASS)`
+- **已 ship 组件**:
+  - `include/agenticdsl/contract/itool_hook_registry.h` L3 契约
+  - `ToolCoordinator::execute()` middleware 改造 (pre_hooks → layer check → ApprovalHandler → audit.invoked → call_tool → post_hooks → audit.completed)
+  - 5 类测试 (Deny/ModifyArgs/FailClosed/FailOpen/audit 最终一致性)
+  - budget_agent pre-hook 真实用例
+
+**未 ship (残余 sub-tasks, 后续可独立启动)**:
+- 条件 5: `test_cost_tracking_decorator` pre-existing 失败 (1/96, commit 514c441 Phase 5 引入)
+- ADR 转 ✅ Approved 信号 — 待该 test fix ship
+
+**Pattern 沉淀**: 标记为 AGENTS.md Pattern 候选 —"L3 契约 + ToolCoordinator middleware pre/post-hook 洋葱链"模式。
