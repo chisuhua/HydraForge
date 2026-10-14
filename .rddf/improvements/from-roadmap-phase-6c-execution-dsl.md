@@ -80,3 +80,11 @@ D2/D3 在 ADR-0074 baseline DSL 之上叠加（D5 在 D2/D3 触发后强制 ship
 - [ ] `ctest --output-on-failure` 全量零回归（147/147 baseline 不变；新增 `test_dsl_extensions` 测试 PASS）。
 - [ ] `docs/specs/dsl.md` §6 新章节文档已更新（$var / declarative style / 共存期迁移 / lint disable 注释规范）。
 - [ ] 元数据：`docs/active-status.md` §一 Phase 6c 状态行同步更新 C5/C6/C7 ship 状态（P0* conditional 标注保留）。
+
+
+## Status: 🟡 PARTIAL (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- ADR-0074 🟡 Partial 2026-09-02 (翻牌依据同 adr-0072-flip-to-partial). D2 `$var` 引用 + declarative 语法糖未 ship. Audit source: ADR 🟡.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
