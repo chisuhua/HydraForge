@@ -48,3 +48,11 @@ ADR 状态与实际代码不一致 → 治理元数据失真 → capability-appl
 - [ ] docs/adr-management/relationships.md 重新生成后 git diff 有变化
 - [ ] zero 代码改动（纯 governance 元数据）
 - [ ] Oracle review 5/5 PASS
+
+
+## Status: 🟡 PARTIAL (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- ADR-0042 🟡 Partial 2026-09-03 (C16 部分决策已 ship: Decorator 链 / Dual Consumer). 5 项决策中部分 ship, 残余 sub-tasks. Audit source: ADR 🟡.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
