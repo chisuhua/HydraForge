@@ -82,3 +82,11 @@
 - companion archived 1022d49 DECISION D 同款 PLACEHOLDERs:
   - `.rddf/improvements/fix-generate-subgraph-static-next.md` (GenerateSubgraphNode static-next 漂移)
   - `.rddf/improvements/intent-classification-router.md` (intent classification router 漂移)
+
+
+## Status: ⛔ CANCELLED (placeholder-archived 2026-09-25) (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- Status 段: placeholder-archived 2026-09-25. P3 cosmetic docs drift 性质. 整理/重写. Audit source: 提案 self-declared.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
