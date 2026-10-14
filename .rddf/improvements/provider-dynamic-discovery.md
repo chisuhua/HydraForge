@@ -28,3 +28,11 @@
 ## 验收标准
 - 3 个新工具注册与调用测试通过（含并发注册）。
 - 既有 llm_config.json 加载路径零回归；ctest 全量零回归。
+
+
+## Status: ✅ SHIPPED (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- Commit `c8b1215` "chore(archive): archive 2 completed changes". OpenSpec archive tracked. Audit source: archive tracked (同 cli-args-cxxopts).
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
