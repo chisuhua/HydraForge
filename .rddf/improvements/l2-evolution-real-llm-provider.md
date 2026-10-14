@@ -40,3 +40,11 @@
 - R8.1 红线触发 (>5% exit-non-zero) — 见 `l2-release-metrics-real-llm-drop-ratio.md`
 - 真实端到端 9 段闭环 — 见 `self-evolution-9-stage-real-llm-end-to-end.md`
 - Harness mutation commit 真实 LLM — 见 `harness-mutation-commit-real-llm.md`
+
+
+## Status: ✅ SHIPPED (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- Commit `3ebb6a9` "chore(openspec): archive l2-evolution-real-llm-provider (Day-5 4-file integrity verified)". OpenSpec archive tracked. Oracle SHIP-with-fixes `ses_eebfb88b`. Audit source: archive tracked.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
