@@ -77,3 +77,11 @@ C4 `harness-rsi-pilot` ship 后, Oracle 独立审查 (`bg_afa84d4d`) 确认 3 �
 **总估时**: 1-2 天 (per plan §2 G1)
 **推荐路线**: complex (per `.rddf/state/.planner-handoff.json::recommended_route=complex` + G1 cross-module impact)
 **Execution mode**: worktree (per user 决策 + BREAKING API change + gate-mutex 引入 + cross-process 不确定性)
+
+
+## Status: ✅ SHIPPED (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- Commit `7a31d12` "chore(openspec): archive harness-rsi-remove-governance-2026-09-22". OpenSpec archive tracked. G1 SHIP-with-fixes via Oracle `bg_8237a316`. Audit source: archive tracked.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
