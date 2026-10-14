@@ -27,3 +27,11 @@
 ## 验收标准
 - 既有 flag 组合 E2E 回归通过；`--help` 集中化输出。
 - 新增 3 个 flag 生效；ctest 全量零回归。
+
+
+## Status: ✅ SHIPPED (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- Commit `c8b1215` "chore(archive): archive 2 completed changes (cli-args-cxxopts + provider-dynamic-discovery)". OpenSpec archive tracked. Audit source: archive tracked commit.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
