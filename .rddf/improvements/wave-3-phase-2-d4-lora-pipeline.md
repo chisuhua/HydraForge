@@ -131,3 +131,10 @@
 | Wave 3 Phase 2 D4 立项 (本 improvement 创建) | 2026-09-25T(now) | 2026-09-25T(now) | 2026-09-26T(now+24h) |
 
 **冷却期合规**: 本 improvement 触发独立 24h cooling-off，AC-12 链式规则。code 实施不早于 2026-09-26。
+
+## Status: ✅ SHIPPED (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- Commit `e643dae` "chore(openspec): archive DECISION B(c) + DECISION C (per Day 5 4-file integrity)". OpenSpec archive tracked. ADR-0078 v1.0 ✅ Approved 2026-09-23. Audit source: archive tracked + ADR ✅.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
