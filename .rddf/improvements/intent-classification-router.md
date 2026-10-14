@@ -77,3 +77,10 @@
 - Roadmap 2026-09-16: `docs/roadmap/2026-09-16-pdk-chat-demo-evolution-roadmap.md` §三 P1 (stale)
 - ADR-0071 §D5 (LLM-native DSL), ADR-0074 (Prompt + Evidence Gate)
 - Loop Agent 现状: `pdk/loop_agent/` (已 ship, 3 loop types)
+
+## Status: ⛔ CANCELLED (PLACEHOLDER 2026-09-25) (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- Commit `ed8e956` "chore(openspec): append CANCELLED notes". Wave 2 语境已变, L2 系列吸收原引用. Audit source: archive CANCELLED notes.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
