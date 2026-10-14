@@ -58,3 +58,10 @@
 ## 审计依据
 
 完整审计见 `docs/audits/2026-08-08-chat-async-io-steering-pre-approval.md`（含 stop_token 8 处断开点 + SIGSEGV 根因 + 4 phase 拆分依据）。
+
+## Status: ⛔ CANCELLED (DECOMPOSED 2026-08-08) (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- Status 段: ⛔ **DECOMPOSED 2026-08-08** — 拆 4 子 change (Phase 0/A/B/C) 全 ship + archived. 原始改进提案分解已 ship, 不可直接 ship. Audit source: 提案 self-declared.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
