@@ -45,3 +45,19 @@ ADR-0075 EnvBackend 已 ship 但 parser 未接线 — `backend:` 字段在 DSL �
 - [ ] docs/specs/dsl.md §6 新章节存在
 - [ ] ADR-0072 D4 实施度从 1/6 → 2/6
 - [ ] ctest 全量无回归
+
+## Status: ✅ SHIPPED (2026-09-03)
+
+**Ship evidence** (验证日期 2026-10-14 via dual-agent 调研 Oracle + Metis 独立交叉验证):
+- **OpenSpec archive**: `openspec/changes/archive/2026-09-03-adr-0072-d4-backend-parser/` (4 files tracked)
+- **代码实证**: `src/modules/parser/node_factory.cpp:37-47` (backend 提取 + `env:`→`env_vars:` 别名 + 并存时 `env_vars:` 优先)
+- **测试实证**: `tests/test_dsl_extensions.cpp:410-509` W5 测试 (backend/docker + backward-compat)
+- **Spec 实证**: `docs/specs/dsl.md:1548-1553` REQ-W5-001 (含未知 backend 容错语义)
+- **ADR 翻牌**: `docs/adr/adr-0072-dsl-node-extensions.md:13` D4 行 ❌ 未实施 → ✅ 已 ship (2026-09-03) — **同步翻牌**, 否则 drift 只修一半
+- **ADR 维持 🟡 Partial**: D1/D4 ship 仅达到 §3.A 必补门槛, 仍需 Evidence Gate 真实 3 模型重测 (Sprint 25+ carry-over)
+
+**关键细节** (Metis 独立识别):
+- 提案验收只写"`env:` {K:V} 节点 metadata['env_vars'] == {...}", 没提**并存场景优先级**. 实施者已 ship 额外加 "并存时 `env_vars:` 胜出" 安全规则 (line 45-47). 这是"代码有行为、提案无契约"的隐性 drift, 文档已同步
+- **隐藏缺口 (Metis 意图 D)**: env_vars secrets redaction 协议未覆盖 (ADR-0068 §3.1 不含 env_vars 场景). 已立为独立 improvement `adr-0072-d4-env-vars-redaction.md` (Phase B 推进)
+
+**Pattern 沉淀**: Pattern #10 drift 第 7 实例 (dual-agent 调研). ADR-0072:13 状态行 2026-09-04 阶段 B ship 时漏翻, dual-agent 调研 (2026-10-14) 才识别. Status 段记录原因, 防未来同类 partial-sync 漏掉.

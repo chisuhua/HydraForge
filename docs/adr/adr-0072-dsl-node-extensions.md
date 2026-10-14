@@ -10,7 +10,7 @@
 | **D1** | `stream: true` 扩展到所有 tool_call/dsl_call (shell_exec 留 W5) | ✅ **阶段 A + 阶段 B ship** | 阶段 A (2026-09-03 commit `c61a6d0`): parser 字段透传. 阶段 B (2026-09-04): IStreamHandle L1 契约层 + BufferedStreamHandle/CallbackStreamHandle 参考实现 + NodeExecutor `set_stream_sink()` 注入点 + 2 类节点 (tool_call/dsl_call) V1 切片回放. shell_exec NodeType 不存在 (per `node.h:22-34` NodeType 枚举), W5 parser 提案交付 |
 | **D2** | `$var` 替代 `{{ }}` | ⏸ N/A | 触发条件 parse-valid < 85%；[2026-09-02 Evidence Gate 决议 = Conditional](../../audits/2026-09-02-evidence-gate-v1.md) (mock 88.24% ∈ [85,90)) → 未触发 |
 | **D3** | `declarative style` (`exec:` 语法糖) | ✅ **已 ship** | `src/modules/parser/declarative_style.{h,cpp}` (C6: ADR-0072 D3 标注) + `markdown_parser.cpp:164,198` 集成钩子 + `tests/test_dsl_extensions.cpp` |
-| **D4** | `backend:` 字段 | ❌ 未实施 | parser 无 `backend:` 字段证据；ADR-0075 D4 backend_policy.h 已 ship 但 DSL 解析器未对接 |
+| **D4** | `backend:` 字段 | ✅ **已 ship (2026-09-03)** | `src/modules/parser/node_factory.cpp:37-47` (backend 提取 + `env:`→`env_vars:` 别名 + 并存时 `env_vars:` 优先) + `tests/test_dsl_extensions.cpp:410-509` W5 测试 (backend/docker + backward-compat) + `docs/specs/dsl.md:1548-1553` REQ-W5-001. ADR-0075 D4 backend_policy.h 已 ship + DSL 解析器对接闭环. OpenSpec archive: `2026-09-03-adr-0072-d4-backend-parser/`. 翻牌依据: dual-agent 调研 (2026-10-14) 独立验证. **ADR 维持 🟡 Partial** (D1/D4 ship 仅达到 §3.A 必补门槛, 仍需 Evidence Gate 真实 3 模型重测) |
 | **D5** | 双语法共存期基础设施 | ✅ **已 ship (D3 arm)** | D3 arm (`exec: ↔ type: tool_call`) 共存基础设施已 ship（含 `dual_syntax_lint.cpp` C7 + `test_dsl_extensions.cpp` backward compat）；D2 arm（`$var ↔ {{}}`）未触发 N/A（等真实 3 模型 baseline FAIL）|
 | **D6** | `try/catch/finally` 节点族 | ⛔ OFF | ADR-0071 §3.C "默认不做"；不计入翻牌范围 |
 
