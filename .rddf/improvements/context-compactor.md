@@ -37,3 +37,11 @@
 - `context.compact.before/after` 真实发射测试通过（字段含 tokens_before/tokens_after）。
 - ADR-0007 状态可从 🟡 Partial 提升 ✅ Approved（impl-scope 审计同步）。
 - ctest 全量零回归。
+
+
+## Status: ✅ SHIPPED (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- ADR-0007 ✅ Approved (Sprint 22 context-compactor ship 2026-08-13). OpenSpec archive: `openspec/changes/archive/2026-08-13-context-compactor/`. Audit source: ADR ✅.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
