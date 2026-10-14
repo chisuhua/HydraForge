@@ -70,3 +70,10 @@
 - F1 主 fix: `openspec/changes/archive/2026-09-18-fix-react-decide-empty-response/`
 - AGENTS.md Pattern #1 step 4 — 系统性记录同类潜伏站点
 - ADR-0071 §D5 (LLM-native DSL), ADR-0072 §D3 (DSL node extensions)
+
+## Status: ⛔ CANCELLED (PLACEHOLDER 2026-09-25) (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- Commit `ed8e956` "chore(openspec): append CANCELLED notes to archived PLACEHOLDER proposals". 8 天 PLACEHOLDER 未推进, F1 修复已 ship. Audit source: archive CANCELLED notes.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
