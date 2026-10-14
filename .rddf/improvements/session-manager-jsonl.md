@@ -31,3 +31,11 @@
 - 旧格式迁移等价性测试通过；4 个生命周期事件真实发射测试通过。
 - `pdk/session_agent/` 不再包含 chat_session 内联实现的复制代码。
 - ctest 全量零回归；`python3 tools/docs_drift_audit.py` 0 DRIFT。
+
+
+## Status: ✅ SHIPPED (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- ADR-0033 ✅ Approved 2026-07-02 (Sprint 15 C5 ship). OpenSpec archive: `openspec/changes/archive/2026-08-04-session-manager-jsonl/`. Audit source: ADR ✅.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
