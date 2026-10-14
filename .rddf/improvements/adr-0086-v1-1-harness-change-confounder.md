@@ -95,3 +95,10 @@ C3 spec 引用 `ConfounderKind::HarnessChange` 类型 + `judge_data_freshness()`
 - [ ] **tools/adr_lint.py + tools/docs_drift_audit.py**：0 errors + 0 DRIFT
 - [ ] **Archive**：openspec archive 移至 `archive/2026-09-20-adr-0086-v1-1-harness-change-confounder/` + `git ls-files` 验证 4 文件完整（Day-5 lesson）
 - [ ] **C3 通知**：填 C3 proposal/tasks 引用 v1.1 决策 4 + 决策 9 + GenomeVersion 复用本文件
+
+## Status: ✅ SHIPPED (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- ADR-0086 v1.1 ✅ Approved 2026-09-20 (dual-agent review 通过 + 10 tests PASS). OpenSpec archive: `openspec/changes/archive/2026-09-20-2026-09-20-adr-0086-v1-1-harness-change-confounder/`. Audit source: ADR ✅.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
