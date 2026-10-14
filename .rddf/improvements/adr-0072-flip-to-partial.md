@@ -92,3 +92,11 @@ ADR-0072 翻牌是 Phase 6c 收官后的治理异常——"实施先于翻牌"�
 - [ ] `proposal-suggestions.md` §3.4 标记本次治理补建完成
 - [ ] Oracle review 5/5 PASS（治理证据链 + spec delta + cross-file 一致性）
 - [ ] zero 代码改动（git diff 仅含新增 .md/.json 文件 + proposal-suggestions 标记）
+
+
+## Status: 🟡 PARTIAL (2026-10-14 audit verification)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- ADR-0072 🟡 Partial 2026-09-02 (翻牌依据: D3 `declarative style` + D5 `双语法共存` 部分 ship). 残余 sub-tasks. Audit source: ADR 🟡.
+- **审计来源**: 主会话 5 维静态 ship 判定法 (提案 self-declared > archive tracked > commit message > ADR status > fallback)
+- **Pattern 沉淀**: 30 个 Pattern #10 drift 案例库之一, 详见 `.rddf/audits/2026-10-14-rddf-improvements-audit.md`
