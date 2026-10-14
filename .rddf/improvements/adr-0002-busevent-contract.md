@@ -25,3 +25,11 @@
 ## 验收标准
 - ctest 全量零回归
 - nm -C | grep emit.*BusEvent 确认 ABI
+
+## Status: ✅ SHIPPED (2026-07-29)
+
+**Ship evidence** (验证日期 2026-10-14 via .rddf/improvements/ 全面审计):
+- **Commit**: `77ef1dd` "ship: adr-0002-busevent-contract — BusEvent 公开契约验证完成"
+- **OpenSpec archive**: `openspec/changes/archive/2026-07-29-adr-0002-busevent-contract/` (5 files, untracked by .gitignore 但目录存在)
+- **ADR 关联**: `docs/adr/adr-0002-eventbus-bounded-queue.md` (BusEvent 公开契约)
+- **审计来源**: 主会话 5 维静态 ship 判定法 (commit message grep)
