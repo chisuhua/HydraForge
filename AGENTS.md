@@ -1578,3 +1578,42 @@ context_ids: N/A (文档 commit, 无 ContextRequest)
 
 **验证**: ctest `--test-dir build -LE must_realllm` 266/266 PASS (本次跑无 flaky); `test_parser_template_args` 5/5 PASS; `test_e2e_real_llm` 10/2 PASS; `git show f6c903a` archive commit 验证。
 
+---
+
+## 2026-10-14 .rddf/improvements/ 全面审计 (ses_ec6a3b1b4ffe2Jv7AqxsZ2WAza)
+
+**触发**: 用户决策 "继续一一排查 33 OPEN 提案"（后扩到 51 个未标 SHIPPED 提案）
+
+**推进路径**: 主会话手工 5 维静态 ship 判定法 (提案 self-declared → archive tracked → commit message → ADR status → fallback) → 51 提案全量排查 → 发现 29 个 hygiene drift (20 SHIPPED + 5 PARTIAL + 4 CANCELLED) → 用户决策 1 commit per proposal (29 commits) + 全 deliverables + 主会话手工 → 启动 30 个 commit sequence.
+
+**✅ .rddf/improvements/ 完整状态分布 (74 提案)**:
+
+| 状态 | 数量 | 占比 | 备注 |
+|------|------|------|------|
+| ✅ SHIPPED (本审计新发现) | 20 | 27.0% | adr-0002/0019/0037/0068/0086, cli-args-cxxopts, consolidate-loop-phases, context-compactor, from-roadmap-6c-{evidence-gate,execution-baseline,validation-refinements}, harness-rsi-remove-governance, l2-evolution-real-llm-provider, provider-dynamic-discovery, session-manager-jsonl, tf-integration-coverage, wave-3-phase-2-d4-lora-pipeline, fix-generate-subgraph-static-next (实际 CANCELLED), intent-classification-router (实际 CANCELLED) |
+| ✅ SHIPPED (早 session 9b5df59/2c95fd4) | 6 | 8.1% | fix-tool-registry-signal-handler-shutdown / fix-loop-agent-bypass / adr-0069 / parser-string-template-args / react-loop-final-decision-tooling |
+| 🟡 PARTIAL (本审计新发现) | 5 | 6.8% | adr-0042-state-alignment / adr-0070-declare-command / adr-0072-flip-to-partial / adr-0073-partial-flip / from-roadmap-phase-6c-execution-dsl |
+| 🟡 PARTIAL (早 session) | 1 | 1.4% | adr-0069 (合并入 SHIPPED) |
+| ⛔ CANCELLED/DECOMPOSED | 4 | 5.4% | chat-async-io-steering (DECOMPOSED 2026-08-08) / fix-flatten-layers-comment-drift / fix-generate-subgraph-static-next / intent-classification-router |
+| 🔴 OPEN 待实施 | 26 | 35.1% | 真正待 ship (P0/P1/P2/🟠/🟢/Phase 6b 各种) |
+| ⏸ GATED (Phase 7a 不启动) | 6 | 8.1% | from-roadmap-phase-7-control-{client,prompts,resources,stdio,token,tools} |
+| ⛔ DESCOPED (Phase 7c) | 1 | 1.4% | from-roadmap-phase-7-control-http-sse |
+
+**📋 完整 ship 判定证据** (per `.rddf/audits/2026-10-14-rddf-improvements-audit.md`):
+- 20 SHIPPED: 5 维证据全命中 (提案 self-declared / archive tracked / commit message "ship:" / ADR ✅ Approved)
+- 5 PARTIAL: ADR 🟡 Partial + 残余 sub-tasks
+- 4 CANCELLED: 提案 self-declared + archive "CANCELLED notes" + 上下文语境变化
+
+**Pattern 沉淀 (新增 5 项)**:
+1. **5 维静态 ship 判定法** — 提案 self-declared > archive tracked > commit message > ADR status > fallback (按优先级)
+2. **"tasks.md 数字 ≠ ship 状态"** (前日沉淀增量) — ship 证据 = 代码 ship + 测试 PASS + spec 同步
+3. **AGENTS.md Pattern #10 drift 完整案例库** — 30 个案例覆盖 5 种状态 (✅/🟡/⛔/🔴/⏸)
+4. **`.gitignore` 对 `openspec/changes/archive/` 的影响** — archive untracked ≠ 提案未 ship (`.gitignore:40` 显式排除 archive, 需多源验证: commit message + ADR status + 提案 self-declared)
+5. **"1 commit per proposal" hygiene 修正模式** — 粒度最细, 便于回溯 (per AGENTS.md Pattern #4 atomicity), 30 commits 总成本可接受
+
+**决策登记**: `.rddf/state/decisions/2026-10-14-rddf-improvements-full-audit.md` (5.8KB, 5 节, 含 3 项用户决策 + 实施路径 + 5 项 Pattern 沉淀)
+
+**Audit 报告**: `.rddf/audits/2026-10-14-rddf-improvements-audit.md` (详尽表格 + 51 提案 ship 证据 + 26 OPEN 真正待实施清单 + Pattern 沉淀 + 可重跑 audit 脚本)
+
+**未提交**: `openspec/changes/2026-10-09-std-expected-monadic-ops/` (其他 session 遗留, 不在本会话范围)
+
