@@ -66,3 +66,22 @@ ADR-0074 baseline（Prompt 模板基础设施）要求 3 件 ship 才能让 Exec
 - measurement 脚本可重现运行（2400 样本，输出 JSON）。
 - ctest 全量零回归。
 - 阻塞 ADR-0074 D4 Evidence Gate 决议（→ evidence-gate 提案）。
+
+## Status: ⛔ SUPERSEDED by from-roadmap-phase-6c-execution-baseline (2026-09-02)
+
+**Status 段补全** (per Pattern #10 hygiene, 2026-10-15 audit verification):
+
+**5-维判定**:
+- 维度 1 self-declared: header `> **status: SUPERSEDED by from-roadmap-phase-6c-execution-baseline (2026-09-02)**` 已标注
+- 维度 2 archive: ✅ `openspec/changes/archive/2026-09-01-from-roadmap-phase-6c-execution-baseline/` (per commit `911d19f`)
+- 维度 3 commit: ✅ commit `911d19f` (mark 6 Phase 6b proposals SUPERSEDED)
+- 维度 4 ADR: 关联 ADR-0074 D4 Evidence Gate 决议 (状态 待 audit 验证)
+- 维度 5 fallback: 6c-execution-baseline 已 ship (per `from-roadmap-phase-6c-execution-baseline.md:## Status: ✅ SHIPPED (2026-10-14 audit verification)`)
+
+**关联 ship 提案**:
+- `from-roadmap-phase-6c-execution-baseline` ✅ SHIPPED (早 session 2026-10-14 audit 实证)
+- 6c 版替代 6b 版 execution-baseline 测量 (per `iteration.json` 8/8 archived + Phase 6c 2026-09-02 ship 收官)
+
+**判定结论**: ⛔ SUPERSEDED (本提案 6b execution-baseline 测量被 6c-execution-baseline 替代 ship, 本提案保留作历史设计意图记录, 详见 `proposal-suggestions.md` §3.2)
+
+**Pattern 沉淀**: 6b 头注 `> **status: SUPERSEDED by from-roadmap-phase-6c-execution-baseline (2026-09-02)**` 已标注 (commit `911d19f`), 但**缺标准 ## Status 段** (本日 hygiene 模式 5 字段格式). 本 commit 补全标准化 Status 段.
