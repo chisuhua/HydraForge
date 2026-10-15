@@ -4,6 +4,32 @@
 > **生成**: 2026-10-06 via completeness-audit
 > **AGENTS.md Pattern**: #10 hygiene (systematic recording of deferred work)
 
+> ⛔ **SUPERSEDED 2026-10-15** — dual-agent 调研 (Metis + Oracle 并行) 识别 R9 误标"弱变体":
+>
+> **R13.4 mock 已 ship** (commit `1fd1450` 2026-09-26, `test_reverse_indicators.cpp:265-301`), 但**真实 LLM 验证零增量信号**:
+> - `redact_trace_fields` (`evolution_session.cpp:582-602`) 是**纯 JSON 变换** (provider-agnostic 整字段替换)
+> - LLM 真在回路 (`evolution_session.cpp:201 provider->generate`), 但**断言目标与 LLM 无关**
+> - Case 1/2 断言恒真: 真 LLM 复述 turn_input 不影响 `response == "[REDACTED-confidential]"`
+> - Case 2 物理不可测: EvolutionSession 是 N 个独立 context 复用 ChatSession, **非 turn1→turn2** 多轮
+> - Case 3 幻影需求: `redact_trace_fields` 不含 tool_calls, trace schema 不含 tool_calls 字段
+> - Case 4 spec 冲突: spec R13.4 保留 context_id/session_id/sensitivity 供 audit trail
+>
+> **must_realllm 误标反模式第 4 次** (前 3 次: 2026-09-29 fork_join + 2026-10-15 提案 4 P2 7af59b7 + 2026-10-15 rsi-anti-cheat 强变体). 提案 0 处引用 `provider->generate` 断言依赖.
+>
+> **关键发现 — 真 bug 清单** (per dual-agent 共识):
+> 1. `expected_eval_quality` 漏脱敏 (per spec R13.4 `:409` 要求, 实现 `582-602` 漏字段)
+> 2. **跨 context 泄漏** (共享 ChatSession, public ctx2 response 可能复述 confidential ctx1 内容且不脱敏)
+> 3. **wire-level 明文 by design** (spec NOTE `:417` 显式豁免, 需 Recording Provider case 固化设计决策)
+>
+> **后续** (per dual-agent Oracle 路径 1 + 用户 2026-10-15 决策):
+> - 关闭本提案 (本文件)
+> - 新建 deterministic 静态守卫 (`test_r13_4_redaction_static_guard.cpp`, mock only, 复述 secret 验证)
+> - Recording Provider case 固化 wire-level 明文设计 (合规审计 trail)
+> - 立独立 OpenSpec change `2026-10-15-r13-4-real-bug-fixes` 修 2 个真 bug (`expected_eval_quality` + 跨 context 泄漏)
+>
+> 详细 dual-agent 5 维分析 + 收敛信号见 `.rddf/audits/2026-10-15-r13-4-confidential-redaction-real-llm-dual-agent-review.md`
+> 决策登记: 用户 2026-10-15 显式选择"Oracle 路径 1: 关闭+静态守卫 (推荐)"
+
 **优先级**: 🟠 P1 | **阶段**: 自由 (phase-n/a) | **分类**: 真实 LLM 验证盲点
 **类型**: debt-tracking | **主题**: R13.4 confidential 0% leak 红线真实 LLM 路径验证
 **状态**: pending (mock 覆盖已 ship 2026-09-26 `1fd1450`, real LLM 未验证)
