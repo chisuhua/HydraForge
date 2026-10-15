@@ -70,4 +70,4 @@ ADR-0079 (Control Plane / MCP) 在 Phase 7 启动条件满足后激活。本提�
 - stdio transport 父子进程 fork + EOF 测试通过。
 - 与 IInteractionBus 解耦测试通过（消息不交叉）。
 - ctest 全量零回归（pre-existing 失败保持不变）。
-- 阻塞 phase-7 启动评估 `control-stdio` 项 ✅（4 项启动条件之一）。
+- 阻塞 phase-7 启动评估 `control-stdio` 项 ✅（4 项启动条件之一）。\n\n## Status: ⏸ GATED by Phase 7a 不启动 (2026-09-02, 3/6 FAIL)\n\n**Status 段补全** (per Pattern #10 hygiene):\n\n**5-维判定**:\n- 维度 1: header GATED 已标注\n- 维度 2: 无 archive\n- 维度 3: 911d19f 命中\n- 维度 4: 关联 ADR-0079\n- 维度 5: 6c-control-plane-eval C2 实证\n\n**判定结论**: ⏸ GATED (Phase 7a 不启动 → 7b 阻塞 → 本提案保留作 Phase 7+ 启动时设计意图参考)\n\n**Pattern 沉淀**: 7 个 Phase 7 control-* 提案头注 GATED + ## Status 段标准化批量补全中.

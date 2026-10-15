@@ -59,4 +59,4 @@ ADR-0079 Control Plane `control-http-sse` 项 Phase 7c descoped（远期 long-ta
 - 与 stdio transport 行为一致性测试通过（同一请求两 transport 返回相同结果）。
 - 心跳机制验证（30s interval）。
 - ctest 全量零回归。
-- 阻塞 phase-7c descoped 项，Phase 8+ 启动评估参考。
+- 阻塞 phase-7c descoped 项，Phase 8+ 启动评估参考。\n\n## Status: ⛔ DESCOPED by Phase 7c descoped (2026-09-02)\n\n**Status 段补全** (per Pattern #10 hygiene):\n\n**5-维判定**:\n- 维度 1: header `> **status: GATED by Phase 7c descoped (2026-09-02)**` 已标注 (注: 本提案不同其他 6 个, 是 descoped 而非 GATED)\n- 维度 2: 无 archive (Phase 7c descoped, 无 change)\n- 维度 3: 911d19f 命中\n- 维度 4: 关联 ADR-0079\n- 维度 5: phase-7c 显式 descoped 决议\n\n**判定结论**: ⛔ DESCOPED (Phase 7c 整体 descoped, 本提案不再 ship, 保留作历史设计意图记录)\n\n**Pattern 沉淀**: Phase 7 7 个 control-* 提案头注 GATED/DESCOPED + ## Status 段标准化批量补全中. 本提案是 7 个中唯一的 ⛔ DESCOPED (其他 6 个是 ⏸ GATED).

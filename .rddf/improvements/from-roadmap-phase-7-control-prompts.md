@@ -64,4 +64,4 @@ ADR-0079 Control Plane `control-prompts` 项是 Phase 7b 启动后才解锁（�
 - select_subgraphs + evidence_gate_audit 工具注册并响应。
 - evidence_gate_audit insufficient_data 路径测试通过（< 30 session 拒绝）。
 - ctest 全量零回归。
-- 阻塞 phase-7b 启动评估 `control-prompts` 项 ✅。
+- 阻塞 phase-7b 启动评估 `control-prompts` 项 ✅。\n\n## Status: ⏸ GATED by Phase 7a 不启动 (2026-09-02, 3/6 FAIL)\n\n**Status 段补全** (per Pattern #10 hygiene, 2026-10-15 audit verification):\n\n**5-维判定**:\n- 维度 1 self-declared: header `> **status: GATED by Phase 7a 不启动 (2026-09-02, 3/6 FAIL)**` 已标注\n- 维度 2 archive: ❌ (Phase 7 不启动)\n- 维度 3 commit: ✅ commit `911d19f` 2026-09-03 治理 commits\n- 维度 4 ADR: 关联 ADR-0079 Control Plane 评估\n- 维度 5 fallback: Phase 7a 不启动决策 (per 6c-control-plane-eval C2 实证)\n\n**判定结论**: ⏸ GATED (Phase 7a 不启动 → 7b 阻塞 → 本提案保留作 Phase 7+ 启动时设计意图参考)\n\n**Pattern 沉淀**: Phase 7 7 个 control-* 提案头注 GATED 已标注 (per 911d19f), 缺 ## Status 段. 本 commit 补全标准化 Status 段.
