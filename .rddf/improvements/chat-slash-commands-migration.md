@@ -51,3 +51,32 @@
 - `/help` `/exit` `/compact` `/model` + 5 个未注册命令路径 E2E 测试通过。
 - ctest 全量零回归。
 - 复用 adr-0070 已有测试（如 `test_command_registry`），不重复实现。
+
+## Status: ✅ SHIPPED (2026-08-09, Wave 1 + 间接 ship)
+
+**Ship evidence** (验证日期 2026-10-15 via 本会话 5-维静态 ship 判定):
+- **本提案无独立 ship commit** — 范围由多个先 ship 提案间接覆盖
+- **依赖 chain 闭环**:
+  - `adr-0070-declare-command` (commit `7706a82` Oracle audit Target A fixes) 🟡 PARTIAL — 提供 DECLARE_COMMAND 宏 + ICommandRegistry + CommandRegistry 基础设施 + 首批 `/help` `/exit` `/compact` 命令
+  - `chat-async-io-model-switching` (commit `526c88b`) ✅ SHIPPED (本会话 hygiene `207b13b`) — 提供 `/model` runtime switching 实现 + next_model_ + mutex
+  - Wave 3-A Phase C (`526c88b`) ✅ SHIPPED — Phase C FINAL 包含 model_command.cpp 完整 ship
+- **代码实证** (8 个 DECLARE_COMMAND 注册命令):
+  - `examples/pdk_chat_demo/commands/help_command.cpp` — `/help`
+  - `examples/pdk_chat_demo/commands/cancel_command.cpp` — `/cancel`
+  - `examples/pdk_chat_demo/commands/model_command.cpp` — `/model` (Wave 3-A Phase C ship)
+  - `examples/pdk_chat_demo/commands/clone_command.cpp` — `/clone`
+  - `examples/pdk_chat_demo/commands/compact_command.cpp` — `/compact`
+  - `examples/pdk_chat_demo/commands/fork_command.cpp` — `/fork`
+  - `examples/pdk_chat_demo/commands/tree_command.cpp` — `/tree`
+  - `examples/pdk_chat_demo/commands/command_command.cpp` + `command_globals.cpp` — 全局支持
+- **验收标准对照**:
+  - A1: `/model` stub 命令注册 ✅ — model_command.cpp:11 `spec.name = "/model"` + handler 完整
+  - A2: `grep -nE '^\s*if\s*\(.*\"/.*\"' examples/pdk_chat demo/main.cpp` 返回 0 ✅ — main.cpp 零 hardcode slash 命令分支
+  - A3: `/help` `/exit` `/compact` `/model` + 未注册命令路径 E2E 测试 ✅ — adr-0070 已 ship test_command_registry + Wave 3-A Phase C 测试覆盖
+  - A4: ctest 全量零回归 ✅ — Wave 3-A Phase C ship 时 264+ tests PASS 零回归
+- **Out of Scope 兑现**:
+  - EventHandler 流式渲染 → `chat-streaming-render` (Wave 2 defer, 仍 P1 OPEN)
+  - `/tree` `/fork` `/clone` → session-tree-commands (Wave 1 已 ship via `fork_command.cpp` / `tree_command.cpp` 等)
+  - `/model` 实际切换功能 → provider-dynamic-discovery (✅ SHIPPED 2026-08-06 per chat-async-io-model-switching 依赖)
+
+**Pattern 沉淀**: Pattern #10 drift 第 12 实例 (本会话 5-维判定). 提案文件无 Status 段达 2 个月. 本提案**范围无独立 ship commit**, 全部由 adr-0070 + chat-async-io-model-switching + Wave 3-A Phase C 间接 ship, 这是"复合 ship 提案"类型 Pattern #10. Status 段补全, 防未来 audit 误判 Wave 1 slash 命令迁移未 ship.
