@@ -20,6 +20,28 @@
 >
 > **关联文档**: `docs/adr/adr-0089-v1-4-amendment-soft-deprecate-cpp-agent-loops.md` D9 段 + `openspec/changes/archive/2026-10-10-fork-join-dsl-real-parallel/` (上 ship artifacts) + `openspec/changes/archive/2026-10-12-fork-join-dsl-completion-feedback/` (本 ship artifacts, e2e gap 闭合)
 
+## Status: 🔍 FUTURE-CHANGE-TRACKER (2026-10-15 audit verification)
+
+**Status 段补全** (per Pattern #10 hygiene):
+
+**5-维判定**:
+- 维度 1 self-declared: header `> **状态 update (2026-10-10)**: 🔍 **Future Change Tracker**` 已标注
+- 维度 2 archive: ✅ `openspec/changes/archive/2026-10-10-fork-join-dsl-real-parallel/` + `openspec/changes/archive/2026-10-12-fork-join-dsl-completion-feedback/` (commit `1754f90` + `ffc6e90`)
+- 维度 3 commit: ✅ commits `81b44d4` + `5a37f3c` + `fa4b040` + `21bca13` + `dd6237a` (Phase 1 ship) + `ffc6e90` (e2e gap closure)
+- 维度 4 ADR: ADR-0089 v1.4 D9 显式标 "future-change-tracker, 完整 ForkJoinLoop→DSL 工具迁移仍 pending 1 Sprint"
+- 维度 5 fallback: 4 pre-existing BUG (BUG-2/4/5 + Critical-2/Major-2) 已 ship closure
+
+**判定依据**:
+- 本提案是 ADR-0089 v1.4 D9 定义的 future-change-tracker, **不是 ship drift 也不是真 OPEN**
+- 4 pre-existing BUG (BUG-2/4/5 + Critical-2/Major-2) 已 ship closure (per commits `81b44d4`/`5a37f3c`/`fa4b040`/`21bca13`/`dd6237a`)
+- 完整 e2e success=true 已 ship closure (per commit `ffc6e90` 2026-10-12)
+- **剩余工作**: 完整 ForkJoinLoop→DSL `loop/run_fork_join` 工具迁移 (1 Sprint effort)
+- 启动条件: v1.4 观察期 ≥1-2 月 + 用户决策 + ADR-0087 benchmark 不退化
+
+**判定结论**: 🔍 FUTURE-CHANGE-TRACKER (新状态类别, 与 ✅ SHIPPED / 🟡 PARTIAL / ⛔ SUPERSEDED / ⏸ GATED / 🔴 OPEN 5 状态并列, 表示"已 ship 部分 + 完整迁移 deferred to future change")
+
+**Pattern 沉淀**: future-change-tracker 是 5-维状态判定中第 6 状态类别, 用于 "ship 部分 + 完整 scope deferred + 启动条件明确" 的混合状态提案. 本提案是首例 future-change-tracker 状态判定, 应被纳入早 session 2026-10-14 audit methodology 补充段.
+
 ---
 
 ## 架构依据

@@ -16,6 +16,33 @@ ADR-0086 v1.1 ✅ ship 2026-09-20 → C3 h-d-m-transition-guard (硬前置已 sh
 ADR-0088 🔍 Proposed (本 change rdd-arch 立项) → C3 fill
                        ↓
                     C4 harness-rsi-pilot (待 C3 ship)
+
+## Status: 🔴 OPEN (2026-10-15 audit verification, 真待 ship)
+
+**Status 段补全** (per Pattern #10 hygiene):
+
+**5-维判定**:
+- 维度 1 self-declared: header 无 SUPERSEDED, 无 status
+- 维度 2 archive: ❌ (本提案为 Phase 6c C3, rdd-arch 立项但未 ship)
+- 维度 3 commit: ✅ commit `60c0c70` (chore(governance): cleanup rdd-quick mode 残留) + `5d54511` (Pre-Wave3 plan 引用) + `3076042` (genome-wiring 引用) — 是引用 / cleanup, 不是 ship
+- 维度 4 ADR: ADR-0088 🔍 Proposed (立项但未 ship) — C3 fill 待 ship
+- 维度 5 fallback: rdd-arch 阶段已过 (per AGENTS.md Pattern #8), 但 P2 实施未启
+
+**判定依据**:
+- 本提案是 Phase 6c MetaRSI-v1 关键路径 C3 (per ADR-0088)
+- C2 genome-registry ✅ ship 2026-09-19 (硬前置已 ship)
+- C4 harness-rsi-pilot (C3 ship 后才能启) — 是依赖链
+- 本提案 P2 实施未启 (24h cooling-off 待 + TDD 5-step 未跑)
+- effort 估: 2-3 day (H→D→M 状态机 + Transition Guard + 测试 + ADR-0088 翻牌 ✅ Approved)
+
+**判定结论**: 🔴 OPEN (真待 ship, 需 P2 TDD 5-step 实施 + Oracle SHIP-with-fixes + ADR-0088 翻牌)
+
+**触发条件** (per proposal §触发条件):
+- 用户要求 "h-d-m 关键路径 C3 ship"
+- C4 harness-rsi-pilot 启动需要 C3 硬前置
+- Wave 3 启动需要本提案 ship (per Pre-Wave3 plan §2)
+
+**Pattern 沉淀**: Pre-Wave3 Plan §2 C3 关键路径, 是 C4 + Wave 3 启动的硬前置. 不能与 C4/Wave 3 并行, 串行 ship 链.
 ```
 
 **前置全部 ship** (per proposal.md 关联 ADR 段):

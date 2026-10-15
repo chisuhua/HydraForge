@@ -47,6 +47,27 @@ Ship 后审查发现 **8 个 follow-up 事项** 需后续处理。其中 D1-D5 �
 - **D4/D5** 是测试覆盖/UX 改进,优先级低于核心债务
 
 **D6-D8 的成因**(本审查发现):
+
+## Status: 🟡 PARTIAL (2026-10-15 audit verification, D6 已 ship + D1-D5 + D7-D8 待 ship)
+
+**Status 段补全** (per Pattern #10 hygiene):
+
+**5-维判定**:
+- 维度 1 self-declared: header 无 SUPERSEDED, 无 status
+- 维度 2 archive: ✅ `openspec/changes/archive/2026-09-24-pdk-chat-demo-deduplicate/` (per commit `9b30781` DESIGN.md + README.md 同步)
+- 维度 3 commit: ✅ commit `e9e6f09` 2026-10-15 (本会话 hygiene: pdk-chat-demo-v1-recap + Phase 6a T1+T2) + `9b30781` (deduplicate ship) — 是相关 ship, 不是本提案 8 follow-up ship
+- 维度 4 ADR: 关联 ADR-0021 (PDK 设计) + ADR-0033 (session 层次) 已 ✅ Approved
+- 维度 5 fallback: D6 即时完成 (本提案文件自身 + improvement-suggestions.md 索引), D1-D5 + D7-D8 待 ship
+
+**判定依据**:
+- 8 follow-up 事项 (D1-D8) 中, **D6 已 ship** (本提案文件 + improvement-suggestions.md 索引注册), 其他 7 项 (D1/D2/D3/D4/D5/D7/D8) 待 ship
+- D1-D5 是 change 文档声明的 Out-of-Scope, D7-D8 是审查新发现
+- 本提案是 pdk-chat-demo-deduplicate change 的 follow-up tracker, **不是独立 ship 单元**
+- effort 估: D1-D5 + D7-D8 各项 0.5-1 day, 总 3-5 day effort 分布在多个后续 Sprint
+
+**判定结论**: 🟡 PARTIAL (D6 已 ship 实证 + 其他 7 项待 ship, 提案作为 follow-up tracker 长期 maintain)
+
+**Pattern 沉淀**: follow-up tracker 提案是 partial-ship 状态, 与 implementation 提案 OPEN 不同. tracker 应长期 maintain, 不应 ship 整批, 而是逐项 ship 后 status 段更新.
 - **D6** 是流程债 — 缺乏 follow-up 注册机制导致 D1-D5 散落文档
 - **D7** 是测试脆性 — 硬编码魔法数字在 compact 行为微调时易脆断
 - **D8** 是诊断缺口 — 静默 no-op 让生产问题排查困难
