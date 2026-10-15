@@ -77,3 +77,31 @@ C8 (D2/D4 ship 2026-08-14) ──→ C9 (D3 本提案)
 - [ ] ADR-0069 tool_execution hooks 集成：4 步 pipeline 在 `pre_execute_hook` 之前完成；audit event `tool.audit.denied` 含 reason / field_path / matched_pattern（脱敏）。
 - [ ] `ctest --output-on-failure` 全量零回归（147/147 baseline 不变；新增 `test_tool_coordinator_validation` ≥6 case 全 PASS）。
 - [ ] `docs/adr/adr-0073-tool-json-schema-contract.md` 状态翻转：🟡 Partial → ✅ Approved（D2/D3/D4 全 ship，per `adr-0073-impl-scope-audit.md` 行 47-50 的 Partial 状态同步更新）；`docs/active-status.md` §一 Phase 6c C9 行标记 ✅ ship。
+
+## Status: 🟡 PARTIAL (2026-10-15 audit verification)
+
+**Status 段补全** (per Pattern #10 hygiene):
+
+**5-维判定**:
+- 维度 1 self-declared: header 无 SUPERSEDED, 无 status
+- 维度 2 archive: 缺 (无 openspec/changes/archive/2026-09-02-from-roadmap-phase-6c-schema-complete/) - 待查
+- 维度 3 commit: 相关 commit 命中 (db31012 等)
+- 维度 4 ADR: ADR-0073 显式 🟡 Partial (D2/D4 ship 但 D3 待 C9, D5/D6 验证缺) - 状态正确
+- 维度 5 fallback: 部分 ship 实证 (D2/D4 ship per ADR-0073 自身声明, D3 待 C9)
+
+**实际 ship 实证** (per ADR-0073 自身):
+- D2 (✅ ship): ToolMetadata V3 字段 `input_schema` / `output_schema` / `ValidationMode` 在 `src/common/policy/execution_policy.h:82-86`
+- D4 (✅ ship): DECLARE_TOOL_V3 宏自动生成 JSON Schema 2020-12 + `tests/test_declare_tool_auto_schema.cpp` 4 类测试
+- D3 (❌ 未 ship, 属本提案核心): ToolCoordinator 4 步 sanitization pipeline 实施未 ship (per ADR-0073 行 11-12 "D3 是 schema-complete 类别从「schema 已声明」到「schema 实际生效」的桥梁"未 ship)
+- D5 (❌ 未 ship): 向后兼容验证
+- D6 (❌ 未 ship): output_schema 校验
+
+**未 ship 范围** (per proposal 验收标准对比):
+- ToolCoordinator 4 步 sanitization pipeline (D3)
+- test_tool_coordinator_validation.cpp ≥6 case (4 拒绝路径 + 1 happy + 1 legacy)
+- ADR-0073 状态翻牌 🟡 Partial → ✅ Approved (依赖 D3 ship)
+- JSON-RPC 错误码 -32602 完整映射
+
+**判定结论**: 🟡 PARTIAL (D2/D4 ship 实证, D3/D5/D6 未 ship, ADR-0073 自身承认 🟡 Partial)
+
+**Pattern 沉淀**: 提案文件"完整 D3" claim vs 实际 "D2/D4 ship + D3/D5/D6 未 ship" 范围, 应标 🟡 PARTIAL (与 ADR-0073 自身 🟡 Partial 状态一致), 防止未来 audit 误判"已完整 ship"或"未 ship"
