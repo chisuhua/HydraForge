@@ -13,6 +13,28 @@ Pre-Wave3 Plan §3 明确 Wave 3 立项依据: G1+G3+G4+G2 4-Gate 序列全部 S
 **3 项 Wave 3 价值**:
 1. **闭环第 7 环配套完整**: G1/G2/G3/G4 ship 后, 自进化变异→评估→决策→提交全链路打通. Wave 3 把"提交"的产出 (Genome + attribution + reward quality) 作为训练数据回流, 实现"自进化→自我训练"正循环.
 2. **D2 触发条件已部分满足**:
+
+## Status: 🔴 OPEN (2026-10-15 audit verification, Wave 3 cooling-off 中)
+
+**Status 段补全** (per Pattern #10 hygiene):
+
+**5-维判定**:
+- 维度 1 self-declared: header 无 SUPERSEDED, 无 status
+- 维度 2 archive: ❌ (本提案为 docs-only 立项准备, 未 ship OpenSpec change)
+- 维度 3 commit: ✅ commit `65ff2dd` 2026-10-15 (feat(wave3-phase2): DECISION C — Wave 3 Phase 2 D4 LoRA training pipeline 立项 (docs only)) — 是 docs only, 不是真 ship
+- 维度 4 ADR: ADR-0078 Model-RSI pilot (无显式 Status 段, Wave 5+ descoped docs-only per 提案原文)
+- 维度 5 fallback: Wave 3 cooling-off 起算自 merge `f0a5c4b` 2026-09-23T05:35Z, EXPIRED 2026-09-24T05:35Z ✅
+
+**判定依据**:
+- 本提案是 Pre-Wave3 Plan §3 1: Wave 3 立项 (Wave 3 = ADR-0078 Model-RSI pilot)
+- 24h cooling-off 自 merge `f0a5c4b` (2026-09-23T05:35Z) 起算, 已过 ✅ (EXPIRED 2026-09-24T05:35Z)
+- Wave 3 立项**准备**已完成 (读 ADR background + 写 improvement 5-segment 草稿), 但**正式立项**待 rdd-arch 启动
+- effort 估: 1-2 day (rdd-arch 启动 + OpenSpec change 创建 + 24h cooling-off 二次 + TDD 5-step)
+- Wave 3 Phase 2 (D4-D7: 训练方法/评估/回流/serving-Phase 2) 需 Wave 3 cooling-off 满后独立立项
+
+**判定结论**: 🔴 OPEN (Wave 3 cooling-off 已过, 待 rdd-arch 正式立项 Wave 3 OpenSpec change)
+
+**Pattern 沉淀**: Wave 3 是 Pre-Wave3 Plan §3 触发 Wave 3 立项, Wave 3 Phase 2 (D4-D7) 是 Wave 3 内部 Phase 2, 不要混. Wave 3 cooling-off ✅ 已过, Wave 3 准备 docs 已 ship, 正式立项待 rdd-arch 启动 (本会话范围外).
    - ✅ AgenticMind 项目独立进展 — 2026-08-03 立项, 持续跟踪 (虽未 ship, 但 Phase 5+ descoped 允许延后)
    - ✅ G4 ship 后 `evolution.readiness.denied` 事件 `eval_quality` 真实值 (G2 ship) + `genome.committed/persist_failed` 事件 (G4 ship) — 训练数据来源 D3 §ADR-0074 D6 JSONL + ADR-0074 D7 失败事件 现成
    - ⚠ Production 用户 ≥ 10 + 训练数据 ≥ 1 万条 — 依赖 pkm_temporal_demo + production 部署, Phase 7 部署就绪后可达

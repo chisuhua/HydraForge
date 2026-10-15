@@ -157,3 +157,25 @@ LLM 生成 prompt_delta
 ## Status
 
 📋 **rdd-builder P0 case 4 revise → 2026-10-15 5-segment 格式重写完成**. 待 rdd-builder P0 重决策 case 1 (approve) → P1 plan gen → P1.5 deps → P2 execute (in worktree per ADR-0048) → P2.5 Oracle SHIP-with-fixes review → P3 archive + verifier.
+
+## Status: 🔴 OPEN (2026-10-15 audit verification, P2 实施待 24h cooling-off 满)
+
+**Status 段补全** (per Pattern #10 hygiene):
+
+**5-维判定**:
+- 维度 1 self-declared: header 有 Status 段 "📋 rdd-builder P0 case 4 revise ...", 但格式非标准
+- 维度 2 archive: ✅ `openspec/changes/2026-10-15-harness-mutation-commit-real-llm/` (5-file integrity, per commit `dbd01d6` 关联)
+- 维度 3 commit: ✅ commit `dbd01d6` (R13.4 bug fixes OpenSpec 关联) + 4 commits (fc5749f + 04c653a + 7af59b7 + 0477ead) per 早 session
+- 维度 4 ADR: 关联 ADR-0068 (event emission) + harness-arch v1.0 §十一 (genome 持久化)
+- 维度 5 fallback: P2 实施 7af59b7 + SHIP-with-fixes 0477ead (per Oracle M1 M3 M4 + 6 Minor) + 4/4 cases PASS 35 assertions
+
+**判定依据**:
+- 本提案对应 OpenSpec change `2026-10-15-harness-mutation-commit-real-llm` (per 早 session 实施)
+- P2 实施 ship (commit 7af59b7) + Oracle SHIP-with-fixes (commit 0477ead, 4 Major + 6 Minor 全应用)
+- 4/4 cases PASS (35 assertions, 0.01s deterministic, per Oracle verdict ses_ec25297b2)
+- 待 P3 archive + verifier retry loop (max 3 per ADR-0034)
+- 必须_realllm label 已 M1 路径 A 移除 (Recording Provider 0 实例化问题, per 早 session Pattern #13 沉淀)
+
+**判定结论**: 🔴 OPEN (P2 ship 已完, P3 archive 待 user 决策, P4 verifier retry loop 待)
+
+**Pattern 沉淀**: 早 session 2026-10-15 完整 rdd-arch → rdd-planner → rdd-builder P0-P2-P2.5 ship 闭环, P3 archive 待下会话完成.

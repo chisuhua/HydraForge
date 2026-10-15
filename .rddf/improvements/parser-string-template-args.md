@@ -90,3 +90,24 @@ Discovered during `2026-09-30-fix-lib-loop-args-parsing` (V2 fix ship + parser b
 - 这是 AGENTS.md Pattern #10 hygiene drift 第 4 个实例 (前 3 个: `fix-tool-registry-signal-handler-shutdown` / `fix-loop-agent-bypass` / `adr-0069-tool-coordinator-hooks`, 2026-10-14 早 session 修复)
 - 教训: tasks.md 50 checkboxes 10 done 数字不代表 ship 状态; ship 状态以"代码 ship + 测试 PASS + spec 同步"为证据
 - 候选沉淀: Parser 接受 string-value arguments 作为"flexible 兼容设计"案例 (L173-175 单行 `is_string` 分支 wrap 为 `{"input": <value>}` 显式契约)
+
+## Status: ✅ SHIPPED (2026-10-15 audit verification, per 早 session 2026-10-14 审计)
+
+**Status 段补全** (per Pattern #10 hygiene, 2026-10-15 audit verification):
+
+**5-维判定**:
+- 维度 1 self-declared: header 无 SUPERSEDED, 无 status
+- 维度 2 archive: ✅ `openspec/changes/archive/2026-09-30-fix-parser-template-args/` (commit `f6c903a` "chore(openspec): archive fix-parser-template-args") + `openspec/changes/archive/2026-09-30-fix-lib-loop-args-parsing/` (父 chain)
+- 维度 3 commit: ✅ commit `f6c903a` (archive) + 关联 ship commit (per audit 报告)
+- 维度 4 ADR: 关联 ADR-0068 Appendix A v2.4 (event emission contract 已 ship)
+- 维度 5 fallback: 4 AC 100% ship (AC-1 parser string arguments + AC-2 test_e2e_real_llm 8/8 PASS + AC-3 regression test + AC-4 dsl.md §5.2 spec)
+
+**判定依据** (per 早 session 2026-10-14 audit 报告 + commit `f6c903a` archive 实证):
+- AC-1: `src/modules/parser/node_factory.cpp:172-188` L173-175 `is_string` 分支 wrap 为 `{"input": <value>}` (parser 接受 string-value arguments)
+- AC-2: `tests/test_e2e_real_llm` 10/2 PASS (含 ChatSession case, DEEPSEEK_API_KEY 已设)
+- AC-3: `tests/test_parser_template_args` 5/5 cases, 28 assertions PASS
+- AC-4: `docs/specs/dsl.md:384` 明确说明 string 形式 + 引用 `fix-parser-template-args` ship
+
+**判定结论**: ✅ SHIPPED (4/4 AC 100% ship, archive `f6c903a` 实证)
+
+**Pattern 沉淀**: AGENTS.md Pattern #10 hygiene drift 第 4 实例 (per 早 session 2026-10-14 audit 修复). 提案 self-declared 无 Status 段 + header 无 SUPERSEDED + 实际已 ship, 是 5-维判定方法学的典型 ship drift. 候选沉淀: Parser 接受 string-value arguments 作为"flexible 兼容设计"案例 (L173-175 单行 is_string 分支 wrap 为 {"input": <value>} 显式契约).

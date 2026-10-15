@@ -64,3 +64,24 @@
 - 4 个 ADR-0068 v2.4 事件注册 + 发射 (`mutation_metric_rejected` / `turn_input_network_keyword_rejected` / `hidden_context_accepted_info` / `hint_containment_rejected`)。
 - `git diff include/` = 0;`git diff examples/pdk_chat_demo/` = 0;commit message 含 [Reverse Indicator] 5 字段 (`new_up` / `old_down` / `failure_traces` / `ablation` / `context_ids`)per AGENTS.md Reverse Indicator Rule (2026-09-23)。
 - 3 份 SoT §十一 "L2 ✅ ship" 行已加;harness-arch §3.1 API 表面校正 (11 参 ctor + 2 override 方法 + 5 参自由函数,同步 commit `78b6098` 后);SoT 三件套 (README/rsi/self-evolution) 路径全部归一至 `examples/pdk_chat_demo_evolution/fixtures/contexts/`。
+
+## Status: ✅ SHIPPED (2026-10-15 audit verification, per L2 reference example 完整 ship)
+
+**Status 段补全** (per Pattern #10 hygiene, 2026-10-15 audit verification):
+
+**5-维判定**:
+- 维度 1 self-declared: header 无 SUPERSEDED, 无 status
+- 维度 2 archive: ✅ `openspec/changes/archive/2026-09-24-pdk-chat-demo-evolution-reference-example/` (L2 reference example finalization, 8 commits ship + 9 L2 test binaries 323 assertions 全 PASS)
+- 维度 3 commit: ✅ commit `710cadf` 2026-10-15 (chore(openspec): flatten malformed 4-file archive (L4 hygiene)) + 8 commits L2 reference example ship chain
+- 维度 4 ADR: 关联 ADR-0021 (PDK 设计) + ADR-0033 (session) + ADR-0068 v2.4 (event) + ADR-0083 (IEvaluator V2) + ADR-0086 v1.1 (harness change confounder) 全部 ✅ Approved
+- 维度 5 fallback: 14 fixture 文件 + 10 L2 binary ctest + 4 ADR-0068 v2.4 events + 3 SoT §十一 同步
+
+**判定依据** (per L2 reference example ship 实证):
+- Stage 0-4 全部 ship, Stage 4 Oracle verdict = APPROVE (commit `c3b4844` baseline + `78b6098` follow-up)
+- 10 L2 binary ctest LABELS "l2-evolution" 全过 + `ctest -LE l2-evolution` baseline 211 零回归
+- 14 fixture 文件 (3 SHIPPED + 11 test) JSON-legal + schema 6+4 合规
+- 4 ADR-0068 v2.4 events registered + 发射 (mutation_metric_rejected / turn_input_network_keyword_rejected / hidden_context_accepted_info / hint_containment_rejected)
+- `git diff include/` = 0; `git diff examples/pdk_chat_demo/` = 0
+- 3 份 SoT §十一 "L2 ✅ ship" 行已加
+
+**判定结论**: ✅ SHIPPED (8 commits L2 reference example ship + 9 L2 test binaries 323 assertions PASS + Stage 4 Oracle APPROVE)

@@ -56,3 +56,24 @@
 - 预估 effort: 3-5 天 (依赖 G1+G4+G7)
 - token 消耗: ~10-50 LLM calls (高)
 - 关键: 这是 Wave 3 Phase 2 D4 训练数据回流的输入数据源, 必须真实 LLM 闭环
+
+## Status: 🟡 PARTIAL (2026-10-15 audit verification, 段 3+8 ship + 段 1-2+4-7 待 ship)
+
+**Status 段补全** (per Pattern #10 hygiene):
+
+**5-维判定**:
+- 维度 1 self-declared: header 有 "**状态**: pending (段 3+8 真实 LLM 已 ship, 段 1-2 + 4-7 mock only)" 部分标注
+- 维度 2 archive: ✅ 多个 OpenSpec changes (test_gepa_loop_real_llm + test_distillation_capture_training_real_llm 段 3+8 ship)
+- 维度 3 commit: ✅ 多个 ship commits (per 早 session 2026-09-25 chat-real-llm-coverage Phase H)
+- 维度 4 ADR: 关联 self-evolution v1.5 §十二 (9 段闭环) + harness-arch v1.0 §十一 + rsi-arch v1.0 §十一
+- 维度 5 fallback: 段 3 (test_gepa_loop_real_llm) + 段 8 (test_distillation_capture_training_real_llm) 已 ship, 其他段 mock only
+
+**判定依据**:
+- 9 段闭环中, **段 3 (GEPA)** + **段 8 (Distillation)** 已 ship 真实 LLM, 其他 7 段 (1-2 + 4-7) mock only
+- effort 估: 3-5 day (依赖 G1+G4+G7 ship)
+- token 消耗: ~10-50 LLM calls (高消耗)
+- 关键: Wave 3 Phase 2 D4 训练数据回流的输入数据源
+
+**判定结论**: 🟡 PARTIAL (段 3+8 ship 实证 + 段 1-2+4-7 mock only, 完整 9 段闭环需后续 ship)
+
+**Pattern 沉淀**: 多段闭环提案 (self-evolution 9 段 / harness 9 段 / rsi 9 段) 的 ship 状态判定, 应逐段评估, 不是整体 ✅/🔴 二元判定. 段级别 partial-ship 是治理常见形态.
