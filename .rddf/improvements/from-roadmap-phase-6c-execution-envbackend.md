@@ -99,3 +99,34 @@ W5 (backend: 字段 DSL 解析) ──→ C11 (D2 LocalBackend, 8h)
 - [ ] `ctest --output-on-failure` 全量零回归（147/147 baseline 不变；新增 `test_local_backend` ≥6 case + `test_docker_backend` ≥5 case + `test_env_validation_hook` ≥6 case + `test_backend_factory` ≥3 case + `test_backend_policy` ≥4 case + `test_backend_security` ≥3 case 共 ≥27 case 全 PASS）。
 - [ ] ADR-0003 线程安全保留：LocalBackend/DockerBackend 调用点验证 `DSLEngine::run` 线程模型下 backend 实例不可变（`const` 接口 + `backend_factory` 返回 `shared_ptr<const IEnvBackend>`），多线程并发 exec 走 `BackendCapabilities.max_concurrent_execs` 排队，不引入 data race。
 - [ ] 文档 ship：`docs/specs/env-backend.md` 新增（IEnvBackend 接口契约 + 2 backend 实现规范 + 与 ADR-0075 §决策 D1 line 96 1MB 上限的 64KB 截断差异说明）+ `docs/security/backend-policy.md` 新增（默认策略表 + per-environment 配置 + shell 注入防御 checklist）；`docs/specs/dsl.md` §6 shell.exec 节点示例增加 `backend:` 字段（指向 W5 提案交付的解析层）。
+
+## Status: 🟡 PARTIAL (2026-10-15 audit verification)
+
+**Status 段补全** (per Pattern #10 hygiene):
+
+**5-维判定**:
+- 维度 1 self-declared: header 无 SUPERSEDED, 无 status
+- 维度 2 archive: 缺 (无 openspec/changes/archive/2026-09-02-from-roadmap-phase-6c-execution-envbackend/) - 待查
+- 维度 3 commit: 相关 commit 命中 (94cf660 ADR 跟踪标记等)
+- 维度 4 ADR: ADR-0075 env-backend (无显式 Status 段, 待 audit)
+- 维度 5 fallback: 部分 ship 实证 (env_backend.h + LocalBackend + DockerBackend 头文件存在 per `.cache/clangd/index/`)
+
+**实际 ship 实证** (per本会话 5-维判定):
+- `include/agenticdsl/env/env_backend.h` 头文件存在 (per `.cache/clangd/index/env_backend.h.83B69B099203B877.idx`)
+- `src/common/env/docker_backend.cpp` 编译产出存在 (per `build/CMakeFiles/agenticdsl_common.dir/src/common/env/docker_backend.cpp.o`)
+- 即 D1 接口 + D2 LocalBackend + D3 DockerBackend 头文件层 ship
+
+**未 ship 范围** (per proposal 验收标准对比):
+- D5 EnvValidationHook 完整 4 步 pipeline (tool_coordinator.cpp 集成)
+- BackendPolicy 可配置 (`tests/test_backend_policy.cpp`)
+- 超时强制 / 输出截断 / Docker daemon mock / shell 注入安全 27+ 测试 case 全 PASS
+- ADR-0075 状态翻牌 🟡 Partial → ✅ Approved
+- 文档 ship (env-backend.md + backend-policy.md + dsl.md backend 字段示例)
+
+**判定结论**: 🟡 PARTIAL (头文件层 ship 实证, 完整 D1+D2+D3+D5 待验证)
+
+**关联 OPEN 提案**:
+- `adr-0072-d4-backend-parser` (per `cd4b228` 2026-10-14 audit 已 ship) — D4 `backend:` 字段解析前置依赖
+- `adr-0072-d4-env-vars-redaction` (parallel P1 OPEN) — env_vars secrets redaction 协议 (与本提案正交)
+
+**Pattern 沉淀**: 提案文件"完整 D1+D2+D3+D5"claim vs 实际"头文件层"ship 范围, 应标 🟡 PARTIAL, 防止未来 audit 误判"已完整 ship"或"未 ship".
