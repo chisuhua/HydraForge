@@ -38,3 +38,33 @@
 - 新增 E2E mid-loop cancel 测试 PASS（blocking mock provider + `request_stop()` 后 100ms 内退出）。
 - ctest 全量零回归（pre-existing 5 失败不变）。
 - ASan + TSan 全量 0 新增 error。
+
+## Status: ✅ SHIPPED (2026-08-09, Wave 3-A Phase B)
+
+**Ship evidence** (验证日期 2026-10-15 via 本会话 5-维静态 ship 判定):
+- **OpenSpec archive** (4 paths, per Step 1+2 partial → Steps 3/4/5 sub-archives):
+  - `openspec/changes/archive/2026-08-09-chat-async-io-cancellation-chain/` (Step 1+2 partial, per commit `b3cf63c`)
+  - `openspec/changes/archive/2026-08-09-cancellation-chain-step3-loop-agent/`
+  - `openspec/changes/archive/2026-08-09-cancellation-chain-step4-loop-apis/`
+  - `openspec/changes/archive/2026-08-09-cancellation-chain-step5-e2e/`
+- **代码 ship commits**:
+  - `e629893` (2026-08-09) feat(pdk-chat-demo): OpenSpec change 创建 (Wave 3-A Phase B, 7-step stop_token wiring)
+  - `6982ffa` (2026-08-09) chore(cleanup): add missing Wave 3-A Phase B cancellation-chain execution plan
+  - `d1ecca2` (2026-08-09) feat(pdk-chat-demo): Phase B Step 1+2 - cancellation registry + ChatSession state (Tasks 1-2, CancelRegistry + request_stop)
+  - `b3cf63c` (2026-08-09) archive: move Step 1+2 to archive/
+  - `120add5` (2026-08-09) docs(sync): chat-async-io-cancellation-chain partial ship record (Step 1+2)
+  - `d462cd3` (2026-08-12) chore(iteration): mark Steps 3/4/5 as archived
+- **依赖 chain 闭环**:
+  - Phase 0 `fix-tool-registry-signal-handler-shutdown` (commit `29a7a06`, 2026-08-09) ✅ SHIPPED
+  - Phase A `chat-async-io-queue-infra` ✅ SHIPPED (本会话 hygiene commit `6edbfc8` 2026-10-15)
+  - Phase B (本提案) ✅ SHIPPED 2026-08-09
+  - Phase C `chat-async-io-model-switching` (commit `cc37d2d`, 2026-08-09) ✅ SHIPPED
+- **代码实证** (Step 1+2 commit `d1ecca2`):
+  - `examples/pdk_chat_demo/cancellation_registry.h/.cpp` — CancelRegistry 类 (`register_source` / `resolve_token` / `resolve_source` / `unregister`)
+  - `examples/pdk_chat_demo/chat_session.h` — `request_stop()` + `chat(input, std::stop_token)` overload
+  - `examples/pdk_chat_demo/chat_session.cpp` — Impl 持 `cancellation_registry_` + `current_cancellation_id_`
+  - `tests/test_cancellation_registry.cpp` — 4 tests (register/resolve/unregister/resolve_source)
+- **7 步 wiring 拆分 ship** (per `d462cd3` decomposing into 4 sub-archives): Step 3 (loop_agent 解析 + Provider bridge 转发), Step 4 (React/Plan/ForkJoin 三个 loop API 加 token 参数), Step 5 (NodeExecutor/ToolCoordinator 转发 + E2E mid-loop cancel 测试)
+- **Tests**: `tests/test_chat_session_cancellation.cpp` + `tests/test_loop_agent_cancellation_chain.cpp` + `tests/test_cancellation_registry.cpp`
+
+**Pattern 沉淀**: Pattern #10 drift 第 9 实例 (本会话 5-维判定). 提案文件无 Status 段达 2 个月, 仅靠 4 个 archive sub-paths + 5 个 ship commits 反推. Status 段补全 + Phase 0→A→B→C 依赖 chain 闭环登记, 防未来 audit 误判.
