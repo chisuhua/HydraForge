@@ -1,0 +1,22 @@
+id: adr-0072-d4-env-vars-redaction
+title: ADR-0072 D4 env_vars 字段 secrets redaction 协议 (与 ADR-0068 §3.1 api_key redaction 同类)
+status: draft
+priority: p1
+kind: feature
+owner: solo-dev
+created: 2026-10-15
+last_updated: 2026-10-15
+roadmap_theme: execution-security
+adr_refs:
+  - docs/adr/adr-0068-event-emission-contract.md (api_key redaction 协议借鉴目标, §3.1 精神)
+  - docs/adr/adr-0072-dsl-node-extensions.md (D4 env_vars 字段定义)
+  - docs/adr/adr-0075-env-backend-multi-execution.md (env_vars 透传 spec)
+pre_impl_dual_agent_review:
+  report: .rddf/audits/2026-10-15-r13-4-confidential-redaction-real-llm-dual-agent-review.md
+  metis_finding: 2026-10-14 dual-agent 调研 Metis 意图 D 隐藏缺口 (per audit 报告 Metis 独占发现)
+  context: env_vars 字段 redaction 协议是 L2 spec R13.4 之外另一关键 redaction 缺口
+pre_issues_must_resolve_before_p0_case_1_approve: 5
+cooling_off_until: 2026-10-16T17:50:00Z
+related_proposals:
+  - r13-4-redaction-bug-fixes (parallel, R13.4 2 真 bug fix, commit dbd01d6)
+  - r13-4-confidential-redaction-real-llm (closed Path 1, commit 7321154)
