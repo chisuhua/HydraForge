@@ -28,3 +28,27 @@
 - YAML 格式 agent 文件校验生效（构造非法 YAML fixture 给出 line-level 错误）。
 - `grep -n "跳过" examples/pdk_chat_demo/main.cpp` 返回 0。
 - ctest 全量零回归。
+
+## Status: ✅ SHIPPED (2026-08-05, Wave 2 P1)
+
+**Ship evidence** (验证日期 2026-10-15 via 本会话 5-维静态 ship 判定):
+- **OpenSpec archive**: `openspec/changes/archive/2026-08-04-fix-markdown-parser-yaml/` (per commit `1740b88`)
+- **代码 ship commits**:
+  - `e6f0955` (2026-08-02) feat: fill fix-markdown-parser-yaml change artifacts (Wave 2 P1)
+  - `bc0d30e` (2026-07-31) guide(design): arch-done + design-done + 6 skeleton changes
+  - `4c9721c` (2026-08-05) feat(parser): fenced yaml block detection + dsl_validator dual-format
+  - `e7b468c` (2026-08-05) merge: fix-markdown-parser-yaml change (6 files, +328/-65)
+  - `1740b88` (2026-08-05) chore(archive): finalize archive state
+  - `921d551` (2026-08-12) fix(pdk-chat-demo): repair 4 pre-existing test failures (含此 fix 的回归保护)
+- **代码实证**:
+  - `src/modules/parser/markdown_parser.cpp:16` `#include <yaml-cpp/yaml.h>` — yaml-cpp 集成 (复用 `external/` 依赖, 无新解析库)
+  - `src/modules/parser/markdown_parser.cpp:102` `YAML::Node yaml_root = YAML::Load(yaml_content)` — fenced YAML block 检测 + 解析
+  - `examples/pdk_chat_demo/dsl_validator.cpp` — DslValidator 改造为双格式识别 (YAML + Markdown bold), 复用既有 schema 校验路径
+- **验收标准对照**:
+  - A1: YAML 格式 agent 文件校验生效 (dsl_validator.cpp 改造已 ship) ✅
+  - A2: `grep -n "跳过" examples/pdk_chat_demo/main.cpp` 返回 0 — 现 main.cpp:374 是注释 (doc note), active skip 分支已删除 ✅
+  - A3: ctest 零回归 (114/116 PASS at ship-time, 零新增 regression) ✅
+- **测试 fixture 迁移**: 9 个 Markdown bold fixture 维持向后兼容 + 新增 YAML fixture 测试覆盖
+- **设计意图兑现**: 双格式自动检测, 复用既有 schema 校验逻辑 (禁止复制校验规则 per 技术约束 MUST)
+
+**Pattern 沉淀**: Pattern #10 drift 第 11 实例 (本会话 5-维判定). 提案文件无 Status 段达 2.5 个月. Wave 2 P1 实际已 ship 2026-08-05 (commit e7b468c 含 6 files +328/-65), 仅靠 OpenSpec archive + merge commit 反推. Status 段补全, 防未来 audit 误判 yaml frontmatter 解析能力未 ship.
