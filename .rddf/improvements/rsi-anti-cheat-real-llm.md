@@ -4,6 +4,25 @@
 > **生成**: 2026-10-06 via completeness-audit
 > **AGENTS.md Pattern**: #10 hygiene (systematic recording of deferred work)
 
+> ⛔ **SUPERSEDED 2026-10-15** — dual-agent 调研 (Metis + Oracle 并行) 识别提案误诊:
+>
+> **R9.1/R9.2/R9.3 三机制全是 parser/tool 层确定性过滤, LLM 不在回路中**:
+> - R9.1: parser regex 拦截 (`the answer is \w+`), LLM 永远收不到被污染的输入
+> - R9.2: ToolRegistry 静态行为 + 编译期 IEvaluator 接口, 无运行时写面
+> - R9.3: sandbox `network_mode=none` 是 Wave 4 deferred, L2 demo 不在 Docker 内运行
+>
+> L2 spec P0-3/6/7 fix 显式声明 (`openspec/changes/archive/2026-09-24-pdk-chat-demo-evolution-reference-example/specs/pdk-chat-demo-evolution/spec.md:347`):
+> > L2 R9 是**降级版机制演示**. 真实反作弊需依赖 LLM provider 自觉行为 + 真实 sandbox infra, **均不在 L2 demo 范围**.
+>
+> **must_realllm 误标反模式第三次** (前两次: 2026-09-29 `test_fork_join_real_llm` 删 + 2026-10-15 提案 4 P2 `7af59b7` Oracle M1 打回). 提案无 `provider->generate()` 调用点 → 标 must_realllm 是 vacuous.
+>
+> **建议** (per `.rddf/audits/2026-10-15-rsi-anti-cheat-real-llm-dual-agent-review.md`):
+> - R9.3 真实 sandbox: 等 Wave 4 sandbox infra ship 后**自动生效**, 不需要新测试
+> - R9.1/R9.2 语义级 hint 检测: 那是**新 production 机制** (LLM-based 输入审查), 应独立立 ADR-0090 + OpenSpec change
+>
+> 详细 dual-agent 5 维分析 + 收敛信号见 `.rddf/audits/2026-10-15-rsi-anti-cheat-real-llm-dual-agent-review.md`
+> 决策登记: 用户 2026-10-15 显式选择"路径 1: 关闭本提案 (推荐)"
+
 **优先级**: 🟠 P1 | **阶段**: 自由 (phase-n/a) | **分类**: 真实 LLM 验证盲点
 **类型**: debt-tracking | **主题**: R9 反作弊三模式真实 LLM 路径验证
 **状态**: pending (mock 覆盖已 ship, real LLM 未验证)
