@@ -28,6 +28,31 @@ per 2026-10-14 dual-agent 调研 (`ses_ec5f36ffaffeT3KEsoFqAUPq43`):
 - **工具 API 流式化**: `IToolRegistry::call_tool_stream(req, token, sink)` 而非 `call_tool(req)` 同步返回
 - **依赖 ToolMetadata V3 (ADR-0073)**: 工具需要声明 streaming capability, 否则无法用 V2
 - **流式回写至 bus/event_log** (per ADR-0068 留 Sprint 27+): 跨消费者可见
+
+## Status: 🔴 OPEN (2026-10-15 audit verification, 真待 ship)
+
+**Status 段补全** (per Pattern #10 hygiene):
+
+**5-维判定**:
+- 维度 1 self-declared: header 无 SUPERSEDED, 无 status
+- 维度 2 archive: ❌ (本提案为 dual-agent 调研新立, 2026-10-14 commit `3e33929` Phase B 立项)
+- 维度 3 commit: ✅ commit `3e33929` (立 4 个新独立 improvement) — 不是 ship, 是 proposal creation
+- 维度 4 ADR: ADR-0072 自身 🟡 Partial (D1 stream:true 未实施)
+- 维度 5 fallback: V1 ship 2026-09-04 (切片回放) ≠ V2 真流式 (本提案范围)
+
+**判定依据**:
+- 本提案对应 ADR-0072 D1 增量 ship (V2 真流式, 非 V1 切片回放)
+- V2 真流式需要 IToolRegistry streaming API + ToolMetadata V3 (ADR-0073) + ADR-0068 留 Sprint 27+ bus/event_log 流式回写
+- effort 估: 3-5 day (1 day IToolRegistry stream API + 1 day tool executor 改造 + 1 day DSL parser + 1 day tests + 1 day integration)
+
+**判定结论**: 🔴 OPEN (真待 ship, 需独立 OpenSpec change + 24h cooling-off 后 TDD 5-step 实施)
+
+**触发条件** (per proposal §触发条件):
+- 用户要求 "真流式 V2 长输出实时显示"
+- 任何 tool_call/shell.exec 长输出阻塞 bug 发现
+- Wave 4+ 启动需要真流式基础
+
+**Pattern 沉淀**: dual-agent 调研立项新 OPEN 提案 (per 2026-10-14 Phase B), 不是 ship drift 是真待 ship, 与类 A GATED / 类 C ship drift 区分. 本提案与 `fix-stream-handle-sink-lifecycle` (B2) + `fix-stream-handle-utf8-chunk-boundary` (B3) + `adr-0072-d4-env-vars-redaction` (B4) 同属 dual-agent Phase B 立 4 个 improvement (per commit `3e33929`).
 - **stop_token 双侧传播**: producer 侧需要 handle 取消
 
 ## What Changes (proposal scope)

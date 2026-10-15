@@ -10,6 +10,30 @@
 per 2026-10-14 dual-agent 调研 (`ses_ec5f36ffaffeT3KEsoFqAUPq43`):
 - **V1 ship (2026-09-04)**: `i_stream_handle.h` (5 虚函数) + `stream_handle.{h,cpp}` (`BufferedStreamHandle` pull + `CallbackStreamHandle` push+pull)
 - **V1 切片逻辑**: `kStreamChunkSize=64` 字节切片 (per 提案原文 + 已 ship 代码)
+
+## Status: 🔴 OPEN (2026-10-15 audit verification, 真待 ship)
+
+**Status 段补全** (per Pattern #10 hygiene):
+
+**5-维判定**:
+- 维度 1 self-declared: header 无 SUPERSEDED, 无 status
+- 维度 2 archive: ❌ (dual-agent 调研新立, 2026-10-14 commit `3e33929`)
+- 维度 3 commit: ✅ commit `3e33929` (Phase B 立 4 个 improvement)
+- 维度 4 ADR: ADR-0072 D1 stream 🟡 Partial, UTF-8 切片边界未在 spec 明确
+- 维度 5 fallback: V1 ship (2026-09-04) 切片逻辑存在, UTF-8 边界 bug 未修
+
+**判定依据**:
+- `kStreamChunkSize=64` 字节切片可能在 CJK 多字节字符中间截断, 产生无效 UTF-8 chunk
+- Metis 失败模式 5 识别: 用户输入中文 prompt + 工具输出含中文 → chunk 边界产生乱码
+- effort 估: 0.5-1 day (UTF-8 边界检测 + chunk 重对齐 + 测试 3 case)
+
+**判定结论**: 🔴 OPEN (真待 ship, 需独立 OpenSpec change + TDD 5-step 实施)
+
+**触发条件**:
+- 用户报告 "中文/日文/韩文 stream chunk 乱码"
+- 任何 UTF-8 测试 fixture 触发
+
+**Pattern 沉淀**: dual-agent Phase B 立 4 个 improvement 第 4 个, 真待 ship 不是 ship drift. 与 adr-0072-d1-stream-v2-true-streaming (B1) + adr-0072-d4-env-vars-redaction (B4) + fix-stream-handle-sink-lifecycle (B2) 同源 (per 2026-10-14 调研).
 - **bug 场景**: 64 字节切片可能在 UTF-8 多字节字符中间截断
   - ASCII 安全 (1 byte = 1 char)
   - CJK 危险: UTF-8 中文 = 3 bytes/char, 64 字节可能落在第 22 字符中间

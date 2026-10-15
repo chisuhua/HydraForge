@@ -10,6 +10,32 @@
 per 2026-10-14 dual-agent 调研 (`ses_ec5f38a92ffeLuZb4aIXmev0j3`):
 - **V1 ship (2026-09-04)**: `node_executor.h:82,108` `set_stream_sink()` 注入点 (raw pointer, 与 `set_tool_coordinator` 模式一致)
 - **Oracle C2 风险**: sink 的 owner 谁负责销毁?
+
+## Status: 🔴 OPEN (2026-10-15 audit verification, 真待 ship)
+
+**Status 段补全** (per Pattern #10 hygiene):
+
+**5-维判定**:
+- 维度 1 self-declared: header 无 SUPERSEDED, 无 status
+- 维度 2 archive: ❌ (dual-agent 调研新立, 2026-10-14 commit `3e33929`)
+- 维度 3 commit: ✅ commit `3e33929` (Phase B 立 4 个 improvement)
+- 维度 4 ADR: ADR-0072 D1 stream 🟡 Partial, sink lifecycle 未在 spec 明确
+- 维度 5 fallback: V1 ship (2026-09-04) 注入点存在, sink owner RAII 未定义
+
+**判定依据**:
+- NodeExecutor 持有 `stream_sink_` raw pointer (per `node_executor.h:82,108`)
+- sink owner 未明确定义, 可能 UAF (Use After Free) when NodeExecutor 析构前 sink 先析构
+- 与 `set_tool_coordinator` 模式一致 (也用 raw pointer), 但 sink 是 streaming-only 接口, lifecycle 风险更高
+- effort 估: 1-2 day (raw pointer → shared_ptr 或 unique_ptr + owner 明确声明)
+
+**判定结论**: 🔴 OPEN (真待 ship, 需独立 OpenSpec change + TDD 5-step 实施)
+
+**触发条件**:
+- 用户要求 "NodeExecutor sink lifecycle 安全"
+- 任何 UAF 测试触发 (TSan warning)
+- Wave 3 Phase 2+ 启动需 streaming 基础
+
+**Pattern 沉淀**: dual-agent Phase B 立 4 个 improvement 第 3 个, 是真待 ship 不是 ship drift. 与 adr-0072-d1-stream-v2-true-streaming (B1) + adr-0072-d4-env-vars-redaction (B4) + fix-stream-handle-utf8-chunk-boundary (B3) 同源 (per 2026-10-14 调研).
   - 若 sink 注入方 (caller) 析构 sink 后 NodeExecutor 仍持 dangling pointer → 下次执行 UAF
   - 与 ADR-0001 / 现有 ToolCoordinator raw pointer 模式同问题, 但**未文档化 owner 契约**
 - **提案 D5 验收**: "handle 析构 RAII 顺序" 只覆盖 handle 自身, 不覆盖 NodeExecutor 持有的 sink 指针

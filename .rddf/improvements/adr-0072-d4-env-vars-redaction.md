@@ -48,6 +48,32 @@ ctx.metadata["env_vars"] = {"API_TOKEN": "secret_abc123"};  // 原样存储
 3. **PG-13 context 写盘**: event_log 是 JSONL, secrets 永久写入磁盘
 4. **跨进程 SKILL 调用**: `SkillInterpreter` IPC 传递 metadata 时 secrets 可能 leak
 
+## Status: 🔴 OPEN (2026-10-15 audit verification, 真待 ship)
+
+**Status 段补全** (per Pattern #10 hygiene):
+
+**5-维判定**:
+- 维度 1 self-declared: header 无 SUPERSEDED, 无 status
+- 维度 2 archive: ❌ (本提案为 dual-agent 调研新立, 2026-10-14 commit `3e33929` Phase B 立项)
+- 维度 3 commit: ✅ commit `3e33929` (立 4 个新独立 improvement) + 关联 `dbd01d6` (R13.4 bug fixes OpenSpec, 与本提案正交)
+- 维度 4 ADR: ADR-0068 §3.1 api_key redaction 协议存在 (借鉴目标), env_vars 字段缺协议层
+- 维度 5 fallback: backend-parser ship 2026-09-03 + 测试 fixture secret_abc123 + 真实风险未触发
+
+**判定依据**:
+- 本提案需 env_vars 字段 redaction 协议 (与 ADR-0068 §3.1 api_key redaction 同类)
+- 测试 fixture (`test_dsl_extensions.cpp:410-509`) 已用假 secret, CI 不泄漏, 但**未来真 token 测试会泄漏**
+- Metis 真实场景: PG-13 context 写盘 + Audit 工具读取 trace + 跨进程 SKILL IPC 4 类风险
+- effort 估: 1-2 day (1 day redact_env_vars helper + redaction 调用点 + 测试 + audit log 不写原值)
+
+**判定结论**: 🔴 OPEN (真待 ship, 需独立 OpenSpec change + 24h cooling-off 后 TDD 5-step 实施)
+
+**触发条件** (per proposal §触发条件):
+- 用户要求 "env_vars secrets 不入日志/trace"
+- 任何 PG-13 / Audit 工具读取 trace 触发 leak
+- Wave 4 sandbox infra ship 强制 secrets 不入 trace
+
+**Pattern 沉淀**: dual-agent 调研立项新 OPEN 提案 (per 2026-10-14 Phase B), 不是 ship drift 是真待 ship, 与 adr-0072-d1-stream-v2-true-streaming + fix-stream-handle-{sink-lifecycle, utf8-chunk-boundary} 同属 dual-agent Phase B 立 4 个 improvement. 本提案与 R13.4-redaction-bug-fixes OpenSpec change (`dbd01d6`) 正交 (R13.4 修 2 真 bug, 本提案新增 env_vars 协议层).
+
 ## What Changes (proposal scope)
 
 - **修复 1**: `node_factory.cpp:37-47` env_vars 解析时, 标记 secrets key 集合 (e.g. `*_TOKEN`, `*_KEY`, `*_SECRET`, `*_PASSWORD`, `API_KEY`)
