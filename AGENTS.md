@@ -1619,6 +1619,51 @@ context_ids: N/A (文档 commit, 无 ContextRequest)
 
 ---
 
+## 2026-10-15 提案 4 实施推进 (ses_ec5f47664ffesw8JNHgAwvAe1C 续)
+
+**触发**: 用户决策 "继续推进提案4实施"
+
+**推进路径**: rdd-planner stage DONE (.planner-handoff.json v6, recommended_route=complex) → rdd-builder P0 case 4 revise (improvement 5-segment 格式重写, commit fc5749f) → rdd-builder P0 case 1 approve (5-segment 修订后重决策) → P1 OpenSpec change 6 文件创建 (commit 即将) → P2 实施待 24h cooling-off 后启动.
+
+**OpenSpec change 已 ship 6-file integrity (per Day-5 lesson)**:
+- `openspec/changes/2026-10-15-harness-mutation-commit-real-llm/.openspec.yaml` (891 bytes, pre_impl_dual_agent_review metadata)
+- `openspec/changes/2026-10-15-harness-mutation-commit-real-llm/proposal.md` (10478 bytes, 4 cases redesign + 6 pre_issues + 14 AC)
+- `openspec/changes/2026-10-15-harness-mutation-commit-real-llm/design.md` (12154 bytes, 8 Decisions + TDD 5-step)
+- `openspec/changes/2026-10-15-harness-mutation-commit-real-llm/tasks.md` (7296 bytes, 10 阶段 TDD)
+- `openspec/changes/2026-10-15-harness-mutation-commit-real-llm/specs/harness-mutation-commit-real-llm/spec.md` (8946 bytes, 8 Requirements, R5 UPDATED descope)
+- **openspec validate**: ✅ exit 0 (per Day-5 lesson)
+
+**P0 case 4 revise 教训沉淀**:
+- improvement 原文件是 AGENTS.md Pattern #10 hygiene 风格 (h1+5 fields+3 fields+Status), 与 rdd-builder 期望的 5-segment (Why/What Changes/Acceptance/Capabilities/Impact) 不兼容
+- rdd-builder P0 自动决策 (per ADR-0049 + UX 需求): case 4 (revise) → 重写 5-segment 格式 → 重决策 case 1 (approve)
+- 这是项目惯例 (全 74 improvement 都是 hygiene 风格) 与 rdd-builder 期望的标准 5-segment 之间的 **process gap**. **架构级 fix 候选**: `add-improve` skill 应直接产出标准 5-segment 格式, 避免 rdd-builder 阶段 4 revise 反复
+
+**4 cases redesign 核心 (per dual-agent 共识)**:
+- Case 1: state consistency assertion (非固定路径) — per AGENTS.md Pattern #3
+- Case 2: InMemoryBus wait_for_drain() 守卫 — per Pattern #9 contract drain API
+- Case 3: 确定性非法 input 构造 (非 LLM 输出依赖) — per Oracle C2 + Metis AI 失败模式 #2
+- Case 4: descope (drop_ratio 物理不可行) — per 2026-10-06 l2-evolution-real-llm-provider C4 deferred ack
+
+**6 pre_issues 全部 in proposal.md 设计段**:
+1. ✅ Case 1/3 断言 redesign (D1 + R1 Scenario)
+2. ✅ Case 3 确定性构造 (D2 + R4 Scenario)
+3. ✅ Case 4 descope (D3 + R5 Scenario)
+4. ✅ Recording Provider 守卫 (D4 + R2)
+5. ✅ hermetic HOME fixture (D5 + R3)
+6. ✅ must_realllm label 复用既有 (D7 + R7)
+
+**Pattern 沉淀 (新增 3 项)**:
+1. **rdd-builder P0 5-segment 校验** — improvement 缺标准 5-segment 触发 case 4 revise, 项目惯例 (Pattern #10 hygiene) 与 rdd-builder 期望的 gap
+2. **openspec validate spec 格式** — 每个 Requirement 需 #### Scenario: block + SHALL/MUST 关键词, 缺则报错 (Day-5 lesson 加强版)
+3. **dual-agent 共识 → spec 8 Requirements** — 4 强命中 + 4 独占发现 → 8 R1-R8 显式记录, 防止实施时遗忘
+
+**下一步 (24h cooling-off 后)**:
+- P2 实施: TDD 5-step 真实写测试代码 (RecordingLLMProvider + HermeticGenomeHome + 4 cases)
+- P2.5: Oracle SHIP-with-fixes review (per Pattern #4)
+- P3: archive (git mv 到 archive/) + verifier retry loop (max 3 per ADR-0034)
+
+---
+
 ## 2026-10-14 P0 OPEN 4 提案 Dual-Agent 调研 (ses_ec5f47664ffesw8JNHgAwvAe1C)
 
 **触发**: 用户决策 "oracle + metis 调研P0 4个提案，给出后续推进建议"

@@ -1,0 +1,22 @@
+id: harness-mutation-commit-real-llm
+title: Harness mutation commit + IGenomeRegistry persist 真实 LLM 端到端
+status: draft
+priority: p0
+kind: feature
+owner: solo-dev
+created: 2026-10-15
+last_updated: 2026-10-15
+roadmap_theme: real-llm-validation
+adr_refs:
+  - docs/adr/adr-0088-h-d-m-transition-guard.md (H-D-M transition)
+  - docs/adr/adr-0086-credit-assignment-contract.md (credit assignment)
+  - docs/adr/adr-0083-mutation-governance-contract.md (MutationGate)
+  - docs/adr/adr-0068-event-emission-contract.md (event bus, Appendix A v2.3 genome.*)
+pre_impl_dual_agent_review:
+  report: .rddf/audits/2026-10-14-p0-proposals-dual-agent-review.md
+  oracle_session: ses_ec5f38a92ffeLuZb4aIXmev0j3
+  metis_session: ses_ec5f36ffaffeT3KEsoFqAUPq43
+  convergence_signals: 4
+  exclusive_findings: 4
+pre_issues_must_resolve_before_p0_case_1_approve: 6
+cooling_off_until: 2026-10-16T00:00:00Z
