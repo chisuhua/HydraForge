@@ -118,6 +118,25 @@ The `L2 spec §R13.4 Sensitivity Redaction Policy` MUST be interpreted as the fo
 
 The original spec text (line 409) lists `expected_eval_quality` in the `confidential` redaction column. This change makes the implementation match the spec, by extending the redaction function. No spec text change is required (spec is already correct; implementation gap is being fixed).
 
+#### Scenario: redact_trace_fields MUST cover all 5 spec-line-409 fields for confidential sensitivity
+
+- **WHEN** any `phase2_baseline` / `phase4_reload_rerun` / `phase5_compare` emits a trace event
+- **AND** the ContextRequest `metadata.sensitivity == "confidential"`
+- **THEN** `redact_trace_fields(json, "confidential")` MUST replace, before `tracer_->record_phase()` is called:
+  - `event["turn_input"]` → `"[REDACTED-confidential]"` (per spec 409)
+  - `event["response"]` → `"[REDACTED-confidential]"` (per spec 409)
+  - `event["expected_eval_quality"]` → `"[REDACTED-confidential]"` (per spec 409, **previously missing — Bug 1 of this change**)
+  - `event["meta"]["tags"]` → `"[REDACTED-confidential]"` (per spec 409)
+  - `event["meta"]["domain"]` → `"[REDACTED-confidential]"` (per spec 409)
+- **AND** MUST preserve `event["meta"]["context_id"]` + `event["meta"]["task_class"]` + `event["meta"]["sensitivity"]` (audit trail, per spec 409 NOTE)
+
+#### Scenario: per-context ChatSession reset MUST prevent cross-context leak
+
+- **WHEN** `run_6_phase_demo` processes context `ctx_n` after processing `ctx_{n-1}`
+- **AND** `ctx_{n-1}.turn_input` was sent through `ChatSession::chat` previously
+- **THEN** `ctx_n` LLM call payload `history` field MUST NOT contain `ctx_{n-1}.turn_input` plaintext
+- **AND** `chat_session_` MUST be reset on `phase2_baseline` entry (per design D1 option A, **Bug 2 of this change**)
+
 ## REMOVED Requirements
 
 None. This change is purely additive (extending existing redaction function with one more field check, and adding per-context reset to phase2_baseline).

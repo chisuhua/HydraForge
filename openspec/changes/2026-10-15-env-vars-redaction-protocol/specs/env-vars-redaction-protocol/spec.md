@@ -7,7 +7,7 @@
 
 ### Requirement: env_vars 字段 secrets 整字段替换为 `[REDACTED]`
 
-`redact_env_vars` helper 必须对 env_vars 字段值进行整字段替换, 当 keys 不在 `allowed_env_vars` 白名单时。
+`redact_env_vars` helper MUST 对 env_vars 字段值进行整字段替换, 当 keys 不在 `allowed_env_vars` 白名单时。
 
 #### Scenario: 白名单 keys 保留 + 非白名单 keys 替换
 
@@ -46,7 +46,7 @@
 
 ### Requirement: env_vars_audit event emit (per ADR-0068 Appendix A v2.5)
 
-每次 `redact_env_vars` 调用必须 emit `env_vars_audit` event, 含 keys 列表不含 values。
+每次 `redact_env_vars` 调用 MUST emit `env_vars_audit` event, 含 keys 列表不含 values。
 
 #### Scenario: env_vars_audit event 含 keys 不含 values
 
@@ -60,7 +60,7 @@
 
 ### Requirement: 性能预算 <10µs/op
 
-`redact_env_vars` 必须 <10µs/op 平均耗时 (per AC-1 Case 6 performance benchmark)。
+`redact_env_vars` MUST <10µs/op 平均耗时 (per AC-1 Case 6 performance benchmark)。
 
 #### Scenario: 1000 iter × <10µs/op
 
@@ -72,7 +72,7 @@
 
 ### Requirement: backward-compat + 渐进迁移 (decision 6)
 
-`redact_env_vars` 默认 `allowed_env_vars = {"*"}` 行为 backward-compat, 现有 12 fixture 零行为变化。
+`redact_env_vars` 默认 `allowed_env_vars = {"*"}` 行为 MUST backward-compat, 现有 12 fixture 零行为变化。
 
 #### Scenario: 现有 12 fixture 零行为变化
 
@@ -94,6 +94,8 @@
 
 ### Requirement: ADR-0068 Appendix A v2.5 — env_vars_audit 主题注册
 
+The ADR-0068 Appendix A MUST register `env_vars_audit` as a new event topic (owner=`env_validation_hook`, payload `keys: list<string>` + `node_id: string`). The existing v2.4 topics MUST NOT be altered.
+
 > **MODIFIED**: 现有 ADR-0068 Appendix A v2.4 扩展为 v2.5, 新增 1 主题 `env_vars_audit` (owner=`env_validation_hook`, payload `keys: list<string>` + `node_id: string`)
 
 #### Scenario: env_vars_audit 主题注册 + 发射
@@ -105,6 +107,8 @@
 - **AND** SHELL API 现有 4 主题 (v2.4: mutation_metric_rejected / turn_input_network_keyword_rejected / hidden_context_accepted_info / hint_containment_rejected) 保持不变
 
 ### Requirement: ADR-0075 §不变量 4 — env_vars 仅透传白名单
+
+The ADR-0075 §不变量 4 MUST add the constraint that env_vars values not in the whitelist MUST be redacted to `"[REDACTED]"` via `redact_env_vars` before they leave the agenticdsl process, AND MUST reference `docs/specs/env-redaction.md`.
 
 > **MODIFIED**: 现有 ADR-0075 §不变量 4 (env_vars 仅透传 `ExecOptions.env` 显式声明, 不继承 parent env) 扩展, 引用 `redact_env_vars` 协议
 
