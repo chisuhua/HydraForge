@@ -1,0 +1,59 @@
+{
+  "schema": "builder-handoff-v1.5",
+  "version": 2,
+  "owner": "rdd-builder",
+  "change_name": "harness-mutation-commit-real-llm",
+  "current_phase": "phase-2-execute",
+  "approval_status": "phase_2_started_with_cooling_off_override",
+  "phase_history": [
+    {
+      "phase": "phase-0",
+      "sub_phase": "case_4_revise",
+      "timestamp": "2026-10-15T08:30:00+00:00",
+      "decision": "revise",
+      "reason": "improvement file originally used AGENTS.md Pattern #10 hygiene format, not standard 5-segment. rdd-builder P0 expects 5-segment per ADR-0025 D1/D2.",
+      "commit": "fc5749f"
+    },
+    {
+      "phase": "phase-0",
+      "sub_phase": "case_1_approve",
+      "timestamp": "2026-10-15T10:48:00+00:00",
+      "decision": "approve",
+      "reason": "5-segment 修订完成, 6 pre_issues documented, 4 cases redesign per dual-agent consensus, AGENTS.md Reverse Indicator Rule R3 元指标实证需求触发",
+      "commit": "04c653a"
+    },
+    {
+      "phase": "phase-1",
+      "sub_phase": "openspec_creation",
+      "timestamp": "2026-10-15T10:48:00+00:00",
+      "decision": "approve_6file_openspec",
+      "commit": "04c653a",
+      "files": [
+        ".openspec.yaml (891 bytes)",
+        "proposal.md (10478 bytes)",
+        "design.md (12154 bytes)",
+        "tasks.md (7296 bytes)",
+        "specs/harness-mutation-commit-real-llm/spec.md (8946 bytes)"
+      ],
+      "validation": "openspec validate exit 0"
+    },
+    {
+      "phase": "phase-2",
+      "sub_phase": "cooling_off_override",
+      "timestamp": "2026-10-15T11:20:00+00:00",
+      "decision": "override_24h_cooling_off",
+      "cooling_off_audit": {
+        "original_decision": "24h cooling-off (per AGENTS.md Single-Dev Mode default, user choice 2026-10-15 '单 atomic commit + 24h cooling-off')",
+        "override_decision": "立即推进 P2 实施 (user choice 2026-10-15 '继续推进 P2')",
+        "override_trigger": "user 连续 2 轮决策显式意图推进, 接受 Wave 3 G2 precedent HARD pause override 模式",
+        "override_at": "2026-10-15T11:20:00+00:00",
+        "override_by": "user",
+        "risk_assumption": "由 user 承担 (Single-Dev 模式, 24h cooling-off 是 user 自我保护机制)",
+        "original_cooling_off_end": "2026-10-16T10:48:00Z (per openspec creation 2026-10-15T10:48:00Z + 24h)",
+        "actual_p2_start": "2026-10-15T11:20:00+00:00 (override 提前 23h28m 启动)"
+      }
+    }
+  ],
+  "next_phase": "phase-2-execute",
+  "next_action": "TDD Step 1: RED 写失败测试 (RecordingLLMProvider + HermeticGenomeHome fixtures + 4 cases)"
+}

@@ -1664,6 +1664,41 @@ context_ids: N/A (文档 commit, 无 ContextRequest)
 
 ---
 
+## 2026-10-15 提案 4 ship 完成 (ses_ec5f47664ffesw8JNHgAvv1C 续)
+
+**推进路径**: rdd-arch → rdd-planner → rdd-builder P0 → P1 → P1.5 → P2 (commit 7af59b7) → P2.5 Oracle SHIP-with-fixes 4 Major + 6 Minor 修正 (commit 0477ead) → P3 archive (本 entry 后续 commit).
+
+**📦 4 Commits (rdd-builder P0 → P3)**:
+- `fc5749f` chore(improvement): harness-mutation-commit-real-llm 5-segment 格式重写 (rdd-builder P0 case 4 revise)
+- `04c653a` feat(openspec): harness-mutation-commit-real-llm OpenSpec change 创建 (rdd-builder P0 case 1 approve)
+- `7af59b7` test(harness-mutation): P2 TDD 5-step 实施 (4 cases redesign per dual-agent 2026-10-14)
+- `0477ead` test(harness-mutation): P2.5 SHIP-with-fixes 修正 (M1 路径 A + M2-M4 + Minor 1-6)
+
+**🔄 P2.5 Oracle SHIP-with-fixes 修正 (per ses_ec25297b2 评审)**:
+- **M1 路径 A**: 移除 must_realllm label + 4 处 `must_require_real_llm_env()` 门 + 死分支 (RecordingLLMProvider 类 + generate_prompt_delta_via_real_llm 函数 + generate_uuid_v4 重实现)
+  - 根因: 实施未调真 LLM (Recording Provider 0 实例化), 命中 AGENTS.md 2026-09-29 "must_realllm 误标" 反模式第二次实例 (per 早 session 沉淀)
+  - 修正: 重命名为 `test_harness_mutation_commit_persist` 集成测试 (deterministic, 无 LLM 依赖)
+- **M2 descope**: spec R2 Recording Provider 守卫 DESCOPED (按 Case 4 descope 先例格式, 真实 LLM 守卫需求属独立 must_realllm change 范围)
+- **M3 修正 payload 字段**: Case 2 断言 4 字段 (genome_name/version/parent/mutation_kind + meta.trace_id), 校准 `src/evolution/harness_rsi.cpp:225-228` 实际 emit 契约 (原 spec 写错 genome_version/parent_version/mutation_diff)
+- **M4 校正事件契约**: Case 3 接 CapturingBus 验证 `genome.committed` MUST NOT trigger (denied 路径零事件发射), spec R4 明确 `genome.persist_failed` 不在本 change scope (属独立 Gate 3 persist 失败 change 范围)
+- **Minor 1-6 全部随 M1 一起修**: 假 drain 守卫 (CapturingBus 无 wait_for_drain 同步 emit 矛盾) / Case 4 移出 must_realllm 噪声 / 死代码清理 / 补 `<random>` include / 修正 `context_ids: N/A` / AC-12/13 待 P3 archive 前补
+
+**✅ 4/4 cases PASS, 35 assertions, 0.01s deterministic**:
+- Case 1: state consistency assertion (per D1, 非固定路径)
+- Case 2: payload 4 字段断言 (per M3 + 实际 emit 契约)
+- Case 3: CapturingBus 验证 genome.committed MUST NOT trigger (per M4)
+- Case 4: drop_ratio descope ack (per D3)
+
+**📊 baseline 零回归**: ctest -LE must_realllm 267/267 PASS, 0 src/ 改动, drop_ratio=0% 维持.
+
+**🔍 Pattern 沉淀 (增量 2 项, 共 5 项本会话)**:
+1. **must_realllm 误标反模式第二次命中 (2026-10-15)** — 第一次 (2026-09-29) 删了 `test_fork_join_real_llm`, 第二次 P2 commit 7af59b7 同样标 must_realllm 但 0 调用 provider. **建议**: 升级为 checklist 硬门 ("新 must_realllm test 必须在 proposal 引用至少 1 处 provider->generate 调用点")
+2. **Oracle SHIP-with-fixes 评审对 test 实施的价值** — 4 Major 中 M1 触及"立项核心承诺未交付"红线, M3/M4 修正 spec 契约 (避免把不实声称固化进 archive). 评审 ROI 显著, 建议对所有含"必须调 X"的 proposal 触发 Oracle 评审
+
+**P3 archive 状态**: 进行中 (本 commit 后续). HARD pause override 已 ship (per `0477ead` builder-handoff.json cooling_off_override_audit, user 承担风险)
+
+---
+
 ## 2026-10-14 P0 OPEN 4 提案 Dual-Agent 调研 (ses_ec5f47664ffesw8JNHgAwvAe1C)
 
 **触发**: 用户决策 "oracle + metis 调研P0 4个提案，给出后续推进建议"

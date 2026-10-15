@@ -1,45 +1,61 @@
 {
   "schema": "planner-handoff-v1.1",
-  "version": 5,
+  "version": 6,
   "owner": "rdd-planner",
-  "planner_complete_at": "2026-10-09T12:30:00+00:00",
-  "current_sprint": "sprint-2026-10",
+  "planner_complete_at": "2026-10-15T08:00:00+00:00",
+  "current_sprint": "sprint-2026-10-real-llm",
   "proposals_ready": [
-    "2026-10-09-consolidate-loop-phases-to-shared-helpers"
+    "harness-mutation-commit-real-llm"
   ],
   "proposals_approved_count": 0,
-  "proposals_archived_count": 1,
-  "proposals_archived": [
-    "h-d-m-transition-guard"
-  ],
+  "proposals_archived_count": 0,
+  "proposals_archived": [],
   "features_active": [
     {
-      "feature_id": "phase-6c-loop-phase-consolidation",
-      "change_name": "2026-10-09-consolidate-loop-phases-to-shared-helpers",
-      "priority": "P1",
-      "theme": "PDK Agent Loop phase consolidation (ADR-0021 §3.2 amendment + new ADR-0089 v1.3)",
+      "feature_id": "real-llm-harness-closure",
+      "change_name": "harness-mutation-commit-real-llm",
+      "priority": "🔴 P0",
+      "theme": "Harness mutation commit + IGenomeRegistry persist 真实 LLM 端到端 (Genome wiring 闭环第 7 环补全)",
       "status": "improvement 5-segment draft complete, awaiting OpenSpec change creation by rdd-builder P0",
-      "adr_path": "docs/adr/adr-0089-v1-3-amendment-loop-phase-shared-helpers.md (🔍 Proposed)",
-      "improvement_path": ".rddf/improvements/consolidate-loop-phases-to-shared-helpers.md (238 lines)",
+      "adr_path": "(无新 ADR, IMPLEMENTATION 类别, per rdd-arch adr_gate.sh)",
+      "improvement_path": ".rddf/improvements/harness-mutation-commit-real-llm.md",
       "dual_review_sessions": [
-        "ses_edfe8b94effeLHZtjyKMyWFTXO (Metis: intent + ambiguity + AI failure modes)",
-        "ses_edfe8b7daffeysJHJPj9PaG5SZ (Oracle: architecture + test migration + ABI)"
+        "ses_ec5f38a92ffeLuZb4aIXmev0j3 (Oracle: 架构可行性 + 物理风险 + Critical Issues)",
+        "ses_ec5f36ffaffeT3KEsoFqAUPq43 (Metis: 隐藏意图 + 歧义 + AI 失败模式 + 范围蔓延)"
       ],
-      "feedback_status": "Oracle SHIP-with-fixes verdict: scope must narrow to phase-level shared helpers (not full DSL replacement); C++ classes become thin shells; retry control flow stays in C++ (DAG cannot express)",
-      "mapped": true,
+      "feedback_status": "Oracle + Metis 独立交叉验证 4 项强命中 (A/B/C/D) + 4 项独占发现 (E/F/G/H). 3 个前置必修正 (Case 1/3 断言 redesign + Case 3 gate denied 确定性构造 + Case 4 drop_ratio descope). 6 个 hard requirement (per .arch-handoff.json trigger_pre_issues)",
+      "pre_impl_dual_agent_review_report": ".rddf/audits/2026-10-14-p0-proposals-dual-agent-review.md",
+      "pre_issues_must_resolve_before_rdd_builder_p0": [
+        "Case 1/3 断言 redesign — 改状态一致性而非固定路径 (per AGENTS.md Pattern #3 分层断言)",
+        "Case 3 gate denied 确定性构造 — 用确定性非法输入 (非 LLM 输出依赖, 防 flaky)",
+        "Case 4 drop_ratio descope 或 ≥3 contexts (L2 1-2 contexts 粒度物理不可行, per 2026-10-06 实证)",
+        "Recording Provider 守卫 (per AGENTS.md §5 守卫 CI 路径零防护)",
+        "hermetic HOME fixture (per 2026-09-21 C1 genome.key fresh-deploy 教训)",
+        "must_realllm label + must_require_real_llm_env() helper (per 2026-09-29 ship 机制)"
+      ],
       "key_constraints": [
-        "DSL DAG cannot express back-edge (TopoScheduler:586) — retry must stay in C++",
-        "DEFINE_AGENT/LoopDispatcher compile-time dep on 3 C++ classes — G1 breaks if deleted",
-        "test_plan_execute_realllm 3 must_realllm cases assert exact C++ strings — no DSL equivalent",
-        "ForkJoinLoop semantics unchanged (user decision D4) — ADR-0087 benchmark preserved",
-        "model.clear() must be preserved in helper (fix-generation-request-model-default lineage)"
+        "Genome wiring 闭环第 7 环已 ship (commit 2026-09-22 archive/genome-wiring-harness-rsi-gepa-2026-09-22/), 仅缺真实 LLM 验证层",
+        "test_harness_rsi_pilot.cpp 22/22 mock + test_genome_registry.cpp 13/13 mock 是 baseline, 必须零回归",
+        "test_harness_mutation_proposal_real_llm 1/1 real LLM smoke 存在, 本 change 扩展 4 cases",
+        "Gate 0-3 是确定性规则 (不是 LLM 评分) — 提案 self-declared '真实 LLM 评分' 误称, 实施时需重写 Case 描述",
+        "ADRs 6 个相关: ADR-0037 (CausalClock) / ADR-0042 (ILLMProvider v2) / ADR-0068 (event contract) / ADR-0083 (MutationGate) / ADR-0084 (Mutation Governor) / ADR-0086 (credit-assignment) / ADR-0087 (cloud threading) / ADR-0089 (loop amendments) — 全部已 ship ✅",
+        "不依赖 fork-join DSL 历史 BUG 系列 (h-d-m-transition-guard 已 ship)"
+      ],
+      "mapped": true,
+      "trigger_conditions_for_arch_handoff_satisfied": [
+        "✅ user-explicit request (本次会话提问即触发条件 1)",
+        "✅ 自进化 v1.5 §R3 元指标实证 (trigger 条件 2)",
+        "⏸ Wave 3 Phase 2 D4 LoRA 启动 (trigger 条件 3, 等待)"
       ]
     }
   ],
   "awaiting_builder": [
-    "2026-10-09-consolidate-loop-phases-to-shared-helpers"
+    "harness-mutation-commit-real-llm"
   ],
   "recommended_route": "complex",
-  "governance_notes": "2026-10-09 rdd-arch stage DONE (ADR-0089 v1.3 🔍 Proposed, adr_count 103→104, arch-handoff.json updated) → rdd-planner stage DONE (improvement 5-segment draft 238 lines, capturing dual-agent review findings + 5-decision rationale + 5 invariant + must_realllm regression gate). | Metis DB-1/DB-2/DB-3 + Oracle C1/C2/M1/M3/M4 收敛点 = Pattern #8 dual-agent 最高置信度修正优先级. | rdd-builder P0 complex route (10 files, 1-2 day effort, architecture amendment, must_realllm regression gate). | 24h cooling-off applies to OpenSpec change (per AGENTS.md Single-Dev Mode), starts after rdd-builder P0 creates change artifacts. | rdd-builder P0 user-explicit pause for cooling-off expiration before opening worktree.",
-  "active_objectives": []
+  "governance_notes": "2026-10-14 rdd-arch stage DONE (105 ADRs, arch-handoff.json updated, 6 pre-issues recorded) → 2026-10-15 rdd-planner stage DONE (improvement audit via dual-agent review, 4 强交叉命中 + 4 独占发现, 6 pre_issues_must_resolve_before_rdd_builder_p0 recorded). | rdd-builder P0 complex route (multi-file: 1 test binary + 1 OpenSpec change + hermetic fixture + recording provider; 1-2 day effort; must_realllm label; sensitive CI gating). | 24h cooling-off applies to OpenSpec change (per AGENTS.md Single-Dev Mode), starts after rdd-builder P0 creates change artifacts. | rdd-builder P0 MUST resolve 6 pre_issues BEFORE OpenSpec change creation (per arch-handoff.json trigger_pre_issues). | Phase 0 roadmap-bootstrap SKIPPED: project uses .rddf/roadmap/2026-10-07-post-l2-real-llm-roadmap.md as roadmap workspace (single-dev mode simplification, no .rddf/roadmap.md required).",
+  "active_objectives": [],
+  "skip_rationale": {
+    "phase_0_roadmap_bootstrap": "Project maintains roadmap in .rddf/roadmap/*.md (2 files: 2026-09-21-pre-wave3 + 2026-10-07-post-l2) rather than single .rddf/roadmap.md. Single-Dev mode simplification per AGENTS.md Single-Dev section."
+  }
 }
