@@ -60,3 +60,22 @@ ADR-0074 D4 Evidence Gate 决议是 Phase 6c 启动前置（parse-valid ≥85% +
 - 决议文档与 active-status.md 联动（决议日 + baseline 引用）。
 - ctest 全量零回归。
 - 阻塞 Phase 6c 启动条件（4 项启动条件之一）。
+
+## Status: ⛔ SUPERSEDED by from-roadmap-phase-6c-evidence-gate (2026-09-02)
+
+**Status 段补全** (per Pattern #10 hygiene, 2026-10-15 audit verification):
+
+**5-维判定**:
+- 维度 1 self-declared: header `> **status: SUPERSEDED by from-roadmap-phase-6c-evidence-gate (2026-09-02)**` 已标注
+- 维度 2 archive: ✅ `openspec/changes/archive/2026-09-01-from-roadmap-phase-6c-evidence-gate/` (per commit `911d19f` 2026-09-03 6b SUPERSEDED 批量标记)
+- 维度 3 commit: ✅ commit `911d19f` (mark 6 Phase 6b proposals SUPERSEDED)
+- 维度 4 ADR: 关联 ADR-0074 D4 Evidence Gate 决议 (状态 待 audit 验证)
+- 维度 5 fallback: 6c-evidence-gate 已 ship (per `from-roadmap-phase-6c-evidence-gate.md:## Status: ✅ SHIPPED (2026-10-14 audit verification)`)
+
+**关联 ship 提案**:
+- `from-roadmap-phase-6c-evidence-gate` ✅ SHIPPED (早 session 2026-10-14 audit 实证 + commit `847c9f8` 2026-10-14 hygiene)
+- 6c 版 替代 6b 版 Evidence Gate 决议 (per `iteration.json` 8/8 archived + Phase 6c 2026-09-02 ship 收官)
+
+**判定结论**: ⛔ SUPERSEDED (本提案 6b Evidence Gate 决议被 6c-evidence-gate 替代 ship, 本提案保留作历史设计意图记录, 详见 `proposal-suggestions.md` §3.2)
+
+**Pattern 沉淀**: 6b 头注 `> **status: SUPERSEDED by from-roadmap-phase-6c-evidence-gate (2026-09-02)**` 已标注 (commit `911d19f` 2026-09-03 6 个 6b 提案 SUPERSEDED 批量标记), 但**缺标准 ## Status 段** (本日 hygiene 模式 5 字段格式). 本 commit 补全标准化 Status 段.
