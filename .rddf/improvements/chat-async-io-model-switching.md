@@ -36,3 +36,25 @@
 - next_model_ 持久化 + 重启后生效测试 PASS。
 - 切换不中断当前 turn 的并发测试 PASS（启动长 turn → 切换 → 当前 turn 完成）。
 - ctest 全量零回归。
+
+## Status: ✅ SHIPPED (2026-08-09, Wave 3-A Phase C FINAL)
+
+**Ship evidence** (验证日期 2026-10-15 via 本会话 5-维静态 ship 判定):
+- **OpenSpec archive**: `openspec/changes/archive/2026-08-09-chat-async-io-model-switching/` (per commit `6625072`)
+- **代码 ship commits**:
+  - `cc37d2d` (2026-08-09) feat(pdk-chat-demo): OpenSpec change 创建 (Wave 3-A Phase C FINAL, /model runtime switching via DECLARE_COMMAND)
+  - `526c88b` (2026-08-09) feat(pdk-chat-demo): Phase C - /model runtime switching (ChatSession request_model_switch + next_model_ + mutex)
+  - `6625072` (2026-08-09) archive: move to archive/
+  - `a208bc3` (2026-08-09) docs(sync): ship record (Wave 3-A FINAL)
+- **代码实证** (commit `526c88b`):
+  - `examples/pdk_chat_demo/chat_session.h` — `bool request_model_switch(provider_name)` + `std::string next_model()` declarations
+  - `examples/pdk_chat_demo/chat_session.cpp` — Impl 加 `next_model_` + `next_model_mutex_`; request_model_switch 验证 mock-mode + mutex 存储; next_model 返回当前 pending target
+- **依赖 chain 闭环** (Wave 3-A FINAL 阶段):
+  - Phase 0 `fix-tool-registry-signal-handler-shutdown` (commit `29a7a06`) ✅ SHIPPED
+  - Phase A `chat-async-io-queue-infra` (本会话 hygiene `6edbfc8`) ✅ SHIPPED
+  - Phase B `chat-async-io-cancellation-chain` (本会话 hygiene `fe15dcb`) ✅ SHIPPED
+  - Phase C (本提案) ✅ SHIPPED 2026-08-09
+- **配套依赖**: `provider-dynamic-discovery` (✅ SHIPPED 2026-08-06) 提供 provider 字符串 → ILLMProvider 路由能力
+- **设计意图**: /model 切换不强制中断当前 turn (Phase B stop_token 链路保证), next_model_ 持久化 session JSONL, 复用 provider-dynamic-discovery 路由
+
+**Pattern 沉淀**: Pattern #10 drift 第 10 实例 (本会话 5-维判定). 提案文件无 Status 段达 2 个月. Wave 3-A 4 phase 全部 ✅ SHIPPED: Phase 0 / A / B / C 完整闭环. Status 段补全, 防未来 audit 误判 Wave 3-A 未 ship.
