@@ -58,3 +58,27 @@ ADR-0079 Control Plane 启动决策树（per active-status.md §四 4 项条件�
 - active-status.md 引用决议（≤ 24h 时差）。
 - ctest 全量零回归。
 - 阻塞 Phase 7 启动评估（phase-7a 前置）。
+
+## Status: 🟡 PARTIAL (2026-10-15 audit verification, per 2026-10-14 audit methodology)
+
+**Status 段补全** (per Pattern #10 hygiene, 2026-10-15 audit verification):
+
+本提案**部分 ship** (与 OpenSpec claim 范围不匹配):
+
+- **✅ ship 范围** (per commit `a742195` 2026-09-03 + `886ce66` 2026-10-15 hygiene):
+  - `scripts/control-plane-eval.py` C2 fail-soft (--relaxed mode) — 仅 C2 (Solo Dev 容量) 路径
+  - 5 类测试 (`tests/test_control_plane_eval_relaxed.py`): 默认保持 + relaxed 3 case + C1 仍阻塞 + C2 PASS 无影响
+  - Oracle SHIP-with-fixes verdict `ses_eebfb88b` (0 Critical / 2 Major / 4 Minor)
+- **❌ 未 ship 范围** (per proposal 验收标准对比):
+  - 完整 6 项启动条件一键评估脚本 (C1+C2+C3+C4+C5+C6)
+  - 3 路径测试 (全 PASS / 部分 FAIL / 全 FAIL)
+  - 决议模板 + 决议文档 git-tracked
+  - active-status.md 引用决议
+
+**决议**: 🟡 PARTIAL 标记 (per本日 hygiene 模式 5 维判定 + 本会话 P0 audit 实证)
+
+**关联 ship 提案**:
+- `control-plane-eval-c2-alignment` (commit `886ce66` 2026-10-15) 已 Status 段 ✅ ship
+- 本提案范围"完整 6 项"是 5-维判定中"承诺 vs 实际"差距, **不是 Pattern #10 drift** (头注无 SUPERSEDED 标记 + 有部分 ship 实证)
+
+**Pattern 沉淀**: 提案文件"完整 N 项"claim vs 实际"部分 M 项 ship" 范围不匹配时, 应标 🟡 PARTIAL 而非 ✅ SHIPPED, 防止未来 audit 误判.
