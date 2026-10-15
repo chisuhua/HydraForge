@@ -65,3 +65,29 @@
 - [ ] mock 模式仍显示跳过校验并保持现有测试行为。
 - [ ] `ctest -R 'pdk_chat|dsl_validation' --output-on-failure` 通过，且相关目标构建成功。
 - [ ] 代码和测试变更不引入核心 `src/modules/parser/` API 修改。
+
+## Status: ⛔ SUPERSEDED (2026-09-02 cleanup, dual ship 替代)
+
+**Status 段补全** (per Pattern #10 hygiene, 2026-10-15 audit verification):
+
+**5-维判定**:
+- 维度 1 self-declared: header `> **status: SUPERSEDED (2026-09-02 cleanup)**` 已标注
+- 维度 2 archive: ✅ `openspec/changes/archive/2026-09-26-l2-evolution-real-execution-chain/` (per commit `7823030` 2026-09-02 fix(state): clear iteration.json divergence)
+- 维度 3 commit: ✅ commit `7823030` (fix state) + `6844534` (post-archive clean residue) + `d5af65b` (mark all tasks.md checkboxes complete)
+- 维度 4 ADR: ADR-0069 tool-coordinator-hooks 🟡 Partial (条件 5 待 `test_cost_tracking_decorator` 修复后复核, 与本提案前置依赖相关)
+- 维度 5 fallback: 已 ship DslValidator 扩展 (per `fix-markdown-parser-yaml` `35d0eb6` 2026-10-15 hygiene + commit `e7b468c` 2026-08-05 merge + commit `4c9721c` 2026-08-05 feat)
+
+**实际 ship 实证** (per本日 hygiene 修正 + 早 session 2026-10-14 audit):
+- ✅ `fix-markdown-parser-yaml` (commit `e7b468c` 2026-08-05 + `1740b88` 2026-08-05 archive + `35d0eb6` 2026-10-15 hygiene)
+  - DslValidator 双格式识别 (YAML + Markdown bold)
+  - 6 files +328/-65
+  - 9 fixture 测试 (W5 backend/docker + backward-compat)
+  - `main.cpp` 跳过校验分支删除
+
+**关联 ship 提案**:
+- `fix-markdown-parser-yaml` 替代本提案 6b/platform DslValidator 扩展范围
+- `l2-evolution-real-execution-chain` (per `d42ef47b`) 提供 L2 真实执行链 + 6b/platform DslValidator 集成
+
+**判定结论**: ⛔ SUPERSEDED (本提案 6b DslValidator 扩展范围由 `fix-markdown-parser-yaml` 替代 ship, 本提案保留作历史设计意图记录, 详见 `proposal-suggestions.md` §3.2)
+
+**Pattern 沉淀**: 6b-platform 头注 `> **status: SUPERSEDED (2026-09-02 cleanup)**` 已标注 (commit `911d19f` 2026-09-03 6 个 6b 提案 SUPERSEDED 批量标记), 但**缺标准 ## Status 段** (本日 hygiene 模式 5 字段格式). 本 commit 补全标准化 Status 段.
