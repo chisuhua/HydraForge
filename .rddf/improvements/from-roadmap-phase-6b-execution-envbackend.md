@@ -67,3 +67,22 @@ ADR-0075 EnvBackend 为 AgenticDSL Execution Plane 提供隔离执行环境（�
 - BackendPolicy 按 layer 配置测试通过。
 - ctest 全量零回归。
 - ADR-0075 状态可从 🟡 Partial 提升 ✅ Approved。
+
+## Status: ⛔ SUPERSEDED by from-roadmap-phase-6c-execution-envbackend (2026-09-02)
+
+**Status 段补全** (per Pattern #10 hygiene, 2026-10-15 audit verification):
+
+**5-维判定**:
+- 维度 1 self-declared: header `> **status: SUPERSEDED by from-roadmap-phase-6c-execution-envbackend (2026-09-02)**` 已标注
+- 维度 2 archive: ✅ `openspec/changes/archive/2026-09-01-from-roadmap-phase-6c-execution-envbackend/` (per commit `911d19f`)
+- 维度 3 commit: ✅ commit `911d19f` (mark 6 Phase 6b proposals SUPERSEDED)
+- 维度 4 ADR: 关联 ADR-0075 D1+D2+D3+D5 ship 决议 (状态 待 audit 验证)
+- 维度 5 fallback: 6c-execution-envbackend 已 🟡 PARTIAL ship (per本会话 29806f4 hygiene commit)
+
+**关联 ship 提案**:
+- `from-roadmap-phase-6c-execution-envbackend` 🟡 PARTIAL (本会话 2026-10-15 audit 实证, commit 29806f4)
+- 6c 版替代 6b 版 execution-envbackend (per `iteration.json` 8/8 archived + Phase 6c 2026-09-02 ship 收官)
+
+**判定结论**: ⛔ SUPERSEDED (本提案 6b execution-envbackend 被 6c-execution-envbackend 替代 ship, 本提案保留作历史设计意图记录, 详见 `proposal-suggestions.md` §3.2)
+
+**Pattern 沉淀**: 6b 头注 `> **status: SUPERSEDED by from-roadmap-phase-6c-execution-envbackend (2026-09-02)**` 已标注 (commit `911d19f`), 但**缺标准 ## Status 段** (本日 hygiene 模式 5 字段格式). 本 commit 补全标准化 Status 段.

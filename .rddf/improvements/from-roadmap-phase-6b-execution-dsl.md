@@ -64,3 +64,22 @@ ADR-0072 DSL 节点扩展含 3 件，根据 Evidence Gate 决议条件性 ship�
 - DSL spec 文档更新。
 - ctest 全量零回归。
 - 阻塞 ADR-0072 D2+D3+D5 ship 决议（依赖 Evidence Gate）。
+
+## Status: ⛔ SUPERSEDED by from-roadmap-phase-6c-execution-dsl (2026-09-02)
+
+**Status 段补全** (per Pattern #10 hygiene, 2026-10-15 audit verification):
+
+**5-维判定**:
+- 维度 1 self-declared: header `> **status: SUPERSEDED by from-roadmap-phase-6c-execution-dsl (2026-09-02)**` 已标注
+- 维度 2 archive: ✅ `openspec/changes/archive/2026-09-01-from-roadmap-phase-6c-execution-dsl/` (per commit `911d19f`)
+- 维度 3 commit: ✅ commit `911d19f` (mark 6 Phase 6b proposals SUPERSEDED)
+- 维度 4 ADR: 关联 ADR-0072 D2+D3+D5 ship 决议
+- 维度 5 fallback: 6c-execution-dsl 已 🟡 PARTIAL ship (per `from-roadmap-phase-6c-execution-dsl.md:## Status: 🟡 PARTIAL (2026-10-14 audit verification)`)
+
+**关联 ship 提案**:
+- `from-roadmap-phase-6c-execution-dsl` 🟡 PARTIAL (早 session 2026-10-14 audit 实证)
+- 6c 版替代 6b 版 execution-dsl (per `iteration.json` 8/8 archived + Phase 6c 2026-09-02 ship 收官)
+
+**判定结论**: ⛔ SUPERSEDED (本提案 6b execution-dsl 被 6c-execution-dsl 替代 ship, 本提案保留作历史设计意图记录, 详见 `proposal-suggestions.md` §3.2)
+
+**Pattern 沉淀**: 6b 头注 `> **status: SUPERSEDED by from-roadmap-phase-6c-execution-dsl (2026-09-02)**` 已标注 (commit `911d19f`), 但**缺标准 ## Status 段** (本日 hygiene 模式 5 字段格式). 本 commit 补全标准化 Status 段.
