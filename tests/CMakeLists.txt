@@ -68,8 +68,8 @@ function(add_catch_test TEST_NAME)
     if(TEST_NAME STREQUAL "test_harness_mutation_proposal_real_llm")
         target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_evolution)
     endif()
-    # harness-mutation-commit-real-llm (2026-10-15): 真实 LLM commit + IGenomeRegistry persist
-    if(TEST_NAME STREQUAL "test_harness_mutation_commit_real_llm")
+    # harness-mutation-commit-persist (2026-10-15, M1 路径 A 修正后): commit + IGenomeRegistry persist 集成测试
+    if(TEST_NAME STREQUAL "test_harness_mutation_commit_persist")
         target_link_libraries(${TEST_NAME} PRIVATE agenticdsl_evolution)
     endif()
     # Phase 6c (2026-09-16-h-d-m-transition-guard): Transition Guard 测试需要 evolution 模块
@@ -199,7 +199,7 @@ function(add_catch_test TEST_NAME)
     # "只有通过了真实 LLM 验证才判定通过" + AGENTS.md Reverse Indicator Rule)
     # CI 跑两步: (1) ctest -LE must_realllm 跑所有非 LLM 测试;
     #              (2) ctest -L must_realllm 跑真 LLM (需 DEEPSEEK_API_KEY/MINIMAX_API_KEY)
-    if(TEST_NAME MATCHES "^test_react_loop_real_llm$|^test_plan_execute_realllm$|^test_gepa_loop_real_llm$|^test_skill_compiler_real_llm$|^test_distillation_capture_training_real_llm$|^test_harness_mutation_proposal_real_llm$|^test_harness_mutation_commit_real_llm$")
+    if(TEST_NAME MATCHES "^test_react_loop_real_llm$|^test_plan_execute_realllm$|^test_gepa_loop_real_llm$|^test_skill_compiler_real_llm$|^test_distillation_capture_training_real_llm$|^test_harness_mutation_proposal_real_llm$")
         set_tests_properties(${TEST_NAME} PROPERTIES LABELS "must_realllm")
     endif()
 
