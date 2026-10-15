@@ -97,3 +97,32 @@ per 修订后 `roadmap.md` Q2b 决策树 + Oracle session `ses_f9ab25dcfffetx4J5
 - [ ] `openspec validate --strict` exit 0
 - [ ] Oracle review 5/5 PASS（行为保持 + relaxed 语义 + C1 仍阻塞 + 决策树一致 + 测试覆盖）
 - [ ] zero 业务逻辑改动（仅 CLI flag + 决策树 1 处 + 测试）
+
+## Status: ✅ SHIPPED (2026-09-03, Sprint 25 Change #2)
+
+**Ship evidence** (验证日期 2026-10-15 via 本会话 5-维静态 ship 判定):
+- **OpenSpec archive**: `openspec/changes/archive/from-roadmap-phase-6c-control-plane-eval/` (per commit `c8293ef` 2026-09-02)
+- **代码 ship commits**:
+  - `a742195` (2026-09-03) feat(scripts): control-plane-eval --relaxed mode for C2 (Sprint 25 Change #2) — 6 files, 20/20 tests PASS
+  - `c8293ef` (2026-09-02) chore(openspec): archive 2 shipped changes (control-plane-eval + execution-dsl C6+C7)
+  - `cca3e5d` (2026-09-02) chore(rddf): sync dashboard after Wave 2 Phase 6c ship
+  - `456895e` (2026-09-02) docs(active-status): Phase 6c 收官 + ADR-0072 翻牌 + Phase 7a 不启动
+  - `eb89729` (后续) docs(usage-flow-issues): v0.3 — sync latest ship state + 5 confusion resolutions
+- **代码实证** (commit `a742195`):
+  - `scripts/control-plane-eval.py` — 新增 `--relaxed` argparse flag
+  - `evaluate_control_plane(conditions, relaxed=False)` — C2 从 blocking 集合降级
+  - `detect_c2_solo_dev_capacity` — 不变 (仍读 active-status.md)
+  - C2 FAIL details 加 `'(relaxed mode: not blocking)'` 标记 (仅 relaxed 模式)
+  - `tests/test_control_plane_eval_relaxed.py` — 5 类测试 (默认保持 + relaxed 3 case + C1 仍阻塞 + C2 PASS 无影响)
+  - `docs/audits/2026-09-02-control-plane-eval-v1.md` — `--relaxed` 模式说明段
+  - `iteration.json` — +1 archived entry
+- **验收标准对照**:
+  - A1: C1 仍阻塞 (`--relaxed` 不能绕过 C1) ✅ (per test case C1-仍阻塞)
+  - A2: `docs/audits/2026-09-02-control-plane-eval-v1.md` 加 `--relaxed` 段 ✅
+  - A3: `openspec validate --strict` exit 0 ✅ (per c8293ef archive 成功)
+  - A4: Oracle review 5/5 PASS ✅ (per ses_f9ab25dcfffetx4J5UFA7JYBKV 修订后)
+  - A5: zero 业务逻辑改动 (仅 CLI flag + 决策树 1 处 + 测试) ✅
+- **设计意图兑现**: C2 (Solo Dev 容量) 从硬阻塞降级为非阻塞 (但仍 FAIL 真实状态, 不掩盖), 解决 alarm fatigue 问题
+- **测试**: 20/20 PASS (5 新 + 15 现有无回归), 向后兼容默认行为不变
+
+**Pattern 沉淀**: Pattern #10 drift 第 15 实例 (本会话 5-维判定). 提案文件无 Status 段达 1.5 个月. Sprint 25 Change #2 实际已 ship 2026-09-03 (commit a742195). Status 段补全, 防未来 audit 误判 control-plane-eval C2 阻塞逻辑未 ship.
