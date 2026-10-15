@@ -72,3 +72,24 @@ mock 仅能验证"机制存在", 不能验证"LLM 真的被拦截"。
   - Case 2: LLM 输出 spawn 命令 (e.g. curl), 工具调用必须 fail-fast
 - 预估 effort: 1-2 天 (mock 测试复用 + 真实 LLM adapter)
 - 关键: 必须用真实 LLM (deepseek), mock 仅能验证机制, 不能验证 LLM 行为
+
+## Status: ⛔ SUPERSEDED (2026-10-15, dual-agent 调研阻断)
+
+**Status 段补全** (per Pattern #10 hygiene, 2026-10-15 audit verification):
+
+本提案于 2026-10-15 经 dual-agent 调研 (Metis `ses_ec1608b79ffe5R57Z6U2YvHisJ` + Oracle `ses_ec160582fffe3OLIsbVvjVvZ4s`) 识别为 **must_realllm 误标反模式强变体** — 4 强命中 + 3 独占发现.
+
+**关键发现** (Oracle C1 + Metis A/C 收敛):
+1. R9.1/R9.2/R9.3 三机制全是 parser/tool 层确定性过滤, LLM 不在回路中
+2. L2 spec P0-3/6/7 fix 显式声明 "L2 R9 是降级版机制演示...均不在 L2 demo 范围"
+3. must_realllm 误标反模式第三次命中 (前两次: 2026-09-29 fork_join + 2026-10-15 提案 4 P2 7af59b7)
+4. 提案与提案 4 pattern 不可复用 (R9 LLM 不在回路, 提案 4 LLM 真在回路)
+
+**建议** (per dual-agent 调研审计 `.rddf/audits/2026-10-15-rsi-anti-cheat-real-llm-dual-agent-review.md`):
+- R9.3 真实 sandbox: 等 Wave 4 sandbox infra ship 后**自动生效**, 不需要新测试
+- R9.1/R9.2 语义级 hint 检测: 那是**新 production 机制** (LLM-based 输入审查), 应独立立 ADR-0090 + OpenSpec change
+- must_realllm 误标反模式硬门: 升级 checklist 硬门 (proposal 必须引用 ≥1 处 provider->generate 调用点, **本提案过不了**)
+
+**决议**: Path 1 关闭本提案 + ⛔ SUPERSEDED 标记 (per commit `47f3cc9` 2026-10-15 治理 + dual-agent 调研审计).
+
+**Pattern 沉淀**: Pattern #13 must_realllm 误标反模式谱系第 3 实例 (强变体). 提案文件头注 (`> ⛔ SUPERSEDED 2026-10-15`) 已标注, 本 Status 段补全治理字段标准化.
