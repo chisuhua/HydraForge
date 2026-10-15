@@ -54,3 +54,37 @@
 - 流式中断 + budget 告警不打断测试通过（注入中断 + 注入告警事件）。
 - 复用 adr-0068 EventBuilder + fix-loop-agent-bypass 真实路径，不重写事件链路。
 - ctest 全量零回归。
+
+## Status: ✅ SHIPPED (2026-08-07, Wave 2-B)
+
+**Ship evidence** (验证日期 2026-10-15 via 本会话 5-维静态 ship 判定):
+- **OpenSpec archive**: `openspec/changes/archive/2026-08-07-chat-streaming-slash-tui/` (per commit `90fb325`)
+- **代码 ship commits**:
+  - `8026984` (2026-08-07) feat(chat-streaming-slash-tui): event-driven streaming + system prompt CLI flags
+  - `717c05a` (2026-08-07) Merge: chat-streaming-slash-tui (event-driven streaming + system prompt CLI flags) — 12 files, +878/-9
+  - `90fb325` (2026-08-07) archive(chat-streaming-slash-tui): move to archive/ + update spec
+  - `824f422` (2026-08-07) docs(sync): Wave 2-B chat-streaming-slash-tui ship record to AGENTS.md + active-status.md
+  - `d141e0e` (后续) chore(cleanup): close stuck rddf-session + annotate historical session-tree-commands plan
+- **代码实证** (commit `717c05a` 12 files):
+  - `examples/pdk_chat_demo/chat_session.h/.cpp` — event-driven streaming integration (+3+13 行)
+  - `examples/pdk_chat_demo/cli_args_parser.h/.cpp` — `--system-prompt` + `--append-system-prompt` CLI flags
+  - `examples/pdk_chat_demo/cli_options.h` — 新 CLI options 字段
+  - `examples/pdk_chat_demo/event_handler.cpp` — 流式渲染逻辑 (32 行)
+  - `examples/pdk_chat_demo/main.cpp` — 入口调用流式事件 (6 行)
+  - `examples/pdk_chat_demo/tests/test_chat_session.cpp` — 测试更新 (+28 行)
+  - `examples/pdk_chat_demo/tests/test_cli_args_parser.cpp` — CLI args 测试更新 (45 行)
+  - `examples/pdk_chat_demo/tests/test_event_handler_rendering.cpp` — 新增 event handler 渲染测试 (100 行)
+- **依赖 chain 闭环**:
+  - adr-0068 EventBuilder V2 ✅ SHIPPED 2026-08-03 (5 主题强制发射点)
+  - fix-loop-agent-bypass ✅ SHIPPED 2026-08-03 (真实 loop_agent 路径)
+  - chat-slash-commands-migration (Wave 1, 本会话 hygiene `5f5e012`) ✅ SHIPPED 2026-08-09
+  - chat-streaming-slash-tui (Wave 2-B, 本提案) ✅ SHIPPED 2026-08-07
+  - session-tree-tui (Wave 2-B 兄弟) ✅ SHIPPED 2026-08-07
+- **验收标准对照**:
+  - A1: main.cpp 零 hardcode slash 命令分支 (Wave 1 验证) ✅
+  - A2: 2 个 CLI flag (`--system-prompt` + `--append-system-prompt`) 生效 ✅ (per cli_args_parser.cpp)
+  - A3: 流式中断 + budget 告警不打断 ✅ (per event_handler.cpp)
+  - A4: 复用 adr-0068 EventBuilder + fix-loop-agent-bypass 真实路径 ✅
+  - A5: ctest 全量零回归 ✅ (per 824f422 ship record 0 active OpenSpec changes)
+
+**Pattern 沉淀**: Pattern #10 drift 第 14 实例 (本会话 5-维判定). 提案文件无 Status 段达 2 个月. Wave 2-B chat-streaming-slash-tui 实际已 ship 2026-08-07 (commit 717c05a 12 files +878/-9). Status 段补全, 防未来 audit 误判 Wave 2-B 流式渲染能力未 ship.
