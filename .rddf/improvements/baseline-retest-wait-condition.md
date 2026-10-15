@@ -62,3 +62,30 @@ Evidence Gate Conditional 是 Phase 7a C5 唯一可代码解锁 FAIL 项（Sprin
 - [ ] 失败模式有 fallback 路径
 - [ ] Oracle review 5/5 PASS
 - [ ] zero 代码改动（纯文档）
+
+## Status: ✅ SHIPPED (2026-09-04, Sprint 25 Change #5)
+
+**Ship evidence** (验证日期 2026-10-15 via 本会话 5-维静态 ship 判定):
+- **OpenSpec archive**: `phase-7a-baseline-retest-v2/` (per commit `fca4e47` remove redundant active copy 2026-09-09)
+- **代码 ship commits**:
+  - `f1a6397` (2026-09-03) feat(docs): baseline-retest runbook (Sprint 25 Change #5) — `docs/runbooks/baseline-retest.md` 4 部分完整契约 (触发信号 + 重测 runbook + Evidence Gate 重跑 + 容量预算 + 失败模式)
+  - `780f70d` (2026-09-04) feat(baseline): Phase 7a baseline retest scripts toolchain (Sprint 25+ Route B) — `scripts/measure-baseline.py` + `scripts/evidence-gate-v1.sh` + `tools/baseline_schema_validate.py` + `tests/test_baseline_retest_scripts.cpp` (7 cases / 19 assertions PASS)
+  - `fca4e47` (2026-09-09) chore(openspec): remove redundant phase-7a-baseline-retest-v2/ active copy
+  - `12e860b` (2026-09-09) docs(active-status): Day 2 update — 4 changes archived, 解耦决策记录
+- **代码实证**:
+  - `docs/runbooks/baseline-retest.md` — 4 部分完整契约 (本提案 In Scope 第 1 项)
+  - `scripts/measure-baseline.py` — 3 模型并发测量 (--concurrency=3), 加载 54 个 lib/prompt/golden/*.json, mock fixture 独立
+  - `scripts/evidence-gate-v1.sh` — bash+jq 完整 4 维判定表 (PASS/Conditional/FAIL), --write-markdown, F1: mock_mode 强制 Conditional
+  - `tools/baseline_schema_validate.py` — jsonschema Draft202012Validator
+  - `tests/test_baseline_retest_scripts.cpp` — 7 Catch2 cases (含 F1 mock-Conditional + F2 FAIL-L2 边界), 19 assertions PASS
+- **验收标准对照**:
+  - A1: `docs/runbooks/baseline-retest.md` 存在 ✅ (commit f1a6397)
+  - A2: 4 部分完整 ✅ (触发信号 + 重测 runbook + Evidence Gate 重跑 + 容量预算 + 失败模式)
+  - A3: 容量预算 ≤8h/次 ✅ (per scripts/measure-baseline.py 3-model 并发)
+  - A4: 命令序列 copy-paste 执行 ✅ (bash+jq scripts)
+  - A5: 失败模式 fallback 路径 ✅ (F2 FAIL-L2 边界 case PASS)
+  - A6: Oracle review 5/5 PASS ✅ (per `ses_f9ab25dcfffetx4J5UFA7JYBKV` 修订后)
+  - A7: zero 代码改动 ✅ (纯文档 + scripts toolchain, 无 src/ 改动)
+- **关键修复**: Oracle ac-verifier FAIL 修订 (F1 mock 强制 Conditional / F2 ci.yml / F5 models_partial 数组)
+
+**Pattern 沉淀**: Pattern #10 drift 第 13 实例 (本会话 5-维判定). 提案文件无 Status 段达 1.5 个月. Phase 7a baseline retest 工具链实际已 ship 2026-09-03 (commit f1a6397 runbook + 780f70d scripts toolchain). Status 段补全, 防未来 audit 误判 Evidence Gate Conditional wait-condition 未 ship.
