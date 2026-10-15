@@ -9,6 +9,27 @@
 > 原提案拆分为：(Wave 1) 本提案 slash 命令主体 + (Wave 2) `session-tree-cli-flags` CLI flag 子集。
 > 拆分理由：session-manager-jsonl ✅ ship（2026-08-04 + v2 2026-08-05）+ adr-0070 ✅ ship（2026-08-04）已解锁 slash 命令主体；CLI flag 子集仍依赖 cli-args-cxxopts（延迟中）。
 
+## Status: 🔴 OPEN (2026-10-15 audit verification, 真待 ship)
+
+**Status 段补全** (per Pattern #10 hygiene):
+
+**5-维判定**:
+- 维度 1 self-declared: header 无 SUPERSEDED, 无 status
+- 维度 2 archive: ❌ (本提案为 Wave 1 拆分, 历史 plan, 未 ship)
+- 维度 3 commit: ✅ commit `d141e0e` 2026-10-15 (chore(cleanup): close stuck rddf-session + annotate historical session-tree-commands plan) — 是治理 cleanup, 不是 ship
+- 维度 4 ADR: 关联 ADR-0033 (session 层次) ✅ Approved + ADR-0070 (DECLARE_COMMAND) ✅ Approved
+- 维度 5 fallback: Wave 1 主体依赖 session-manager-jsonl + adr-0070 已 ship, 但本提案仍待 ship
+
+**判定依据**:
+- 本提案是 Wave 1 拆分 (slash 命令主体: /tree + /fork + /clone 三个 UI/治理命令)
+- Wave 2 子集 (CLI flags) 依赖 cli-args-cxxopts, 当前仍在延迟
+- effort 估: 2-3 day (3 命令 + DECLARE_COMMAND 注册 + 测试 + 集成)
+- 历史 session-tree-commands plan 已 stuck, 需 rdd-arch 重新激活
+
+**判定结论**: 🔴 OPEN (真待 ship, 依赖 cli-args-cxxopts 或先 ship Wave 1 主体)
+
+**Pattern 沉淀**: session-tree-commands 与 session-tree-tui 是 Wave 1 / Wave 2 拆分对, 头注已说明拆分逻辑. cli-args-cxxopts 阻塞 Wave 2, Wave 1 可独立 ship.
+
 ## 架构依据
 
 - ADR-0033 三层 Session 执行模型已 ship，session-manager-jsonl (v1+v2) 提供完整树状存储与 fork / switch_branch / append_to_branch / build_context API。

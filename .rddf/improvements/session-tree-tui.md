@@ -10,6 +10,29 @@
 > 拆分理由：session-manager-jsonl ✅ ship + adr-0070 ✅ ship 已解锁 Wave 1 主体；CLI flag 实现依赖 cli-args-cxxopts（Wave 2）。
 > 本提案 blocked-by：`cli-args-cxxopts` + `session-tree-commands`。
 
+## Status: ⛔ BLOCKED by cli-args-cxxopts + session-tree-commands (2026-10-15 audit verification)
+
+**Status 段补全** (per Pattern #10 hygiene):
+
+**5-维判定**:
+- 维度 1 self-declared: header 无 SUPERSEDED, 无 status
+- 维度 2 archive: ❌ (本提案为 Wave 2 拆分, blocked-by 双依赖)
+- 维度 3 commit: ✅ commit `d141e0e` 2026-10-15 (chore(cleanup): annotate historical session-tree-commands plan) — 间接指向
+- 维度 4 ADR: 关联 ADR-0033 + ADR-0070 + cli-args-cxxopts (🟡 Partial)
+- 维度 5 fallback: cli-args-cxxopts delay 中, session-tree-commands Wave 1 待 ship
+
+**判定依据**:
+- 本提案是 Wave 2 拆分 (CLI flag 子集: --fork <node_id> + --name session flag)
+- blocked-by 双依赖:
+  1. `cli-args-cxxopts` (Wave 2 delayed, 🟡 Partial)
+  2. `session-tree-commands` (Wave 1 待 ship, OPEN)
+- 头注明确 `blocked-by` 关系, 是规范化 ⛔ BLOCKED 状态
+- effort 估: 1-2 day (双 flag 集成 + main.cpp 入口 + SessionManager::fork 串联 + 测试)
+
+**判定结论**: ⛔ BLOCKED (双依赖未 ship, 不能独立 ship, 保留作 Wave 2 拆分后状态记录)
+
+**Pattern 沉淀**: ⛔ BLOCKED 是 6 状态类别的第 7 状态 (✅ SHIPPED / 🟡 PARTIAL / ⛔ SUPERSEDED / ⛔ DESCOPED / ⏸ GATED / 🔍 FUTURE-CHANGE-TRACKER / 🔴 OPEN / ⛔ BLOCKED). blocked-by 双依赖关系在头注规范, Status 段补全标准化.
+
 ## 架构依据
 - Wave 1 `session-tree-commands` ship 后，slash 命令内已支持 fork / clone，但启动时无法直接 fork 到指定节点继续会话。
 - pi-agent 借鉴路径 §九：CLI flag 设计要求 `-c` 续最近 / `-r` 选择 / `--fork` 指定节点 / `--name` 重命名会话。
