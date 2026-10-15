@@ -37,3 +37,25 @@
 - sync mock 路径下，follow-up 入队 + Agent turn 完成后接续测试 PASS。
 - 队列溢出策略单元测试 PASS（达到上限后行为符合文档化策略）。
 - ctest 全量零回归。
+
+## Status: ✅ SHIPPED (2026-08-09, Wave 3-A Phase A)
+
+**Ship evidence** (验证日期 2026-10-15 via 本会话 5-维静态 ship 判定):
+- **OpenSpec archive**: `openspec/changes/archive/2026-08-08-chat-async-io-queue-infra/` (5 files tracked per commit `14f1ffe`)
+- **代码 ship commits**:
+  - `3c7f801` (2026-08-09) feat(pdk-chat-demo): OpenSpec change 创建 (Phase A of chat-async-io-steering decomposition)
+  - `d90b8b1` (2026-08-09) docs(sync): chat-async-io-queue-infra ship record
+  - `14f1ffe` (2026-08-09) archive: move chat-async-io-queue-infra to archive/
+  - `c30b2b3` (2026-09-07) fix(pdk_chat_demo): stdin pipe 模式下禁用双读 input thread (race condition 修复: `enable_input_thread` 默认值改 `isatty(STDIN_FILENO) != 0`)
+- **代码实证**:
+  - `pdk/chat_session/include/agenticdsl/pdk/chat_session.h:191` `enum class QueueKind { Steering, FollowUp }` — 双队列类型标识
+  - `pdk/chat_session/include/agenticdsl/pdk/chat_session.h:252-257` `queue_size(QueueKind)` + `try_clear_queue(QueueKind)` API
+  - `pdk/chat_session/include/agenticdsl/pdk/chat_session.h` 内含 `try_push_steering_for_test` / `try_push_follow_up_for_test` 测试辅助 API
+- **测试实证**: `examples/pdk_chat_demo/tests/test_chat_session_queues.cpp` 60 行 (3 TEST_CASE: queue_size / overflow 拒绝 / multi-round)
+- **配套 ship**: `c30b2b3` 修复 input thread + main loop 双读 stdin race (TTY 启用双读，pipe/重定向场景关闭双读, 避免 follow_up_queue_ 抢走 stdin prompt 致 main loop 永远等待)
+
+**依赖 chain 闭环**:
+- Phase A (本提案, queue 基础设施) → Phase B (chat-async-io-cancellation-chain, 已 ship `e629893` + `d1ecca2`) → Phase C (chat-async-io-model-switching, 已 ship `cc37d2d` + `6625072`)
+- 3 个子提案全部 ✅ SHIPPED, 父提案 `chat-async-io-steering` ⛔ DECOMPOSED 2026-08-08 (已记录于 `.rddf/improvements/chat-async-io-steering.md`)
+
+**Pattern 沉淀**: Pattern #10 drift 第 8 实例 (本会话 5-维判定). 提案文件无 Status 段达 2 个月, 仅靠 OpenSpec archive + commit message + 代码实证反推 ship 状态. Status 段补全, 防未来 audit 误判 Phase A 未 ship.
