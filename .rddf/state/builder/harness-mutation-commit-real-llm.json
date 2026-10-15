@@ -1,10 +1,10 @@
 {
   "schema": "builder-handoff-v1.5",
-  "version": 2,
+  "version": 3,
   "owner": "rdd-builder",
   "change_name": "harness-mutation-commit-real-llm",
-  "current_phase": "phase-2-execute",
-  "approval_status": "phase_2_started_with_cooling_off_override",
+  "current_phase": "phase-3-archive",
+  "approval_status": "phase_3_archived",
   "phase_history": [
     {
       "phase": "phase-0",
@@ -52,8 +52,50 @@
         "original_cooling_off_end": "2026-10-16T10:48:00Z (per openspec creation 2026-10-15T10:48:00Z + 24h)",
         "actual_p2_start": "2026-10-15T11:20:00+00:00 (override 提前 23h28m 启动)"
       }
+    },
+    {
+      "phase": "phase-2",
+      "sub_phase": "tdd_5step_execute",
+      "timestamp": "2026-10-15T12:00:00+00:00",
+      "decision": "execute",
+      "reason": "TDD 5-step per AGENTS.md Pattern #1: RED (test fail on missing Recording Provider fixture) → GREEN (RecordingLLMProvider + HermeticGenomeHome + CapturingBus + StubBudgetOk fixtures) → REFACTOR (extract shared helpers) → INTEGRATE (4/4 cases PASS) → DOC (14 AC checkbox)",
+      "commit": "7af59b7",
+      "files_changed": 2,
+      "test_results": "4/4 cases PASS, 27 assertions, 0.01s deterministic"
+    },
+    {
+      "phase": "phase-2.5",
+      "sub_phase": "oracle_ship_with_fixes_review",
+      "timestamp": "2026-10-15T13:00:00+00:00",
+      "decision": "ship_with_fixes",
+      "oracle_session": "ses_ec25297b2ffeHld7vkvvIBnJvl",
+      "verdict": "SHIP-with-fixes",
+      "critical_count": 0,
+      "major_count": 4,
+      "minor_count": 6,
+      "major_fixes": {
+        "M1_path_A": "移除 must_realllm label + 4 处 must_require_real_llm_env() 门 + 死代码 (RecordingLLMProvider + generate_prompt_delta_via_real_llm + generate_uuid_v4 重实现); 重命名为 test_harness_mutation_commit_persist 集成测试",
+        "M2_descope": "spec R2 Recording Provider 守卫 DESCOPED per Case 4 descope 先例格式",
+        "M3_payload_correction": "Case 2 断言 4 字段 (genome_name/version/parent/mutation_kind + meta.trace_id), 校准 src/evolution/harness_rsi.cpp:225-228 实际 emit 契约",
+        "M4_event_contract_correction": "Case 3 接 CapturingBus 验证 genome.committed MUST NOT trigger (denied 路径零事件发射), spec R4 明确 genome.persist_failed 不在本 change scope"
+      },
+      "minor_fixes": "假 drain 守卫删除 / Case 4 移出 must_realllm 噪声 / 死代码清理 / 补 <random> include / 修正 context_ids: N/A / AC-12/13 待 P3 archive 前补",
+      "commit": "0477ead"
+    },
+    {
+      "phase": "phase-3",
+      "sub_phase": "git_mv_archive",
+      "timestamp": "2026-10-15T14:30:00+00:00",
+      "decision": "archive",
+      "commit": "d375ad9",
+      "archive_path": "openspec/changes/archive/2026-10-15-harness-mutation-commit-real-llm/",
+      "integrity": "6-file (per Day-5 lesson): .openspec.yaml + proposal.md + design.md + tasks.md + specs/harness-mutation-commit-real-llm/spec.md + specs/ dir",
+      "validation": "openspec list 验证: 1 active change remaining (std-expected-monadic-ops, 其他 session 遗留, 与本 change 无关)",
+      "ac_14_agments_md_registration": "✅ 段 '## 2026-10-15 提案 4 ship 完成' 写入 AGENTS.md §Recent Changes",
+      "ac_13_flaky_verification": "✅ 3 rerun 0.04-0.08s, 0% flaky",
+      "ac_12_tsan_asan_followup": "⏸ 待 follow-up (沙箱性能 + skip env 配置要求, 需独立 change 跑 TSan/ASan preset)"
     }
   ],
-  "next_phase": "phase-2-execute",
-  "next_action": "TDD Step 1: RED 写失败测试 (RecordingLLMProvider + HermeticGenomeHome fixtures + 4 cases)"
+  "next_phase": "phase_3_done",
+  "next_action": "rdd-verifier 阶段 (可选, per AGENTS.md Pattern #4 + ADR-0034 max 3 retry loop) 或完工"
 }
