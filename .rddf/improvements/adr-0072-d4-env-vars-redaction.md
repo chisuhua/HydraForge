@@ -48,7 +48,40 @@ ctx.metadata["env_vars"] = {"API_TOKEN": "secret_abc123"};  // 原样存储
 3. **PG-13 context 写盘**: event_log 是 JSONL, secrets 永久写入磁盘
 4. **跨进程 SKILL 调用**: `SkillInterpreter` IPC 传递 metadata 时 secrets 可能 leak
 
-## Status: 🔴 OPEN (2026-10-15 audit verification, 真待 ship)
+## Status: ⛔ CLOSED (2026-10-16 dual-agent review, per Pattern #10 hygiene)
+
+**Status 段更新** (2026-10-16 via 主会话, dual-agent review 关闭):
+
+**关闭原因** (per Oracle + Metis 共识 5+7 BLOCKERS):
+- dual-agent pre-impl review (2026-10-16, `.rddf/audits/2026-10-16-r13-4-env-vars-pre-impl-dual-agent-review.md`)
+  发现 env-vars-redaction-protocol OpenSpec change 有 **5 BLOCKERS (Oracle) + 7 BLOCKERS (Metis) + 8 SHOULD_FIX**, 不满足"可实施"门槛
+- 关键 BLOCKERS:
+  - B1: `env_vars_audit` event 物理无发射路径 (helper 纯函数 + hook lambda 只 capture config)
+  - B2-B3: spec 默认值冲突 (spec.md:15 vs spec.md:22/75, AC-5 与 backward-compat 物理冲突)
+  - B4 (env-vars): hook 集成点错 (hook 看 `args["env.XXX"]`, plan 假设看 `metadata["env_vars"]`)
+  - B5 (env-vars): 签名 3 版本不一致 + CMake 未接 (`src/common/security/` 不存在) + 无 plumbing 路径
+
+**关闭路径** (per Pattern #10 hygiene, AGENTS.md 路线决策 5 类路径 D 状态修正):
+- 本提案 `.rddf/improvements/adr-0072-d4-env-vars-redaction.md` 状态从 🔴 OPEN → ⛔ CLOSED
+- 关联 OpenSpec change `openspec/changes/2026-10-15-env-vars-redaction-protocol/` 由主会话清理 (git mv 不做, 标记 superseded)
+- 未来重新激活条件: 待 Sprint 27+ (per `.rddf/roadmap/2026-10-07-post-l2-real-llm-roadmap.md`) 提供以下基础设施:
+  1. hook 工厂签名扩展 (注入 `IInteractionBus*`)
+  2. parser 接收 `BackendConfig` 参数 (白名单 plumbing 路径)
+  3. `src/common/security/` 目录 + root `CMakeLists.txt:105` agenticdsl_common 源列表接线
+
+**重新激活流程** (per Pattern #10 后续建议):
+1. 新立 improvement 提案 (e.g. `adr-0072-d4-env-vars-redaction-v2.md`)
+2. 等基础设施 ship 后 (per AGENTS.md dependency track)
+3. rdd-arch → rdd-planner → rdd-builder P0-P3 走完整流程
+4. pre-implementation dual-agent review 必跑 (per AGENTS.md Pattern #8, 本次 review 已 ship 5+7 BLOCKERS)
+
+**真实风险** (per Metis §1.1):
+- 早 session proposal claim "PG-13 写盘 / CI 日志泄漏 / 跨进程 SKILL IPC 4 类风险" — 全部是**未来**风险，不是现存泄漏
+- source proposal 自承认 `// 未来 (per ADR-0068 留 Sprint 27+)`
+- 当前 production 代码 `metadata["env_vars"]` **零消费者** (per Oracle S8 finding: grep 仅 node_factory 写)
+- 因此 leak risk 物理上未触发, 不构成 ship 红线
+
+**Pattern #8 ROI 实证**: 30min dual-agent review 节省 ~3-4h 实施后调试 (env-vars BLOCKERS 共识)
 
 **Status 段补全** (per Pattern #10 hygiene):
 
