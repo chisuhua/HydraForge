@@ -6,13 +6,23 @@
 
 ### Bug 1: `expected_eval_quality` 漏脱敏（spec 409 vs impl 582-602）
 
+**Oracle dual-agent review finding (B4 critical, 2026-10-16)**: 早 session proposal claim "expected_eval_quality 在 event top-level" 是 **事实错误**。实测 `examples/pdk_chat_demo_evolution/evolution_session.cpp:570` `build_meta` 函数:
+
+```cpp
+{"expected_eval_quality", ctx.expected_eval_quality.value_or("")},
+```
+
+**expected_eval_quality 实际在 `event["meta"]["expected_eval_quality"]` 内**, 不是 top-level。早 session proposal/design/spec/Case 5 断言路径 `event["expected_eval_quality"]` 全部错设计 — 照做 = dead code (branch 永远不触发, bug 未修)。
+
 **spec 显式要求** (`openspec/changes/archive/2026-09-24-pdk-chat-demo-evolution-reference-example/specs/pdk-chat-demo-evolution/spec.md:409`):
 > `confidential` | redact `turn_input` + `response` + **`expected_eval_quality`** + `metadata.tags` + `metadata.domain` (replace with `[REDACTED-confidential]`); preserve only `context_id` + `task_class` + `metadata.sensitivity` for audit trail
 
 **实装缺失** (`examples/pdk_chat_demo_evolution/evolution_session.cpp:582-602`):
 ```cpp
 nlohmann::json redact_trace_fields(nlohmann::json event, const std::string& sensitivity) {
-    if (sensitivity.empty() || sensitivity == "public") return event;
+    if (sensitivity.empty() || sensitivity == "none" || sensitivity == "public") {
+        return event;
+    }
     std::string level = (sensitivity == "confidential") ? "confidential" : "internal";
     if (event.contains("turn_input") && event["turn_input"].is_string()) {
         event["turn_input"] = "[REDACTED-" + level + "]";
@@ -22,20 +32,39 @@ nlohmann::json redact_trace_fields(nlohmann::json event, const std::string& sens
     }
     if (sensitivity == "confidential" && event.contains("meta") && event["meta"].is_object()) {
         auto& m = event["meta"];
-        if (m.contains("tags")) m["tags"] = "[REDACTED-confidential]";
-        if (m.contains("domain")) m["domain"] = "[REDACTED-confidential]";
+        if (m.contains("tags")) {
+            m["tags"] = "[REDACTED-confidential]";
+        }
+        if (m.contains("domain")) {
+            m["domain"] = "[REDACTED-confidential]";
+        }
+        // Bug 1 修复点 (per Oracle B4): expected_eval_quality 在 meta 内, 非 top-level
+        if (m.contains("expected_eval_quality") && m["expected_eval_quality"].is_string()) {
+            m["expected_eval_quality"] = "[REDACTED-confidential]";
+        }
+    }
+    if ((sensitivity == "confidential" || sensitivity == "internal")
+        && event.contains("meta") && event["meta"].is_object()) {
+        // internal 场景 (per spec 408 隐含 + 与 turn_input/response 一致):
+        // expected_eval_quality 同样脱敏 (per Oracle B4: meta 分支 guard 扩展到 internal)
+        auto& m = event["meta"];
+        if (m.contains("expected_eval_quality") && m["expected_eval_quality"].is_string()) {
+            m["expected_eval_quality"] = "[REDACTED-" + level + "]";
+        }
     }
     return event;
 }
 ```
 
-**漏**: `expected_eval_quality` 字段在 trace JSONL 输出时未脱敏。当 ContextRequest `metadata.sensitivity == "confidential"` 且 `expected_eval_quality` 字段非空，trace emit 含完整 expected_eval_quality 明文（如 `"Poor"` 表示评估期望），违反 R13.4 `confidential 0% leak` 红线。
+**漏** (per Oracle B4): `expected_eval_quality` 字段在 trace JSONL 输出时未脱敏。`build_meta` (line 570) 把 `expected_eval_quality` 写入 `event["meta"]["expected_eval_quality"]` (per `value_or("")` 永远 string)，但 `redact_trace_fields` 只处理 `meta.tags` / `meta.domain`，漏 `expected_eval_quality`。当 `metadata.sensitivity == "confidential"` 时，trace emit 含完整 expected_eval_quality 明文（如 `"Poor"` 表示评估期望），违反 R13.4 `confidential 0% leak` 红线。
 
-**数据流**:
+**附带 vacuous AC 修正** (per Oracle B4): 早 session AC-5 断言 `event["expected_eval_quality"]` 是 null scenario，物理不可达 (因 `value_or("")` 永远 string)。修正后 AC-5 改为**断言 `event["meta"]["expected_eval_quality"]` 是 string 而非 null** (覆盖 Oracle B4 的 vacuous AC 风险)。
+
+**数据流** (修正后):
 - `phase2_baseline` / `phase4_reload_rerun` / `phase5_compare` 调 `redact_trace_fields(event, sensitivity)`
 - `event` 含 8 top-level fields (per spec scenario trace-4-events-with-8-top-level-and-meta-context-id)
-- `event["meta"]` 6 fields: `context_id` / `task_class` / `is_hidden` / `sensitivity` / `eval_quality` (per P0-4 C5 锁定为 null) / 其他
-- **但 L2 自定义字段如 `expected_eval_quality` 在 event top-level**（非 `meta` 内）— 实装处理 `meta.tags`/`meta.domain` 时漏 top-level `expected_eval_quality`
+- `event["meta"]` 7 fields: `context_id` / `task_class` / `is_hidden` / `sensitivity` / `eval_quality` / **`expected_eval_quality`** (per B4 修复点) / 其他
+- 修复: meta 分支内加 `expected_eval_quality` 脱敏, confidential + internal 都覆盖
 
 **风险场景**:
 - confidential context 评估期望 (`"Poor"`) 永久写入 trace JSONL 磁盘
@@ -84,21 +113,24 @@ context_2 trace emit:
 
 ## What Changes
 
-### Bug 1 修复: `redact_trace_fields` 加 `expected_eval_quality` 脱敏
+### Bug 1 修复: `redact_trace_fields` 加 `expected_eval_quality` 脱敏 (per Oracle B4)
 
-**修改**: `examples/pdk_chat_demo_evolution/evolution_session.cpp:582-602` `redact_trace_fields`
-- 在 top-level 检查 `event.contains("expected_eval_quality") && event["expected_eval_quality"].is_string()`
+**修改**: `examples/pdk_chat_demo_evolution/evolution_session.cpp:582-602` `redact_trace_fields` 的 meta 分支
+- 在 `if (sensitivity == "confidential" && event.contains("meta"))` 分支内 (line 593 附近) 加 `expected_eval_quality` 脱敏
+- 在新独立 `if ((sensitivity == "confidential" || sensitivity == "internal") && event.contains("meta"))` 分支内也加 expected_eval_quality 脱敏 (覆盖 internal 场景, per Oracle B4 "meta 分支 guard 扩展到 internal" 修复建议)
+- **NOT top-level** (per Oracle B4: `expected_eval_quality` 在 meta 内, 不是 top-level)
 - 若 `sensitivity == "confidential"`, 替换为 `[REDACTED-confidential]`
 - 若 `sensitivity == "internal"`, 替换为 `[REDACTED-internal]` (per spec 408 隐含, 虽未显式列但与 `turn_input` + `response` 一致)
-- 保留 `sensitivity == "public"` 或空 (无 redaction)
+- 保留 `sensitivity == "public"` 或空 或 `none` (无 redaction)
 
-**Test 新增**: `examples/pdk_chat_demo_evolution/tests/test_reverse_indicators.cpp` 加 Case 5
+**Test 新增**: `examples/pdk_chat_demo_evolution/tests/test_reverse_indicators.cpp` 加 Case 5 (修正 per Oracle B4)
 - 构造 ContextRequest `metadata.sensitivity = "confidential"`, `expected_eval_quality = "Poor"`
 - 跑 `run_6_phase_demo`, grep 整个 stdout
 - 断言: stdout 中**任何位置**不出现字符串 `"Poor"`
-- 断言: trace emit 中 `event["expected_eval_quality"] == "[REDACTED-confidential]"`
+- 断言: trace emit 中 **`event["meta"]["expected_eval_quality"]` == `"[REDACTED-confidential]"`** (per Oracle B4 修正, NOT top-level `event["expected_eval_quality"]`)
+- 附带 assertion: `event["meta"]["expected_eval_quality"]` 是 string (覆盖 vacuous AC 风险, per Oracle B4 finding)
 
-### Bug 2 修复: 跨 context 隔离（per-context reset）
+### Bug 2 修复: 跨 context 隔离（per-context reset + 白盒断言方案, per Oracle B5）
 
 **设计决策 D1**: per-context 隔离策略
 - **选项 A (推荐)**: `chat_session_` 在 `phase2_baseline` 入口重置 (`chat_session_.reset(); chat_session_ = std::make_unique<...>(...)`)
@@ -114,7 +146,20 @@ context_2 trace emit:
   - 优点: 长期更通用
   - 缺点: 范围扩大
 
-**决策**: A (per-context reset)。理由: 最小风险 + 严格隔离 + 不动 ChatSession 公开 API (避免 BREAKING 跨 PDK 边界)。
+**决策**: A (per-context reset) + **白盒断言方案** (per Oracle B5 推荐选项 b). 理由: 最小风险 + 严格隔离 + 不动 ChatSession 公开 API (避免 BREAKING 跨 PDK 边界)。
+
+**Oracle B5 finding (2026-10-16 critical)**: 早 session design D3 计划"mock 工具 lambda capture `loop_args['history']`"验证跨 context 隔离, 但:
+- (a) `phase1_init` 无条件注册 `loop/run` (`evolution_session.cpp:175+`)
+- (b) `ToolRegistry` duplicate registration 抛 `invalid_argument` (`src/common/tools/registry.cpp:101/103`)
+- (c) `run_6_phase_demo` monolithic (line 143-149) 无 mock handler 注入窗口
+- (d) mock handler (line 234) 完全忽略 args → **mock 模式跨 context 泄漏不可观测**
+
+**Case 6 验证方案修正** (per Oracle B5 推荐选项 b - 白盒断言):
+- **NOT** mock lambda capture history (物理不可达 per Oracle B5)
+- **YES** 验证 `chat_session_` 指针 per-context 变化 (白盒, 物理可达)
+- 测试实施: 通过 friend class / protected accessor / 测试专用 API (e.g. `get_chat_session_for_test()`) 暴露 `chat_session_` 指针/唯一 ID
+- 跑 `run_6_phase_demo` 处理 2 contexts (ctx1 public + ctx2 confidential)
+- 断言: 进入 ctx1 时 `chat_session_` 指针 (或 unique ID) = P1; 进入 ctx2 时 = P2; P1 != P2 (per-context reset 实证)
 
 **实施位置**: `examples/pdk_chat_demo_evolution/evolution_session.cpp:phase2_baseline` 入口 (line 290 之前)
 ```cpp

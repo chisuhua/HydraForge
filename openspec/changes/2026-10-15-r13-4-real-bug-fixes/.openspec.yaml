@@ -11,11 +11,19 @@ adr_refs:
   - docs/adr/adr-0068-event-emission-contract.md (R13.4 redaction spec source)
 pre_impl_dual_agent_review:
   report: .rddf/audits/2026-10-15-r13-4-confidential-redaction-real-llm-dual-agent-review.md
+  second_pass_report: .rddf/audits/2026-10-16-r13-4-env-vars-pre-impl-dual-agent-review.md
   oracle_session: ses_ec1540a00ffeoqYH8dp7b32Zcx
   metis_session: ses_ec1545fcdffe79LuLYcKsBH38D
+  second_pass_oracle_session: ses_ebe0f0ff8ffeINdWNmD5x7vTjx
+  second_pass_metis_session: ses_ebe1541efffe7g1ix4n3yOnGTs
   convergence_signals: 4
   exclusive_findings: 3
-  context: 2026-10-15 dual-agent 调研识别 R13.4 mock 之外的 2 个真 bug (expected_eval_quality 漏脱敏 + 跨 context 泄漏), 属提案 r13-4-confidential-redaction-real-llm 关闭 Path 1 后的修复 follow-up
+  second_pass_convergence_signals: 5
+  second_pass_exclusive_findings:
+    r13_4_oracle_only:
+      - B4: expected_eval_quality 在 meta 内 (line 570 build_meta), 早 session proposal claim top-level 是事实错误 (dead code 风险)
+      - B5: mock lambda capture history 物理不可行 (phase1_init 无条件注册 + duplicate throw + mock handler 忽略 args), Case 6 需白盒断言方案
+  context: 2026-10-15 dual-agent 调研识别 R13.4 mock 之外的 2 个真 bug (expected_eval_quality 漏脱敏 + 跨 context 泄漏), 属提案 r13-4-confidential-redaction-real-llm 关闭 Path 1 后的修复 follow-up. 2026-10-16 second pass dual-agent review (Metis ses_ebe1541efffe7g1ix4n3yOnGTs + Oracle retry ses_ebe0f0ff8ffeINdWNmD5x7vTjx) 揭示 2 critical Oracle-only findings (B4 Bug 1 修复位置错 + B5 Case 6 mock 不可行) + 5 BLOCKER env-vars consensus. 本 change 已重写 proposal Bug 1 (meta 内, 非 top-level) + Bug 2 Case 6 (白盒断言 chat_session_ 指针 per-context 变化, NOT mock lambda capture). env-vars-redaction-protocol 独立 change 关闭决议见 .rddf/improvements/adr-0072-d4-env-vars-redaction.md Status.
 pre_issues_must_resolve_before_p0_case_1_approve: 5
 cooling_off_until: 2026-10-16T17:50:00Z
 related_proposals:

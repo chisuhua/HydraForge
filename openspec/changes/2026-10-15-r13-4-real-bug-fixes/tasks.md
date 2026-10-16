@@ -24,31 +24,39 @@
 
 ## Phase 2: TDD 5-step 实施 (24h cooling-off 后启动)
 
-### 步骤 1: RED Bug 1 (expected_eval_quality 漏脱敏)
+> **注意**: Phase 2 步骤经 Oracle dual-agent review (2026-10-16) 修正 per B4 + B5 critical findings:
+> - **B4**: expected_eval_quality 在 meta 内 (line 570 build_meta), 修复路径改 meta 分支
+> - **B5**: mock lambda capture history 物理不可达, Case 6 改白盒断言 (chat_session_ 指针 per-context 变化)
+
+### 步骤 1: RED Bug 1 (expected_eval_quality 漏脱敏, per Oracle B4 修正)
 
 - [ ] 2.1 在 `tests/test_reverse_indicators.cpp` 加 Case 5 (构造 ContextRequest `metadata.sensitivity = "confidential"`, `expected_eval_quality = "Poor"`)
 - [ ] 2.2 跑 `ctest -R test_reverse_indicators -j1` 验证 Case 5 FAIL
-- [ ] 2.3 验证失败信息显示 `event["expected_eval_quality"] == "Poor"` 而非 `"[REDACTED-confidential]"`
-- [ ] 2.4 验证既有 Case 1-4 仍 PASS (零回归)
+- [ ] 2.3 验证失败信息显示 **`event["meta"]["expected_eval_quality"] == "Poor"`** (per Oracle B4: 在 meta 内, NOT top-level) 而非 `"[REDACTED-confidential]"`
+- [ ] 2.4 附带 assertion 验证: `event["meta"]["expected_eval_quality"]` 是 string (覆盖 vacuous AC 风险, per Oracle B4 finding)
+- [ ] 2.5 验证既有 Case 1-4 仍 PASS (零回归)
 
-### 步骤 2: GREEN Bug 1
+### 步骤 2: GREEN Bug 1 (per Oracle B4 修正)
 
-- [ ] 2.5 在 `examples/pdk_chat_demo_evolution/evolution_session.cpp:582-602` `redact_trace_fields` 函数 line 590-592 之后加 `expected_eval_quality` 脱敏分支 (per D2)
-- [ ] 2.6 跑 Case 5 PASS
-- [ ] 2.7 跑既有 4 cases 零回归
+- [ ] 2.6 在 `examples/pdk_chat_demo_evolution/evolution_session.cpp` `redact_trace_fields` 函数 (line 582-602) 的 **meta 分支**内 (line 593 附近) 加 `expected_eval_quality` 脱敏 (per Oracle B4: 真实位置在 meta, NOT top-level)
+- [ ] 2.7 加新独立分支覆盖 `internal` 场景: `if ((sensitivity == "confidential" || sensitivity == "internal") && event.contains("meta"))` 内加 expected_eval_quality 脱敏 (per Oracle B4: meta 分支 guard 扩展到 internal)
+- [ ] 2.8 跑 Case 5 PASS
+- [ ] 2.9 跑既有 4 cases 零回归
 
-### 步骤 3: RED Bug 2 (跨 context 泄漏)
+### 步骤 3: RED Bug 2 (跨 context 泄漏, per Oracle B5 修正)
 
-- [ ] 3.1 在 `tests/test_reverse_indicators.cpp` 加 Case 6 (2 contexts: public + confidential, 验证 confidential context trace 不含 public turn_input 明文)
-- [ ] 3.2 跑 `ctest -R test_reverse_indicators -j1` 验证 Case 6 FAIL
-- [ ] 3.3 验证失败信息显示 cross-context pollution
+- [ ] 3.1 在 `tests/test_reverse_indicators.cpp` 加 Case 6 (2 contexts: public + confidential, **白盒断言**验证 `chat_session_` 指针 per-context 变化, per Oracle B5 推荐选项 b)
+- [ ] 3.2 跑 `ctest -R test_reverse_indicators -j1` 验证 Case 6 FAIL (在 Bug 2 修复前, `chat_session_` 指针不变)
+- [ ] 3.3 验证失败信息显示 `chat_session_` 指针 P1 == P2 (未 per-context reset)
+- [ ] 3.4 验证既有 Case 1-5 仍 PASS (零回归)
 
-### 步骤 4: GREEN Bug 2
+### 步骤 4: GREEN Bug 2 (per Oracle B5 修正)
 
-- [ ] 3.4 抽 helper `EvolutionSession::recreate_chat_session()` 复用 `phase1_init` make_unique 模式 (per D1)
-- [ ] 3.5 在 `phase2_baseline` 入口 (line 290 之前) 调 `recreate_chat_session()`
-- [ ] 3.6 跑 Case 6 PASS
-- [ ] 3.7 跑既有 4 cases 零回归
+- [ ] 3.5 抽 helper `EvolutionSession::recreate_chat_session()` 复用 `phase1_init` make_unique 模式 (per D1 选项 A)
+- [ ] 3.6 加测试专用 accessor (per Oracle B5): `ChatSession* get_chat_session_for_test() const { return chat_session_.get(); }` (公开方法或 friend class)
+- [ ] 3.7 在 `phase2_baseline` 入口 (line 290 之前) 调 `recreate_chat_session()`
+- [ ] 3.8 跑 Case 6 PASS (`chat_session_` 指针 P1 != P2)
+- [ ] 3.9 跑既有 4 cases + Case 5 零回归
 
 ### 步骤 5: 全量回归
 

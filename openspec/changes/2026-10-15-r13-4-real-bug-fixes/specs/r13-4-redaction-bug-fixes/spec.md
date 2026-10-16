@@ -14,43 +14,37 @@
 
 ## ADDED Requirements
 
-### Requirement: R13.4 `expected_eval_quality` 脱敏合规
+### Requirement: R13.4 `expected_eval_quality` 脱敏合规 (per Oracle B4 critical 修正)
 
-The system MUST extend `pdk_chat_demo_evolution::detail::redact_trace_fields` (`evolution_session.cpp:582-602`) to redact the `expected_eval_quality` field per L2 spec R13.4 line 409 compliance.
+The system MUST extend `pdk_chat_demo_evolution::detail::redact_trace_fields` (`evolution_session.cpp:582-602`) to redact the `expected_eval_quality` field per L2 spec R13.4 line 409 compliance. **NOTE** (per Oracle dual-agent review 2026-10-16 B4): `expected_eval_quality` is located in `event["meta"]` (per `build_meta` line 570 `evolution_session.cpp`), NOT top-level as originally specified. The system MUST redact `event["meta"]["expected_eval_quality"]`.
 
-#### Scenario: confidential sensitivity redacts expected_eval_quality
+#### Scenario: confidential sensitivity redacts expected_eval_quality (in meta, per B4)
 
 - **WHEN** ContextRequest `metadata.sensitivity == "confidential"`
-- **AND** trace event top-level contains `expected_eval_quality` field (string type, non-null)
-- **THEN** `redact_trace_fields` MUST replace `event["expected_eval_quality"]` with literal string `"[REDACTED-confidential]"`
+- **AND** trace event `meta` contains `expected_eval_quality` field (string type, non-empty per `value_or("")`)
+- **THEN** `redact_trace_fields` MUST replace `event["meta"]["expected_eval_quality"]` with literal string `"[REDACTED-confidential]"` (NOT top-level `event["expected_eval_quality"]`)
 - **AND** the replacement MUST happen BEFORE `tracer_->record_phase()` call (line 322 / line 449)
 - **AND** the original value MUST NOT appear in stdout / trace JSONL / metrics.json
 
-#### Scenario: internal sensitivity redacts expected_eval_quality
+#### Scenario: internal sensitivity redacts expected_eval_quality (in meta, per B4)
 
 - **WHEN** ContextRequest `metadata.sensitivity == "internal"`
-- **AND** trace event top-level contains `expected_eval_quality` field (string type, non-null)
-- **THEN** `redact_trace_fields` MUST replace `event["expected_eval_quality"]` with literal string `"[REDACTED-internal]"`
-- **NOTE**: Per spec 408, `internal` sensitivity redacts `turn_input` + `response`. Adding `expected_eval_quality` to `internal` redaction is consistent with `turn_input` + `response` handling (consistency with existing pattern, per design D2).
+- **AND** trace event `meta` contains `expected_eval_quality` field (string type, non-empty)
+- **THEN** `redact_trace_fields` MUST replace `event["meta"]["expected_eval_quality"]` with literal string `"[REDACTED-internal]"`
+- **NOTE**: Per spec 408, `internal` sensitivity redacts `turn_input` + `response`. Adding `expected_eval_quality` to `internal` redaction is consistent with `turn_input` + `response` handling. The meta-branch guard MUST be extended to `internal` (per Oracle B4 finding).
 
-#### Scenario: public sensitivity preserves expected_eval_quality
+#### Scenario: public/none sensitivity preserves expected_eval_quality
 
-- **WHEN** ContextRequest `metadata.sensitivity == "public"` (or empty)
-- **AND** trace event top-level contains `expected_eval_quality` field
+- **WHEN** ContextRequest `metadata.sensitivity == "public"` (or empty or `"none"`)
+- **AND** trace event `meta` contains `expected_eval_quality` field
 - **THEN** `redact_trace_fields` MUST preserve original value (no replacement)
-- **NOTE**: `public` sensitivity redaction policy is `none` (per spec 407).
-
-#### Scenario: null expected_eval_quality skip redaction
-
-- **WHEN** trace event top-level contains `expected_eval_quality` field but value is `null` (JSON null type)
-- **THEN** `redact_trace_fields` MUST skip redaction (no replacement)
-- **NOTE**: This is consistent with existing `response` field handling (line 591 `!event["response"].is_null()` guard).
+- **NOTE**: `public` / `none` sensitivity redaction policy is `none` (per spec 407).
 
 #### Scenario: missing expected_eval_quality skip redaction
 
-- **WHEN** trace event top-level does NOT contain `expected_eval_quality` field
+- **WHEN** trace event `meta` does NOT contain `expected_eval_quality` field
 - **THEN** `redact_trace_fields` MUST skip redaction (no-op)
-- **NOTE**: This is consistent with all other field handling (line 587 `event.contains("turn_input")` guard pattern).
+- **NOTE**: Per Oracle B4 vacuous AC 修正: `expected_eval_quality` 由 `value_or("")` 写入永远是 string. 早 session null scenario 物理不可达 (vacuous AC) — 本 spec 已删 null scenario.
 
 ### Requirement: 跨 context ChatSession 隔离 (per R13.4 cross-context leak prevention)
 
@@ -64,22 +58,22 @@ The system MUST reset `chat_session_` (EvolutionSession::Impl) per context to pr
 - **AND** the new `ChatSession` MUST be wired with the same `engine_` / `bus_` / `tool_registry_` / `agent_cfg_` / `cancellation_registry` as `phase1_init` initialization
 - **NOTE**: Per design D1 option A (per-context reset), minimal risk, no ChatSession public API change.
 
-#### Scenario: 2 contexts (public + confidential) cross-context isolation
+#### Scenario: 2 contexts (public + confidential) cross-context isolation (per Oracle B5 白盒断言)
 
 - **WHEN** `run_6_phase_demo()` processes 2 contexts: `ctx1` (sensitivity=public, turn_input="CAP theorem") + `ctx2` (sensitivity=confidential, turn_input="server breach")
-- **THEN** `ctx2` LLM call payload `history` field MUST NOT contain `ctx1` turn_input string `"CAP theorem"` (no cross-context pollution)
+- **THEN** the `chat_session_` raw pointer (or unique instance ID) observed via test-only accessor `get_chat_session_for_test()` MUST differ between ctx1 phase2_baseline entry and ctx2 phase2_baseline entry (per-context reset 实证, per Oracle B5 推荐选项 b - 白盒断言)
 - **AND** `ctx2` trace event `response` field MUST be `"[REDACTED-confidential]"` (per R13.4 mock test line 298)
 - **AND** `ctx1` trace event `response` field MUST be preserved (sensitivity=public, no redaction)
-- **NOTE**: Verified via mock LLM provider lambda capture of `loop_args["history"]` in test_reverse_indicators Case 6.
+- **NOTE**: **NOT verified via mock LLM lambda capture of `loop_args["history"]`** (per Oracle B5 critical finding: mock handler 完全忽略 args, phase1_init 无条件注册 loop/run, duplicate throw 阻止 mock 注入, mock 模式跨 context 泄漏不可观测). 改用白盒断言: `chat_session_` 指针 per-context 变化是跨 context 隔离的**充分条件** (因为 per-context reset 必然导致指针不同).
 
 #### Scenario: per-context reset preserves real LLM mode hermetic HOME
 
 - **WHEN** real LLM mode is enabled (per `l2-evolution-real-llm-provider` design D1)
 - **AND** `phase2_baseline(ctx)` per-context reset
 - **THEN** the new `ChatSession` MUST use the same `real_provider_` borrow (no provider re-injection)
-- **AND** the `loop/run` tool registration from `phase1_init` MUST still be effective
+- **AND** the `loop/run` tool registration from `phase1_init` MUST still be effective (per Oracle B5 + S8 finding: `phase1_init` 无条件注册 loop/run, per-context reset 不重复注册避免 duplicate throw)
 - **AND** `setup_hermetic_home()` from `phase0_load_contexts` MUST still isolate HOME env vars
-- **NOTE**: Per design D1, per-context reset only touches `chat_session_` member, not `engine_` / `real_provider_` / `bus_` (these are already per-`EvolutionSession`-instance).
+- **NOTE**: Per design D1, per-context reset only touches `chat_session_` member, not `engine_` / `real_provider_` / `bus_` (these are already per-`EvolutionSession`-instance). Per Oracle S8 C2: `chat_session_` 每构造产生新 session_id → bus `chat.turn.*` 事件 session_id per-context 变化 (L2 trace 不受影响, 但需确认无测试断言).
 
 ### Requirement: 既有 9/9 mock tests 零回归
 
