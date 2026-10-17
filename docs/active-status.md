@@ -2,12 +2,12 @@
 
 > **焦点**: 当前活跃的 OpenSpec changes | **更新**: 每日
 > **Master Plan**: [`docs/superpowers/plans/2026-07-24-sprint-24-25-demo-driven-plan.md`](superpowers/plans/2026-07-24-sprint-24-25-demo-driven-plan.md)
-> **架构决策**: [`docs/adr/`](adr/) — **84 ADR**, **61 Approved** (`tools/doc_metrics.py` 实测 2026-09-29, post L2 finalization archive), adr_lint 零错误 (warning 级非阻断; **2026-09-29 update**: 实测 30 个 ADR-TRACKING-01 warnings, 主要是 adr_lint 扫描范围不含 `openspec/changes/archive/` 导致已 ship+archive 的 ADR 仍报 24h+ 无 tracking, 待本行 commit 后批量加 `⏳ tracking: shipped` 标记归零). **2026-09-02 新增**: ADR-0072 🔍 Proposed → 🟡 Partial 翻牌 tracker 已在 `.rddf/improvements/adr-0072-flip-to-partial.md` 注册 (此条订正前一版本"待建"误述)
+> **架构决策**: [`docs/adr/`](adr/) — 86 ADR, 62 Approved (`tools/doc_metrics.py` 实测 2026-10-17, post Wave 3 ADR-0078 ✅ Approved + ADR-0086 v1.1 + ADR-0088 v1.0 + ADR-0068 v2.2 等累计), adr_lint 零错误 (warning 级非阻断; **2026-09-29 update**: 实测 30 个 ADR-TRACKING-01 warnings, 主要是 adr_lint 扫描范围不含 `openspec/changes/archive/` 导致已 ship+archive 的 ADR 仍报 24h+ 无 tracking, 待本行 commit 后批量加 `⏳ tracking: shipped` 标记归零). **2026-09-02 新增**: ADR-0072 🔍 Proposed → 🟡 Partial 翻牌 tracker 已在 `.rddf/improvements/adr-0072-flip-to-partial.md` 注册 (此条订正前一版本"待建"误述)
 > **Phase**: 6 — Agent-as-Plugin (2026-07-15 ~ 至今, Phase 5 ✅ 收官)
 
 > **ADR 状态唯一事实源声明**（2026-09-02 同步，per Q3 α 修订）：**ADR 状态权威 = 各 `docs/adr/*.md` 自身 `## 状态` 字段 + `tools/adr_lint.py` 输出**。本表状态计数与 ADR 文件冲突时以 ADR 文件为准；视图层滚动更新延迟 ≤ 1 Sprint。
 > 
-> **本表计数口径**（2026-09-29 订正）："84 ADR" = `docs/adr/` 活跃目录计数（含 `plugin/` 与 `skill/` 子目录）**不含** `docs/archive/adr/` 19 个归档 ADR；"61 Approved" = ✅ Approved 状态 ADR 计数。**注意**: 计数会随每次 ship 漂移, 权威值以 `tools/doc_metrics.py` 实测为准, 视图层滚动更新延迟 ≤ 1 Sprint (per 文件头声明)。如需全量计数（含归档），见 [`docs/architecture/adr-implementation-status-gap-analysis.md`](architecture/adr-implementation-status-gap-analysis.md) §一（口径差异已显式注释）。
+> **本表计数口径**（2026-10-17 订正）："86 ADR" = `docs/adr/` 活跃目录计数（含 `plugin/` 与 `skill/` 子目录）**不含** `docs/archive/adr/` 19 个归档 ADR；"62 Approved" = ✅ Approved 状态 ADR 计数。**注意**: 计数会随每次 ship 漂移, 权威值以 `tools/doc_metrics.py` 实测为准, 视图层滚动更新延迟 ≤ 1 Sprint (per 文件头声明)。如需全量计数（含归档），见 [`docs/architecture/adr-implementation-status-gap-analysis.md`](architecture/adr-implementation-status-gap-analysis.md) §一（口径差异已显式注释）。
 
 ---
 
@@ -15,7 +15,7 @@
 
 | 维度 | 状态 |
 |------|------|
-| **Total ctest** | **270** 测试总数 (`ctest -N` 实测 2026-09-29; must_realllm 改造 ship 后 +18 cases vs 2026-09-21 基线 252; 详见 AGENTS.md §FULL REGRESSION TEST FLOW 阶段 1). **注意**: 含 **2 项** pre-existing failures (test_e2e_real_llm / test_skill_interpreter 7.S29-1); 之前列的 test_chat_session_events + test_budget_alert 已分别修复 (commits `7706a82` + `f456336`), 不再 pre-existing. 2026-09-21 C4 `harness-rsi-pilot` SHIPPED + GO (Decision Record `docs/audits/2026-09-21-harness-rsi-pilot-go-no-go.md`, 5 判据全绿). 注意 ctest 计数会随每次 ship 漂移, 权威值以 `ctest -N` 实测为准 |
+| **Total ctest** | **279/279** 测试总数 (`ctest -N` 实测 2026-10-17; 0 failures 含 must_realllm 真实 LLM 12/12 PASS + L2 evolution 10/10 + pdk_chat_demo 34/34; 详细见 AGENTS.md §FULL REGRESSION TEST FLOW 阶段 1-3). **注意**: 0 项 pre-existing failures (`test_e2e_real_llm` 已修复 commit `1c729e3` `2026-09-30-fix-chatsession-empty-llm-response`); `test_skill_interpreter 7.S29-1` 为 pre-existing flaky inherent limitation (单独跑 PASS, AGENTS.md 多次记录), 不计入 pre-existing failure. 2026-09-21 C4 `harness-rsi-pilot` SHIPPED + GO (Decision Record `docs/audits/2026-09-21-harness-rsi-pilot-go-no-go.md`, 5 判据全绿). 注意 ctest 计数会随每次 ship 漂移, 权威值以 `ctest -N` 实测为准 |
 | **ASan** | **92/93** (2026-07-31 复验, `build/asan/`, ⚠ **2 个月未刷新**) — `test_skill_interpreter` 失败: 无 AddressSanitizer 内存错误报告, 断言级失败 (`result.success=false`, posix_spawn child 在 ASan 构建下未执行成功), debug 构建下同测试通过 → 定性 **ASan-only pre-existing 功能失败**, 建议独立跟踪修复。注: ASan 构建树测试总数 93 (debug 树 106, 13 个示例/集成测试未纳入 ASan 配置) |
 | **TSan** | 全量超时跳过 (机器性能受限; 上次全量 ~2026-09-13~15 Sprint 33, 4+ sprint gap). 2026-09-28 L2 finalization ship gate A3 跑了 12-test 子集 (l2-evolution 9/9 + broader 3/3, 0 warnings), 不替代全量 baseline. 触发条件 = 下一个 functional ship (D4 LoRA pipeline) 前必跑 |
 | **OpenSpec active** | **0** (2026-09-29 update: `2026-09-26-l2-evolution-finalization` archived via git mv (commit `1c049d5`) — tasks.md 0 unchecked boxes, T0.1→T6.4 all ✅, merge `f26e157` on 2026-09-28 已 ship, Day-5 4-file integrity 恢复. 历史 context 2026-09-25: 4 个候选名 (chat-real-llm-coverage-phase-h + provider-llm-tool-empty-passthrough + fix-generate-subgraph-static-next + intent-classification-router) 全部 archived/cancelled per DECISION B(a)/B(c)/D. 24h cooling-off 已满 5 天 (Wave 3 merge `f0a5c4b` 2026-09-23T05:35Z + 24h = 2026-09-24T05:35Z 已过期) → **ADR-0078 Wave 3 Phase 2 (D4 LoRA pipeline) 立项窗口已打开**, 见 `.rddf/improvements/` follow-up tracker) |
