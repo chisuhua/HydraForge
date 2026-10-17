@@ -11,7 +11,7 @@
 
 ## 状态
 
-✅ **Approved** (2026-10-10 ship: Phase 1 docs `7dc83a7` + Phase 2 code `87aadc4`)
+**✅ Approved** (2026-10-10 ship: Phase 1 docs `7dc83a7` + Phase 2 code `87aadc4`)
 
 **Ship 验证** (Phase 2, commit `87aadc4`):
 - `cmake --build build` 全量 exit 0，零 error；deprecation warnings 按 Oracle 预期出现在消费者（agent_macros.h 内部引用 + test_plan_execute_loop_integration + test_pdk_macros + g1_coding_assistant）
